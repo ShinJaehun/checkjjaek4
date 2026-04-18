@@ -28,4 +28,89 @@
 #       enabled: "ON"
 
 en:
-  hello: "Hello world"
+  auth:
+    actions:
+      sign_in: "Sign in"
+      sign_out: "Sign out"
+      sign_up: "Create account"
+    alerts:
+      invalid_credentials: "Email or password is incorrect."
+      not_authorized: "You cannot perform that action."
+      sign_in_required: "Sign in to continue."
+    form:
+      email: "Email"
+      name: "Name"
+      password: "Password"
+      password_confirmation: "Confirm password"
+    notices:
+      signed_out: "Signed out successfully."
+    registrations:
+      description: "Start with a personal feed, follow other readers, and build your circle before you open a group."
+      title: "Create your reader account"
+    sessions:
+      description: "Your home feed starts with your own posts and the readers you follow. Public posts stay easy to discover, while groups can layer on top later."
+      eyebrow: "Personal Feed MVP"
+      no_account: "Need an account?"
+      title: "Write first, then build your network"
+  comments:
+    actions:
+      delete: "Delete"
+      submit: "Add comment"
+    form:
+      content: "Comment"
+    notices:
+      created: "Comment added."
+      destroyed: "Comment removed."
+      updated: "Comment updated."
+    title: "Conversation"
+  follows:
+    notices:
+      created: "You are now following this reader."
+      destroyed: "You stopped following this reader."
+  likes:
+    actions:
+      like: "Like"
+      unlike: "Unlike"
+    notices:
+      created: "Post liked."
+      destroyed: "Like removed."
+  posts:
+    actions:
+      delete: "Delete"
+      edit: "Edit"
+      publish: "Publish"
+      save: "Save changes"
+      view: "Open thread"
+    confirmations:
+      destroy: "Delete this post?"
+    edit:
+      title: "Edit your post"
+    form:
+      content: "What are you reading or thinking about?"
+    index:
+      description: "Your home feed starts with your own posts and the readers you follow. Public posts stay visible on profile pages so conversation can still happen outside the feed."
+      eyebrow: "Home Feed"
+      new_post_description: "Short thoughts, reading notes, and reactions all start here."
+      new_post_title: "Write to your personal feed"
+      title: "Readers you follow, all in one place"
+    meta:
+      comments:
+        one: "1 comment"
+        other: "%{count} comments"
+      likes:
+        one: "1 like"
+        other: "%{count} likes"
+    notices:
+      created: "Post published."
+      destroyed: "Post deleted."
+      updated: "Post updated."
+  time:
+    formats:
+      short: "%Y-%m-%d %H:%M"
+  users:
+    actions:
+      follow: "Follow"
+      unfollow: "Following"
+    profile:
+      eyebrow: "Reader Profile"
+      stats: "%{followers} followers · %{following} following"
