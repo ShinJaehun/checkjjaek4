@@ -53,6 +53,6 @@ RSpec.describe "Likes", type: :request do
     delete post_like_path(post_record)
 
     expect(response).to redirect_to(root_path)
-    expect(flash[:alert]).to eq("Like was not found.")
+    expect(flash[:alert]).to eq("좋아요를 찾을 수 없습니다.")
   end
 end

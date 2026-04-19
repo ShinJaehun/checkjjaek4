@@ -43,6 +43,6 @@ RSpec.describe "Follows", type: :request do
     delete user_follow_path(other_user)
 
     expect(response).to redirect_to(user_path(other_user))
-    expect(flash[:alert]).to eq("Follow relationship was not found.")
+    expect(flash[:alert]).to eq("팔로우 관계를 찾을 수 없습니다.")
   end
 end
