@@ -63,6 +63,28 @@ en:
       destroyed: "Comment removed."
       updated: "Comment updated."
     title: "Conversation"
+  book_search:
+    nav: "Book Search"
+    title: "Book Search"
+    description: "Find a book first before linking it to activity."
+    placeholder: "Which book are you looking for?"
+    form:
+      query: "Query"
+      submit: "Search"
+    empty:
+      title: "No search results"
+      description: "Try another keyword."
+    errors:
+      generic: "Something went wrong while searching books."
+    results:
+      title: "Search results"
+      meta: "%{count} results"
+    fields:
+      authors: "Authors"
+      publisher: "Publisher"
+      isbn: "ISBN"
+    actions:
+      open: "Open detail"
   follows:
     alerts:
       not_found: "Follow relationship was not found."

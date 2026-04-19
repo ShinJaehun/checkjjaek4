@@ -2,6 +2,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   root "posts#index"
   devise_for :users
+  resource :book_search, only: :show, controller: "book_searches"
 
   resources :posts, except: %i[new] do
     resources :comments, only: %i[create update destroy]

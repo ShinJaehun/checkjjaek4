@@ -34,6 +34,28 @@ ko:
       destroyed: "댓글을 삭제했습니다."
       updated: "댓글을 수정했습니다."
     title: "대화"
+  book_search:
+    nav: "책 검색"
+    title: "책 검색"
+    description: "읽은 책이나 읽고 싶은 책을 먼저 찾아봅니다."
+    placeholder: "어떤 책을 찾고 있나요?"
+    form:
+      query: "검색어"
+      submit: "검색"
+    empty:
+      title: "검색 결과가 없습니다"
+      description: "다른 검색어로 다시 시도해 보세요."
+    errors:
+      generic: "책 검색 중 오류가 발생했습니다."
+    results:
+      title: "검색 결과"
+      meta: "%{count}건의 결과"
+    fields:
+      authors: "저자"
+      publisher: "출판사"
+      isbn: "ISBN"
+    actions:
+      open: "상세 보기"
   follows:
     alerts:
       not_found: "팔로우 관계를 찾을 수 없습니다."
