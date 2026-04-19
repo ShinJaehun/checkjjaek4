@@ -1,0 +1,92 @@
+ko:
+  auth:
+    actions:
+      sign_in: "로그인"
+      sign_out: "로그아웃"
+      sign_up: "회원가입"
+    alerts:
+      invalid_credentials: "이메일 또는 비밀번호가 올바르지 않습니다."
+      not_authorized: "이 작업을 수행할 수 없습니다."
+      sign_in_required: "계속하려면 로그인해 주세요."
+    form:
+      email: "이메일"
+      name: "이름"
+      password: "비밀번호"
+      password_confirmation: "비밀번호 확인"
+    notices:
+      signed_out: "로그아웃되었습니다."
+    registrations:
+      description: "개인 피드부터 시작하고, 다른 독자를 팔로우하며, 이후에 그룹을 확장해 나갑니다."
+      title: "독자 계정을 만듭니다"
+    sessions:
+      description: "홈 피드는 내 글과 내가 팔로우한 사람들의 글부터 시작합니다. 공개 글은 프로필에서 계속 볼 수 있고, 그룹은 그 위에 확장됩니다."
+      eyebrow: "개인 피드 MVP"
+      no_account: "계정이 없나요?"
+      title: "먼저 쓰고, 그다음 연결합니다"
+  comments:
+    actions:
+      delete: "삭제"
+      submit: "댓글 남기기"
+    form:
+      content: "댓글"
+    notices:
+      created: "댓글을 남겼습니다."
+      destroyed: "댓글을 삭제했습니다."
+      updated: "댓글을 수정했습니다."
+    title: "대화"
+  follows:
+    alerts:
+      not_found: "팔로우 관계를 찾을 수 없습니다."
+    notices:
+      created: "이 독자를 팔로우했습니다."
+      destroyed: "이 독자를 언팔로우했습니다."
+  likes:
+    alerts:
+      not_found: "좋아요를 찾을 수 없습니다."
+    actions:
+      like: "좋아요"
+      unlike: "좋아요 취소"
+    notices:
+      created: "좋아요를 남겼습니다."
+      destroyed: "좋아요를 취소했습니다."
+  posts:
+    actions:
+      delete: "삭제"
+      edit: "수정"
+      publish: "짹"
+      repost: "다시 짹"
+      save: "저장"
+      view: "글 보기"
+    confirmations:
+      destroy: "이 글을 삭제할까요?"
+    edit:
+      title: "글 수정"
+    form:
+      content: "지금 읽고 있거나 떠오른 생각을 적어보세요"
+    index:
+      description: "홈 피드는 내 글과 내가 팔로우한 독자들의 글부터 보여줍니다. 공개 글은 프로필에서도 계속 볼 수 있어 대화가 피드 밖으로도 이어집니다."
+      eyebrow: "홈 피드"
+      new_post_description: "짧은 감상, 독서 메모, 반응이 모두 여기서 시작됩니다."
+      new_post_title: "짹짹"
+      title: "팔로우한 독자들의 글"
+    meta:
+      comments:
+        one: "댓글 1개"
+        other: "댓글 %{count}개"
+      likes:
+        one: "좋아요 1개"
+        other: "좋아요 %{count}개"
+    notices:
+      created: "글을 게시했습니다."
+      destroyed: "글을 삭제했습니다."
+      updated: "글을 수정했습니다."
+  time:
+    formats:
+      short: "%Y-%m-%d %H:%M"
+  users:
+    actions:
+      follow: "팔로우"
+      unfollow: "팔로잉"
+    profile:
+      eyebrow: "독자 프로필"
+      stats: "팔로워 %{followers}명 · 팔로잉 %{following}명"
