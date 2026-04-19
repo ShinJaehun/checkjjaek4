@@ -12,6 +12,22 @@ RSpec.describe "Posts", type: :request do
     user.active_follows.create!(followee: followee)
   end
 
+  describe "GET /posts/:id" do
+    it "redirects guests to sign in" do
+      get post_path(own_post)
+
+      expect(response).to redirect_to(new_user_session_path)
+    end
+  end
+
+  describe "GET /posts/:id/edit" do
+    it "redirects guests to sign in" do
+      get edit_post_path(own_post)
+
+      expect(response).to redirect_to(new_user_session_path)
+    end
+  end
+
   describe "GET /" do
     it "redirects guests to sign in" do
       get root_path
@@ -39,6 +55,67 @@ RSpec.describe "Posts", type: :request do
       }.to change(user.posts, :count).by(1)
 
       expect(response).to redirect_to(root_path)
+    end
+
+    it "redirects guests to sign in when creating a post" do
+      post posts_path, params: { post: { content: "Guest update" } }
+
+      expect(response).to redirect_to(new_user_session_path)
+    end
+  end
+
+  describe "PATCH /posts/:id" do
+    it "redirects guests to sign in" do
+      patch post_path(own_post), params: { post: { content: "Guest edit" } }
+
+      expect(response).to redirect_to(new_user_session_path)
+    end
+
+    it "updates the current user's post" do
+      sign_in user
+
+      patch post_path(own_post), params: { post: { content: "Updated note" } }
+
+      expect(response).to redirect_to(post_path(own_post))
+      expect(own_post.reload.content).to eq("Updated note")
+    end
+
+    it "does not allow another user to update the post" do
+      sign_in stranger
+
+      patch post_path(own_post), params: { post: { content: "Hijacked" } }
+
+      expect(response).to redirect_to(root_path)
+      expect(own_post.reload.content).to eq("My note")
+    end
+  end
+
+  describe "DELETE /posts/:id" do
+    it "redirects guests to sign in" do
+      delete post_path(own_post)
+
+      expect(response).to redirect_to(new_user_session_path)
+    end
+
+    it "deletes the current user's post" do
+      sign_in user
+
+      expect {
+        delete post_path(own_post)
+      }.to change(Post, :count).by(-1)
+
+      expect(response).to redirect_to(root_path)
+    end
+
+    it "does not allow another user to delete the post" do
+      sign_in stranger
+
+      expect {
+        delete post_path(own_post)
+      }.not_to change(Post, :count)
+
+      expect(response).to redirect_to(root_path)
+      expect(Post.exists?(own_post.id)).to be(true)
     end
   end
 end

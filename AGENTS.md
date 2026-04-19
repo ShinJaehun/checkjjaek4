@@ -76,6 +76,10 @@
 ## 아키텍처/구현 원칙
 
 - `checkjjaek4`의 서버측 권한 판단은 **Pundit policy 중심**으로 유지한다.
+- controller에 권한 조건식을 직접 늘어놓기보다, controller는 가능한 한 `authorize`, `policy_scope`를 호출하는 자리로 남긴다.
+- 단건 권한 판단은 policy에, 목록 조회 범위 판단은 policy scope에 둔다.
+- 권한 규칙과 조회 가능 범위가 화면마다 다르면, 그 차이를 controller 조건문으로 풀기보다 policy/policy scope 구조로 먼저 설명 가능해야 한다.
+- view에서 권한 분기를 추가해야 할 때도, 가능한 한 controller와 policy에서 이미 정리된 상태를 소비하도록 만든다.
 - 레거시 `checkjjaek3`의 CanCanCan 구조는 참고 대상일 뿐, 새 프로젝트의 기본 권한 체계로 그대로 가져오지 않는다.
 - Turbo 응답과 HTML 응답은 둘 다 깨지지 않도록 주의하고, 응답 방식은 가능한 한 일관되게 유지한다.
 - 새 기능을 추가할 때는 먼저 현재 구조와 naming, partial 분리 방식, controller 책임 범위를 확인하고 그 흐름을 따른다.

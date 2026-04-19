@@ -11,4 +11,29 @@ RSpec.describe "Follows", type: :request do
       post user_follow_path(other_user)
     }.to change(Follow, :count).by(1)
   end
+
+  it "redirects guests to sign in when following a user" do
+    post user_follow_path(other_user)
+
+    expect(response).to redirect_to(new_user_session_path)
+  end
+
+  it "does not allow a user to follow themselves" do
+    sign_in user
+
+    expect {
+      post user_follow_path(user)
+    }.not_to change(Follow, :count)
+
+    expect(response).to redirect_to(root_path)
+  end
+
+  it "lets a signed-in user unfollow a followed user" do
+    sign_in user
+    user.active_follows.create!(followee: other_user)
+
+    expect {
+      delete user_follow_path(other_user)
+    }.to change(Follow, :count).by(-1)
+  end
 end

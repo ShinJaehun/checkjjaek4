@@ -27,4 +27,12 @@ class PostPolicy < ApplicationPolicy
       scope.where(user_id: [ user.id ] + followee_ids, visibility: Post.visibilities[:public_feed])
     end
   end
+
+  class ProfileScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      scope.where(visibility: Post.visibilities[:public_feed])
+    end
+  end
 end

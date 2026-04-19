@@ -12,4 +12,38 @@ RSpec.describe "Likes", type: :request do
       post post_like_path(post_record)
     }.to change(Like, :count).by(1)
   end
+
+  it "redirects guests to sign in when liking a post" do
+    post post_like_path(post_record)
+
+    expect(response).to redirect_to(new_user_session_path)
+  end
+
+  it "redirects guests to sign in when removing a like" do
+    delete post_like_path(post_record)
+
+    expect(response).to redirect_to(new_user_session_path)
+  end
+
+  it "does not create a duplicate like for the same user and post" do
+    sign_in user
+    post_record.likes.create!(user: user)
+
+    expect {
+      post post_like_path(post_record)
+    }.not_to change(Like, :count)
+
+    expect(response).to redirect_to(root_path)
+  end
+
+  it "lets the user remove their like" do
+    sign_in user
+    post_record.likes.create!(user: user)
+
+    expect {
+      delete post_like_path(post_record)
+    }.to change(Like, :count).by(-1)
+
+    expect(response).to redirect_to(root_path)
+  end
 end
