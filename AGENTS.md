@@ -24,6 +24,10 @@
 작업 전 아래 문서를 가능한 먼저 확인한다.
 
 1. `AGENTS.md`
+   현재 개인 feed 작업에서는 이 문서를 먼저 읽고,
+   이어서 아래 두 문서를 우선 확인한다.
+   - `docs/architecture/feed_policy.md`
+   - `docs/specs/personal_feed_mvp.md`
 2. 현재 작업과 직접 관련된 아키텍처/정책 문서 (`docs/architecture/*.md`)
 3. 관련 작업 스펙 (`docs/specs/*.md`)
 4. 테스트 전략 (`docs/testing/*.md`)
@@ -33,6 +37,7 @@
 
 원칙:
 - 현재 구현 작업과 직접 관련된 문서를 먼저 읽는다.
+- 현재 개인 feed 범위에서는 `AGENTS.md` → `docs/architecture/feed_policy.md` → `docs/specs/personal_feed_mvp.md` 순으로 먼저 읽는 것을 기본값으로 둔다.
 - spec만 보지 말고, 해당 spec의 판단 근거가 되는 architecture/policy 문서가 있으면 함께 먼저 확인한다.
 - `docs/migration`, `docs/legacy`는 재구축 초반에는 중요하지만, 마이그레이션이 진행될수록 우선순위가 내려갈 수 있다.
 - 문서가 아직 없거나 부족하면, 먼저 문서를 보강한 뒤 구현에 들어간다.
