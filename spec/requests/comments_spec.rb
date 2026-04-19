@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Comments", type: :request do
+  let(:turbo_headers) { { "ACCEPT" => "text/vnd.turbo-stream.html, text/html" } }
   let!(:user) { User.create!(name: "Reader", email: "reader@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:author) { User.create!(name: "Author", email: "author@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:post_record) { author.posts.create!(content: "Public post") }
@@ -14,6 +15,17 @@ RSpec.describe "Comments", type: :request do
     }.to change(post_record.comments, :count).by(1)
 
     expect(response).to redirect_to(post_path(post_record))
+  end
+
+  it "renders the post show page with 422 for an invalid turbo create request" do
+    sign_in user
+
+    post post_comments_path(post_record),
+         params: { comment: { content: "" } },
+         headers: turbo_headers
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("대화")
   end
 
   it "renders the post show page with errors when comment creation fails" do
@@ -50,6 +62,17 @@ RSpec.describe "Comments", type: :request do
 
     expect(response).to redirect_to(post_path(post_record))
     expect(comment.reload.content).to eq("Updated comment")
+  end
+
+  it "renders the post show page with 422 for an invalid turbo update request" do
+    sign_in user
+
+    patch post_comment_path(post_record, comment),
+          params: { comment: { content: "" } },
+          headers: turbo_headers
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("대화")
   end
 
   it "renders the post show page with errors when comment update fails" do

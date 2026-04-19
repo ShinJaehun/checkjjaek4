@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Posts", type: :request do
+  let(:turbo_headers) { { "ACCEPT" => "text/vnd.turbo-stream.html, text/html" } }
   let!(:user) { User.create!(name: "Writer", email: "writer@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:followee) { User.create!(name: "Followee", email: "followee@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:stranger) { User.create!(name: "Stranger", email: "stranger@example.com", password: "password123!", password_confirmation: "password123!") }
@@ -55,6 +56,17 @@ RSpec.describe "Posts", type: :request do
       }.to change(user.posts, :count).by(1)
 
       expect(response).to redirect_to(root_path)
+    end
+
+    it "renders the index page with 422 for an invalid turbo request" do
+      sign_in user
+
+      post posts_path,
+           params: { post: { content: "" } },
+           headers: turbo_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("짹짹")
     end
 
     it "redirects guests to sign in when creating a post" do
