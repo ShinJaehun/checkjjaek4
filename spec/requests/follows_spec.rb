@@ -36,4 +36,13 @@ RSpec.describe "Follows", type: :request do
       delete user_follow_path(other_user)
     }.to change(Follow, :count).by(-1)
   end
+
+  it "redirects back with an alert when the follow does not exist" do
+    sign_in user
+
+    delete user_follow_path(other_user)
+
+    expect(response).to redirect_to(user_path(other_user))
+    expect(flash[:alert]).to eq("Follow relationship was not found.")
+  end
 end

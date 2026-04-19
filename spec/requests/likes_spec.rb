@@ -46,4 +46,13 @@ RSpec.describe "Likes", type: :request do
 
     expect(response).to redirect_to(root_path)
   end
+
+  it "redirects back with an alert when the like does not exist" do
+    sign_in user
+
+    delete post_like_path(post_record)
+
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq("Like was not found.")
+  end
 end

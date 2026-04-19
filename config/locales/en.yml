@@ -64,10 +64,14 @@ en:
       updated: "Comment updated."
     title: "Conversation"
   follows:
+    alerts:
+      not_found: "Follow relationship was not found."
     notices:
       created: "You are now following this reader."
       destroyed: "You stopped following this reader."
   likes:
+    alerts:
+      not_found: "Like was not found."
     actions:
       like: "Like"
       unlike: "Unlike"

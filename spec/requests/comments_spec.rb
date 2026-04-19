@@ -16,6 +16,15 @@ RSpec.describe "Comments", type: :request do
     expect(response).to redirect_to(post_path(post_record))
   end
 
+  it "renders the post show page with errors when comment creation fails" do
+    sign_in user
+
+    post post_comments_path(post_record), params: { comment: { content: "" } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Content can&#39;t be blank")
+  end
+
   it "redirects guests to sign in when creating a comment" do
     post post_comments_path(post_record), params: { comment: { content: "Guest comment" } }
 
@@ -41,6 +50,15 @@ RSpec.describe "Comments", type: :request do
 
     expect(response).to redirect_to(post_path(post_record))
     expect(comment.reload.content).to eq("Updated comment")
+  end
+
+  it "renders the post show page with errors when comment update fails" do
+    sign_in user
+
+    patch post_comment_path(post_record, comment), params: { comment: { content: "" } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Content can&#39;t be blank")
   end
 
   it "does not allow another user to update the comment" do
