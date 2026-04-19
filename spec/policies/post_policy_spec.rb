@@ -5,6 +5,12 @@ RSpec.describe PostPolicy do
   let(:other_user) { User.create!(name: "Other", email: "policy-other@example.com", password: "password123!", password_confirmation: "password123!") }
 
   describe "permissions" do
+    it "lets a signed-in user view a public post" do
+      post_record = other_user.posts.create!(content: "Visible")
+
+      expect(described_class.new(user, post_record).show?).to be(true)
+    end
+
     it "lets the author update their own post" do
       post_record = user.posts.create!(content: "Mine")
 
@@ -30,6 +36,19 @@ RSpec.describe PostPolicy do
       resolved = described_class.new(user, Post.all).resolve
 
       expect(resolved).to include(own_post, visible_post)
+      expect(resolved).not_to include(hidden_post)
+    end
+  end
+
+  describe PostPolicy::ProfileScope do
+    it "returns the profile user's public posts regardless of follow status" do
+      visible_post = other_user.posts.create!(content: "Visible")
+      another_user = User.create!(name: "Another", email: "another@example.com", password: "password123!", password_confirmation: "password123!")
+      hidden_post = another_user.posts.create!(content: "Hidden")
+
+      resolved = described_class.new(user, other_user.posts).resolve
+
+      expect(resolved).to include(visible_post)
       expect(resolved).not_to include(hidden_post)
     end
   end
