@@ -8,18 +8,41 @@
       </div>
 
       <% unless @user == current_user %>
-        <% if current_user.follows?(@user) %>
-          <%= button_to t("users.actions.unfollow"), user_follow_path(@user), method: :delete, class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
-        <% else %>
-          <%= button_to t("users.actions.follow"), user_follow_path(@user), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
-        <% end %>
+        <div class="flex flex-wrap items-center gap-3">
+          <% if current_user.follows?(@user) %>
+            <%= button_to t("users.actions.unfollow"), user_follow_path(@user), method: :delete, class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+          <% else %>
+            <%= button_to t("users.actions.follow"), user_follow_path(@user), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+          <% end %>
+
+          <% if @book_friendship&.accepted? %>
+            <%= button_to t("users.actions.remove_book_friend"), user_book_friendship_path(@user), method: :delete, class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+          <% elsif @book_friendship&.pending? && @book_friendship.requester_id == current_user.id %>
+            <%= button_to t("users.actions.cancel_book_friend_request"), user_book_friendship_path(@user), method: :delete, class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+          <% elsif @book_friendship&.pending? && @book_friendship.addressee_id == current_user.id %>
+            <%= button_to t("users.actions.accept_book_friend"), user_book_friendship_path(@user), method: :patch, class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+          <% else %>
+            <%= button_to t("users.actions.request_book_friend"), user_book_friendship_path(@user), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+          <% end %>
+        </div>
       <% end %>
     </div>
   </section>
 
   <section class="space-y-4">
-    <% @posts.each do |post| %>
-      <%= render "posts/post", post: post %>
+    <div>
+      <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.jjaek_eyebrow") %></p>
+      <h2 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.jjaek_title") %></h2>
+    </div>
+
+    <% if @jjaeks.any? %>
+      <% @jjaeks.each do |jjaek| %>
+        <%= render "jjaeks/jjaek", jjaek: jjaek %>
+      <% end %>
+    <% else %>
+      <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
+        <%= t("users.profile.empty_jjaeks") %>
+      </section>
     <% end %>
   </section>
 </section>

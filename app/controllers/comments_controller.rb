@@ -1,15 +1,16 @@
 class CommentsController < ApplicationController
-  before_action :set_post
+  before_action :set_jjaek
   before_action :set_comment, only: %i[update destroy]
 
   def create
-    @comment = @post.comments.build(comment_params.merge(user: current_user))
+    @comment = @jjaek.comments.build(comment_params.merge(user: current_user))
     authorize @comment
 
     if @comment.save
-      redirect_to post_path(@post), notice: t("comments.notices.created")
+      redirect_to jjaek_path(@jjaek), notice: t("comments.notices.created")
     else
-      render "posts/show", status: :unprocessable_entity
+      @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+      render "jjaeks/show", status: :unprocessable_entity
     end
   end
 
@@ -17,9 +18,10 @@ class CommentsController < ApplicationController
     authorize @comment
 
     if @comment.update(comment_params)
-      redirect_to post_path(@post), notice: t("comments.notices.updated")
+      redirect_to jjaek_path(@jjaek), notice: t("comments.notices.updated")
     else
-      render "posts/show", status: :unprocessable_entity
+      @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+      render "jjaeks/show", status: :unprocessable_entity
     end
   end
 
@@ -27,18 +29,18 @@ class CommentsController < ApplicationController
     authorize @comment
     @comment.destroy!
 
-    redirect_to post_path(@post), notice: t("comments.notices.destroyed")
+    redirect_to jjaek_path(@jjaek), notice: t("comments.notices.destroyed")
   end
 
   private
 
-  def set_post
-    @post = Post.find(params[:post_id])
-    authorize @post, :show?
+  def set_jjaek
+    @jjaek = Jjaek.find(params[:jjaek_id])
+    authorize @jjaek, :show?
   end
 
   def set_comment
-    @comment = @post.comments.find(params[:id])
+    @comment = @jjaek.comments.find(params[:id])
   end
 
   def comment_params

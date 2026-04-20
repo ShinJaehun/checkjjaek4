@@ -1,0 +1,31 @@
+<section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
+  <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+    <h1 class="text-3xl font-semibold tracking-tight text-stone-900"><%= t("jjaeks.edit.title") %></h1>
+    <p class="mt-2 text-sm text-stone-500"><%= @jjaek.book.title %></p>
+
+    <div class="mt-6">
+      <%= form_with model: @jjaek, class: "space-y-4" do |form| %>
+        <% if @jjaek.errors.any? %>
+          <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <%= @jjaek.errors.full_messages.to_sentence %>
+          </div>
+        <% end %>
+
+        <div class="space-y-2">
+          <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
+          <%= form.select :visibility,
+                          Jjaek.visibilities.keys.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
+                          {},
+                          class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+        </div>
+
+        <div class="space-y-2">
+          <%= form.label :content, t("jjaeks.form.content"), class: "text-sm font-medium text-stone-700" %>
+          <%= form.text_area :content, rows: 8, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+        </div>
+
+        <%= form.submit t("jjaeks.actions.save"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+      <% end %>
+    </div>
+  </section>
+</section>

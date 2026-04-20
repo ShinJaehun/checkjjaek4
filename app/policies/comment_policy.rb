@@ -1,6 +1,6 @@
 class CommentPolicy < ApplicationPolicy
   def create?
-    user.present? && PostPolicy.new(user, record.post).show?
+    user.present? && JjaekPolicy.new(user, record.jjaek).show?
   end
 
   def update?
