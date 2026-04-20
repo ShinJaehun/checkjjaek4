@@ -7,7 +7,9 @@ class User < ApplicationRecord
 
   normalizes :email, with: ->(email) { email.strip.downcase }
 
-  has_many :posts, dependent: :destroy
+  has_many :bookshelf_entries, dependent: :destroy
+  has_many :books, through: :bookshelf_entries
+  has_many :jjaeks, dependent: :destroy
   has_many :comments, dependent: :destroy
   has_many :likes, dependent: :destroy
 
@@ -25,13 +27,32 @@ class User < ApplicationRecord
            dependent: :destroy
   has_many :followers, through: :passive_follows, source: :follower
 
+  has_many :requested_book_friendships,
+           class_name: "BookFriendship",
+           foreign_key: :requester_id,
+           inverse_of: :requester,
+           dependent: :destroy
+  has_many :received_book_friendships,
+           class_name: "BookFriendship",
+           foreign_key: :addressee_id,
+           inverse_of: :addressee,
+           dependent: :destroy
+
   validates :name, presence: true
 
   def follows?(other_user)
     followees.exists?(other_user.id)
   end
 
-  def feed_posts
-    Post.where(user_id: [ id ] + followee_ids).recent
+  def book_friendship_with(other_user)
+    BookFriendship.between(self, other_user)
+  end
+
+  def book_friend?(other_user)
+    book_friendship_with(other_user)&.accepted?
+  end
+
+  def incoming_book_friend_requests
+    received_book_friendships.pending.includes(:requester)
   end
 end

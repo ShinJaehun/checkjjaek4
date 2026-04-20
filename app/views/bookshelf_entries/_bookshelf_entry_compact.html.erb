@@ -1,0 +1,6 @@
+<article class="rounded-2xl bg-stone-50 px-4 py-3">
+  <div class="text-sm font-medium text-stone-900">
+    <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "hover:text-stone-700" %>
+  </div>
+  <div class="mt-1 text-xs text-stone-500"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></div>
+</article>

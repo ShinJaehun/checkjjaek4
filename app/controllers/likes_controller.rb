@@ -1,8 +1,8 @@
 class LikesController < ApplicationController
-  before_action :set_post
+  before_action :set_jjaek
 
   def create
-    @like = @post.likes.find_or_initialize_by(user: current_user)
+    @like = @jjaek.likes.find_or_initialize_by(user: current_user)
     authorize @like
 
     if @like.persisted? || @like.save
@@ -13,7 +13,7 @@ class LikesController < ApplicationController
   end
 
   def destroy
-    @like = @post.likes.find_by(user: current_user)
+    @like = @jjaek.likes.find_by(user: current_user)
 
     unless @like
       redirect_back fallback_location: root_path, alert: t("likes.alerts.not_found")
@@ -28,8 +28,8 @@ class LikesController < ApplicationController
 
   private
 
-  def set_post
-    @post = Post.find(params[:post_id])
-    authorize @post, :show?
+  def set_jjaek
+    @jjaek = Jjaek.find(params[:jjaek_id])
+    authorize @jjaek, :show?
   end
 end

@@ -24,7 +24,11 @@
 작업 전 아래 문서를 가능한 먼저 확인한다.
 
 1. `AGENTS.md`
-   현재 개인 feed 작업에서는 이 문서를 먼저 읽고,
+   현재 작업이 **bookjjaek 리부트 범위**라면 이 문서를 먼저 읽고,
+   이어서 아래 두 문서를 최우선으로 확인한다.
+   - `docs/specs/bookjjaek_reboot_spec.md`
+   - `docs/implementation/reboot_plan.md`
+   현재 작업이 **개인 feed 범위**라면 이 문서를 먼저 읽고,
    이어서 아래 두 문서를 우선 확인한다.
    - `docs/architecture/feed_policy.md`
    - `docs/specs/personal_feed_mvp.md`
@@ -36,11 +40,29 @@
 7. 운영 문서 (`docs/ops/*.md`)
 
 원칙:
-- 현재 구현 작업과 직접 관련된 문서를 먼저 읽는다.
+- 현재 **bookjjaek 리부트 범위**에서는
+  `AGENTS.md` → `docs/specs/bookjjaek_reboot_spec.md` →
+  `docs/implementation/reboot_plan.md`
+  순으로 먼저 읽는 것을 기본값으로 둔다.
 - 현재 개인 feed 범위에서는 `AGENTS.md` → `docs/architecture/feed_policy.md` → `docs/specs/personal_feed_mvp.md` 순으로 먼저 읽는 것을 기본값으로 둔다.
 - spec만 보지 말고, 해당 spec의 판단 근거가 되는 architecture/policy 문서가 있으면 함께 먼저 확인한다.
 - `docs/migration`, `docs/legacy`는 재구축 초반에는 중요하지만, 마이그레이션이 진행될수록 우선순위가 내려갈 수 있다.
 - 문서가 아직 없거나 부족하면, 먼저 문서를 보강한 뒤 구현에 들어간다.
+
+### bookjjaek 리부트 작업 규칙
+
+- 현재 리부트 작업의 기준 문서는 아래 두 개다.
+  - `docs/specs/bookjjaek_reboot_spec.md`
+  - `docs/implementation/reboot_plan.md`
+- 리부트 작업에서는 기존 `Post` 중심 구조를 억지로 확장하지 않는다.
+- 새 기능은 가능하면 `Book`, `BookshelfEntry`, `Jjaek` 중심으로 설계한다.
+- `Follow`는 `소식받기` 의미로 유지하고, `책친구`는 별도 관계로 다룬다.
+- `Jjaek`과 `책활동(BookActivity)`은 도메인상 분리하되, 필요하면 피드에서 함께 보여줄 수 있다.
+- 여러 책장 지원과 그룹 기능은 현재 MVP 범위가 아니라 향후 확장 항목으로 본다.
+- 기존 테스트용 데이터는 보존 대상이 아니며, 필요 시 개발 DB를 새로 시작할 수 있다.
+- 복잡한 리부트 작업은 한 번에 크게 수정하지 말고,
+  **분석 → 계획 제안 → diff 제시 → 승인 후 반영** 순서를 지킨다.
+- 새 repo를 만드는 대신, 같은 repo 안에서 점진적으로 리부트하는 방향을 기본값으로 둔다.
 
 ---
 

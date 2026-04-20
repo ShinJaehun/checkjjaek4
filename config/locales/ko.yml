@@ -16,13 +16,24 @@ ko:
     notices:
       signed_out: "로그아웃되었습니다."
     registrations:
-      description: "개인 피드부터 시작하고, 다른 독자를 팔로우하며, 이후에 그룹을 확장해 나갑니다."
+      description: "내 서재를 먼저 만들고, 책에 연결된 Jjaek을 차근히 쌓아갑니다."
       title: "독자 계정을 만듭니다"
     sessions:
-      description: "홈 피드는 내 글과 내가 팔로우한 사람들의 글부터 시작합니다. 공개 글은 프로필에서 계속 볼 수 있고, 그룹은 그 위에 확장됩니다."
-      eyebrow: "개인 피드 MVP"
+      description: "서재에 책을 담고, 소식받는 독자와 책친구의 Jjaek을 읽으며 독서 흐름을 이어갑니다."
+      eyebrow: "북짹 리부트"
       no_account: "계정이 없나요?"
-      title: "먼저 쓰고, 그다음 연결합니다"
+      title: "서재부터 시작합니다"
+  home:
+    nav: "홈"
+    eyebrow: "독서 홈"
+    title: "서재를 중심으로, Jjaek으로 이어집니다"
+    description: "홈 피드는 소식받는 독자의 공개 Jjaek과 책친구 공개 Jjaek으로 시작합니다. 서재에서 책을 고르고, 책에서 글로 이어집니다."
+    feed_eyebrow: "피드"
+    feed_title: "최근 Jjaek"
+    empty_feed: "아직 피드에 보이는 Jjaek이 없습니다. 책을 서재에 담거나 다른 독자를 소식받기 해보세요."
+    actions:
+      search_books: "책 검색"
+      my_shelf: "내 서재 보기"
   comments:
     actions:
       delete: "삭제"
@@ -55,13 +66,21 @@ ko:
       publisher: "출판사"
       isbn: "ISBN"
     actions:
+      add_to_shelf: "서재에 담기"
       open: "상세 보기"
   follows:
     alerts:
       not_found: "팔로우 관계를 찾을 수 없습니다."
     notices:
-      created: "이 독자를 팔로우했습니다."
-      destroyed: "이 독자를 언팔로우했습니다."
+      created: "이 독자의 소식을 받기 시작했습니다."
+      destroyed: "이 독자의 소식받기를 해제했습니다."
+  book_friendships:
+    alerts:
+      not_found: "책친구 관계를 찾을 수 없습니다."
+    notices:
+      accepted: "책친구 신청을 수락했습니다."
+      created: "책친구 신청을 보냈습니다."
+      destroyed: "책친구 관계를 정리했습니다."
   likes:
     alerts:
       not_found: "좋아요를 찾을 수 없습니다."
@@ -71,26 +90,71 @@ ko:
     notices:
       created: "좋아요를 남겼습니다."
       destroyed: "좋아요를 취소했습니다."
-  posts:
+  bookshelf_entries:
+    nav: "내 서재"
+    actions:
+      create: "서재에 저장"
+      update: "서재 항목 수정"
+    form:
+      book: "책"
+      status: "대표 상태"
+      stickers: "스티커"
+    index:
+      eyebrow: "내 서재"
+      title: "곁에 두고 있는 책들"
+      description: "하나의 기본 서재에서 책 상태와 스티커를 함께 관리합니다."
+      empty: "아직 서재가 비어 있습니다. 책 검색에서 첫 책을 담아보세요."
+    new:
+      title: "서재에 담기"
+      description: "이 책을 어떤 상태로 곁에 둘지 정합니다."
+    edit:
+      title: "서재 항목 수정"
+    notices:
+      created: "책을 서재에 담았습니다."
+      destroyed: "서재 항목을 삭제했습니다."
+      updated: "서재 항목을 수정했습니다."
+    statuses:
+      wish: "읽고 싶어요"
+      reading: "읽는 중"
+      finished: "읽었어요"
+  books:
+    show:
+      save_state: "상태 저장"
+      state_description: "대표 상태와 스티커를 고르고 저장합니다."
+      state_title: "상태와 스티커"
+      authors: "저자"
+      publisher: "출판사"
+      isbn: "ISBN"
+      eyebrow: "책"
+      empty_description: "아직 이 책의 설명이 없습니다."
+      empty_jjaeks: "아직 이 책에 남겨진 Jjaek이 없습니다."
+      external_link: "외부 상세 보기"
+      new_jjaek_description: "짧은 감상이나 긴 메모를 이 책에 바로 남깁니다."
+      new_jjaek_title: "Jjaek 쓰기"
+      requote_source: "%{name}님의 Jjaek을 인용 중"
+      timeline_eyebrow: "책 흐름"
+      timeline_title: "이 책의 Jjaek"
+  jjaeks:
     actions:
       delete: "삭제"
       edit: "수정"
-      publish: "짹"
-      repost: "다시 짹"
+      publish: "Jjaek 남기기"
+      publish_short: "짹"
+      requote: "ReJjaek"
       save: "저장"
       view: "글 보기"
     confirmations:
-      destroy: "이 글을 삭제할까요?"
+      destroy: "이 Jjaek을 삭제할까요?"
     edit:
-      title: "글 수정"
+      title: "Jjaek 수정"
     form:
-      content: "지금 읽고 있거나 떠오른 생각을 적어보세요"
-    index:
-      description: "홈 피드는 내 글과 내가 팔로우한 독자들의 글부터 보여줍니다. 공개 글은 프로필에서도 계속 볼 수 있어 대화가 피드 밖으로도 이어집니다."
-      eyebrow: "홈 피드"
-      new_post_description: "짧은 감상, 독서 메모, 반응이 모두 여기서 시작됩니다."
-      new_post_title: "짹짹"
-      title: "팔로우한 독자들의 글"
+      content: "이 책에서 오래 남은 생각을 적어보세요"
+      visibility: "공개 범위"
+    new:
+      eyebrow: "Jjaek 작성"
+      title: "책에 대한 글 남기기"
+    labels:
+      requote: "%{name}님의 Jjaek을 인용"
     meta:
       comments:
         one: "댓글 1개"
@@ -99,16 +163,27 @@ ko:
         one: "좋아요 1개"
         other: "좋아요 %{count}개"
     notices:
-      created: "글을 게시했습니다."
-      destroyed: "글을 삭제했습니다."
-      updated: "글을 수정했습니다."
+      created: "Jjaek을 게시했습니다."
+      destroyed: "Jjaek을 삭제했습니다."
+      updated: "Jjaek을 수정했습니다."
+    visibility:
+      public_jjaek: "전체 공개"
+      book_friends: "책친구 공개"
+      private_jjaek: "나만 보기"
   time:
     formats:
       short: "%Y-%m-%d %H:%M"
   users:
     actions:
-      follow: "팔로우"
-      unfollow: "팔로잉"
+      accept_book_friend: "책친구 수락"
+      cancel_book_friend_request: "신청 취소"
+      follow: "소식받기"
+      request_book_friend: "책친구 신청"
+      remove_book_friend: "책친구 해제"
+      unfollow: "소식받는 중"
     profile:
       eyebrow: "독자 프로필"
-      stats: "팔로워 %{followers}명 · 팔로잉 %{following}명"
+      empty_jjaeks: "아직 보이는 Jjaek이 없습니다."
+      jjaek_eyebrow: "Jjaek"
+      jjaek_title: "최근 Jjaek"
+      stats: "소식받는 사람 %{followers}명 · 소식받기 %{following}명"

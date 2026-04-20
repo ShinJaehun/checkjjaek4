@@ -35,9 +35,28 @@
                 <p class="text-sm text-stone-500"><%= t("book_search.fields.isbn") %>: <%= book[:isbn].presence || "-" %></p>
                 <p class="text-sm leading-6 text-stone-700"><%= book[:contents_excerpt].presence || "-" %></p>
 
-                <% if book[:url].present? %>
-                  <%= link_to t("book_search.actions.open"), book[:url], target: "_blank", rel: "noopener", class: "text-sm font-medium text-stone-900" %>
-                <% end %>
+                <div class="flex flex-wrap items-center gap-3 pt-2">
+                  <%= button_to t("book_search.actions.add_to_shelf"),
+                                bookshelf_entries_path,
+                                method: :post,
+                                params: {
+                                  book: {
+                                    title: book[:title],
+                                    authors_text: book[:authors_text],
+                                    publisher: book[:publisher],
+                                    thumbnail: book[:thumbnail],
+                                    isbn: book[:isbn],
+                                    description: book[:contents_excerpt],
+                                    external_url: book[:url]
+                                  },
+                                  bookshelf_entry: { status: :wish }
+                                },
+                                class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+
+                  <% if book[:url].present? %>
+                    <%= link_to t("book_search.actions.open"), book[:url], target: "_blank", rel: "noopener", class: "text-sm font-medium text-stone-900" %>
+                  <% end %>
+                </div>
               </div>
             </div>
           </article>

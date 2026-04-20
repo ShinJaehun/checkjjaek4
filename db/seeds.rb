@@ -23,27 +23,68 @@ relationships.each do |follower, followee|
   Follow.find_or_create_by!(follower: follower, followee: followee)
 end
 
-posts = [
-  [ users["a@a"], "이번 주는 개인 feed 흐름부터 제대로 올려보는 중입니다. 읽고 쓰는 감각부터 다시 잡아보려 해요." ],
-  [ users["b@b"], "주말엔 긴 소설보다 짧은 에세이가 더 잘 읽히는 날이 있더라고요." ],
-  [ users["c@c"], "팔로우는 노출 규칙이고, 댓글과 좋아요는 접근 가능한 글에 대한 상호작용이라는 방향이 꽤 자연스럽습니다." ],
-  [ users["d@d"], "프로필 페이지에서 공개 글을 훑어보다가 마음에 드는 글에 바로 반응할 수 있는 흐름이 좋네요." ]
-].map do |user, content|
-  Post.find_or_create_by!(user: user, content: content)
+stickers = [
+  [ "loved_it", "좋았어요" ],
+  [ "really_loved_it", "너무 좋았어요" ],
+  [ "stayed_with_me", "마음에 남아요" ],
+  [ "want_to_reread", "다시 읽고 싶어요" ],
+  [ "recommended_to_me", "추천받았어요" ],
+  [ "want_to_recommend", "추천하고 싶어요" ]
+]
+
+stickers.each_with_index do |(key, name), index|
+  StickerDefinition.find_or_create_by!(key:) do |sticker|
+    sticker.name = name
+    sticker.position = index
+  end
+end
+
+books = [
+  {
+    isbn: "1111",
+    title: "북짹 리부트",
+    authors_text: "팀 체크짹",
+    publisher: "checkjjaek4"
+  },
+  {
+    isbn: "2222",
+    title: "독서의 리듬",
+    authors_text: "가상의 저자",
+    publisher: "책방"
+  }
+].map do |attrs|
+  Book.find_or_create_by!(isbn: attrs[:isbn]) do |book|
+    book.title = attrs[:title]
+    book.authors_text = attrs[:authors_text]
+    book.publisher = attrs[:publisher]
+  end
+end
+
+entry_a = BookshelfEntry.find_or_create_by!(user: users["a@a"], book: books[0]) do |entry|
+  entry.status = :reading
+end
+entry_b = BookshelfEntry.find_or_create_by!(user: users["b@b"], book: books[1]) do |entry|
+  entry.status = :finished
+end
+
+entry_a.sticker_definition_ids = StickerDefinition.where(key: %w[loved_it stayed_with_me]).pluck(:id)
+entry_b.sticker_definition_ids = StickerDefinition.where(key: %w[want_to_recommend]).pluck(:id)
+
+BookFriendship.find_or_create_by!(requester: users["a@a"], addressee: users["b@b"]) do |friendship|
+  friendship.status = :accepted
+end
+
+jjaek_a = Jjaek.find_or_create_by!(user: users["a@a"], book: books[0], content: "서재를 먼저 세우고 나니 어떤 글을 남길지 더 분명해졌어요.") do |jjaek|
+  jjaek.visibility = :public_jjaek
+end
+jjaek_b = Jjaek.find_or_create_by!(user: users["b@b"], book: books[1], content: "책친구 공개로 남기는 감상은 조금 더 솔직해지네요.") do |jjaek|
+  jjaek.visibility = :book_friends
 end
 
 Comment.find_or_create_by!(
   user: users["b@b"],
-  post: posts[0],
-  content: "이 흐름이면 홈 feed랑 프로필 정책이 확실히 구분되겠네요."
+  jjaek: jjaek_a,
+  content: "서재 흐름이 잡히니 글도 더 자연스럽게 이어지겠어요."
 )
 
-Comment.find_or_create_by!(
-  user: users["a@a"],
-  post: posts[2],
-  content: "맞아요. 팔로우를 상호작용 권한이 아니라 노출 규칙으로 두는 게 핵심 같아요."
-)
-
-Like.find_or_create_by!(user: users["c@c"], post: posts[0])
-Like.find_or_create_by!(user: users["d@d"], post: posts[1])
-Like.find_or_create_by!(user: users["a@a"], post: posts[3])
+Like.find_or_create_by!(user: users["a@a"], jjaek: jjaek_b)

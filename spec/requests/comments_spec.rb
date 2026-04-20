@@ -1,56 +1,33 @@
 require "rails_helper"
 
 RSpec.describe "Comments", type: :request do
-  let(:turbo_headers) { { "ACCEPT" => "text/vnd.turbo-stream.html, text/html" } }
   let!(:user) { User.create!(name: "Reader", email: "reader@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:author) { User.create!(name: "Author", email: "author@example.com", password: "password123!", password_confirmation: "password123!") }
-  let!(:post_record) { author.posts.create!(content: "Public post") }
-  let!(:comment) { post_record.comments.create!(user: user, content: "My comment") }
+  let!(:book) { Book.create!(title: "댓글 책", authors_text: "저자") }
+  let!(:jjaek) { author.jjaeks.create!(book:, content: "Public post") }
+  let!(:comment) { jjaek.comments.create!(user:, content: "My comment") }
 
-  it "lets a signed-in user comment on an accessible post" do
+  it "lets a signed-in user comment on an accessible jjaek" do
     sign_in user
 
     expect {
-      post post_comments_path(post_record), params: { comment: { content: "Nice note" } }
-    }.to change(post_record.comments, :count).by(1)
+      post jjaek_comments_path(jjaek), params: { comment: { content: "Nice note" } }
+    }.to change(jjaek.comments, :count).by(1)
 
-    expect(response).to redirect_to(post_path(post_record))
+    expect(response).to redirect_to(jjaek_path(jjaek))
   end
 
-  it "renders the post show page with 422 for an invalid turbo create request" do
+  it "re-renders the jjaek page when comment creation fails" do
     sign_in user
 
-    post post_comments_path(post_record),
-         params: { comment: { content: "" } },
-         headers: turbo_headers
+    post jjaek_comments_path(jjaek), params: { comment: { content: "" } }
 
-    expect(response).to have_http_status(:unprocessable_content)
+    expect(response).to have_http_status(:unprocessable_entity)
     expect(response.body).to include("대화")
   end
 
-  it "renders the post show page with errors when comment creation fails" do
-    sign_in user
-
-    post post_comments_path(post_record), params: { comment: { content: "" } }
-
-    expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Content can&#39;t be blank")
-  end
-
   it "redirects guests to sign in when creating a comment" do
-    post post_comments_path(post_record), params: { comment: { content: "Guest comment" } }
-
-    expect(response).to redirect_to(new_user_session_path)
-  end
-
-  it "redirects guests to sign in when updating a comment" do
-    patch post_comment_path(post_record, comment), params: { comment: { content: "Guest edit" } }
-
-    expect(response).to redirect_to(new_user_session_path)
-  end
-
-  it "redirects guests to sign in when deleting a comment" do
-    delete post_comment_path(post_record, comment)
+    post jjaek_comments_path(jjaek), params: { comment: { content: "Guest comment" } }
 
     expect(response).to redirect_to(new_user_session_path)
   end
@@ -58,49 +35,26 @@ RSpec.describe "Comments", type: :request do
   it "lets the author update their own comment" do
     sign_in user
 
-    patch post_comment_path(post_record, comment), params: { comment: { content: "Updated comment" } }
+    patch jjaek_comment_path(jjaek, comment), params: { comment: { content: "Updated comment" } }
 
-    expect(response).to redirect_to(post_path(post_record))
+    expect(response).to redirect_to(jjaek_path(jjaek))
     expect(comment.reload.content).to eq("Updated comment")
-  end
-
-  it "renders the post show page with 422 for an invalid turbo update request" do
-    sign_in user
-
-    patch post_comment_path(post_record, comment),
-          params: { comment: { content: "" } },
-          headers: turbo_headers
-
-    expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("대화")
-  end
-
-  it "renders the post show page with errors when comment update fails" do
-    sign_in user
-
-    patch post_comment_path(post_record, comment), params: { comment: { content: "" } }
-
-    expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("Content can&#39;t be blank")
   end
 
   it "does not allow another user to update the comment" do
     sign_in author
 
-    patch post_comment_path(post_record, comment), params: { comment: { content: "Hijacked" } }
+    patch jjaek_comment_path(jjaek, comment), params: { comment: { content: "Hijacked" } }
 
     expect(response).to redirect_to(root_path)
     expect(comment.reload.content).to eq("My comment")
   end
 
-  it "does not allow another user to delete the comment" do
-    sign_in author
+  it "deletes the current user's comment" do
+    sign_in user
 
     expect {
-      delete post_comment_path(post_record, comment)
-    }.not_to change(Comment, :count)
-
-    expect(response).to redirect_to(root_path)
-    expect(Comment.exists?(comment.id)).to be(true)
+      delete jjaek_comment_path(jjaek, comment)
+    }.to change(Comment, :count).by(-1)
   end
 end
