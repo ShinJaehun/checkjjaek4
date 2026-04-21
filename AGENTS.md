@@ -1,6 +1,7 @@
 # AGENTS.md
 
 ## 목적
+
 이 문서는 `checkjjaek4` 저장소에서 작업하는 에이전트(Codex 등)가
 프로젝트의 기본 작업 원칙과 문서 참조 순서를 일관되게 따르도록 하기 위한 안내서다.
 
@@ -24,45 +25,111 @@
 작업 전 아래 문서를 가능한 먼저 확인한다.
 
 1. `AGENTS.md`
-   현재 작업이 **bookjjaek 리부트 범위**라면 이 문서를 먼저 읽고,
-   이어서 아래 두 문서를 최우선으로 확인한다.
+
+2. 현재 활성 reboot 기준 문서
    - `docs/specs/bookjjaek_reboot_spec.md`
-   - `docs/implementation/reboot_plan.md`
-   현재 작업이 **개인 feed 범위**라면 이 문서를 먼저 읽고,
-   이어서 아래 두 문서를 우선 확인한다.
-   - `docs/architecture/feed_policy.md`
-   - `docs/specs/personal_feed_mvp.md`
-2. 현재 작업과 직접 관련된 아키텍처/정책 문서 (`docs/architecture/*.md`)
-3. 관련 작업 스펙 (`docs/specs/*.md`)
-4. 테스트 전략 (`docs/testing/*.md`)
-5. 마이그레이션 문서 (`docs/migration/*.md`)
-6. 레거시 분석 문서 (`docs/legacy/*.md`)
-7. 운영 문서 (`docs/ops/*.md`)
+   - `docs/reboot/reboot_plan.md`
+
+3. 현재 작업과 직접 관련된 spec 문서
+   - 예: `docs/specs/book_search_mvp.md`
+
+4. 테스트 전략 문서
+   - `docs/testing/rspec_strategy.md`
+
+5. 관련 아키텍처/정책 문서
+   - `docs/architecture/*.md`
+
+6. 레거시/아카이브 문서
+   - `docs/legacy/*.md`
+   - `docs/archive/*.md`
 
 원칙:
-- 현재 **bookjjaek 리부트 범위**에서는
-  `AGENTS.md` → `docs/specs/bookjjaek_reboot_spec.md` →
-  `docs/implementation/reboot_plan.md`
+
+- 현재 `checkjjaek4`의 활성 기준은
+  `AGENTS.md` → `docs/specs/bookjjaek_reboot_spec.md` → `docs/reboot/reboot_plan.md`
   순으로 먼저 읽는 것을 기본값으로 둔다.
-- 현재 개인 feed 범위에서는 `AGENTS.md` → `docs/architecture/feed_policy.md` → `docs/specs/personal_feed_mvp.md` 순으로 먼저 읽는 것을 기본값으로 둔다.
-- spec만 보지 말고, 해당 spec의 판단 근거가 되는 architecture/policy 문서가 있으면 함께 먼저 확인한다.
-- `docs/migration`, `docs/legacy`는 재구축 초반에는 중요하지만, 마이그레이션이 진행될수록 우선순위가 내려갈 수 있다.
+- `docs/archive/*`는 과거 판단 기록 보존용이며, 현재 활성 spec보다 우선하지 않는다.
+- `docs/legacy/*`는 checkjjaek3 및 초기 분석 기록 참고용이며, 현재 활성 spec보다 우선하지 않는다.
+- spec만 보지 말고, 해당 spec의 판단 근거가 되는 정책/구조 문서가 있으면 함께 먼저 확인한다.
 - 문서가 아직 없거나 부족하면, 먼저 문서를 보강한 뒤 구현에 들어간다.
 
-### bookjjaek 리부트 작업 규칙
+---
+
+## bookjjaek 리부트 작업 규칙
 
 - 현재 리부트 작업의 기준 문서는 아래 두 개다.
   - `docs/specs/bookjjaek_reboot_spec.md`
-  - `docs/implementation/reboot_plan.md`
-- 리부트 작업에서는 기존 `Post` 중심 구조를 억지로 확장하지 않는다.
+  - `docs/reboot/reboot_plan.md`
+- `checkjjaek4`는 기존의 post 중심 SNS를 억지로 확장하는 프로젝트가 아니라,
+  **서재 중심 독서 서비스로 리부트 중인 프로젝트**로 본다.
+- 현재 중심 도메인은 아래다.
+  - `Book`
+  - `BookshelfEntry`
+  - `BookshelfEntrySticker`
+  - `Jjaek`
+  - `ReJjaek`
+- `Follow`는 `소식받기` 의미로 유지한다.
+- `책친구(BookFriendship)`는 별도 관계로 다룬다.
+- `Jjaek`과 `책활동(BookActivity)`은 도메인상 분리한다.
+- `BookActivity`는 현재 MVP에서 구현 대상이 아니라, **후속 단계의 피드용 이벤트 모델**로 본다.
+- 일반적인 만능 `Post` 모델로 회귀하지 않는다.
 - 새 기능은 가능하면 `Book`, `BookshelfEntry`, `Jjaek` 중심으로 설계한다.
-- `Follow`는 `소식받기` 의미로 유지하고, `책친구`는 별도 관계로 다룬다.
-- `Jjaek`과 `책활동(BookActivity)`은 도메인상 분리하되, 필요하면 피드에서 함께 보여줄 수 있다.
-- 여러 책장 지원과 그룹 기능은 현재 MVP 범위가 아니라 향후 확장 항목으로 본다.
-- 기존 테스트용 데이터는 보존 대상이 아니며, 필요 시 개발 DB를 새로 시작할 수 있다.
+- 여러 책장, 그룹, Topic, 작가 정규화, 인용문 기능, 범용 SNS 확장은 현재 MVP 범위가 아니다.
 - 복잡한 리부트 작업은 한 번에 크게 수정하지 말고,
   **분석 → 계획 제안 → diff 제시 → 승인 후 반영** 순서를 지킨다.
 - 새 repo를 만드는 대신, 같은 repo 안에서 점진적으로 리부트하는 방향을 기본값으로 둔다.
+
+---
+
+## 현재 MVP 해석 원칙
+
+현재 MVP는 아래 흐름을 우선한다.
+
+- 서재에서 책을 본다.
+- 책 화면에서 상태/스티커를 관리한다.
+- 책 화면에서 그 책에 대한 `Jjaek`을 작성한다.
+- 홈 피드는 우선 `Jjaek` 중심으로 본다.
+
+세부 원칙:
+
+- `books/:id`는 **그 책에 대한 메인 상호작용 화면**이다.
+- 이 화면 안에는 아래가 함께 있어야 한다.
+  - 책 메타데이터
+  - visible `Jjaek` 목록
+  - 상태/스티커 저장 form
+  - `Jjaek` 작성 form
+- 단, 저장 책임은 분리한다.
+  - 상태/스티커 저장 = `BookshelfEntry`
+  - 글 본문/공개 범위 저장 = `Jjaek`
+- 즉, **한 화면, 두 form, 두 저장 엔드포인트**가 기본 의도다.
+- 검색 결과의 `서재에 담기`는 import 의미로 해석한다.
+  - `Book` 생성 또는 재사용
+  - current_user의 `BookshelfEntry` 생성 또는 재사용
+  - 기본 상태는 `wish`
+- 현재 홈 피드는 `Jjaek` 중심으로 유지하고, `BookActivity`는 후속 도입 대상으로 남긴다.
+
+---
+
+## ReJjaek 규칙
+
+- `ReJjaek`은 다른 `Jjaek`을 인용한 새 `Jjaek`이다.
+- 원문보다 넓게 공개할 수 없다.
+- 원문이 `나만 보기`면 `ReJjaek`을 만들 수 없다.
+- 원문 접근 권한이 사라지면 `ReJjaek`도 비노출되어야 한다.
+- 따라서 조회 시에도 원문 접근 권한 재검사가 필요하다.
+- 이 규칙은 model validation만으로 끝내지 말고,
+  policy / policy scope / request spec 관점에서도 함께 고정한다.
+
+---
+
+## 그룹/교실 기능 해석 원칙
+
+- 그룹 기능은 단순한 커뮤니티 확장이 아니라,
+  향후 **교실에서 실제로 쓰이는 독서 도구** 방향과 연결될 수 있다.
+- 다만 현재는 그룹 기능을 먼저 확장하지 않고,
+  `서재 → 책 → 짹/책활동` 코어를 우선 안정화한다.
+- 그룹이 도입되더라도, 학생 개인의 서재/기록이 source of truth이고
+  그룹은 그 활동 중 공유 가능한 부분을 함께 보는 층으로 해석한다.
 
 ---
 
@@ -81,10 +148,14 @@
 
 - 구현 방향이 바뀌어 더 이상 필요 없어졌다면, 관련 파일과 코드도 함께 정리 대상으로 본다.
 - 새 구조를 넣으면서 불필요해진 controller, view, helper, route, 테스트, 문서가 남지 않도록 정리한다.
-- 무언가를 추가했다가 방향을 바꿔 되돌리는 경우, 남겨둘 이유가 분명하지 않다면 최대한 작업 전 상태에 가깝게 복구한다.
-- 임시 호환 코드를 오래 남기는 것보다, 현재 승인된 spec과 구조 기준으로 일관되게 정리하는 쪽을 우선한다.
+- 무언가를 추가했다가 방향을 바꿔 되돌리는 경우,
+  남겨둘 이유가 분명하지 않다면 최대한 작업 전 상태에 가깝게 복구한다.
+- 임시 호환 코드를 오래 남기는 것보다,
+  현재 승인된 spec과 구조 기준으로 일관되게 정리하는 쪽을 우선한다.
 - 다만 사용자가 직접 만든 변경이나, 현재 작업과 무관한 기존 변경은 임의로 되돌리지 않는다.
 - 삭제/복구가 필요한 파일이 있다면, 반영 전에 정리 대상 파일 목록을 먼저 diff 요약에 포함한다.
+- archive/legacy로 이동한 문서를 정리할 때는
+  기존 위치에 중복 파일이 남지 않도록 주의한다.
 
 ---
 
@@ -103,12 +174,17 @@
 ## 아키텍처/구현 원칙
 
 - `checkjjaek4`의 서버측 권한 판단은 **Pundit policy 중심**으로 유지한다.
-- controller에 권한 조건식을 직접 늘어놓기보다, controller는 가능한 한 `authorize`, `policy_scope`를 호출하는 자리로 남긴다.
+- controller에 권한 조건식을 직접 늘어놓기보다,
+  controller는 가능한 한 `authorize`, `policy_scope`를 호출하는 자리로 남긴다.
 - 단건 권한 판단은 policy에, 목록 조회 범위 판단은 policy scope에 둔다.
-- 권한 규칙과 조회 가능 범위가 화면마다 다르면, 그 차이를 controller 조건문으로 풀기보다 policy/policy scope 구조로 먼저 설명 가능해야 한다.
-- view에서 권한 분기를 추가해야 할 때도, 가능한 한 controller와 policy에서 이미 정리된 상태를 소비하도록 만든다.
-- 레거시 `checkjjaek3`의 CanCanCan 구조는 참고 대상일 뿐, 새 프로젝트의 기본 권한 체계로 그대로 가져오지 않는다.
-- Turbo 응답과 HTML 응답은 둘 다 깨지지 않도록 주의하고, 응답 방식은 가능한 한 일관되게 유지한다.
+- 권한 규칙과 조회 가능 범위가 화면마다 다르면,
+  그 차이를 controller 조건문으로 풀기보다 policy/policy scope 구조로 먼저 설명 가능해야 한다.
+- view에서 권한 분기를 추가해야 할 때도,
+  가능한 한 controller와 policy에서 이미 정리된 상태를 소비하도록 만든다.
+- 레거시 `checkjjaek3`의 CanCanCan 구조는 참고 대상일 뿐,
+  새 프로젝트의 기본 권한 체계로 그대로 가져오지 않는다.
+- Turbo 응답과 HTML 응답은 둘 다 깨지지 않도록 주의하고,
+  응답 방식은 가능한 한 일관되게 유지한다.
 - 새 기능을 추가할 때는 먼저 현재 구조와 naming, partial 분리 방식, controller 책임 범위를 확인하고 그 흐름을 따른다.
 - 불필요한 새 객체, 새 패턴, 새 계층을 성급히 늘리지 않는다.
 
@@ -119,6 +195,13 @@
 - 테스트의 목적은 coverage 수치가 아니라 confidence 확보이다.
 - 테스트 전략은 프로젝트의 `docs/testing/rspec_strategy.md`를 우선 기준으로 따른다.
 - 핵심 도메인 규칙, 권한, 상태 전이, request 흐름을 우선 테스트한다.
+- 특히 아래를 우선 고정한다.
+  - `Book` / `BookshelfEntry` / `BookshelfEntrySticker`
+  - 검색 결과 import 흐름
+  - `Jjaek` / `ReJjaek`
+  - 공개 범위와 조회 가능 범위
+  - policy scope
+  - request 흐름
 - brittle한 HTML 구조 테스트는 지양한다.
 - system spec은 핵심 happy path 중심으로 최소화한다.
 - RSpec 스타일은 readable > clever 원칙을 따른다.
