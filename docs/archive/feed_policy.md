@@ -1,5 +1,19 @@
 # Feed Policy
 
+## 상태
+
+이 문서는 **Post 중심 개인 feed 정책을 정리하던 이전 단계 문서**다.
+
+현재 리부트 범위의 활성 기준은 아래 두 문서다.
+
+- `docs/specs/bookjjaek_reboot_spec.md`
+- `docs/reboot/reboot_plan.md`
+
+따라서 이 문서는 현재 구현의 직접 기준이 아니라,
+`docs/archive/` 아래의 **보관 문서**로만 사용한다.
+
+---
+
 ## 목적
 
 이 문서는 `checkjjaek4`의 개인 feed와 상호작용 규칙을 어떤 기준으로 설계할지 정리한다.

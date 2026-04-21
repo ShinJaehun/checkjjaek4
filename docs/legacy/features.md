@@ -1,5 +1,19 @@
 # Legacy Features — checkjjaek3
 
+
+## 상태
+
+이 문서는 `checkjjaek3`의 사용자 흐름을 보관하는 참고 문서다.
+
+현재 `checkjjaek4`의 활성 기능 기준은 아래 두 문서다.
+
+- `docs/specs/bookjjaek_reboot_spec.md`
+- `docs/reboot/reboot_plan.md`
+
+이 문서의 내용은 현재 구현 방향보다 우선하지 않는다.
+
+---
+
 ## 목적
 
 이 문서는 `checkjjaek3`에서 사용자에게 실제로 제공하던 핵심 기능과 흐름을 정리하고,

@@ -1,5 +1,13 @@
 # RSpec Strategy for checkjjaek4
 
+## 상태
+
+현재 테스트 우선순위는
+`docs/specs/bookjjaek_reboot_spec.md`와 `docs/reboot/reboot_plan.md`
+를 기준으로 해석한다.
+
+---
+
 ## 목적
 이 문서는 `checkjjaek4`에서 테스트를 어떤 철학과 우선순위로 추가할지 정리한다.
 
@@ -33,18 +41,18 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 
 ### 1순위
 - 인증 이후 기본 진입 흐름
-- Group / Membership(UserGroup) 권한 분기
-- Membership 상태 전이(가입 요청 / 승인 / 거절 등)
 - Pundit policy / policy_scope 핵심 분기
-- Post 생성 / 수정 / 삭제 / 조회 request 흐름
-- Comment 생성 / 대댓글 흐름
-- Book 검색과 연결의 핵심 request 흐름
+- Book 생성/재사용과 BookshelfEntry 생성/재사용 흐름
+- BookshelfEntry 상태/스티커 저장 규칙
+- Jjaek 생성 / 수정 / 삭제 / 조회 request 흐름
+- ReJjaek 공개 범위 규칙
+- Comment / Like 핵심 request 흐름
+- Book 검색과 `서재에 담기` import 흐름
 - Turbo / HTML 응답의 핵심 성공/실패 흐름
 
 ### 2순위
-- 이미지 첨부가 있는 Post 흐름
-- 그룹 맥락 / 사용자 맥락의 피드 노출 규칙
-- Book 연결 Post의 표시/조회 규칙
+- 홈의 Jjaek-only 피드 노출 규칙
+- books/:id 한 화면 두 form 흐름
 - locale이 개입되는 핵심 사용자 메시지
 - 외부 API 연동 실패 시의 안전한 처리
 
@@ -52,8 +60,10 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - 세세한 뷰 구조
 - 자주 바뀌는 마크업
 - 스타일/문구 중심 테스트
-- Like / Follow / Tag 같은 후순위 기능
-- 관리자 전용 부가 기능의 세부 UI
+- BookActivity
+- Group / GroupMembership
+- 여러 책장
+- 학생 계정 전환
 
 ---
 
@@ -70,22 +80,21 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - 입력값 검증
 
 예시:
-- Membership 상태 전이
-- Post visibility/target 규칙
+- BookshelfEntry 상태 규칙
+- BookshelfEntrySticker 중복 방지
+- Jjaek visibility / ReJjaek 규칙
 - Book 검색 결과 매핑 규칙
-- Comment 계층 규칙
 
 ### policy spec
 다음에 우선 사용한다.
 
 - 역할별 허용/금지
-- member / non-member / owner 분기
+- visible / non-visible 분기
 - policy_scope 범위
 
 예시:
-- GroupPolicy
-- Membership 관련 policy
-- PostPolicy
+- JjaekPolicy
+- BookFriendshipPolicy
 - CommentPolicy
 - Book 관련 조회/연결 policy
 - UserPolicy
@@ -100,8 +109,8 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - Turbo / HTML 응답 분기
 
 예시:
-- 그룹 생성/가입/승인
-- 포스트 작성/수정/삭제
+- 서재에 담기 / 서재 수정
+- Jjaek 작성/수정/삭제
 - 댓글 작성
 - 책 검색 요청
 - 인증 후 landing path
@@ -122,10 +131,10 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 
 1. 인증 이후 기본 landing path
 2. Pundit 도입 후 authorize / policy_scope의 핵심 분기
-3. Group / Membership의 생성과 상태 변화
-4. Post 단일 모델 중심 구조에서의 생성/조회 권한
-5. Comment 구조가 Post 중심으로 단순화되더라도 사용자 경험이 유지되는지
-6. Book 검색 결과를 Post와 연결하는 최소 흐름
+3. BookshelfEntry / BookshelfEntrySticker의 생성과 수정
+4. Jjaek 중심 구조에서의 생성/조회 권한
+5. ReJjaek 공개 범위와 원문 접근 권한 규칙
+6. Book 검색 결과를 서재와 연결하는 최소 흐름
 
 ---
 
@@ -135,8 +144,7 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - Tailwind class
 - 문구의 정확한 HTML 배치
 - 레거시와 1:1 동일한 DOM 구조
-- 아직 도입하지 않은 후순위 기능
-- “나중에 필요할 수 있는” 구조를 위한 선제 테스트
+- 아직 도입하지 않은 `BookActivity`, 그룹, 여러 책장 관련 기능
 
 ---
 

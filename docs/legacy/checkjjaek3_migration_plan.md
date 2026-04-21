@@ -1,5 +1,20 @@
 # Migration Plan — checkjjaek3 → checkjjaek4
 
+## 상태
+
+이 문서는 `checkjjaek4` 초기 재구축 시점의
+레거시 분석 / 마이그레이션 판단 기록이다.
+
+현재 활성 구현 기준은 아래 두 문서다.
+
+- `docs/specs/bookjjaek_reboot_spec.md`
+- `docs/reboot/reboot_plan.md`
+
+즉, 이 문서는 checkjjaek3 및 초기 재구축 판단을 보관하는
+`docs/legacy/` 문서이며, 현재 리부트 범위의 직접 구현 기준은 아니다.
+
+---
+
 ## 목적
 
 `checkjjaek4`의 목표는 `checkjjaek3`를 그대로 복제하는 것이 아니다.

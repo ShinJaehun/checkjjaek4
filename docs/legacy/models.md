@@ -1,5 +1,18 @@
 # Legacy Models — checkjjaek3
 
+## 상태
+
+이 문서는 `checkjjaek3` 레거시 구조를 보관하는 참고 문서다.
+
+현재 `checkjjaek4`의 활성 도메인 기준은 아래 두 문서다.
+
+- `docs/specs/bookjjaek_reboot_spec.md`
+- `docs/reboot/reboot_plan.md`
+
+이 문서의 내용은 현재 구현 방향보다 우선하지 않는다.
+
+---
+
 ## 목적
 
 이 문서는 `checkjjaek3`의 레거시 모델 구조를 정리하고,

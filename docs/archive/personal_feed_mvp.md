@@ -1,5 +1,19 @@
 # Personal Feed MVP
 
+## 상태
+
+이 문서는 **현재 활성 구현 기준 문서가 아니다.**
+
+현재 `checkjjaek4`의 활성 기준 문서는 아래 두 문서다.
+
+- `docs/specs/bookjjaek_reboot_spec.md`
+- `docs/reboot/reboot_plan.md`
+
+이 문서는 `Post` 중심 개인 feed MVP를 검토하던 시기의 기록으로,
+현재는 `docs/archive/` 아래의 **보관 문서**다.
+
+---
+
 ## 목적
 
 `checkjjaek4`의 첫 구현 단위는 개인 feed 기반 글쓰기와 사용자 간 상호작용을 복원하는 것이다.
