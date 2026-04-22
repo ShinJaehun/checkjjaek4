@@ -5,6 +5,12 @@ RSpec.describe Jjaek, type: :model do
   let(:other_user) { User.create!(name: "Other", email: "other-jjaek@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "북짹", authors_text: "저자") }
 
+  it "allows a jjaek without a book" do
+    jjaek = described_class.new(user:, content: "책 없이 남기는 짹")
+
+    expect(jjaek).to be_valid
+  end
+
   it "does not allow requoting a private jjaek" do
     original = other_user.jjaeks.create!(book:, content: "원문", visibility: :private_jjaek)
     requote = described_class.new(user:, book:, content: "인용", quoted_jjaek: original)

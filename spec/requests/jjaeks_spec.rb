@@ -12,6 +12,62 @@ RSpec.describe "Jjaeks", type: :request do
     friendship
   end
 
+  describe "POST /jjaeks" do
+    it "creates a general jjaek without a book" do
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            content: "GENERAL_JJAEK_BODY",
+            visibility: :public_jjaek
+          }
+        }
+      }.to change(Jjaek, :count).by(1)
+
+      created_jjaek = Jjaek.last
+      expect(created_jjaek.book).to be_nil
+      expect(response).to redirect_to(jjaek_path(created_jjaek))
+    end
+
+    it "rerenders the home form when a general jjaek is invalid" do
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            content: "",
+            visibility: :public_jjaek
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include(I18n.t("home.new_jjaek_title"))
+      expect(response.body).to include("textarea")
+      expect(response.body).to include('name="jjaek[content]"')
+    end
+
+    it "creates a book-linked jjaek from a shelf context" do
+      viewer.bookshelf_entries.create!(book:)
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            book_id: book.id,
+            content: "BOOK_JJAEK_BODY",
+            visibility: :public_jjaek
+          }
+        }
+      }.to change(Jjaek, :count).by(1)
+
+      created_jjaek = Jjaek.last
+      expect(created_jjaek.book).to eq(book)
+      expect(response).to redirect_to(jjaek_path(created_jjaek))
+    end
+  end
+
   describe "GET /jjaeks/:id" do
     it "blocks a user's own requote when the original is no longer visible to them" do
       sign_in viewer

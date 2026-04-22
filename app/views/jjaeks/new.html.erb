@@ -3,10 +3,12 @@
     <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("jjaeks.new.eyebrow") %></p>
     <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= t("jjaeks.new.title") %></h1>
 
-    <div class="mt-5 rounded-2xl bg-stone-50 px-4 py-4">
-      <div class="text-sm font-medium text-stone-900"><%= @book.title %></div>
-      <div class="mt-1 text-sm text-stone-500"><%= @book.authors_text.presence || "-" %></div>
-    </div>
+    <% if @book.present? %>
+      <div class="mt-5 rounded-2xl bg-stone-50 px-4 py-4">
+        <div class="text-sm font-medium text-stone-900"><%= @book.title %></div>
+        <div class="mt-1 text-sm text-stone-500"><%= @book.authors_text.presence || "-" %></div>
+      </div>
+    <% end %>
 
     <% if @quoted_jjaek.present? %>
       <div class="mt-4 rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
@@ -23,7 +25,7 @@
           </div>
         <% end %>
 
-        <%= form.hidden_field :book_id, value: @book.id %>
+        <%= form.hidden_field :book_id, value: @book.id if @book.present? %>
         <%= form.hidden_field :quoted_jjaek_id, value: @quoted_jjaek&.id %>
 
         <div class="space-y-2">

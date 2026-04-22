@@ -31,6 +31,7 @@ en:
     feed_eyebrow: "Feed"
     feed_title: "Recent Jjaeks"
     empty_feed: "No Jjaeks are in your feed yet. Add a book to your shelf or follow another reader."
+    new_jjaek_title: "Write a Jjaek"
     actions:
       search_books: "Search books"
       my_shelf: "Open my shelf"
@@ -150,6 +151,7 @@ en:
       title: "Edit Jjaek"
     form:
       content: "What stayed with you from this book?"
+      general_content: "What do you want to share?"
       visibility: "Visibility"
     new:
       eyebrow: "New Jjaek"

@@ -5,8 +5,11 @@
         <%= link_to jjaek.user.name, user_path(jjaek.user), class: "hover:text-stone-700" %>
       </div>
       <div class="mt-1 text-xs text-stone-500">
-        <%= link_to jjaek.book.title, book_path(jjaek.book), class: "font-medium hover:text-stone-700" %>
-        · <%= l(jjaek.created_at, format: :short) %>
+        <% if jjaek.book.present? %>
+          <%= link_to jjaek.book.title, book_path(jjaek.book), class: "font-medium hover:text-stone-700" %>
+          ·
+        <% end %>
+        <%= l(jjaek.created_at, format: :short) %>
         · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
       </div>
     </div>

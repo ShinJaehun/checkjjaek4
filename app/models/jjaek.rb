@@ -4,7 +4,7 @@ class Jjaek < ApplicationRecord
        validate: true
 
   belongs_to :user
-  belongs_to :book
+  belongs_to :book, optional: true
   belongs_to :quoted_jjaek, class_name: "Jjaek", optional: true
 
   has_many :requotes, class_name: "Jjaek", foreign_key: :quoted_jjaek_id, dependent: :nullify, inverse_of: :quoted_jjaek

@@ -31,6 +31,7 @@ ko:
     feed_eyebrow: "피드"
     feed_title: "최근 Jjaek"
     empty_feed: "아직 피드에 보이는 Jjaek이 없습니다. 책을 서재에 담거나 다른 독자를 소식받기 해보세요."
+    new_jjaek_title: "짹 쓰기"
     actions:
       search_books: "책 검색"
       my_shelf: "내 서재 보기"
@@ -150,6 +151,7 @@ ko:
       title: "Jjaek 수정"
     form:
       content: "이 책에서 오래 남은 생각을 적어보세요"
+      general_content: "지금 남기고 싶은 생각"
       visibility: "공개 범위"
     new:
       eyebrow: "Jjaek 작성"

@@ -19,11 +19,7 @@ class JjaeksController < ApplicationController
     if @jjaek.save
       redirect_to jjaek_path(@jjaek), notice: t("jjaeks.notices.created")
     else
-      @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) || current_user.bookshelf_entries.build(book: @book)
-      authorize @bookshelf_entry
-      @sticker_definitions = StickerDefinition.alphabetical
-      @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
-      render "books/show", status: :unprocessable_entity
+      render_failed_create
     end
   end
 
@@ -48,13 +44,29 @@ class JjaeksController < ApplicationController
   end
 
   def build_new_jjaek
-    @book = Book.find(jjaek_book_id)
+    @book = Book.find(jjaek_book_id) if jjaek_book_id.present?
     @quoted_jjaek =
       if jjaek_quoted_id.present?
         policy_scope(Jjaek).find(jjaek_quoted_id)
       end
     @jjaek = current_user.jjaeks.build(book: @book, quoted_jjaek: @quoted_jjaek)
     authorize @jjaek
+  end
+
+  def render_failed_create
+    if @book.present?
+      @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) ||
+        current_user.bookshelf_entries.build(book: @book)
+      authorize @bookshelf_entry
+      @sticker_definitions = StickerDefinition.alphabetical
+      @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
+      render "books/show", status: :unprocessable_entity
+    else
+      @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
+        .includes(:user, :book, :likes, :comments, :quoted_jjaek)
+        .recent
+      render "homes/show", status: :unprocessable_entity
+    end
   end
 
   def jjaek_book_id
