@@ -44,6 +44,27 @@ RSpec.describe JjaekPolicy do
     end
   end
 
+  describe "#create?" do
+    it "allows creating a general jjaek without a book" do
+      jjaek = viewer.jjaeks.build(content: "GENERAL_POLICY_JJAEK")
+
+      expect(described_class.new(viewer, jjaek).create?).to be(true)
+    end
+
+    it "allows creating a book-linked jjaek when the user has the book in their shelf" do
+      viewer.bookshelf_entries.create!(book:)
+      jjaek = viewer.jjaeks.build(book:, content: "BOOK_POLICY_JJAEK")
+
+      expect(described_class.new(viewer, jjaek).create?).to be(true)
+    end
+
+    it "does not allow creating a book-linked jjaek without a shelf entry" do
+      jjaek = viewer.jjaeks.build(book:, content: "NO_SHELF_BOOK_POLICY_JJAEK")
+
+      expect(described_class.new(viewer, jjaek).create?).to be(false)
+    end
+  end
+
   describe described_class::Scope do
     it "excludes a requote when the original is no longer visible to the viewer" do
       friendship.destroy!

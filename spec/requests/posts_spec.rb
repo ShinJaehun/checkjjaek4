@@ -36,7 +36,7 @@ RSpec.describe "Jjaeks", type: :request do
       sign_in user
 
       expect {
-        post jjaeks_path, params: { jjaek: { book_id: book.id, content: "Fresh update", visibility: :public_jjaek } }
+        post jjaeks_path, params: { jjaek: { content: "Fresh update", visibility: :public_jjaek } }
       }.to change(user.jjaeks, :count).by(1)
 
       expect(response).to redirect_to(jjaek_path(Jjaek.order(:id).last))

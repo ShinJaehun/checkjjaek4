@@ -67,6 +67,22 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
+    it "does not create a book-linked jjaek without a shelf entry" do
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            book_id: book.id,
+            content: "NO_SHELF_DIRECT_BOOK_JJAEK",
+            visibility: :public_jjaek
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to redirect_to(root_path)
+    end
+
     it "creates a requote from a visible original" do
       sign_in viewer
       original

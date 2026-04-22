@@ -91,5 +91,21 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include('name="context_user_id"')
     end
+
+    it "does not create a profile-context jjaek when the viewer cannot write in that profile context" do
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          context_user_id: profile_user.id,
+          jjaek: {
+            content: "UNRELATED_PROFILE_CONTEXT_JJAEK",
+            visibility: :book_friends
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to redirect_to(root_path)
+    end
   end
 end

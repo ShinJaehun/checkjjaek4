@@ -4,7 +4,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def create?
-    user.present? && record.user_id == user.id
+    user.present? && record.user_id == user.id && book_context_allowed?
   end
 
   def requote?
@@ -75,6 +75,12 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   private
+
+  def book_context_allowed?
+    return true if record.book_id.blank?
+
+    user.bookshelf_entries.exists?(book_id: record.book_id)
+  end
 
   def visible_to_user?
     return true if record.user_id == user.id

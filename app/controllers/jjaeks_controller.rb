@@ -14,6 +14,8 @@ class JjaeksController < ApplicationController
   end
 
   def create
+    authorize context_user, :write_jjaek? if context_user.present?
+
     @jjaek.assign_attributes(jjaek_params)
 
     if @jjaek.save
