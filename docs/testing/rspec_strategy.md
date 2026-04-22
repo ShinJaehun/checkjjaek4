@@ -46,7 +46,9 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - BookshelfEntry 상태/스티커 저장 규칙
 - Jjaek 생성 / 수정 / 삭제 / 조회 request 흐름
 - ReJjaek 공개 범위 규칙
+- ReJjaek 조회 시 원문 접근 권한 재검사 규칙
 - Comment / Like 핵심 request 흐름
+- `볼 수 있는 사람만 댓글/좋아요 가능` 규칙
 - Book 검색과 `서재에 담기` import 흐름
 - Turbo / HTML 응답의 핵심 성공/실패 흐름
 
@@ -94,8 +96,10 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 
 예시:
 - JjaekPolicy
-- BookFriendshipPolicy
+- ReJjaek 관련 policy / scope 규칙
 - CommentPolicy
+- LikePolicy
+- BookFriendshipPolicy
 - Book 관련 조회/연결 policy
 - UserPolicy
 
@@ -111,7 +115,9 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 예시:
 - 서재에 담기 / 서재 수정
 - Jjaek 작성/수정/삭제
+- ReJjaek 작성/조회
 - 댓글 작성
+- 좋아요 생성/취소
 - 책 검색 요청
 - 인증 후 landing path
 
@@ -120,8 +126,8 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 
 예시:
 - 로그인 후 기본 진입
-- 그룹 가입 후 그룹 안에서 포스트 작성
-- 책 검색 후 책 연결 포스트 작성
+- 책 검색 후 서재에 담기
+- 책 상세에서 상태 저장 + Jjaek 작성
 
 ---
 
@@ -133,8 +139,9 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 2. Pundit 도입 후 authorize / policy_scope의 핵심 분기
 3. BookshelfEntry / BookshelfEntrySticker의 생성과 수정
 4. Jjaek 중심 구조에서의 생성/조회 권한
-5. ReJjaek 공개 범위와 원문 접근 권한 규칙
-6. Book 검색 결과를 서재와 연결하는 최소 흐름
+5. ReJjaek 공개 범위와 원문 접근 권한 재검사 규칙
+6. 댓글/좋아요의 visibility 기반 허용 규칙
+7. Book 검색 결과를 서재와 연결하는 최소 흐름
 
 ---
 
@@ -175,17 +182,19 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - 기본 policy spec
 
 ### Step 2
-- Group / Membership request + policy spec
-- 상태 전이 model/spec
+- BookshelfEntry / BookshelfEntrySticker model + request spec
+- Book 검색 / `서재에 담기` import request spec
 
 ### Step 3
-- Post / Comment request + policy spec
+- Jjaek request + policy spec
+- Comment / Like request + policy spec
 
 ### Step 4
-- Book 검색 request/spec
-- Book 연결 Post 흐름 spec
+- ReJjaek request + policy spec
+- ReJjaek 조회 시 원문 접근 권한 재검사 spec
 
 ### Step 5
+- books/:id 한 화면 두 form 흐름 spec
 - 꼭 필요한 최소 system spec
 
 ---
@@ -194,4 +203,3 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 
 테스트는 레거시를 복제하기 위한 장치가 아니라,
 `checkjjaek4`의 현재 도메인 규칙과 사용자 흐름을 안전하게 고정하는 장치다.
-

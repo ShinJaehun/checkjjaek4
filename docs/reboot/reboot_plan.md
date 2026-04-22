@@ -211,7 +211,9 @@ ReJjaek을 self-reference 형태로 도입한다.
 - 원문보다 넓게 공개 불가
 - 원문 나만 보기는 ReJjaek 불가
 - 원문 접근 권한이 사라지면 ReJjaek도 비노출
-
+- 초기 MVP에서는 구현 단순성과 권한 일관성을 위해
+  ReJjaek이 다른 ReJjaek을 다시 인용하는 중첩 ReJjaek은 허용하지 않는다.
+  
 ---
 
 ### 7단계: 책활동 도입
