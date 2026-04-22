@@ -32,6 +32,8 @@ RSpec.describe "BookSearches", type: :request do
 
     expect(response.body).to include("미움받을 용기")
     expect(response.body).to include("기시미 이치로, 고가 후미타케")
+    expect(response.body).to include("책 상세 보기")
+    expect(response.body).to include("/books/lookup")
   end
 
   it "shows an empty state when no results are returned" do

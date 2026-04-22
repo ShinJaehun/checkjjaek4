@@ -36,6 +36,18 @@
                 <p class="text-sm leading-6 text-stone-700"><%= book[:contents_excerpt].presence || "-" %></p>
 
                 <div class="flex flex-wrap items-center gap-3 pt-2">
+                  <%= link_to t("book_search.actions.open_internal"),
+                              lookup_books_path(
+                                title: book[:title],
+                                authors_text: book[:authors_text],
+                                publisher: book[:publisher],
+                                thumbnail: book[:thumbnail],
+                                isbn: book[:isbn],
+                                description: book[:contents_excerpt],
+                                external_url: book[:url]
+                              ),
+                              class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+
                   <%= button_to t("book_search.actions.add_to_shelf"),
                                 bookshelf_entries_path,
                                 method: :post,

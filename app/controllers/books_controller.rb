@@ -1,5 +1,5 @@
 class BooksController < ApplicationController
-  before_action :set_book
+  before_action :set_book, only: :show
 
   def lookup
     book = Book.find_or_initialize_from_search(lookup_book_params)
@@ -10,12 +10,14 @@ class BooksController < ApplicationController
   end
 
   def show
-    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) || current_user.bookshelf_entries.build(book: @book)
-    authorize @bookshelf_entry
-    @quoted_jjaek = params[:quote_id].present? ? policy_scope(@book.jjaeks).find(params[:quote_id]) : nil
-    @jjaek = current_user.jjaeks.build(book: @book, quoted_jjaek: @quoted_jjaek)
-    authorize @jjaek
-    @sticker_definitions = StickerDefinition.alphabetical
+    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
+    if @bookshelf_entry.present?
+      authorize @bookshelf_entry
+      @quoted_jjaek = params[:quote_id].present? ? policy_scope(@book.jjaeks).find(params[:quote_id]) : nil
+      @jjaek = current_user.jjaeks.build(book: @book, quoted_jjaek: @quoted_jjaek)
+      authorize @jjaek
+      @sticker_definitions = StickerDefinition.alphabetical
+    end
     @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
   end
 

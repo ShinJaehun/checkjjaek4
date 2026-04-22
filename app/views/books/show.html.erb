@@ -26,18 +26,20 @@
 
   <section class="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
     <div class="space-y-6">
-      <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-semibold text-stone-900"><%= t("books.show.state_title") %></h2>
-        <p class="mt-1 text-sm text-stone-500"><%= t("books.show.state_description") %></p>
+      <% if @bookshelf_entry.present? %>
+        <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+          <h2 class="text-lg font-semibold text-stone-900"><%= t("books.show.state_title") %></h2>
+          <p class="mt-1 text-sm text-stone-500"><%= t("books.show.state_description") %></p>
 
-        <div class="mt-5">
-          <%= render "bookshelf_entries/form",
-                     bookshelf_entry: @bookshelf_entry,
-                     book: @book,
-                     sticker_definitions: @sticker_definitions,
-                     submit_label: t("books.show.save_state") %>
-        </div>
-      </section>
+          <div class="mt-5">
+            <%= render "bookshelf_entries/form",
+                       bookshelf_entry: @bookshelf_entry,
+                       book: @book,
+                       sticker_definitions: @sticker_definitions,
+                       submit_label: t("books.show.save_state") %>
+          </div>
+        </section>
+      <% end %>
 
       <section class="space-y-4">
         <div>
@@ -57,7 +59,8 @@
       </section>
     </div>
 
-    <aside>
+    <% if @bookshelf_entry.present? %>
+      <aside>
       <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
         <h2 class="text-lg font-semibold text-stone-900"><%= t("books.show.new_jjaek_title") %></h2>
         <p class="mt-1 text-sm text-stone-500"><%= t("books.show.new_jjaek_description") %></p>
@@ -97,6 +100,7 @@
           <% end %>
         </div>
       </section>
-    </aside>
+      </aside>
+    <% end %>
   </section>
 </section>

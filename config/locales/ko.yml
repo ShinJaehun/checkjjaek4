@@ -67,6 +67,7 @@ ko:
       isbn: "ISBN"
     actions:
       add_to_shelf: "서재에 담기"
+      open_internal: "책 상세 보기"
       open: "상세 보기"
   follows:
     alerts:
