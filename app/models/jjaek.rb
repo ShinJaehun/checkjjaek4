@@ -13,6 +13,7 @@ class Jjaek < ApplicationRecord
 
   validates :content, presence: true, length: { maximum: 2_000 }
   validate :quoted_jjaek_must_be_requotable
+  validate :quoted_jjaek_must_not_be_requote
   validate :quoted_jjaek_visibility_must_not_expand
 
   scope :recent, -> { order(created_at: :desc) }
@@ -26,6 +27,12 @@ class Jjaek < ApplicationRecord
   def quoted_jjaek_must_be_requotable
     return unless quoted_jjaek.present?
     return unless quoted_jjaek.private_jjaek?
+
+    errors.add(:quoted_jjaek, :invalid)
+  end
+
+  def quoted_jjaek_must_not_be_requote
+    return unless quoted_jjaek&.requote?
 
     errors.add(:quoted_jjaek, :invalid)
   end

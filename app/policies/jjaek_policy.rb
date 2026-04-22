@@ -1,6 +1,6 @@
 class JjaekPolicy < ApplicationPolicy
   def show?
-    user.present? && visible_to_user?
+    user.present? && visible_to_user? && quoted_jjaek_visible_to_user?
   end
 
   def create?
@@ -19,6 +19,12 @@ class JjaekPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
+      with_visible_quoted_jjaeks(visible_records)
+    end
+
+    private
+
+    def visible_records
       friend_ids = BookFriendship.connected_ids_for(user)
 
       scope
@@ -26,12 +32,26 @@ class JjaekPolicy < ApplicationPolicy
         .or(scope.where(visibility: Jjaek.visibilities[:public_jjaek]))
         .or(scope.where(user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
     end
+
+    def with_visible_quoted_jjaeks(records)
+      visible_quoted_jjaek_ids = visible_records.select(:id)
+
+      records
+        .where(quoted_jjaek_id: nil)
+        .or(records.where(quoted_jjaek_id: visible_quoted_jjaek_ids))
+    end
   end
 
   class FeedScope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?
 
+      with_visible_quoted_jjaeks(feed_records)
+    end
+
+    private
+
+    def feed_records
       followee_ids = user.followee_ids
       friend_ids = BookFriendship.connected_ids_for(user)
 
@@ -39,6 +59,14 @@ class JjaekPolicy < ApplicationPolicy
         .where(user_id: user.id)
         .or(scope.where(user_id: followee_ids, visibility: Jjaek.visibilities[:public_jjaek]))
         .or(scope.where(user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
+    end
+
+    def with_visible_quoted_jjaeks(records)
+      visible_quoted_jjaek_ids = Scope.new(user, scope).resolve.select(:id)
+
+      records
+        .where(quoted_jjaek_id: nil)
+        .or(records.where(quoted_jjaek_id: visible_quoted_jjaek_ids))
     end
   end
 
@@ -49,6 +77,12 @@ class JjaekPolicy < ApplicationPolicy
     return true if record.public_jjaek?
     return false unless record.book_friends?
 
-    user.book_friend?(record.user)
+    user.book_friend?(record.user) || false
+  end
+
+  def quoted_jjaek_visible_to_user?
+    return true unless record.quoted_jjaek
+
+    self.class.new(user, record.quoted_jjaek).show?
   end
 end

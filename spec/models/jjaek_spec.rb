@@ -18,4 +18,12 @@ RSpec.describe Jjaek, type: :model do
 
     expect(requote).not_to be_valid
   end
+
+  it "does not allow requoting another requote" do
+    original = other_user.jjaeks.create!(book:, content: "원문")
+    first_requote = user.jjaeks.create!(book:, content: "첫 인용", quoted_jjaek: original)
+    nested_requote = described_class.new(user:, book:, content: "중첩 인용", quoted_jjaek: first_requote)
+
+    expect(nested_requote).not_to be_valid
+  end
 end
