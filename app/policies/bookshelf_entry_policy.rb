@@ -23,7 +23,8 @@ class BookshelfEntryPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
-      scope.where(user_id: user.id)
+      visible_user_ids = [ user.id ] + BookFriendship.connected_ids_for(user)
+      scope.where(user_id: visible_user_ids)
     end
   end
 end

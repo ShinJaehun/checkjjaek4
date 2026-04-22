@@ -20,5 +20,27 @@ RSpec.describe UserPolicy do
     it "does not let a guest view a profile" do
       expect(described_class.new(nil, other_user).show?).to be(false)
     end
+
+    it "lets a user view and write in their own profile context" do
+      policy = described_class.new(user, user)
+
+      expect(policy.show_bookshelf?).to be(true)
+      expect(policy.write_jjaek?).to be(true)
+    end
+
+    it "lets an accepted book friend view and write in the profile context" do
+      BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+      policy = described_class.new(user, other_user)
+
+      expect(policy.show_bookshelf?).to be(true)
+      expect(policy.write_jjaek?).to be(true)
+    end
+
+    it "does not let an unrelated user view the bookshelf or write in the profile context" do
+      policy = described_class.new(user, other_user)
+
+      expect(policy.show_bookshelf?).to be(false)
+      expect(policy.write_jjaek?).to be(false)
+    end
   end
 end

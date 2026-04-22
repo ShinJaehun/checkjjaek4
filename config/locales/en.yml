@@ -185,8 +185,12 @@ en:
       remove_book_friend: "Remove book friend"
       unfollow: "Following"
     profile:
+      bookshelf_eyebrow: "Shelf"
+      bookshelf_title: "Books"
+      empty_bookshelf: "No visible books yet."
       eyebrow: "Reader Profile"
       empty_jjaeks: "No Jjaek is visible here yet."
       jjaek_eyebrow: "Jjaeks"
       jjaek_title: "Recent Jjaeks"
+      new_jjaek_title: "Write a Jjaek"
       stats: "%{followers} followers · %{following} following"

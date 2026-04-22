@@ -29,6 +29,58 @@
     </div>
   </section>
 
+  <% if @profile_jjaek.present? %>
+    <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+      <h2 class="text-lg font-semibold text-stone-900"><%= t("users.profile.new_jjaek_title") %></h2>
+
+      <%= form_with model: @profile_jjaek, class: "mt-4 space-y-4" do |form| %>
+        <% if @profile_jjaek.errors.any? %>
+          <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <%= @profile_jjaek.errors.full_messages.to_sentence %>
+          </div>
+        <% end %>
+
+        <%= hidden_field_tag :context_user_id, @user.id %>
+
+        <div class="space-y-2">
+          <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
+          <%= form.select :visibility,
+                          @profile_jjaek_visibility_options.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
+                          {},
+                          class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+        </div>
+
+        <div class="space-y-2">
+          <%= form.label :content, t("jjaeks.form.general_content"), class: "text-sm font-medium text-stone-700" %>
+          <%= form.text_area :content, rows: 4, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+        </div>
+
+        <%= form.submit t("jjaeks.actions.publish_short"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if @show_bookshelf %>
+    <section class="space-y-4">
+      <div>
+        <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.bookshelf_eyebrow") %></p>
+        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.bookshelf_title") %></h2>
+      </div>
+
+      <% if @bookshelf_entries.any? %>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <% @bookshelf_entries.each do |bookshelf_entry| %>
+            <%= render "bookshelf_entries/bookshelf_entry_compact", bookshelf_entry: bookshelf_entry %>
+          <% end %>
+        </div>
+      <% else %>
+        <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
+          <%= t("users.profile.empty_bookshelf") %>
+        </section>
+      <% end %>
+    </section>
+  <% end %>
+
   <section class="space-y-4">
     <div>
       <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.jjaek_eyebrow") %></p>

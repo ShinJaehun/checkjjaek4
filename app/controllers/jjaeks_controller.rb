@@ -61,12 +61,38 @@ class JjaeksController < ApplicationController
       @sticker_definitions = StickerDefinition.alphabetical
       @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
       render "books/show", status: :unprocessable_entity
+    elsif context_user.present? && Pundit.policy!(current_user, context_user).write_jjaek?
+      prepare_user_context(context_user)
+      render "users/show", status: :unprocessable_entity
     else
       @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
         .includes(:user, :book, :likes, :comments, :quoted_jjaek)
         .recent
       render "homes/show", status: :unprocessable_entity
     end
+  end
+
+  def context_user
+    return if params[:context_user_id].blank?
+
+    @context_user ||= User.find_by(id: params[:context_user_id])
+  end
+
+  def prepare_user_context(user)
+    @user = user
+    authorize @user, :show?
+    @jjaeks = policy_scope(@user.jjaeks.includes(:user, :book, :likes, :comments, :quoted_jjaek)).recent
+    @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
+    @show_bookshelf = policy(@user).show_bookshelf?
+    @bookshelf_entries = policy_scope(@user.bookshelf_entries).recent_first if @show_bookshelf
+    @profile_jjaek = @jjaek
+    @profile_jjaek_visibility_options = profile_jjaek_visibility_options_for(@user)
+  end
+
+  def profile_jjaek_visibility_options_for(user)
+    options = %w[public_jjaek book_friends]
+    options << "private_jjaek" if current_user == user
+    options
   end
 
   def jjaek_book_id

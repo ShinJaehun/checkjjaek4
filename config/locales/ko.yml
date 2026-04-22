@@ -185,8 +185,12 @@ ko:
       remove_book_friend: "책친구 해제"
       unfollow: "소식받는 중"
     profile:
+      bookshelf_eyebrow: "서재"
+      bookshelf_title: "책"
+      empty_bookshelf: "아직 보이는 책이 없습니다."
       eyebrow: "독자 프로필"
       empty_jjaeks: "아직 보이는 Jjaek이 없습니다."
       jjaek_eyebrow: "Jjaek"
       jjaek_title: "최근 Jjaek"
+      new_jjaek_title: "짹 쓰기"
       stats: "소식받는 사람 %{followers}명 · 소식받기 %{following}명"
