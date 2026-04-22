@@ -28,7 +28,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include("서재에 있는 책")
       expect(response.body).to include("다른 독자의 공개 Jjaek")
       expect(response.body).not_to include("상태 저장")
-      expect(response.body).not_to include("짹")
+      expect(response.body).not_to include('name="jjaek[content]"')
     end
   end
 

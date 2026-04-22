@@ -38,8 +38,5 @@
       <%= button_to t("likes.actions.like"), jjaek_like_path(jjaek), class: "text-sm font-medium text-stone-700" %>
     <% end %>
     <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>
-    <% unless jjaek.private_jjaek? %>
-      <%= link_to t("jjaeks.actions.requote"), book_path(jjaek.book, quote_id: jjaek.id), class: "font-medium text-stone-700" %>
-    <% end %>
   </div>
 </article>
