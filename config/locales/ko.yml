@@ -129,20 +129,23 @@ ko:
       isbn: "ISBN"
       eyebrow: "책"
       empty_description: "아직 이 책의 설명이 없습니다."
-      empty_jjaeks: "아직 이 책에 남겨진 Jjaek이 없습니다."
+      empty_jjaeks: "아직 이 책에 연결된 책짹이 없습니다."
       external_link: "외부 상세 보기"
-      new_jjaek_description: "짧은 감상이나 긴 메모를 이 책에 바로 남깁니다."
-      new_jjaek_title: "Jjaek 쓰기"
+      new_jjaek_description: "이 책에 연결된 짧은 감상이나 긴 메모를 남깁니다."
+      new_jjaek_title: "책짹 쓰기"
+      read_only_description: "이 책을 서재에 담으면 상태를 저장하고 책짹을 쓸 수 있습니다."
       requote_source: "%{name}님의 Jjaek을 인용 중"
       timeline_eyebrow: "책 흐름"
-      timeline_title: "이 책의 Jjaek"
+      timeline_title: "이 책의 책짹"
   jjaeks:
     actions:
       delete: "삭제"
       edit: "수정"
+      publish_book: "책짹"
       publish: "Jjaek 남기기"
+      publish_requote: "다시짹"
       publish_short: "짹"
-      requote: "ReJjaek"
+      requote: "다시짹"
       save: "저장"
       view: "글 보기"
     confirmations:
@@ -155,6 +158,7 @@ ko:
       visibility: "공개 범위"
     new:
       eyebrow: "Jjaek 작성"
+      requote_title: "다시짹 작성"
       title: "책에 대한 글 남기기"
     labels:
       requote: "%{name}님의 Jjaek을 인용"

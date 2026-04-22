@@ -24,6 +24,26 @@ RSpec.describe JjaekPolicy do
     end
   end
 
+  describe "#requote?" do
+    it "allows requoting a visible non-private original" do
+      expect(described_class.new(viewer, original).requote?).to be(true)
+    end
+
+    it "does not allow requoting a private original" do
+      private_original = original_author.jjaeks.create!(
+        book:,
+        content: "PRIVATE_REQUOTE_SOURCE",
+        visibility: :private_jjaek
+      )
+
+      expect(described_class.new(original_author, private_original).requote?).to be(false)
+    end
+
+    it "does not allow requoting another requote" do
+      expect(described_class.new(viewer, requote).requote?).to be(false)
+    end
+  end
+
   describe described_class::Scope do
     it "excludes a requote when the original is no longer visible to the viewer" do
       friendship.destroy!

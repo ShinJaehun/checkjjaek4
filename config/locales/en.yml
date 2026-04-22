@@ -129,18 +129,21 @@ en:
       isbn: "ISBN"
       eyebrow: "Book"
       empty_description: "No description is available for this book yet."
-      empty_jjaeks: "No Jjaek has been written for this book yet."
+      empty_jjaeks: "No book-linked Jjaek has been written for this book yet."
       external_link: "Open external detail"
-      new_jjaek_description: "Write a short note or a longer thought tied to this book."
-      new_jjaek_title: "Write a Jjaek"
+      new_jjaek_description: "Write a short note or a longer thought linked to this book."
+      new_jjaek_title: "Write a Book Jjaek"
+      read_only_description: "Add this book to your shelf to save its state and write a book-linked Jjaek."
       requote_source: "ReJjaek from %{name}"
       timeline_eyebrow: "Book Timeline"
-      timeline_title: "Jjaeks for this book"
+      timeline_title: "Book Jjaeks for this book"
   jjaeks:
     actions:
       delete: "Delete"
       edit: "Edit"
+      publish_book: "Book Jjaek"
       publish: "Publish Jjaek"
+      publish_requote: "ReJjaek"
       publish_short: "Jjaek"
       requote: "ReJjaek"
       save: "Save changes"
@@ -155,6 +158,7 @@ en:
       visibility: "Visibility"
     new:
       eyebrow: "New Jjaek"
+      requote_title: "Write a ReJjaek"
       title: "Write about this book"
     labels:
       requote: "ReJjaek from %{name}"

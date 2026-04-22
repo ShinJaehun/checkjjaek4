@@ -1,7 +1,9 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
   <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
     <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("jjaeks.new.eyebrow") %></p>
-    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= t("jjaeks.new.title") %></h1>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900">
+      <%= @quoted_jjaek.present? ? t("jjaeks.new.requote_title") : t("jjaeks.new.title") %>
+    </h1>
 
     <% if @book.present? %>
       <div class="mt-5 rounded-2xl bg-stone-50 px-4 py-4">
@@ -41,7 +43,7 @@
           <%= form.text_area :content, rows: 8, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
         </div>
 
-        <%= form.submit t("jjaeks.actions.publish"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+        <%= form.submit @quoted_jjaek.present? ? t("jjaeks.actions.publish_requote") : t("jjaeks.actions.publish"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
       <% end %>
     </div>
   </section>

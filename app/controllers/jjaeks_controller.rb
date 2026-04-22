@@ -61,6 +61,8 @@ class JjaeksController < ApplicationController
       @sticker_definitions = StickerDefinition.alphabetical
       @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
       render "books/show", status: :unprocessable_entity
+    elsif @quoted_jjaek.present?
+      render :new, status: :unprocessable_entity
     elsif context_user.present? && Pundit.policy!(current_user, context_user).write_jjaek?
       prepare_user_context(context_user)
       render "users/show", status: :unprocessable_entity

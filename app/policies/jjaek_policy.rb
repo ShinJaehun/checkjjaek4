@@ -7,6 +7,10 @@ class JjaekPolicy < ApplicationPolicy
     user.present? && record.user_id == user.id
   end
 
+  def requote?
+    show? && !record.private_jjaek? && !record.requote?
+  end
+
   def update?
     user.present? && record.user_id == user.id
   end

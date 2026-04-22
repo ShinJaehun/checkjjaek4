@@ -66,9 +66,76 @@ RSpec.describe "Jjaeks", type: :request do
       expect(created_jjaek.book).to eq(book)
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
+
+    it "creates a requote from a visible original" do
+      sign_in viewer
+      original
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            quoted_jjaek_id: original.id,
+            content: "REQUEST_NEW_REQUOTE_BODY",
+            visibility: :private_jjaek
+          }
+        }
+      }.to change(Jjaek, :count).by(1)
+
+      created_jjaek = Jjaek.last
+      expect(created_jjaek.quoted_jjaek).to eq(original)
+      expect(created_jjaek.book).to be_nil
+      expect(response).to redirect_to(jjaek_path(created_jjaek))
+    end
+
+    it "rerenders the new requote form when a requote is invalid" do
+      sign_in viewer
+      original
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            quoted_jjaek_id: original.id,
+            content: "",
+            visibility: :private_jjaek
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include(I18n.t("jjaeks.new.requote_title"))
+      expect(response.body).to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
+    end
   end
 
   describe "GET /jjaeks/:id" do
+    it "shows a requote entry on a visible jjaek detail page" do
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: original.id))
+    end
+
+    it "does not show a requote entry for a private jjaek" do
+      private_jjaek = viewer.jjaeks.create!(
+        content: "REQUEST_PRIVATE_NO_REQUOTE_ENTRY",
+        visibility: :private_jjaek
+      )
+      sign_in viewer
+
+      get jjaek_path(private_jjaek)
+
+      expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: private_jjaek.id))
+    end
+
+    it "does not show a requote entry for a requote" do
+      sign_in viewer
+
+      get jjaek_path(requote)
+
+      expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: requote.id))
+    end
+
     it "blocks a user's own requote when the original is no longer visible to them" do
       sign_in viewer
       requote

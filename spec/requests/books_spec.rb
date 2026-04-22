@@ -13,8 +13,9 @@ RSpec.describe "Books", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
-      expect(response.body).to include("상태 저장")
-      expect(response.body).to include("짹")
+      expect(response.body).to include(I18n.t("books.show.save_state"))
+      expect(response.body).to include(I18n.t("books.show.new_jjaek_title"))
+      expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
     end
 
     it "shows the book as read-only when the user has no bookshelf entry" do
@@ -27,7 +28,9 @@ RSpec.describe "Books", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
       expect(response.body).to include("다른 독자의 공개 Jjaek")
-      expect(response.body).not_to include("상태 저장")
+      expect(response.body).to include(I18n.t("books.show.read_only_description"))
+      expect(response.body).not_to include(I18n.t("books.show.save_state"))
+      expect(response.body).not_to include(I18n.t("books.show.new_jjaek_title"))
       expect(response.body).not_to include('name="jjaek[content]"')
     end
   end
