@@ -10,6 +10,11 @@ class User < ApplicationRecord
   has_many :bookshelf_entries, dependent: :destroy
   has_many :books, through: :bookshelf_entries
   has_many :jjaeks, dependent: :destroy
+  has_many :targeted_jjaeks,
+           class_name: "Jjaek",
+           foreign_key: :target_user_id,
+           inverse_of: :target_user,
+           dependent: :nullify
   has_many :comments, dependent: :destroy
   has_many :likes, dependent: :destroy
 

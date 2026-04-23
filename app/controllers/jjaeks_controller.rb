@@ -14,19 +14,20 @@ class JjaeksController < ApplicationController
   end
 
   def create
-    authorize context_user, :write_jjaek? if context_user.present?
+    authorize target_user, :write_jjaek? if target_user.present?
 
     @jjaek.assign_attributes(jjaek_params)
 
     if @jjaek.save
-      redirect_to jjaek_path(@jjaek), notice: t("jjaeks.notices.created")
+      redirect_to target_user.present? ? root_path : jjaek_path(@jjaek),
+                  notice: t("jjaeks.notices.created")
     else
       render_failed_create
     end
   end
 
   def update
-    if @jjaek.update(jjaek_params.except(:book_id, :quoted_jjaek_id))
+    if @jjaek.update(jjaek_params.except(:book_id, :quoted_jjaek_id, :target_user_id))
       redirect_to jjaek_path(@jjaek), notice: t("jjaeks.notices.updated")
     else
       render :edit, status: :unprocessable_entity
@@ -51,7 +52,7 @@ class JjaeksController < ApplicationController
       if jjaek_quoted_id.present?
         policy_scope(Jjaek).find(jjaek_quoted_id)
       end
-    @jjaek = current_user.jjaeks.build(book: @book, quoted_jjaek: @quoted_jjaek)
+    @jjaek = current_user.jjaeks.build(book: @book, quoted_jjaek: @quoted_jjaek, target_user:)
     authorize @jjaek
   end
 
@@ -65,21 +66,21 @@ class JjaeksController < ApplicationController
       render "books/show", status: :unprocessable_entity
     elsif @quoted_jjaek.present?
       render :new, status: :unprocessable_entity
-    elsif context_user.present? && Pundit.policy!(current_user, context_user).write_jjaek?
-      prepare_user_context(context_user)
+    elsif target_user.present? && Pundit.policy!(current_user, target_user).write_jjaek?
+      prepare_user_context(target_user)
       render "users/show", status: :unprocessable_entity
     else
       @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
-        .includes(:user, :book, :likes, :comments, :quoted_jjaek)
+        .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek)
         .recent
       render "homes/show", status: :unprocessable_entity
     end
   end
 
-  def context_user
-    return if params[:context_user_id].blank?
+  def target_user
+    return if jjaek_target_user_id.blank?
 
-    @context_user ||= User.find_by(id: params[:context_user_id])
+    @target_user ||= User.find(jjaek_target_user_id)
   end
 
   def prepare_user_context(user)
@@ -107,7 +108,11 @@ class JjaeksController < ApplicationController
     params.dig(:jjaek, :quoted_jjaek_id) || params[:quoted_jjaek_id]
   end
 
+  def jjaek_target_user_id
+    params.dig(:jjaek, :target_user_id)
+  end
+
   def jjaek_params
-    params.require(:jjaek).permit(:book_id, :content, :visibility, :quoted_jjaek_id)
+    params.require(:jjaek).permit(:book_id, :content, :visibility, :quoted_jjaek_id, :target_user_id)
   end
 end

@@ -55,7 +55,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
-      expect(response.body).to include('name="context_user_id"')
+      expect(response.body).to include('name="jjaek[target_user_id]"')
       expect(response.body).to include(I18n.t("jjaeks.visibility.book_friends"))
     end
 
@@ -79,8 +79,8 @@ RSpec.describe "Users", type: :request do
 
       expect {
         post jjaeks_path, params: {
-          context_user_id: profile_user.id,
           jjaek: {
+            target_user_id: profile_user.id,
             content: "",
             visibility: :book_friends
           }
@@ -89,7 +89,7 @@ RSpec.describe "Users", type: :request do
 
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
-      expect(response.body).to include('name="context_user_id"')
+      expect(response.body).to include('name="jjaek[target_user_id]"')
     end
 
     it "does not create a profile-context jjaek when the viewer cannot write in that profile context" do
@@ -97,8 +97,8 @@ RSpec.describe "Users", type: :request do
 
       expect {
         post jjaeks_path, params: {
-          context_user_id: profile_user.id,
           jjaek: {
+            target_user_id: profile_user.id,
             content: "UNRELATED_PROFILE_CONTEXT_JJAEK",
             visibility: :book_friends
           }
@@ -106,6 +106,61 @@ RSpec.describe "Users", type: :request do
       }.not_to change(Jjaek, :count)
 
       expect(response).to redirect_to(root_path)
+    end
+
+    it "creates a profile-context jjaek and returns to the home feed" do
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            target_user_id: profile_user.id,
+            content: "PROFILE_CONTEXT_CREATED",
+            visibility: :book_friends
+          }
+        }
+      }.to change(Jjaek, :count).by(1)
+
+      created_jjaek = Jjaek.last
+      expect(created_jjaek.user).to eq(viewer)
+      expect(created_jjaek.target_user).to eq(profile_user)
+      expect(response).to redirect_to(root_path)
+    end
+
+    it "does not create a private profile-context jjaek for another user" do
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            target_user_id: profile_user.id,
+            content: "PRIVATE_PROFILE_CONTEXT_JJAEK",
+            visibility: :private_jjaek
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
+      expect(response.body).to include(I18n.t("activerecord.errors.models.jjaek.attributes.visibility.invalid"))
+    end
+
+    it "does not reach persistence for an unknown target user" do
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            target_user_id: User.maximum(:id).to_i + 100,
+            content: "UNKNOWN_TARGET_USER_CONTEXT_JJAEK",
+            visibility: :book_friends
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:not_found)
     end
   end
 end

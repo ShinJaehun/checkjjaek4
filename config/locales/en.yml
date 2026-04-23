@@ -1,4 +1,12 @@
 en:
+  activerecord:
+    errors:
+      models:
+        jjaek:
+          attributes:
+            visibility:
+              cannot_exceed_quoted_visibility: "cannot be broader than the original Jjaek"
+              invalid: "is invalid"
   auth:
     actions:
       sign_in: "Sign in"

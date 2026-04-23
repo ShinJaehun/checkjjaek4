@@ -1,4 +1,12 @@
 ko:
+  activerecord:
+    errors:
+      models:
+        jjaek:
+          attributes:
+            visibility:
+              cannot_exceed_quoted_visibility: "원문보다 더 넓게 공개할 수 없습니다"
+              invalid: "올바르지 않습니다"
   auth:
     actions:
       sign_in: "로그인"

@@ -40,7 +40,7 @@
           </div>
         <% end %>
 
-        <%= hidden_field_tag :context_user_id, @user.id %>
+        <%= form.hidden_field :target_user_id %>
 
         <div class="space-y-2">
           <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>

@@ -8,7 +8,10 @@ class UsersController < ApplicationController
     @bookshelf_entries = policy_scope(@user.bookshelf_entries).recent_first if @show_bookshelf
 
     if policy(@user).write_jjaek?
-      @profile_jjaek = current_user.jjaeks.build(visibility: profile_jjaek_default_visibility)
+      @profile_jjaek = current_user.jjaeks.build(
+        target_user: @user,
+        visibility: profile_jjaek_default_visibility
+      )
       @profile_jjaek_visibility_options = profile_jjaek_visibility_options
     end
   end

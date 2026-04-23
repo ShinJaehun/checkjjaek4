@@ -11,6 +11,12 @@ RSpec.describe Jjaek, type: :model do
     expect(jjaek).to be_valid
   end
 
+  it "allows a profile-context jjaek with a target user" do
+    jjaek = described_class.new(user:, target_user: other_user, content: "프로필 문맥 짹")
+
+    expect(jjaek).to be_valid
+  end
+
   it "does not allow requoting a private jjaek" do
     original = other_user.jjaeks.create!(book:, content: "원문", visibility: :private_jjaek)
     requote = described_class.new(user:, book:, content: "인용", quoted_jjaek: original)
@@ -23,6 +29,7 @@ RSpec.describe Jjaek, type: :model do
     requote = described_class.new(user:, book:, content: "인용", quoted_jjaek: original, visibility: :public_jjaek)
 
     expect(requote).not_to be_valid
+    expect(requote.errors.of_kind?(:visibility, :cannot_exceed_quoted_visibility)).to be(true)
   end
 
   it "does not allow requoting another requote" do
