@@ -150,6 +150,18 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: original.id))
     end
 
+    it "shows the requote context label on the detail page" do
+      sign_in viewer
+
+      get jjaek_path(requote)
+
+      expect(response.body).to include(viewer.name)
+      expect(response.body).to include(user_path(viewer))
+      expect(response.body).to include(original_author.name)
+      expect(response.body).to include(user_path(original_author))
+      expect(response.body).to include("님의 짹을 다시짹")
+    end
+
     it "does not show a requote entry for a private jjaek" do
       private_jjaek = viewer.jjaeks.create!(
         content: "REQUEST_PRIVATE_NO_REQUOTE_ENTRY",
@@ -193,6 +205,11 @@ RSpec.describe "Jjaeks", type: :request do
       get root_path
 
       expect(response.body).to include("REQUEST_TARGETED_AT_VIEWER_FEED")
+      expect(response.body).to include(original_author.name)
+      expect(response.body).to include(user_path(original_author))
+      expect(response.body).to include(viewer.name)
+      expect(response.body).to include(user_path(viewer))
+      expect(response.body).to include("님에게 남긴 짹")
     end
 
     it "hides a requote from the home feed when the original is no longer visible to the viewer" do

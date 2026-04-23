@@ -146,6 +146,11 @@ ko:
       timeline_eyebrow: "책 흐름"
       timeline_title: "이 책의 책짹"
   jjaeks:
+    contexts:
+      general: "%{author_name}님의 짹"
+      profile: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
+      book: "%{author_name}님이 %{book_title}에 남긴 책짹"
+      requote: "%{author_name}님이 %{quoted_user_name}님의 짹을 다시짹"
     actions:
       delete: "삭제"
       edit: "수정"
@@ -169,7 +174,7 @@ ko:
       requote_title: "다시짹 작성"
       title: "책에 대한 글 남기기"
     labels:
-      requote: "%{name}님의 Jjaek을 인용"
+      requote: "%{name}님의 짹"
     meta:
       comments:
         one: "댓글 1개"

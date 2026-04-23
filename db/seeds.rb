@@ -45,12 +45,6 @@ books = [
     title: "북짹 리부트",
     authors_text: "팀 체크짹",
     publisher: "checkjjaek4"
-  },
-  {
-    isbn: "2222",
-    title: "독서의 리듬",
-    authors_text: "가상의 저자",
-    publisher: "책방"
   }
 ].map do |attrs|
   Book.find_or_create_by!(isbn: attrs[:isbn]) do |book|
@@ -63,12 +57,8 @@ end
 entry_a = BookshelfEntry.find_or_create_by!(user: users["a@a"], book: books[0]) do |entry|
   entry.status = :reading
 end
-entry_b = BookshelfEntry.find_or_create_by!(user: users["b@b"], book: books[1]) do |entry|
-  entry.status = :finished
-end
 
 entry_a.sticker_definition_ids = StickerDefinition.where(key: %w[loved_it stayed_with_me]).pluck(:id)
-entry_b.sticker_definition_ids = StickerDefinition.where(key: %w[want_to_recommend]).pluck(:id)
 
 BookFriendship.find_or_create_by!(requester: users["a@a"], addressee: users["b@b"]) do |friendship|
   friendship.status = :accepted
@@ -77,14 +67,9 @@ end
 jjaek_a = Jjaek.find_or_create_by!(user: users["a@a"], book: books[0], content: "서재를 먼저 세우고 나니 어떤 글을 남길지 더 분명해졌어요.") do |jjaek|
   jjaek.visibility = :public_jjaek
 end
-jjaek_b = Jjaek.find_or_create_by!(user: users["b@b"], book: books[1], content: "책친구 공개로 남기는 감상은 조금 더 솔직해지네요.") do |jjaek|
-  jjaek.visibility = :book_friends
-end
 
 Comment.find_or_create_by!(
   user: users["b@b"],
   jjaek: jjaek_a,
   content: "서재 흐름이 잡히니 글도 더 자연스럽게 이어지겠어요."
 )
-
-Like.find_or_create_by!(user: users["a@a"], jjaek: jjaek_b)

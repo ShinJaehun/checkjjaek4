@@ -146,6 +146,11 @@ en:
       timeline_eyebrow: "Book Timeline"
       timeline_title: "Book Jjaeks for this book"
   jjaeks:
+    contexts:
+      general: "%{author_name}'s Jjaek"
+      profile: "%{author_name} left a Jjaek for %{target_user_name}"
+      book: "%{author_name} left a Book Jjaek about %{book_title}"
+      requote: "%{author_name} wrote a ReJjaek of %{quoted_user_name}'s Jjaek"
     actions:
       delete: "Delete"
       edit: "Edit"
