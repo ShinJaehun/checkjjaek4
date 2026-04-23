@@ -1,4 +1,12 @@
 en:
+  activerecord:
+    errors:
+      models:
+        jjaek:
+          attributes:
+            visibility:
+              cannot_exceed_quoted_visibility: "cannot be broader than the original Jjaek"
+              invalid: "is invalid"
   auth:
     actions:
       sign_in: "Sign in"
@@ -138,6 +146,11 @@ en:
       timeline_eyebrow: "Book Timeline"
       timeline_title: "Book Jjaeks for this book"
   jjaeks:
+    contexts:
+      general: "%{author_name}'s Jjaek"
+      profile: "%{author_name} left a Jjaek for %{target_user_name}"
+      book: "%{author_name} left a Book Jjaek about %{book_title}"
+      requote: "%{author_name} wrote a ReJjaek of %{quoted_user_name}'s Jjaek"
     actions:
       delete: "Delete"
       edit: "Edit"

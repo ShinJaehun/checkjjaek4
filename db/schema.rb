@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_22_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_23_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -85,12 +85,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_22_000000) do
     t.text "content", null: false
     t.datetime "created_at", null: false
     t.bigint "quoted_jjaek_id"
+    t.bigint "target_user_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.integer "visibility", default: 0, null: false
     t.index ["book_id"], name: "index_jjaeks_on_book_id"
     t.index ["created_at"], name: "index_jjaeks_on_created_at"
     t.index ["quoted_jjaek_id"], name: "index_jjaeks_on_quoted_jjaek_id"
+    t.index ["target_user_id"], name: "index_jjaeks_on_target_user_id"
     t.index ["user_id"], name: "index_jjaeks_on_user_id"
   end
 
@@ -139,6 +141,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_22_000000) do
   add_foreign_key "jjaeks", "books"
   add_foreign_key "jjaeks", "jjaeks", column: "quoted_jjaek_id"
   add_foreign_key "jjaeks", "users"
+  add_foreign_key "jjaeks", "users", column: "target_user_id"
   add_foreign_key "likes", "jjaeks"
   add_foreign_key "likes", "users"
 end

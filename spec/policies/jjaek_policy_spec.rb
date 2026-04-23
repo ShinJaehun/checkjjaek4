@@ -63,6 +63,37 @@ RSpec.describe JjaekPolicy do
 
       expect(described_class.new(viewer, jjaek).create?).to be(false)
     end
+
+    it "allows creating a profile-context jjaek for an accepted book friend" do
+      jjaek = viewer.jjaeks.build(
+        target_user: original_author,
+        content: "PROFILE_CONTEXT_POLICY_JJAEK",
+        visibility: :book_friends
+      )
+
+      expect(described_class.new(viewer, jjaek).create?).to be(true)
+    end
+
+    it "does not allow creating a profile-context jjaek for an unrelated user" do
+      friendship.destroy!
+      jjaek = viewer.jjaeks.build(
+        target_user: original_author,
+        content: "UNRELATED_PROFILE_CONTEXT_POLICY_JJAEK",
+        visibility: :book_friends
+      )
+
+      expect(described_class.new(viewer, jjaek).create?).to be(false)
+    end
+
+    it "does not allow creating a private profile-context jjaek for another user" do
+      jjaek = viewer.jjaeks.build(
+        target_user: original_author,
+        content: "PRIVATE_PROFILE_CONTEXT_POLICY_JJAEK",
+        visibility: :private_jjaek
+      )
+
+      expect(described_class.new(viewer, jjaek).create?).to be(false)
+    end
   end
 
   describe described_class::Scope do
@@ -82,6 +113,18 @@ RSpec.describe JjaekPolicy do
   end
 
   describe described_class::FeedScope do
+    it "includes jjaeks targeted at the viewer" do
+      targeted = original_author.jjaeks.create!(
+        target_user: viewer,
+        content: "TARGETED_AT_VIEWER_POLICY_FEED",
+        visibility: :book_friends
+      )
+
+      resolved = described_class.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).to include(targeted)
+    end
+
     it "excludes a requote when the original is no longer visible to the viewer" do
       friendship.destroy!
 

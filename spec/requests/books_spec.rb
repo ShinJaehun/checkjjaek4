@@ -18,6 +18,21 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
     end
 
+    it "shows the book-context label for book-linked jjaeks" do
+      user.bookshelf_entries.create!(book:, status: :reading)
+      book_jjaek = user.jjaeks.create!(book:, content: "BOOK_CONTEXT_LABEL_BODY")
+      sign_in user
+
+      get book_path(book)
+
+      expect(response.body).to include(book_jjaek.content)
+      expect(response.body).to include(user.name)
+      expect(response.body).to include(user_path(user))
+      expect(response.body).to include(book.title)
+      expect(response.body).to include(book_path(book))
+      expect(response.body).to include("에 남긴 책짹")
+    end
+
     it "shows the book as read-only when the user has no bookshelf entry" do
       other_user = User.create!(name: "Other Reader", email: "other-book-reader@example.com", password: "password123!", password_confirmation: "password123!")
       book.jjaeks.create!(user: other_user, content: "다른 독자의 공개 Jjaek")

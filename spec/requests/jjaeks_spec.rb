@@ -121,6 +121,24 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.new.requote_title"))
       expect(response.body).to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
     end
+
+    it "shows a domain error when a requote visibility is broader than the original" do
+      sign_in viewer
+      original
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            quoted_jjaek_id: original.id,
+            content: "REQUEST_TOO_PUBLIC_REQUOTE_BODY",
+            visibility: :public_jjaek
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include(I18n.t("activerecord.errors.models.jjaek.attributes.visibility.cannot_exceed_quoted_visibility"))
+    end
   end
 
   describe "GET /jjaeks/:id" do
@@ -130,6 +148,18 @@ RSpec.describe "Jjaeks", type: :request do
       get jjaek_path(original)
 
       expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: original.id))
+    end
+
+    it "shows the requote context label on the detail page" do
+      sign_in viewer
+
+      get jjaek_path(requote)
+
+      expect(response.body).to include(viewer.name)
+      expect(response.body).to include(user_path(viewer))
+      expect(response.body).to include(original_author.name)
+      expect(response.body).to include(user_path(original_author))
+      expect(response.body).to include("님의 짹을 다시짹")
     end
 
     it "does not show a requote entry for a private jjaek" do
@@ -164,6 +194,24 @@ RSpec.describe "Jjaeks", type: :request do
   end
 
   describe "GET /" do
+    it "shows jjaeks targeted at the viewer in the home feed" do
+      original_author.jjaeks.create!(
+        target_user: viewer,
+        content: "REQUEST_TARGETED_AT_VIEWER_FEED",
+        visibility: :book_friends
+      )
+      sign_in viewer
+
+      get root_path
+
+      expect(response.body).to include("REQUEST_TARGETED_AT_VIEWER_FEED")
+      expect(response.body).to include(original_author.name)
+      expect(response.body).to include(user_path(original_author))
+      expect(response.body).to include(viewer.name)
+      expect(response.body).to include(user_path(viewer))
+      expect(response.body).to include("님에게 남긴 짹")
+    end
+
     it "hides a requote from the home feed when the original is no longer visible to the viewer" do
       sign_in viewer
       requote
