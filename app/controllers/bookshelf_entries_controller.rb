@@ -3,7 +3,7 @@ class BookshelfEntriesController < ApplicationController
 
   def index
     authorize BookshelfEntry
-    @bookshelf_entries = policy_scope(BookshelfEntry).recent_first
+    @bookshelf_entries = policy_scope(current_user.bookshelf_entries).recent_first
   end
 
   def new
