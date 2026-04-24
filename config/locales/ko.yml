@@ -91,6 +91,22 @@ ko:
       accepted: "책친구 신청을 수락했습니다."
       created: "책친구 신청을 보냈습니다."
       destroyed: "책친구 관계를 정리했습니다."
+  relationships:
+    nav: "관계"
+    eyebrow: "관계 허브"
+    title: "관계 관리"
+    sections:
+      received_book_friend_requests: "받은 책친구 요청"
+      sent_book_friend_requests: "보낸 책친구 요청"
+      book_friends: "책친구"
+      following_users: "내가 소식받는 사람"
+      followers: "나를 소식받는 사람"
+    empty:
+      received_book_friend_requests: "받은 책친구 요청이 없습니다."
+      sent_book_friend_requests: "보낸 책친구 요청이 없습니다."
+      book_friends: "책친구가 없습니다."
+      following_users: "소식받는 사용자가 없습니다."
+      followers: "나를 소식받는 사용자가 없습니다."
   likes:
     alerts:
       not_found: "좋아요를 찾을 수 없습니다."
@@ -202,6 +218,7 @@ ko:
       accept_book_friend: "책친구 수락"
       cancel_book_friend_request: "신청 취소"
       follow: "소식받기"
+      reject_book_friend_request: "요청 거절"
       request_book_friend: "책친구 신청"
       remove_book_friend: "책친구 해제"
       unfollow: "소식받는 중"

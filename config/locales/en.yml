@@ -91,6 +91,22 @@ en:
       accepted: "Book friendship accepted."
       created: "Book friend request sent."
       destroyed: "Book friendship removed."
+  relationships:
+    nav: "Relationships"
+    eyebrow: "Relationship Hub"
+    title: "Manage relationships"
+    sections:
+      received_book_friend_requests: "Received book friend requests"
+      sent_book_friend_requests: "Sent book friend requests"
+      book_friends: "Book friends"
+      following_users: "Following"
+      followers: "Followers"
+    empty:
+      received_book_friend_requests: "You have no received book friend requests."
+      sent_book_friend_requests: "You have no sent book friend requests."
+      book_friends: "You have no book friends yet."
+      following_users: "You are not following anyone yet."
+      followers: "No one is following you yet."
   likes:
     alerts:
       not_found: "Like was not found."
@@ -202,6 +218,7 @@ en:
       accept_book_friend: "Accept book friend"
       cancel_book_friend_request: "Cancel request"
       follow: "Follow updates"
+      reject_book_friend_request: "Reject request"
       request_book_friend: "Request book friend"
       remove_book_friend: "Remove book friend"
       unfollow: "Following"
