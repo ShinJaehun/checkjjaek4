@@ -9,7 +9,7 @@ RSpec.describe BookshelfEntryPolicy do
   let(:stranger_book) { Book.create!(title: "Stranger Book", authors_text: "Author") }
 
   describe described_class::Scope do
-    it "includes the viewer and accepted book friends but not unrelated users" do
+    it "includes only the viewer's own bookshelf entries" do
       viewer_entry = viewer.bookshelf_entries.create!(book: viewer_book)
       friend_entry = book_friend.bookshelf_entries.create!(book: friend_book)
       stranger_entry = stranger.bookshelf_entries.create!(book: stranger_book)
@@ -17,7 +17,8 @@ RSpec.describe BookshelfEntryPolicy do
 
       resolved = described_class.new(viewer, BookshelfEntry.all).resolve
 
-      expect(resolved).to include(viewer_entry, friend_entry)
+      expect(resolved).to include(viewer_entry)
+      expect(resolved).not_to include(friend_entry)
       expect(resolved).not_to include(stranger_entry)
     end
   end
@@ -26,7 +27,7 @@ RSpec.describe BookshelfEntryPolicy do
     it "treats another user's current bookshelf entries as the temporary default public shelf for profiles" do
       stranger_entry = stranger.bookshelf_entries.create!(book: stranger_book)
 
-      resolved = described_class::ProfileScope.new(viewer, stranger.bookshelf_entries).resolve
+      resolved = described_class.new(viewer, stranger.bookshelf_entries).resolve
 
       expect(resolved).to include(stranger_entry)
     end
