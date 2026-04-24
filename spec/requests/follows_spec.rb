@@ -37,6 +37,15 @@ RSpec.describe "Follows", type: :request do
     }.to change(Follow, :count).by(-1)
   end
 
+  it "returns to the relationship hub when return_to is relationships" do
+    sign_in user
+    user.active_follows.create!(followee: other_user)
+
+    delete user_follow_path(other_user), params: { return_to: "relationships" }
+
+    expect(response).to redirect_to(relationships_path)
+  end
+
   it "redirects back with an alert when the follow does not exist" do
     sign_in user
 
@@ -44,5 +53,14 @@ RSpec.describe "Follows", type: :request do
 
     expect(response).to redirect_to(user_path(other_user))
     expect(flash[:alert]).to eq("팔로우 관계를 찾을 수 없습니다.")
+  end
+
+  it "falls back to the user profile for an unknown return_to value" do
+    sign_in user
+    user.active_follows.create!(followee: other_user)
+
+    delete user_follow_path(other_user), params: { return_to: "https://example.com" }
+
+    expect(response).to redirect_to(user_path(other_user))
   end
 end

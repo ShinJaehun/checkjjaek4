@@ -151,6 +151,15 @@ Jjaek처럼 본문이 있는 글이 아니라,
 
 ## 관계 모델
 
+관계 모델의 세부 MVP 기준은
+`docs/specs/social_relationships_mvp.md`를 함께 본다.
+
+이 문서는 특히 아래를 보완한다.
+- `Follow` / `BookFriendship` 역할 구분
+- Relationship Page
+- Notification 진입점
+- Comment visibility 정책
+
 ### 소식받기
 의미:
 - 이 사람의 공개 Jjaek을 내 피드에서 보고 싶다.

@@ -7,9 +7,9 @@ class FollowsController < ApplicationController
     follow = current_user.active_follows.find_or_initialize_by(followee: @user)
 
     if follow.persisted? || follow.save
-      redirect_to user_path(@user), notice: t("follows.notices.created")
+      redirect_to redirect_target, notice: t("follows.notices.created")
     else
-      redirect_to user_path(@user), alert: follow.errors.full_messages.to_sentence
+      redirect_to redirect_target, alert: follow.errors.full_messages.to_sentence
     end
   end
 
@@ -18,18 +18,22 @@ class FollowsController < ApplicationController
     follow = current_user.active_follows.find_by(followee: @user)
 
     unless follow
-      redirect_to user_path(@user), alert: t("follows.alerts.not_found")
+      redirect_to redirect_target, alert: t("follows.alerts.not_found")
       return
     end
 
     follow.destroy!
 
-    redirect_to user_path(@user), notice: t("follows.notices.destroyed")
+    redirect_to redirect_target, notice: t("follows.notices.destroyed")
   end
 
   private
 
   def set_user
     @user = User.find(params[:user_id])
+  end
+
+  def redirect_target
+    params[:return_to] == "relationships" ? relationships_path : user_path(@user)
   end
 end

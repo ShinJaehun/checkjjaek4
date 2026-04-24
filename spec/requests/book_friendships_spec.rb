@@ -20,4 +20,22 @@ RSpec.describe "BookFriendships", type: :request do
 
     expect(BookFriendship.last).to be_accepted
   end
+
+  it "returns to the relationship hub when return_to is relationships" do
+    BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in other_user
+
+    patch user_book_friendship_path(user), params: { return_to: "relationships" }
+
+    expect(response).to redirect_to(relationships_path)
+  end
+
+  it "falls back to the user profile for an unknown return_to value" do
+    BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in other_user
+
+    patch user_book_friendship_path(user), params: { return_to: "https://example.com" }
+
+    expect(response).to redirect_to(user_path(user))
+  end
 end
