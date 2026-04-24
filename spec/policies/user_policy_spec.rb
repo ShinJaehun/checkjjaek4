@@ -24,23 +24,39 @@ RSpec.describe UserPolicy do
     it "lets a user view and write in their own profile context" do
       policy = described_class.new(user, user)
 
-      expect(policy.show_bookshelf?).to be(true)
-      expect(policy.write_jjaek?).to be(true)
+      expect(policy.profile_access_level).to eq(:self)
+      expect(policy.show_profile_bookshelf?).to be(true)
+      expect(policy.show_profile_jjaeks?).to be(true)
+      expect(policy.write_profile_jjaek?).to be(true)
     end
 
     it "lets an accepted book friend view and write in the profile context" do
       BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
       policy = described_class.new(user, other_user)
 
-      expect(policy.show_bookshelf?).to be(true)
-      expect(policy.write_jjaek?).to be(true)
+      expect(policy.profile_access_level).to eq(:book_friend)
+      expect(policy.show_profile_bookshelf?).to be(true)
+      expect(policy.show_profile_jjaeks?).to be(true)
+      expect(policy.write_profile_jjaek?).to be(true)
     end
 
-    it "does not let an unrelated user view the bookshelf or write in the profile context" do
+    it "lets a following user view profile jjaeks but not write in the profile context" do
+      user.active_follows.create!(followee: other_user)
       policy = described_class.new(user, other_user)
 
-      expect(policy.show_bookshelf?).to be(false)
-      expect(policy.write_jjaek?).to be(false)
+      expect(policy.profile_access_level).to eq(:following)
+      expect(policy.show_profile_bookshelf?).to be(true)
+      expect(policy.show_profile_jjaeks?).to be(true)
+      expect(policy.write_profile_jjaek?).to be(false)
+    end
+
+    it "lets an unrelated user view only the profile bookshelf" do
+      policy = described_class.new(user, other_user)
+
+      expect(policy.profile_access_level).to eq(:none)
+      expect(policy.show_profile_bookshelf?).to be(true)
+      expect(policy.show_profile_jjaeks?).to be(false)
+      expect(policy.write_profile_jjaek?).to be(false)
     end
   end
 end
