@@ -410,6 +410,16 @@ ReJjaek은 새 Jjaek이지만,
   - 인용/응답 작성: `다시짹`
 - 세 경우 모두 기본 모델은 `Jjaek`로 유지한다.
 
+### Jjaek 표시 규칙 1차
+
+- 일반 `Jjaek`는 기본적으로 `짹`으로 표시할 수 있다.
+- `target_user_id`가 있는 `Jjaek`는 `A가 B에게 남긴 짹`처럼 표시할 수 있다.
+- `book_id`가 있는 `Jjaek`는 `A가 X에 대해 남긴 책짹`처럼 표시할 수 있다.
+- `quoted_jjaek_id`가 있는 `Jjaek`는 `A가 B의 짹을 다시짹`처럼 표시할 수 있다.
+- `target_user_id`와 `quoted_jjaek_id`가 함께 있는 경우에도, 1차 MVP에서는 `다시짹` 문맥을 우선해 표시할 수 있다.
+- `book_id`와 `quoted_jjaek_id`가 함께 있는 경우에도, 1차 MVP에서는 `책짹`보다 `다시짹` 문맥을 우선해 표시할 수 있다.
+- 이 표시 규칙은 UI용 해석이며, 기본 모델은 계속 `Jjaek`로 유지한다.
+
 ### ReJjaek 1차 UX
 
 - ReJjaek은 별도 모델이 아니라 `Jjaek`의 `quoted_jjaek` 문맥으로 해석한다.
