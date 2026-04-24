@@ -6,6 +6,7 @@ class UsersController < ApplicationController
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
     @show_bookshelf = profile_policy.show_profile_bookshelf?
+    @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
     @bookshelf_entries =
       if @show_bookshelf
         policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope).recent_first

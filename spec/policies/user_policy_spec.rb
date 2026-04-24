@@ -26,6 +26,7 @@ RSpec.describe UserPolicy do
 
       expect(policy.profile_access_level).to eq(:self)
       expect(policy.show_profile_bookshelf?).to be(true)
+      expect(policy.show_profile_bookshelf_status?).to be(true)
       expect(policy.show_profile_jjaeks?).to be(true)
       expect(policy.write_profile_jjaek?).to be(true)
     end
@@ -36,6 +37,7 @@ RSpec.describe UserPolicy do
 
       expect(policy.profile_access_level).to eq(:book_friend)
       expect(policy.show_profile_bookshelf?).to be(true)
+      expect(policy.show_profile_bookshelf_status?).to be(true)
       expect(policy.show_profile_jjaeks?).to be(true)
       expect(policy.write_profile_jjaek?).to be(true)
     end
@@ -46,6 +48,7 @@ RSpec.describe UserPolicy do
 
       expect(policy.profile_access_level).to eq(:following)
       expect(policy.show_profile_bookshelf?).to be(true)
+      expect(policy.show_profile_bookshelf_status?).to be(false)
       expect(policy.show_profile_jjaeks?).to be(true)
       expect(policy.write_profile_jjaek?).to be(false)
     end
@@ -55,6 +58,7 @@ RSpec.describe UserPolicy do
 
       expect(policy.profile_access_level).to eq(:none)
       expect(policy.show_profile_bookshelf?).to be(true)
+      expect(policy.show_profile_bookshelf_status?).to be(false)
       expect(policy.show_profile_jjaeks?).to be(false)
       expect(policy.write_profile_jjaek?).to be(false)
     end

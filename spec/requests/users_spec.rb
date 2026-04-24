@@ -25,6 +25,8 @@ RSpec.describe "Users", type: :request do
       get user_path(profile_user)
 
       expect(response.body).to include("프로필 서재 전용 책")
+      expect(response.body).to include("저자")
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).not_to include("Profile Jjaek")
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
@@ -41,6 +43,7 @@ RSpec.describe "Users", type: :request do
 
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("Profile Jjaek")
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
@@ -53,6 +56,7 @@ RSpec.describe "Users", type: :request do
       get user_path(profile_user)
 
       expect(response.body).to include("프로필 서재 전용 책")
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).to include("Profile Jjaek")
       expect(response.body).to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
@@ -70,6 +74,7 @@ RSpec.describe "Users", type: :request do
       get user_path(viewer)
 
       expect(response.body).to include("내 책")
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.wish"))
       expect(response.body).to include("내 비공개 짹")
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))

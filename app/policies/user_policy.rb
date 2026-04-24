@@ -28,6 +28,10 @@ class UserPolicy < ApplicationPolicy
     user.present?
   end
 
+  def show_profile_bookshelf_status?
+    %i[self book_friend].include?(profile_access_level)
+  end
+
   def show_profile_jjaeks?
     %i[self book_friend following].include?(profile_access_level)
   end

@@ -70,7 +70,9 @@
       <% if @bookshelf_entries.any? %>
         <div class="grid gap-3 sm:grid-cols-2">
           <% @bookshelf_entries.each do |bookshelf_entry| %>
-            <%= render "bookshelf_entries/bookshelf_entry_compact", bookshelf_entry: bookshelf_entry %>
+            <%= render "bookshelf_entries/profile_bookshelf_entry",
+                       bookshelf_entry: bookshelf_entry,
+                       show_status: @show_profile_bookshelf_status %>
           <% end %>
         </div>
       <% else %>

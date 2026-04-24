@@ -194,6 +194,29 @@ RSpec.describe "Jjaeks", type: :request do
   end
 
   describe "GET /" do
+    it "shows a thumbnail card for a book-linked jjaek in the home feed" do
+      illustrated_book = Book.create!(
+        title: "THUMBNAIL_FEED_BOOK",
+        authors_text: "Thumbnail Author",
+        thumbnail: "https://example.com/thumbnail.jpg"
+      )
+      original_author.bookshelf_entries.create!(book: illustrated_book)
+      original_author.active_follows.create!(followee: viewer)
+      viewer.active_follows.create!(followee: original_author)
+      original_author.jjaeks.create!(
+        book: illustrated_book,
+        content: "REQUEST_BOOK_THUMBNAIL_FEED",
+        visibility: :public_jjaek
+      )
+      sign_in viewer
+
+      get root_path
+
+      expect(response.body).to include("REQUEST_BOOK_THUMBNAIL_FEED")
+      expect(response.body).to include("THUMBNAIL_FEED_BOOK")
+      expect(response.body).to include("https://example.com/thumbnail.jpg")
+    end
+
     it "shows jjaeks targeted at the viewer in the home feed" do
       original_author.jjaeks.create!(
         target_user: viewer,
