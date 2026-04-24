@@ -86,10 +86,24 @@ class JjaeksController < ApplicationController
   def prepare_user_context(user)
     @user = user
     authorize @user, :show?
-    @jjaeks = policy_scope(@user.jjaeks.includes(:user, :book, :likes, :comments, :quoted_jjaek)).recent
+    profile_policy = policy(@user)
+
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
-    @show_bookshelf = policy(@user).show_bookshelf?
-    @bookshelf_entries = policy_scope(@user.bookshelf_entries).recent_first if @show_bookshelf
+    @show_bookshelf = profile_policy.show_profile_bookshelf?
+    @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
+    @bookshelf_entries =
+      if @show_bookshelf
+        policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope).recent_first
+      end
+
+    @show_jjaeks = profile_policy.show_profile_jjaeks?
+    @jjaeks =
+      if @show_jjaeks
+        resolve_profile_jjaeks(@user, profile_policy.profile_access_level)
+      else
+        Jjaek.none
+      end
+
     @profile_jjaek = @jjaek
     @profile_jjaek_visibility_options = profile_jjaek_visibility_options_for(@user)
   end
@@ -98,6 +112,17 @@ class JjaeksController < ApplicationController
     options = %w[public_jjaek book_friends]
     options << "private_jjaek" if current_user == user
     options
+  end
+
+  def resolve_profile_jjaeks(user, access_level)
+    scope = policy_scope(user.jjaeks).includes(:user, :book, :likes, :comments, :quoted_jjaek)
+
+    case access_level
+    when :following
+      scope.where(visibility: Jjaek.visibilities[:public_jjaek]).recent
+    else
+      scope.recent
+    end
   end
 
   def jjaek_book_id

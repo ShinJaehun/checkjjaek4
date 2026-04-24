@@ -27,4 +27,12 @@ class BookshelfEntryPolicy < ApplicationPolicy
       scope.where(user_id: visible_user_ids)
     end
   end
+
+  class ProfileScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      scope
+    end
+  end
 end

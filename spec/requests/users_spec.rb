@@ -19,28 +19,33 @@ RSpec.describe "Users", type: :request do
       expect(response).to redirect_to(new_user_session_path)
     end
 
-    it "shows public jjaeks but not shelf entries or book-friend jjaeks to unrelated users" do
+    it "shows only the temporary default public shelf to unrelated users and hides the jjaek section" do
       sign_in viewer
 
       get user_path(profile_user)
 
-      expect(response.body).to include("Profile Jjaek")
-      expect(response.body).not_to include("프로필 서재 전용 책")
+      expect(response.body).to include("프로필 서재 전용 책")
+      expect(response.body).to include("저자")
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
+      expect(response.body).not_to include("Profile Jjaek")
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include("Other private")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
+      expect(response.body).not_to include(I18n.t("users.profile.jjaek_title"))
     end
 
-    it "does not grant shelf or book-friend visibility to follow-only users" do
+    it "shows the temporary default public shelf and only public jjaeks to follow-only users" do
       viewer.active_follows.create!(followee: profile_user)
       sign_in viewer
 
       get user_path(profile_user)
 
+      expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("Profile Jjaek")
-      expect(response.body).not_to include("프로필 서재 전용 책")
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).not_to include("Book friend profile Jjaek")
+      expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
     end
 
@@ -51,6 +56,7 @@ RSpec.describe "Users", type: :request do
       get user_path(profile_user)
 
       expect(response.body).to include("프로필 서재 전용 책")
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).to include("Profile Jjaek")
       expect(response.body).to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
@@ -68,6 +74,7 @@ RSpec.describe "Users", type: :request do
       get user_path(viewer)
 
       expect(response.body).to include("내 책")
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.wish"))
       expect(response.body).to include("내 비공개 짹")
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))

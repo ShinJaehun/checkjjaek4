@@ -21,4 +21,14 @@ RSpec.describe BookshelfEntryPolicy do
       expect(resolved).not_to include(stranger_entry)
     end
   end
+
+  describe described_class::ProfileScope do
+    it "treats another user's current bookshelf entries as the temporary default public shelf for profiles" do
+      stranger_entry = stranger.bookshelf_entries.create!(book: stranger_book)
+
+      resolved = described_class::ProfileScope.new(viewer, stranger.bookshelf_entries).resolve
+
+      expect(resolved).to include(stranger_entry)
+    end
+  end
 end
