@@ -22,7 +22,7 @@ RSpec.describe "Comments", type: :request do
 
     post jjaek_comments_path(jjaek), params: { comment: { content: "" } }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("대화")
   end
 

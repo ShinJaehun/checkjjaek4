@@ -30,7 +30,7 @@ class JjaeksController < ApplicationController
     if @jjaek.update(jjaek_params.except(:book_id, :quoted_jjaek_id, :target_user_id))
       redirect_to jjaek_path(@jjaek), notice: t("jjaeks.notices.updated")
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -63,17 +63,17 @@ class JjaeksController < ApplicationController
       authorize @bookshelf_entry
       @sticker_definitions = StickerDefinition.alphabetical
       @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
-      render "books/show", status: :unprocessable_entity
+      render "books/show", status: :unprocessable_content
     elsif @quoted_jjaek.present?
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     elsif target_user.present? && Pundit.policy!(current_user, target_user).write_jjaek?
       prepare_user_context(target_user)
-      render "users/show", status: :unprocessable_entity
+      render "users/show", status: :unprocessable_content
     else
       @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
         .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek)
         .recent
-      render "homes/show", status: :unprocessable_entity
+      render "homes/show", status: :unprocessable_content
     end
   end
 

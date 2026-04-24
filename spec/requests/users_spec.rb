@@ -87,7 +87,7 @@ RSpec.describe "Users", type: :request do
         }
       }.not_to change(Jjaek, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include('name="jjaek[target_user_id]"')
     end
@@ -142,7 +142,7 @@ RSpec.describe "Users", type: :request do
         }
       }.not_to change(Jjaek, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("activerecord.errors.models.jjaek.attributes.visibility.invalid"))
     end

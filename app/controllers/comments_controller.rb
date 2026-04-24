@@ -10,7 +10,7 @@ class CommentsController < ApplicationController
       redirect_to jjaek_path(@jjaek), notice: t("comments.notices.created")
     else
       @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
-      render "jjaeks/show", status: :unprocessable_entity
+      render "jjaeks/show", status: :unprocessable_content
     end
   end
 
@@ -21,7 +21,7 @@ class CommentsController < ApplicationController
       redirect_to jjaek_path(@jjaek), notice: t("comments.notices.updated")
     else
       @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
-      render "jjaeks/show", status: :unprocessable_entity
+      render "jjaeks/show", status: :unprocessable_content
     end
   end
 

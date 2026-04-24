@@ -42,7 +42,7 @@ RSpec.describe "Jjaeks", type: :request do
         }
       }.not_to change(Jjaek, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(I18n.t("home.new_jjaek_title"))
       expect(response.body).to include("textarea")
       expect(response.body).to include('name="jjaek[content]"')
@@ -117,7 +117,7 @@ RSpec.describe "Jjaeks", type: :request do
         }
       }.not_to change(Jjaek, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(I18n.t("jjaeks.new.requote_title"))
       expect(response.body).to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
     end
@@ -136,7 +136,7 @@ RSpec.describe "Jjaeks", type: :request do
         }
       }.not_to change(Jjaek, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(I18n.t("activerecord.errors.models.jjaek.attributes.visibility.cannot_exceed_quoted_visibility"))
     end
   end

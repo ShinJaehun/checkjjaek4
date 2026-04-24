@@ -51,7 +51,7 @@ class BookshelfEntriesController < ApplicationController
       @jjaek = current_user.jjaeks.build(book: @book)
       authorize @jjaek
       @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
-      render "books/show", status: :unprocessable_entity
+      render "books/show", status: :unprocessable_content
     end
   end
 
