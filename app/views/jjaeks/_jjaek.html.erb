@@ -57,7 +57,7 @@
 
   <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
     <span><%= t("jjaeks.meta.likes", count: jjaek.likes.size) %></span>
-    <span><%= t("jjaeks.meta.comments", count: jjaek.comments.size) %></span>
+    <span><%= t("jjaeks.meta.comments", count: jjaek.comments.count) %></span>
     <% current_like = jjaek.likes.find { |like| like.user_id == current_user.id } %>
     <% if current_like %>
       <%= button_to t("likes.actions.unlike"), jjaek_like_path(jjaek), method: :delete, class: "text-sm font-medium text-stone-700" %>
