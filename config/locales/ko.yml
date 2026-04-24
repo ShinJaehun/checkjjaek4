@@ -151,6 +151,10 @@ ko:
       profile: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
       book: "%{author_name}님이 %{book_title}에 남긴 책짹"
       requote: "%{author_name}님이 %{quoted_user_name}님의 짹을 다시짹"
+      general_html: "%{author_name}님의 짹"
+      profile_html: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
+      book_html: "%{author_name}님이 %{book_title}에 남긴 책짹"
+      requote_html: "%{author_name}님이 %{quoted_user_name}님의 짹을 다시짹"
     actions:
       delete: "삭제"
       edit: "수정"

@@ -151,6 +151,10 @@ en:
       profile: "%{author_name} left a Jjaek for %{target_user_name}"
       book: "%{author_name} left a Book Jjaek about %{book_title}"
       requote: "%{author_name} wrote a ReJjaek of %{quoted_user_name}'s Jjaek"
+      general_html: "%{author_name}'s Jjaek"
+      profile_html: "%{author_name} left a Jjaek for %{target_user_name}"
+      book_html: "%{author_name} left a Book Jjaek about %{book_title}"
+      requote_html: "%{author_name} wrote a ReJjaek of %{quoted_user_name}'s Jjaek"
     actions:
       delete: "Delete"
       edit: "Edit"

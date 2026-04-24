@@ -7,7 +7,7 @@
       <div class="mt-1 text-xs text-stone-500">
         <%= l(jjaek.created_at, format: :short) %>
         · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
-        <% if jjaek.book.present? %>
+        <% if jjaek.book.present? && jjaek.quoted_jjaek.present? %>
           ·
           <%= link_to jjaek.book.title, book_path(jjaek.book), class: "font-medium hover:text-stone-700" %>
         <% end %>
