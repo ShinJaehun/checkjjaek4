@@ -119,6 +119,8 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(I18n.t("jjaeks.new.requote_title"))
+      expect(response.body).to include("ReJjaek request book")
+      expect(response.body).to include("Author")
       expect(response.body).to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
     end
 
@@ -159,6 +161,8 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(user_path(viewer))
       expect(response.body).to include(original_author.name)
       expect(response.body).to include(user_path(original_author))
+      expect(response.body).to include("ReJjaek request book")
+      expect(response.body).to include("Author")
       expect(response.body).to include("님의 짹을 다시짹")
     end
 

@@ -37,9 +37,8 @@
         </div>
 
         <% if jjaek.quoted_jjaek.present? %>
-          <div class="mt-3 rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
-            <div class="font-medium text-stone-900"><%= t("jjaeks.labels.requote", name: jjaek.quoted_jjaek.user.name) %></div>
-            <p class="mt-2 line-clamp-4 whitespace-pre-wrap"><%= jjaek.quoted_jjaek.content %></p>
+          <div class="mt-3">
+            <%= render "jjaeks/quoted_jjaek", quoted_jjaek: jjaek.quoted_jjaek %>
           </div>
         <% end %>
 
@@ -48,9 +47,8 @@
     </div>
   <% else %>
     <% if jjaek.quoted_jjaek.present? %>
-      <div class="mt-4 rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
-        <div class="font-medium text-stone-900"><%= t("jjaeks.labels.requote", name: jjaek.quoted_jjaek.user.name) %></div>
-        <p class="mt-2 line-clamp-4 whitespace-pre-wrap"><%= jjaek.quoted_jjaek.content %></p>
+      <div class="mt-4">
+        <%= render "jjaeks/quoted_jjaek", quoted_jjaek: jjaek.quoted_jjaek %>
       </div>
     <% end %>
 
