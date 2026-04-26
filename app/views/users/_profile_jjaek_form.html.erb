@@ -1,0 +1,28 @@
+<section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+  <h2 class="text-lg font-semibold text-stone-900"><%= t("users.profile.new_jjaek_title") %></h2>
+
+  <%= form_with model: profile_jjaek, class: "mt-4 space-y-4" do |form| %>
+    <% if profile_jjaek.errors.any? %>
+      <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <%= profile_jjaek.errors.full_messages.to_sentence %>
+      </div>
+    <% end %>
+
+    <%= form.hidden_field :target_user_id %>
+
+    <div class="space-y-2">
+      <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
+      <%= form.select :visibility,
+                      profile_jjaek_visibility_options.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
+                      {},
+                      class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+
+    <div class="space-y-2">
+      <%= form.label :content, t("jjaeks.form.general_content"), class: "text-sm font-medium text-stone-700" %>
+      <%= form.text_area :content, rows: 4, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+
+    <%= form.submit t("jjaeks.actions.publish_short"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+  <% end %>
+</section>

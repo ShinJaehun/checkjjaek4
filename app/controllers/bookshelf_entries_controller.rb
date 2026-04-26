@@ -81,7 +81,7 @@ class BookshelfEntriesController < ApplicationController
     @quoted_jjaek = nil
     @jjaek = Jjaek.new(user: current_user, book: @book)
     authorize @jjaek
-    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
+    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).recent
   end
 
   def assign_stickers(entry)

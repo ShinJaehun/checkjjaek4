@@ -1,94 +1,19 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
-  <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-    <div class="flex items-center justify-between gap-4">
-      <div>
-        <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.eyebrow") %></p>
-        <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= @user.name %></h1>
-        <p class="mt-3 text-sm text-stone-500"><%= t("users.profile.stats", followers: @user.followers.count, following: @user.followees.count) %></p>
-      </div>
-
-      <% unless @user == current_user %>
-        <div class="flex flex-wrap items-center gap-3">
-          <% follow_button = profile_follow_button_options(@user) %>
-          <%= button_to follow_button[:label], follow_button[:path], method: follow_button[:method], class: follow_button[:class_name] %>
-
-          <% book_friend_button = profile_book_friend_button_options(@user, @book_friendship) %>
-          <%= button_to book_friend_button[:label], book_friend_button[:path], method: book_friend_button[:method], class: book_friend_button[:class_name] %>
-        </div>
-      <% end %>
-    </div>
-  </section>
+  <%= render "users/profile_header", user: @user, book_friendship: @book_friendship %>
 
   <% if @profile_jjaek.present? %>
-    <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-      <h2 class="text-lg font-semibold text-stone-900"><%= t("users.profile.new_jjaek_title") %></h2>
-
-      <%= form_with model: @profile_jjaek, class: "mt-4 space-y-4" do |form| %>
-        <% if @profile_jjaek.errors.any? %>
-          <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <%= @profile_jjaek.errors.full_messages.to_sentence %>
-          </div>
-        <% end %>
-
-        <%= form.hidden_field :target_user_id %>
-
-        <div class="space-y-2">
-          <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
-          <%= form.select :visibility,
-                          @profile_jjaek_visibility_options.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
-                          {},
-                          class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
-        </div>
-
-        <div class="space-y-2">
-          <%= form.label :content, t("jjaeks.form.general_content"), class: "text-sm font-medium text-stone-700" %>
-          <%= form.text_area :content, rows: 4, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
-        </div>
-
-        <%= form.submit t("jjaeks.actions.publish_short"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
-      <% end %>
-    </section>
+    <%= render "users/profile_jjaek_form",
+               profile_jjaek: @profile_jjaek,
+               profile_jjaek_visibility_options: @profile_jjaek_visibility_options %>
   <% end %>
 
   <% if @show_bookshelf %>
-    <section class="space-y-4">
-      <div>
-        <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.bookshelf_eyebrow") %></p>
-        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.bookshelf_title") %></h2>
-      </div>
-
-      <% if @bookshelf_entries.any? %>
-        <div class="grid gap-3 sm:grid-cols-2">
-          <% @bookshelf_entries.each do |bookshelf_entry| %>
-            <%= render "bookshelf_entries/profile_bookshelf_entry",
-                       bookshelf_entry: bookshelf_entry,
-                       show_status: @show_profile_bookshelf_status %>
-          <% end %>
-        </div>
-      <% else %>
-        <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
-          <%= t("users.profile.empty_bookshelf") %>
-        </section>
-      <% end %>
-    </section>
+    <%= render "users/bookshelf_section",
+               bookshelf_entries: @bookshelf_entries,
+               show_status: @show_profile_bookshelf_status %>
   <% end %>
 
   <% if @show_jjaeks %>
-    <section class="space-y-4">
-      <div>
-        <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.jjaek_eyebrow") %></p>
-        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.jjaek_title") %></h2>
-      </div>
-
-      <% if @jjaeks.any? %>
-        <% @jjaeks.each do |jjaek| %>
-          <%= render "jjaeks/jjaek", jjaek: jjaek %>
-        <% end %>
-      <% else %>
-        <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
-          <%= t("users.profile.empty_jjaeks") %>
-        </section>
-      <% end %>
-    </section>
+    <%= render "users/jjaeks_section", jjaeks: @jjaeks %>
   <% end %>
 </section>

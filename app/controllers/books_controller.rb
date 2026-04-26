@@ -32,7 +32,7 @@ class BooksController < ApplicationController
   end
 
   def visible_book_jjaeks
-    policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
+    policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).recent
   end
 
   def set_book

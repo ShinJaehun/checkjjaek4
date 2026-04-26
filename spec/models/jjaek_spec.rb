@@ -39,4 +39,20 @@ RSpec.describe Jjaek, type: :model do
 
     expect(nested_requote).not_to be_valid
   end
+
+  it "counts only persisted comments when the association target includes a form object" do
+    jjaek = user.jjaeks.create!(content: "댓글 집계")
+    jjaek.comments.create!(user: other_user, content: "저장된 댓글")
+    jjaek.comments.build(user:, content: "폼용 댓글")
+
+    expect(jjaek.comments_count).to eq(1)
+  end
+
+  it "counts only persisted likes when the association target includes an unsaved like" do
+    jjaek = user.jjaeks.create!(content: "좋아요 집계")
+    jjaek.likes.create!(user: other_user)
+    jjaek.likes.build(user:)
+
+    expect(jjaek.likes_count).to eq(1)
+  end
 end

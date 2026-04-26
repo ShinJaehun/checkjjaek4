@@ -1,0 +1,24 @@
+<section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+  <div class="flex flex-col gap-5 md:flex-row">
+    <% if book.thumbnail.present? %>
+      <img src="<%= book.thumbnail %>" alt="<%= book.title %>" class="w-32 rounded-3xl border border-stone-200 object-cover" />
+    <% end %>
+
+    <div class="min-w-0 flex-1">
+      <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("books.show.eyebrow") %></p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= book.title %></h1>
+      <div class="mt-4 space-y-1 text-sm text-stone-500">
+        <p><%= t("books.show.authors") %>: <%= book.authors_text.presence || "-" %></p>
+        <p><%= t("books.show.publisher") %>: <%= book.publisher.presence || "-" %></p>
+        <p><%= t("books.show.isbn") %>: <%= book.isbn.presence || "-" %></p>
+      </div>
+      <p class="mt-4 text-sm leading-6 text-stone-700"><%= book.description.presence || t("books.show.empty_description") %></p>
+
+      <% if book.external_url.present? %>
+        <div class="mt-4">
+          <%= link_to t("books.show.external_link"), book.external_url, target: "_blank", rel: "noopener", class: "text-sm font-medium text-stone-900" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

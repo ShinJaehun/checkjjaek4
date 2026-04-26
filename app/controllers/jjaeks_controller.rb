@@ -101,7 +101,7 @@ class JjaeksController < ApplicationController
       BookshelfEntry.new(user: current_user, book: @book)
     authorize @bookshelf_entry
     @sticker_definitions = StickerDefinition.alphabetical
-    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
+    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).recent
     render "books/show", status: :unprocessable_content
   end
 
@@ -147,7 +147,7 @@ class JjaeksController < ApplicationController
   end
 
   def resolve_profile_jjaeks(user, access_level)
-    scope = policy_scope(user.jjaeks).includes(:user, :book, :likes, :comments, :quoted_jjaek)
+    scope = policy_scope(user.jjaeks).includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
 
     case access_level
     when :following

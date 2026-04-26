@@ -1,0 +1,16 @@
+<section class="space-y-4">
+  <div>
+    <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.jjaek_eyebrow") %></p>
+    <h2 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.jjaek_title") %></h2>
+  </div>
+
+  <% if jjaeks.any? %>
+    <% jjaeks.each do |jjaek| %>
+      <%= render "jjaeks/jjaek", jjaek: jjaek %>
+    <% end %>
+  <% else %>
+    <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
+      <%= t("users.profile.empty_jjaeks") %>
+    </section>
+  <% end %>
+</section>
