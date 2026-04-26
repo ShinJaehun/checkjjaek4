@@ -1,0 +1,39 @@
+<section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+  <h2 class="text-lg font-semibold text-stone-900"><%= t("books.show.new_jjaek_title") %></h2>
+  <p class="mt-1 text-sm text-stone-500"><%= t("books.show.new_jjaek_description") %></p>
+
+  <% if quoted_jjaek.present? %>
+    <div class="mt-4 rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
+      <div class="font-medium text-stone-900"><%= t("books.show.requote_source", name: quoted_jjaek.user.name) %></div>
+      <p class="mt-2 line-clamp-4 whitespace-pre-wrap"><%= quoted_jjaek.content %></p>
+    </div>
+  <% end %>
+
+  <div class="mt-5">
+    <%= form_with model: jjaek, class: "space-y-4" do |form| %>
+      <% if jjaek.errors.any? %>
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <%= jjaek.errors.full_messages.to_sentence %>
+        </div>
+      <% end %>
+
+      <%= form.hidden_field :book_id, value: book.id %>
+      <%= form.hidden_field :quoted_jjaek_id, value: quoted_jjaek&.id %>
+
+      <div class="space-y-2">
+        <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
+        <%= form.select :visibility,
+                        Jjaek.visibilities.keys.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
+                        {},
+                        class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+      </div>
+
+      <div class="space-y-2">
+        <%= form.label :content, t("jjaeks.form.content"), class: "text-sm font-medium text-stone-700" %>
+        <%= form.text_area :content, rows: 8, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+      </div>
+
+      <%= form.submit t("jjaeks.actions.publish_book"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+    <% end %>
+  </div>
+</section>

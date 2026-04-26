@@ -144,6 +144,17 @@ RSpec.describe "Jjaeks", type: :request do
   end
 
   describe "GET /jjaeks/:id" do
+    it "renders the edit page for a general jjaek without requiring a book" do
+      general_jjaek = viewer.jjaeks.create!(content: "GENERAL_EDIT_BODY", visibility: :public_jjaek)
+      sign_in viewer
+
+      get edit_jjaek_path(general_jjaek)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(I18n.t("jjaeks.edit.title"))
+      expect(response.body).to include("GENERAL_EDIT_BODY")
+    end
+
     it "shows a requote entry on a visible jjaek detail page" do
       sign_in viewer
 
@@ -184,6 +195,16 @@ RSpec.describe "Jjaeks", type: :request do
       get jjaek_path(requote)
 
       expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: requote.id))
+    end
+
+    it "does not count the unsaved comment form object in the detail metadata" do
+      original.comments.create!(user: viewer, content: "REQUEST_DETAIL_COMMENT")
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1))
+      expect(response.body).not_to include(I18n.t("jjaeks.meta.comments", count: 2))
     end
 
     it "blocks a user's own requote when the original is no longer visible to them" do

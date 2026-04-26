@@ -16,4 +16,11 @@ RSpec.describe BookshelfEntry, type: :model do
 
     expect(duplicate).not_to be_valid
   end
+
+  it "validates status against the declared enum values" do
+    entry = described_class.new(user:, book:, status: :archived)
+
+    expect(entry).not_to be_valid
+    expect(entry.errors.of_kind?(:status, :inclusion)).to be(true)
+  end
 end

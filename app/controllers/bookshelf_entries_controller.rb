@@ -8,7 +8,7 @@ class BookshelfEntriesController < ApplicationController
 
   def new
     @book = Book.find(params[:book_id])
-    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) || current_user.bookshelf_entries.build(book: @book)
+    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) || new_bookshelf_entry_for(@book)
     authorize @bookshelf_entry
     @sticker_definitions = StickerDefinition.alphabetical
   end
@@ -45,12 +45,7 @@ class BookshelfEntriesController < ApplicationController
     if @bookshelf_entry.save
       redirect_to book_path(@bookshelf_entry.book), notice: t("bookshelf_entries.notices.updated")
     else
-      @book = @bookshelf_entry.book
-      @sticker_definitions = StickerDefinition.alphabetical
-      @quoted_jjaek = nil
-      @jjaek = current_user.jjaeks.build(book: @book)
-      authorize @jjaek
-      @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
+      prepare_book_show_failure
       render "books/show", status: :unprocessable_content
     end
   end
@@ -74,6 +69,19 @@ class BookshelfEntriesController < ApplicationController
 
   def book_attributes
     params.fetch(:book, {}).permit(:title, :authors_text, :publisher, :thumbnail, :isbn, :description, :external_url)
+  end
+
+  def new_bookshelf_entry_for(book)
+    BookshelfEntry.new(user: current_user, book:)
+  end
+
+  def prepare_book_show_failure
+    @book = @bookshelf_entry.book
+    @sticker_definitions = StickerDefinition.alphabetical
+    @quoted_jjaek = nil
+    @jjaek = Jjaek.new(user: current_user, book: @book)
+    authorize @jjaek
+    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).recent
   end
 
   def assign_stickers(entry)

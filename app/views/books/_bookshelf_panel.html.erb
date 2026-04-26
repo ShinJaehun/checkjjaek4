@@ -1,0 +1,18 @@
+<% if bookshelf_entry.present? %>
+  <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-semibold text-stone-900"><%= t("books.show.state_title") %></h2>
+    <p class="mt-1 text-sm text-stone-500"><%= t("books.show.state_description") %></p>
+
+    <div class="mt-5">
+      <%= render "bookshelf_entries/form",
+                 bookshelf_entry:,
+                 book:,
+                 sticker_definitions:,
+                 submit_label: t("books.show.save_state") %>
+    </div>
+  </section>
+<% else %>
+  <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
+    <%= t("books.show.read_only_description") %>
+  </section>
+<% end %>

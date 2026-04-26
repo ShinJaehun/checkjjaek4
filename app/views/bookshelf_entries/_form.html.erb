@@ -13,13 +13,7 @@
     </div>
   </div>
 
-  <%= hidden_field_tag "book[title]", book.title %>
-  <%= hidden_field_tag "book[authors_text]", book.authors_text %>
-  <%= hidden_field_tag "book[publisher]", book.publisher %>
-  <%= hidden_field_tag "book[thumbnail]", book.thumbnail %>
-  <%= hidden_field_tag "book[isbn]", book.isbn %>
-  <%= hidden_field_tag "book[description]", book.description %>
-  <%= hidden_field_tag "book[external_url]", book.external_url %>
+  <%= bookshelf_entry_book_hidden_fields(book) %>
 
   <div class="space-y-2">
     <%= form.label :status, t("bookshelf_entries.form.status"), class: "text-sm font-medium text-stone-700" %>

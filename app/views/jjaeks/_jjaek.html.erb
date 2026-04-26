@@ -7,7 +7,7 @@
       <div class="mt-1 text-xs text-stone-500">
         <%= l(jjaek.created_at, format: :short) %>
         · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
-        <% if jjaek.book.present? && jjaek.quoted_jjaek.present? %>
+        <% if show_requote_book_link?(jjaek) %>
           ·
           <%= link_to jjaek.book.title, book_path(jjaek.book), class: "font-medium hover:text-stone-700" %>
         <% end %>
@@ -56,9 +56,9 @@
   <% end %>
 
   <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
-    <span><%= t("jjaeks.meta.likes", count: jjaek.likes.size) %></span>
-    <span><%= t("jjaeks.meta.comments", count: jjaek.comments.count) %></span>
-    <% current_like = jjaek.likes.find { |like| like.user_id == current_user.id } %>
+    <span><%= t("jjaeks.meta.likes", count: jjaek.likes_count) %></span>
+    <span><%= t("jjaeks.meta.comments", count: jjaek.comments_count) %></span>
+    <% current_like = current_user_like_for(jjaek) %>
     <% if current_like %>
       <%= button_to t("likes.actions.unlike"), jjaek_like_path(jjaek), method: :delete, class: "text-sm font-medium text-stone-700" %>
     <% else %>

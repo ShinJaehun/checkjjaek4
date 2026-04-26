@@ -24,7 +24,27 @@ class Jjaek < ApplicationRecord
     quoted_jjaek_id.present?
   end
 
+  def comments_count
+    safe_association_count(:comments)
+  end
+
+  def likes_count
+    safe_association_count(:likes)
+  end
+
   private
+
+  # association이 이미 로드된 상태에서는 form용 unsaved 객체가 target에 섞일 수 있다.
+  # 화면 메타 카운트는 항상 persisted 레코드 기준으로 맞춘다.
+  def safe_association_count(name)
+    association_proxy = association(name)
+
+    if association_proxy.loaded?
+      public_send(name).count(&:persisted?)
+    else
+      public_send(name).count
+    end
+  end
 
   def quoted_jjaek_must_be_requotable
     return unless quoted_jjaek.present?

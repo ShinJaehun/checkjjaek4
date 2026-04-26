@@ -1,0 +1,19 @@
+<section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.eyebrow") %></p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= user.name %></h1>
+      <p class="mt-3 text-sm text-stone-500"><%= t("users.profile.stats", followers: user.followers.count, following: user.followees.count) %></p>
+    </div>
+
+    <% unless user == current_user %>
+      <div class="flex flex-wrap items-center gap-3">
+        <% follow_button = profile_follow_button_options(user) %>
+        <%= button_to follow_button[:label], follow_button[:path], method: follow_button[:method], class: follow_button[:class_name] %>
+
+        <% book_friend_button = profile_book_friend_button_options(user, book_friendship) %>
+        <%= button_to book_friend_button[:label], book_friend_button[:path], method: book_friend_button[:method], class: book_friend_button[:class_name] %>
+      </div>
+    <% end %>
+  </div>
+</section>
