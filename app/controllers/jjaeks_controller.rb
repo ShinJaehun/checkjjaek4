@@ -6,8 +6,7 @@ class JjaeksController < ApplicationController
   end
 
   def show
-    @comment = Comment.new(jjaek: @jjaek)
-    @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+    prepare_comments
   end
 
   def edit
@@ -19,8 +18,7 @@ class JjaeksController < ApplicationController
     @jjaek.assign_attributes(jjaek_params)
 
     if @jjaek.save
-      redirect_to target_user.present? ? root_path : jjaek_path(@jjaek),
-                  notice: t("jjaeks.notices.created")
+      redirect_to create_success_path, notice: t("jjaeks.notices.created")
     else
       render_failed_create
     end
@@ -47,34 +45,18 @@ class JjaeksController < ApplicationController
   end
 
   def build_new_jjaek
-    @book = Book.find(jjaek_book_id) if jjaek_book_id.present?
-    @quoted_jjaek =
-      if jjaek_quoted_id.present?
-        policy_scope(Jjaek).find(jjaek_quoted_id)
-      end
+    @book = find_jjaek_book
+    @quoted_jjaek = find_quoted_jjaek
     @jjaek = Jjaek.new(user: current_user, book: @book, quoted_jjaek: @quoted_jjaek, target_user:)
     authorize @jjaek
   end
 
   def render_failed_create
-    if @book.present?
-      @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) ||
-        BookshelfEntry.new(user: current_user, book: @book)
-      authorize @bookshelf_entry
-      @sticker_definitions = StickerDefinition.alphabetical
-      @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
-      render "books/show", status: :unprocessable_content
-    elsif @quoted_jjaek.present?
-      render :new, status: :unprocessable_content
-    elsif target_user.present? && Pundit.policy!(current_user, target_user).write_jjaek?
-      prepare_user_context(target_user)
-      render "users/show", status: :unprocessable_content
-    else
-      @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
-        .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek)
-        .recent
-      render "homes/show", status: :unprocessable_content
-    end
+    return render_book_create_failure if @book.present?
+    return render :new, status: :unprocessable_content if @quoted_jjaek.present?
+    return render_profile_create_failure if render_profile_create_failure?
+
+    render_home_create_failure
   end
 
   def target_user
@@ -89,13 +71,66 @@ class JjaeksController < ApplicationController
     profile_policy = policy(@user)
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
+    prepare_profile_bookshelf(profile_policy)
+    prepare_profile_jjaeks(profile_policy)
+    @profile_jjaek = @jjaek
+    @profile_jjaek_visibility_options = profile_jjaek_visibility_options_for(@user)
+  end
+
+  def prepare_comments
+    @comment = Comment.new(jjaek: @jjaek)
+    @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+  end
+
+  def create_success_path
+    target_user.present? ? root_path : jjaek_path(@jjaek)
+  end
+
+  def find_jjaek_book
+    Book.find(jjaek_book_id) if jjaek_book_id.present?
+  end
+
+  def find_quoted_jjaek
+    return unless jjaek_quoted_id.present?
+
+    policy_scope(Jjaek).find(jjaek_quoted_id)
+  end
+
+  def render_book_create_failure
+    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) ||
+      BookshelfEntry.new(user: current_user, book: @book)
+    authorize @bookshelf_entry
+    @sticker_definitions = StickerDefinition.alphabetical
+    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
+    render "books/show", status: :unprocessable_content
+  end
+
+  def render_profile_create_failure?
+    target_user.present? && Pundit.policy!(current_user, target_user).write_jjaek?
+  end
+
+  def render_profile_create_failure
+    prepare_user_context(target_user)
+    render "users/show", status: :unprocessable_content
+  end
+
+  def render_home_create_failure
+    @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
+      .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek)
+      .recent
+    render "homes/show", status: :unprocessable_content
+  end
+
+  def prepare_profile_bookshelf(profile_policy)
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
     @bookshelf_entries =
       if @show_bookshelf
         policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope).recent_first
       end
+  end
 
+  def prepare_profile_jjaeks(profile_policy)
     @show_jjaeks = profile_policy.show_profile_jjaeks?
     @jjaeks =
       if @show_jjaeks
@@ -103,9 +138,6 @@ class JjaeksController < ApplicationController
       else
         Jjaek.none
       end
-
-    @profile_jjaek = @jjaek
-    @profile_jjaek_visibility_options = profile_jjaek_visibility_options_for(@user)
   end
 
   def profile_jjaek_visibility_options_for(user)

@@ -25,16 +25,18 @@ class Jjaek < ApplicationRecord
   end
 
   def comments_count
-    persisted_association_count(:comments)
+    safe_association_count(:comments)
   end
 
   def likes_count
-    persisted_association_count(:likes)
+    safe_association_count(:likes)
   end
 
   private
 
-  def persisted_association_count(name)
+  # association이 이미 로드된 상태에서는 form용 unsaved 객체가 target에 섞일 수 있다.
+  # 화면 메타 카운트는 항상 persisted 레코드 기준으로 맞춘다.
+  def safe_association_count(name)
     association_proxy = association(name)
 
     if association_proxy.loaded?
