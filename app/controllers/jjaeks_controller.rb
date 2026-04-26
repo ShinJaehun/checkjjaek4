@@ -6,7 +6,7 @@ class JjaeksController < ApplicationController
   end
 
   def show
-    @comment = @jjaek.comments.build
+    @comment = Comment.new(jjaek: @jjaek)
     @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
   end
 
@@ -52,14 +52,14 @@ class JjaeksController < ApplicationController
       if jjaek_quoted_id.present?
         policy_scope(Jjaek).find(jjaek_quoted_id)
       end
-    @jjaek = current_user.jjaeks.build(book: @book, quoted_jjaek: @quoted_jjaek, target_user:)
+    @jjaek = Jjaek.new(user: current_user, book: @book, quoted_jjaek: @quoted_jjaek, target_user:)
     authorize @jjaek
   end
 
   def render_failed_create
     if @book.present?
       @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) ||
-        current_user.bookshelf_entries.build(book: @book)
+        BookshelfEntry.new(user: current_user, book: @book)
       authorize @bookshelf_entry
       @sticker_definitions = StickerDefinition.alphabetical
       @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent

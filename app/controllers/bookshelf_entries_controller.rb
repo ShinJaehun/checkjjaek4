@@ -8,7 +8,7 @@ class BookshelfEntriesController < ApplicationController
 
   def new
     @book = Book.find(params[:book_id])
-    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) || current_user.bookshelf_entries.build(book: @book)
+    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) || BookshelfEntry.new(user: current_user, book: @book)
     authorize @bookshelf_entry
     @sticker_definitions = StickerDefinition.alphabetical
   end
@@ -48,7 +48,7 @@ class BookshelfEntriesController < ApplicationController
       @book = @bookshelf_entry.book
       @sticker_definitions = StickerDefinition.alphabetical
       @quoted_jjaek = nil
-      @jjaek = current_user.jjaeks.build(book: @book)
+      @jjaek = Jjaek.new(user: current_user, book: @book)
       authorize @jjaek
       @jjaeks = policy_scope(@book.jjaeks.includes(:user, :likes, :comments, :quoted_jjaek)).recent
       render "books/show", status: :unprocessable_content

@@ -14,7 +14,7 @@ class BooksController < ApplicationController
     if @bookshelf_entry.present?
       authorize @bookshelf_entry
       @quoted_jjaek = params[:quote_id].present? ? policy_scope(@book.jjaeks).find(params[:quote_id]) : nil
-      @jjaek = current_user.jjaeks.build(book: @book, quoted_jjaek: @quoted_jjaek)
+      @jjaek = Jjaek.new(user: current_user, book: @book, quoted_jjaek: @quoted_jjaek)
       authorize @jjaek
       @sticker_definitions = StickerDefinition.alphabetical
     end

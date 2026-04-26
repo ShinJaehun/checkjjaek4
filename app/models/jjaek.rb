@@ -24,7 +24,25 @@ class Jjaek < ApplicationRecord
     quoted_jjaek_id.present?
   end
 
+  def comments_count
+    persisted_association_count(:comments)
+  end
+
+  def likes_count
+    persisted_association_count(:likes)
+  end
+
   private
+
+  def persisted_association_count(name)
+    association_proxy = association(name)
+
+    if association_proxy.loaded?
+      public_send(name).count(&:persisted?)
+    else
+      public_send(name).count
+    end
+  end
 
   def quoted_jjaek_must_be_requotable
     return unless quoted_jjaek.present?

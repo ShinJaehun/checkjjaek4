@@ -21,7 +21,8 @@ class UsersController < ApplicationController
       end
 
     if profile_policy.write_profile_jjaek?
-      @profile_jjaek = current_user.jjaeks.build(
+      @profile_jjaek = Jjaek.new(
+        user: current_user,
         target_user: @user,
         visibility: profile_jjaek_default_visibility
       )

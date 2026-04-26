@@ -3,7 +3,7 @@ class CommentsController < ApplicationController
   before_action :set_comment, only: %i[update destroy]
 
   def create
-    @comment = @jjaek.comments.build(comment_params.merge(user: current_user))
+    @comment = Comment.new(comment_params.merge(jjaek: @jjaek, user: current_user))
     authorize @comment
 
     if @comment.save
