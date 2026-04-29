@@ -33,7 +33,8 @@ class UserPolicy < ApplicationPolicy
   end
 
   def show_profile_jjaeks?
-    %i[self book_friend following].include?(profile_access_level)
+    # 로그인 사용자면 항상 섹션은 보이게 하고, 실제 범위는 scope에서 제어한다.
+    user.present?
   end
 
   def write_profile_jjaek?

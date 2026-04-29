@@ -60,7 +60,8 @@ class UsersController < ApplicationController
     scope = policy_scope(@user.jjaeks).includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
 
     case access_level
-    when :following
+    when :none, :following
+      # stranger와 follow는 public_jjaek만
       scope.where(visibility: Jjaek.visibilities[:public_jjaek]).recent
     else
       scope.recent

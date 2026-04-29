@@ -97,6 +97,48 @@ RSpec.describe JjaekPolicy do
   end
 
   describe described_class::Scope do
+    it "shows only public jjaeks from another profile to an unrelated user" do
+      friendship.destroy!
+      public_jjaek = original_author.jjaeks.create!(content: "PUBLIC_PROFILE_SCOPE", visibility: :public_jjaek)
+      private_jjaek = original_author.jjaeks.create!(content: "PRIVATE_PROFILE_SCOPE", visibility: :private_jjaek)
+
+      resolved = described_class.new(viewer, original_author.jjaeks).resolve
+
+      expect(resolved).to include(public_jjaek)
+      expect(resolved).not_to include(original)
+      expect(resolved).not_to include(private_jjaek)
+    end
+
+    it "shows only public jjaeks from another profile to a follow-only user" do
+      friendship.destroy!
+      viewer.active_follows.create!(followee: original_author)
+      public_jjaek = original_author.jjaeks.create!(content: "FOLLOW_PUBLIC_PROFILE_SCOPE", visibility: :public_jjaek)
+      private_jjaek = original_author.jjaeks.create!(content: "FOLLOW_PRIVATE_PROFILE_SCOPE", visibility: :private_jjaek)
+
+      resolved = described_class.new(viewer, original_author.jjaeks).resolve
+
+      expect(resolved).to include(public_jjaek)
+      expect(resolved).not_to include(original)
+      expect(resolved).not_to include(private_jjaek)
+    end
+
+    it "shows book-friends jjaeks from another profile to an accepted book friend" do
+      public_jjaek = original_author.jjaeks.create!(content: "FRIEND_PUBLIC_PROFILE_SCOPE", visibility: :public_jjaek)
+
+      resolved = described_class.new(viewer, original_author.jjaeks).resolve
+
+      expect(resolved).to include(public_jjaek)
+      expect(resolved).to include(original)
+    end
+
+    it "shows all jjaeks from your own profile" do
+      private_jjaek = viewer.jjaeks.create!(content: "SELF_PRIVATE_PROFILE_SCOPE", visibility: :private_jjaek)
+
+      resolved = described_class.new(viewer, viewer.jjaeks).resolve
+
+      expect(resolved).to include(private_jjaek)
+    end
+
     it "excludes a requote when the original is no longer visible to the viewer" do
       friendship.destroy!
 

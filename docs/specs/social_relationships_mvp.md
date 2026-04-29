@@ -112,12 +112,23 @@
 
 ### 프로필 목표 규칙 `(목표 상태)`
 
-관계 없는 사용자는 프로필에서 다른 사람의 `public_jjaek`을 볼 수 있도록 해석할 수 있다.
+타인 프로필의 Jjaek 노출은 아래와 같이 둔다.
+
+- `stranger`: `public_jjaek`만 볼 수 있다
+- `follow`: `public_jjaek`을 볼 수 있다
+- `book_friend`: `public_jjaek` + `book_friends`를 볼 수 있다
+- `self`: 모든 Jjaek을 볼 수 있다
 
 다만 원칙:
+- “프로필에서 볼 수 있음”과 “홈 피드에 들어옴”은 다르다.
 - 관계 없는 사용자의 `public_jjaek`이 홈 피드에 자동으로 들어오지는 않는다.
 - 홈 피드 편입 기준은 `Follow`, `BookFriendship`, 그리고 명시된 피드 규칙이다.
 - 즉, 화면별 읽기 가능 범위와 홈 피드 편입 기준은 구분한다.
+
+현재 유지하는 별도 규칙:
+- 타인 프로필의 `BookshelfEntry` 목록은 로그인 사용자에게 보인다
+- `BookshelfEntry` 상태 배지는 `self / book_friend`만 볼 수 있다
+- profile-context Jjaek 작성은 `self / book_friend`만 가능하다
 
 ---
 

@@ -53,13 +53,13 @@ RSpec.describe UserPolicy do
       expect(policy.write_profile_jjaek?).to be(false)
     end
 
-    it "lets an unrelated user view only the profile bookshelf" do
+    it "lets an unrelated user view public profile jjaeks but not write in the profile context" do
       policy = described_class.new(user, other_user)
 
       expect(policy.profile_access_level).to eq(:none)
       expect(policy.show_profile_bookshelf?).to be(true)
       expect(policy.show_profile_bookshelf_status?).to be(false)
-      expect(policy.show_profile_jjaeks?).to be(false)
+      expect(policy.show_profile_jjaeks?).to be(true)
       expect(policy.write_profile_jjaek?).to be(false)
     end
   end

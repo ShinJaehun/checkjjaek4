@@ -72,6 +72,8 @@
 
 - 관계에 따라 다른 데이터 노출
 - profile-context Jjaek 작성 가능 여부도 관계에 따라 달라짐
+- 현재 구현에서는 `follow / book_friend / self`만 프로필 Jjaek 섹션이 열린다
+- 목표 정책과의 차이는 `docs/architecture/authorization.md`를 본다
 
 관련 코드:
 - controller: app/controllers/users_controller.rb (show)

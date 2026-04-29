@@ -19,7 +19,7 @@ RSpec.describe "Users", type: :request do
       expect(response).to redirect_to(new_user_session_path)
     end
 
-    it "shows only the temporary default public shelf to unrelated users and hides the jjaek section" do
+    it "shows the bookshelf and only public jjaeks to unrelated users" do
       sign_in viewer
 
       get user_path(profile_user)
@@ -27,15 +27,15 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("저자")
       expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
-      expect(response.body).not_to include("Profile Jjaek")
+      expect(response.body).to include("Profile Jjaek")
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include("Other private")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
-      expect(response.body).not_to include(I18n.t("users.profile.jjaek_title"))
+      expect(response.body).to include(I18n.t("users.profile.jjaek_title"))
     end
 
-    it "shows the temporary default public shelf and only public jjaeks to follow-only users" do
+    it "shows the bookshelf and only public jjaeks to follow-only users" do
       viewer.active_follows.create!(followee: profile_user)
       sign_in viewer
 
@@ -47,6 +47,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
+      expect(response.body).to include(I18n.t("users.profile.jjaek_title"))
     end
 
     it "shows shelf entries, book-friend jjaeks, and a profile-context form to accepted book friends" do
@@ -78,6 +79,25 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("내 비공개 짹")
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
+    end
+
+    it "does not show a profile-context form to unrelated users even when public jjaeks are visible" do
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
+      expect(response.body).not_to include('name="jjaek[target_user_id]"')
+    end
+
+    it "does not show a profile-context form to follow-only users" do
+      viewer.active_follows.create!(followee: profile_user)
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
+      expect(response.body).not_to include('name="jjaek[target_user_id]"')
     end
 
     it "rerenders the profile-context form when a profile-context jjaek is invalid" do

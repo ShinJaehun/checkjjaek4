@@ -74,9 +74,9 @@
 
 남은 작업은 아래 중 어떤 규칙을 최종 기준으로 둘지 정리하고 구현에 반영하는 것이다.
 
-- 관계 없는 사용자의 프로필 Jjaek 노출 범위
-- 프로필 책 목록 노출과 상태 노출의 최종 분리 규칙
-- profile-context Jjaek 작성 진입의 최종 관계 규칙
+- 확정된 프로필 Jjaek 노출 규칙을 policy와 controller에 반영
+- 프로필 책 목록 노출과 상태 노출의 현재 유지 규칙을 함께 고정
+- profile-context Jjaek 작성 진입의 현재 유지 규칙을 함께 고정
 
 관련 문서:
 - `docs/specs/social_relationships_mvp.md`
