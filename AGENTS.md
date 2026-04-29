@@ -26,27 +26,35 @@
 
 1. `AGENTS.md`
 
-2. 현재 활성 reboot 기준 문서
+2. 현재 시스템 구조 요약
+   - `docs/architecture/current_system.md`
+     - 현재 구현 상태와 주요 화면 흐름 요약
+   - `docs/architecture/authorization.md`
+     - 권한 구조와 policy 기준 정리
+   - `docs/architecture/visibility.md`
+     - visibility 의미와 적용 범위 정리
+
+3. 현재 활성 reboot 기준 문서
    - `docs/specs/bookjjaek_reboot_spec.md`
    - `docs/reboot/reboot_plan.md`
 
-3. 현재 작업과 직접 관련된 spec 문서
+4. 현재 작업과 직접 관련된 spec 문서
    - 예: `docs/specs/book_search_mvp.md`
 
-4. 테스트 전략 문서
+5. 테스트 전략 문서
    - `docs/testing/rspec_strategy.md`
 
-5. 관련 아키텍처/정책 문서
+6. 관련 아키텍처/정책 문서
    - `docs/architecture/*.md`
 
-6. 레거시/아카이브 문서
+7. 레거시/아카이브 문서
    - `docs/legacy/*.md`
    - `docs/archive/*.md`
 
 원칙:
 
 - 현재 `checkjjaek4`의 활성 기준은
-  `AGENTS.md` → `docs/specs/bookjjaek_reboot_spec.md` → `docs/reboot/reboot_plan.md`
+  `AGENTS.md` → `docs/architecture/current_system.md` → `docs/architecture/authorization.md` → `docs/architecture/visibility.md` → `docs/specs/bookjjaek_reboot_spec.md` → `docs/reboot/reboot_plan.md`
   순으로 먼저 읽는 것을 기본값으로 둔다.
 - `docs/archive/*`는 과거 판단 기록 보존용이며, 현재 활성 spec보다 우선하지 않는다.
 - `docs/legacy/*`는 checkjjaek3 및 초기 분석 기록 참고용이며, 현재 활성 spec보다 우선하지 않는다.
@@ -60,74 +68,29 @@
 - 현재 리부트 작업의 기준 문서는 아래 두 개다.
   - `docs/specs/bookjjaek_reboot_spec.md`
   - `docs/reboot/reboot_plan.md`
+- 현재 구현 상태와 주요 흐름은 `docs/architecture/current_system.md`를 기준으로 빠르게 파악한다.
+- 권한 구조와 visibility 상세는 아래 문서를 함께 본다.
+  - `docs/architecture/authorization.md`
+  - `docs/architecture/visibility.md`
 - `checkjjaek4`는 기존의 post 중심 SNS를 억지로 확장하는 프로젝트가 아니라,
   **책과 서재가 중요한 문맥을 이루는 독서 커뮤니티 서비스로 리부트 중인 프로젝트**로 본다.
-- 현재 중심 도메인은 아래다.
-  - `Jjaek`
-  - `User`
-  - `Follow`
-  - `BookFriendship`
-  - `Book`
-  - `BookshelfEntry`
-- `Follow`는 `소식받기` 의미로 유지한다.
-- `책친구(BookFriendship)`는 별도 관계로 다룬다.
-- `Jjaek`과 `책활동(BookActivity)`은 도메인상 분리한다.
-- `BookActivity`는 현재 MVP에서 구현 대상이 아니라, **후속 단계의 피드용 이벤트 모델**로 본다.
-- 일반적인 만능 `Post` 모델로 회귀하지 않는다.
-- `Jjaek`는 사용자의 기본 콘텐츠 단위로 해석한다.
-- 책은 `Jjaek`에 선택적으로 연결될 수 있다.
-- 모든 콘텐츠를 책에 강제 연결하지 않는다.
-- UI 문맥상 `짹`, `책짹`, `다시짹`이라는 용어를 사용할 수 있지만,
-  기본 모델은 가능한 한 `Jjaek` 중심으로 단순하게 유지한다.
+
 - 여러 책장, 그룹, Topic, 작가 정규화, 인용문 기능, 범용 SNS 확장은 현재 MVP 범위가 아니다.
 - 복잡한 리부트 작업은 한 번에 크게 수정하지 말고,
   **분석 → 계획 제안 → diff 제시 → 승인 후 반영** 순서를 지킨다.
 - 새 repo를 만드는 대신, 같은 repo 안에서 점진적으로 리부트하는 방향을 기본값으로 둔다.
+- 핵심 도메인과 현재 구현 흐름은 `docs/architecture/current_system.md`를 따른다.
+- 제품 방향과 흔들리면 안 되는 도메인 원칙은 `docs/specs/bookjjaek_reboot_spec.md`를 따른다.
 
 ---
 
-## 현재 MVP 해석 원칙
+## 현재 시스템 해석 원칙
 
-현재 MVP는 아래 흐름을 우선한다.
-
-- 홈에서 짹 흐름을 본다.
-- 홈에서 일반 `짹`을 작성할 수 있다.
-- 홈 피드에서는 일반 `짹`뿐 아니라 사람 문맥에서 남긴 `profile-context Jjaek`도 함께 본다.
-- 책 검색에서 책을 찾고 서재에 담는다.
-- 책 화면에서 그 책에 연결된 `책짹`을 본다.
-- 책 화면에서 `책짹`을 작성한다.
-- 사람 화면에서 관계에 따라 그 사람의 책과 짹을 본다.
-
-세부 원칙:
-
-- `Jjaek`는 사용자의 기본 콘텐츠 단위다.
-- 책이 연결된 `Jjaek`를 UI에서 `책짹`이라 부를 수 있다.
-- 다른 `Jjaek`을 인용하거나 응답하는 `Jjaek`를 UI에서 `다시짹`이라 부를 수 있다.
-- 특정 사람을 향해 남긴 `Jjaek`는 `target_user_id`를 가지는 profile-context Jjaek으로 해석할 수 있다.
-- `books/:id`는 서비스 전체의 절대 중심 화면이 아니라,
-  **책 정보와 그 책에 연결된 책짹을 다루는 책 문맥 화면**이다.
-- `users/:id`는 관계에 따라 그 사람의 책과 짹을 보고 상호작용하는
-  **사람 문맥 화면**이다.
-- `users/:id`의 입력창은 DM이 아니라, 해당 사용자를 문맥으로 삼아 남기는
-  공개/관계기반 `profile-context Jjaek` 작성 진입으로 본다.
-- 프로필 화면의 읽기 범위는 관계에 따라 다르게 해석한다.
-  - 아무 관계 없음: 공개 책장에 담긴 책 목록만
-  - Follow만 함: 공개 책장에 담긴 책 목록 + 공개 짹
-  - accepted 책친구: 공개 책장에 담긴 책 목록 + 공개 짹 + 책친구 공개 짹 + profile-context 작성 진입
-  - 본인: 전체 서재 + 전체 짹
-- 이 입력창에서 만들어지는 `Jjaek`는 필요하면 홈 피드와 프로필 흐름에 함께 나타날 수 있다.
-- 책과 연결된 상태/스티커 저장 책임은 계속 `BookshelfEntry`에 둔다.
-- 책과 연결된 글 본문/공개 범위 저장 책임은 계속 `Jjaek`에 둔다.
-- 즉, 저장 책임은 여전히 분리한다.
-  - 상태/스티커 저장 = `BookshelfEntry`
-  - 글 본문/공개 범위 저장 = `Jjaek`
-- 검색 결과의 `서재에 담기`는 import 의미로 해석한다.
-  - `Book` 생성 또는 재사용
-  - current_user의 `BookshelfEntry` 생성 또는 재사용
-  - 기본 상태는 `wish`
-- 현재 홈 피드는 `Jjaek` 중심으로 유지하고, `BookActivity`는 후속 도입 대상으로 남긴다.
-- 현재 MVP에서는 사용자마다 **기본 서재 1개**를 전제로 한다.
-- 후속 단계에서는 **한 서재 안 여러 책장**을 둘 수 있고, 각 책장은 공개/비공개를 가질 수 있는 방향을 열어 둔다.
+- 현재 구현 상태와 주요 화면 흐름은 `docs/architecture/current_system.md`를 따른다.
+- 권한 구조와 visibility 해석은
+  `docs/architecture/authorization.md`,
+  `docs/architecture/visibility.md`를 함께 따른다.
+- 장기 제품 방향과 MVP 범위 판단은 `docs/specs/bookjjaek_reboot_spec.md`와 `docs/reboot/reboot_plan.md`를 따른다.
 
 ---
 
