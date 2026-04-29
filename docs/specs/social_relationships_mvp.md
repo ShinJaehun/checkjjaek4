@@ -126,9 +126,7 @@
 - 즉, 화면별 읽기 가능 범위와 홈 피드 편입 기준은 구분한다.
 
 현재 유지하는 별도 규칙:
-- 타인 프로필의 `BookshelfEntry` 목록은 로그인 사용자에게 보인다
-- `BookshelfEntry` 상태 배지는 `self / book_friend`만 볼 수 있다
-- profile-context Jjaek 작성은 `self / book_friend`만 가능하다
+- 현재 구현 상세는 `docs/architecture/authorization.md`를 본다
 
 ---
 
