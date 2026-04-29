@@ -4,7 +4,7 @@ RSpec.describe "Likes", type: :request do
   let!(:user) { User.create!(name: "Reader", email: "reader2@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:author) { User.create!(name: "Author", email: "author2@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "좋아요 책", authors_text: "저자") }
-  let!(:jjaek) { author.jjaeks.create!(book:, content: "Public post") }
+  let!(:jjaek) { author.jjaeks.create!(book:, content: "Public jjaek") }
 
   it "lets a signed-in user like an accessible jjaek" do
     sign_in user
