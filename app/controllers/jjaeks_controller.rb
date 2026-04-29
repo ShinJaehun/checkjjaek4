@@ -134,7 +134,7 @@ class JjaeksController < ApplicationController
     @show_jjaeks = profile_policy.show_profile_jjaeks?
     @jjaeks =
       if @show_jjaeks
-        resolve_profile_jjaeks(@user, profile_policy.profile_access_level)
+        resolve_profile_jjaeks(profile_policy.profile_access_level)
       else
         Jjaek.none
       end
@@ -146,11 +146,12 @@ class JjaeksController < ApplicationController
     options
   end
 
-  def resolve_profile_jjaeks(user, access_level)
-    scope = policy_scope(user.jjaeks).includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
+  def resolve_profile_jjaeks(access_level)
+    scope = policy_scope(@user.jjaeks).includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
 
     case access_level
-    when :following
+    when :none, :following
+      # stranger와 follow는 public_jjaek만
       scope.where(visibility: Jjaek.visibilities[:public_jjaek]).recent
     else
       scope.recent
