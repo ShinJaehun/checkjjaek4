@@ -5,6 +5,12 @@
 이 문서는 checkjjaek4의 관계 모델과 관계 기반 화면 규칙을
 초기 MVP 범위에서 명확히 고정하기 위한 기준 문서다.
 
+이 문서의 각 규칙은 아래 상태 표시와 함께 읽는다.
+
+- `(현재 구현)`: 현재 코드에 반영되어 있는 규칙
+- `(목표 상태)`: 제품 방향상 유지하지만 현재 코드와 완전히 일치하지는 않는 규칙
+- `(미구현)`: 문서상 계획으로만 남아 있고 아직 구현되지 않은 규칙
+
 이 문서는 아래를 다룬다.
 
 - `Follow`와 `BookFriendship`의 역할 구분
@@ -19,7 +25,7 @@
 
 ## 핵심 관계
 
-### Follow
+### Follow `(현재 구현)`
 
 의미:
 - 이 사람의 공개 짹 흐름을 내 피드에서 받고 싶다.
@@ -30,7 +36,7 @@
 - `BookFriendship`과는 독립 관계다.
 - Follow를 해제해도 `BookFriendship`은 해제되지 않는다.
 
-### BookFriendship
+### BookFriendship `(현재 구현)`
 
 의미:
 - 신청/수락을 통해 성립하는 신뢰 관계다.
@@ -44,11 +50,11 @@
 
 ---
 
-## Relationship Page
+## Relationship Page `(현재 구현)`
 
-MVP에서는 `/relationships`를 관계 관리 허브로 둔다.
+`/relationships`는 현재 구현된 관계 관리 허브다.
 
-이 화면은 아래를 관리하는 주 화면이다.
+이 화면은 현재 아래를 관리한다.
 
 - 받은 책친구 요청
 - 보낸 책친구 요청
@@ -62,7 +68,7 @@ MVP에서는 `/relationships`를 관계 관리 허브로 둔다.
 
 ---
 
-## Notification 진입점
+## Notification 진입점 `(미구현)`
 
 초기 MVP의 관계 관련 Notification은 직접 처리 화면이 아니라
 `/relationships`의 특정 섹션으로 이동시키는 진입점으로 둔다.
@@ -77,10 +83,11 @@ MVP에서는 `/relationships`를 관계 관리 허브로 둔다.
 - 실제 관계 조회/처리의 주 화면은 `/relationships`다.
 - 실제 권한 판단은 계속 policy와 관계 모델이 담당한다.
 - `Follow` 알림은 초기 MVP 필수 범위로 두지 않는다.
+- 현재 이 Notification 진입점 자체는 아직 구현되지 않았다.
 
 ---
 
-## Comment Visibility 정책
+## Comment Visibility 정책 `(현재 구현)`
 
 댓글은 부모 `Jjaek` visibility를 상속한다.
 
@@ -92,16 +99,20 @@ MVP에서는 `/relationships`를 관계 관리 허브로 둔다.
 - 부모 `Jjaek` 접근 권한이 사라지면 댓글도 함께 비노출된다.
 - ReJjaek의 quoted block에 달린 별도 댓글 모델은 도입하지 않는다.
 
-예시:
-- `public_jjaek`: 로그인 사용자가 댓글 가능
-- `book_friends`: 부모 `Jjaek`을 볼 수 있는 책친구만 댓글 가능
-- `private_jjaek`: 작성자만 댓글 가능
+현재 구현 상세는 `docs/architecture/authorization.md`와
+`docs/architecture/visibility.md`를 함께 본다.
 
 ---
 
-## 공개 Jjaek 노출 원칙
+## 프로필 Jjaek 노출 규칙
 
-관계 없는 사용자는 프로필/책 상세에서 다른 사람의 `public_jjaek`을 볼 수 있다.
+### 현재 프로필 구현 `(현재 구현)`
+
+현재 구현 상세는 `docs/architecture/authorization.md`를 본다.
+
+### 프로필 목표 규칙 `(목표 상태)`
+
+관계 없는 사용자는 프로필에서 다른 사람의 `public_jjaek`을 볼 수 있도록 해석할 수 있다.
 
 다만 원칙:
 - 관계 없는 사용자의 `public_jjaek`이 홈 피드에 자동으로 들어오지는 않는다.
@@ -110,12 +121,19 @@ MVP에서는 `/relationships`를 관계 관리 허브로 둔다.
 
 ---
 
-## 책 문맥의 두 가지 접근
+## 책 상세 Jjaek 노출 규칙
+
+### 현재 책 상세 구현 `(현재 구현)`
+
+현재 구현 상세는 `docs/architecture/authorization.md`와
+`docs/architecture/visibility.md`를 함께 본다.
+
+### 책 문맥 해석 `(목표 상태)`
 
 책은 서비스 안에서 공용 리소스다.
 다만 사용자가 어떤 경로로 들어왔는지에 따라 화면 의미는 달라질 수 있다.
 
-### 프로필에서 책으로 들어가는 경우
+#### 프로필에서 책으로 들어가는 경우 `(목표 상태)`
 
 `A 프로필 → A의 책 클릭` 흐름은
 **A가 그 책에 대해 남긴 활동을 보는 사용자 문맥**으로 해석한다.
@@ -128,18 +146,20 @@ MVP에서는 `/relationships`를 관계 관리 허브로 둔다.
 즉, 같은 책이라도 이 문맥에서는
 "이 책 자체"보다 "A가 이 책에 남긴 기록"이 우선이다.
 
-### 전역 책 상세로 들어가는 경우
+#### 전역 책 상세로 들어가는 경우 `(현재 구현)`
 
 `책 검색 → 책 상세` 또는 전역 링크에서 `books/:id`로 들어간 경우는
 **이 책에 대한 여러 사용자의 공개 활동을 보는 전역 책 문맥**으로 해석한다.
 
 이 문맥에서의 원칙:
 - 전역 책 상세는 특정 한 사람의 기록 화면이 아니다.
-- viewer 기준 `policy_scope`를 통과한 여러 사용자의 Jjaek을 볼 수 있다.
 - 따라서 화면의 기준은 "누가 이 책에 대해 무엇을 남겼는가"이지,
   특정 프로필 주인 한 명이 아니다.
 
-### 후속 확장 가능성
+현재 구현 상세는 `docs/architecture/authorization.md`와
+`docs/architecture/visibility.md`를 함께 본다.
+
+#### 후속 확장 가능성 `(미구현)`
 
 MVP에서는 이 두 의미를 우선 `books/:id` 하나로 처리할 수 있다.
 
@@ -157,9 +177,11 @@ MVP에서는 이 두 의미를 우선 `books/:id` 하나로 처리할 수 있다
 이 문서는 아래 활성 문서와 함께 읽는다.
 
 - `docs/specs/bookjjaek_reboot_spec.md`
+- `docs/architecture/current_system.md`
 - `docs/reboot/reboot_plan.md`
 
 원칙:
 - 제품/도메인 전체 방향은 `bookjjaek_reboot_spec.md`
+- 현재 구현 사실은 `current_system.md`
 - 구현 단계와 순서는 `reboot_plan.md`
 - 관계/Relationship Page/관계 알림/댓글 visibility 세부 기준은 `social_relationships_mvp.md`
