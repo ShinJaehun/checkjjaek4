@@ -3,6 +3,10 @@ require "rails_helper"
 RSpec.describe JjaekPolicy do
   let(:viewer) { User.create!(name: "Reader", email: "jjaek-policy-reader@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:original_author) { User.create!(name: "Original", email: "jjaek-policy-original@example.com", password: "password123!", password_confirmation: "password123!") }
+  let(:followed_author) { User.create!(name: "Followed", email: "jjaek-policy-followed@example.com", password: "password123!", password_confirmation: "password123!") }
+  let(:unfollowed_author) { User.create!(name: "Unfollowed", email: "jjaek-policy-unfollowed@example.com", password: "password123!", password_confirmation: "password123!") }
+  let(:book_friend_author) { User.create!(name: "Book Friend", email: "jjaek-policy-book-friend@example.com", password: "password123!", password_confirmation: "password123!") }
+  let(:unrelated_author) { User.create!(name: "Unrelated", email: "jjaek-policy-unrelated@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "ReJjaek policy book", authors_text: "Author") }
   let(:friendship) { BookFriendship.create!(requester: viewer, addressee: original_author, status: :accepted) }
   let(:original) { original_author.jjaeks.create!(book:, content: "ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
@@ -155,28 +159,82 @@ RSpec.describe JjaekPolicy do
   end
 
   describe described_class::FeedScope do
-    it "includes jjaeks targeted at the viewer" do
-      targeted = original_author.jjaeks.create!(
+    it "includes the viewer's own jjaeks in the home feed" do
+      own_jjaek = viewer.jjaeks.create!(content: "VIEWER_OWN_FEED_JJAEK", visibility: :private_jjaek)
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).to include(own_jjaek)
+    end
+
+    it "includes public jjaeks from followed users in the home feed" do
+      viewer.active_follows.create!(followee: followed_author)
+      followed_public_jjaek = followed_author.jjaeks.create!(
+        content: "FOLLOWED_PUBLIC_FEED_JJAEK",
+        visibility: :public_jjaek
+      )
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).to include(followed_public_jjaek)
+    end
+
+    it "does not include public jjaeks from unfollowed users in the home feed" do
+      unfollowed_public_jjaek = unfollowed_author.jjaeks.create!(
+        content: "UNFOLLOWED_PUBLIC_FEED_JJAEK",
+        visibility: :public_jjaek
+      )
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).not_to include(unfollowed_public_jjaek)
+    end
+
+    it "includes book-friends jjaeks from accepted book friends in the home feed" do
+      BookFriendship.create!(requester: viewer, addressee: book_friend_author, status: :accepted)
+      book_friend_jjaek = book_friend_author.jjaeks.create!(
+        content: "BOOK_FRIENDS_FEED_JJAEK",
+        visibility: :book_friends
+      )
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).to include(book_friend_jjaek)
+    end
+
+    it "does not include book-friends jjaeks from unrelated users in the home feed" do
+      unrelated_book_friend_jjaek = unrelated_author.jjaeks.create!(
+        content: "UNRELATED_BOOK_FRIENDS_FEED_JJAEK",
+        visibility: :book_friends
+      )
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).not_to include(unrelated_book_friend_jjaek)
+    end
+
+    it "includes non-private profile-context jjaeks targeted at the viewer" do
+      targeted_profile_jjaek = original_author.jjaeks.create!(
         target_user: viewer,
         content: "TARGETED_AT_VIEWER_POLICY_FEED",
         visibility: :book_friends
       )
 
-      resolved = described_class.new(viewer, Jjaek.all).resolve
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
 
-      expect(resolved).to include(targeted)
+      expect(resolved).to include(targeted_profile_jjaek)
     end
 
-    it "excludes a requote when the original is no longer visible to the viewer" do
+    it "excludes a requote when the quoted original is no longer visible to the viewer" do
       friendship.destroy!
 
-      resolved = described_class.new(viewer, Jjaek.all).resolve
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
 
       expect(resolved).not_to include(requote)
     end
 
-    it "includes a requote when the original is still visible to the viewer" do
-      resolved = described_class.new(viewer, Jjaek.all).resolve
+    it "includes a requote when the quoted original is still visible to the viewer" do
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
 
       expect(resolved).to include(requote)
     end

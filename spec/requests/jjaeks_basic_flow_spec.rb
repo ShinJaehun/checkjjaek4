@@ -1,13 +1,13 @@
 require "rails_helper"
 
-RSpec.describe "Jjaeks", type: :request do
+RSpec.describe "Jjaeks basic flow", type: :request do
   let!(:user) { User.create!(name: "Writer", email: "writer@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:followee) { User.create!(name: "Followee", email: "followee@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:stranger) { User.create!(name: "Stranger", email: "stranger@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "짹의 책", authors_text: "저자") }
-  let!(:own_jjaek) { user.jjaeks.create!(book:, content: "My note") }
-  let!(:followee_jjaek) { followee.jjaeks.create!(book:, content: "Followee note") }
-  let!(:stranger_jjaek) { stranger.jjaeks.create!(book:, content: "Stranger note") }
+  let!(:own_jjaek) { user.jjaeks.create!(book:, content: "My jjaek") }
+  let!(:followee_jjaek) { followee.jjaeks.create!(book:, content: "Followee jjaek") }
+  let!(:stranger_jjaek) { stranger.jjaeks.create!(book:, content: "Stranger jjaek") }
 
   before do
     user.active_follows.create!(followee:)
@@ -25,9 +25,9 @@ RSpec.describe "Jjaeks", type: :request do
 
       get root_path
 
-      expect(response.body).to include("My note")
-      expect(response.body).to include("Followee note")
-      expect(response.body).not_to include("Stranger note")
+      expect(response.body).to include("My jjaek")
+      expect(response.body).to include("Followee jjaek")
+      expect(response.body).not_to include("Stranger jjaek")
     end
   end
 
@@ -36,7 +36,7 @@ RSpec.describe "Jjaeks", type: :request do
       sign_in user
 
       expect {
-        post jjaeks_path, params: { jjaek: { content: "Fresh update", visibility: :public_jjaek } }
+        post jjaeks_path, params: { jjaek: { content: "Fresh jjaek", visibility: :public_jjaek } }
       }.to change(user.jjaeks, :count).by(1)
 
       expect(response).to redirect_to(jjaek_path(Jjaek.order(:id).last))
@@ -47,10 +47,10 @@ RSpec.describe "Jjaeks", type: :request do
     it "updates the current user's jjaek" do
       sign_in user
 
-      patch jjaek_path(own_jjaek), params: { jjaek: { content: "Updated note" } }
+      patch jjaek_path(own_jjaek), params: { jjaek: { content: "Updated jjaek" } }
 
       expect(response).to redirect_to(jjaek_path(own_jjaek))
-      expect(own_jjaek.reload.content).to eq("Updated note")
+      expect(own_jjaek.reload.content).to eq("Updated jjaek")
     end
   end
 
