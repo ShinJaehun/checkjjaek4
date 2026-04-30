@@ -84,15 +84,18 @@
 - `docs/architecture/authorization.md`
 - `docs/architecture/visibility.md`
 
-### 2. Notification 진입점 `계획`
+### 2. Notification 진입점 `부분 완료`
 
-관계 관련 Notification은 문서상 정의되어 있지만 아직 구현되지 않았다.
+받은 책친구 요청 badge와 `/relationships#received-book-friend-requests` 진입점은 구현되었다.
+다만 범용 Notification 시스템과 다른 알림 타입은 아직 후속 범위다.
 
-- 받은 책친구 요청 알림 → `/relationships#received-book-friend-requests`
-- 보낸 책친구 요청 상태 알림 → `/relationships#sent-book-friend-requests`
-- 책친구 수락 알림 → `/relationships#book-friends`
+관련 문서:
+- `docs/specs/relationship_notifications_mvp.md`
 
-이 항목은 관계 허브와 연결되는 진입 UX를 후속 단계에서 정리한다.
+후속 범위:
+- 보낸 책친구 요청 상태 알림
+- 책친구 수락 알림
+- 범용 Notification 구조 검토
 
 ### 3. BookActivity 도입 `계획`
 
