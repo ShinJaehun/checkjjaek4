@@ -4,7 +4,7 @@ RSpec.describe "Comments", type: :request do
   let!(:user) { User.create!(name: "Reader", email: "reader@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:author) { User.create!(name: "Author", email: "author@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "댓글 책", authors_text: "저자") }
-  let!(:jjaek) { author.jjaeks.create!(book:, content: "Public post") }
+  let!(:jjaek) { author.jjaeks.create!(book:, content: "Public jjaek") }
   let!(:comment) { jjaek.comments.create!(user:, content: "My comment") }
 
   it "lets a signed-in user comment on an accessible jjaek" do
