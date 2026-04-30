@@ -44,6 +44,8 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include("서재에 있는 책")
       expect(response.body).to include("다른 독자의 공개 Jjaek")
       expect(response.body).to include(I18n.t("books.show.read_only_description"))
+      expect(response.body).to include(new_bookshelf_entry_path(book_id: book.id))
+      expect(response.body).to include(I18n.t("bookshelf_entries.new.title"))
       expect(response.body).not_to include(I18n.t("books.show.save_state"))
       expect(response.body).not_to include(I18n.t("books.show.new_jjaek_title"))
       expect(response.body).not_to include('name="jjaek[content]"')
