@@ -153,6 +153,18 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t("jjaeks.edit.title"))
       expect(response.body).to include("GENERAL_EDIT_BODY")
+      expect(response.body).not_to include(I18n.t("jjaeks.edit.quoted_original"))
+    end
+
+    it "shows the quoted original when editing a requote" do
+      sign_in viewer
+
+      get edit_jjaek_path(requote)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(I18n.t("jjaeks.edit.quoted_original"))
+      expect(response.body).to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
+      expect(response.body).to include(original_author.name)
     end
 
     it "shows a requote entry on a visible jjaek detail page" do
@@ -215,6 +227,38 @@ RSpec.describe "Jjaeks", type: :request do
       get jjaek_path(requote)
 
       expect(response).to redirect_to(root_path)
+    end
+  end
+
+  describe "GET /jjaeks/new" do
+    it "limits requote visibility options for a book-friends original" do
+      sign_in viewer
+      original
+
+      get new_jjaek_path, params: { quoted_jjaek_id: original.id }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(I18n.t("jjaeks.form.requote_visibility_notice"))
+      expect(response.body).to include('option selected="selected" value="book_friends"')
+      expect(response.body).to include('option value="private_jjaek"')
+      expect(response.body).not_to include('option value="public_jjaek"')
+    end
+
+    it "keeps public visibility available for a public original" do
+      public_original = original_author.jjaeks.create!(
+        book:,
+        content: "REQUEST_PUBLIC_REQUOTE_SOURCE",
+        visibility: :public_jjaek
+      )
+      sign_in viewer
+
+      get new_jjaek_path, params: { quoted_jjaek_id: public_original.id }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(I18n.t("jjaeks.form.requote_visibility_notice"))
+      expect(response.body).to include('option selected="selected" value="public_jjaek"')
+      expect(response.body).to include('option value="book_friends"')
+      expect(response.body).to include('option value="private_jjaek"')
     end
   end
 

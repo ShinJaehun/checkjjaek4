@@ -31,8 +31,11 @@
 
         <div class="space-y-2">
           <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
+          <% if @quoted_jjaek.present? %>
+            <p class="text-xs text-stone-500"><%= t("jjaeks.form.requote_visibility_notice") %></p>
+          <% end %>
           <%= form.select :visibility,
-                          Jjaek.visibilities.keys.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
+                          @jjaek_visibility_options.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
                           {},
                           class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
         </div>
