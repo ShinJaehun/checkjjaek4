@@ -77,7 +77,6 @@ ko:
     actions:
       add_to_shelf: "서재에 담기"
       open_internal: "책 상세 보기"
-      open: "상세 보기"
   follows:
     alerts:
       not_found: "팔로우 관계를 찾을 수 없습니다."
@@ -146,8 +145,8 @@ ko:
   books:
     show:
       save_state: "상태 저장"
-      state_description: "대표 상태와 스티커를 고르고 저장합니다."
-      state_title: "상태와 스티커"
+      state_description: "내 서재에 이 책의 대표 상태와 스티커를 저장합니다."
+      state_title: "내 서재 상태와 스티커"
       authors: "저자"
       publisher: "출판사"
       isbn: "ISBN"
@@ -155,9 +154,9 @@ ko:
       empty_description: "아직 이 책의 설명이 없습니다."
       empty_jjaeks: "아직 이 책에 연결된 책짹이 없습니다."
       external_link: "외부 상세 보기"
-      new_jjaek_description: "이 책에 연결된 짧은 감상이나 긴 메모를 남깁니다."
-      new_jjaek_title: "책짹 쓰기"
-      read_only_description: "이 책을 서재에 담으면 상태를 저장하고 책짹을 쓸 수 있습니다."
+      new_jjaek_description: "이 책에 대한 짧은 감상이나 긴 메모를 글로 남깁니다."
+      new_jjaek_title: "이 책에 대한 책짹 쓰기"
+      read_only_description: "이 책을 서재에 담아야 상태를 저장하고 책짹을 쓸 수 있습니다."
       requote_source: "%{name}님의 Jjaek을 인용 중"
       timeline_eyebrow: "책 흐름"
       timeline_title: "이 책의 책짹"

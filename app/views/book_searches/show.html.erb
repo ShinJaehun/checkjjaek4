@@ -46,7 +46,7 @@
                                 description: book[:contents_excerpt],
                                 external_url: book[:url]
                               ),
-                              class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                              class: "inline-flex rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
 
                   <%= button_to t("book_search.actions.add_to_shelf"),
                                 bookshelf_entries_path,
@@ -64,10 +64,6 @@
                                   bookshelf_entry: { status: :wish }
                                 },
                                 class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
-
-                  <% if book[:url].present? %>
-                    <%= link_to t("book_search.actions.open"), book[:url], target: "_blank", rel: "noopener", class: "text-sm font-medium text-stone-900" %>
-                  <% end %>
                 </div>
               </div>
             </div>
