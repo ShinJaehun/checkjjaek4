@@ -183,10 +183,12 @@ ko:
     confirmations:
       destroy: "이 Jjaek을 삭제할까요?"
     edit:
+      quoted_original: "인용한 원문"
       title: "Jjaek 수정"
     form:
       content: "이 책에서 오래 남은 생각을 적어보세요"
       general_content: "지금 남기고 싶은 생각"
+      requote_visibility_notice: "인용한 글보다 넓게 공개할 수 없습니다."
       visibility: "공개 범위"
     new:
       eyebrow: "Jjaek 작성"

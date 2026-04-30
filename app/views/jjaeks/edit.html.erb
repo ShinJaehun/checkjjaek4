@@ -5,6 +5,13 @@
       <p class="mt-2 text-sm text-stone-500"><%= @jjaek.book.title %></p>
     <% end %>
 
+    <% if @jjaek.quoted_jjaek.present? %>
+      <div class="mt-6 space-y-3">
+        <h2 class="text-sm font-medium text-stone-700"><%= t("jjaeks.edit.quoted_original") %></h2>
+        <%= render "jjaeks/quoted_jjaek", quoted_jjaek: @jjaek.quoted_jjaek %>
+      </div>
+    <% end %>
+
     <div class="mt-6">
       <%= form_with model: @jjaek, class: "space-y-4" do |form| %>
         <% if @jjaek.errors.any? %>

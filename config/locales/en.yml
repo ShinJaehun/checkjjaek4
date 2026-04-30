@@ -183,10 +183,12 @@ en:
     confirmations:
       destroy: "Delete this Jjaek?"
     edit:
+      quoted_original: "Original Jjaek"
       title: "Edit Jjaek"
     form:
       content: "What stayed with you from this book?"
       general_content: "What do you want to share?"
+      requote_visibility_notice: "You cannot make a ReJjaek more visible than the original."
       visibility: "Visibility"
     new:
       eyebrow: "New Jjaek"

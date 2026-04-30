@@ -47,7 +47,14 @@ class JjaeksController < ApplicationController
   def build_new_jjaek
     @book = find_jjaek_book
     @quoted_jjaek = find_quoted_jjaek
-    @jjaek = Jjaek.new(user: current_user, book: @book, quoted_jjaek: @quoted_jjaek, target_user:)
+    @jjaek_visibility_options = jjaek_visibility_options_for(@quoted_jjaek)
+    @jjaek = Jjaek.new(
+      user: current_user,
+      book: @book,
+      quoted_jjaek: @quoted_jjaek,
+      target_user:,
+      visibility: default_jjaek_visibility_for(@quoted_jjaek)
+    )
     authorize @jjaek
   end
 
@@ -172,5 +179,17 @@ class JjaeksController < ApplicationController
 
   def jjaek_params
     params.require(:jjaek).permit(:book_id, :content, :visibility, :quoted_jjaek_id, :target_user_id)
+  end
+
+  def jjaek_visibility_options_for(quoted_jjaek)
+    return Jjaek.visibilities.keys unless quoted_jjaek&.book_friends?
+
+    %w[book_friends private_jjaek]
+  end
+
+  def default_jjaek_visibility_for(quoted_jjaek)
+    return :book_friends if quoted_jjaek&.book_friends?
+
+    :public_jjaek
   end
 end
