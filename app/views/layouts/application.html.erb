@@ -33,7 +33,14 @@
             <%= link_to t("home.nav"), root_path, class: "font-medium" %>
             <%= link_to t("bookshelf_entries.nav"), bookshelf_entries_path, class: "font-medium" %>
             <%= link_to t("book_search.nav"), book_search_path, class: "font-medium" %>
-            <%= link_to t("relationships.nav"), relationships_path, class: "font-medium" %>
+            <%= link_to relationships_nav_path, class: "font-medium" do %>
+              <span><%= t("relationships.nav") %></span>
+              <% if show_relationship_notification_badge? %>
+                <span id="relationship-notification-badge" class="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-stone-900 px-1.5 py-0.5 text-[11px] font-semibold text-stone-50">
+                  <%= received_book_friend_requests_count %>
+                </span>
+              <% end %>
+            <% end %>
             <%= link_to current_user.name, user_path(current_user), class: "font-medium" %>
             <%= button_to t("auth.actions.sign_out"), destroy_user_session_path, method: :delete, class: "rounded-full border border-stone-300 px-3 py-1.5" %>
           <% else %>
