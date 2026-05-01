@@ -58,6 +58,8 @@
   순으로 먼저 읽는 것을 기본값으로 둔다.
 - `docs/archive/*`는 과거 판단 기록 보존용이며, 현재 활성 spec보다 우선하지 않는다.
 - `docs/legacy/*`는 checkjjaek3 및 초기 분석 기록 참고용이며, 현재 활성 spec보다 우선하지 않는다.
+- 기존 문서를 함부로 수정하지 말라는 원칙은 오래된 기준을 active docs에 계속 보존하라는 뜻이 아니다.
+- 새 기능이나 새 canonical spec이 기존 기준을 대체하면, 기존 active 문서는 갱신·통합·삭제하거나 필요 시 `docs/archive/`로 이동한다.
 - spec만 보지 말고, 해당 spec의 판단 근거가 되는 정책/구조 문서가 있으면 함께 먼저 확인한다.
 - 문서가 아직 없거나 부족하면, 먼저 문서를 보강한 뒤 구현에 들어간다.
 
@@ -156,6 +158,9 @@
 - 코드 변경으로 문서화된 현재 구현/정책/남은 작업이 달라지는 경우, 해당 내용의 기준 문서만 함께 갱신한다.
 - 이때 관련 없는 다른 문서까지 함께 수정하려고 하지 않는다.
 - 코드 변경으로 현재 구현이 달라진 경우, `docs/architecture/current_system.md`를 포함한 해당 기준 문서를 함께 갱신한다.
+- 새 기능이 기존 spec의 기준을 대체하면 active spec을 둘로 나누어 병렬 유지하지 않는다.
+- canonical spec을 하나로 정하고, 중복되는 기존 spec은 필요한 내용을 흡수한 뒤 삭제하거나 archive로 이동한다.
+- 이때 `docs/architecture/current_system.md`, `docs/reboot/reboot_plan.md` 등 참조 문서도 새 canonical 기준만 가리키도록 정리한다.
 - 작업 결과는 git 커밋으로 남긴다.
 
 ---
