@@ -1,5 +1,5 @@
 class BookshelfEntry < ApplicationRecord
-  enum :status, { wish: 0, reading: 1, finished: 2 }, default: :wish, validate: true
+  enum :status, { wish: 0, reading: 1, finished: 2 }, validate: { allow_nil: true }
 
   belongs_to :user
   belongs_to :book

@@ -10,7 +10,9 @@
           <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "text-lg font-semibold text-stone-900 hover:text-stone-700" %>
           <p class="mt-1 text-sm text-stone-500"><%= bookshelf_entry.book.authors_text.presence || "-" %></p>
         </div>
-        <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
+        <% if bookshelf_entry.status.present? %>
+          <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
+        <% end %>
       </div>
 
       <% if bookshelf_entry.sticker_definitions.any? %>
