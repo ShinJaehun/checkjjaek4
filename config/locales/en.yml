@@ -116,6 +116,17 @@ en:
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
       comment_created: "%{actor_name} commented on your Jjaek."
       requote_created: "%{actor_name} ReJjaeked your Jjaek."
+  book_activities:
+    profile:
+      eyebrow: "Book Activity"
+      title: "Book Activity"
+      empty: "No book activity yet."
+    messages:
+      added_to_shelf: "%{user_name} added 『%{book_title}』 to their shelf."
+      status_changed: "%{user_name} changed 『%{book_title}』 to %{status}."
+      status_cleared: "%{user_name} cleared the reading status for 『%{book_title}』."
+      sticker_added: "%{user_name} added the “%{sticker}” sticker to 『%{book_title}』."
+      sticker_removed: "%{user_name} removed the “%{sticker}” sticker from 『%{book_title}』."
   likes:
     alerts:
       not_found: "Like was not found."

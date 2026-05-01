@@ -78,6 +78,8 @@
 - profile-context Jjaek 작성 가능 여부도 관계에 따라 달라짐
 - 로그인 사용자는 프로필 Jjaek 섹션을 볼 수 있다
 - 실제 Jjaek 노출 범위는 관계에 따라 달라진다
+- `self / book_friend`는 프로필의 BookActivity 섹션을 볼 수 있다
+- 홈 피드에는 아직 BookActivity를 합성하지 않는다
 - 상세 권한 규칙은 `docs/architecture/authorization.md`를 본다
 
 관련 코드:
@@ -90,6 +92,7 @@
   - app/views/users/_profile_header.html.erb
   - app/views/users/_profile_jjaek_form.html.erb
   - app/views/users/_bookshelf_section.html.erb
+  - app/views/users/_book_activities_section.html.erb
   - app/views/users/_jjaeks_section.html.erb
 
 ---
@@ -188,8 +191,8 @@
 - BookActivity
   - 책 관련 활동 이벤트 기반
 
-현재 `BookActivity`는 모델/테이블과 `BookshelfEntry` 생성/수정 성공 후 실제 변경을 기록하는 기반만 도입된 상태다.
-home/profile feed 노출은 후속 단계에서 다룬다.
+현재 `BookActivity`는 모델/테이블과 `BookshelfEntry` 생성/수정 성공 후 실제 변경을 기록하는 기반이 도입되어 있다.
+프로필 화면에는 별도 책 활동 섹션으로 노출되지만, home feed에는 아직 합성하지 않는다.
 
 → 현재 상태, 본문 콘텐츠, 피드용 이벤트는 분리된 모델에서 관리한다
 

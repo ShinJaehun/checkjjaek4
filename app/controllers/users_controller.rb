@@ -12,6 +12,7 @@ class UsersController < ApplicationController
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
     prepare_profile_bookshelf(profile_policy)
+    prepare_profile_book_activities
     prepare_profile_jjaeks(profile_policy)
     prepare_profile_jjaek_form(profile_policy)
   end
@@ -34,6 +35,15 @@ class UsersController < ApplicationController
         Jjaek.none
       end
     prepare_visible_requote_counts_for(@jjaeks)
+  end
+
+  def prepare_profile_book_activities
+    @book_activities = policy_scope(BookActivity)
+      .where(user: @user)
+      .includes(:user, :book)
+      .recent
+      .limit(10)
+    @show_book_activities = current_user == @user || @book_activities.any?
   end
 
   def prepare_profile_jjaek_form(profile_policy)

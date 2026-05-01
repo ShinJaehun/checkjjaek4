@@ -95,12 +95,12 @@
 
 현재 피드는 Jjaek 중심이다.
 BookshelfEntry / BookshelfEntrySticker의 상태 변화를 피드 이벤트로 표현하는
-`BookActivity` 모델과 `BookshelfEntry` 변경 기록 기반은 도입되었다.
+`BookActivity` 모델, `BookshelfEntry` 변경 기록 기반, 프로필 책 활동 섹션은 도입되었다.
 
 남은 작업:
-- home/profile feed 합성 방식
-- BookActivity 노출 UI
-- 권한/visibility 적용 방식
+- home feed 합성 방식
+- books/:id 노출 여부
+- 더 정교한 visibility 정책
 
 관련 문서:
 - `docs/specs/book_activity_mvp.md`
