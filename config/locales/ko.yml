@@ -111,7 +111,6 @@ ko:
     eyebrow: "알림"
     title: "알림"
     empty: "아직 알림이 없습니다."
-    unread: "읽지 않음"
     messages:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
       profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."

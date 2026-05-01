@@ -7,16 +7,14 @@
   <% if @notifications.any? %>
     <section class="space-y-3">
       <% @notifications.each do |notification| %>
-        <article class="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm">
+        <% unread_on_entry = @unread_notification_ids.include?(notification.id) %>
+        <article class="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm <%= "opacity-60" unless unread_on_entry %>">
           <%= link_to notification_target_path(notification), class: "block" do %>
             <div class="flex items-start justify-between gap-4">
               <div>
                 <p class="text-sm font-medium text-stone-900"><%= notification_message(notification) %></p>
                 <p class="mt-1 text-xs text-stone-500"><%= l(notification.created_at, format: :short) %></p>
               </div>
-              <% if notification.unread? %>
-                <span class="rounded-full bg-stone-900 px-2 py-1 text-[11px] font-semibold text-stone-50"><%= t("notifications.unread") %></span>
-              <% end %>
             </div>
           <% end %>
         </article>
