@@ -131,7 +131,6 @@ ko:
       empty: "아직 서재가 비어 있습니다. 책 검색에서 첫 책을 담아보세요."
     new:
       title: "서재에 담기"
-      description: "이 책을 어떤 상태로 곁에 둘지 정합니다."
     edit:
       title: "서재 항목 수정"
     notices:

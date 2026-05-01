@@ -6,13 +6,6 @@ class BookshelfEntriesController < ApplicationController
     @bookshelf_entries = policy_scope(BookshelfEntry).recent_first
   end
 
-  def new
-    @book = Book.find(params[:book_id])
-    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) || new_bookshelf_entry_for(@book)
-    authorize @bookshelf_entry
-    @sticker_definitions = StickerDefinition.alphabetical
-  end
-
   def edit
     authorize @bookshelf_entry
     @book = @bookshelf_entry.book
@@ -20,7 +13,7 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def create
-    @book = Book.find_or_initialize_from_search(book_attributes)
+    @book = book_for_create
     @book.save! if @book.new_record? || @book.changed?
 
     @bookshelf_entry = current_user.bookshelf_entries.find_or_initialize_by(book: @book)
@@ -71,8 +64,10 @@ class BookshelfEntriesController < ApplicationController
     params.fetch(:book, {}).permit(:title, :authors_text, :publisher, :thumbnail, :isbn, :description, :external_url)
   end
 
-  def new_bookshelf_entry_for(book)
-    BookshelfEntry.new(user: current_user, book:)
+  def book_for_create
+    return Book.find(params[:book_id]) if params[:book_id].present?
+
+    Book.find_or_initialize_from_search(book_attributes)
   end
 
   def prepare_book_show_failure

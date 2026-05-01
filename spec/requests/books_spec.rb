@@ -44,11 +44,33 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include("서재에 있는 책")
       expect(response.body).to include("다른 독자의 공개 Jjaek")
       expect(response.body).to include(I18n.t("books.show.read_only_description"))
-      expect(response.body).to include(new_bookshelf_entry_path(book_id: book.id))
+      expect(response.body).to include(%(action="#{bookshelf_entries_path}"))
+      expect(response.body).to include(%(name="book_id" value="#{book.id}"))
+      expect(response.body).not_to include("/bookshelf_entries/new")
       expect(response.body).to include(I18n.t("bookshelf_entries.new.title"))
       expect(response.body).not_to include(I18n.t("books.show.save_state"))
       expect(response.body).not_to include(I18n.t("books.show.new_jjaek_title"))
       expect(response.body).not_to include('name="jjaek[content]"')
+    end
+
+    it "adds a read-only book to the shelf and returns to the writable book page" do
+      sign_in user
+
+      expect {
+        post bookshelf_entries_path, params: {
+          book_id: book.id,
+          bookshelf_entry: { status: :wish }
+        }
+      }.to change(user.bookshelf_entries, :count).by(1)
+
+      expect(response).to redirect_to(book_path(book))
+      expect(user.bookshelf_entries.find_by!(book:).status).to eq("wish")
+
+      follow_redirect!
+
+      expect(response.body).to include(I18n.t("books.show.save_state"))
+      expect(response.body).to include(I18n.t("books.show.new_jjaek_title"))
+      expect(response.body).to include('name="jjaek[content]"')
     end
   end
 
