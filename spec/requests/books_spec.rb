@@ -58,19 +58,26 @@ RSpec.describe "Books", type: :request do
 
       expect {
         post bookshelf_entries_path, params: {
-          book_id: book.id,
-          bookshelf_entry: { status: :wish }
+          book_id: book.id
         }
       }.to change(user.bookshelf_entries, :count).by(1)
 
       expect(response).to redirect_to(book_path(book))
-      expect(user.bookshelf_entries.find_by!(book:).status).to eq("wish")
+      expect(user.bookshelf_entries.find_by!(book:).status).to be_nil
 
       follow_redirect!
 
       expect(response.body).to include(I18n.t("books.show.save_state"))
       expect(response.body).to include(I18n.t("books.show.new_jjaek_title"))
       expect(response.body).to include('name="jjaek[content]"')
+
+      document = Nokogiri::HTML(response.body)
+      status_select = document.at_css('select[name="bookshelf_entry[status]"]')
+      status_radios = document.css('input[type="radio"][name="bookshelf_entry[status]"]')
+
+      expect(status_select).to be_nil
+      expect(status_radios.map { |radio| radio["value"] }).to match_array(BookshelfEntry.statuses.keys)
+      expect(status_radios.any? { |radio| radio["checked"].present? }).to be(false)
     end
   end
 

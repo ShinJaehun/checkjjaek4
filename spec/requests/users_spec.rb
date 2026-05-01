@@ -75,7 +75,7 @@ RSpec.describe "Users", type: :request do
       get user_path(viewer)
 
       expect(response.body).to include("내 책")
-      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.wish"))
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.wish"))
       expect(response.body).to include("내 비공개 짹")
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))

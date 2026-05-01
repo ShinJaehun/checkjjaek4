@@ -15,7 +15,7 @@
           <% end %>
         </div>
 
-        <% if local_assigns.fetch(:show_status, false) %>
+        <% if local_assigns.fetch(:show_status, false) && bookshelf_entry.status.present? %>
           <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
         <% end %>
       </div>

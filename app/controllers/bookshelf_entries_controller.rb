@@ -57,7 +57,7 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def bookshelf_entry_params
-    params.require(:bookshelf_entry).permit(:status, sticker_definition_ids: [])
+    params.fetch(:bookshelf_entry, {}).permit(:status, sticker_definition_ids: [])
   end
 
   def book_attributes

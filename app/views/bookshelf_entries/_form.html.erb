@@ -17,10 +17,15 @@
 
   <div class="space-y-2">
     <%= form.label :status, t("bookshelf_entries.form.status"), class: "text-sm font-medium text-stone-700" %>
-    <%= form.select :status,
-                    BookshelfEntry.statuses.keys.map { |status| [t("bookshelf_entries.statuses.#{status}"), status] },
-                    {},
-                    class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+    <%= form.hidden_field :status, value: "" %>
+    <div class="flex flex-wrap gap-2">
+      <% BookshelfEntry.statuses.keys.each do |status| %>
+        <label class="inline-flex cursor-pointer items-center rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 has-[:checked]:border-stone-900 has-[:checked]:bg-stone-900 has-[:checked]:text-stone-50">
+          <%= form.radio_button :status, status, class: "sr-only" %>
+          <span><%= t("bookshelf_entries.statuses.#{status}") %></span>
+        </label>
+      <% end %>
+    </div>
   </div>
 
   <div class="space-y-2">

@@ -17,7 +17,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     BookFriendship.create!(requester: user, addressee: book_friend, status: :accepted)
   end
 
-  it "adds a searched book to the shelf" do
+  it "adds a searched book to the shelf without a status" do
     sign_in user
 
     expect {
@@ -27,16 +27,58 @@ RSpec.describe "BookshelfEntries", type: :request do
           authors_text: "저자",
           publisher: "출판사",
           isbn: "1234"
-        },
-        bookshelf_entry: {
-          status: :reading,
-          sticker_definition_ids: [ sticker.id ]
         }
       }
     }.to change(BookshelfEntry, :count).by(1)
 
     expect(response).to redirect_to(book_path(Book.last))
-    expect(BookshelfEntry.last.sticker_definitions).to include(sticker)
+    expect(BookshelfEntry.last.status).to be_nil
+    expect(BookshelfEntry.last.sticker_definitions).to be_empty
+  end
+
+  it "updates a shelf entry status and stickers" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    patch bookshelf_entry_path(entry), params: {
+      bookshelf_entry: {
+        status: :finished,
+        sticker_definition_ids: [ sticker.id ]
+      }
+    }
+
+    expect(response).to redirect_to(book_path(user_book))
+    expect(entry.reload.status).to eq("finished")
+    expect(entry.sticker_definitions).to include(sticker)
+  end
+
+  it "allows a shelf entry status to be cleared" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    patch bookshelf_entry_path(entry), params: {
+      bookshelf_entry: {
+        status: "",
+        sticker_definition_ids: []
+      }
+    }
+
+    expect(response).to redirect_to(book_path(user_book))
+    expect(entry.reload.status).to be_nil
+  end
+
+  it "does not show a status badge for an entry without a status" do
+    nil_status_user = User.create!(name: "No Status", email: "no-status@example.com", password: "password123!", password_confirmation: "password123!")
+    nil_status_book = Book.create!(title: "상태 없는 책", authors_text: "저자")
+    nil_status_user.bookshelf_entries.create!(book: nil_status_book)
+    sign_in nil_status_user
+
+    get bookshelf_entries_path
+
+    expect(response.body).to include("상태 없는 책")
+    expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.wish"))
+    expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
+    expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.finished"))
   end
 
   it "shows only the signed-in user's bookshelf entries" do
