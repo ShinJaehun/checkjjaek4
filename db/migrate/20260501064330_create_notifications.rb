@@ -26,10 +26,10 @@ class CreateNotifications < ActiveRecord::Migration[8.1]
   private
 
   def backfill_pending_book_friendship_notifications
-    book_friendship_class = Class.new(ApplicationRecord) do
+    book_friendship_class = Class.new(ActiveRecord::Base) do
       self.table_name = "book_friendships"
     end
-    notification_class = Class.new(ApplicationRecord) do
+    notification_class = Class.new(ActiveRecord::Base) do
       self.table_name = "notifications"
     end
 
