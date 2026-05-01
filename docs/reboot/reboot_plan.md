@@ -84,18 +84,25 @@
 - `docs/architecture/authorization.md`
 - `docs/architecture/visibility.md`
 
-### 2. Notification 진입점 `부분 완료`
+### 2. Notification 진입점 `완료`
 
-받은 책친구 요청 badge와 `/relationships#received-book-friend-requests` 진입점은 구현되었다.
-다만 범용 Notification 시스템과 다른 알림 타입은 아직 후속 범위다.
+`Notification` 모델 기반 알림 inbox와 unread badge가 구현되었다.
+받은 책친구 요청은 `book_friendship_requested` action으로 통합되며,
+관계 요청 처리는 여전히 `/relationships`에서 담당한다.
+
+현재 MVP 범위:
+- 받은 책친구 요청
+- profile-context Jjaek
+- 댓글
+- ReJjaek
 
 관련 문서:
-- `docs/specs/relationship_notifications_mvp.md`
+- `docs/specs/notifications_mvp.md`
 
 후속 범위:
 - 보낸 책친구 요청 상태 알림
 - 책친구 수락 알림
-- 범용 Notification 구조 검토
+- 좋아요 / follow / feed성 활동 알림 검토
 
 ### 3. BookActivity 도입 `계획`
 

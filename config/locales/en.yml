@@ -106,6 +106,17 @@ en:
       book_friends: "You have no book friends yet."
       following_users: "You are not following anyone yet."
       followers: "No one is following you yet."
+  notifications:
+    nav: "Notifications"
+    eyebrow: "Notifications"
+    title: "Notifications"
+    empty: "You have no notifications yet."
+    unread: "Unread"
+    messages:
+      book_friendship_requested: "%{actor_name} sent you a book friend request."
+      profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
+      comment_created: "%{actor_name} commented on your Jjaek."
+      requote_created: "%{actor_name} ReJjaeked your Jjaek."
   likes:
     alerts:
       not_found: "Like was not found."

@@ -106,6 +106,17 @@ ko:
       book_friends: "책친구가 없습니다."
       following_users: "소식받는 사용자가 없습니다."
       followers: "나를 소식받는 사용자가 없습니다."
+  notifications:
+    nav: "알림"
+    eyebrow: "알림"
+    title: "알림"
+    empty: "아직 알림이 없습니다."
+    unread: "읽지 않음"
+    messages:
+      book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
+      profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
+      comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
+      requote_created: "%{actor_name}님이 내 Jjaek을 다시짹했습니다."
   likes:
     alerts:
       not_found: "좋아요를 찾을 수 없습니다."

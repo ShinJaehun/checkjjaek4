@@ -17,6 +17,16 @@ class User < ApplicationRecord
            dependent: :nullify
   has_many :comments, dependent: :destroy
   has_many :likes, dependent: :destroy
+  has_many :received_notifications,
+           class_name: "Notification",
+           foreign_key: :recipient_id,
+           inverse_of: :recipient,
+           dependent: :destroy
+  has_many :sent_notifications,
+           class_name: "Notification",
+           foreign_key: :actor_id,
+           inverse_of: :actor,
+           dependent: :destroy
 
   has_many :active_follows,
            class_name: "Follow",
