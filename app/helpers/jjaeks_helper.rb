@@ -11,6 +11,12 @@ module JjaeksHelper
     jjaek.book.present? && jjaek.quoted_jjaek.present?
   end
 
+  def visible_requote_count_for(jjaek)
+    return 0 if jjaek.requote?
+
+    @visible_requote_counts_by_jjaek_id.to_h.fetch(jjaek.id, 0)
+  end
+
   private
 
   def jjaek_context_translation_key(jjaek)

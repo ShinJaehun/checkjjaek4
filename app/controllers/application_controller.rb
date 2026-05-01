@@ -29,6 +29,18 @@ class ApplicationController < ActionController::Base
 
   private
 
+  def prepare_visible_requote_counts_for(jjaeks)
+    records = Array(jjaeks)
+    original_ids = records.reject(&:requote?).filter_map(&:id)
+
+    @visible_requote_counts_by_jjaek_id =
+      if original_ids.any?
+        policy_scope(Jjaek).where(quoted_jjaek_id: original_ids).group(:quoted_jjaek_id).count
+      else
+        {}
+      end
+  end
+
   def user_not_authorized
     redirect_back fallback_location: root_path, alert: t("auth.alerts.not_authorized")
   end

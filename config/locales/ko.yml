@@ -202,6 +202,9 @@ ko:
       likes:
         one: "좋아요 1개"
         other: "좋아요 %{count}개"
+      requotes:
+        one: "다시짹 1개"
+        other: "다시짹 %{count}개"
     notices:
       created: "Jjaek을 게시했습니다."
       destroyed: "Jjaek을 삭제했습니다."

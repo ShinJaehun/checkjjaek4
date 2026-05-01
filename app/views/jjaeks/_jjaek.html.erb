@@ -58,6 +58,10 @@
   <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
     <span><%= t("jjaeks.meta.likes", count: jjaek.likes_count) %></span>
     <span><%= t("jjaeks.meta.comments", count: jjaek.comments_count) %></span>
+    <% visible_requote_count = visible_requote_count_for(jjaek) %>
+    <% if visible_requote_count.positive? %>
+      <span><%= t("jjaeks.meta.requotes", count: visible_requote_count) %></span>
+    <% end %>
     <% current_like = current_user_like_for(jjaek) %>
     <% if current_like %>
       <%= button_to t("likes.actions.unlike"), jjaek_like_path(jjaek), method: :delete, class: "text-sm font-medium text-stone-700" %>

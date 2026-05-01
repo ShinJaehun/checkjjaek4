@@ -6,5 +6,6 @@ class HomesController < ApplicationController
     @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
       .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek)
       .recent
+    prepare_visible_requote_counts_for(@feed_jjaeks)
   end
 end
