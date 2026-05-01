@@ -102,4 +102,4 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
-        run: bundle exec rails db:prepare && bundle exec rspec
+        run: bundle exec rails db:prepare && bundle exec rails tailwindcss:build && bundle exec rspec

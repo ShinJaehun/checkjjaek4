@@ -4,7 +4,7 @@ RSpec.describe "BookshelfEntries", type: :request do
   let!(:user) { User.create!(name: "Reader", email: "reader-shelf@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book_friend) { User.create!(name: "Friend", email: "friend-shelf@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:stranger) { User.create!(name: "Stranger", email: "stranger-shelf@example.com", password: "password123!", password_confirmation: "password123!") }
-  let!(:sticker) { StickerDefinition.create!(key: "loved_it", name: "좋았어요") }
+  let!(:sticker) { StickerDefinition.create!(key: "bookshelf_entries_spec_loved_it", name: "좋았어요") }
 
   let!(:user_book) { Book.create!(title: "내 서재 책", authors_text: "저자") }
   let!(:friend_book) { Book.create!(title: "친구 서재 책", authors_text: "저자") }
