@@ -188,8 +188,8 @@
 - BookActivity
   - 책 관련 활동 이벤트 기반
 
-현재 `BookActivity`는 모델/테이블만 도입된 상태다.
-`BookshelfEntry` 변경과의 생성 연결, home/profile feed 노출은 후속 단계에서 다룬다.
+현재 `BookActivity`는 모델/테이블과 `BookshelfEntry` 생성/수정 성공 후 실제 변경을 기록하는 기반만 도입된 상태다.
+home/profile feed 노출은 후속 단계에서 다룬다.
 
 → 현재 상태, 본문 콘텐츠, 피드용 이벤트는 분리된 모델에서 관리한다
 
