@@ -23,6 +23,7 @@
 - BookFriendship
 - Comment
 - Like
+- Notification
 
 역할 요약:
 
@@ -33,6 +34,7 @@
 - Follow: 피드 구독
 - Comment: Jjaek에 대한 댓글
 - Like: Jjaek에 대한 좋아요
+- Notification: 직접 상호작용 알림 inbox와 읽음 상태
 
 ---
 
@@ -93,7 +95,6 @@
 ### 4. 관계 화면 (/relationships)
 
 - 현재 구현된 관계 관리 허브 화면
-- navbar의 받은 책친구 요청 badge 진입점과 연결됨
 - 받은 책친구 요청
 - 보낸 책친구 요청
 - 책친구 목록
@@ -106,7 +107,23 @@
 
 ---
 
-### 5. 책 검색 화면 (/book_search)
+### 5. 알림 화면 (/notifications)
+
+- `Notification` 모델 기반 알림 inbox
+- unread count를 navbar에 표시
+- `/notifications` 진입 시 현재 사용자의 unread 알림을 read 처리
+- 책친구 요청 알림은 `/relationships#received-book-friend-requests`로 연결
+- profile-context Jjaek, 댓글, ReJjaek 알림은 관련 Jjaek 상세로 연결
+- BookFriendship / Jjaek / Comment의 source of truth를 대체하지 않음
+
+관련 코드:
+- controller: app/controllers/notifications_controller.rb
+- model: app/models/notification.rb
+- view: app/views/notifications/index.html.erb
+
+---
+
+### 6. 책 검색 화면 (/book_search)
 
 - `book_searches#show` 기반 검색 화면
 - query string 기반 GET 검색

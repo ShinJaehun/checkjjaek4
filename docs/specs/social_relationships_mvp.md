@@ -71,7 +71,7 @@
 ## Notification 진입점 `(부분 구현)`
 
 받은 책친구 요청 알림 MVP는 현재 구현되었다.
-세부 기준은 `docs/specs/relationship_notifications_mvp.md`를 따른다.
+Notification 모델 도입 이후의 통합 기준은 `docs/specs/notifications_mvp.md`를 따른다.
 
 현재 구현:
 - 받은 책친구 요청 badge

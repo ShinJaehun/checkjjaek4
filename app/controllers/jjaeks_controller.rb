@@ -19,6 +19,7 @@ class JjaeksController < ApplicationController
     @jjaek.assign_attributes(jjaek_params)
 
     if @jjaek.save
+      notify_jjaek_created
       redirect_to create_success_path, notice: t("jjaeks.notices.created")
     else
       render_failed_create
@@ -195,5 +196,10 @@ class JjaeksController < ApplicationController
     return :book_friends if quoted_jjaek&.book_friends?
 
     :public_jjaek
+  end
+
+  def notify_jjaek_created
+    Notification.notify_profile_jjaek_created(@jjaek)
+    Notification.notify_requote_created(@jjaek) if @jjaek.requote?
   end
 end

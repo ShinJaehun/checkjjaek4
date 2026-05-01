@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   root "homes#show"
   devise_for :users
   get "/relationships", to: "relationships#index"
+  resources :notifications, only: :index
   resource :book_search, only: :show, controller: "book_searches"
   resources :books, only: :show do
     collection do

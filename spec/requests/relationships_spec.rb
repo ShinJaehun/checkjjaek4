@@ -55,37 +55,23 @@ RSpec.describe "Relationships", type: :request do
     expect(response.body).to include(I18n.t("relationships.title"))
   end
 
-  it "shows the current user's pending received book-friend request count in the navigation" do
+  it "does not show the old relationship notification badge in the navigation" do
     sign_in viewer
 
     get root_path
 
-    badge = parse_html.at_css("#relationship-notification-badge")
-
-    expect(badge).not_to be_nil
-    expect(badge.text.strip).to eq("1")
+    expect(parse_html.at_css("#relationship-notification-badge")).to be_nil
   end
 
-  it "links the relationships navigation to the received requests anchor when pending requests exist" do
+  it "links the relationships navigation to the relationship hub" do
     sign_in viewer
 
     get root_path
 
-    expect(relationship_nav_link&.[]("href")).to eq("/relationships#received-book-friend-requests")
+    expect(relationship_nav_link&.[]("href")).to eq("/relationships")
   end
 
-  it "does not include other users' pending requests in the notification count" do
-    sign_in viewer
-
-    get root_path
-
-    badge = parse_html.at_css("#relationship-notification-badge")
-
-    expect(badge.text.strip).to eq("1")
-    expect(badge.text.strip).not_to eq("2")
-  end
-
-  it "does not show a notification badge when the current user has no pending received requests" do
+  it "keeps the relationships navigation stable when the current user has no pending received requests" do
     BookFriendship.where(addressee: viewer, status: :pending).delete_all
     sign_in viewer
 

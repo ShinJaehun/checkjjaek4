@@ -103,6 +103,91 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
+    it "creates a notification when writing a profile-context jjaek on another user's profile" do
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            target_user_id: original_author.id,
+            content: "PROFILE_NOTIFICATION_BODY",
+            visibility: :book_friends
+          }
+        }
+      }.to change(Notification, :count).by(1)
+
+      notification = Notification.last
+      expect(notification).to be_profile_jjaek_created
+      expect(notification.recipient).to eq(original_author)
+      expect(notification.actor).to eq(viewer)
+      expect(notification.notifiable).to eq(Jjaek.last)
+    end
+
+    it "does not create a notification when writing on your own profile" do
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            target_user_id: viewer.id,
+            content: "SELF_PROFILE_NOTIFICATION_BODY",
+            visibility: :private_jjaek
+          }
+        }
+      }.not_to change(Notification, :count)
+    end
+
+    it "creates a notification when another user requotes your jjaek" do
+      sign_in viewer
+      original
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            quoted_jjaek_id: original.id,
+            content: "REQUEST_NEW_REQUOTE_BODY",
+            visibility: :book_friends
+          }
+        }
+      }.to change(Notification, :count).by(1)
+
+      notification = Notification.last
+      expect(notification).to be_requote_created
+      expect(notification.recipient).to eq(original_author)
+      expect(notification.actor).to eq(viewer)
+      expect(notification.notifiable).to eq(Jjaek.last)
+    end
+
+    it "does not create a notification when requoting your own jjaek" do
+      own_original = viewer.jjaeks.create!(content: "OWN_REQUOTE_SOURCE", visibility: :public_jjaek)
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            quoted_jjaek_id: own_original.id,
+            content: "SELF_REQUOTE_NOTIFICATION_BODY",
+            visibility: :public_jjaek
+          }
+        }
+      }.not_to change(Notification, :count)
+    end
+
+    it "does not create a notification for a requote the recipient cannot see" do
+      sign_in viewer
+      original
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            quoted_jjaek_id: original.id,
+            content: "PRIVATE_REQUOTE_NOTIFICATION_BODY",
+            visibility: :private_jjaek
+          }
+        }
+      }.not_to change(Notification, :count)
+    end
+
     it "rerenders the new requote form when a requote is invalid" do
       sign_in viewer
       original

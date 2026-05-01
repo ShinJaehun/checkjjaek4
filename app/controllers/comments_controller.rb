@@ -7,6 +7,7 @@ class CommentsController < ApplicationController
     authorize @comment
 
     if @comment.save
+      Notification.notify_comment_created(@comment)
       redirect_to jjaek_path(@jjaek), notice: t("comments.notices.created")
     else
       @comments = @jjaek.comments.includes(:user).order(created_at: :asc)

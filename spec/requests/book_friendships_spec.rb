@@ -12,6 +12,20 @@ RSpec.describe "BookFriendships", type: :request do
     }.to change(BookFriendship, :count).by(1)
   end
 
+  it "creates a notification for the addressee when requesting book friendship" do
+    sign_in user
+
+    expect {
+      post user_book_friendship_path(other_user)
+    }.to change(Notification, :count).by(1)
+
+    notification = Notification.last
+    expect(notification).to be_book_friendship_requested
+    expect(notification.recipient).to eq(other_user)
+    expect(notification.actor).to eq(user)
+    expect(notification.notifiable).to eq(BookFriendship.last)
+  end
+
   it "lets the addressee accept the request" do
     BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user

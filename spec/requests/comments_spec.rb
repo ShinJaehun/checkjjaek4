@@ -17,6 +17,28 @@ RSpec.describe "Comments", type: :request do
     expect(response).to redirect_to(jjaek_path(jjaek))
   end
 
+  it "creates a notification when another user comments on your jjaek" do
+    sign_in user
+
+    expect {
+      post jjaek_comments_path(jjaek), params: { comment: { content: "Nice note" } }
+    }.to change(Notification, :count).by(1)
+
+    notification = Notification.last
+    expect(notification).to be_comment_created
+    expect(notification.recipient).to eq(author)
+    expect(notification.actor).to eq(user)
+    expect(notification.notifiable).to eq(Comment.last)
+  end
+
+  it "does not create a notification when commenting on your own jjaek" do
+    sign_in author
+
+    expect {
+      post jjaek_comments_path(jjaek), params: { comment: { content: "Own note" } }
+    }.not_to change(Notification, :count)
+  end
+
   it "re-renders the jjaek page when comment creation fails" do
     sign_in user
 
