@@ -24,6 +24,7 @@
 - Comment
 - Like
 - Notification
+- BookActivity
 
 역할 요약:
 
@@ -35,6 +36,7 @@
 - Comment: Jjaek에 대한 댓글
 - Like: Jjaek에 대한 좋아요
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
+- BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
 
 ---
 
@@ -183,7 +185,13 @@
 - Jjaek
   - 글 / 공개 범위
 
-→ 상태와 콘텐츠는 분리된 모델에서 관리한다
+- BookActivity
+  - 책 관련 활동 이벤트 기반
+
+현재 `BookActivity`는 모델/테이블만 도입된 상태다.
+`BookshelfEntry` 변경과의 생성 연결, home/profile feed 노출은 후속 단계에서 다룬다.
+
+→ 현재 상태, 본문 콘텐츠, 피드용 이벤트는 분리된 모델에서 관리한다
 
 ---
 
