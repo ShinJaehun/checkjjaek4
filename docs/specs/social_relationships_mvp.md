@@ -68,21 +68,21 @@
 
 ---
 
-## Notification 진입점 `(부분 구현)`
+## Notification 진입점 `(현재 구현)`
 
-받은 책친구 요청 알림 MVP는 현재 구현되었다.
-Notification 모델 도입 이후의 통합 기준은 `docs/specs/notifications_mvp.md`를 따른다.
+Notification의 canonical 기준은 `docs/specs/notifications_mvp.md`를 따른다.
+이 문서에서는 관계 기능 관점에서 필요한 연결 규칙만 둔다.
 
 현재 구현:
-- 받은 책친구 요청 badge
-- `/relationships#received-book-friend-requests` 진입
+- 받은 책친구 요청은 `book_friendship_requested` notification으로 생성된다.
+- 해당 알림은 `/relationships#received-book-friend-requests`로 연결된다.
+- 알림을 읽음 처리해도 `BookFriendship.pending` 상태는 바뀌지 않는다.
 
 원칙:
-- Notification은 관계 상태 변화의 진입점이다.
+- Notification은 관계 요청 확인의 진입점이다.
 - 실제 관계 조회/처리의 주 화면은 `/relationships`다.
 - 실제 권한 판단은 계속 policy와 관계 모델이 담당한다.
 - `Follow` 알림은 초기 MVP 필수 범위로 두지 않는다.
-- 범용 Notification이나 다른 알림 타입은 아직 구현되지 않았다.
 
 ---
 
