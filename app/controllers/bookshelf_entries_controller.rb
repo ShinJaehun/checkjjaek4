@@ -77,6 +77,7 @@ class BookshelfEntriesController < ApplicationController
     @jjaek = Jjaek.new(user: current_user, book: @book)
     authorize @jjaek
     @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).recent
+    prepare_visible_requote_counts_for(@jjaeks)
   end
 
   def assign_stickers(entry)

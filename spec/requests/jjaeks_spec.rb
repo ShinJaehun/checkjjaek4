@@ -219,6 +219,64 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).not_to include(I18n.t("jjaeks.meta.comments", count: 2))
     end
 
+    it "shows the visible requote count on the original jjaek" do
+      requote
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
+    end
+
+    it "does not show a requote count when the jjaek has no visible requotes" do
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).not_to include(I18n.t("jjaeks.meta.requotes", count: 1))
+    end
+
+    it "does not include requotes the viewer cannot see in the count" do
+      hidden_requoter = User.create!(name: "Hidden Requoter", email: "hidden-requoter@example.com", password: "password123!", password_confirmation: "password123!")
+      BookFriendship.create!(requester: hidden_requoter, addressee: original_author, status: :accepted)
+      hidden_requoter.jjaeks.create!(
+        content: "HIDDEN_BOOK_FRIENDS_REQUOTE",
+        quoted_jjaek: original,
+        visibility: :book_friends
+      )
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).not_to include(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(response.body).not_to include("HIDDEN_BOOK_FRIENDS_REQUOTE")
+    end
+
+    it "includes visible book-friends requotes in the count" do
+      visible_requoter = User.create!(name: "Visible Requoter", email: "visible-requoter@example.com", password: "password123!", password_confirmation: "password123!")
+      BookFriendship.create!(requester: visible_requoter, addressee: original_author, status: :accepted)
+      BookFriendship.create!(requester: viewer, addressee: visible_requoter, status: :accepted)
+      visible_requoter.jjaeks.create!(
+        content: "VISIBLE_BOOK_FRIENDS_REQUOTE",
+        quoted_jjaek: original,
+        visibility: :book_friends
+      )
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
+    end
+
+    it "does not show a requote count on a requote" do
+      sign_in viewer
+
+      get jjaek_path(requote)
+
+      expect(response.body).not_to include(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: requote.id))
+    end
+
     it "blocks a user's own requote when the original is no longer visible to them" do
       sign_in viewer
       requote

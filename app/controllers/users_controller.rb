@@ -33,6 +33,7 @@ class UsersController < ApplicationController
       else
         Jjaek.none
       end
+    prepare_visible_requote_counts_for(@jjaeks)
   end
 
   def prepare_profile_jjaek_form(profile_policy)

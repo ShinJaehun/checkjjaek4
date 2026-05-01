@@ -202,6 +202,9 @@ en:
       likes:
         one: "1 like"
         other: "%{count} likes"
+      requotes:
+        one: "1 ReJjaek"
+        other: "%{count} ReJjaeks"
     notices:
       created: "Jjaek published."
       destroyed: "Jjaek deleted."

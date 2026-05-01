@@ -7,6 +7,7 @@ class JjaeksController < ApplicationController
 
   def show
     prepare_comments
+    prepare_visible_requote_counts_for([ @jjaek ])
   end
 
   def edit
@@ -109,6 +110,7 @@ class JjaeksController < ApplicationController
     authorize @bookshelf_entry
     @sticker_definitions = StickerDefinition.alphabetical
     @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).recent
+    prepare_visible_requote_counts_for(@jjaeks)
     render "books/show", status: :unprocessable_content
   end
 
@@ -125,6 +127,7 @@ class JjaeksController < ApplicationController
     @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
       .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek)
       .recent
+    prepare_visible_requote_counts_for(@feed_jjaeks)
     render "homes/show", status: :unprocessable_content
   end
 
@@ -145,6 +148,7 @@ class JjaeksController < ApplicationController
       else
         Jjaek.none
       end
+    prepare_visible_requote_counts_for(@jjaeks)
   end
 
   def profile_jjaek_visibility_options_for(user)
