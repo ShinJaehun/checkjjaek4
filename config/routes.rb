@@ -9,7 +9,7 @@ Rails.application.routes.draw do
       get :lookup
     end
   end
-  resources :bookshelf_entries, only: %i[index new create edit update destroy]
+  resources :bookshelf_entries, only: %i[index create edit update destroy]
   resources :jjaeks, only: %i[new show create edit update destroy] do
     resources :comments, only: %i[create update destroy]
     resource :like, only: %i[create destroy]

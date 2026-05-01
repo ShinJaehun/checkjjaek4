@@ -131,7 +131,6 @@ en:
       empty: "Your shelf is still empty. Search for a book and start there."
     new:
       title: "Add to shelf"
-      description: "Choose the state and stickers that fit this book."
     edit:
       title: "Edit shelf entry"
     notices:
