@@ -50,6 +50,28 @@ RSpec.describe "Notifications", type: :request do
     expect(notification.reload.read_at).to be_present
   end
 
+  it "renders newly unread notifications clearly before marking them read" do
+    jjaek = actor.jjaeks.create!(target_user: recipient, content: "PROFILE_NOTIFICATION", visibility: :book_friends)
+    Notification.notify_profile_jjaek_created(jjaek)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article["class"]).not_to include("opacity-60")
+  end
+
+  it "renders already read notifications with weaker visual weight" do
+    jjaek = actor.jjaeks.create!(target_user: recipient, content: "PROFILE_NOTIFICATION", visibility: :book_friends)
+    Notification.notify_profile_jjaek_created(jjaek).update!(read_at: Time.current)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article["class"]).to include("opacity-60")
+  end
+
   it "does not change a pending book friendship when reading its notification" do
     friendship = actor.requested_book_friendships.create!(addressee: recipient)
     Notification.notify_book_friendship_requested(friendship)

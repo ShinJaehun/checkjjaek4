@@ -111,7 +111,6 @@ en:
     eyebrow: "Notifications"
     title: "Notifications"
     empty: "You have no notifications yet."
-    unread: "Unread"
     messages:
       book_friendship_requested: "%{actor_name} sent you a book friend request."
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
