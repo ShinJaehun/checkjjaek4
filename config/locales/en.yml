@@ -140,10 +140,6 @@ en:
         before_sticker: "』: "
         after_sticker: "."
       no_thumbnail: "No cover"
-    profile:
-      eyebrow: "Book Activity"
-      title: "Book Activity"
-      empty: "No book activity yet."
     messages:
       added_to_shelf: "%{user_name} added 『%{book_title}』 to their shelf."
       status_changed: "%{user_name} changed 『%{book_title}』 to %{status}."
@@ -270,12 +266,12 @@ en:
       remove_book_friend: "Remove book friend"
       unfollow: "Following"
     profile:
+      activity_eyebrow: "Activity"
+      activity_title: "Recent Activity"
       bookshelf_eyebrow: "Shelf"
       bookshelf_title: "Books"
+      empty_activity: "No recent activity yet."
       empty_bookshelf: "No visible books yet."
       eyebrow: "Reader Profile"
-      empty_jjaeks: "No Jjaek is visible here yet."
-      jjaek_eyebrow: "Jjaeks"
-      jjaek_title: "Recent Jjaeks"
       new_jjaek_title: "Write a Jjaek"
       stats: "%{followers} followers · %{following} following"

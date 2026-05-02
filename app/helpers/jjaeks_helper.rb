@@ -24,7 +24,7 @@ module JjaeksHelper
       "jjaeks.contexts.requote_html"
     elsif jjaek.book.present?
       "jjaeks.contexts.book_html"
-    elsif jjaek.target_user.present?
+    elsif profile_context_label?(jjaek)
       "jjaeks.contexts.profile_html"
     else
       "jjaeks.contexts.general_html"
@@ -38,11 +38,15 @@ module JjaeksHelper
       options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user)
     elsif jjaek.book.present?
       options[:book_title] = jjaek_context_book_link(jjaek.book)
-    elsif jjaek.target_user.present?
+    elsif profile_context_label?(jjaek)
       options[:target_user_name] = jjaek_context_user_link(jjaek.target_user)
     end
 
     options
+  end
+
+  def profile_context_label?(jjaek)
+    jjaek.target_user.present? && jjaek.target_user != jjaek.user
   end
 
   def jjaek_context_user_link(user)

@@ -81,7 +81,9 @@ class JjaeksController < ApplicationController
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
     prepare_profile_bookshelf(profile_policy)
+    prepare_profile_book_activities
     prepare_profile_jjaeks(profile_policy)
+    prepare_profile_activity_items
     @profile_jjaek = @jjaek
     @profile_jjaek_visibility_options = profile_jjaek_visibility_options_for(@user)
   end
@@ -154,6 +156,18 @@ class JjaeksController < ApplicationController
         Jjaek.none
       end
     prepare_visible_requote_counts_for(@jjaeks)
+  end
+
+  def prepare_profile_book_activities
+    @book_activities = policy_scope(BookActivity)
+      .where(user: @user)
+      .includes(:user, :book)
+      .recent
+  end
+
+  def prepare_profile_activity_items
+    @profile_activity_items = (@jjaeks.to_a + @book_activities.to_a).sort_by(&:created_at).reverse
+    @show_profile_activity = @show_jjaeks || current_user == @user || @profile_activity_items.any?
   end
 
   def profile_jjaek_visibility_options_for(user)

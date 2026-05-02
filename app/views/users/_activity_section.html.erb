@@ -1,0 +1,20 @@
+<section class="space-y-4">
+  <div>
+    <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.activity_eyebrow") %></p>
+    <h2 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.activity_title") %></h2>
+  </div>
+
+  <% if activity_items.any? %>
+    <% activity_items.each do |activity_item| %>
+      <% if activity_item.is_a?(Jjaek) %>
+        <%= render "jjaeks/jjaek", jjaek: activity_item %>
+      <% else %>
+        <%= render "book_activities/book_activity", book_activity: activity_item %>
+      <% end %>
+    <% end %>
+  <% else %>
+    <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
+      <%= t("users.profile.empty_activity") %>
+    </section>
+  <% end %>
+</section>

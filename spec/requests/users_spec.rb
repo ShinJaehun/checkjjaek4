@@ -33,7 +33,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include("Other private")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
-      expect(response.body).to include(I18n.t("users.profile.jjaek_title"))
+      expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
     it "shows the bookshelf and only public jjaeks to follow-only users" do
@@ -48,7 +48,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
-      expect(response.body).to include(I18n.t("users.profile.jjaek_title"))
+      expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
     it "shows shelf entries, book-friend jjaeks, and a profile-context form to accepted book friends" do
@@ -82,33 +82,50 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
     end
 
-    it "shows a user's own BookActivity section on their profile" do
+    it "labels a self-targeted profile jjaek as the user's general jjaek" do
+      viewer.jjaeks.create!(target_user: viewer, content: "SELF_TARGETED_PROFILE_JJAEK", visibility: :private_jjaek)
+      sign_in viewer
+
+      get user_path(viewer)
+
+      expect(page_text).to include("Viewer님의 짹")
+      expect(page_text).not_to include("Viewer님이 Viewer님에게 남긴 짹")
+      expect(response.body).to include("SELF_TARGETED_PROFILE_JJAEK")
+    end
+
+    it "shows the user's own Jjaeks and BookActivity in one recent activity section" do
+      viewer.jjaeks.create!(content: "내 최근 짹", visibility: :private_jjaek)
       BookActivity.create!(user: viewer, book: activity_book, action: :added_to_shelf)
       sign_in viewer
 
       get user_path(viewer)
 
-      expect(response.body).to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).to include(I18n.t("users.profile.activity_title"))
+      expect(response.body).not_to include("책 활동")
+      expect(response.body).not_to include("최근 Jjaek")
+      expect(response.body).to include("내 최근 짹")
       expect(page_text).to include("Viewer님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
-    it "shows an empty BookActivity message on the user's own profile" do
+    it "shows an empty recent activity message on the user's own profile" do
       sign_in viewer
 
       get user_path(viewer)
 
-      expect(response.body).to include(I18n.t("book_activities.profile.title"))
-      expect(response.body).to include(I18n.t("book_activities.profile.empty"))
+      expect(response.body).to include(I18n.t("users.profile.activity_title"))
+      expect(response.body).to include(I18n.t("users.profile.empty_activity"))
     end
 
-    it "shows BookActivity on an accepted book friend's profile" do
+    it "shows visible Jjaeks and BookActivity on an accepted book friend's profile" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
       sign_in viewer
 
       get user_path(profile_user)
 
-      expect(response.body).to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).to include(I18n.t("users.profile.activity_title"))
+      expect(response.body).to include("Profile Jjaek")
+      expect(response.body).to include("Book friend profile Jjaek")
       expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
@@ -118,7 +135,7 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).not_to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).to include(I18n.t("users.profile.activity_title"))
       expect(response.body).not_to include("프로필 활동 책")
     end
 
@@ -129,7 +146,7 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).not_to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).to include(I18n.t("users.profile.activity_title"))
       expect(response.body).not_to include("프로필 활동 책")
     end
 
@@ -152,6 +169,36 @@ RSpec.describe "Users", type: :request do
       expect(page_text).to include("Profile User님이 『프로필 활동 책』에서 기억나요 스티커를 제거했습니다.")
     end
 
+    it "orders visible profile Jjaeks and BookActivity together by created_at" do
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      older_jjaek = profile_user.jjaeks.create!(
+        content: "PROFILE_TIMELINE_OLD_JJAEK",
+        visibility: :book_friends,
+        created_at: 3.hours.ago
+      )
+      middle_activity = BookActivity.create!(
+        user: profile_user,
+        book: activity_book,
+        action: :added_to_shelf,
+        created_at: 2.hours.ago
+      )
+      newer_jjaek = profile_user.jjaeks.create!(
+        content: "PROFILE_TIMELINE_NEW_JJAEK",
+        visibility: :public_jjaek,
+        created_at: 1.hour.ago
+      )
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      newer_index = page_text.index(newer_jjaek.content)
+      activity_index = page_text.index("Profile User님이 『#{middle_activity.book.title}』를 서재에 담았습니다.")
+      older_index = page_text.index(older_jjaek.content)
+
+      expect(newer_index).to be < activity_index
+      expect(activity_index).to be < older_index
+    end
+
     it "shows an accepted book friend's BookActivity in the home feed" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
@@ -159,7 +206,7 @@ RSpec.describe "Users", type: :request do
 
       get root_path
 
-      expect(response.body).not_to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).not_to include("책 활동")
       expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
