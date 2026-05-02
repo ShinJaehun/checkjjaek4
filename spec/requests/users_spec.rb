@@ -11,6 +11,7 @@ RSpec.describe "Users", type: :request do
   let!(:profile_friend_jjaek) { profile_user.jjaeks.create!(content: "Book friend profile Jjaek", visibility: :book_friends) }
   let!(:profile_private_jjaek) { profile_user.jjaeks.create!(content: "Private profile Jjaek", visibility: :private_jjaek) }
   let!(:other_jjaek) { other_user.jjaeks.create!(book:, content: "Other private", visibility: :private_jjaek) }
+  let!(:activity_book) { Book.create!(title: "프로필 활동 책", authors_text: "저자") }
 
   describe "GET /users/:id" do
     it "redirects guests to sign in" do
@@ -79,6 +80,87 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("내 비공개 짹")
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
+    end
+
+    it "shows a user's own BookActivity section on their profile" do
+      BookActivity.create!(user: viewer, book: activity_book, action: :added_to_shelf)
+      sign_in viewer
+
+      get user_path(viewer)
+
+      expect(response.body).to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).to include("Viewer님이 『프로필 활동 책』를 서재에 담았습니다.")
+    end
+
+    it "shows an empty BookActivity message on the user's own profile" do
+      sign_in viewer
+
+      get user_path(viewer)
+
+      expect(response.body).to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).to include(I18n.t("book_activities.profile.empty"))
+    end
+
+    it "shows BookActivity on an accepted book friend's profile" do
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
+    end
+
+    it "does not show BookActivity on a stranger's profile" do
+      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).not_to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).not_to include("프로필 활동 책")
+    end
+
+    it "does not show BookActivity on a follow-only user's profile" do
+      viewer.active_follows.create!(followee: profile_user)
+      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).not_to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).not_to include("프로필 활동 책")
+    end
+
+    it "shows each BookActivity action message on the profile" do
+      sticker = StickerDefinition.create!(key: "users_spec_memorable", name: "기억나요")
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      BookActivity.create!(user: profile_user, book: activity_book, action: :status_changed, metadata: { to_status: "finished" })
+      BookActivity.create!(user: profile_user, book: activity_book, action: :status_cleared)
+      BookActivity.create!(user: profile_user, book: activity_book, action: :sticker_added, metadata: { sticker_definition_id: sticker.id, sticker_name: sticker.name })
+      BookActivity.create!(user: profile_user, book: activity_book, action: :sticker_removed, metadata: { sticker_definition_id: sticker.id, sticker_name: sticker.name })
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
+      expect(response.body).to include("Profile User님이 『프로필 활동 책』를 읽었어요로 바꿨습니다.")
+      expect(response.body).to include("Profile User님이 『프로필 활동 책』의 독서 상태를 비웠습니다.")
+      expect(response.body).to include("Profile User님이 『프로필 활동 책』에 “기억나요” 스티커를 붙였습니다.")
+      expect(response.body).to include("Profile User님이 『프로필 활동 책』에서 “기억나요” 스티커를 제거했습니다.")
+    end
+
+    it "does not show BookActivity in the home feed yet" do
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      sign_in viewer
+
+      get root_path
+
+      expect(response.body).not_to include(I18n.t("book_activities.profile.title"))
+      expect(response.body).not_to include("프로필 활동 책")
     end
 
     it "does not show a profile-context form to unrelated users even when public jjaeks are visible" do

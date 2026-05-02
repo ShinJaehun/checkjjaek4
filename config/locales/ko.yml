@@ -116,6 +116,17 @@ ko:
       profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
       comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
       requote_created: "%{actor_name}님이 내 Jjaek을 다시짹했습니다."
+  book_activities:
+    profile:
+      eyebrow: "책 활동"
+      title: "책 활동"
+      empty: "아직 책 활동이 없습니다."
+    messages:
+      added_to_shelf: "%{user_name}님이 『%{book_title}』를 서재에 담았습니다."
+      status_changed: "%{user_name}님이 『%{book_title}』를 %{status}로 바꿨습니다."
+      status_cleared: "%{user_name}님이 『%{book_title}』의 독서 상태를 비웠습니다."
+      sticker_added: "%{user_name}님이 『%{book_title}』에 “%{sticker}” 스티커를 붙였습니다."
+      sticker_removed: "%{user_name}님이 『%{book_title}』에서 “%{sticker}” 스티커를 제거했습니다."
   likes:
     alerts:
       not_found: "좋아요를 찾을 수 없습니다."

@@ -91,15 +91,22 @@
 
 위 항목은 현재 MVP 범위가 아니며, 실제 사용 후 필요성이 확인되면 별도 spec으로 다룬다.
 
-### 2. BookActivity 도입 `계획`
+### 2. BookActivity 도입 `부분 완료`
 
 현재 피드는 Jjaek 중심이다.
 BookshelfEntry / BookshelfEntrySticker의 상태 변화를 피드 이벤트로 표현하는
-`BookActivity`는 아직 도입되지 않았다.
+`BookActivity` 모델, `BookshelfEntry` 변경 기록 기반, 프로필 책 활동 섹션은 도입되었다.
+현재 프로필 노출 범위는 `self / accepted book_friend` 기준이며,
+Notification과는 연결하지 않는다.
 
-- `BookActivity` 모델 도입 여부
-- 생성 시점
-- 피드 합성 방식
+남은 작업:
+- home feed 합성 방식
+- books/:id 노출 여부
+- 더 정교한 visibility 정책
+- 여러 책장 / 책장 공개 범위와의 연동
+
+관련 문서:
+- `docs/specs/book_activity_mvp.md`
 
 ### 3. 다중 책장 구조 `계획`
 

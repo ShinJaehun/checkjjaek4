@@ -36,6 +36,63 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(BookshelfEntry.last.sticker_definitions).to be_empty
   end
 
+  it "records added_to_shelf when a new book is added" do
+    sign_in user
+
+    expect {
+      post bookshelf_entries_path, params: {
+        book: {
+          title: "활동 기록 책",
+          authors_text: "저자",
+          isbn: "activity-001"
+        }
+      }
+    }.to change(BookActivity, :count).by(1)
+
+    activity = BookActivity.last
+    entry = BookshelfEntry.last
+    expect(activity.action).to eq("added_to_shelf")
+    expect(activity.user).to eq(user)
+    expect(activity.book).to eq(entry.book)
+    expect(activity.bookshelf_entry).to eq(entry)
+    expect(activity.metadata).to eq({})
+  end
+
+  it "does not record added_to_shelf again when an existing book is added again without changes" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    expect {
+      post bookshelf_entries_path, params: {
+        book_id: user_book.id,
+        bookshelf_entry: {
+          status: entry.status,
+          sticker_definition_ids: []
+        }
+      }
+    }.not_to change(BookActivity, :count)
+
+    expect(response).to redirect_to(book_path(user_book))
+  end
+
+  it "records update-like changes when an existing book is submitted through create" do
+    sign_in user
+
+    expect {
+      post bookshelf_entries_path, params: {
+        book_id: user_book.id,
+        bookshelf_entry: {
+          status: :finished,
+          sticker_definition_ids: []
+        }
+      }
+    }.to change(BookActivity, :count).by(1)
+
+    activity = BookActivity.last
+    expect(activity.action).to eq("status_changed")
+    expect(activity.metadata).to include("from_status" => "reading", "to_status" => "finished")
+  end
+
   it "updates a shelf entry status and stickers" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
@@ -52,6 +109,24 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.sticker_definitions).to include(sticker)
   end
 
+  it "records status_changed when a shelf entry status changes" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: {
+          status: :finished,
+          sticker_definition_ids: []
+        }
+      }
+    }.to change(BookActivity, :count).by(1)
+
+    activity = BookActivity.last
+    expect(activity.action).to eq("status_changed")
+    expect(activity.metadata).to include("from_status" => "reading", "to_status" => "finished")
+  end
+
   it "allows a shelf entry status to be cleared" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
@@ -65,6 +140,116 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to redirect_to(book_path(user_book))
     expect(entry.reload.status).to be_nil
+  end
+
+  it "records status_cleared when a shelf entry status is cleared" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: {
+          status: "",
+          sticker_definition_ids: []
+        }
+      }
+    }.to change(BookActivity, :count).by(1)
+
+    activity = BookActivity.last
+    expect(activity.action).to eq("status_cleared")
+    expect(activity.metadata).to include("from_status" => "reading", "to_status" => nil)
+  end
+
+  it "does not record activity when the same status is saved again" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: {
+          status: :reading,
+          sticker_definition_ids: []
+        }
+      }
+    }.not_to change(BookActivity, :count)
+  end
+
+  it "records sticker_added when a sticker is added" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: {
+          status: :reading,
+          sticker_definition_ids: [ sticker.id ]
+        }
+      }
+    }.to change(BookActivity, :count).by(1)
+
+    activity = BookActivity.last
+    expect(activity.action).to eq("sticker_added")
+    expect(activity.metadata).to include(
+      "sticker_definition_id" => sticker.id,
+      "sticker_name" => sticker.name
+    )
+  end
+
+  it "records sticker_removed when a sticker is removed" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    entry.sticker_definitions << sticker
+    sign_in user
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: {
+          status: :reading,
+          sticker_definition_ids: []
+        }
+      }
+    }.to change(BookActivity, :count).by(1)
+
+    activity = BookActivity.last
+    expect(activity.action).to eq("sticker_removed")
+    expect(activity.metadata).to include(
+      "sticker_definition_id" => sticker.id,
+      "sticker_name" => sticker.name
+    )
+  end
+
+  it "does not record activity when the sticker list is unchanged" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    entry.sticker_definitions << sticker
+    sign_in user
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: {
+          status: :reading,
+          sticker_definition_ids: [ sticker.id ]
+        }
+      }
+    }.not_to change(BookActivity, :count)
+  end
+
+  it "does not record activity when a shelf entry save fails" do
+    sign_in user
+
+    expect {
+      post bookshelf_entries_path, params: {
+        book: {
+          title: "저장 실패 책",
+          authors_text: "저자",
+          isbn: "activity-invalid"
+        },
+        bookshelf_entry: {
+          status: "not_a_status",
+          sticker_definition_ids: []
+        }
+      }
+    }.not_to change(BookActivity, :count)
+
+    expect(response).to redirect_to(book_search_path)
   end
 
   it "does not show a status badge for an entry without a status" do

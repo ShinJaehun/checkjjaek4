@@ -10,9 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_064330) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_01_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "book_activities", force: :cascade do |t|
+    t.string "action", null: false
+    t.bigint "book_id", null: false
+    t.bigint "bookshelf_entry_id"
+    t.datetime "created_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["action"], name: "index_book_activities_on_action"
+    t.index ["book_id"], name: "index_book_activities_on_book_id"
+    t.index ["bookshelf_entry_id"], name: "index_book_activities_on_bookshelf_entry_id"
+    t.index ["created_at"], name: "index_book_activities_on_created_at"
+    t.index ["user_id"], name: "index_book_activities_on_user_id"
+  end
 
   create_table "book_friendships", force: :cascade do |t|
     t.bigint "addressee_id", null: false
@@ -144,6 +159,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_064330) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "book_activities", "books"
+  add_foreign_key "book_activities", "bookshelf_entries"
+  add_foreign_key "book_activities", "users"
   add_foreign_key "book_friendships", "users", column: "addressee_id"
   add_foreign_key "book_friendships", "users", column: "requester_id"
   add_foreign_key "bookshelf_entries", "books"

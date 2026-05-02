@@ -19,10 +19,20 @@ class BookshelfEntriesController < ApplicationController
     @bookshelf_entry = current_user.bookshelf_entries.find_or_initialize_by(book: @book)
     authorize @bookshelf_entry
 
+    was_new_record = @bookshelf_entry.new_record?
+    previous_status = @bookshelf_entry.status
+    previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
+
     @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:sticker_definition_ids))
     assign_stickers(@bookshelf_entry)
 
     if @bookshelf_entry.save
+      record_bookshelf_entry_change(
+        @bookshelf_entry,
+        was_new_record: was_new_record,
+        previous_status: previous_status,
+        previous_sticker_definition_ids: previous_sticker_definition_ids
+      )
       redirect_to book_path(@book), notice: t("bookshelf_entries.notices.created")
     else
       @sticker_definitions = StickerDefinition.alphabetical
@@ -32,10 +42,19 @@ class BookshelfEntriesController < ApplicationController
 
   def update
     authorize @bookshelf_entry
+    previous_status = @bookshelf_entry.status
+    previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
+
     @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:sticker_definition_ids))
     assign_stickers(@bookshelf_entry)
 
     if @bookshelf_entry.save
+      record_bookshelf_entry_change(
+        @bookshelf_entry,
+        was_new_record: false,
+        previous_status: previous_status,
+        previous_sticker_definition_ids: previous_sticker_definition_ids
+      )
       redirect_to book_path(@bookshelf_entry.book), notice: t("bookshelf_entries.notices.updated")
     else
       prepare_book_show_failure
@@ -82,5 +101,14 @@ class BookshelfEntriesController < ApplicationController
 
   def assign_stickers(entry)
     entry.sticker_definition_ids = Array(bookshelf_entry_params[:sticker_definition_ids]).reject(&:blank?)
+  end
+
+  def record_bookshelf_entry_change(entry, was_new_record:, previous_status:, previous_sticker_definition_ids:)
+    BookActivities::RecordBookshelfEntryChange.call(
+      bookshelf_entry: entry,
+      was_new_record: was_new_record,
+      previous_status: previous_status,
+      previous_sticker_definition_ids: previous_sticker_definition_ids
+    )
   end
 end
