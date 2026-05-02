@@ -89,7 +89,7 @@ RSpec.describe "Users", type: :request do
       get user_path(viewer)
 
       expect(response.body).to include(I18n.t("book_activities.profile.title"))
-      expect(response.body).to include("Viewer님이 『프로필 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Viewer님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
     it "shows an empty BookActivity message on the user's own profile" do
@@ -109,7 +109,7 @@ RSpec.describe "Users", type: :request do
       get user_path(profile_user)
 
       expect(response.body).to include(I18n.t("book_activities.profile.title"))
-      expect(response.body).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
     it "does not show BookActivity on a stranger's profile" do
@@ -145,11 +145,11 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
-      expect(response.body).to include("Profile User님이 『프로필 활동 책』를 읽었어요로 바꿨습니다.")
-      expect(response.body).to include("Profile User님이 『프로필 활동 책』의 독서 상태를 비웠습니다.")
-      expect(response.body).to include("Profile User님이 『프로필 활동 책』에 “기억나요” 스티커를 붙였습니다.")
-      expect(response.body).to include("Profile User님이 『프로필 활동 책』에서 “기억나요” 스티커를 제거했습니다.")
+      expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Profile User님이 『프로필 활동 책』를 읽었어요로 바꿨습니다.")
+      expect(page_text).to include("Profile User님이 『프로필 활동 책』 상태 비움")
+      expect(page_text).to include("Profile User님이 『프로필 활동 책』에 기억나요 스티커를 붙였습니다.")
+      expect(page_text).to include("Profile User님이 『프로필 활동 책』에서 기억나요 스티커를 제거했습니다.")
     end
 
     it "shows an accepted book friend's BookActivity in the home feed" do
@@ -160,7 +160,7 @@ RSpec.describe "Users", type: :request do
       get root_path
 
       expect(response.body).not_to include(I18n.t("book_activities.profile.title"))
-      expect(response.body).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
     it "does not show a profile-context form to unrelated users even when public jjaeks are visible" do
@@ -271,5 +271,9 @@ RSpec.describe "Users", type: :request do
 
       expect(response).to have_http_status(:not_found)
     end
+  end
+
+  def page_text
+    ActionView::Base.full_sanitizer.sanitize(response.body)
   end
 end

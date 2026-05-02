@@ -117,6 +117,29 @@ ko:
       comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
       requote_created: "%{actor_name}님이 내 Jjaek을 다시짹했습니다."
   book_activities:
+    badges:
+      status_cleared: "상태 비움"
+    card:
+      added_to_shelf:
+        before_book: "님이 『"
+        after_book: "』를 서재에 담았습니다."
+      status_changed:
+        before_book: "님이 『"
+        before_status: "』를 "
+        after_status: "로 바꿨습니다."
+      status_cleared:
+        before_book: "님이 『"
+        before_status: "』 "
+        after_status: ""
+      sticker_added:
+        before_book: "님이 『"
+        before_sticker: "』에 "
+        after_sticker: " 스티커를 붙였습니다."
+      sticker_removed:
+        before_book: "님이 『"
+        before_sticker: "』에서 "
+        after_sticker: " 스티커를 제거했습니다."
+      no_thumbnail: "표지 없음"
     profile:
       eyebrow: "책 활동"
       title: "책 활동"

@@ -17,7 +17,24 @@ RSpec.describe "Homes", type: :request do
 
       get root_path
 
-      expect(response.body).to include("Viewer님이 『내 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Viewer님이 『내 활동 책』를 서재에 담았습니다.")
+    end
+
+    it "shows BookActivity card links, thumbnail fallback, and badges" do
+      BookActivity.create!(
+        user: viewer,
+        book: viewer_book,
+        action: :status_changed,
+        metadata: { to_status: "finished" }
+      )
+      sign_in viewer
+
+      get root_path
+
+      expect(response.body).to include(user_path(viewer))
+      expect(response.body).to include(book_path(viewer_book))
+      expect(response.body).to include(I18n.t("book_activities.card.no_thumbnail"))
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
     end
 
     it "shows an accepted book friend's BookActivity in the home feed" do
@@ -27,7 +44,7 @@ RSpec.describe "Homes", type: :request do
 
       get root_path
 
-      expect(response.body).to include("Book Friend님이 『책친구 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Book Friend님이 『책친구 활동 책』를 서재에 담았습니다.")
     end
 
     it "does not show a follow-only user's BookActivity in the home feed" do
@@ -79,12 +96,16 @@ RSpec.describe "Homes", type: :request do
 
       get root_path
 
-      new_index = response.body.index(new_jjaek.content)
-      activity_index = response.body.index("Viewer님이 『#{middle_activity.book.title}』를 서재에 담았습니다.")
-      old_index = response.body.index(old_jjaek.content)
+      new_index = page_text.index(new_jjaek.content)
+      activity_index = page_text.index("Viewer님이 『#{middle_activity.book.title}』를 서재에 담았습니다.")
+      old_index = page_text.index(old_jjaek.content)
 
       expect(new_index).to be < activity_index
       expect(activity_index).to be < old_index
     end
+  end
+
+  def page_text
+    ActionView::Base.full_sanitizer.sanitize(response.body)
   end
 end
