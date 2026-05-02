@@ -496,15 +496,14 @@ ReJjaek은 새 Jjaek이지만,
 - 책 상세의 상태/스티커 저장 버튼: `저장` 또는 `상태 저장`
 
 ### 홈 피드와 책활동
-- 초기 MVP의 홈 피드는 계속 **Jjaek 중심 피드**로 유지한다.
-- 상태/스티커 변경은 책 상세 안에서 수행할 수 있지만,
-  이를 홈 피드에는 아직 합성하지 않는다.
+- 현재 홈 피드는 Jjaek과 BookActivity를 함께 보여준다.
 - 현재 `BookActivity`는 `BookshelfEntry` 생성/변경/스티커 변경을
-  본문 글과 분리된 이벤트로 기록하고, 프로필의 별도 책활동 섹션에 노출한다.
+  본문 글과 분리된 이벤트로 기록하고, 홈 피드와 프로필의 별도 책활동 섹션에 노출한다.
+- 홈 피드의 BookActivity 노출 범위는 현재 사용자와 accepted book_friend로 제한한다.
+- follow-only / stranger의 BookActivity는 여러 책장/공개 범위가 정리되기 전까지 홈 피드에 노출하지 않는다.
 - `BookActivity`는 `BookshelfEntry`, `BookshelfEntrySticker`, `Jjaek`의
   source of truth를 대체하지 않는다.
-- 홈 피드에서 `Jjaek`과 함께 한 흐름으로 섞는 방식,
-  books/:id 타임라인 노출 여부, 여러 책장과 연결되는 정교한 visibility는
+- books/:id 타임라인 노출 여부, 여러 책장과 연결되는 정교한 visibility는
   `docs/specs/book_activity_mvp.md` 기준으로 후속 판단한다.
 
 ---

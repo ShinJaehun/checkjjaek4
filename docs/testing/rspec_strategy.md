@@ -53,7 +53,7 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - Turbo / HTML 응답의 핵심 성공/실패 흐름
 
 ### 2순위
-- 홈의 Jjaek-only 피드 노출 규칙
+- 홈의 Jjaek / BookActivity 피드 노출 규칙
 - books/:id 한 화면 두 form 흐름
 - locale이 개입되는 핵심 사용자 메시지
 - 외부 API 연동 실패 시의 안전한 처리
@@ -151,7 +151,7 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - Tailwind class
 - 문구의 정확한 HTML 배치
 - 레거시와 1:1 동일한 DOM 구조
-- 아직 도입하지 않은 `BookActivity`, 그룹, 여러 책장 관련 기능
+- 아직 확정되지 않은 `BookActivity` 후속 범위, 그룹, 여러 책장 관련 기능
 
 ---
 

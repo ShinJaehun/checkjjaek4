@@ -212,8 +212,8 @@
 
 ## 피드 노출 원칙
 
-현재 구현에서는 `BookActivity`를 프로필의 별도 책활동 섹션에 노출한다.
-home feed에는 아직 합성하지 않는다.
+현재 구현에서는 `BookActivity`를 프로필의 별도 책활동 섹션에 노출하고,
+home feed에서는 Jjaek과 함께 합성한다.
 
 다만 초기 MVP에서는 Jjaek visibility보다 단순한 정책으로 시작한다.
 
@@ -225,23 +225,23 @@ home feed에는 아직 합성하지 않는다.
 - 필요하면 관련 `BookshelfEntry`를 함께 참조할 수 있다.
 - 피드 노출 여부는 actor와 viewer의 관계를 기준으로 판단한다.
 
-### home feed 후보 규칙
+### home feed 규칙
 
-home feed 합성은 아직 구현하지 않는다.
-후속 후보:
+현재 구현:
 
 - 내 BookActivity
-- 내가 소식받는 사용자의 공개 BookActivity
-- 내 책친구의 책친구 공개 BookActivity
+- accepted book_friend의 BookActivity
+- follow-only 사용자의 BookActivity는 노출하지 않는다.
+- stranger의 BookActivity는 노출하지 않는다.
 
-다만 home feed 합성 전 아래를 먼저 결정해야 한다.
+현재는 여러 책장과 책장 공개 범위가 아직 없으므로,
+MVP에서는 과한 visibility 모델을 먼저 만들지 않는다.
+
+후속 단계에서 아래를 다시 판단한다.
 
 - BookActivity에 별도 visibility를 둘 것인지
 - BookshelfEntry의 공개 범위를 따를 것인지
 - 사용자 프로필/서재 공개 정책을 따를 것인지
-
-현재는 여러 책장과 책장 공개 범위가 아직 없으므로,
-MVP에서는 과한 visibility 모델을 먼저 만들지 않는다.
 
 ### profile feed 규칙
 
@@ -500,10 +500,10 @@ metadata 후보:
 
 ### View / feed spec
 
+- home feed에 접근 가능한 BookActivity가 표시된다.
 - profile feed에 접근 가능한 BookActivity가 표시된다.
 - 접근 권한이 없는 BookActivity는 표시되지 않는다.
-- home feed에는 아직 BookActivity가 표시되지 않는다.
-- BookActivity와 Jjaek이 같은 피드에 함께 표시될 경우 시간순 정렬 기준을 따른다.
+- BookActivity와 Jjaek은 home feed에서 함께 `created_at` 기준으로 정렬된다.
 
 ---
 
@@ -524,15 +524,19 @@ metadata 후보:
 ### Step 3. 프로필 표시 `완료`
 
 - 프로필의 별도 BookActivity 섹션
-- home feed에는 아직 합성하지 않음
 
-### Step 4. 후속 피드 판단
+### Step 4. home feed 합성 `완료`
 
-- Jjaek 중심 피드에 BookActivity를 섞을지 별도 섹션으로 둘지 결정
+- 현재 사용자와 accepted book_friend의 BookActivity를 Jjaek과 함께 표시
+- follow-only / stranger의 BookActivity는 표시하지 않음
+- Jjaek과 BookActivity를 `created_at` 기준으로 함께 정렬
+
+### Step 5. 후속 피드 판단
+
 - books/:id에 BookActivity를 노출할지 결정
 - 여러 책장/책장 공개 범위와 visibility를 연결할지 결정
 
-### Step 5. 문서 갱신
+### Step 6. 문서 갱신
 
 구현 상태가 바뀌면 아래 문서를 함께 갱신한다.
 

@@ -37,8 +37,8 @@ en:
     title: "Bookshelf first, then Jjaek"
     description: "Your feed is shaped by the readers you follow and the book friends you trust. Keep your shelf close and move from books to writing."
     feed_eyebrow: "Feed"
-    feed_title: "Recent Jjaeks"
-    empty_feed: "No Jjaeks are in your feed yet. Add a book to your shelf or follow another reader."
+    feed_title: "Recent feed"
+    empty_feed: "No items are in your feed yet. Add a book to your shelf or follow another reader."
     new_jjaek_title: "Write a Jjaek"
     actions:
       search_books: "Search books"

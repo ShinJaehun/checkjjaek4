@@ -152,7 +152,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("Profile User님이 『프로필 활동 책』에서 “기억나요” 스티커를 제거했습니다.")
     end
 
-    it "does not show BookActivity in the home feed yet" do
+    it "shows an accepted book friend's BookActivity in the home feed" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
       sign_in viewer
@@ -160,7 +160,7 @@ RSpec.describe "Users", type: :request do
       get root_path
 
       expect(response.body).not_to include(I18n.t("book_activities.profile.title"))
-      expect(response.body).not_to include("프로필 활동 책")
+      expect(response.body).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
     it "does not show a profile-context form to unrelated users even when public jjaeks are visible" do
