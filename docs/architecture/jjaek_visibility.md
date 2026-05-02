@@ -1,8 +1,8 @@
-# Visibility Architecture
+# Jjaek Visibility Architecture
 
 ## 목적
 
-이 문서는 checkjjaek4의 Jjaek visibility 구조를 정리하기 위한 architecture 문서다.
+이 문서는 checkjjaek4에서 Jjaek visibility 구조와 그 적용 범위를 정리하기 위한 architecture 문서다.
 
 이 문서는 아래를 설명한다.
 

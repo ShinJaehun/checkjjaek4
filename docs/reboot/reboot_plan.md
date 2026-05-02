@@ -62,7 +62,7 @@
 ### 댓글 / 좋아요 / ReJjaek 핵심 규칙 `완료`
 
 - 상세 정책은 `docs/architecture/authorization.md`와
-  `docs/architecture/visibility.md`를 본다
+  `docs/architecture/jjaek_visibility.md`를 본다
 
 ---
 
@@ -113,6 +113,8 @@ Notification과는 연결하지 않는다.
 현재 MVP는 사용자당 기본 서재 1개 전제로 동작한다.
 여러 책장, 공개/비공개 책장 모델은 아직 구현되지 않았다.
 
+다음 Bookshelf 작업 기준은 `docs/specs/bookshelf_mvp.md`를 따른다.
+
 - `Bookshelf`
 - `BookshelfMembership`
 - 여러 책장
@@ -143,7 +145,7 @@ archive/legacy 문서도 현재 판단 기록 보존용으로 유지한다.
   - `docs/architecture/current_system.md`
 - 권한 구조 / visibility 상세
   - `docs/architecture/authorization.md`
-  - `docs/architecture/visibility.md`
+  - `docs/architecture/jjaek_visibility.md`
 - 제품 방향과 도메인 원칙
   - `docs/specs/bookjjaek_reboot_spec.md`
 - 관계 세부 규칙

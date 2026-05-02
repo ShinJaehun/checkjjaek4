@@ -31,7 +31,7 @@
      - 현재 구현 상태와 주요 화면 흐름 요약
    - `docs/architecture/authorization.md`
      - 권한 구조와 policy 기준 정리
-   - `docs/architecture/visibility.md`
+   - `docs/architecture/jjaek_visibility.md`
      - visibility 의미와 적용 범위 정리
 
 3. 현재 활성 reboot 기준 문서
@@ -54,7 +54,7 @@
 원칙:
 
 - 현재 `checkjjaek4`의 활성 기준은
-  `AGENTS.md` → `docs/architecture/current_system.md` → `docs/architecture/authorization.md` → `docs/architecture/visibility.md` → `docs/specs/bookjjaek_reboot_spec.md` → `docs/reboot/reboot_plan.md`
+  `AGENTS.md` → `docs/architecture/current_system.md` → `docs/architecture/authorization.md` → `docs/architecture/jjaek_visibility.md` → `docs/specs/bookjjaek_reboot_spec.md` → `docs/reboot/reboot_plan.md`
   순으로 먼저 읽는 것을 기본값으로 둔다.
 - `docs/archive/*`는 과거 판단 기록 보존용이며, 현재 활성 spec보다 우선하지 않는다.
 - `docs/legacy/*`는 checkjjaek3 및 초기 분석 기록 참고용이며, 현재 활성 spec보다 우선하지 않는다.
@@ -73,7 +73,7 @@
 - 현재 구현 상태와 주요 흐름은 `docs/architecture/current_system.md`를 기준으로 빠르게 파악한다.
 - 권한 구조와 visibility 상세는 아래 문서를 함께 본다.
   - `docs/architecture/authorization.md`
-  - `docs/architecture/visibility.md`
+  - `docs/architecture/jjaek_visibility.md`
 - `checkjjaek4`는 기존의 post 중심 SNS를 억지로 확장하는 프로젝트가 아니라,
   **책과 서재가 중요한 문맥을 이루는 독서 커뮤니티 서비스로 리부트 중인 프로젝트**로 본다.
 
@@ -91,7 +91,7 @@
 - 현재 구현 상태와 주요 화면 흐름은 `docs/architecture/current_system.md`를 따른다.
 - 권한 구조와 visibility 해석은
   `docs/architecture/authorization.md`,
-  `docs/architecture/visibility.md`를 함께 따른다.
+  `docs/architecture/jjaek_visibility.md`를 함께 따른다.
 - 장기 제품 방향과 MVP 범위 판단은 `docs/specs/bookjjaek_reboot_spec.md`와 `docs/reboot/reboot_plan.md`를 따른다.
 
 ---

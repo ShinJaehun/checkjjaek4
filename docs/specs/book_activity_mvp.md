@@ -547,7 +547,7 @@ metadata 후보:
 - `docs/architecture/current_system.md`
 - `docs/reboot/reboot_plan.md`
 - 필요한 경우 `docs/architecture/authorization.md`
-- 필요한 경우 `docs/architecture/visibility.md`
+- 필요한 경우 `docs/architecture/jjaek_visibility.md`
 
 ---
 
@@ -579,7 +579,7 @@ metadata 후보:
   - 현재 구현된 BookActivity 흐름 확인
 - `docs/architecture/authorization.md`
   - 권한 구조와 policy/scope 원칙
-- `docs/architecture/visibility.md`
+- `docs/architecture/jjaek_visibility.md`
   - Jjaek visibility와 BookActivity 공개 정책을 혼동하지 않기 위한 참고
 - `docs/specs/notifications_mvp.md`
   - BookActivity를 Notification MVP와 분리

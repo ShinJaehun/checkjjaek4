@@ -165,7 +165,7 @@
 현재 구현의 권한 구조와 visibility 상세는 아래 문서를 함께 본다.
 
 - 권한 구조: `docs/architecture/authorization.md`
-- visibility 구조: `docs/architecture/visibility.md`
+- visibility 구조: `docs/architecture/jjaek_visibility.md`
 
 ---
 
@@ -227,7 +227,7 @@ BooksController#show
 ## 상호작용 / ReJjaek 참고
 
 - 댓글 / 좋아요 권한 상세는 `docs/architecture/authorization.md`를 본다
-- ReJjaek visibility 제약 상세는 `docs/architecture/visibility.md`를 본다
+- ReJjaek visibility 제약 상세는 `docs/architecture/jjaek_visibility.md`를 본다
 
 ---
 
@@ -247,7 +247,7 @@ BooksController#show
 - 작업 규칙: AGENTS.md
 - 현재 구현 요약: docs/architecture/current_system.md
 - 권한 구조: docs/architecture/authorization.md
-- visibility 구조: docs/architecture/visibility.md
+- visibility 구조: docs/architecture/jjaek_visibility.md
 - 기능 spec: docs/specs/*
 - 제품 방향: docs/reboot/reboot_plan.md
 - 리팩토링: docs/refactor/*
