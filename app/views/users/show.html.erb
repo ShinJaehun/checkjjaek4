@@ -13,11 +13,7 @@
                show_status: @show_profile_bookshelf_status %>
   <% end %>
 
-  <% if @show_book_activities %>
-    <%= render "users/book_activities_section", book_activities: @book_activities %>
-  <% end %>
-
-  <% if @show_jjaeks %>
-    <%= render "users/jjaeks_section", jjaeks: @jjaeks %>
+  <% if @show_profile_activity %>
+    <%= render "users/activity_section", activity_items: @profile_activity_items %>
   <% end %>
 </section>

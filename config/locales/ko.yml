@@ -140,10 +140,6 @@ ko:
         before_sticker: "』에서 "
         after_sticker: " 스티커를 제거했습니다."
       no_thumbnail: "표지 없음"
-    profile:
-      eyebrow: "책 활동"
-      title: "책 활동"
-      empty: "아직 책 활동이 없습니다."
     messages:
       added_to_shelf: "%{user_name}님이 『%{book_title}』를 서재에 담았습니다."
       status_changed: "%{user_name}님이 『%{book_title}』를 %{status}로 바꿨습니다."
@@ -270,12 +266,12 @@ ko:
       remove_book_friend: "책친구 해제"
       unfollow: "소식받는 중"
     profile:
+      activity_eyebrow: "활동"
+      activity_title: "최근 활동"
       bookshelf_eyebrow: "서재"
       bookshelf_title: "책"
+      empty_activity: "아직 최근 활동이 없습니다."
       empty_bookshelf: "아직 보이는 책이 없습니다."
       eyebrow: "독자 프로필"
-      empty_jjaeks: "아직 보이는 Jjaek이 없습니다."
-      jjaek_eyebrow: "Jjaek"
-      jjaek_title: "최근 Jjaek"
       new_jjaek_title: "짹 쓰기"
       stats: "소식받는 사람 %{followers}명 · 소식받기 %{following}명"

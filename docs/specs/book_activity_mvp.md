@@ -212,8 +212,8 @@
 
 ## 피드 노출 원칙
 
-현재 구현에서는 `BookActivity`를 프로필의 별도 책활동 섹션에 노출하고,
-home feed에서는 Jjaek과 함께 합성한다.
+현재 구현에서는 `BookActivity`를 프로필의 최근 활동 타임라인과 home feed에서
+Jjaek과 함께 합성한다.
 
 다만 초기 MVP에서는 Jjaek visibility보다 단순한 정책으로 시작한다.
 
@@ -247,10 +247,13 @@ MVP에서는 과한 visibility 모델을 먼저 만들지 않는다.
 
 현재 구현:
 
+- 프로필에서는 별도 책활동 섹션을 두지 않고, visible Jjaek과 visible BookActivity를 하나의 최근 활동 타임라인으로 보여준다.
+- Jjaek은 기존 profile Jjaek 조회 정책을 따른다.
 - 내 프로필에서는 내 BookActivity를 볼 수 있다.
 - accepted book_friend는 해당 사용자의 BookActivity를 볼 수 있다.
 - 관계 없는 사용자는 해당 사용자의 BookActivity를 볼 수 없다.
 - 소식받기만 한 사용자는 해당 사용자의 BookActivity를 볼 수 없다.
+- Jjaek과 BookActivity는 `created_at` 기준 내림차순으로 함께 정렬한다.
 
 다만 이 규칙은 여러 책장/책장 공개 범위 도입 전까지 임시 정책이다.
 
@@ -501,7 +504,7 @@ metadata 후보:
 ### View / feed spec
 
 - home feed에 접근 가능한 BookActivity가 표시된다.
-- profile feed에 접근 가능한 BookActivity가 표시된다.
+- profile feed에 접근 가능한 BookActivity가 visible Jjaek과 함께 표시된다.
 - 접근 권한이 없는 BookActivity는 표시되지 않는다.
 - BookActivity와 Jjaek은 home feed에서 함께 `created_at` 기준으로 정렬된다.
 
@@ -523,7 +526,8 @@ metadata 후보:
 
 ### Step 3. 프로필 표시 `완료`
 
-- 프로필의 별도 BookActivity 섹션
+- 프로필의 최근 활동 타임라인
+- visible Jjaek과 visible BookActivity를 `created_at` 기준으로 함께 표시
 
 ### Step 4. home feed 합성 `완료`
 

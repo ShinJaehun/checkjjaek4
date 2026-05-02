@@ -79,10 +79,11 @@
 
 - 관계에 따라 다른 데이터 노출
 - profile-context Jjaek 작성 가능 여부도 관계에 따라 달라짐
-- 로그인 사용자는 프로필 Jjaek 섹션을 볼 수 있다
-- 실제 Jjaek 노출 범위는 관계에 따라 달라진다
-- `self / accepted book_friend`는 프로필의 BookActivity 섹션을 볼 수 있다
-- stranger / follow-only 사용자는 프로필의 BookActivity 섹션을 볼 수 없다
+- 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
+- 최근 활동 섹션은 profile owner의 visible Jjaek과 visible BookActivity를 함께 보여준다
+- 실제 Jjaek 노출 범위는 기존 profile Jjaek 정책을 따른다
+- BookActivity 노출 범위는 `self / accepted book_friend` 기준이다
+- stranger / follow-only 사용자는 프로필 최근 활동에서 BookActivity를 볼 수 없다
 - 홈 피드는 현재 사용자와 accepted book_friend의 BookActivity를 Jjaek과 함께 합성한다
 - 상세 권한 규칙은 `docs/architecture/authorization.md`를 본다
 
@@ -96,8 +97,7 @@
   - app/views/users/_profile_header.html.erb
   - app/views/users/_profile_jjaek_form.html.erb
   - app/views/users/_bookshelf_section.html.erb
-  - app/views/users/_book_activities_section.html.erb
-  - app/views/users/_jjaeks_section.html.erb
+  - app/views/users/_activity_section.html.erb
 
 ---
 
@@ -196,7 +196,7 @@
   - 책 관련 활동 이벤트 기반
 
 현재 `BookActivity`는 모델/테이블과 `BookshelfEntry` 생성/수정 성공 후 실제 변경을 기록하는 기반이 도입되어 있다.
-프로필 화면에는 별도 책 활동 섹션으로 노출되며, 조회 가능 범위는 현재 `self / accepted book_friend` 기준이다.
+프로필 화면에는 Jjaek과 함께 최근 활동 섹션으로 노출되며, 조회 가능 범위는 현재 `self / accepted book_friend` 기준이다.
 home feed에는 현재 사용자와 accepted book_friend의 BookActivity를 Jjaek과 함께 합성한다.
 books/:id timeline에는 아직 합성하지 않는다.
 

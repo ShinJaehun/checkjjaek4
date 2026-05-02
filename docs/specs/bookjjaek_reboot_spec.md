@@ -458,6 +458,7 @@ ReJjaek은 새 Jjaek이지만,
 
 - 일반 `Jjaek`는 기본적으로 `짹`으로 표시할 수 있다.
 - `target_user_id`가 있는 `Jjaek`는 `A가 B에게 남긴 짹`처럼 표시할 수 있다.
+- 다만 작성자와 대상 사용자가 같은 self-target Jjaek은 일반 `A의 짹`처럼 표시한다.
 - `book_id`가 있는 `Jjaek`는 `A가 X에 대해 남긴 책짹`처럼 표시할 수 있다.
 - `quoted_jjaek_id`가 있는 `Jjaek`는 `A가 B의 짹을 다시짹`처럼 표시할 수 있다.
 - `target_user_id`와 `quoted_jjaek_id`가 함께 있는 경우에도, 1차 MVP에서는 `다시짹` 문맥을 우선해 표시할 수 있다.
@@ -498,7 +499,7 @@ ReJjaek은 새 Jjaek이지만,
 ### 홈 피드와 책활동
 - 현재 홈 피드는 Jjaek과 BookActivity를 함께 보여준다.
 - 현재 `BookActivity`는 `BookshelfEntry` 생성/변경/스티커 변경을
-  본문 글과 분리된 이벤트로 기록하고, 홈 피드와 프로필의 별도 책활동 섹션에 노출한다.
+  본문 글과 분리된 이벤트로 기록하고, 홈 피드와 프로필의 최근 활동 타임라인에 노출한다.
 - 홈 피드의 BookActivity 노출 범위는 현재 사용자와 accepted book_friend로 제한한다.
 - follow-only / stranger의 BookActivity는 여러 책장/공개 범위가 정리되기 전까지 홈 피드에 노출하지 않는다.
 - `BookActivity`는 `BookshelfEntry`, `BookshelfEntrySticker`, `Jjaek`의

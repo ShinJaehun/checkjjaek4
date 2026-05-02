@@ -14,6 +14,7 @@ class UsersController < ApplicationController
     prepare_profile_bookshelf(profile_policy)
     prepare_profile_book_activities
     prepare_profile_jjaeks(profile_policy)
+    prepare_profile_activity_items
     prepare_profile_jjaek_form(profile_policy)
   end
 
@@ -42,8 +43,6 @@ class UsersController < ApplicationController
       .where(user: @user)
       .includes(:user, :book)
       .recent
-      .limit(10)
-    @show_book_activities = current_user == @user || @book_activities.any?
   end
 
   def prepare_profile_jjaek_form(profile_policy)
@@ -77,5 +76,10 @@ class UsersController < ApplicationController
     else
       scope.recent
     end
+  end
+
+  def prepare_profile_activity_items
+    @profile_activity_items = (@jjaeks.to_a + @book_activities.to_a).sort_by(&:created_at).reverse
+    @show_profile_activity = @show_jjaeks || current_user == @user || @profile_activity_items.any?
   end
 end
