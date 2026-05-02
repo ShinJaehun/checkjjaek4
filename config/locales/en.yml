@@ -37,8 +37,8 @@ en:
     title: "Bookshelf first, then Jjaek"
     description: "Your feed is shaped by the readers you follow and the book friends you trust. Keep your shelf close and move from books to writing."
     feed_eyebrow: "Feed"
-    feed_title: "Recent Jjaeks"
-    empty_feed: "No Jjaeks are in your feed yet. Add a book to your shelf or follow another reader."
+    feed_title: "Recent feed"
+    empty_feed: "No items are in your feed yet. Add a book to your shelf or follow another reader."
     new_jjaek_title: "Write a Jjaek"
     actions:
       search_books: "Search books"
@@ -117,6 +117,29 @@ en:
       comment_created: "%{actor_name} commented on your Jjaek."
       requote_created: "%{actor_name} ReJjaeked your Jjaek."
   book_activities:
+    badges:
+      status_cleared: "Status cleared"
+    card:
+      added_to_shelf:
+        before_book: " added 『"
+        after_book: "』 to their shelf."
+      status_changed:
+        before_book: " changed 『"
+        before_status: "』 to "
+        after_status: "."
+      status_cleared:
+        before_book: " cleared the reading status for 『"
+        before_status: "』: "
+        after_status: "."
+      sticker_added:
+        before_book: " added a sticker to 『"
+        before_sticker: "』: "
+        after_sticker: "."
+      sticker_removed:
+        before_book: " removed a sticker from 『"
+        before_sticker: "』: "
+        after_sticker: "."
+      no_thumbnail: "No cover"
     profile:
       eyebrow: "Book Activity"
       title: "Book Activity"

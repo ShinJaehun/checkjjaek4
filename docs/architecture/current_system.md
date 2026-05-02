@@ -44,9 +44,12 @@
 
 ### 1. 홈 (/)
 
-- `JjaekPolicy::FeedScope` 기반 Jjaek 피드
+- `JjaekPolicy::FeedScope` 기반 Jjaek 피드와 `BookActivityPolicy::Scope` 기반 BookActivity 피드를 합성
 - 내 Jjaek, 소식받는 사용자의 공개 Jjaek, 책친구 공개 Jjaek,
   현재 사용자 대상 profile-context Jjaek이 함께 섞일 수 있음
+- BookActivity는 현재 사용자와 accepted book_friend의 활동만 함께 섞임
+- follow-only / stranger의 BookActivity는 홈 피드에 노출하지 않음
+- Jjaek과 BookActivity는 `created_at` 기준으로 함께 정렬함
 
 관련 코드:
 - controller: app/controllers/homes_controller.rb
@@ -80,7 +83,7 @@
 - 실제 Jjaek 노출 범위는 관계에 따라 달라진다
 - `self / accepted book_friend`는 프로필의 BookActivity 섹션을 볼 수 있다
 - stranger / follow-only 사용자는 프로필의 BookActivity 섹션을 볼 수 없다
-- 홈 피드에는 아직 BookActivity를 합성하지 않는다
+- 홈 피드는 현재 사용자와 accepted book_friend의 BookActivity를 Jjaek과 함께 합성한다
 - 상세 권한 규칙은 `docs/architecture/authorization.md`를 본다
 
 관련 코드:
@@ -194,7 +197,8 @@
 
 현재 `BookActivity`는 모델/테이블과 `BookshelfEntry` 생성/수정 성공 후 실제 변경을 기록하는 기반이 도입되어 있다.
 프로필 화면에는 별도 책 활동 섹션으로 노출되며, 조회 가능 범위는 현재 `self / accepted book_friend` 기준이다.
-home feed와 books/:id timeline에는 아직 합성하지 않는다.
+home feed에는 현재 사용자와 accepted book_friend의 BookActivity를 Jjaek과 함께 합성한다.
+books/:id timeline에는 아직 합성하지 않는다.
 
 → 현재 상태, 본문 콘텐츠, 피드용 이벤트는 분리된 모델에서 관리한다
 
