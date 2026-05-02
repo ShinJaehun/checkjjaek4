@@ -246,7 +246,7 @@ Jjaek의 공개 범위는 아래 3개만 둔다.
 - 도메인 상 Jjaek과 책활동은 분리한다.
 - 사용자에게는 필요 이상으로 복잡하게 드러내지 않는다.
 - 피드에서는 둘을 하나의 흐름처럼 함께 보여줄 수 있다.
-- 현재 구현에서는 BookActivity 모델과 프로필 책활동 섹션이 도입되어 있다.
+- 현재 구현에서는 BookActivity 모델과 프로필 최근 활동 타임라인 노출이 도입되어 있다.
 - 홈 피드 합성, books/:id 노출, 더 정교한 visibility는 후속 단계에서 다룬다.
 
 ### BookshelfEntry / BookshelfEntrySticker / BookActivity 책임 경계
