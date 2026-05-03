@@ -24,6 +24,12 @@ RSpec.describe Bookshelf, type: :model do
     expect(duplicate).not_to be_valid
   end
 
+  it "does not allow more than one default bookshelf per user" do
+    duplicate = described_class.new(user:, name: "Another Default", is_default: true)
+
+    expect(duplicate).not_to be_valid
+  end
+
   it "allows book_friends visibility" do
     bookshelf = described_class.new(user:, name: "Friends Shelf", visibility: :book_friends)
 
@@ -39,12 +45,43 @@ RSpec.describe Bookshelf, type: :model do
 
   it "does not destroy entries when destroying a bookshelf with entries" do
     book = Book.create!(title: "Shelf Entry Book", authors_text: "Author")
-    bookshelf = user.default_bookshelf
+    bookshelf = user.bookshelves.create!(name: "Entry Shelf")
     entry = user.bookshelf_entries.create!(book:, bookshelf:)
 
     expect(bookshelf.destroy).to be(false)
     expect(bookshelf.errors[:base]).to be_present
     expect(described_class.exists?(bookshelf.id)).to be(true)
     expect(BookshelfEntry.exists?(entry.id)).to be(true)
+  end
+
+  it "does not allow destroying the default bookshelf directly" do
+    bookshelf = user.default_bookshelf
+
+    expect(bookshelf.destroy).to be(false)
+    expect(bookshelf.errors[:base]).to be_present
+    expect(described_class.exists?(bookshelf.id)).to be(true)
+  end
+
+  it "does not allow changing the default bookshelf name" do
+    bookshelf = user.default_bookshelf
+    bookshelf.name = "다른 이름"
+
+    expect(bookshelf).not_to be_valid
+    expect(bookshelf.errors[:name]).to be_present
+  end
+
+  it "does not allow changing the default bookshelf flag to false" do
+    bookshelf = user.default_bookshelf
+    bookshelf.is_default = false
+
+    expect(bookshelf).not_to be_valid
+    expect(bookshelf.errors[:is_default]).to be_present
+  end
+
+  it "allows changing a non-default bookshelf name" do
+    bookshelf = user.bookshelves.create!(name: "Old Shelf")
+    bookshelf.name = "New Shelf"
+
+    expect(bookshelf).to be_valid
   end
 end

@@ -75,11 +75,12 @@ class User < ApplicationRecord
   end
 
   def default_bookshelf
-    bookshelves.find_by(name: Bookshelf::DEFAULT_NAME)
+    bookshelves.find_by(is_default: true)
   end
 
   def create_default_bookshelf!
-    bookshelves.find_or_create_by!(name: Bookshelf::DEFAULT_NAME) do |bookshelf|
+    bookshelves.find_or_create_by!(is_default: true) do |bookshelf|
+      bookshelf.name = Bookshelf::DEFAULT_NAME
       bookshelf.visibility = :public
     end
   end
