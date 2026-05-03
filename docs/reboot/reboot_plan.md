@@ -33,6 +33,7 @@
 ### 핵심 도메인 도입 `완료`
 
 - `Book`
+- `Bookshelf`
 - `BookshelfEntry`
 - `StickerDefinition`
 - `BookshelfEntrySticker`
@@ -108,15 +109,15 @@ Notification과는 연결하지 않는다.
 관련 문서:
 - `docs/specs/book_activity_mvp.md`
 
-### 3. 다중 책장 구조 `계획`
+### 3. Bookshelf foundation `부분 완료`
 
-현재 MVP는 사용자당 기본 서재 1개 전제로 동작한다.
-여러 책장, 공개/비공개 책장 모델은 아직 구현되지 않았다.
+현재 구현에는 `Bookshelf` 모델, 사용자별 기본 책장, `BookshelfEntry.bookshelf_id`,
+책장 visibility 기준 profile scope가 도입되어 있다.
+다만 여러 책장 생성/수정/삭제 UI와 책장 이동 UI는 아직 구현되지 않았다.
 
 다음 Bookshelf 작업 기준은 `docs/specs/bookshelf_mvp.md`를 따른다.
 
 - `Bookshelf`
-- `BookshelfMembership`
 - 여러 책장
 - 책장 공개 범위
 

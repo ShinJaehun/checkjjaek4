@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -56,11 +56,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_090000) do
 
   create_table "bookshelf_entries", force: :cascade do |t|
     t.bigint "book_id", null: false
+    t.bigint "bookshelf_id", null: false
     t.datetime "created_at", null: false
     t.integer "status"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["book_id"], name: "index_bookshelf_entries_on_book_id"
+    t.index ["bookshelf_id"], name: "index_bookshelf_entries_on_bookshelf_id"
     t.index ["user_id", "book_id"], name: "index_bookshelf_entries_on_user_id_and_book_id", unique: true
     t.index ["user_id"], name: "index_bookshelf_entries_on_user_id"
   end
@@ -73,6 +75,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_090000) do
     t.index ["bookshelf_entry_id", "sticker_definition_id"], name: "index_bookshelf_entry_stickers_on_entry_and_sticker", unique: true
     t.index ["bookshelf_entry_id"], name: "index_bookshelf_entry_stickers_on_bookshelf_entry_id"
     t.index ["sticker_definition_id"], name: "index_bookshelf_entry_stickers_on_sticker_definition_id"
+  end
+
+  create_table "bookshelves", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.string "visibility", default: "public", null: false
+    t.index ["user_id", "name"], name: "index_bookshelves_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_bookshelves_on_user_id"
   end
 
   create_table "comments", force: :cascade do |t|
@@ -165,9 +177,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_090000) do
   add_foreign_key "book_friendships", "users", column: "addressee_id"
   add_foreign_key "book_friendships", "users", column: "requester_id"
   add_foreign_key "bookshelf_entries", "books"
+  add_foreign_key "bookshelf_entries", "bookshelves"
   add_foreign_key "bookshelf_entries", "users"
   add_foreign_key "bookshelf_entry_stickers", "bookshelf_entries"
   add_foreign_key "bookshelf_entry_stickers", "sticker_definitions"
+  add_foreign_key "bookshelves", "users"
   add_foreign_key "comments", "jjaeks"
   add_foreign_key "comments", "users"
   add_foreign_key "follows", "users", column: "followee_id"

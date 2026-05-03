@@ -31,7 +31,28 @@ class BookshelfEntryPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
-      scope
+      book_friend_ids = BookFriendship.connected_ids_for(user)
+      scoped_entries =
+        scope
+          .joins(:bookshelf)
+          .where(bookshelf_entries: { user_id: user.id })
+          .or(
+            scope
+              .joins(:bookshelf)
+              .where(
+                bookshelf_entries: { user_id: book_friend_ids },
+                bookshelves: { visibility: visible_to_book_friends }
+              )
+          )
+          .or(scope.joins(:bookshelf).where(bookshelves: { visibility: "public" }))
+
+      scoped_entries
+    end
+
+    private
+
+    def visible_to_book_friends
+      %w[public book_friends]
     end
   end
 end

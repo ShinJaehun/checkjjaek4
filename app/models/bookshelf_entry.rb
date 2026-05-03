@@ -3,11 +3,31 @@ class BookshelfEntry < ApplicationRecord
 
   belongs_to :user
   belongs_to :book
+  belongs_to :bookshelf
 
   has_many :bookshelf_entry_stickers, dependent: :destroy
   has_many :sticker_definitions, through: :bookshelf_entry_stickers
 
+  before_validation :assign_default_bookshelf
+
   validates :book_id, uniqueness: { scope: :user_id }
+  validate :bookshelf_belongs_to_user
 
   scope :recent_first, -> { includes(:book, :sticker_definitions).order(updated_at: :desc) }
+
+  private
+
+  def assign_default_bookshelf
+    return if bookshelf.present?
+    return unless user&.persisted?
+
+    self.bookshelf = user.default_bookshelf || user.create_default_bookshelf!
+  end
+
+  def bookshelf_belongs_to_user
+    return if bookshelf.blank? || user_id.blank?
+    return if bookshelf.user_id == user_id
+
+    errors.add(:bookshelf, :invalid)
+  end
 end
