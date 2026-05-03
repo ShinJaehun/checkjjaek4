@@ -10,6 +10,7 @@ RSpec.describe User, type: :model do
     )
 
     expect(user.bookshelves.count).to eq(1)
+    expect(user.default_bookshelf).to be_is_default
   end
 
   it "names the default bookshelf 내 책장" do
@@ -32,6 +33,20 @@ RSpec.describe User, type: :model do
     )
 
     expect(user.default_bookshelf.visibility).to eq("public")
+  end
+
+  it "finds the default bookshelf by is_default instead of name" do
+    user = described_class.create!(
+      name: "Default Lookup User",
+      email: "default-lookup-user@example.com",
+      password: "password123!",
+      password_confirmation: "password123!"
+    )
+    default_bookshelf = user.default_bookshelf
+
+    default_bookshelf.update_column(:name, "Legacy Renamed Default")
+
+    expect(user.default_bookshelf.reload).to eq(default_bookshelf)
   end
 
   it "destroys the user's bookshelves and entries without destroying books or other users' entries" do

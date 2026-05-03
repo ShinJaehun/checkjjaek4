@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_03_091000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -79,12 +79,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
 
   create_table "bookshelves", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.boolean "is_default", default: false, null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.string "visibility", default: "public", null: false
     t.index ["user_id", "name"], name: "index_bookshelves_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_bookshelves_on_user_id"
+    t.index ["user_id"], name: "index_bookshelves_on_user_id_default_unique", unique: true, where: "is_default"
   end
 
   create_table "comments", force: :cascade do |t|

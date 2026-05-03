@@ -62,6 +62,14 @@ BookshelfEntry
 
 기본 책장의 visibility는 `public`이다.
 
+기본 책장은 시스템 책장으로 취급한다.
+
+- 사용자당 기본 책장은 하나만 존재한다.
+- 기본 책장은 삭제할 수 없다.
+- 기본 책장의 이름은 변경할 수 없다.
+- 다만 User가 삭제될 때는 해당 User의 기본 책장과 BookshelfEntry도 함께 삭제된다.
+- 이때 Book 자체는 전역 책 데이터이므로 삭제되지 않는다.
+
 ---
 
 ## 2. 한 사용자 기준 한 책은 하나의 책장에만 속한다
@@ -373,11 +381,17 @@ enum :visibility,
 1. User 생성 시 기본 Bookshelf가 생성된다.
 2. 기본 Bookshelf 이름은 “내 책장”이다.
 3. 기본 Bookshelf visibility는 `public`이다.
-4. 기존 BookshelfEntry가 기본 Bookshelf에 연결된다.
-5. BookshelfEntry의 user와 bookshelf.user가 일치해야 한다.
-6. 한 사용자 기준 같은 `book_id`의 BookshelfEntry가 중복 생성되지 않는다.
-7. visibility scope가 self / accepted book_friend / stranger 기준으로 동작한다.
-8. BookActivity visibility 기존 정책이 깨지지 않는다.
+4. 기본 Bookshelf는 `is_default: true`이다.
+5. 사용자당 기본 Bookshelf는 하나만 존재할 수 있다.
+6. 기본 Bookshelf는 직접 삭제할 수 없다.
+7. 기본 Bookshelf 이름은 변경할 수 없다.
+8. User 삭제 시 해당 User의 Bookshelf와 BookshelfEntry는 삭제된다.
+9. User 삭제 시 Book은 삭제되지 않는다.
+10. 기존 BookshelfEntry가 기본 Bookshelf에 연결된다.
+11. BookshelfEntry의 user와 bookshelf.user가 일치해야 한다.
+12. 한 사용자 기준 같은 `book_id`의 BookshelfEntry가 중복 생성되지 않는다.
+13. visibility scope가 self / accepted book_friend / stranger 기준으로 동작한다.
+14. BookActivity visibility 기존 정책이 깨지지 않는다.
 
 ---
 

@@ -31,7 +31,7 @@
 
 - Jjaek: 사용자 콘텐츠 단위
 - Book: 외부 검색 기반 도서 데이터
-- Bookshelf: 사용자의 책장 단위와 책장 visibility
+- Bookshelf: 사용자의 책장 단위와 책장 visibility, 기본 책장 여부
 - BookshelfEntry: 사용자-책-책장 관계 (상태/스티커)
 - BookFriendship: 관계 기반 권한 확장
 - Follow: 피드 구독
@@ -195,6 +195,8 @@
 
 - Bookshelf
   - 책장 이름 / visibility
+  - 기본 책장 여부
+  - 기본 책장은 직접 삭제하거나 이름을 변경할 수 없음
 
 - Jjaek
   - 글 / 공개 범위
