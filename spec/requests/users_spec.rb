@@ -6,12 +6,17 @@ RSpec.describe "Users", type: :request do
   let!(:other_user) { User.create!(name: "Other", email: "other@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "프로필 책", authors_text: "저자") }
   let!(:shelf_book) { Book.create!(title: "프로필 서재 전용 책", authors_text: "저자") }
+  let!(:profile_shelf_sticker) { StickerDefinition.create!(key: "users_spec_profile_shelf_unique_sticker", name: "PROFILE_SHELF_UNIQUE_STICKER") }
   let!(:profile_entry) { profile_user.bookshelf_entries.create!(book: shelf_book, status: :reading) }
   let!(:profile_jjaek) { profile_user.jjaeks.create!(book:, content: "Profile Jjaek") }
   let!(:profile_friend_jjaek) { profile_user.jjaeks.create!(content: "Book friend profile Jjaek", visibility: :book_friends) }
   let!(:profile_private_jjaek) { profile_user.jjaeks.create!(content: "Private profile Jjaek", visibility: :private_jjaek) }
   let!(:other_jjaek) { other_user.jjaeks.create!(book:, content: "Other private", visibility: :private_jjaek) }
   let!(:activity_book) { Book.create!(title: "프로필 활동 책", authors_text: "저자") }
+
+  before do
+    profile_entry.sticker_definitions << profile_shelf_sticker
+  end
 
   describe "GET /users/:id" do
     it "redirects guests to sign in" do
@@ -28,6 +33,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("저자")
       expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
+      expect(response.body).not_to include("PROFILE_SHELF_UNIQUE_STICKER")
       expect(response.body).to include("Profile Jjaek")
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
@@ -45,6 +51,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("Profile Jjaek")
       expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
+      expect(response.body).not_to include("PROFILE_SHELF_UNIQUE_STICKER")
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
@@ -59,6 +66,7 @@ RSpec.describe "Users", type: :request do
 
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"))
+      expect(response.body).to include("PROFILE_SHELF_UNIQUE_STICKER")
       expect(response.body).to include("Profile Jjaek")
       expect(response.body).to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
@@ -69,14 +77,17 @@ RSpec.describe "Users", type: :request do
 
     it "shows the user's own shelf, private jjaeks, and profile-context form" do
       own_book = Book.create!(title: "내 책", authors_text: "저자")
-      viewer.bookshelf_entries.create!(book: own_book)
+      own_sticker = StickerDefinition.create!(key: "users_spec_own_profile_shelf_sticker", name: "OWN_PROFILE_SHELF_STICKER")
+      own_entry = viewer.bookshelf_entries.create!(book: own_book, status: :finished)
+      own_entry.sticker_definitions << own_sticker
       viewer.jjaeks.create!(content: "내 비공개 짹", visibility: :private_jjaek)
       sign_in viewer
 
       get user_path(viewer)
 
       expect(response.body).to include("내 책")
-      expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.wish"))
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
+      expect(response.body).to include("OWN_PROFILE_SHELF_STICKER")
       expect(response.body).to include("내 비공개 짹")
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
