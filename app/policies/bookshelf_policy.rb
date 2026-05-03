@@ -7,6 +7,10 @@ class BookshelfPolicy < ApplicationPolicy
     record.visibility_book_friends? && user.book_friend?(record.user)
   end
 
+  def create?
+    user.present? && record.user_id == user.id
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?

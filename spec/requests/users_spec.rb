@@ -108,6 +108,35 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("OWNER_PRIVATE_TAB_SHELF")
     end
 
+    it "shows the bookshelf create form on the user's own profile" do
+      sign_in viewer
+
+      get user_path(viewer)
+
+      expect(response.body).to include(I18n.t("bookshelves.form.title"))
+      expect(response.body).to include('name="bookshelf[name]"')
+      expect(response.body).to include('name="bookshelf[visibility]"')
+    end
+
+    it "does not show the bookshelf create form on another user's profile" do
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      sign_in viewer
+
+      get user_path(profile_user)
+      expect(response.body).not_to include('name="bookshelf[name]"')
+
+      sign_out viewer
+      stranger_viewer = User.create!(name: "Create Form Stranger", email: "create-form-stranger@example.com", password: "password123!", password_confirmation: "password123!")
+      sign_in stranger_viewer
+
+      get user_path(profile_user)
+      expect(response.body).not_to include('name="bookshelf[name]"')
+
+      stranger_viewer.active_follows.create!(followee: profile_user)
+      get user_path(profile_user)
+      expect(response.body).not_to include('name="bookshelf[name]"')
+    end
+
     it "shows public and book-friends bookshelf tabs to accepted book friends" do
       create_profile_bookshelf_entry(
         user: profile_user,

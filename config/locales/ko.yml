@@ -7,6 +7,10 @@ ko:
             visibility:
               cannot_exceed_quoted_visibility: "원문보다 더 넓게 공개할 수 없습니다"
               invalid: "올바르지 않습니다"
+        bookshelf:
+          attributes:
+            base:
+              too_many_bookshelves: "책장은 최대 %{count}개까지 만들 수 있습니다"
   auth:
     actions:
       sign_in: "로그인"
@@ -184,6 +188,20 @@ ko:
       wish: "읽고 싶어요"
       reading: "읽는 중"
       finished: "읽었어요"
+  bookshelves:
+    actions:
+      create: "책장 만들기"
+    form:
+      name: "책장 이름"
+      name_placeholder: "새 책장 이름"
+      title: "새 책장"
+      visibility: "공개 범위"
+    notices:
+      created: "책장 '%{bookshelf_name}'을 만들었습니다."
+    visibility:
+      public: "전체 공개"
+      book_friends: "책친구 공개"
+      private: "나만 보기"
   books:
     show:
       save_state: "상태 저장"

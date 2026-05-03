@@ -22,6 +22,9 @@ class UsersController < ApplicationController
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
     @show_profile_bookshelf_move_control = current_user == @user
+    @show_profile_bookshelf_create_form = current_user == @user
+    @bookshelf ||= current_user.bookshelves.build(visibility: :public) if @show_profile_bookshelf_create_form
+    @profile_bookshelf_visibility_options = Bookshelf.visibilities.keys
     @profile_bookshelf_move_targets = @show_profile_bookshelf_move_control ? current_user.bookshelves.default_first : Bookshelf.none
 
     return unless @show_bookshelf
