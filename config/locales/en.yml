@@ -159,9 +159,11 @@ en:
     nav: "My Shelf"
     actions:
       create: "Save to shelf"
+      move: "Move"
       update: "Update shelf entry"
     form:
       book: "Book"
+      bookshelf: "Bookshelf"
       status: "Reading status"
       stickers: "Stickers"
     index:
@@ -176,6 +178,7 @@ en:
     notices:
       created: "Book added to your shelf."
       destroyed: "Shelf entry removed."
+      moved: "Book moved to '%{bookshelf_name}'."
       updated: "Shelf entry updated."
     statuses:
       wish: "Want to read"
@@ -269,6 +272,7 @@ en:
       activity_eyebrow: "Activity"
       activity_title: "Recent Activity"
       bookshelf_eyebrow: "Shelf"
+      bookshelf_tabs: "Bookshelves"
       bookshelf_title: "Books"
       empty_activity: "No recent activity yet."
       empty_bookshelf: "No visible books yet."

@@ -109,6 +109,63 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.sticker_definitions).to include(sticker)
   end
 
+  it "moves the user's own shelf entry to another owned bookshelf" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "이동 대상 책장", visibility: :private)
+    sign_in user
+
+    expect {
+      patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id }
+    }.not_to change(BookshelfEntry, :count)
+
+    expect(response).to redirect_to(user_path(user, bookshelf_id: target_bookshelf.id))
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
+    expect(flash[:notice]).to include("이동 대상 책장")
+  end
+
+  it "changes only the bookshelf when moving a shelf entry" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    entry.sticker_definitions << sticker
+    original_book_id = entry.book_id
+    original_user_id = entry.user_id
+    original_status = entry.status
+    original_sticker_ids = entry.sticker_definition_ids
+    target_bookshelf = user.bookshelves.create!(name: "책장 변경만 확인", visibility: :public)
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id }
+
+    entry.reload
+    expect(entry.bookshelf_id).to eq(target_bookshelf.id)
+    expect(entry.book_id).to eq(original_book_id)
+    expect(entry.user_id).to eq(original_user_id)
+    expect(entry.status).to eq(original_status)
+    expect(entry.sticker_definition_ids).to match_array(original_sticker_ids)
+  end
+
+  it "does not move another user's shelf entry" do
+    entry = book_friend.bookshelf_entries.find_by!(book: friend_book)
+    target_bookshelf = user.bookshelves.create!(name: "내 이동 대상 책장", visibility: :public)
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id }
+
+    expect(response).to have_http_status(:not_found)
+    expect(entry.reload.bookshelf).to eq(book_friend.default_bookshelf)
+  end
+
+  it "does not move a shelf entry to another user's bookshelf" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    other_bookshelf = book_friend.bookshelves.create!(name: "다른 사용자 책장", visibility: :public)
+    original_bookshelf = entry.bookshelf
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: other_bookshelf.id }
+
+    expect(response).to have_http_status(:not_found)
+    expect(entry.reload.bookshelf).to eq(original_bookshelf)
+  end
+
   it "records status_changed when a shelf entry status changes" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user

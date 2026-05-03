@@ -15,6 +15,10 @@ class BookshelfEntryPolicy < ApplicationPolicy
     create?
   end
 
+  def move?
+    create?
+  end
+
   def destroy?
     create?
   end
