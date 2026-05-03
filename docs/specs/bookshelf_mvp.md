@@ -1,69 +1,41 @@
-# Bookshelf MVP Policy
+# Bookshelf MVP Spec
 
 ## 목적
 
-이 문서는 `checkjjaek4`에서 `Bookshelf` 모델을 도입하기 전, 기본 책장 구조와 책장 공개 범위, 프로필 책 목록 노출, 상태/스티커 노출, `BookActivity` visibility, 사용자별 책 문맥 화면과의 관계를 정리한다.
+Bookshelf MVP는 Checkjjaek4에서 사용자의 책 목록을 “책장” 단위로 관리하기 위한 foundation 작업이다.
 
-현재 시스템은 `BookshelfEntry`를 중심으로 “사용자가 어떤 책을 서재에 담았는가”를 표현한다. 문서상으로는 기본 서재/기본 책장 1개처럼 해석해 왔지만, 아직 별도의 `Bookshelf` 모델은 없다.
+현재 `BookshelfEntry`는 사용자가 어떤 책을 자신의 서재에 담았는지, 그리고 그 책에 어떤 상태/스티커를 부여했는지를 표현한다.
 
-이 문서는 이후 `Bookshelf` 모델을 실제로 도입할 때 기준이 되는 정책 문서다.
+이번 MVP에서는 여기에 `Bookshelf` 개념을 추가하여 다음을 가능하게 한다.
 
----
+- 모든 사용자는 기본 책장 “내 책장”을 가진다.
+- 기존 `BookshelfEntry`는 각 사용자의 기본 책장에 연결된다.
+- 책장 단위 visibility 정책을 준비한다.
+- 향후 여러 책장, 책장 이동, 책장별 공개 범위 기능을 확장할 수 있는 기반을 만든다.
 
-## 문서의 성격
-
-이 문서는 새로운 구현 결과를 설명하는 문서가 아니다.
-
-이 문서는 다음 구현을 준비하기 위한 제품/정책 spec이다.
-
-- `Bookshelf` 모델 도입
-- 기본 책장 생성
-- 기존 `BookshelfEntry`의 기본 책장 연결
-- 책장 공개 범위
-- 프로필 책 목록 노출 정책
-- 상태/스티커 노출 정책
-- `BookActivity` visibility와의 관계
-- 사용자별 책 문맥 화면 도입 시점
-
-기존 `docs/architecture/jjaek_visibility.md`는 주로 `Jjaek` visibility 구조를 설명하는 architecture 문서다.
-
-이 문서는 `Jjaek`이 아니라 `Bookshelf` / `BookshelfEntry` / `BookActivity`와 관련된 책장 공개 범위를 다룬다.
+이번 작업은 foundation 단계이며, UI 확장보다 데이터 구조와 기본 정책 정리를 우선한다.
 
 ---
 
-## 핵심 결정 요약
+## 현재 전제
 
-### 확정할 정책
-
-- `Bookshelf` 모델을 도입한다.
-- 모든 사용자는 기본 책장을 가진다.
-- 기본 책장 이름은 `내 책장`으로 한다.
-- 기본 책장의 기본 visibility는 `public`으로 한다.
-- 기존 `BookshelfEntry`는 각 사용자의 기본 책장으로 이동한다.
-- 초기 MVP에서는 한 사용자 기준으로 한 책은 한 책장에만 속한다.
-- 여러 책장 생성 UI는 아직 만들지 않는다.
-- `BookActivity` visibility는 당분간 현재처럼 `self / accepted book_friend` 기준을 유지한다.
-- 사용자별 책 문맥 화면(`/users/:user_id/books/:book_id`)은 책장/visibility 정책이 안정된 뒤 후속으로 둔다.
-
-### 후속으로 남길 정책
-
-- 여러 책장 생성/수정/삭제 UI
-- 책 이동 UI
-- 책장별 상세 화면
-- `BookActivity`가 책장 visibility를 따를지 여부
-- `BookActivity` visibility snapshot 여부
-- 사용자별 책 문맥 화면
-- home/profile feed pagination 또는 limit
+- `Book`은 전역 책 정보를 나타낸다.
+- `BookshelfEntry`는 사용자와 책의 관계를 나타낸다.
+- `BookshelfEntry`는 상태와 스티커 정보를 가진다.
+- `BookActivity`는 `BookshelfEntry`의 상태/스티커 변화에서 발생한다.
+- BookActivity 1차 MVP는 이미 구현되어 있다.
+- BookActivity는 현재 self / accepted book_friend에게만 노출한다.
+- Bookshelf visibility와 BookActivity visibility는 이번 MVP에서 연동하지 않는다.
 
 ---
 
-## 1. 책장 구조
+## 핵심 정책
 
-### 1-1. 기본 책장을 실제 모델로 만든다
+## 1. Bookshelf 모델을 도입한다
 
-현재는 `BookshelfEntry`만 있지만, 앞으로는 `Bookshelf` 모델을 도입한다.
+`Bookshelf`는 사용자가 책을 꽂아두는 책장이다.
 
-권장 구조:
+관계는 다음과 같다.
 
 ```text
 User
@@ -80,355 +52,368 @@ BookshelfEntry
   belongs_to :bookshelf
 ```
 
-`BookshelfEntry`는 계속 사용자-책 관계의 현재 상태를 저장한다.
-
-`Bookshelf`는 그 항목들이 어떤 책장에 속하는지를 표현한다.
-
-### 1-2. 기본 책장
-
 모든 사용자는 기본 책장을 가진다.
 
-기본 책장 정책:
+기본 책장 이름은 다음과 같다.
 
-- 이름: `내 책장`
-- visibility: `public`
-- 자동 생성 시점: 사용자 생성 시 또는 첫 서재 등록 시
-- 삭제 가능 여부: 삭제 불가
-- 이름 변경 가능 여부: 후속 판단
+```text
+내 책장
+```
 
-### 1-3. 한 책은 한 사용자 기준 한 책장에만 속한다
-
-초기 MVP에서는 한 사용자의 한 책은 하나의 책장에만 속한다.
-
-즉, 같은 사용자가 같은 책을 여러 책장에 동시에 넣는 기능은 만들지 않는다.
-
-이 정책은 구현을 단순하게 유지하기 위한 것이다.
-
-후속 단계에서 여러 책장 동시 소속이 필요해지면 별도 정책과 DB 구조를 다시 검토한다.
-
-### 1-4. 기존 BookshelfEntry 마이그레이션
-
-`Bookshelf` 모델을 도입하면 기존 `BookshelfEntry`는 모두 각 사용자의 기본 책장 `내 책장`에 연결한다.
-
-마이그레이션 원칙:
-
-- 사용자별 기본 책장을 생성한다.
-- 해당 사용자의 기존 `BookshelfEntry`를 기본 책장에 연결한다.
-- 기존 `BookshelfEntry`의 상태/스티커 정보는 변경하지 않는다.
-- 기존 `BookActivity`는 변경하지 않는다.
+기본 책장의 visibility는 `public`이다.
 
 ---
 
-## 2. 책장 visibility
+## 2. 한 사용자 기준 한 책은 하나의 책장에만 속한다
 
-### 2-1. visibility 종류
+Bookshelf MVP에서는 한 사용자의 같은 책이 여러 책장에 동시에 들어가는 것을 허용하지 않는다.
 
-책장 visibility는 아래 세 가지를 후보로 둔다.
+즉, 한 사용자 기준으로 `Book` 하나는 하나의 `BookshelfEntry`만 가진다.
+그리고 하나의 `BookshelfEntry`는 하나의 `Bookshelf`에만 속한다.
 
-- `public`
-- `book_friends`
-- `private`
+```text
+User A + Book X = 하나의 BookshelfEntry
+BookshelfEntry = 하나의 Bookshelf에만 속함
+```
 
-### 2-2. public
+### 정책 이유
 
-`public` 책장은 관계 없는 사용자와 follow-only 사용자도 책 목록을 볼 수 있다.
+책장은 단순한 태그 묶음이 아니라, 사용자가 그 책을 어떤 맥락으로 보관하는지를 나타내는 단위다.
 
-단, public 책장이라고 해서 상태/스티커/BookActivity까지 모두 공개하는 것은 아니다.
+예를 들어 같은 책이 동시에 다음 책장에 들어갈 수 있다면:
 
-관계 없는 사용자와 follow-only 사용자가 볼 수 있는 정보:
+- 내 책장
+- 수업 추천 도서
+- 아이들과 함께 읽은 책
 
-- 책 제목
-- 표지
-- 저자
-- public 책장에 들어 있는 책 목록
+그 책의 상태, 스티커, 공개 범위, BookActivity 맥락이 흐려질 수 있다.
 
-볼 수 없는 정보:
+따라서 Checkjjaek4에서는 현재 MVP 기준으로 다음 정책을 따른다.
 
-- 상태 배지
-- 스티커
-- BookActivity
-- private/book_friends 책장 자체
+- 같은 사용자는 같은 책을 중복해서 담을 수 없다.
+- 같은 책을 다른 책장에 넣고 싶다면 “중복 추가”가 아니라 “책장 이동”으로 처리한다.
+- 책장 이동 UI는 이번 MVP에서 구현하지 않는다.
+- 여러 책장에 같은 책을 동시에 꽂는 기능은 이번 MVP 범위가 아니며, 현재 정책상 지원하지 않는다.
 
-### 2-3. book_friends
+### 제약 방향
 
-`book_friends` 책장은 accepted book_friend 이상에게만 보인다.
+기존 `bookshelf_entries`에 `user_id + book_id` 유니크 제약이 있다면 유지한다.
 
-accepted book_friend가 볼 수 있는 정보:
+없다면 이번 작업에서 현재 제약 상태를 확인하고, 한 사용자 기준 같은 책이 중복 생성되지 않도록 제약 추가 여부를 검토한다.
 
-- public 책장
-- book_friends 책장
-- 해당 책장의 책 목록
-- 상태 배지
-- 스티커
-- BookActivity
+또한 `BookshelfEntry.user_id`와 `BookshelfEntry.bookshelf.user_id`는 항상 일치해야 한다.
 
-관계 없는 사용자와 follow-only 사용자는 book_friends 책장을 볼 수 없다.
+```text
+bookshelf_entry.user_id == bookshelf_entry.bookshelf.user_id
+```
 
-### 2-4. private
+이 인바리언트는 모델 validation 또는 테스트로 보강한다.
 
-`private` 책장은 본인만 볼 수 있다.
+### 이번 MVP에서 도입하지 않는 구조
 
-타인은 private 책장에 있는 책의 존재도 볼 수 없다.
+이번 MVP에서는 다음과 같은 조인 모델을 도입하지 않는다.
 
----
+- `BookshelfItem`
+- `BookshelfPlacement`
 
-## 3. 관계별 프로필 책 목록 노출
+즉, 다음 구조는 채택하지 않는다.
 
-### 3-1. stranger
+```text
+BookshelfEntry
+  user_id
+  book_id
+  status
+  stickers
 
-아무 관계 없는 로그인 사용자는 public 책장의 책 목록만 볼 수 있다.
+BookshelfItem
+  bookshelf_id
+  bookshelf_entry_id
+```
 
-볼 수 있음:
-
-- public 책장에 들어 있는 책 목록
-- 책 제목
-- 표지
-- 저자
-
-볼 수 없음:
-
-- book_friends 책장
-- private 책장
-- 상태 배지
-- 스티커
-- BookActivity
-
-### 3-2. follow-only
-
-follow-only 사용자는 public 책장의 책 목록만 볼 수 있다.
-
-follow는 공개 콘텐츠를 홈 피드에서 받아보는 관계이지, 책친구 공개 범위를 열어주는 관계가 아니다.
-
-볼 수 있음:
-
-- public 책장에 들어 있는 책 목록
-- public Jjaek
-
-볼 수 없음:
-
-- book_friends 책장
-- private 책장
-- 상태 배지
-- 스티커
-- BookActivity
-
-### 3-3. accepted book_friend
-
-accepted book_friend는 public + book_friends 책장을 볼 수 있다.
-
-볼 수 있음:
-
-- public 책장
-- book_friends 책장
-- 해당 책장의 책 목록
-- 상태 배지
-- 스티커
-- BookActivity
-- public Jjaek
-- book_friends Jjaek
-
-볼 수 없음:
-
-- private 책장
-
-### 3-4. self
-
-본인은 모든 책장을 볼 수 있다.
-
-볼 수 있음:
-
-- public 책장
-- book_friends 책장
-- private 책장
-- 모든 책 목록
-- 모든 상태/스티커
-- 모든 BookActivity
+현재 MVP에서는 `bookshelf_id`를 `BookshelfEntry`에 직접 추가하는 단순 구조를 사용한다.
 
 ---
 
-## 4. 상태/스티커 노출 정책
+## 3. Bookshelf visibility
 
-책 목록 노출과 상태/스티커 노출은 분리한다.
+Bookshelf는 공개 범위를 가진다.
 
-### 원칙
+지원할 visibility는 다음 세 가지다.
 
-- 책 목록은 책장 visibility를 따른다.
-- 상태/스티커는 더 민감한 독서 기록으로 보고, `self / accepted book_friend`에게만 보여준다.
+```text
+public
+book_friends
+private
+```
 
-### 관계별 노출
+의미는 다음과 같다.
 
-| 관계 | 책 목록 | 상태/스티커 |
-|---|---|---|
-| stranger | public 책장만 | 안 보임 |
-| follow-only | public 책장만 | 안 보임 |
-| accepted book_friend | public + book_friends 책장 | 보임 |
-| self | 전체 | 보임 |
+| visibility | 의미 |
+| --- | --- |
+| `public` | 관계 없는 사용자와 follow-only 사용자도 책 목록을 볼 수 있다. |
+| `book_friends` | accepted book_friend 이상만 책 목록을 볼 수 있다. |
+| `private` | 본인만 볼 수 있다. |
 
----
+기본 책장 “내 책장”의 visibility는 `public`이다.
 
-## 5. BookActivity visibility
+이유는 다음과 같다.
 
-### 5-1. 현재 정책 유지
-
-`BookActivity`는 당분간 현재 정책을 유지한다.
-
-노출 기준:
-
-- self
-- accepted book_friend
-
-비노출 기준:
-
-- stranger
-- follow-only
-
-즉, public 책장에 있는 책이라도 해당 책의 BookActivity가 자동으로 public이 되지는 않는다.
-
-### 5-2. 책장 visibility와의 연동은 후속 판단
-
-후속 단계에서 아래 정책을 다시 검토할 수 있다.
-
-- BookActivity가 현재 책장 visibility를 따를 것인가
-- BookActivity 생성 당시 visibility를 snapshot으로 저장할 것인가
-- BookActivity 자체 visibility 컬럼을 둘 것인가
-- action별 visibility를 다르게 둘 것인가
-
-### 5-3. action별 visibility 분리는 하지 않는다
-
-초기에는 BookActivity action 종류에 따라 visibility를 나누지 않는다.
-
-예:
-
-- `added_to_shelf`
-- `status_changed`
-- `status_cleared`
-- `sticker_added`
-- `sticker_removed`
-
-모두 같은 BookActivity visibility 정책을 따른다.
+- 초기 MVP에서는 대부분의 사용자가 기본 책장만 가진다.
+- 기본 책장이 `book_friends`이면 stranger/follow-only 사용자가 프로필에서 책 목록을 거의 볼 수 없다.
+- Checkjjaek4는 책 기반 SNS 성격을 가지므로 기본적인 발견성이 필요하다.
+- 따라서 기본 책장은 `public`으로 시작한다.
 
 ---
 
-## 6. 사용자별 책 문맥 화면
+## 4. 관계별 프로필 책 목록 노출
 
-### 6-1. 현재 정책
+프로필에서 책 목록을 볼 수 있는 범위는 Bookshelf visibility를 기준으로 한다.
+
+| viewer 관계 | 볼 수 있는 책장 |
+| --- | --- |
+| self | `public` + `book_friends` + `private` |
+| accepted book_friend | `public` + `book_friends` |
+| follow-only | `public` |
+| stranger | `public` |
+
+follow-only 사용자는 Jjaek visibility 정책에서는 일부 public Jjaek을 볼 수 있지만, Bookshelf visibility에서는 stranger와 동일하게 `public` 책장만 볼 수 있다.
+
+---
+
+## 5. 책 목록 노출과 상태/스티커 노출은 분리한다
+
+책 목록을 볼 수 있다는 것이 상태/스티커까지 볼 수 있다는 뜻은 아니다.
+
+정책은 다음과 같다.
+
+| viewer 관계 | 책 제목/표지/저자 | 상태/스티커 |
+| --- | --- | --- |
+| self | 볼 수 있음 | 볼 수 있음 |
+| accepted book_friend | 볼 수 있음 | 볼 수 있음 |
+| follow-only | public 책장에 한해 볼 수 있음 | 볼 수 없음 |
+| stranger | public 책장에 한해 볼 수 있음 | 볼 수 없음 |
+
+즉, stranger/follow-only는 public 책장의 책 제목, 표지, 저자 정도만 볼 수 있다.
+하지만 상태 배지와 스티커는 볼 수 없다.
+
+이번 foundation 브랜치에서 상태/스티커 숨김 UI가 큰 변경을 요구한다면 구현하지 않는다.
+이 정책은 문서와 scope 설계에 반영하고, 실제 UI 세부 반영은 후속 작업으로 넘길 수 있다.
+
+---
+
+## 6. BookActivity visibility는 현재 정책을 유지한다
+
+BookActivity visibility는 Bookshelf visibility와 이번 MVP에서 연동하지 않는다.
+
+현재 정책은 다음과 같다.
+
+- self는 자신의 BookActivity를 볼 수 있다.
+- accepted book_friend는 상대의 BookActivity를 볼 수 있다.
+- follow-only는 상대의 BookActivity를 볼 수 없다.
+- stranger는 상대의 BookActivity를 볼 수 없다.
+
+즉, 책장이 `public`이어도 BookActivity는 public으로 열지 않는다.
+
+이번 MVP에서 하지 않는 것:
+
+- Bookshelf visibility와 BookActivity visibility 연동
+- BookActivity visibility snapshot 저장
+- action별 BookActivity visibility 분리
+- books/:id timeline에 BookActivity 추가
+
+BookActivity visibility는 후속 판단으로 남긴다.
+
+---
+
+## 7. 사용자별 책 문맥 화면은 만들지 않는다
 
 현재 `/books/:id`는 전역 책 상세 화면이다.
 
-프로필이나 BookActivity 카드에서 책을 클릭해도 우선은 전역 `books/:id`로 이동한다.
-
-### 6-2. 후속 후보
-
-나중에 필요하면 아래 화면을 도입할 수 있다.
+이번 MVP에서는 다음과 같은 사용자별 책 문맥 화면을 만들지 않는다.
 
 ```text
 /users/:user_id/books/:book_id
 ```
 
-이 화면은 특정 사용자의 특정 책 기록을 보여주는 화면이다.
-
-표시 후보:
-
-- 그 사용자의 해당 책 Jjaek
-- 그 사용자의 해당 책 BookActivity
-- 현재 상태/스티커
-- 책장 위치
-- 공개 범위
-
-단, 이 화면은 책장/visibility 정책이 안정된 뒤 도입한다.
+사용자별 책 문맥 화면은 책장/visibility 정책이 안정된 뒤 후속으로 판단한다.
 
 ---
 
-## 7. BookActivity 삭제/수정 정책과의 관계
+## 8. BookshelfEntry 삭제/이동과 BookActivity
 
-### 7-1. BookshelfEntry 삭제 시 BookActivity
+이번 MVP에서는 책장 이동 UI를 만들지 않는다.
 
-후속 기본 후보는 유지다.
+향후 책장 이동을 구현할 경우 정책은 다음 방향을 기본 후보로 둔다.
 
-즉, `BookshelfEntry`가 삭제되더라도 과거 BookActivity는 기본적으로 유지한다.
-
-이유:
-
-- BookActivity는 현재 상태가 아니라 과거 활동 기록이다.
-- 과거에 “읽는 중으로 바꿨다”는 사실은 이후 상태가 바뀌어도 기록으로 남을 수 있다.
-
-단, 삭제된 책/서재항목/스티커에 대한 fallback 문구는 후속으로 정한다.
-
-### 7-2. 상태 변경 후 과거 활동 문구
-
-과거 활동 문구는 생성 당시 의미를 유지한다.
-
-예:
-
-- 과거 활동: 읽는 중으로 바꿨습니다.
-- 현재 상태: 읽었어요.
-
-이 경우 과거 활동 문구를 현재 상태에 맞춰 바꾸지 않는다.
+- 같은 책을 다른 책장에 넣는 것은 중복 생성이 아니라 기존 `BookshelfEntry`의 `bookshelf_id` 변경으로 처리한다.
+- 책장 이동 시 BookActivity를 남길지 여부는 후속 판단한다.
+- BookshelfEntry가 삭제되더라도 과거 BookActivity는 일단 유지하는 방향을 기본 후보로 둔다.
+- 책장 visibility 변경 시 과거 BookActivity를 어떻게 처리할지는 후속 판단한다.
 
 ---
 
-## 8. Bookshelf MVP 1단계 구현 범위
+## MVP 1단계 구현 범위
 
-### 할 것
+이번 foundation 단계에서 할 일은 다음과 같다.
 
-- `Bookshelf` 모델 도입
-- 사용자별 기본 책장 `내 책장` 생성
-- 기본 책장의 visibility를 `public`으로 설정
-- 기존 `BookshelfEntry`를 기본 책장에 연결
-- 신규 `BookshelfEntry` 생성 시 기본 책장에 연결
-- 프로필 책 목록 조회 scope가 책장 visibility를 고려할 수 있도록 준비
-- 기존 UI는 가능한 한 그대로 유지
+### 1. Bookshelf 모델 도입
 
-### 하지 않을 것
+- `Bookshelf` 모델 추가
+- `bookshelves` 테이블 추가
+- `user_id` 추가
+- `name` 추가
+- `visibility` 추가
+- 기본 visibility는 `public`
+- 기본 책장 이름은 “내 책장”
+
+### 2. 관계 추가
+
+- `User has_many :bookshelves`
+- `User has_many :bookshelf_entries`
+- `Bookshelf belongs_to :user`
+- `Bookshelf has_many :bookshelf_entries`
+- `BookshelfEntry belongs_to :bookshelf`
+
+### 3. BookshelfEntry에 bookshelf_id 추가
+
+- `bookshelf_entries` 테이블에 `bookshelf_id`를 추가한다.
+- 기존 `BookshelfEntry`는 각 entry.user의 기본 Bookshelf에 연결한다.
+- 기존 `user_id`는 당장 제거하지 않는다.
+- `BookshelfEntry.user_id`와 `BookshelfEntry.bookshelf.user_id`가 일치해야 한다는 인바리언트를 유지한다.
+
+### 4. 기본 책장 자동 생성
+
+- 새 User 생성 시 기본 Bookshelf가 자동 생성되도록 한다.
+- 기존 사용자에게도 기본 Bookshelf가 생기도록 데이터 보정한다.
+- 기존 BookshelfEntry가 있으면 해당 사용자의 기본 Bookshelf에 연결한다.
+
+마이그레이션에서는 현재 앱 모델의 콜백이나 validation에 과하게 의존하지 않는다.
+기존 데이터가 없어도 깨지지 않아야 한다.
+
+### 5. visibility scope 준비
+
+프로필 책 목록에서 사용할 수 있는 Bookshelf visibility 기준 scope 또는 policy를 준비한다.
+
+정책:
+
+- self: `public` + `book_friends` + `private`
+- accepted book_friend: `public` + `book_friends`
+- stranger/follow-only: `public`
+
+단, 이번 작업에서 프로필 UI를 크게 바꾸지 않는다.
+
+---
+
+## MVP 1단계에서 하지 않을 것
+
+이번 foundation 단계에서는 다음을 하지 않는다.
 
 - 여러 책장 생성 UI
-- `+ 책장` 버튼
-- 책장 수정/삭제 UI
+- 책장 수정 UI
+- 책장 삭제 UI
 - 책 이동 UI
-- 책장 상세 화면
+- BookshelfItem / BookshelfPlacement 조인 모델 도입
 - BookActivity visibility 연동
 - BookActivity visibility snapshot
+- action별 BookActivity visibility 분리
 - 사용자별 책 문맥 화면
+- feed pagination
 - Notification 연동
-- feed pagination/infinite scroll
+- books/:id timeline에 BookActivity 추가
+- 상태/스티커 숨김 UI 대규모 변경
 
 ---
 
-## 9. 다음 단계 후보
+## Rails enum 주의사항
 
-Bookshelf MVP 1단계 이후 후속 후보:
+Bookshelf visibility 값은 다음 세 가지를 사용한다.
 
-- 여러 책장 생성 UI
-- 책장 공개 범위 변경 UI
-- 책 이동 UI
-- private/book_friends 책장 프로필 노출 정책 구체화
-- BookActivity visibility와 책장 visibility 연동
+```text
+public
+book_friends
+private
+```
+
+다만 `public`과 `private`은 Ruby/Rails 메서드명과 충돌할 수 있다.
+
+따라서 Rails enum을 정의할 때는 안전한 방식을 사용한다.
+
+예를 들어 DB 값은 `public`, `book_friends`, `private`를 유지하되, Rails 메서드는 prefix 또는 suffix를 붙여 충돌을 피한다.
+
+예상 방향:
+
+```ruby
+enum :visibility,
+  {
+    public: "public",
+    book_friends: "book_friends",
+    private: "private"
+  },
+  prefix: true
+```
+
+정확한 구현 방식은 현재 Rails 버전과 기존 enum 스타일을 확인한 뒤 결정한다.
+
+---
+
+## 테스트 기준
+
+기존 전체 RSpec은 계속 통과해야 한다.
+
+기존 최종 상태는 다음과 같다.
+
+```text
+228 examples, 0 failures
+```
+
+실패하는 테스트를 skip/delete 하지 않는다.
+
+최소한 다음 테스트를 추가/보강한다.
+
+1. User 생성 시 기본 Bookshelf가 생성된다.
+2. 기본 Bookshelf 이름은 “내 책장”이다.
+3. 기본 Bookshelf visibility는 `public`이다.
+4. 기존 BookshelfEntry가 기본 Bookshelf에 연결된다.
+5. BookshelfEntry의 user와 bookshelf.user가 일치해야 한다.
+6. 한 사용자 기준 같은 `book_id`의 BookshelfEntry가 중복 생성되지 않는다.
+7. visibility scope가 self / accepted book_friend / stranger 기준으로 동작한다.
+8. BookActivity visibility 기존 정책이 깨지지 않는다.
+
+---
+
+## 구현 시 주의사항
+
+- Rails way를 우선한다.
+- 과한 추상화를 피한다.
+- 작은 diff를 우선한다.
+- 기존 UI는 가능한 한 유지한다.
+- 기존 `BookshelfEntry.user_id`는 이번 단계에서 제거하지 않는다.
+- `BookshelfEntry`에 `bookshelf_id`를 직접 추가한다.
+- 조인 모델은 도입하지 않는다.
+- BookActivity visibility는 건드리지 않는다.
+- Notification과 연결하지 않는다.
+- 빌드 산출물을 커밋하지 않는다.
+
+커밋하지 말아야 할 예:
+
+```text
+app/assets/builds/tailwind.css
+```
+
+---
+
+## 후속 작업 후보
+
+Bookshelf MVP foundation 이후 다음 작업을 검토할 수 있다.
+
+- 책장 생성 UI
+- 책장 이름 수정
+- 책장 visibility 변경
+- 책장 삭제
+- 책장 이동 UI
+- 프로필에서 책장별 목록 표시
+- stranger/follow-only에게 상태/스티커 숨김 UI 적용
 - 사용자별 책 문맥 화면
-- home/profile feed limit 또는 pagination
-
----
-
-## 10. 관련 문서와의 관계
-
-이 문서는 Bookshelf / 책장 visibility 정책 기준이다.
-
-함께 읽을 문서:
-
-- `docs/specs/bookjjaek_reboot_spec.md`
-  - 제품 전체 방향
-- `docs/specs/book_activity_mvp.md`
-  - BookActivity 생성/노출 기준
-- `docs/specs/social_relationships_mvp.md`
-  - Follow / BookFriendship 관계 기준
-- `docs/architecture/current_system.md`
-  - 현재 구현 상태
-- `docs/architecture/authorization.md`
-  - 현재 권한 구조
-- `docs/architecture/jjaek_visibility.md`
-  - Jjaek visibility 구조
-
-원칙:
-
-- 이 문서는 `Jjaek` visibility를 대체하지 않는다.
-- 이 문서는 Bookshelf / BookshelfEntry / BookActivity와 관련된 책장 공개 범위를 다룬다.
-- `docs/architecture/jjaek_visibility.md`는 계속 Jjaek visibility 중심 architecture 문서로 유지한다.
+- 책장 이동 시 BookActivity 기록 여부 결정
+- Bookshelf visibility와 BookActivity visibility 연동 여부 결정
+- BookActivity visibility snapshot 필요 여부 결정

@@ -8,6 +8,7 @@ class User < ApplicationRecord
   normalizes :email, with: ->(email) { email.strip.downcase }
 
   has_many :bookshelf_entries, dependent: :destroy
+  has_many :bookshelves, dependent: :destroy
   has_many :books, through: :bookshelf_entries
   has_many :jjaeks, dependent: :destroy
   has_many :targeted_jjaeks,
@@ -55,6 +56,8 @@ class User < ApplicationRecord
 
   validates :name, presence: true
 
+  after_create :create_default_bookshelf!
+
   def follows?(other_user)
     followees.exists?(other_user.id)
   end
@@ -69,5 +72,15 @@ class User < ApplicationRecord
 
   def incoming_book_friend_requests
     received_book_friendships.pending.includes(:requester)
+  end
+
+  def default_bookshelf
+    bookshelves.find_by(name: Bookshelf::DEFAULT_NAME)
+  end
+
+  def create_default_bookshelf!
+    bookshelves.find_or_create_by!(name: Bookshelf::DEFAULT_NAME) do |bookshelf|
+      bookshelf.visibility = :public
+    end
   end
 end

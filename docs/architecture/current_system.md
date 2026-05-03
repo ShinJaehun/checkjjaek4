@@ -18,6 +18,7 @@
 - User
 - Jjaek
 - Book
+- Bookshelf
 - BookshelfEntry
 - Follow
 - BookFriendship
@@ -30,7 +31,8 @@
 
 - Jjaek: 사용자 콘텐츠 단위
 - Book: 외부 검색 기반 도서 데이터
-- BookshelfEntry: 사용자-책 관계 (상태/스티커)
+- Bookshelf: 사용자의 책장 단위와 책장 visibility
+- BookshelfEntry: 사용자-책-책장 관계 (상태/스티커)
 - BookFriendship: 관계 기반 권한 확장
 - Follow: 피드 구독
 - Comment: Jjaek에 대한 댓글
@@ -80,6 +82,7 @@
 - 관계에 따라 다른 데이터 노출
 - profile-context Jjaek 작성 가능 여부도 관계에 따라 달라짐
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
+- 프로필 책 목록은 Bookshelf visibility를 기준으로 조회 가능한 `BookshelfEntry`만 보여준다
 - 최근 활동 섹션은 profile owner의 visible Jjaek과 visible BookActivity를 함께 보여준다
 - 실제 Jjaek 노출 범위는 기존 profile Jjaek 정책을 따른다
 - BookActivity 노출 범위는 `self / accepted book_friend` 기준이다
@@ -187,7 +190,11 @@
 ## 데이터 책임 분리
 
 - BookshelfEntry
+  - 사용자-책-책장 관계
   - 상태 / 스티커
+
+- Bookshelf
+  - 책장 이름 / visibility
 
 - Jjaek
   - 글 / 공개 범위

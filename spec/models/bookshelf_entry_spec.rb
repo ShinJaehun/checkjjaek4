@@ -23,6 +23,20 @@ RSpec.describe BookshelfEntry, type: :model do
     expect(duplicate).not_to be_valid
   end
 
+  it "assigns the user's default bookshelf" do
+    entry = described_class.create!(user:, book:)
+
+    expect(entry.bookshelf).to eq(user.default_bookshelf)
+  end
+
+  it "requires the entry user and bookshelf owner to match" do
+    other_user = User.create!(name: "Other", email: "other-entry@example.com", password: "password123!", password_confirmation: "password123!")
+    entry = described_class.new(user:, book:, bookshelf: other_user.default_bookshelf)
+
+    expect(entry).not_to be_valid
+    expect(entry.errors[:bookshelf]).to be_present
+  end
+
   it "validates status against the declared enum values" do
     entry = described_class.new(user:, book:, status: :archived)
 

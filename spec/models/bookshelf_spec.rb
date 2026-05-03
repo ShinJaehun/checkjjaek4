@@ -1,0 +1,50 @@
+require "rails_helper"
+
+RSpec.describe Bookshelf, type: :model do
+  let(:user) { User.create!(name: "Shelf Owner", email: "shelf-owner@example.com", password: "password123!", password_confirmation: "password123!") }
+
+  it "requires a name" do
+    bookshelf = described_class.new(user:, name: nil)
+
+    expect(bookshelf).not_to be_valid
+    expect(bookshelf.errors[:name]).to be_present
+  end
+
+  it "defaults visibility to public" do
+    bookshelf = described_class.create!(user:, name: "Public Shelf")
+
+    expect(bookshelf.visibility).to eq("public")
+    expect(bookshelf).to be_visibility_public
+  end
+
+  it "does not allow duplicate names for the same user" do
+    described_class.create!(user:, name: "Same Name")
+    duplicate = described_class.new(user:, name: "Same Name")
+
+    expect(duplicate).not_to be_valid
+  end
+
+  it "allows book_friends visibility" do
+    bookshelf = described_class.new(user:, name: "Friends Shelf", visibility: :book_friends)
+
+    expect(bookshelf).to be_valid
+  end
+
+  it "allows private visibility with prefixed enum methods" do
+    bookshelf = described_class.new(user:, name: "Private Shelf", visibility: :private)
+
+    expect(bookshelf).to be_valid
+    expect(bookshelf).to be_visibility_private
+  end
+
+  it "does not destroy entries when destroying a bookshelf with entries" do
+    book = Book.create!(title: "Shelf Entry Book", authors_text: "Author")
+    bookshelf = user.default_bookshelf
+    entry = user.bookshelf_entries.create!(book:, bookshelf:)
+
+    expect(bookshelf.destroy).to be(false)
+    expect(bookshelf.errors[:base]).to be_present
+    expect(described_class.exists?(bookshelf.id)).to be(true)
+    expect(BookshelfEntry.exists?(entry.id)).to be(true)
+  end
+end
