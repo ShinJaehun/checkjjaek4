@@ -21,10 +21,28 @@ class UsersController < ApplicationController
   def prepare_profile_bookshelf(profile_policy)
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
+    @show_profile_bookshelf_move_control = current_user == @user
+    @profile_bookshelf_move_targets = @show_profile_bookshelf_move_control ? current_user.bookshelves.default_first : Bookshelf.none
+
+    return unless @show_bookshelf
+
+    @profile_bookshelves = policy_scope(@user.bookshelves).default_first
+    visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
+    @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
+    @selected_bookshelf = selected_profile_bookshelf(@profile_bookshelves)
     @bookshelf_entries =
-      if @show_bookshelf
-        policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope).recent_first
+      if @selected_bookshelf
+        visible_entries.where(bookshelf: @selected_bookshelf).recent_first
+      else
+        BookshelfEntry.none
       end
+  end
+
+  def selected_profile_bookshelf(accessible_bookshelves)
+    bookshelves = accessible_bookshelves.to_a
+    requested_bookshelf = bookshelves.find { |bookshelf| bookshelf.id.to_s == params[:bookshelf_id].to_s }
+
+    requested_bookshelf || bookshelves.find(&:is_default?) || bookshelves.first
   end
 
   def prepare_profile_jjaeks(profile_policy)

@@ -93,6 +93,212 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
     end
 
+    it "shows the owner their default and private bookshelf tabs" do
+      create_profile_bookshelf_entry(
+        user: viewer,
+        bookshelf_name: "OWNER_PRIVATE_TAB_SHELF",
+        visibility: :private,
+        book_title: "OWNER_PRIVATE_TAB_BOOK"
+      )
+      sign_in viewer
+
+      get user_path(viewer)
+
+      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
+      expect(response.body).to include("OWNER_PRIVATE_TAB_SHELF")
+    end
+
+    it "shows public and book-friends bookshelf tabs to accepted book friends" do
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "FRIEND_VISIBLE_TAB_SHELF",
+        visibility: :book_friends,
+        book_title: "FRIEND_VISIBLE_TAB_BOOK"
+      )
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "FRIEND_HIDDEN_PRIVATE_TAB_SHELF",
+        visibility: :private,
+        book_title: "FRIEND_HIDDEN_PRIVATE_TAB_BOOK"
+      )
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
+      expect(response.body).to include("FRIEND_VISIBLE_TAB_SHELF")
+      expect(response.body).not_to include("FRIEND_HIDDEN_PRIVATE_TAB_SHELF")
+    end
+
+    it "shows only public bookshelf tabs to strangers" do
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "STRANGER_HIDDEN_FRIEND_TAB_SHELF",
+        visibility: :book_friends,
+        book_title: "STRANGER_HIDDEN_FRIEND_TAB_BOOK"
+      )
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "STRANGER_HIDDEN_PRIVATE_TAB_SHELF",
+        visibility: :private,
+        book_title: "STRANGER_HIDDEN_PRIVATE_TAB_BOOK"
+      )
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
+      expect(response.body).not_to include("STRANGER_HIDDEN_FRIEND_TAB_SHELF")
+      expect(response.body).not_to include("STRANGER_HIDDEN_PRIVATE_TAB_SHELF")
+    end
+
+    it "shows only public bookshelf tabs to follow-only users" do
+      viewer.active_follows.create!(followee: profile_user)
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "FOLLOW_ONLY_HIDDEN_FRIEND_TAB_SHELF",
+        visibility: :book_friends,
+        book_title: "FOLLOW_ONLY_HIDDEN_FRIEND_TAB_BOOK"
+      )
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "FOLLOW_ONLY_HIDDEN_PRIVATE_TAB_SHELF",
+        visibility: :private,
+        book_title: "FOLLOW_ONLY_HIDDEN_PRIVATE_TAB_BOOK"
+      )
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
+      expect(response.body).not_to include("FOLLOW_ONLY_HIDDEN_FRIEND_TAB_SHELF")
+      expect(response.body).not_to include("FOLLOW_ONLY_HIDDEN_PRIVATE_TAB_SHELF")
+    end
+
+    it "shows only entries from the selected bookshelf tab" do
+      selected_shelf, = create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "SELECTED_TAB_SHELF",
+        visibility: :public,
+        book_title: "SELECTED_TAB_BOOK"
+      )
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "UNSELECTED_TAB_SHELF",
+        visibility: :public,
+        book_title: "UNSELECTED_TAB_BOOK"
+      )
+      sign_in viewer
+
+      get user_path(profile_user, bookshelf_id: selected_shelf.id)
+
+      expect(response.body).to include("SELECTED_TAB_BOOK")
+      expect(response.body).not_to include("UNSELECTED_TAB_BOOK")
+      expect(response.body).not_to include("프로필 서재 전용 책")
+    end
+
+    it "falls back to an accessible bookshelf when the requested bookshelf is not allowed" do
+      hidden_shelf, = create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "FALLBACK_HIDDEN_PRIVATE_TAB_SHELF",
+        visibility: :private,
+        book_title: "FALLBACK_HIDDEN_PRIVATE_TAB_BOOK"
+      )
+      sign_in viewer
+
+      get user_path(profile_user, bookshelf_id: hidden_shelf.id)
+
+      expect(response.body).to include("프로필 서재 전용 책")
+      expect(response.body).not_to include("FALLBACK_HIDDEN_PRIVATE_TAB_BOOK")
+    end
+
+    it "shows status and stickers in a selected bookshelf to the owner" do
+      selected_shelf, = create_profile_bookshelf_entry(
+        user: viewer,
+        bookshelf_name: "OWNER_DETAILS_TAB_SHELF",
+        visibility: :private,
+        book_title: "OWNER_DETAILS_TAB_BOOK",
+        status: :finished,
+        sticker_name: "OWNER_DETAILS_UNIQUE_STICKER"
+      )
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: selected_shelf.id)
+
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
+      expect(response.body).to include("OWNER_DETAILS_UNIQUE_STICKER")
+    end
+
+    it "shows status and stickers in a selected bookshelf to accepted book friends" do
+      selected_shelf, = create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "FRIEND_DETAILS_TAB_SHELF",
+        visibility: :book_friends,
+        book_title: "FRIEND_DETAILS_TAB_BOOK",
+        status: :finished,
+        sticker_name: "FRIEND_DETAILS_UNIQUE_STICKER"
+      )
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      sign_in viewer
+
+      get user_path(profile_user, bookshelf_id: selected_shelf.id)
+
+      expect(response.body).to include("FRIEND_DETAILS_TAB_BOOK")
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
+      expect(response.body).to include("FRIEND_DETAILS_UNIQUE_STICKER")
+    end
+
+    it "hides status and stickers in a public bookshelf from strangers" do
+      selected_shelf, = create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "STRANGER_DETAILS_TAB_SHELF",
+        visibility: :public,
+        book_title: "STRANGER_DETAILS_TAB_BOOK",
+        status: :finished,
+        sticker_name: "STRANGER_DETAILS_UNIQUE_STICKER"
+      )
+      sign_in viewer
+
+      get user_path(profile_user, bookshelf_id: selected_shelf.id)
+
+      expect(response.body).to include("STRANGER_DETAILS_TAB_BOOK")
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.finished"))
+      expect(response.body).not_to include("STRANGER_DETAILS_UNIQUE_STICKER")
+    end
+
+    it "shows the bookshelf move select only on the owner's profile" do
+      viewer.bookshelf_entries.create!(book: Book.create!(title: "MOVE_SELECT_VISIBLE_BOOK", authors_text: "저자"))
+      sign_in viewer
+
+      get user_path(viewer)
+
+      expect(response.body).to include('name="bookshelf_id"')
+      expect(response.body).to include(I18n.t("bookshelf_entries.actions.move"))
+    end
+
+    it "does not show the bookshelf move select to accepted book friends, strangers, or follow-only users" do
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      sign_in viewer
+
+      get user_path(profile_user)
+      expect(response.body).not_to include('name="bookshelf_id"')
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
+
+      sign_out viewer
+      stranger_viewer = User.create!(name: "Stranger Viewer", email: "stranger-viewer@example.com", password: "password123!", password_confirmation: "password123!")
+      sign_in stranger_viewer
+
+      get user_path(profile_user)
+      expect(response.body).not_to include('name="bookshelf_id"')
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
+
+      stranger_viewer.active_follows.create!(followee: profile_user)
+      get user_path(profile_user)
+      expect(response.body).not_to include('name="bookshelf_id"')
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
+    end
+
     it "labels a self-targeted profile jjaek as the user's general jjaek" do
       viewer.jjaeks.create!(target_user: viewer, content: "SELF_TARGETED_PROFILE_JJAEK", visibility: :private_jjaek)
       sign_in viewer
@@ -333,5 +539,18 @@ RSpec.describe "Users", type: :request do
 
   def page_text
     ActionView::Base.full_sanitizer.sanitize(response.body)
+  end
+
+  def create_profile_bookshelf_entry(user:, bookshelf_name:, visibility:, book_title:, status: nil, sticker_name: nil)
+    bookshelf = user.bookshelves.create!(name: bookshelf_name, visibility: visibility)
+    book = Book.create!(title: book_title, authors_text: "탭 테스트 저자")
+    entry = user.bookshelf_entries.create!(book: book, bookshelf: bookshelf, status: status)
+
+    if sticker_name
+      sticker = StickerDefinition.create!(key: "users_spec_#{sticker_name.downcase}", name: sticker_name)
+      entry.sticker_definitions << sticker
+    end
+
+    [ bookshelf, entry ]
   end
 end

@@ -27,6 +27,19 @@
           <% end %>
         </div>
       <% end %>
+
+      <% if local_assigns.fetch(:show_move_control, false) %>
+        <%= form_with url: move_bookshelf_entry_path(bookshelf_entry), method: :patch, class: "mt-4 flex flex-col gap-2 sm:flex-row sm:items-end" do %>
+          <div class="min-w-0 flex-1">
+            <%= label_tag :bookshelf_id, t("bookshelf_entries.form.bookshelf"), class: "block text-xs font-medium text-stone-500" %>
+            <%= select_tag :bookshelf_id,
+                           options_from_collection_for_select(move_target_bookshelves, :id, :name, bookshelf_entry.bookshelf_id),
+                           class: "mt-1 w-full rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
+          </div>
+
+          <%= submit_tag t("bookshelf_entries.actions.move"), class: "rounded-2xl bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700" %>
+        <% end %>
+      <% end %>
     </div>
   </div>
 </article>

@@ -1,5 +1,5 @@
 class BookshelfEntriesController < ApplicationController
-  before_action :set_bookshelf_entry, only: %i[edit update destroy]
+  before_action :set_bookshelf_entry, only: %i[edit update destroy move]
 
   def index
     authorize BookshelfEntry
@@ -59,6 +59,20 @@ class BookshelfEntriesController < ApplicationController
     else
       prepare_book_show_failure
       render "books/show", status: :unprocessable_content
+    end
+  end
+
+  def move
+    authorize @bookshelf_entry, :move?
+
+    target_bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
+
+    if @bookshelf_entry.update(bookshelf: target_bookshelf)
+      redirect_back fallback_location: user_path(current_user, bookshelf_id: target_bookshelf.id),
+                    notice: t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
+    else
+      redirect_back fallback_location: user_path(current_user),
+                    alert: @bookshelf_entry.errors.full_messages.to_sentence
     end
   end
 

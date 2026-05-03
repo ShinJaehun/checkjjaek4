@@ -14,6 +14,8 @@ class Bookshelf < ApplicationRecord
 
   has_many :bookshelf_entries, dependent: :restrict_with_error
 
+  scope :default_first, -> { order(is_default: :desc, created_at: :asc, id: :asc) }
+
   before_destroy :prevent_default_bookshelf_destroy, unless: :user_being_destroyed?
 
   validates :name, presence: true

@@ -8,6 +8,15 @@ RSpec.describe BookshelfEntryPolicy do
   let(:friend_book) { Book.create!(title: "Friend Book", authors_text: "Author") }
   let(:stranger_book) { Book.create!(title: "Stranger Book", authors_text: "Author") }
 
+  describe "#move?" do
+    it "allows only the entry owner" do
+      entry = viewer.bookshelf_entries.create!(book: viewer_book)
+
+      expect(described_class.new(viewer, entry).move?).to be(true)
+      expect(described_class.new(book_friend, entry).move?).to be(false)
+    end
+  end
+
   describe described_class::Scope do
     it "includes only the viewer's own bookshelf entries" do
       viewer_entry = viewer.bookshelf_entries.create!(book: viewer_book)

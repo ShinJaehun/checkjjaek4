@@ -1,15 +1,37 @@
 <section class="space-y-4">
+  <% bookshelves = Array(local_assigns[:bookshelves]) %>
+  <% bookshelf_entry_counts = local_assigns[:bookshelf_entry_counts] || {} %>
+  <% move_target_bookshelves = local_assigns[:move_target_bookshelves] || [] %>
+
   <div>
     <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.profile.bookshelf_eyebrow") %></p>
     <h2 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.bookshelf_title") %></h2>
   </div>
+
+  <% if bookshelves.any? %>
+    <nav class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="<%= t("users.profile.bookshelf_tabs") %>">
+      <% bookshelves.each do |bookshelf| %>
+        <% selected = bookshelf == selected_bookshelf %>
+        <%= link_to user_path(user, bookshelf_id: bookshelf.id),
+                    class: [
+                      "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition",
+                      selected ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-400 hover:text-stone-900"
+                    ] do %>
+          <span><%= bookshelf.name %></span>
+          <span class="<%= selected ? "text-stone-200" : "text-stone-400" %>">(<%= bookshelf_entry_counts.fetch(bookshelf.id, 0) %>)</span>
+        <% end %>
+      <% end %>
+    </nav>
+  <% end %>
 
   <% if bookshelf_entries.any? %>
     <div class="grid gap-3 sm:grid-cols-2">
       <% bookshelf_entries.each do |bookshelf_entry| %>
         <%= render "bookshelf_entries/profile_bookshelf_entry",
                    bookshelf_entry:,
-                   show_status: show_status %>
+                   show_status: show_status,
+                   show_move_control: show_move_control,
+                   move_target_bookshelves: move_target_bookshelves %>
       <% end %>
     </div>
   <% else %>

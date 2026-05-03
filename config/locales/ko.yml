@@ -159,9 +159,11 @@ ko:
     nav: "내 서재"
     actions:
       create: "서재에 저장"
+      move: "이동"
       update: "서재 항목 수정"
     form:
       book: "책"
+      bookshelf: "책장"
       status: "대표 상태"
       stickers: "스티커"
     index:
@@ -176,6 +178,7 @@ ko:
     notices:
       created: "책을 서재에 담았습니다."
       destroyed: "서재 항목을 삭제했습니다."
+      moved: "책을 '%{bookshelf_name}' 책장으로 옮겼습니다."
       updated: "서재 항목을 수정했습니다."
     statuses:
       wish: "읽고 싶어요"
@@ -269,6 +272,7 @@ ko:
       activity_eyebrow: "활동"
       activity_title: "최근 활동"
       bookshelf_eyebrow: "서재"
+      bookshelf_tabs: "책장"
       bookshelf_title: "책"
       empty_activity: "아직 최근 활동이 없습니다."
       empty_bookshelf: "아직 보이는 책이 없습니다."

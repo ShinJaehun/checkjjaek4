@@ -9,8 +9,14 @@
 
   <% if @show_bookshelf %>
     <%= render "users/bookshelf_section",
+               user: @user,
+               bookshelves: @profile_bookshelves,
+               selected_bookshelf: @selected_bookshelf,
                bookshelf_entries: @bookshelf_entries,
-               show_status: @show_profile_bookshelf_status %>
+               bookshelf_entry_counts: @profile_bookshelf_entry_counts,
+               show_status: @show_profile_bookshelf_status,
+               show_move_control: @show_profile_bookshelf_move_control,
+               move_target_bookshelves: @profile_bookshelf_move_targets %>
   <% end %>
 
   <% if @show_profile_activity %>
