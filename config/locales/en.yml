@@ -310,6 +310,14 @@ en:
       activity_eyebrow: "Activity"
       activity_title: "Recent Activity"
       bookshelf_eyebrow: "Shelf"
+      bookshelf_sort:
+        label: "Book sort"
+        options:
+          author: "Author"
+          recent: "Recent"
+          status: "Status"
+          title: "Title"
+        submit: "Sort"
       bookshelf_tabs: "Bookshelves"
       bookshelf_title: "Books"
       empty_activity: "No recent activity yet."

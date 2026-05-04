@@ -314,6 +314,110 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("프로필 서재 전용 책")
     end
 
+    it "keeps recent sort by default" do
+      bookshelf = viewer.bookshelves.create!(name: "RECENT_SORT_SHELF")
+      older = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "RECENT_SORT_OLDER")
+      newer = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "RECENT_SORT_NEWER")
+      older.update!(updated_at: 2.days.ago)
+      newer.update!(updated_at: 1.day.ago)
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: bookshelf.id)
+
+      expect_text_order("RECENT_SORT_NEWER", "RECENT_SORT_OLDER")
+    end
+
+    it "sorts bookshelf entries by title" do
+      bookshelf = viewer.bookshelves.create!(name: "TITLE_SORT_SHELF")
+      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "TITLE_SORT_Z")
+      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "TITLE_SORT_A")
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: bookshelf.id, sort: "title")
+
+      expect_text_order("TITLE_SORT_A", "TITLE_SORT_Z")
+    end
+
+    it "sorts bookshelf entries by author" do
+      bookshelf = viewer.bookshelves.create!(name: "AUTHOR_SORT_SHELF")
+      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "AUTHOR_SORT_B_BOOK", authors_text: "ZZZ Author")
+      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "AUTHOR_SORT_A_BOOK", authors_text: "AAA Author")
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: bookshelf.id, sort: "author")
+
+      expect_text_order("AUTHOR_SORT_A_BOOK", "AUTHOR_SORT_B_BOOK")
+    end
+
+    it "sorts bookshelf entries by status" do
+      bookshelf = viewer.bookshelves.create!(name: "STATUS_SORT_SHELF")
+      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "STATUS_SORT_FINISHED", status: :finished)
+      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "STATUS_SORT_WISH", status: :wish)
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: bookshelf.id, sort: "status")
+
+      expect_text_order("STATUS_SORT_WISH", "STATUS_SORT_FINISHED")
+    end
+
+    it "falls back to recent sort for unsupported sort values" do
+      bookshelf = viewer.bookshelves.create!(name: "BAD_SORT_SHELF")
+      older = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "BAD_SORT_OLDER")
+      newer = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "BAD_SORT_NEWER")
+      older.update!(updated_at: 2.days.ago)
+      newer.update!(updated_at: 1.day.ago)
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: bookshelf.id, sort: "unknown")
+
+      expect_text_order("BAD_SORT_NEWER", "BAD_SORT_OLDER")
+    end
+
+    it "sorts only entries from the selected bookshelf" do
+      selected_shelf = viewer.bookshelves.create!(name: "SELECTED_SORT_SHELF")
+      unselected_shelf = viewer.bookshelves.create!(name: "UNSELECTED_SORT_SHELF")
+      create_bookshelf_entry(user: viewer, bookshelf: selected_shelf, book_title: "SELECTED_SORT_BOOK")
+      create_bookshelf_entry(user: viewer, bookshelf: unselected_shelf, book_title: "UNSELECTED_SORT_BOOK")
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: selected_shelf.id, sort: "title")
+
+      expect(response.body).to include("SELECTED_SORT_BOOK")
+      expect(response.body).not_to include("UNSELECTED_SORT_BOOK")
+    end
+
+    it "keeps status and stickers hidden from strangers when sorting" do
+      bookshelf = profile_user.bookshelves.create!(name: "STRANGER_SORT_SHELF", visibility: :public)
+      entry = create_bookshelf_entry(user: profile_user, bookshelf: bookshelf, book_title: "STRANGER_SORT_BOOK", status: :finished)
+      entry.sticker_definitions << profile_shelf_sticker
+      sign_in viewer
+
+      get user_path(profile_user, bookshelf_id: bookshelf.id, sort: "status")
+
+      expect(response.body).to include("STRANGER_SORT_BOOK")
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.finished"))
+      expect(response.body).not_to include("PROFILE_SHELF_UNIQUE_STICKER")
+    end
+
+    it "keeps sort in bookshelf tab links" do
+      first_shelf = viewer.bookshelves.create!(name: "SORT_LINK_FIRST")
+      second_shelf = viewer.bookshelves.create!(name: "SORT_LINK_SECOND")
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: first_shelf.id, sort: "title")
+
+      expect(response.body).to include(CGI.escapeHTML(user_path(viewer, bookshelf_id: second_shelf.id, sort: "title")))
+    end
+
+    it "shows the bookshelf entry sort UI" do
+      sign_in viewer
+
+      get user_path(viewer)
+
+      expect(response.body).to include(I18n.t("users.profile.bookshelf_sort.label"))
+      expect(response.body).to include('name="sort"')
+    end
+
     it "falls back to an accessible bookshelf when the requested bookshelf is not allowed" do
       hidden_shelf, = create_profile_bookshelf_entry(
         user: profile_user,
@@ -398,7 +502,6 @@ RSpec.describe "Users", type: :request do
       sign_in viewer
 
       get user_path(profile_user)
-      expect(response.body).not_to include('name="bookshelf_id"')
       expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
 
       sign_out viewer
@@ -406,12 +509,10 @@ RSpec.describe "Users", type: :request do
       sign_in stranger_viewer
 
       get user_path(profile_user)
-      expect(response.body).not_to include('name="bookshelf_id"')
       expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
 
       stranger_viewer.active_follows.create!(followee: profile_user)
       get user_path(profile_user)
-      expect(response.body).not_to include('name="bookshelf_id"')
       expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
     end
 
@@ -657,10 +758,18 @@ RSpec.describe "Users", type: :request do
     ActionView::Base.full_sanitizer.sanitize(response.body)
   end
 
+  def expect_text_order(first_text, second_text)
+    first_index = page_text.index(first_text)
+    second_index = page_text.index(second_text)
+
+    expect(first_index).to be_present
+    expect(second_index).to be_present
+    expect(first_index).to be < second_index
+  end
+
   def create_profile_bookshelf_entry(user:, bookshelf_name:, visibility:, book_title:, status: nil, sticker_name: nil, color_key: "stone")
     bookshelf = user.bookshelves.create!(name: bookshelf_name, visibility: visibility, color_key: color_key)
-    book = Book.create!(title: book_title, authors_text: "탭 테스트 저자")
-    entry = user.bookshelf_entries.create!(book: book, bookshelf: bookshelf, status: status)
+    entry = create_bookshelf_entry(user: user, bookshelf: bookshelf, book_title: book_title, status: status)
 
     if sticker_name
       sticker = StickerDefinition.create!(key: "users_spec_#{sticker_name.downcase}", name: sticker_name)
@@ -668,5 +777,11 @@ RSpec.describe "Users", type: :request do
     end
 
     [ bookshelf, entry ]
+  end
+
+  def create_bookshelf_entry(user:, bookshelf:, book_title:, status: nil, authors_text: "탭 테스트 저자")
+    book = Book.create!(title: book_title, authors_text: authors_text)
+
+    user.bookshelf_entries.create!(book: book, bookshelf: bookshelf, status: status)
   end
 end

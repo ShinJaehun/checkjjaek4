@@ -1,4 +1,6 @@
 class BookshelfEntry < ApplicationRecord
+  PROFILE_SORTS = %w[recent title author status].freeze
+
   enum :status, { wish: 0, reading: 1, finished: 2 }, validate: { allow_nil: true }
 
   belongs_to :user
@@ -14,6 +16,18 @@ class BookshelfEntry < ApplicationRecord
   validate :bookshelf_belongs_to_user
 
   scope :recent_first, -> { includes(:book, :sticker_definitions).order(updated_at: :desc) }
+  scope :profile_sorted, ->(sort) {
+    case sort
+    when "title"
+      joins(:book).includes(:book, :sticker_definitions).order(books: { title: :asc }, id: :asc)
+    when "author"
+      joins(:book).includes(:book, :sticker_definitions).order(books: { authors_text: :asc }, id: :asc)
+    when "status"
+      includes(:book, :sticker_definitions).order(status: :asc, updated_at: :desc, id: :asc)
+    else
+      recent_first
+    end
+  }
 
   private
 

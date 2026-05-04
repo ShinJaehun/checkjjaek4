@@ -1,6 +1,8 @@
 <section class="space-y-4">
   <% bookshelves = Array(local_assigns[:bookshelves]) %>
   <% bookshelf_entry_counts = local_assigns[:bookshelf_entry_counts] || {} %>
+  <% bookshelf_sort = local_assigns[:bookshelf_sort] || "recent" %>
+  <% bookshelf_sort_options = local_assigns[:bookshelf_sort_options] || [] %>
   <% move_target_bookshelves = local_assigns[:move_target_bookshelves] || [] %>
   <% new_bookshelf = local_assigns[:new_bookshelf] %>
   <% managed_bookshelf = local_assigns[:managed_bookshelf] %>
@@ -17,7 +19,7 @@
     <nav class="flex flex-wrap gap-2" aria-label="<%= t("users.profile.bookshelf_tabs") %>">
       <% bookshelves.each do |bookshelf| %>
         <% selected = bookshelf == selected_bookshelf %>
-        <%= link_to user_path(user, bookshelf_id: bookshelf.id),
+        <%= link_to user_path(user, bookshelf_id: bookshelf.id, sort: bookshelf_sort),
                     class: [
                       "inline-flex shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition",
                       bookshelf_tab_class(bookshelf, selected: selected)
@@ -27,6 +29,23 @@
         <% end %>
       <% end %>
     </nav>
+  <% end %>
+
+  <% if selected_bookshelf.present? && bookshelf_sort_options.any? %>
+    <%= form_with url: user_path(user), method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
+      <%= form.hidden_field :bookshelf_id, value: selected_bookshelf.id %>
+
+      <div>
+        <%= form.label :sort, t("users.profile.bookshelf_sort.label"), class: "block text-xs font-medium text-stone-500" %>
+        <%= form.select :sort,
+                        bookshelf_sort_options.map { |sort| [ t("users.profile.bookshelf_sort.options.#{sort}"), sort ] },
+                        { selected: bookshelf_sort },
+                        class: "mt-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
+      </div>
+
+      <%= form.submit t("users.profile.bookshelf_sort.submit"),
+                      class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
+    <% end %>
   <% end %>
 
   <% if local_assigns[:show_create_form] && new_bookshelf.present? %>
