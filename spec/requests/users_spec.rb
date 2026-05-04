@@ -118,6 +118,38 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include('name="bookshelf[visibility]"')
     end
 
+    it "shows bookshelf edit and delete controls for an owned empty non-default bookshelf" do
+      bookshelf = viewer.bookshelves.create!(name: "관리할 빈 책장", visibility: :private)
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: bookshelf.id)
+
+      expect(response.body).to include(I18n.t("bookshelves.form.edit_title"))
+      expect(response.body).to include(I18n.t("bookshelves.actions.update"))
+      expect(response.body).to include(I18n.t("bookshelves.actions.destroy"))
+    end
+
+    it "does not show bookshelf edit or delete controls for the default bookshelf" do
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: viewer.default_bookshelf.id)
+
+      expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.update"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.destroy"))
+    end
+
+    it "does not show bookshelf edit or delete controls on another user's profile" do
+      bookshelf = profile_user.bookshelves.create!(name: "타인 관리 숨김 책장", visibility: :public)
+      sign_in viewer
+
+      get user_path(profile_user, bookshelf_id: bookshelf.id)
+
+      expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.update"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.destroy"))
+    end
+
     it "does not show the bookshelf create form on another user's profile" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       sign_in viewer

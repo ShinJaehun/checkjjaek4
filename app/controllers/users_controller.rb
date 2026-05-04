@@ -33,6 +33,7 @@ class UsersController < ApplicationController
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
     @selected_bookshelf = selected_profile_bookshelf(@profile_bookshelves)
+    @managed_bookshelf ||= @selected_bookshelf if @show_profile_bookshelf_create_form && @selected_bookshelf&.is_default? == false
     @bookshelf_entries =
       if @selected_bookshelf
         visible_entries.where(bookshelf: @selected_bookshelf).recent_first

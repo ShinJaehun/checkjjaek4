@@ -191,13 +191,20 @@ ko:
   bookshelves:
     actions:
       create: "책장 만들기"
+      destroy: "책장 삭제"
+      update: "책장 수정"
+    alerts:
+      destroy_failed: "책장을 삭제할 수 없습니다."
     form:
+      edit_title: "책장 관리"
       name: "책장 이름"
       name_placeholder: "새 책장 이름"
       title: "새 책장"
       visibility: "공개 범위"
     notices:
       created: "책장 '%{bookshelf_name}'을 만들었습니다."
+      destroyed: "책장 '%{bookshelf_name}'을 삭제했습니다."
+      updated: "책장 '%{bookshelf_name}'을 수정했습니다."
     visibility:
       public: "전체 공개"
       book_friends: "책친구 공개"

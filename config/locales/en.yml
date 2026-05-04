@@ -191,13 +191,20 @@ en:
   bookshelves:
     actions:
       create: "Create bookshelf"
+      destroy: "Delete bookshelf"
+      update: "Update bookshelf"
+    alerts:
+      destroy_failed: "Bookshelf could not be deleted."
     form:
+      edit_title: "Manage bookshelf"
       name: "Bookshelf name"
       name_placeholder: "New bookshelf name"
       title: "New bookshelf"
       visibility: "Visibility"
     notices:
       created: "Bookshelf '%{bookshelf_name}' created."
+      destroyed: "Bookshelf '%{bookshelf_name}' deleted."
+      updated: "Bookshelf '%{bookshelf_name}' updated."
     visibility:
       public: "Public"
       book_friends: "Book friends"
