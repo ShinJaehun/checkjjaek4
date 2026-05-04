@@ -195,7 +195,17 @@ en:
       update: "Update bookshelf"
     alerts:
       destroy_failed: "Bookshelf could not be deleted."
+    color_keys:
+      stone: "Default"
+      red: "Red"
+      orange: "Orange"
+      yellow: "Yellow"
+      green: "Green"
+      blue: "Blue"
+      purple: "Purple"
+      pink: "Pink"
     form:
+      color_key: "Color"
       edit_title: "Manage bookshelf"
       name: "Bookshelf name"
       name_placeholder: "New bookshelf name"

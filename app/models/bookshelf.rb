@@ -1,6 +1,7 @@
 class Bookshelf < ApplicationRecord
   DEFAULT_NAME = "내 책장"
   MAX_PER_USER = 20
+  COLOR_KEYS = %w[stone red orange yellow green blue purple pink].freeze
 
   enum :visibility,
        {
@@ -22,9 +23,11 @@ class Bookshelf < ApplicationRecord
   validates :name, presence: true
   validates :name, uniqueness: { scope: :user_id }
   validates :visibility, presence: true
+  validates :color_key, presence: true, inclusion: { in: COLOR_KEYS }
   validates :is_default, uniqueness: { scope: :user_id }, if: :is_default?
   validate :default_bookshelf_name_cannot_change
   validate :default_bookshelf_visibility_cannot_change
+  validate :default_bookshelf_color_key_must_be_stone
   validate :default_bookshelf_flag_cannot_change_to_false
   validate :bookshelves_per_user_limit, on: :create
 
@@ -55,6 +58,13 @@ class Bookshelf < ApplicationRecord
     return if new_record?
 
     errors.add(:visibility, :invalid)
+  end
+
+  def default_bookshelf_color_key_must_be_stone
+    return unless is_default?
+    return if color_key == "stone"
+
+    errors.add(:color_key, :invalid)
   end
 
   def default_bookshelf_flag_cannot_change_to_false

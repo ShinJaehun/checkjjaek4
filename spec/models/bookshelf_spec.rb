@@ -17,6 +17,12 @@ RSpec.describe Bookshelf, type: :model do
     expect(bookshelf).to be_visibility_public
   end
 
+  it "defaults color_key to stone" do
+    bookshelf = described_class.create!(user:, name: "Default Color Shelf")
+
+    expect(bookshelf.color_key).to eq("stone")
+  end
+
   it "does not allow duplicate names for the same user" do
     described_class.create!(user:, name: "Same Name")
     duplicate = described_class.new(user:, name: "Same Name")
@@ -54,6 +60,21 @@ RSpec.describe Bookshelf, type: :model do
     expect(bookshelf).to be_visibility_private
   end
 
+  it "allows configured color keys" do
+    described_class::COLOR_KEYS.each do |color_key|
+      bookshelf = described_class.new(user:, name: "Shelf #{color_key}", color_key: color_key)
+
+      expect(bookshelf).to be_valid
+    end
+  end
+
+  it "does not allow unsupported color keys" do
+    bookshelf = described_class.new(user:, name: "Bad Color Shelf", color_key: "black")
+
+    expect(bookshelf).not_to be_valid
+    expect(bookshelf.errors[:color_key]).to be_present
+  end
+
   it "does not destroy entries when destroying a bookshelf with entries" do
     book = Book.create!(title: "Shelf Entry Book", authors_text: "Author")
     bookshelf = user.bookshelves.create!(name: "Entry Shelf")
@@ -87,6 +108,14 @@ RSpec.describe Bookshelf, type: :model do
 
     expect(bookshelf).not_to be_valid
     expect(bookshelf.errors[:visibility]).to be_present
+  end
+
+  it "requires the default bookshelf color_key to be stone" do
+    bookshelf = user.default_bookshelf
+    bookshelf.color_key = "red"
+
+    expect(bookshelf).not_to be_valid
+    expect(bookshelf.errors[:color_key]).to be_present
   end
 
   it "does not allow changing the default bookshelf flag to false" do

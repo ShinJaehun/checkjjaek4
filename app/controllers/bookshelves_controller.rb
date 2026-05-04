@@ -48,7 +48,7 @@ class BookshelvesController < ApplicationController
   end
 
   def bookshelf_params
-    params.fetch(:bookshelf, {}).permit(:name, :visibility)
+    params.fetch(:bookshelf, {}).permit(:name, :visibility, :color_key)
   end
 
   def prepare_profile_after_create_failure
@@ -63,8 +63,9 @@ class BookshelvesController < ApplicationController
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
     @show_profile_bookshelf_move_control = true
     @show_profile_bookshelf_create_form = true
-    @bookshelf = current_user.bookshelves.build(visibility: :public) unless @bookshelf&.new_record?
+    @bookshelf = current_user.bookshelves.build(visibility: :public, color_key: "stone") unless @bookshelf&.new_record?
     @profile_bookshelf_visibility_options = Bookshelf.visibilities.keys
+    @profile_bookshelf_color_options = Bookshelf::COLOR_KEYS
     @profile_bookshelf_move_targets = current_user.bookshelves.default_first
     @profile_bookshelves = policy_scope(current_user.bookshelves).default_first
     visible_entries = policy_scope(current_user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
