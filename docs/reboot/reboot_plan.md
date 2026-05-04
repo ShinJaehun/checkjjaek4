@@ -109,14 +109,17 @@ Notification과는 연결하지 않는다.
 관련 문서:
 - `docs/specs/book_activity_mvp.md`
 
-### 3. Bookshelf foundation `부분 완료`
+### 3. Bookshelf foundation / UI `부분 완료`
 
 현재 구현에는 `Bookshelf` 모델, 사용자별 기본 책장, `BookshelfEntry.bookshelf_id`,
 책장 visibility 기준 profile scope가 도입되어 있다.
-다만 여러 책장 생성/수정/삭제 UI와 책장 이동 UI는 아직 구현되지 않았다.
+프로필 책장 탭, select 기반 책 이동, 일반 책장 생성 UI도 도입되어 있다.
 
-다음 Bookshelf 작업 기준은 `docs/specs/bookshelf_mvp.md`를 따른다.
+Bookshelf 도메인 정책은 `docs/specs/bookshelf_foundation.md`를 따른다.
+프로필 Bookshelf UI 기준은 `docs/specs/bookshelf_ui.md`를 따른다.
 
+일반 책장 이름/visibility 수정, 삭제, 색상, drag & drop, 순서 변경은 후속 작업에서 별도 spec으로 다룬다.
+ 
 - `Bookshelf`
 - 여러 책장
 - 책장 공개 범위

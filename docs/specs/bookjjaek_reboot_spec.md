@@ -509,38 +509,29 @@ ReJjaek은 새 Jjaek이지만,
 
 ---
 
-## 향후 확장: 한 서재 안 여러 책장 지원
+## 현재 구현: 한 서재 안 여러 책장 지원
 
-초기 MVP에서는 사용자마다 기본 서재 1개를 전제로 한다.
+현재 구현은 사용자마다 하나의 전체 서재를 가지고, 그 안에 여러 `Bookshelf`를 둘 수 있는 구조를 사용한다.
 
-즉:
-- 사용자는 자기 서재에 책을 담는다.
-- 책 상태와 스티커는 기본 서재 기준으로 관리한다.
-- 별도의 커스텀 책장 모델은 도입하지 않는다.
+현재 Bookshelf 정책의 세부 기준은 아래 문서를 따른다.
 
-향후 확장에서는 한 서재 안에 여러 개의 사용자 정의 책장을 지원할 수 있다.
+- 도메인/모델 정책: `docs/specs/bookshelf_foundation.md`
+- 프로필 UI 정책: `docs/specs/bookshelf_ui.md`
 
-다음 Bookshelf 작업의 세부 정책은 `docs/specs/bookshelf_mvp.md`를 기준으로 한다.
+현재 구현 기준:
 
-이 확장 단계에서는:
-- 한 사용자가 여러 책장을 가질 수 있다.
-- 각 책장은 공개 여부를 가질 수 있다.
-  - 공개 책장
-  - 비공개 책장
-- 프로필 화면에서 다른 사용자가 보는 책 목록은 우선 **공개 책장** 기준으로 해석한다.
-- 본인은 자신의 공개/비공개 책장을 모두 볼 수 있다.
-
-예:
-- 공개 책장
-- 비공개 책장
-
-이 확장 단계에서는 아래 모델 도입을 검토할 수 있다.
-
-- Bookshelf
-- BookshelfMembership
-- BookshelfEntry
+- 모든 사용자는 기본 책장 “내 책장”을 가진다.
+- 한 사용자는 여러 일반 책장을 만들 수 있다.
+- 각 Bookshelf는 `public`, `book_friends`, `private` visibility를 가진다.
+- 프로필 화면에서 다른 사용자가 보는 책 목록은 Bookshelf visibility를 기준으로 제한된다.
+- 본인은 자신의 모든 책장을 볼 수 있다.
+- accepted book_friend는 `public` + `book_friends` 책장을 볼 수 있다.
+- follow-only / stranger는 `public` 책장만 볼 수 있다.
+- 한 사용자 기준 같은 책은 하나의 `BookshelfEntry`만 가진다.
+- 같은 책을 다른 책장에 넣는 것은 중복 추가가 아니라 기존 `BookshelfEntry.bookshelf_id`를 바꾸는 책장 이동으로 처리한다.
 
 여기서 한국어 용어 해석은 다음과 같이 둔다.
+
 - 서재 = 사용자 전체 독서 공간
 - Bookshelf = 서재 안의 책장
 
