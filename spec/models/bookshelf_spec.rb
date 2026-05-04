@@ -47,6 +47,22 @@ RSpec.describe Bookshelf, type: :model do
     expect(duplicate).not_to be_valid
   end
 
+  it "orders the default bookshelf first and regular bookshelves by position" do
+    later = user.bookshelves.create!(name: "Later", position: 2)
+    earlier = user.bookshelves.create!(name: "Earlier", position: 1)
+
+    expect(user.bookshelves.default_first).to eq([ user.default_bookshelf, earlier, later ])
+  end
+
+  it "assigns a new regular bookshelf to the last position" do
+    user.bookshelves.create!(name: "First Regular")
+    user.bookshelves.create!(name: "Second Regular")
+
+    bookshelf = user.bookshelves.create!(name: "Third Regular")
+
+    expect(bookshelf.position).to eq(3)
+  end
+
   it "allows book_friends visibility" do
     bookshelf = described_class.new(user:, name: "Friends Shelf", visibility: :book_friends)
 

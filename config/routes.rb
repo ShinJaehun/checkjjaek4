@@ -13,7 +13,10 @@ Rails.application.routes.draw do
   resources :bookshelf_entries, only: %i[index create edit update destroy] do
     patch :move, on: :member
   end
-  resources :bookshelves, only: %i[create update destroy]
+  resources :bookshelves, only: %i[create update destroy] do
+    patch :move_up, on: :member
+    patch :move_down, on: :member
+  end
   resources :jjaeks, only: %i[new show create edit update destroy] do
     resources :comments, only: %i[create update destroy]
     resource :like, only: %i[create destroy]

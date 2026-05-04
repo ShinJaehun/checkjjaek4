@@ -25,6 +25,7 @@ RSpec.describe "Bookshelves", type: :request do
     expect(bookshelf.visibility).to eq("book_friends")
     expect(bookshelf.color_key).to eq("purple")
     expect(bookshelf.is_default).to be(false)
+    expect(bookshelf.position).to eq(1)
     expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
     expect(flash[:notice]).to include("수업 추천")
   end
@@ -217,5 +218,73 @@ RSpec.describe "Bookshelves", type: :request do
     expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
     expect(flash[:alert]).to be_present
     expect(Bookshelf.exists?(bookshelf.id)).to be(true)
+  end
+
+  it "moves an owned regular bookshelf up" do
+    first = user.bookshelves.create!(name: "첫 일반")
+    second = user.bookshelves.create!(name: "둘째 일반")
+    sign_in user
+
+    patch move_up_bookshelf_path(second)
+
+    expect(response).to redirect_to(user_path(user, bookshelf_id: second.id))
+    expect(ordered_regular_bookshelves(user)).to eq([ second, first ])
+  end
+
+  it "moves an owned regular bookshelf down" do
+    first = user.bookshelves.create!(name: "첫 일반")
+    second = user.bookshelves.create!(name: "둘째 일반")
+    sign_in user
+
+    patch move_down_bookshelf_path(first)
+
+    expect(response).to redirect_to(user_path(user, bookshelf_id: first.id))
+    expect(ordered_regular_bookshelves(user)).to eq([ second, first ])
+  end
+
+  it "does not move the default bookshelf" do
+    bookshelf = user.default_bookshelf
+    sign_in user
+
+    patch move_down_bookshelf_path(bookshelf)
+
+    expect(response).to redirect_to(root_path)
+    expect(user.bookshelves.default_first.first).to eq(bookshelf)
+  end
+
+  it "does not move another user's bookshelf" do
+    bookshelf = other_user.bookshelves.create!(name: "남의 이동 책장")
+    sign_in user
+
+    patch move_up_bookshelf_path(bookshelf)
+
+    expect(response).to redirect_to(root_path)
+    expect(ordered_regular_bookshelves(other_user)).to eq([ bookshelf ])
+  end
+
+  it "keeps order when moving the first regular bookshelf up" do
+    first = user.bookshelves.create!(name: "첫 일반")
+    second = user.bookshelves.create!(name: "둘째 일반")
+    sign_in user
+
+    patch move_up_bookshelf_path(first)
+
+    expect(response).to redirect_to(user_path(user, bookshelf_id: first.id))
+    expect(ordered_regular_bookshelves(user)).to eq([ first, second ])
+  end
+
+  it "keeps order when moving the last regular bookshelf down" do
+    first = user.bookshelves.create!(name: "첫 일반")
+    second = user.bookshelves.create!(name: "둘째 일반")
+    sign_in user
+
+    patch move_down_bookshelf_path(second)
+
+    expect(response).to redirect_to(user_path(user, bookshelf_id: second.id))
+    expect(ordered_regular_bookshelves(user)).to eq([ first, second ])
+  end
+
+  def ordered_regular_bookshelves(owner)
+    owner.bookshelves.where(is_default: false).default_first.to_a
   end
 end

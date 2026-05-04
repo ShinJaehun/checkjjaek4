@@ -192,6 +192,8 @@ en:
     actions:
       create: "Create bookshelf"
       destroy: "Delete bookshelf"
+      move_down: "Move down"
+      move_up: "Move up"
       update: "Update bookshelf"
     alerts:
       destroy_failed: "Bookshelf could not be deleted."
@@ -214,6 +216,7 @@ en:
     notices:
       created: "Bookshelf '%{bookshelf_name}' created."
       destroyed: "Bookshelf '%{bookshelf_name}' deleted."
+      moved: "Bookshelf '%{bookshelf_name}' moved."
       updated: "Bookshelf '%{bookshelf_name}' updated."
     visibility:
       public: "Public"

@@ -35,6 +35,7 @@ class UsersController < ApplicationController
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
     @selected_bookshelf = selected_profile_bookshelf(@profile_bookshelves)
     @managed_bookshelf ||= @selected_bookshelf if @show_profile_bookshelf_create_form && @selected_bookshelf&.is_default? == false
+    @profile_bookshelf_order_controls = @show_profile_bookshelf_create_form ? bookshelf_order_controls(@profile_bookshelves) : {}
     @bookshelf_entries =
       if @selected_bookshelf
         visible_entries.where(bookshelf: @selected_bookshelf).recent_first
@@ -48,6 +49,13 @@ class UsersController < ApplicationController
     requested_bookshelf = bookshelves.find { |bookshelf| bookshelf.id.to_s == params[:bookshelf_id].to_s }
 
     requested_bookshelf || bookshelves.find(&:is_default?) || bookshelves.first
+  end
+
+  def bookshelf_order_controls(bookshelves)
+    regular_bookshelves = bookshelves.reject(&:is_default?)
+    regular_bookshelves.each_with_index.to_h do |bookshelf, index|
+      [ bookshelf.id, { move_up: index.positive?, move_down: index < regular_bookshelves.size - 1 } ]
+    end
   end
 
   def prepare_profile_jjaeks(profile_policy)

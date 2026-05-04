@@ -16,8 +16,9 @@ class Bookshelf < ApplicationRecord
 
   has_many :bookshelf_entries, dependent: :restrict_with_error
 
-  scope :default_first, -> { order(is_default: :desc, created_at: :asc, id: :asc) }
+  scope :default_first, -> { order(is_default: :desc, position: :asc, id: :asc) }
 
+  before_validation :assign_position, on: :create
   before_destroy :prevent_default_bookshelf_destroy, unless: :user_being_destroyed?
 
   validates :name, presence: true
@@ -31,7 +32,48 @@ class Bookshelf < ApplicationRecord
   validate :default_bookshelf_flag_cannot_change_to_false
   validate :bookshelves_per_user_limit, on: :create
 
+  def move_up!
+    swap_position_with(previous_regular_bookshelf)
+  end
+
+  def move_down!
+    swap_position_with(next_regular_bookshelf)
+  end
+
   private
+
+  def assign_position
+    self.position = 0 if is_default?
+    return if is_default? || position.to_i.positive? || user.blank?
+
+    self.position = user.bookshelves.where(is_default: false).maximum(:position).to_i + 1
+  end
+
+  def previous_regular_bookshelf
+    user.bookshelves
+      .where(is_default: false)
+      .where("position < ? OR (position = ? AND id < ?)", position, position, id)
+      .order(position: :desc, id: :desc)
+      .first
+  end
+
+  def next_regular_bookshelf
+    user.bookshelves
+      .where(is_default: false)
+      .where("position > ? OR (position = ? AND id > ?)", position, position, id)
+      .order(position: :asc, id: :asc)
+      .first
+  end
+
+  def swap_position_with(other_bookshelf)
+    return true unless other_bookshelf
+
+    self.class.transaction do
+      current_position = position
+      update!(position: other_bookshelf.position)
+      other_bookshelf.update!(position: current_position)
+    end
+  end
 
   def prevent_default_bookshelf_destroy
     return unless is_default?
