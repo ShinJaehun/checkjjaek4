@@ -116,10 +116,11 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("bookshelves.form.title"))
       expect(response.body).to include('name="bookshelf[name]"')
       expect(response.body).to include('name="bookshelf[visibility]"')
+      expect(response.body).to include('name="bookshelf[color_key]"')
     end
 
     it "shows bookshelf edit and delete controls for an owned empty non-default bookshelf" do
-      bookshelf = viewer.bookshelves.create!(name: "관리할 빈 책장", visibility: :private)
+      bookshelf = viewer.bookshelves.create!(name: "관리할 빈 책장", visibility: :private, color_key: "green")
       sign_in viewer
 
       get user_path(viewer, bookshelf_id: bookshelf.id)
@@ -127,6 +128,8 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("bookshelves.form.edit_title"))
       expect(response.body).to include(I18n.t("bookshelves.actions.update"))
       expect(response.body).to include(I18n.t("bookshelves.actions.destroy"))
+      expect(response.body).to include('name="bookshelf[color_key]"')
+      expect(response.body).to include("bg-green-600")
     end
 
     it "does not show bookshelf edit or delete controls for the default bookshelf" do
@@ -148,6 +151,17 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
       expect(response.body).not_to include(I18n.t("bookshelves.actions.update"))
       expect(response.body).not_to include(I18n.t("bookshelves.actions.destroy"))
+    end
+
+    it "shows bookshelf tab color on another user's profile without management controls" do
+      bookshelf = profile_user.bookshelves.create!(name: "색상 보이는 책장", visibility: :public, color_key: "blue")
+      sign_in viewer
+
+      get user_path(profile_user, bookshelf_id: bookshelf.id)
+
+      expect(response.body).to include("bg-blue-600")
+      expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
+      expect(response.body).not_to include('name="bookshelf[color_key]"')
     end
 
     it "does not show the bookshelf create form on another user's profile" do
@@ -602,8 +616,8 @@ RSpec.describe "Users", type: :request do
     ActionView::Base.full_sanitizer.sanitize(response.body)
   end
 
-  def create_profile_bookshelf_entry(user:, bookshelf_name:, visibility:, book_title:, status: nil, sticker_name: nil)
-    bookshelf = user.bookshelves.create!(name: bookshelf_name, visibility: visibility)
+  def create_profile_bookshelf_entry(user:, bookshelf_name:, visibility:, book_title:, status: nil, sticker_name: nil, color_key: "stone")
+    bookshelf = user.bookshelves.create!(name: bookshelf_name, visibility: visibility, color_key: color_key)
     book = Book.create!(title: book_title, authors_text: "탭 테스트 저자")
     entry = user.bookshelf_entries.create!(book: book, bookshelf: bookshelf, status: status)
 

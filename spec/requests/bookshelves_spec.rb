@@ -12,6 +12,7 @@ RSpec.describe "Bookshelves", type: :request do
         bookshelf: {
           name: "수업 추천",
           visibility: "book_friends",
+          color_key: "purple",
           is_default: true,
           user_id: other_user.id
         }
@@ -22,9 +23,18 @@ RSpec.describe "Bookshelves", type: :request do
     expect(other_user.bookshelves.count).to eq(1)
     expect(bookshelf.name).to eq("수업 추천")
     expect(bookshelf.visibility).to eq("book_friends")
+    expect(bookshelf.color_key).to eq("purple")
     expect(bookshelf.is_default).to be(false)
     expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
     expect(flash[:notice]).to include("수업 추천")
+  end
+
+  it "defaults color_key to stone when creating a bookshelf without color_key" do
+    sign_in user
+
+    post bookshelves_path, params: { bookshelf: { name: "기본색 책장", visibility: "public" } }
+
+    expect(user.bookshelves.order(:created_at).last.color_key).to eq("stone")
   end
 
   it "does not create a duplicate bookshelf name for the same user" do
@@ -63,21 +73,33 @@ RSpec.describe "Bookshelves", type: :request do
     expect(response.body).to include(I18n.t("users.profile.bookshelf_tabs"))
   end
 
+  it "does not create a bookshelf with an unsupported color_key" do
+    sign_in user
+
+    expect {
+      post bookshelves_path, params: { bookshelf: { name: "이상한 색상", visibility: "public", color_key: "black" } }
+    }.not_to change(Bookshelf, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("users.profile.bookshelf_tabs"))
+  end
+
   it "requires a signed-in user" do
     post bookshelves_path, params: { bookshelf: { name: "비로그인 책장", visibility: "public" } }
 
     expect(response).to redirect_to(new_user_session_path)
   end
 
-  it "updates an owned non-default bookshelf name and visibility" do
+  it "updates an owned non-default bookshelf name, visibility, and color_key" do
     bookshelf = user.bookshelves.create!(name: "수정 전", visibility: :public)
     sign_in user
 
-    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "수정 후", visibility: "private", is_default: true } }
+    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "수정 후", visibility: "private", color_key: "blue", is_default: true } }
 
     expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
     expect(bookshelf.reload.name).to eq("수정 후")
     expect(bookshelf.visibility).to eq("private")
+    expect(bookshelf.color_key).to eq("blue")
     expect(bookshelf.is_default).to be(false)
     expect(flash[:notice]).to include("수정 후")
   end
@@ -86,11 +108,12 @@ RSpec.describe "Bookshelves", type: :request do
     bookshelf = user.default_bookshelf
     sign_in user
 
-    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "기본 수정", visibility: "private", is_default: false } }
+    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "기본 수정", visibility: "private", color_key: "pink", is_default: false } }
 
     expect(response).to redirect_to(root_path)
     expect(bookshelf.reload.name).to eq(Bookshelf::DEFAULT_NAME)
     expect(bookshelf.visibility).to eq("public")
+    expect(bookshelf.color_key).to eq("stone")
     expect(bookshelf.is_default).to be(true)
   end
 
@@ -131,6 +154,17 @@ RSpec.describe "Bookshelves", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include(I18n.t("users.profile.bookshelf_tabs"))
     expect(bookshelf.reload.visibility).to eq("public")
+  end
+
+  it "rerenders the profile bookshelf section when update color_key is unsupported" do
+    bookshelf = user.bookshelves.create!(name: "색상 수정 대상", visibility: :public, color_key: "green")
+    sign_in user
+
+    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "색상 수정 대상", visibility: "public", color_key: "black" } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("users.profile.bookshelf_tabs"))
+    expect(bookshelf.reload.color_key).to eq("green")
   end
 
   it "deletes an empty owned non-default bookshelf" do
