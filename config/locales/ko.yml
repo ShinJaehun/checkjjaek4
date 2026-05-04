@@ -306,6 +306,9 @@ ko:
       request_book_friend: "책친구 신청"
       remove_book_friend: "책친구 해제"
       unfollow: "소식받는 중"
+    library:
+      eyebrow: "서재"
+      title: "전체 서재"
     profile:
       activity_eyebrow: "활동"
       activity_title: "최근 활동"

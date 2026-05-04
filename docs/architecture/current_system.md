@@ -107,7 +107,20 @@
 
 ---
 
-### 4. 관계 화면 (/relationships)
+### 4. 서재 화면 (/users/:user_id/library)
+
+- 사용자별 전체 서재 화면
+- 기존 프로필 Bookshelf UI와 같은 Bookshelf/BookshelfEntry 데이터를 사용한다
+- 접근 가능한 책장 탭, 선택된 책장 책 목록, 책 이동, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
+- Library는 새 DB 모델이 아니라 화면/라우팅 개념이다
+
+관련 코드:
+- controller: app/controllers/users/libraries_controller.rb
+- view: app/views/users/libraries/show.html.erb
+
+---
+
+### 5. 관계 화면 (/relationships)
 
 - 현재 구현된 관계 관리 허브 화면
 - 받은 책친구 요청
@@ -122,7 +135,7 @@
 
 ---
 
-### 5. 알림 화면 (/notifications)
+### 6. 알림 화면 (/notifications)
 
 - `Notification` 모델 기반 알림 inbox
 - unread count를 navbar에 표시
@@ -138,7 +151,7 @@
 
 ---
 
-### 6. 책 검색 화면 (/book_search)
+### 7. 책 검색 화면 (/book_search)
 
 - `book_searches#show` 기반 검색 화면
 - query string 기반 GET 검색
