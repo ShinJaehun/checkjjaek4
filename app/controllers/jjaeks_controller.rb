@@ -141,9 +141,14 @@ class JjaeksController < ApplicationController
   def prepare_profile_bookshelf(profile_policy)
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
-    @bookshelf_entries =
+    @show_library_link = profile_policy.show_library?
+    @show_profile_bookshelf_detail = false
+    visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
+    @profile_public_bookshelf_entries =
       if @show_bookshelf
-        policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope).recent_first
+        visible_entries.joins(:bookshelf).where(bookshelves: { visibility: "public" }).profile_sorted("recent")
+      else
+        BookshelfEntry.none
       end
   end
 

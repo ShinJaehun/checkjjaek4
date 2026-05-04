@@ -21,6 +21,8 @@ class UsersController < ApplicationController
   def prepare_profile_bookshelf(profile_policy)
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
+    @show_library_link = profile_policy.show_library?
+    @show_profile_bookshelf_detail = @show_library_link
     @show_profile_bookshelf_move_control = current_user == @user
     @show_profile_bookshelf_create_form = current_user == @user
     @bookshelf ||= current_user.bookshelves.build(visibility: :public, color_key: "stone") if @show_profile_bookshelf_create_form
@@ -32,8 +34,17 @@ class UsersController < ApplicationController
 
     return unless @show_bookshelf
 
-    @profile_bookshelves = policy_scope(@user.bookshelves).default_first
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
+
+    unless @show_profile_bookshelf_detail
+      @profile_public_bookshelf_entries = visible_entries
+        .joins(:bookshelf)
+        .where(bookshelves: { visibility: "public" })
+        .profile_sorted("recent")
+      return
+    end
+
+    @profile_bookshelves = policy_scope(@user.bookshelves).default_first
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
     @selected_bookshelf = selected_profile_bookshelf(@profile_bookshelves)
     @managed_bookshelf ||= @selected_bookshelf if @show_profile_bookshelf_create_form && @selected_bookshelf&.is_default? == false

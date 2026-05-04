@@ -328,3 +328,4 @@ en:
       eyebrow: "Reader Profile"
       new_jjaek_title: "Write a Jjaek"
       stats: "%{followers} followers · %{following} following"
+      view_library: "View library"

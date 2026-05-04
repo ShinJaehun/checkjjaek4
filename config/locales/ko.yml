@@ -328,3 +328,4 @@ ko:
       eyebrow: "독자 프로필"
       new_jjaek_title: "짹 쓰기"
       stats: "소식받는 사람 %{followers}명 · 소식받기 %{following}명"
+      view_library: "서재 보기"

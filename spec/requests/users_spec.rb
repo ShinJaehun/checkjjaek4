@@ -25,15 +25,18 @@ RSpec.describe "Users", type: :request do
       expect(response).to redirect_to(new_user_session_path)
     end
 
-    it "shows the bookshelf and only public jjaeks to unrelated users" do
+    it "shows public books summary and only public jjaeks to unrelated users" do
       sign_in viewer
 
       get user_path(profile_user)
 
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("저자")
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
       expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).not_to include("PROFILE_SHELF_UNIQUE_STICKER")
+      expect(response.body).not_to include(I18n.t("users.profile.view_library"))
       expect(response.body).to include("Profile Jjaek")
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
@@ -42,7 +45,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
-    it "shows the bookshelf and only public jjaeks to follow-only users" do
+    it "shows public books summary and only public jjaeks to follow-only users" do
       viewer.active_follows.create!(followee: profile_user)
       sign_in viewer
 
@@ -50,8 +53,11 @@ RSpec.describe "Users", type: :request do
 
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("Profile Jjaek")
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
       expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).not_to include("PROFILE_SHELF_UNIQUE_STICKER")
+      expect(response.body).not_to include(I18n.t("users.profile.view_library"))
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
@@ -70,6 +76,8 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("Profile Jjaek")
       expect(response.body).to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
+      expect(response.body).to include(I18n.t("users.profile.view_library"))
+      expect(response.body).to include(user_library_path(profile_user))
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include('name="jjaek[target_user_id]"')
       expect(response.body).to include(I18n.t("jjaeks.visibility.book_friends"))
@@ -89,6 +97,8 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
       expect(response.body).to include("OWN_PROFILE_SHELF_STICKER")
       expect(response.body).to include("내 비공개 짹")
+      expect(response.body).to include(I18n.t("users.profile.view_library"))
+      expect(response.body).to include(user_library_path(viewer))
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
     end
@@ -196,6 +206,7 @@ RSpec.describe "Users", type: :request do
 
     it "shows bookshelf tab color on another user's profile without management controls" do
       bookshelf = profile_user.bookshelves.create!(name: "색상 보이는 책장", visibility: :public, color_key: "blue")
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       sign_in viewer
 
       get user_path(profile_user, bookshelf_id: bookshelf.id)
@@ -247,7 +258,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("FRIEND_HIDDEN_PRIVATE_TAB_SHELF")
     end
 
-    it "shows only public bookshelf tabs to strangers" do
+    it "does not show bookshelf tabs to strangers" do
       create_profile_bookshelf_entry(
         user: profile_user,
         bookshelf_name: "STRANGER_HIDDEN_FRIEND_TAB_SHELF",
@@ -264,12 +275,12 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).not_to include("STRANGER_HIDDEN_FRIEND_TAB_SHELF")
       expect(response.body).not_to include("STRANGER_HIDDEN_PRIVATE_TAB_SHELF")
     end
 
-    it "shows only public bookshelf tabs to follow-only users" do
+    it "does not show bookshelf tabs to follow-only users" do
       viewer.active_follows.create!(followee: profile_user)
       create_profile_bookshelf_entry(
         user: profile_user,
@@ -287,7 +298,7 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).not_to include("FOLLOW_ONLY_HIDDEN_FRIEND_TAB_SHELF")
       expect(response.body).not_to include("FOLLOW_ONLY_HIDDEN_PRIVATE_TAB_SHELF")
     end
@@ -305,6 +316,7 @@ RSpec.describe "Users", type: :request do
         visibility: :public,
         book_title: "UNSELECTED_TAB_BOOK"
       )
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       sign_in viewer
 
       get user_path(profile_user, bookshelf_id: selected_shelf.id)

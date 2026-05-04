@@ -77,6 +77,8 @@ class BookshelvesController < ApplicationController
     @book_friendship = nil
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
+    @show_library_link = true
+    @show_profile_bookshelf_detail = true
     @show_profile_bookshelf_move_control = true
     @show_profile_bookshelf_create_form = true
     @bookshelf = current_user.bookshelves.build(visibility: :public, color_key: "stone") unless @bookshelf&.new_record?
