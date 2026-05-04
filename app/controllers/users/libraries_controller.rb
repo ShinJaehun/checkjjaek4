@@ -2,6 +2,8 @@ class Users::LibrariesController < ApplicationController
   def show
     @user = User.find(params[:user_id])
     authorize @user, :show?
+    return redirect_to user_path(@user) unless policy(@user).show_library?
+
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
     prepare_library_bookshelf(policy(@user))
   end

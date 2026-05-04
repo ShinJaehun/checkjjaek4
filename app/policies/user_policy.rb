@@ -3,6 +3,10 @@ class UserPolicy < ApplicationPolicy
     user.present?
   end
 
+  def show_library?
+    %i[self book_friend].include?(profile_access_level)
+  end
+
   def follow?
     user.present? && record != user
   end
