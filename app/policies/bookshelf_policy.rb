@@ -19,6 +19,14 @@ class BookshelfPolicy < ApplicationPolicy
     update?
   end
 
+  def move_up?
+    update?
+  end
+
+  def move_down?
+    update?
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?

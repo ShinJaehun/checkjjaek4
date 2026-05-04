@@ -4,6 +4,7 @@
   <% move_target_bookshelves = local_assigns[:move_target_bookshelves] || [] %>
   <% new_bookshelf = local_assigns[:new_bookshelf] %>
   <% managed_bookshelf = local_assigns[:managed_bookshelf] %>
+  <% bookshelf_order_controls = local_assigns[:bookshelf_order_controls] || {} %>
   <% bookshelf_visibility_options = local_assigns[:bookshelf_visibility_options] || [] %>
   <% bookshelf_color_options = local_assigns[:bookshelf_color_options] || [] %>
 
@@ -111,6 +112,25 @@
 
         <%= form.submit t("bookshelves.actions.update"),
                         class: "rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white" %>
+      <% end %>
+
+      <% order_controls = bookshelf_order_controls.fetch(managed_bookshelf.id, {}) %>
+      <% if order_controls[:move_up] || order_controls[:move_down] %>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <% if order_controls[:move_up] %>
+            <%= button_to t("bookshelves.actions.move_up"),
+                          move_up_bookshelf_path(managed_bookshelf),
+                          method: :patch,
+                          class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
+          <% end %>
+
+          <% if order_controls[:move_down] %>
+            <%= button_to t("bookshelves.actions.move_down"),
+                          move_down_bookshelf_path(managed_bookshelf),
+                          method: :patch,
+                          class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
+          <% end %>
+        </div>
       <% end %>
 
       <% if bookshelf_entry_counts.fetch(managed_bookshelf.id, 0).zero? %>

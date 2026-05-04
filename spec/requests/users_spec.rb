@@ -132,6 +132,18 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("bg-green-600")
     end
 
+    it "shows bookshelf ordering controls for an owned regular bookshelf" do
+      viewer.bookshelves.create!(name: "순서 앞 책장")
+      bookshelf = viewer.bookshelves.create!(name: "순서 가운데 책장")
+      viewer.bookshelves.create!(name: "순서 뒤 책장")
+      sign_in viewer
+
+      get user_path(viewer, bookshelf_id: bookshelf.id)
+
+      expect(response.body).to include(I18n.t("bookshelves.actions.move_up"))
+      expect(response.body).to include(I18n.t("bookshelves.actions.move_down"))
+    end
+
     it "does not show bookshelf edit or delete controls for the default bookshelf" do
       sign_in viewer
 
@@ -140,6 +152,8 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
       expect(response.body).not_to include(I18n.t("bookshelves.actions.update"))
       expect(response.body).not_to include(I18n.t("bookshelves.actions.destroy"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_up"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_down"))
     end
 
     it "does not show bookshelf edit or delete controls on another user's profile" do
@@ -151,6 +165,33 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
       expect(response.body).not_to include(I18n.t("bookshelves.actions.update"))
       expect(response.body).not_to include(I18n.t("bookshelves.actions.destroy"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_up"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_down"))
+    end
+
+    it "shows changed bookshelf tab order after moving" do
+      first = viewer.bookshelves.create!(name: "ORDER_BEFORE")
+      second = viewer.bookshelves.create!(name: "ORDER_AFTER")
+      sign_in viewer
+
+      patch move_down_bookshelf_path(first)
+      get user_path(viewer, bookshelf_id: first.id)
+
+      bookshelf_tabs_label = ERB::Util.html_escape(I18n.t("users.profile.bookshelf_tabs"))
+      bookshelf_tabs_match = response.body.match(
+        /<nav[^>]+aria-label="#{Regexp.escape(bookshelf_tabs_label)}"[^>]*>.*?<\/nav>/m
+      )
+
+      expect(bookshelf_tabs_match).to be_present
+
+      bookshelf_tabs_html = bookshelf_tabs_match[0]
+
+      expect(bookshelf_tabs_html).to include("ORDER_AFTER")
+      expect(bookshelf_tabs_html).to include("ORDER_BEFORE")
+
+      expect(bookshelf_tabs_html.index("ORDER_AFTER")).to be < bookshelf_tabs_html.index("ORDER_BEFORE")
+      expect(response.body).to include(user_path(viewer, bookshelf_id: first.id))
+      expect(response.body).to include(user_path(viewer, bookshelf_id: second.id))
     end
 
     it "shows bookshelf tab color on another user's profile without management controls" do

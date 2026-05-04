@@ -1,5 +1,5 @@
 class BookshelvesController < ApplicationController
-  before_action :set_bookshelf, only: %i[update destroy]
+  before_action :set_bookshelf, only: %i[update destroy move_up move_down]
 
   def create
     @bookshelf = current_user.bookshelves.build(bookshelf_params)
@@ -41,6 +41,22 @@ class BookshelvesController < ApplicationController
     end
   end
 
+  def move_up
+    authorize @bookshelf
+    @bookshelf.move_up!
+
+    redirect_to user_path(current_user, bookshelf_id: @bookshelf.id),
+                notice: t("bookshelves.notices.moved", bookshelf_name: @bookshelf.name)
+  end
+
+  def move_down
+    authorize @bookshelf
+    @bookshelf.move_down!
+
+    redirect_to user_path(current_user, bookshelf_id: @bookshelf.id),
+                notice: t("bookshelves.notices.moved", bookshelf_name: @bookshelf.name)
+  end
+
   private
 
   def set_bookshelf
@@ -72,6 +88,7 @@ class BookshelvesController < ApplicationController
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
     @selected_bookshelf = selected_profile_bookshelf(@profile_bookshelves, selected_bookshelf_id)
     @managed_bookshelf = managed_bookshelf || (@selected_bookshelf if @selected_bookshelf&.is_default? == false)
+    @profile_bookshelf_order_controls = bookshelf_order_controls(@profile_bookshelves)
     @bookshelf_entries = @selected_bookshelf ? visible_entries.where(bookshelf: @selected_bookshelf).recent_first : BookshelfEntry.none
     @profile_jjaek = Jjaek.new(user: current_user, target_user: current_user, visibility: :public_jjaek)
     @profile_jjaek_visibility_options = %w[public_jjaek book_friends private_jjaek]
@@ -91,5 +108,12 @@ class BookshelvesController < ApplicationController
 
   def fallback_bookshelf_after_destroy
     current_user.bookshelves.default_first.first
+  end
+
+  def bookshelf_order_controls(bookshelves)
+    regular_bookshelves = bookshelves.reject(&:is_default?)
+    regular_bookshelves.each_with_index.to_h do |bookshelf, index|
+      [ bookshelf.id, { move_up: index.positive?, move_down: index < regular_bookshelves.size - 1 } ]
+    end
   end
 end
