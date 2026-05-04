@@ -24,6 +24,17 @@ RSpec.describe Bookshelf, type: :model do
     expect(duplicate).not_to be_valid
   end
 
+  it "does not allow more than twenty bookshelves per user" do
+    19.times do |index|
+      user.bookshelves.create!(name: "Shelf #{index}")
+    end
+
+    bookshelf = user.bookshelves.build(name: "One Too Many")
+
+    expect(bookshelf).not_to be_valid
+    expect(bookshelf.errors[:base]).to be_present
+  end
+
   it "does not allow more than one default bookshelf per user" do
     duplicate = described_class.new(user:, name: "Another Default", is_default: true)
 

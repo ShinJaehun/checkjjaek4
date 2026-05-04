@@ -1,5 +1,6 @@
 class Bookshelf < ApplicationRecord
   DEFAULT_NAME = "내 책장"
+  MAX_PER_USER = 20
 
   enum :visibility,
        {
@@ -24,6 +25,7 @@ class Bookshelf < ApplicationRecord
   validates :is_default, uniqueness: { scope: :user_id }, if: :is_default?
   validate :default_bookshelf_name_cannot_change
   validate :default_bookshelf_flag_cannot_change_to_false
+  validate :bookshelves_per_user_limit, on: :create
 
   private
 
@@ -50,5 +52,12 @@ class Bookshelf < ApplicationRecord
     return unless will_save_change_to_is_default?(from: true, to: false)
 
     errors.add(:is_default, :invalid)
+  end
+
+  def bookshelves_per_user_limit
+    return unless user
+    return if user.bookshelves.count < MAX_PER_USER
+
+    errors.add(:base, :too_many_bookshelves, count: MAX_PER_USER)
   end
 end

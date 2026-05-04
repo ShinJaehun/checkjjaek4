@@ -7,6 +7,10 @@ en:
             visibility:
               cannot_exceed_quoted_visibility: "cannot be broader than the original Jjaek"
               invalid: "is invalid"
+        bookshelf:
+          attributes:
+            base:
+              too_many_bookshelves: "You can create up to %{count} bookshelves."
   auth:
     actions:
       sign_in: "Sign in"
@@ -184,6 +188,20 @@ en:
       wish: "Want to read"
       reading: "Reading"
       finished: "Finished"
+  bookshelves:
+    actions:
+      create: "Create bookshelf"
+    form:
+      name: "Bookshelf name"
+      name_placeholder: "New bookshelf name"
+      title: "New bookshelf"
+      visibility: "Visibility"
+    notices:
+      created: "Bookshelf '%{bookshelf_name}' created."
+    visibility:
+      public: "Public"
+      book_friends: "Book friends"
+      private: "Only me"
   books:
     show:
       save_state: "Save state"
