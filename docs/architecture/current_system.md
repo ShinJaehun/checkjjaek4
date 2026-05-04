@@ -84,7 +84,7 @@
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
 - 프로필 책 목록은 Bookshelf visibility를 기준으로 조회 가능한 `BookshelfEntry`만 보여준다
 - 프로필 책 목록은 접근 가능한 Bookshelf를 링크 기반 탭으로 표시하고, 선택된 Bookshelf의 entry만 보여준다
-- profile owner는 자신의 프로필 책 목록에서 select 기반으로 `BookshelfEntry`의 Bookshelf를 이동할 수 있다
+- profile owner는 자신의 프로필에서 일반 Bookshelf를 생성할 수 있다
 - 최근 활동 섹션은 profile owner의 visible Jjaek과 visible BookActivity를 함께 보여준다
 - 실제 Jjaek 노출 범위는 기존 profile Jjaek 정책을 따른다
 - BookActivity 노출 범위는 `self / accepted book_friend` 기준이다
