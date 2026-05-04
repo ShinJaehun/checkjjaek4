@@ -68,11 +68,11 @@ class BookshelfEntriesController < ApplicationController
     target_bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
 
     if @bookshelf_entry.update(bookshelf: target_bookshelf)
-      redirect_back fallback_location: user_path(current_user, bookshelf_id: target_bookshelf.id),
-                    notice: t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
+      redirect_to bookshelf_entry_move_redirect_path(target_bookshelf),
+                  notice: t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
     else
-      redirect_back fallback_location: user_path(current_user),
-                    alert: @bookshelf_entry.errors.full_messages.to_sentence
+      redirect_to bookshelf_entry_move_redirect_path(@bookshelf_entry.bookshelf),
+                  alert: @bookshelf_entry.errors.full_messages.to_sentence
     end
   end
 
@@ -124,5 +124,13 @@ class BookshelfEntriesController < ApplicationController
       previous_status: previous_status,
       previous_sticker_definition_ids: previous_sticker_definition_ids
     )
+  end
+
+  def bookshelf_entry_move_redirect_path(bookshelf)
+    if params[:return_to] == "library"
+      user_library_path(current_user, bookshelf_id: bookshelf&.id)
+    else
+      user_path(current_user, bookshelf_id: bookshelf&.id)
+    end
   end
 end

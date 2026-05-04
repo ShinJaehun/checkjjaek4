@@ -7,11 +7,11 @@ class BookshelvesController < ApplicationController
     authorize @bookshelf
 
     if @bookshelf.save
-      redirect_to user_path(current_user, bookshelf_id: @bookshelf.id),
+      redirect_to bookshelf_redirect_path(@bookshelf.id),
                   notice: t("bookshelves.notices.created", bookshelf_name: @bookshelf.name)
     else
       prepare_profile_after_create_failure
-      render "users/show", status: :unprocessable_content
+      render bookshelf_failure_template, status: :unprocessable_content
     end
   end
 
@@ -19,11 +19,11 @@ class BookshelvesController < ApplicationController
     authorize @bookshelf
 
     if @bookshelf.update(bookshelf_params)
-      redirect_to user_path(current_user, bookshelf_id: @bookshelf.id),
+      redirect_to bookshelf_redirect_path(@bookshelf.id),
                   notice: t("bookshelves.notices.updated", bookshelf_name: @bookshelf.name)
     else
       prepare_profile_after_failure(selected_bookshelf_id: @bookshelf.id, managed_bookshelf: @bookshelf)
-      render "users/show", status: :unprocessable_content
+      render bookshelf_failure_template, status: :unprocessable_content
     end
   end
 
@@ -31,11 +31,11 @@ class BookshelvesController < ApplicationController
     authorize @bookshelf
 
     if @bookshelf.destroy
-      redirect_to user_path(current_user, bookshelf_id: fallback_bookshelf_after_destroy&.id),
+      redirect_to bookshelf_redirect_path(fallback_bookshelf_after_destroy&.id),
                   notice: t("bookshelves.notices.destroyed", bookshelf_name: @bookshelf.name),
                   status: :see_other
     else
-      redirect_to user_path(current_user, bookshelf_id: @bookshelf.id),
+      redirect_to bookshelf_redirect_path(@bookshelf.id),
                   alert: @bookshelf.errors.full_messages.to_sentence.presence || t("bookshelves.alerts.destroy_failed"),
                   status: :see_other
     end
@@ -45,7 +45,7 @@ class BookshelvesController < ApplicationController
     authorize @bookshelf
     @bookshelf.move_up!
 
-    redirect_to user_path(current_user, bookshelf_id: @bookshelf.id),
+    redirect_to bookshelf_redirect_path(@bookshelf.id),
                 notice: t("bookshelves.notices.moved", bookshelf_name: @bookshelf.name)
   end
 
@@ -53,7 +53,7 @@ class BookshelvesController < ApplicationController
     authorize @bookshelf
     @bookshelf.move_down!
 
-    redirect_to user_path(current_user, bookshelf_id: @bookshelf.id),
+    redirect_to bookshelf_redirect_path(@bookshelf.id),
                 notice: t("bookshelves.notices.moved", bookshelf_name: @bookshelf.name)
   end
 
@@ -108,6 +108,22 @@ class BookshelvesController < ApplicationController
 
   def fallback_bookshelf_after_destroy
     current_user.bookshelves.default_first.first
+  end
+
+  def bookshelf_redirect_path(bookshelf_id)
+    if library_return?
+      user_library_path(current_user, bookshelf_id: bookshelf_id)
+    else
+      user_path(current_user, bookshelf_id: bookshelf_id)
+    end
+  end
+
+  def bookshelf_failure_template
+    library_return? ? "users/libraries/show" : "users/show"
+  end
+
+  def library_return?
+    params[:return_to] == "library"
   end
 
   def bookshelf_order_controls(bookshelves)
