@@ -310,6 +310,14 @@ ko:
       activity_eyebrow: "활동"
       activity_title: "최근 활동"
       bookshelf_eyebrow: "서재"
+      bookshelf_sort:
+        label: "책 정렬"
+        options:
+          author: "저자순"
+          recent: "최근순"
+          status: "상태순"
+          title: "제목순"
+        submit: "정렬"
       bookshelf_tabs: "책장"
       bookshelf_title: "책"
       empty_activity: "아직 최근 활동이 없습니다."
