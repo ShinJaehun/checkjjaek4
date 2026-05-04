@@ -68,4 +68,120 @@ RSpec.describe "Bookshelves", type: :request do
 
     expect(response).to redirect_to(new_user_session_path)
   end
+
+  it "updates an owned non-default bookshelf name and visibility" do
+    bookshelf = user.bookshelves.create!(name: "수정 전", visibility: :public)
+    sign_in user
+
+    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "수정 후", visibility: "private", is_default: true } }
+
+    expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
+    expect(bookshelf.reload.name).to eq("수정 후")
+    expect(bookshelf.visibility).to eq("private")
+    expect(bookshelf.is_default).to be(false)
+    expect(flash[:notice]).to include("수정 후")
+  end
+
+  it "does not update the default bookshelf" do
+    bookshelf = user.default_bookshelf
+    sign_in user
+
+    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "기본 수정", visibility: "private", is_default: false } }
+
+    expect(response).to redirect_to(root_path)
+    expect(bookshelf.reload.name).to eq(Bookshelf::DEFAULT_NAME)
+    expect(bookshelf.visibility).to eq("public")
+    expect(bookshelf.is_default).to be(true)
+  end
+
+  it "does not update another user's bookshelf" do
+    bookshelf = other_user.bookshelves.create!(name: "남의 책장", visibility: :public)
+    sign_in user
+
+    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "가로챈 이름", visibility: "private" } }
+
+    expect(response).to redirect_to(root_path)
+    expect(bookshelf.reload.name).to eq("남의 책장")
+    expect(bookshelf.visibility).to eq("public")
+  end
+
+  it "rerenders the profile bookshelf section when update validation fails" do
+    user.bookshelves.create!(name: "중복 이름", visibility: :public)
+    bookshelf = user.bookshelves.create!(name: "수정 대상", visibility: :book_friends)
+    book = Book.create!(title: "수정 실패에도 보이는 책", authors_text: "저자")
+    user.bookshelf_entries.create!(book:, bookshelf:)
+    sign_in user
+
+    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "중복 이름", visibility: "private" } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("users.profile.bookshelf_tabs"))
+    expect(response.body).to include("수정 실패에도 보이는 책")
+    expect(response.body).to include("중복 이름")
+    expect(bookshelf.reload.name).to eq("수정 대상")
+    expect(bookshelf.visibility).to eq("book_friends")
+  end
+
+  it "rerenders the profile bookshelf section when update visibility is unsupported" do
+    bookshelf = user.bookshelves.create!(name: "공개범위 수정 대상", visibility: :public)
+    sign_in user
+
+    patch bookshelf_path(bookshelf), params: { bookshelf: { name: "공개범위 수정 대상", visibility: "everyone" } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("users.profile.bookshelf_tabs"))
+    expect(bookshelf.reload.visibility).to eq("public")
+  end
+
+  it "deletes an empty owned non-default bookshelf" do
+    bookshelf = user.bookshelves.create!(name: "빈 책장", visibility: :private)
+    default_bookshelf = user.default_bookshelf
+    sign_in user
+
+    expect {
+      delete bookshelf_path(bookshelf)
+    }.to change(user.bookshelves, :count).by(-1)
+
+    expect(response).to redirect_to(user_path(user, bookshelf_id: default_bookshelf.id))
+    expect(flash[:notice]).to include("빈 책장")
+  end
+
+  it "does not delete the default bookshelf" do
+    bookshelf = user.default_bookshelf
+    sign_in user
+
+    expect {
+      delete bookshelf_path(bookshelf)
+    }.not_to change(Bookshelf, :count)
+
+    expect(response).to redirect_to(root_path)
+    expect(Bookshelf.exists?(bookshelf.id)).to be(true)
+  end
+
+  it "does not delete another user's bookshelf" do
+    bookshelf = other_user.bookshelves.create!(name: "남의 빈 책장", visibility: :public)
+    sign_in user
+
+    expect {
+      delete bookshelf_path(bookshelf)
+    }.not_to change(Bookshelf, :count)
+
+    expect(response).to redirect_to(root_path)
+    expect(Bookshelf.exists?(bookshelf.id)).to be(true)
+  end
+
+  it "does not delete a non-empty bookshelf" do
+    bookshelf = user.bookshelves.create!(name: "책 있는 책장", visibility: :public)
+    book = Book.create!(title: "삭제 막는 책", authors_text: "저자")
+    user.bookshelf_entries.create!(book:, bookshelf:)
+    sign_in user
+
+    expect {
+      delete bookshelf_path(bookshelf)
+    }.not_to change(Bookshelf, :count)
+
+    expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
+    expect(flash[:alert]).to be_present
+    expect(Bookshelf.exists?(bookshelf.id)).to be(true)
+  end
 end

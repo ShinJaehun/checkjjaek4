@@ -24,6 +24,7 @@ class Bookshelf < ApplicationRecord
   validates :visibility, presence: true
   validates :is_default, uniqueness: { scope: :user_id }, if: :is_default?
   validate :default_bookshelf_name_cannot_change
+  validate :default_bookshelf_visibility_cannot_change
   validate :default_bookshelf_flag_cannot_change_to_false
   validate :bookshelves_per_user_limit, on: :create
 
@@ -46,6 +47,14 @@ class Bookshelf < ApplicationRecord
     return if new_record?
 
     errors.add(:name, :invalid)
+  end
+
+  def default_bookshelf_visibility_cannot_change
+    return unless is_default?
+    return unless will_save_change_to_visibility?
+    return if new_record?
+
+    errors.add(:visibility, :invalid)
   end
 
   def default_bookshelf_flag_cannot_change_to_false

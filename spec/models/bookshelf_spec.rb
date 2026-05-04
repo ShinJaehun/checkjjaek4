@@ -81,6 +81,14 @@ RSpec.describe Bookshelf, type: :model do
     expect(bookshelf.errors[:name]).to be_present
   end
 
+  it "does not allow changing the default bookshelf visibility" do
+    bookshelf = user.default_bookshelf
+    bookshelf.visibility = :private
+
+    expect(bookshelf).not_to be_valid
+    expect(bookshelf.errors[:visibility]).to be_present
+  end
+
   it "does not allow changing the default bookshelf flag to false" do
     bookshelf = user.default_bookshelf
     bookshelf.is_default = false

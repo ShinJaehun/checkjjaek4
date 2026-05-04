@@ -11,6 +11,14 @@ class BookshelfPolicy < ApplicationPolicy
     user.present? && record.user_id == user.id
   end
 
+  def update?
+    user.present? && record.user_id == user.id && !record.is_default?
+  end
+
+  def destroy?
+    update?
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?
