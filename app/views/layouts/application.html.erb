@@ -31,8 +31,8 @@
         <nav class="flex items-center gap-3 text-sm text-stone-700">
           <% if user_signed_in? %>
             <%= link_to t("home.nav"), root_path, class: "font-medium" %>
-            <%= link_to t("bookshelf_entries.nav"), user_library_path(current_user), class: "font-medium" %>
             <%= link_to t("book_search.nav"), book_search_path, class: "font-medium" %>
+            <%= link_to t("bookshelf_entries.nav"), user_library_path(current_user), class: "font-medium" %>
             <%= link_to t("relationships.nav"), relationships_path, class: "font-medium" %>
             <%= link_to notifications_path, class: "font-medium" do %>
               <span><%= t("notifications.nav") %></span>
