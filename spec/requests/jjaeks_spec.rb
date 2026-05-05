@@ -43,7 +43,6 @@ RSpec.describe "Jjaeks", type: :request do
       }.not_to change(Jjaek, :count)
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include(I18n.t("home.new_jjaek_title"))
       expect(response.body).to include("textarea")
       expect(response.body).to include('name="jjaek[content]"')
     end

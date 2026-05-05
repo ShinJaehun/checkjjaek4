@@ -110,14 +110,23 @@ RSpec.describe "Libraries", type: :request do
 
     it "shows owner management controls on the library screen" do
       bookshelf = viewer.bookshelves.create!(name: "LIBRARY_MANAGED_SHELF")
+      second_bookshelf = viewer.bookshelves.create!(name: "LIBRARY_SECOND_MANAGED_SHELF")
+      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "SELF_LIBRARY_MOVABLE_BOOK")
       sign_in viewer
 
       get user_library_path(viewer, bookshelf_id: bookshelf.id)
 
       expect(response.body).to include(I18n.t("bookshelves.form.title"))
       expect(response.body).to include(I18n.t("bookshelves.form.edit_title"))
+      expect(response.body).to include(I18n.t("bookshelves.actions.move_down"))
+      expect(response.body).to include(I18n.t("bookshelf_entries.actions.move"))
+      expect(response.body).to include(second_bookshelf.name)
       expect(response.body).to include('name="return_to"')
       expect(response.body).to include('value="library"')
+
+      get user_library_path(viewer, bookshelf_id: second_bookshelf.id)
+
+      expect(response.body).to include(I18n.t("bookshelves.actions.destroy"))
     end
 
     it "does not show management controls to accepted book friends" do
