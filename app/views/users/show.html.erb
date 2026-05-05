@@ -15,25 +15,7 @@
     </div>
   <% end %>
 
-  <% if @show_bookshelf && @show_profile_bookshelf_detail %>
-    <%= render "users/bookshelf_section",
-               user: @user,
-               bookshelves: @profile_bookshelves,
-               selected_bookshelf: @selected_bookshelf,
-               bookshelf_entries: @bookshelf_entries,
-               bookshelf_entry_counts: @profile_bookshelf_entry_counts,
-               bookshelf_sort: @profile_bookshelf_sort,
-               bookshelf_sort_options: @profile_bookshelf_sort_options,
-               show_status: @show_profile_bookshelf_status,
-               show_move_control: @show_profile_bookshelf_move_control,
-               move_target_bookshelves: @profile_bookshelf_move_targets,
-               show_create_form: @show_profile_bookshelf_create_form,
-               new_bookshelf: @bookshelf,
-               managed_bookshelf: @managed_bookshelf,
-               bookshelf_order_controls: @profile_bookshelf_order_controls,
-               bookshelf_visibility_options: @profile_bookshelf_visibility_options,
-               bookshelf_color_options: @profile_bookshelf_color_options %>
-  <% elsif @show_bookshelf %>
+  <% if @show_bookshelf %>
     <%= render "users/profile_public_books",
                bookshelf_entries: @profile_public_bookshelf_entries,
                show_status: @show_profile_bookshelf_status %>

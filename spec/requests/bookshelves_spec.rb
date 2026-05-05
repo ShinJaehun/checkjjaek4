@@ -26,7 +26,7 @@ RSpec.describe "Bookshelves", type: :request do
     expect(bookshelf.color_key).to eq("purple")
     expect(bookshelf.is_default).to be(false)
     expect(bookshelf.position).to eq(1)
-    expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: bookshelf.id))
     expect(flash[:notice]).to include("수업 추천")
   end
 
@@ -97,7 +97,7 @@ RSpec.describe "Bookshelves", type: :request do
 
     patch bookshelf_path(bookshelf), params: { bookshelf: { name: "수정 후", visibility: "private", color_key: "blue", is_default: true } }
 
-    expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: bookshelf.id))
     expect(bookshelf.reload.name).to eq("수정 후")
     expect(bookshelf.visibility).to eq("private")
     expect(bookshelf.color_key).to eq("blue")
@@ -129,7 +129,7 @@ RSpec.describe "Bookshelves", type: :request do
     expect(bookshelf.visibility).to eq("public")
   end
 
-  it "rerenders the profile bookshelf section when update validation fails" do
+  it "rerenders the library bookshelf section when update validation fails" do
     user.bookshelves.create!(name: "중복 이름", visibility: :public)
     bookshelf = user.bookshelves.create!(name: "수정 대상", visibility: :book_friends)
     book = Book.create!(title: "수정 실패에도 보이는 책", authors_text: "저자")
@@ -146,7 +146,7 @@ RSpec.describe "Bookshelves", type: :request do
     expect(bookshelf.visibility).to eq("book_friends")
   end
 
-  it "rerenders the profile bookshelf section when update visibility is unsupported" do
+  it "rerenders the library bookshelf section when update visibility is unsupported" do
     bookshelf = user.bookshelves.create!(name: "공개범위 수정 대상", visibility: :public)
     sign_in user
 
@@ -157,7 +157,7 @@ RSpec.describe "Bookshelves", type: :request do
     expect(bookshelf.reload.visibility).to eq("public")
   end
 
-  it "rerenders the profile bookshelf section when update color_key is unsupported" do
+  it "rerenders the library bookshelf section when update color_key is unsupported" do
     bookshelf = user.bookshelves.create!(name: "색상 수정 대상", visibility: :public, color_key: "green")
     sign_in user
 
@@ -177,7 +177,7 @@ RSpec.describe "Bookshelves", type: :request do
       delete bookshelf_path(bookshelf)
     }.to change(user.bookshelves, :count).by(-1)
 
-    expect(response).to redirect_to(user_path(user, bookshelf_id: default_bookshelf.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: default_bookshelf.id))
     expect(flash[:notice]).to include("빈 책장")
   end
 
@@ -215,7 +215,7 @@ RSpec.describe "Bookshelves", type: :request do
       delete bookshelf_path(bookshelf)
     }.not_to change(Bookshelf, :count)
 
-    expect(response).to redirect_to(user_path(user, bookshelf_id: bookshelf.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: bookshelf.id))
     expect(flash[:alert]).to be_present
     expect(Bookshelf.exists?(bookshelf.id)).to be(true)
   end
@@ -227,7 +227,7 @@ RSpec.describe "Bookshelves", type: :request do
 
     patch move_up_bookshelf_path(second)
 
-    expect(response).to redirect_to(user_path(user, bookshelf_id: second.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: second.id))
     expect(ordered_regular_bookshelves(user)).to eq([ second, first ])
   end
 
@@ -238,7 +238,7 @@ RSpec.describe "Bookshelves", type: :request do
 
     patch move_down_bookshelf_path(first)
 
-    expect(response).to redirect_to(user_path(user, bookshelf_id: first.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: first.id))
     expect(ordered_regular_bookshelves(user)).to eq([ second, first ])
   end
 
@@ -269,7 +269,7 @@ RSpec.describe "Bookshelves", type: :request do
 
     patch move_up_bookshelf_path(first)
 
-    expect(response).to redirect_to(user_path(user, bookshelf_id: first.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: first.id))
     expect(ordered_regular_bookshelves(user)).to eq([ first, second ])
   end
 
@@ -280,7 +280,7 @@ RSpec.describe "Bookshelves", type: :request do
 
     patch move_down_bookshelf_path(second)
 
-    expect(response).to redirect_to(user_path(user, bookshelf_id: second.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: second.id))
     expect(ordered_regular_bookshelves(user)).to eq([ first, second ])
   end
 
