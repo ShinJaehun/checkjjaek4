@@ -68,12 +68,17 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
-    it "shows shelf entries, book-friend jjaeks, and a profile-context form to accepted book friends" do
+    it "shows summarized shelf entries, book-friend jjaeks, and a profile-context form to accepted book friends" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       sign_in viewer
 
       get user_path(profile_user)
 
+      expect(response.body).to include(I18n.t("users.profile.public_books_title"))
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
+      expect(response.body).not_to include(I18n.t("bookshelves.form.title"))
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).to include("PROFILE_SHELF_UNIQUE_STICKER")
@@ -218,14 +223,15 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(user_path(viewer, bookshelf_id: second.id))
     end
 
-    it "shows bookshelf tab color on another user's profile without management controls" do
+    it "does not show bookshelf tab color or management controls on another user's profile" do
       bookshelf = profile_user.bookshelves.create!(name: "색상 보이는 책장", visibility: :public, color_key: "blue")
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       sign_in viewer
 
       get user_path(profile_user, bookshelf_id: bookshelf.id)
 
-      expect(response.body).to include("bg-blue-600")
+      expect(response.body).not_to include("bg-blue-600")
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
       expect(response.body).not_to include('name="bookshelf[color_key]"')
     end
@@ -249,7 +255,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include('name="bookshelf[name]"')
     end
 
-    it "shows public and book-friends bookshelf tabs to accepted book friends" do
+    it "shows public and book-friends books summary without bookshelf tabs to accepted book friends" do
       create_profile_bookshelf_entry(
         user: profile_user,
         bookshelf_name: "FRIEND_VISIBLE_TAB_SHELF",
@@ -267,9 +273,10 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
-      expect(response.body).to include("FRIEND_VISIBLE_TAB_SHELF")
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).to include("FRIEND_VISIBLE_TAB_BOOK")
       expect(response.body).not_to include("FRIEND_HIDDEN_PRIVATE_TAB_SHELF")
+      expect(response.body).not_to include("FRIEND_HIDDEN_PRIVATE_TAB_BOOK")
     end
 
     it "does not show bookshelf tabs to strangers" do
@@ -317,7 +324,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("FOLLOW_ONLY_HIDDEN_PRIVATE_TAB_SHELF")
     end
 
-    it "shows only entries from the selected bookshelf tab" do
+    it "does not use selected bookshelf tabs on an accepted book friend's profile" do
       selected_shelf, = create_profile_bookshelf_entry(
         user: profile_user,
         bookshelf_name: "SELECTED_TAB_SHELF",
@@ -335,9 +342,10 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user, bookshelf_id: selected_shelf.id)
 
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).to include("SELECTED_TAB_BOOK")
-      expect(response.body).not_to include("UNSELECTED_TAB_BOOK")
-      expect(response.body).not_to include("프로필 서재 전용 책")
+      expect(response.body).to include("UNSELECTED_TAB_BOOK")
+      expect(response.body).to include("프로필 서재 전용 책")
     end
 
     it "keeps recent sort by default" do
@@ -476,7 +484,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("OWNER_DETAILS_UNIQUE_STICKER")
     end
 
-    it "shows status and stickers in a selected bookshelf to accepted book friends" do
+    it "shows status and stickers in a summarized bookshelf entry to accepted book friends" do
       selected_shelf, = create_profile_bookshelf_entry(
         user: profile_user,
         bookshelf_name: "FRIEND_DETAILS_TAB_SHELF",

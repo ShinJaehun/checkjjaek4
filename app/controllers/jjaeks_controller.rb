@@ -146,7 +146,7 @@ class JjaeksController < ApplicationController
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
     @profile_public_bookshelf_entries =
       if @show_bookshelf
-        visible_entries.joins(:bookshelf).where(bookshelves: { visibility: "public" }).profile_sorted("recent")
+        profile_summary_bookshelf_entries(visible_entries, profile_policy)
       else
         BookshelfEntry.none
       end
@@ -168,6 +168,12 @@ class JjaeksController < ApplicationController
       .where(user: @user)
       .includes(:user, :book)
       .recent
+  end
+
+  def profile_summary_bookshelf_entries(visible_entries, profile_policy)
+    summary_entries = visible_entries.joins(:bookshelf)
+    summary_entries = summary_entries.where(bookshelves: { visibility: "public" }) unless profile_policy.profile_access_level == :book_friend
+    summary_entries.profile_sorted("recent")
   end
 
   def prepare_profile_activity_items
