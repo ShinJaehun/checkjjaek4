@@ -37,11 +37,9 @@ ko:
       title: "서재부터 시작합니다"
   home:
     nav: "홈"
-    eyebrow: "독서 홈"
-    title: "서재를 중심으로, Jjaek으로 이어집니다"
-    description: "홈 피드는 소식받는 독자의 공개 Jjaek과 책친구 공개 Jjaek으로 시작합니다. 서재에서 책을 고르고, 책에서 글로 이어집니다."
-    feed_eyebrow: "피드"
-    feed_title: "최근 피드"
+    title: "책짹"
+    description: "책 읽기... 좋아하세요?"
+    feed_title: "최근 활동"
     empty_feed: "아직 피드에 보이는 항목이 없습니다. 책을 서재에 담거나 다른 독자를 소식받기 해보세요."
     new_jjaek_title: "짹 쓰기"
     actions:
@@ -95,9 +93,9 @@ ko:
       created: "책친구 신청을 보냈습니다."
       destroyed: "책친구 관계를 정리했습니다."
   relationships:
-    nav: "관계"
-    eyebrow: "관계 허브"
-    title: "관계 관리"
+    nav: "책친구"
+    title: "책친구"
+    description: "책친구 요청, 소식 받기, 공개 범위 설정하기"
     sections:
       received_book_friend_requests: "받은 책친구 요청"
       sent_book_friend_requests: "보낸 책친구 요청"
@@ -112,8 +110,8 @@ ko:
       followers: "나를 소식받는 사용자가 없습니다."
   notifications:
     nav: "알림"
-    eyebrow: "알림"
     title: "알림"
+    description: "새로운 소식 확인하기"
     empty: "아직 알림이 없습니다."
     messages:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
@@ -171,9 +169,8 @@ ko:
       status: "대표 상태"
       stickers: "스티커"
     index:
-      eyebrow: "내 서재"
-      title: "곁에 두고 있는 책들"
-      description: "하나의 기본 서재에서 책 상태와 스티커를 함께 관리합니다."
+      title: "내 서재"
+      description: "책 상태와 스티커를 관리합니다."
       empty: "아직 서재가 비어 있습니다. 책 검색에서 첫 책을 담아보세요."
     new:
       title: "서재에 담기"
@@ -307,12 +304,9 @@ ko:
       remove_book_friend: "책친구 해제"
       unfollow: "소식받는 중"
     library:
-      eyebrow: "서재"
       title: "전체 서재"
     profile:
-      activity_eyebrow: "활동"
       activity_title: "최근 활동"
-      bookshelf_eyebrow: "서재"
       bookshelf_sort:
         label: "책 정렬"
         options:
@@ -326,7 +320,6 @@ ko:
       empty_activity: "아직 최근 활동이 없습니다."
       empty_bookshelf: "아직 보이는 책이 없습니다."
       empty_public_books: "아직 공개된 책이 없습니다."
-      eyebrow: "독자 프로필"
       new_jjaek_title: "짹 쓰기"
       public_books_title: "책"
       stats: "소식받는 사람 %{followers}명 · 소식받기 %{following}명"

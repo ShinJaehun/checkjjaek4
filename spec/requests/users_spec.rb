@@ -43,7 +43,6 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include("Other private")
-      expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
@@ -64,7 +63,6 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(I18n.t("users.profile.view_library"))
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
-      expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
@@ -82,7 +80,6 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).to include(I18n.t("users.profile.view_library"))
       expect(response.body).to include(user_library_path(profile_user))
-      expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include('name="jjaek[target_user_id]"')
       expect(response.body).to include(I18n.t("jjaeks.visibility.book_friends"))
     end
@@ -104,7 +101,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
       expect(response.body).not_to include(I18n.t("users.profile.view_library"))
       expect(response.body).not_to include(user_library_path(viewer))
-      expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
+      expect(response.body).to include('name="jjaek[target_user_id]"')
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
     end
 
@@ -677,7 +674,6 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).not_to include('name="jjaek[target_user_id]"')
     end
 
@@ -687,7 +683,6 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).not_to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).not_to include('name="jjaek[target_user_id]"')
     end
 
@@ -706,7 +701,6 @@ RSpec.describe "Users", type: :request do
       }.not_to change(Jjaek, :count)
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include('name="jjaek[target_user_id]"')
     end
 
@@ -761,7 +755,7 @@ RSpec.describe "Users", type: :request do
       }.not_to change(Jjaek, :count)
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
+      expect(response.body).to include('name="jjaek[target_user_id]"')
       expect(response.body).to include(I18n.t("activerecord.errors.models.jjaek.attributes.visibility.invalid"))
     end
 
