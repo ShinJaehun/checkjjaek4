@@ -3,7 +3,7 @@ class BookshelfEntriesController < ApplicationController
 
   def index
     authorize BookshelfEntry
-    @bookshelf_entries = policy_scope(BookshelfEntry).recent_first
+    redirect_to user_library_path(current_user)
   end
 
   def edit
