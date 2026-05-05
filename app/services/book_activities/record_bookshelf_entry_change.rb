@@ -17,53 +17,40 @@ module BookActivities
         return
       end
 
-      record_status_change
-      record_sticker_changes
+      record_update_activity
     end
 
     private
 
     attr_reader :bookshelf_entry, :was_new_record, :previous_status, :previous_sticker_definition_ids
 
-    def record_status_change
+    def record_update_activity
       current_status = bookshelf_entry.status
-      return if previous_status == current_status
-
-      action = current_status.nil? ? :status_cleared : :status_changed
-      record_activity(
-        action,
-        metadata: {
-          from_status: previous_status,
-          to_status: current_status
-        }
-      )
-    end
-
-    def record_sticker_changes
       current_ids = normalize_ids(bookshelf_entry.sticker_definition_ids)
       added_ids = current_ids - previous_sticker_definition_ids
       removed_ids = previous_sticker_definition_ids - current_ids
-      return if added_ids.empty? && removed_ids.empty?
+      status_changed = previous_status != current_status
+      return unless status_changed || added_ids.any? || removed_ids.any?
 
       sticker_definitions = StickerDefinition.where(id: added_ids + removed_ids).index_by(&:id)
+      added_stickers = stickers_for(added_ids, sticker_definitions)
+      removed_stickers = stickers_for(removed_ids, sticker_definitions)
 
-      added_ids.each do |sticker_definition_id|
-        record_sticker_activity(:sticker_added, sticker_definitions.fetch(sticker_definition_id))
-      end
-
-      removed_ids.each do |sticker_definition_id|
-        record_sticker_activity(:sticker_removed, sticker_definitions.fetch(sticker_definition_id))
-      end
-    end
-
-    def record_sticker_activity(action, sticker_definition)
       record_activity(
-        action,
+        :bookshelf_entry_updated,
         metadata: {
-          sticker_definition_id: sticker_definition.id,
-          sticker_name: sticker_definition.name
+          from_status: previous_status,
+          to_status: current_status,
+          added_sticker_definition_ids: added_stickers.map(&:id),
+          added_sticker_names: added_stickers.map(&:name),
+          removed_sticker_definition_ids: removed_stickers.map(&:id),
+          removed_sticker_names: removed_stickers.map(&:name)
         }
       )
+    end
+
+    def stickers_for(sticker_definition_ids, sticker_definitions)
+      sticker_definition_ids.map { |sticker_definition_id| sticker_definitions.fetch(sticker_definition_id) }
     end
 
     def record_activity(action, metadata: {})

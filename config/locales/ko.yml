@@ -141,6 +141,10 @@ ko:
         before_book: "님이 『"
         before_sticker: "』에서 "
         after_sticker: " 스티커를 제거했습니다."
+      bookshelf_entry_updated:
+        before_book: "님이 『"
+        before_summary: "』의 "
+        after_summary: ""
       no_thumbnail: "표지 없음"
     messages:
       added_to_shelf: "%{user_name}님이 『%{book_title}』를 서재에 담았습니다."
@@ -148,6 +152,21 @@ ko:
       status_cleared: "%{user_name}님이 『%{book_title}』의 독서 상태를 비웠습니다."
       sticker_added: "%{user_name}님이 『%{book_title}』에 “%{sticker}” 스티커를 붙였습니다."
       sticker_removed: "%{user_name}님이 『%{book_title}』에서 “%{sticker}” 스티커를 제거했습니다."
+      bookshelf_entry_updated: "%{user_name}님이 『%{book_title}』의 %{summary}"
+    update_clauses:
+      ko:
+        status_changed:
+          connector: "상태를 %{status}%{particle} 바꿨고"
+          final: "상태를 %{status}%{particle} 바꿨습니다."
+        status_cleared:
+          connector: "독서 상태를 비웠고"
+          final: "독서 상태를 비웠습니다."
+        stickers_added:
+          connector: "%{stickers} 스티커를 붙였고"
+          final: "%{stickers} 스티커를 붙였습니다."
+        stickers_removed:
+          connector: "%{stickers} 스티커를 제거했고"
+          final: "%{stickers} 스티커를 제거했습니다."
   likes:
     alerts:
       not_found: "좋아요를 찾을 수 없습니다."

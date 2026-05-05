@@ -89,7 +89,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     activity = BookActivity.last
-    expect(activity.action).to eq("status_changed")
+    expect(activity.action).to eq("bookshelf_entry_updated")
     expect(activity.metadata).to include("from_status" => "reading", "to_status" => "finished")
   end
 
@@ -166,7 +166,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.bookshelf).to eq(original_bookshelf)
   end
 
-  it "records status_changed when a shelf entry status changes" do
+  it "records bookshelf_entry_updated when a shelf entry status changes" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
 
@@ -180,7 +180,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     activity = BookActivity.last
-    expect(activity.action).to eq("status_changed")
+    expect(activity.action).to eq("bookshelf_entry_updated")
     expect(activity.metadata).to include("from_status" => "reading", "to_status" => "finished")
   end
 
@@ -199,7 +199,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.status).to be_nil
   end
 
-  it "records status_cleared when a shelf entry status is cleared" do
+  it "records bookshelf_entry_updated when a shelf entry status is cleared" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
 
@@ -213,7 +213,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     activity = BookActivity.last
-    expect(activity.action).to eq("status_cleared")
+    expect(activity.action).to eq("bookshelf_entry_updated")
     expect(activity.metadata).to include("from_status" => "reading", "to_status" => nil)
   end
 
@@ -231,7 +231,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.not_to change(BookActivity, :count)
   end
 
-  it "records sticker_added when a sticker is added" do
+  it "records bookshelf_entry_updated when a sticker is added" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
 
@@ -245,14 +245,15 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     activity = BookActivity.last
-    expect(activity.action).to eq("sticker_added")
+    expect(activity.action).to eq("bookshelf_entry_updated")
     expect(activity.metadata).to include(
-      "sticker_definition_id" => sticker.id,
-      "sticker_name" => sticker.name
+      "added_sticker_definition_ids" => [ sticker.id ],
+      "added_sticker_names" => [ sticker.name ],
+      "removed_sticker_names" => []
     )
   end
 
-  it "records sticker_removed when a sticker is removed" do
+  it "records bookshelf_entry_updated when a sticker is removed" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     entry.sticker_definitions << sticker
     sign_in user
@@ -267,10 +268,11 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     activity = BookActivity.last
-    expect(activity.action).to eq("sticker_removed")
+    expect(activity.action).to eq("bookshelf_entry_updated")
     expect(activity.metadata).to include(
-      "sticker_definition_id" => sticker.id,
-      "sticker_name" => sticker.name
+      "added_sticker_names" => [],
+      "removed_sticker_definition_ids" => [ sticker.id ],
+      "removed_sticker_names" => [ sticker.name ]
     )
   end
 
