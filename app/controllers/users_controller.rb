@@ -22,59 +22,17 @@ class UsersController < ApplicationController
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
     @show_library_link = profile_policy.show_library?
-    @show_profile_bookshelf_detail = false
-    @show_profile_bookshelf_move_control = false
-    @show_profile_bookshelf_create_form = false
-    @profile_bookshelf_visibility_options = Bookshelf.visibilities.keys
-    @profile_bookshelf_color_options = Bookshelf::COLOR_KEYS
-    @profile_bookshelf_sort = profile_bookshelf_sort
-    @profile_bookshelf_sort_options = BookshelfEntry::PROFILE_SORTS
-    @profile_bookshelf_move_targets = @show_profile_bookshelf_move_control ? current_user.bookshelves.default_first : Bookshelf.none
 
     return unless @show_bookshelf
 
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
-
-    unless @show_profile_bookshelf_detail
-      @profile_public_bookshelf_entries = profile_summary_bookshelf_entries(visible_entries, profile_policy)
-      return
-    end
-
-    @profile_bookshelves = policy_scope(@user.bookshelves).default_first
-    @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
-    @selected_bookshelf = selected_profile_bookshelf(@profile_bookshelves)
-    @managed_bookshelf ||= @selected_bookshelf if @show_profile_bookshelf_create_form && @selected_bookshelf&.is_default? == false
-    @profile_bookshelf_order_controls = @show_profile_bookshelf_create_form ? bookshelf_order_controls(@profile_bookshelves) : {}
-    @bookshelf_entries =
-      if @selected_bookshelf
-        visible_entries.where(bookshelf: @selected_bookshelf).profile_sorted(@profile_bookshelf_sort)
-      else
-        BookshelfEntry.none
-      end
-  end
-
-  def profile_bookshelf_sort
-    BookshelfEntry::PROFILE_SORTS.include?(params[:sort]) ? params[:sort] : "recent"
+    @profile_public_bookshelf_entries = profile_summary_bookshelf_entries(visible_entries, profile_policy)
   end
 
   def profile_summary_bookshelf_entries(visible_entries, profile_policy)
     summary_entries = visible_entries.joins(:bookshelf)
     summary_entries = summary_entries.where(bookshelves: { visibility: "public" }) unless %i[self book_friend].include?(profile_policy.profile_access_level)
     summary_entries.profile_sorted("recent")
-  end
-
-  def selected_profile_bookshelf(accessible_bookshelves)
-    bookshelves = accessible_bookshelves.to_a
-    requested_bookshelf = bookshelves.find { |bookshelf| bookshelf.id.to_s == params[:bookshelf_id].to_s }
-
-    requested_bookshelf || bookshelves.find(&:is_default?) || bookshelves.first
-  end
-
-  def bookshelf_order_controls(bookshelves)
-    regular_bookshelves = bookshelves.reject(&:is_default?)
-    regular_bookshelves.each_with_index.to_h do |bookshelf, index|
-      [ bookshelf.id, { move_up: index.positive?, move_down: index < regular_bookshelves.size - 1 } ]
-    end
   end
 
   def prepare_profile_jjaeks(profile_policy)

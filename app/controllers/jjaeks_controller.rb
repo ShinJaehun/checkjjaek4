@@ -142,7 +142,6 @@ class JjaeksController < ApplicationController
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
     @show_library_link = profile_policy.show_library?
-    @show_profile_bookshelf_detail = false
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
     @profile_public_bookshelf_entries =
       if @show_bookshelf
