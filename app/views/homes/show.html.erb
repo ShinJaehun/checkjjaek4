@@ -4,7 +4,7 @@
     <p class="mt-3 max-w-2xl text-sm leading-6 text-stone-300"><%= t("home.description") %></p>
     <div class="mt-5 flex flex-wrap gap-3">
       <%= link_to t("home.actions.search_books"), book_search_path, class: "rounded-full bg-white px-4 py-2 text-sm font-medium text-stone-900" %>
-      <%= link_to t("home.actions.my_shelf"), bookshelf_entries_path, class: "rounded-full border border-stone-500 px-4 py-2 text-sm font-medium text-stone-50" %>
+      <%= link_to t("home.actions.my_shelf"), user_library_path(current_user), class: "rounded-full border border-stone-500 px-4 py-2 text-sm font-medium text-stone-50" %>
     </div>
   </section>
 

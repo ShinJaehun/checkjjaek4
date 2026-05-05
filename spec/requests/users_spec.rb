@@ -68,12 +68,17 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
-    it "shows shelf entries, book-friend jjaeks, and a profile-context form to accepted book friends" do
+    it "shows summarized shelf entries, book-friend jjaeks, and a profile-context form to accepted book friends" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       sign_in viewer
 
       get user_path(profile_user)
 
+      expect(response.body).to include(I18n.t("users.profile.public_books_title"))
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
+      expect(response.body).not_to include(I18n.t("bookshelves.form.title"))
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).to include("PROFILE_SHELF_UNIQUE_STICKER")
@@ -86,7 +91,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.visibility.book_friends"))
     end
 
-    it "shows the user's own shelf, private jjaeks, and profile-context form" do
+    it "shows the user's own summarized shelf, library link, private jjaeks, and profile-context form" do
       own_book = Book.create!(title: "내 책", authors_text: "저자")
       own_sticker = StickerDefinition.create!(key: "users_spec_own_profile_shelf_sticker", name: "OWN_PROFILE_SHELF_STICKER")
       own_entry = viewer.bookshelf_entries.create!(book: own_book, status: :finished)
@@ -100,9 +105,14 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
       expect(response.body).to include("OWN_PROFILE_SHELF_STICKER")
       expect(response.body).to include("내 비공개 짹")
-      expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
-      expect(response.body).not_to include(I18n.t("users.profile.view_library"))
-      expect(response.body).not_to include(user_library_path(viewer))
+      expect(response.body).to include(I18n.t("users.profile.public_books_title"))
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_title"))
+      expect(response.body).to include(I18n.t("users.profile.view_library"))
+      expect(response.body).to include(user_library_path(viewer))
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
+      expect(response.body).not_to include(I18n.t("bookshelves.form.title"))
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
       expect(response.body).to include('name="jjaek[target_user_id]"')
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
     end
@@ -118,7 +128,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
     end
 
-    it "shows the owner their default and private bookshelf tabs" do
+    it "shows the owner private books summary without bookshelf tabs" do
       create_profile_bookshelf_entry(
         user: viewer,
         bookshelf_name: "OWNER_PRIVATE_TAB_SHELF",
@@ -129,35 +139,36 @@ RSpec.describe "Users", type: :request do
 
       get user_path(viewer)
 
-      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
-      expect(response.body).to include("OWNER_PRIVATE_TAB_SHELF")
+      expect(response.body).to include("OWNER_PRIVATE_TAB_BOOK")
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).not_to include("OWNER_PRIVATE_TAB_SHELF")
     end
 
-    it "shows the bookshelf create form on the user's own profile" do
+    it "does not show the bookshelf create form on the user's own profile" do
       sign_in viewer
 
       get user_path(viewer)
 
-      expect(response.body).to include(I18n.t("bookshelves.form.title"))
-      expect(response.body).to include('name="bookshelf[name]"')
-      expect(response.body).to include('name="bookshelf[visibility]"')
-      expect(response.body).to include('name="bookshelf[color_key]"')
+      expect(response.body).not_to include(I18n.t("bookshelves.form.title"))
+      expect(response.body).not_to include('name="bookshelf[name]"')
+      expect(response.body).not_to include('name="bookshelf[visibility]"')
+      expect(response.body).not_to include('name="bookshelf[color_key]"')
     end
 
-    it "shows bookshelf edit and delete controls for an owned empty non-default bookshelf" do
+    it "does not show bookshelf edit and delete controls for an owned empty non-default bookshelf on the profile" do
       bookshelf = viewer.bookshelves.create!(name: "관리할 빈 책장", visibility: :private, color_key: "green")
       sign_in viewer
 
       get user_path(viewer, bookshelf_id: bookshelf.id)
 
-      expect(response.body).to include(I18n.t("bookshelves.form.edit_title"))
-      expect(response.body).to include(I18n.t("bookshelves.actions.update"))
-      expect(response.body).to include(I18n.t("bookshelves.actions.destroy"))
-      expect(response.body).to include('name="bookshelf[color_key]"')
-      expect(response.body).to include("bg-green-600")
+      expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.update"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.destroy"))
+      expect(response.body).not_to include('name="bookshelf[color_key]"')
+      expect(response.body).not_to include("bg-green-600")
     end
 
-    it "shows bookshelf ordering controls for an owned regular bookshelf" do
+    it "does not show bookshelf ordering controls for an owned regular bookshelf on the profile" do
       viewer.bookshelves.create!(name: "순서 앞 책장")
       bookshelf = viewer.bookshelves.create!(name: "순서 가운데 책장")
       viewer.bookshelves.create!(name: "순서 뒤 책장")
@@ -165,8 +176,8 @@ RSpec.describe "Users", type: :request do
 
       get user_path(viewer, bookshelf_id: bookshelf.id)
 
-      expect(response.body).to include(I18n.t("bookshelves.actions.move_up"))
-      expect(response.body).to include(I18n.t("bookshelves.actions.move_down"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_up"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_down"))
     end
 
     it "does not show bookshelf edit or delete controls for the default bookshelf" do
@@ -194,7 +205,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(I18n.t("bookshelves.actions.move_down"))
     end
 
-    it "shows changed bookshelf tab order after moving" do
+    it "does not show bookshelf tabs after moving bookshelf order" do
       first = viewer.bookshelves.create!(name: "ORDER_BEFORE")
       second = viewer.bookshelves.create!(name: "ORDER_AFTER")
       sign_in viewer
@@ -202,31 +213,20 @@ RSpec.describe "Users", type: :request do
       patch move_down_bookshelf_path(first)
       get user_path(viewer, bookshelf_id: first.id)
 
-      bookshelf_tabs_label = ERB::Util.html_escape(I18n.t("users.profile.bookshelf_tabs"))
-      bookshelf_tabs_match = response.body.match(
-        /<nav[^>]+aria-label="#{Regexp.escape(bookshelf_tabs_label)}"[^>]*>.*?<\/nav>/m
-      )
-
-      expect(bookshelf_tabs_match).to be_present
-
-      bookshelf_tabs_html = bookshelf_tabs_match[0]
-
-      expect(bookshelf_tabs_html).to include("ORDER_AFTER")
-      expect(bookshelf_tabs_html).to include("ORDER_BEFORE")
-
-      expect(bookshelf_tabs_html.index("ORDER_AFTER")).to be < bookshelf_tabs_html.index("ORDER_BEFORE")
-      expect(response.body).to include(user_path(viewer, bookshelf_id: first.id))
-      expect(response.body).to include(user_path(viewer, bookshelf_id: second.id))
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).not_to include(user_path(viewer, bookshelf_id: first.id))
+      expect(response.body).not_to include(user_path(viewer, bookshelf_id: second.id))
     end
 
-    it "shows bookshelf tab color on another user's profile without management controls" do
+    it "does not show bookshelf tab color or management controls on another user's profile" do
       bookshelf = profile_user.bookshelves.create!(name: "색상 보이는 책장", visibility: :public, color_key: "blue")
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       sign_in viewer
 
       get user_path(profile_user, bookshelf_id: bookshelf.id)
 
-      expect(response.body).to include("bg-blue-600")
+      expect(response.body).not_to include("bg-blue-600")
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
       expect(response.body).not_to include('name="bookshelf[color_key]"')
     end
@@ -250,7 +250,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include('name="bookshelf[name]"')
     end
 
-    it "shows public and book-friends bookshelf tabs to accepted book friends" do
+    it "shows public and book-friends books summary without bookshelf tabs to accepted book friends" do
       create_profile_bookshelf_entry(
         user: profile_user,
         bookshelf_name: "FRIEND_VISIBLE_TAB_SHELF",
@@ -268,9 +268,10 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      expect(response.body).to include(Bookshelf::DEFAULT_NAME)
-      expect(response.body).to include("FRIEND_VISIBLE_TAB_SHELF")
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
+      expect(response.body).to include("FRIEND_VISIBLE_TAB_BOOK")
       expect(response.body).not_to include("FRIEND_HIDDEN_PRIVATE_TAB_SHELF")
+      expect(response.body).not_to include("FRIEND_HIDDEN_PRIVATE_TAB_BOOK")
     end
 
     it "does not show bookshelf tabs to strangers" do
@@ -318,7 +319,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("FOLLOW_ONLY_HIDDEN_PRIVATE_TAB_SHELF")
     end
 
-    it "shows only entries from the selected bookshelf tab" do
+    it "does not use selected bookshelf tabs on an accepted book friend's profile" do
       selected_shelf, = create_profile_bookshelf_entry(
         user: profile_user,
         bookshelf_name: "SELECTED_TAB_SHELF",
@@ -336,9 +337,10 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user, bookshelf_id: selected_shelf.id)
 
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).to include("SELECTED_TAB_BOOK")
-      expect(response.body).not_to include("UNSELECTED_TAB_BOOK")
-      expect(response.body).not_to include("프로필 서재 전용 책")
+      expect(response.body).to include("UNSELECTED_TAB_BOOK")
+      expect(response.body).to include("프로필 서재 전용 책")
     end
 
     it "keeps recent sort by default" do
@@ -354,7 +356,7 @@ RSpec.describe "Users", type: :request do
       expect_text_order("RECENT_SORT_NEWER", "RECENT_SORT_OLDER")
     end
 
-    it "sorts bookshelf entries by title" do
+    it "does not sort profile summary entries by title param" do
       bookshelf = viewer.bookshelves.create!(name: "TITLE_SORT_SHELF")
       create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "TITLE_SORT_Z")
       create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "TITLE_SORT_A")
@@ -362,10 +364,12 @@ RSpec.describe "Users", type: :request do
 
       get user_path(viewer, bookshelf_id: bookshelf.id, sort: "title")
 
-      expect_text_order("TITLE_SORT_A", "TITLE_SORT_Z")
+      expect(response.body).to include("TITLE_SORT_Z")
+      expect(response.body).to include("TITLE_SORT_A")
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
     end
 
-    it "sorts bookshelf entries by author" do
+    it "does not sort profile summary entries by author param" do
       bookshelf = viewer.bookshelves.create!(name: "AUTHOR_SORT_SHELF")
       create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "AUTHOR_SORT_B_BOOK", authors_text: "ZZZ Author")
       create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "AUTHOR_SORT_A_BOOK", authors_text: "AAA Author")
@@ -373,10 +377,12 @@ RSpec.describe "Users", type: :request do
 
       get user_path(viewer, bookshelf_id: bookshelf.id, sort: "author")
 
-      expect_text_order("AUTHOR_SORT_A_BOOK", "AUTHOR_SORT_B_BOOK")
+      expect(response.body).to include("AUTHOR_SORT_B_BOOK")
+      expect(response.body).to include("AUTHOR_SORT_A_BOOK")
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
     end
 
-    it "sorts bookshelf entries by status" do
+    it "does not sort profile summary entries by status param" do
       bookshelf = viewer.bookshelves.create!(name: "STATUS_SORT_SHELF")
       create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "STATUS_SORT_FINISHED", status: :finished)
       create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "STATUS_SORT_WISH", status: :wish)
@@ -384,7 +390,9 @@ RSpec.describe "Users", type: :request do
 
       get user_path(viewer, bookshelf_id: bookshelf.id, sort: "status")
 
-      expect_text_order("STATUS_SORT_WISH", "STATUS_SORT_FINISHED")
+      expect(response.body).to include("STATUS_SORT_FINISHED")
+      expect(response.body).to include("STATUS_SORT_WISH")
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
     end
 
     it "falls back to recent sort for unsupported sort values" do
@@ -400,7 +408,7 @@ RSpec.describe "Users", type: :request do
       expect_text_order("BAD_SORT_NEWER", "BAD_SORT_OLDER")
     end
 
-    it "sorts only entries from the selected bookshelf" do
+    it "does not filter profile summary entries by selected bookshelf" do
       selected_shelf = viewer.bookshelves.create!(name: "SELECTED_SORT_SHELF")
       unselected_shelf = viewer.bookshelves.create!(name: "UNSELECTED_SORT_SHELF")
       create_bookshelf_entry(user: viewer, bookshelf: selected_shelf, book_title: "SELECTED_SORT_BOOK")
@@ -410,7 +418,7 @@ RSpec.describe "Users", type: :request do
       get user_path(viewer, bookshelf_id: selected_shelf.id, sort: "title")
 
       expect(response.body).to include("SELECTED_SORT_BOOK")
-      expect(response.body).not_to include("UNSELECTED_SORT_BOOK")
+      expect(response.body).to include("UNSELECTED_SORT_BOOK")
     end
 
     it "keeps status and stickers hidden from strangers when sorting" do
@@ -426,23 +434,23 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("PROFILE_SHELF_UNIQUE_STICKER")
     end
 
-    it "keeps sort in bookshelf tab links" do
+    it "does not show bookshelf tab sort links on the profile" do
       first_shelf = viewer.bookshelves.create!(name: "SORT_LINK_FIRST")
       second_shelf = viewer.bookshelves.create!(name: "SORT_LINK_SECOND")
       sign_in viewer
 
       get user_path(viewer, bookshelf_id: first_shelf.id, sort: "title")
 
-      expect(response.body).to include(CGI.escapeHTML(user_path(viewer, bookshelf_id: second_shelf.id, sort: "title")))
+      expect(response.body).not_to include(CGI.escapeHTML(user_path(viewer, bookshelf_id: second_shelf.id, sort: "title")))
     end
 
-    it "shows the bookshelf entry sort UI" do
+    it "does not show the bookshelf entry sort UI on the profile" do
       sign_in viewer
 
       get user_path(viewer)
 
-      expect(response.body).to include(I18n.t("users.profile.bookshelf_sort.label"))
-      expect(response.body).to include('name="sort"')
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
+      expect(response.body).not_to include('name="sort"')
     end
 
     it "falls back to an accessible bookshelf when the requested bookshelf is not allowed" do
@@ -460,7 +468,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("FALLBACK_HIDDEN_PRIVATE_TAB_BOOK")
     end
 
-    it "shows status and stickers in a selected bookshelf to the owner" do
+    it "shows status and stickers in a summarized bookshelf entry to the owner" do
       selected_shelf, = create_profile_bookshelf_entry(
         user: viewer,
         bookshelf_name: "OWNER_DETAILS_TAB_SHELF",
@@ -477,7 +485,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("OWNER_DETAILS_UNIQUE_STICKER")
     end
 
-    it "shows status and stickers in a selected bookshelf to accepted book friends" do
+    it "shows status and stickers in a summarized bookshelf entry to accepted book friends" do
       selected_shelf, = create_profile_bookshelf_entry(
         user: profile_user,
         bookshelf_name: "FRIEND_DETAILS_TAB_SHELF",
@@ -514,14 +522,14 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("STRANGER_DETAILS_UNIQUE_STICKER")
     end
 
-    it "shows the bookshelf move select only on the owner's profile" do
+    it "does not show the bookshelf move select on the owner's profile" do
       viewer.bookshelf_entries.create!(book: Book.create!(title: "MOVE_SELECT_VISIBLE_BOOK", authors_text: "저자"))
       sign_in viewer
 
       get user_path(viewer)
 
-      expect(response.body).to include('name="bookshelf_id"')
-      expect(response.body).to include(I18n.t("bookshelf_entries.actions.move"))
+      expect(response.body).not_to include('name="bookshelf_id"')
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
     end
 
     it "does not show the bookshelf move select to accepted book friends, strangers, or follow-only users" do
