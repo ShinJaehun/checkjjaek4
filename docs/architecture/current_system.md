@@ -80,18 +80,20 @@
 ### 3. 프로필 화면 (/users/:id)
 
 - 관계에 따라 다른 데이터 노출
-- 프로필은 공개 요약 화면으로 해석한다
+- 프로필은 항상 공개 요약 화면으로 해석한다
 - profile-context Jjaek 작성 가능 여부도 관계에 따라 달라짐
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
 - stranger / follow-only는 프로필에서 `public` 책 목록을 flat summary 형태로 볼 수 있다
-- stranger / follow-only는 책장 탭, 책장 정렬 UI, 책장 관리 UI, 책 이동 UI, Library 링크를 볼 수 없다
+- self / accepted book_friend는 프로필에서 접근 가능한 책 목록 요약을 볼 수 있다
+- 프로필에서는 누구에게도 책장 탭, 책장 정렬 UI, 책장 관리 UI, 책 이동 UI를 보여주지 않는다
+- stranger / follow-only는 Library 링크를 볼 수 없다
 - self / accepted book_friend는 프로필에서 Library 링크를 볼 수 있다
 - 최근 활동 섹션은 profile owner의 visible Jjaek과 visible BookActivity를 함께 보여준다
 - 실제 Jjaek 노출 범위는 기존 profile Jjaek 정책을 따른다
 - BookActivity 노출 범위는 `self / accepted book_friend` 기준이다
 - stranger / follow-only 사용자는 프로필 최근 활동에서 BookActivity를 볼 수 없다
 - 홈 피드는 현재 사용자와 accepted book_friend의 BookActivity를 Jjaek과 함께 합성한다
-- 책장 탭, 책장 관리, 책 이동, 책 목록 정렬의 주 화면은 Library Screen이다
+- 책장 탭, 책장 관리, 책 이동, 책 목록 정렬은 Library Screen에서만 제공한다
 - 상세 권한 규칙은 `docs/architecture/authorization.md`를 본다
 
 관련 코드:
@@ -103,7 +105,7 @@
   - app/views/users/show.html.erb
   - app/views/users/_profile_header.html.erb
   - app/views/users/_profile_jjaek_form.html.erb
-  - app/views/users/_bookshelf_section.html.erb
+  - app/views/users/_profile_public_books.html.erb
   - app/views/users/_activity_section.html.erb
 
 ---
@@ -121,6 +123,8 @@
 관련 코드:
 - controller: app/controllers/users/libraries_controller.rb
 - view: app/views/users/libraries/show.html.erb
+  - app/views/users/_bookshelf_section.html.erb
+  - app/views/bookshelf_entries/_profile_bookshelf_entry.html.erb
 
 ---
 
@@ -212,6 +216,7 @@
 - BookshelfEntry
   - 사용자-책-책장 관계
   - 상태 / 스티커
+  - 목록 화면은 별도로 제공하지 않으며, 대표 서재 화면은 `/users/:user_id/library`를 사용한다
 
 - Bookshelf
   - 책장 이름 / visibility
