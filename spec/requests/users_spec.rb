@@ -30,6 +30,8 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
+      expect(response.body).to include(I18n.t("users.profile.public_books_title"))
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_title"))
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("저자")
       expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
@@ -51,6 +53,8 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
+      expect(response.body).to include(I18n.t("users.profile.public_books_title"))
+      expect(response.body).not_to include(I18n.t("users.profile.bookshelf_title"))
       expect(response.body).to include("프로필 서재 전용 책")
       expect(response.body).to include("Profile Jjaek")
       expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
@@ -97,10 +101,22 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
       expect(response.body).to include("OWN_PROFILE_SHELF_STICKER")
       expect(response.body).to include("내 비공개 짹")
-      expect(response.body).to include(I18n.t("users.profile.view_library"))
-      expect(response.body).to include(user_library_path(viewer))
+      expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
+      expect(response.body).not_to include(I18n.t("users.profile.view_library"))
+      expect(response.body).not_to include(user_library_path(viewer))
       expect(response.body).to include(I18n.t("users.profile.new_jjaek_title"))
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
+    end
+
+    it "shows an empty public books message to unrelated users without library controls" do
+      profile_user.bookshelf_entries.destroy_all
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).to include(I18n.t("users.profile.empty_public_books"))
+      expect(response.body).not_to include(I18n.t("users.profile.view_library"))
+      expect(response.body).not_to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
     end
 
     it "shows the owner their default and private bookshelf tabs" do

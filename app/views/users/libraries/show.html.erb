@@ -1,11 +1,6 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
   <%= render "users/profile_header", user: @user, book_friendship: @book_friendship %>
 
-  <div>
-    <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("users.library.eyebrow") %></p>
-    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= t("users.library.title") %></h1>
-  </div>
-
   <% if @show_bookshelf %>
     <%= render "users/bookshelf_section",
                user: @user,
