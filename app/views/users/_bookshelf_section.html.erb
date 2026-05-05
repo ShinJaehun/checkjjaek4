@@ -1,8 +1,7 @@
 <section class="space-y-4">
   <% bookshelves = Array(local_assigns[:bookshelves]) %>
-  <% bookshelf_route = local_assigns[:bookshelf_route] || :profile %>
-  <% bookshelf_section_path = ->(options = {}) { bookshelf_route == :library ? user_library_path(user, options) : user_path(user, options) } %>
-  <% return_to = bookshelf_route == :library ? "library" : "profile" %>
+  <% bookshelf_section_path = ->(options = {}) { user_library_path(user, options) } %>
+  <% return_to = "library" %>
   <% bookshelf_entry_counts = local_assigns[:bookshelf_entry_counts] || {} %>
   <% bookshelf_sort = local_assigns[:bookshelf_sort] || "recent" %>
   <% bookshelf_sort_options = local_assigns[:bookshelf_sort_options] || [] %>
