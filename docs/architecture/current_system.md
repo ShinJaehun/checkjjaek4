@@ -80,17 +80,18 @@
 ### 3. 프로필 화면 (/users/:id)
 
 - 관계에 따라 다른 데이터 노출
+- 프로필은 공개 요약 화면으로 해석한다
 - profile-context Jjaek 작성 가능 여부도 관계에 따라 달라짐
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
-- 프로필 책 목록은 Bookshelf visibility를 기준으로 조회 가능한 `BookshelfEntry`만 보여준다
-- 프로필 책 목록은 접근 가능한 Bookshelf를 링크 기반 탭으로 표시하고, 선택된 Bookshelf의 entry만 보여준다
-- profile owner는 자신의 프로필에서 일반 Bookshelf 생성, 이름/visibility/color 수정, 빈 책장 삭제, 위/아래 순서 변경을 할 수 있다
-- 선택된 책장의 BookshelfEntry 목록은 query parameter 기반으로 최근순/제목순/저자순/상태순 정렬할 수 있다
+- stranger / follow-only는 프로필에서 `public` 책 목록을 flat summary 형태로 볼 수 있다
+- stranger / follow-only는 책장 탭, 책장 정렬 UI, 책장 관리 UI, 책 이동 UI, Library 링크를 볼 수 없다
+- self / accepted book_friend는 프로필에서 Library 링크를 볼 수 있다
 - 최근 활동 섹션은 profile owner의 visible Jjaek과 visible BookActivity를 함께 보여준다
 - 실제 Jjaek 노출 범위는 기존 profile Jjaek 정책을 따른다
 - BookActivity 노출 범위는 `self / accepted book_friend` 기준이다
 - stranger / follow-only 사용자는 프로필 최근 활동에서 BookActivity를 볼 수 없다
 - 홈 피드는 현재 사용자와 accepted book_friend의 BookActivity를 Jjaek과 함께 합성한다
+- 책장 탭, 책장 관리, 책 이동, 책 목록 정렬의 주 화면은 Library Screen이다
 - 상세 권한 규칙은 `docs/architecture/authorization.md`를 본다
 
 관련 코드:
@@ -110,9 +111,12 @@
 ### 4. 서재 화면 (/users/:user_id/library)
 
 - 사용자별 전체 서재 화면
-- 기존 프로필 Bookshelf UI와 같은 Bookshelf/BookshelfEntry 데이터를 사용한다
-- 접근 가능한 책장 탭, 선택된 책장 책 목록, 책 이동, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
 - Library는 새 DB 모델이 아니라 화면/라우팅 개념이다
+- 내부 데이터 모델은 기존 `Bookshelf`와 `BookshelfEntry`를 그대로 사용한다
+- self / accepted book_friend만 접근할 수 있다
+- stranger / follow-only가 접근하면 프로필 화면으로 redirect된다
+- 접근 가능한 책장 탭, 선택된 책장 책 목록, 책 이동, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
+- 관리 기능은 self에게만 제공한다
 
 관련 코드:
 - controller: app/controllers/users/libraries_controller.rb
