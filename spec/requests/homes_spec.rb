@@ -37,6 +37,14 @@ RSpec.describe "Homes", type: :request do
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
     end
 
+    it "links the shelf entry point to the current user's library" do
+      sign_in viewer
+
+      get root_path
+
+      expect(response.body).to include(CGI.escapeHTML(user_library_path(viewer)))
+    end
+
     it "shows an accepted book friend's BookActivity in the home feed" do
       BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
       BookActivity.create!(user: book_friend, book: friend_book, action: :added_to_shelf)

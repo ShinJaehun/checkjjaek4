@@ -102,7 +102,6 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("내 비공개 짹")
       expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
       expect(response.body).not_to include(I18n.t("users.profile.view_library"))
-      expect(response.body).not_to include(user_library_path(viewer))
       expect(response.body).to include('name="jjaek[target_user_id]"')
       expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
     end
