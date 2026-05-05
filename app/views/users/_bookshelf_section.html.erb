@@ -12,6 +12,7 @@
   <% bookshelf_order_controls = local_assigns[:bookshelf_order_controls] || {} %>
   <% bookshelf_visibility_options = local_assigns[:bookshelf_visibility_options] || [] %>
   <% bookshelf_color_options = local_assigns[:bookshelf_color_options] || [] %>
+  <% empty_message = local_assigns[:empty_message] || t("users.profile.empty_bookshelf") %>
 
   <div>
     <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.bookshelf_title") %></h2>
@@ -183,7 +184,7 @@
     </div>
   <% else %>
     <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
-      <%= t("users.profile.empty_bookshelf") %>
+      <%= empty_message %>
     </section>
   <% end %>
 </section>

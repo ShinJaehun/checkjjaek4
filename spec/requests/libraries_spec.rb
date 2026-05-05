@@ -34,6 +34,7 @@ RSpec.describe "Libraries", type: :request do
 
       expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
       expect(response.body).not_to include(I18n.t("users.library.title"))
+      expect(response.body).not_to include(I18n.t("users.library.book_friend_read_only_notice"))
       expect(response.body).to include("SELF_LIBRARY_PRIVATE_SHELF")
       expect(response.body).to include("SELF_LIBRARY_PRIVATE_BOOK")
     end
@@ -48,6 +49,7 @@ RSpec.describe "Libraries", type: :request do
 
       expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
       expect(response.body).not_to include(I18n.t("users.library.title"))
+      expect(response.body).to include(I18n.t("users.library.book_friend_read_only_notice"))
       expect(response.body).to include("FRIEND_LIBRARY_PUBLIC_SHELF")
       expect(response.body).to include("FRIEND_LIBRARY_PUBLIC_BOOK")
     end
@@ -125,8 +127,13 @@ RSpec.describe "Libraries", type: :request do
 
       get user_library_path(owner, bookshelf_id: bookshelf.id)
 
+      expect(response.body).to include(I18n.t("users.library.book_friend_read_only_notice"))
       expect(response.body).not_to include(I18n.t("bookshelves.form.title"))
       expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.destroy"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_up"))
+      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_down"))
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
       expect(response.body).not_to include('name="return_to"')
     end
   end

@@ -304,6 +304,7 @@ en:
       remove_book_friend: "Remove book friend"
       unfollow: "Following"
     library:
+      book_friend_read_only_notice: "You are viewing bookshelves shared with book friends."
       title: "Full Library"
     profile:
       activity_title: "Recent Activity"

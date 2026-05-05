@@ -2,6 +2,10 @@
   <%= render "users/profile_header", user: @user, book_friendship: @book_friendship %>
 
   <% if @show_bookshelf %>
+    <% if current_user != @user %>
+      <p class="text-sm text-stone-500"><%= t("users.library.book_friend_read_only_notice") %></p>
+    <% end %>
+
     <%= render "users/bookshelf_section",
                user: @user,
                bookshelves: @profile_bookshelves,
