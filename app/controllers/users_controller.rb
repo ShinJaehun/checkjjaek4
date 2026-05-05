@@ -22,10 +22,9 @@ class UsersController < ApplicationController
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
     @show_library_link = profile_policy.show_library?
-    @show_profile_bookshelf_detail = current_user == @user
-    @show_profile_bookshelf_move_control = current_user == @user
-    @show_profile_bookshelf_create_form = current_user == @user
-    @bookshelf ||= current_user.bookshelves.build(visibility: :public, color_key: "stone") if @show_profile_bookshelf_create_form
+    @show_profile_bookshelf_detail = false
+    @show_profile_bookshelf_move_control = false
+    @show_profile_bookshelf_create_form = false
     @profile_bookshelf_visibility_options = Bookshelf.visibilities.keys
     @profile_bookshelf_color_options = Bookshelf::COLOR_KEYS
     @profile_bookshelf_sort = profile_bookshelf_sort
@@ -60,7 +59,7 @@ class UsersController < ApplicationController
 
   def profile_summary_bookshelf_entries(visible_entries, profile_policy)
     summary_entries = visible_entries.joins(:bookshelf)
-    summary_entries = summary_entries.where(bookshelves: { visibility: "public" }) unless profile_policy.profile_access_level == :book_friend
+    summary_entries = summary_entries.where(bookshelves: { visibility: "public" }) unless %i[self book_friend].include?(profile_policy.profile_access_level)
     summary_entries.profile_sorted("recent")
   end
 

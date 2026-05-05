@@ -172,7 +172,7 @@ class JjaeksController < ApplicationController
 
   def profile_summary_bookshelf_entries(visible_entries, profile_policy)
     summary_entries = visible_entries.joins(:bookshelf)
-    summary_entries = summary_entries.where(bookshelves: { visibility: "public" }) unless profile_policy.profile_access_level == :book_friend
+    summary_entries = summary_entries.where(bookshelves: { visibility: "public" }) unless %i[self book_friend].include?(profile_policy.profile_access_level)
     summary_entries.profile_sorted("recent")
   end
 
