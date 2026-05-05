@@ -4,7 +4,8 @@ class BookActivity < ApplicationRecord
     status_changed: "status_changed",
     status_cleared: "status_cleared",
     sticker_added: "sticker_added",
-    sticker_removed: "sticker_removed"
+    sticker_removed: "sticker_removed",
+    bookshelf_entry_updated: "bookshelf_entry_updated"
   }, validate: true
 
   belongs_to :user

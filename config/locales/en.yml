@@ -134,20 +134,39 @@ en:
         before_status: "』: "
         after_status: "."
       sticker_added:
-        before_book: " added a sticker to 『"
+        before_book: " added sticker(s) to 『"
         before_sticker: "』: "
         after_sticker: "."
       sticker_removed:
-        before_book: " removed a sticker from 『"
+        before_book: " removed sticker(s) from 『"
         before_sticker: "』: "
         after_sticker: "."
+      bookshelf_entry_updated:
+        before_book: " updated 『"
+        before_summary: "』: "
+        after_summary: "."
       no_thumbnail: "No cover"
     messages:
       added_to_shelf: "%{user_name} added 『%{book_title}』 to their shelf."
       status_changed: "%{user_name} changed 『%{book_title}』 to %{status}."
       status_cleared: "%{user_name} cleared the reading status for 『%{book_title}』."
-      sticker_added: "%{user_name} added the “%{sticker}” sticker to 『%{book_title}』."
-      sticker_removed: "%{user_name} removed the “%{sticker}” sticker from 『%{book_title}』."
+      sticker_added: "%{user_name} added “%{sticker}” to 『%{book_title}』."
+      sticker_removed: "%{user_name} removed “%{sticker}” from 『%{book_title}』."
+      bookshelf_entry_updated: "%{user_name} updated 『%{book_title}』: %{summary}."
+    update_clauses:
+      en:
+        status_changed:
+          connector: "changed status to %{status}"
+          final: "changed status to %{status}"
+        status_cleared:
+          connector: "cleared the reading status"
+          final: "cleared the reading status"
+        stickers_added:
+          connector: "added %{stickers} sticker(s)"
+          final: "added %{stickers} sticker(s)"
+        stickers_removed:
+          connector: "removed %{stickers} sticker(s)"
+          final: "removed %{stickers} sticker(s)"
   likes:
     alerts:
       not_found: "Like was not found."
