@@ -7,7 +7,7 @@
                profile_jjaek_visibility_options: @profile_jjaek_visibility_options %>
   <% end %>
 
-  <% if @show_library_link %>
+  <% if @show_library_link && current_user != @user %>
     <div class="flex justify-end">
       <%= link_to t("users.profile.view_library"),
                   user_library_path(@user),

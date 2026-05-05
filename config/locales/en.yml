@@ -37,11 +37,9 @@ en:
       title: "Start from your shelf"
   home:
     nav: "Home"
-    eyebrow: "Reading Home"
-    title: "Bookshelf first, then Jjaek"
-    description: "Your feed is shaped by the readers you follow and the book friends you trust. Keep your shelf close and move from books to writing."
-    feed_eyebrow: "Feed"
-    feed_title: "Recent feed"
+    title: "Bookjjaek"
+    description: "Do you like reading books?"
+    feed_title: "Recent activity"
     empty_feed: "No items are in your feed yet. Add a book to your shelf or follow another reader."
     new_jjaek_title: "Write a Jjaek"
     actions:
@@ -95,9 +93,9 @@ en:
       created: "Book friend request sent."
       destroyed: "Book friendship removed."
   relationships:
-    nav: "Relationships"
-    eyebrow: "Relationship Hub"
-    title: "Manage relationships"
+    nav: "Book friends"
+    title: "Book friends"
+    description: "Book friend requests, following updates, and visibility settings"
     sections:
       received_book_friend_requests: "Received book friend requests"
       sent_book_friend_requests: "Sent book friend requests"
@@ -112,8 +110,8 @@ en:
       followers: "No one is following you yet."
   notifications:
     nav: "Notifications"
-    eyebrow: "Notifications"
     title: "Notifications"
+    description: "Check new updates"
     empty: "You have no notifications yet."
     messages:
       book_friendship_requested: "%{actor_name} sent you a book friend request."
@@ -171,9 +169,8 @@ en:
       status: "Reading status"
       stickers: "Stickers"
     index:
-      eyebrow: "My Shelf"
-      title: "Books I am keeping close"
-      description: "One shelf, simple states, and a few stickers that explain why the book matters."
+      title: "My shelf"
+      description: "Manage book status and stickers."
       empty: "Your shelf is still empty. Search for a book and start there."
     new:
       title: "Add to shelf"
@@ -307,12 +304,10 @@ en:
       remove_book_friend: "Remove book friend"
       unfollow: "Following"
     library:
-      eyebrow: "Library"
+      book_friend_read_only_notice: "You are viewing bookshelves shared with book friends."
       title: "Full Library"
     profile:
-      activity_eyebrow: "Activity"
       activity_title: "Recent Activity"
-      bookshelf_eyebrow: "Shelf"
       bookshelf_sort:
         label: "Book sort"
         options:
@@ -322,10 +317,11 @@ en:
           title: "Title"
         submit: "Sort"
       bookshelf_tabs: "Bookshelves"
-      bookshelf_title: "Books"
+      bookshelf_title: "Bookshelf"
       empty_activity: "No recent activity yet."
       empty_bookshelf: "No visible books yet."
-      eyebrow: "Reader Profile"
+      empty_public_books: "No public books yet."
       new_jjaek_title: "Write a Jjaek"
+      public_books_title: "Books"
       stats: "%{followers} followers · %{following} following"
       view_library: "View library"
