@@ -309,27 +309,4 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response).to redirect_to(book_search_path)
   end
 
-  it "does not show a status badge for an entry without a status" do
-    nil_status_user = User.create!(name: "No Status", email: "no-status@example.com", password: "password123!", password_confirmation: "password123!")
-    nil_status_book = Book.create!(title: "상태 없는 책", authors_text: "저자")
-    nil_status_user.bookshelf_entries.create!(book: nil_status_book)
-    sign_in nil_status_user
-
-    get bookshelf_entries_path
-
-    expect(response.body).to include("상태 없는 책")
-    expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.wish"))
-    expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.reading"))
-    expect(response.body).not_to include(I18n.t("bookshelf_entries.statuses.finished"))
-  end
-
-  it "shows only the signed-in user's bookshelf entries" do
-    sign_in user
-
-    get bookshelf_entries_path
-
-    expect(response.body).to include("내 서재 책")
-    expect(response.body).not_to include("친구 서재 책")
-    expect(response.body).not_to include("낯선 사람 서재 책")
-  end
 end

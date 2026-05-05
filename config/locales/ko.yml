@@ -168,10 +168,6 @@ ko:
       bookshelf: "책장"
       status: "대표 상태"
       stickers: "스티커"
-    index:
-      title: "내 서재"
-      description: "책 상태와 스티커를 관리합니다."
-      empty: "아직 서재가 비어 있습니다. 책 검색에서 첫 책을 담아보세요."
     new:
       title: "서재에 담기"
     edit:
