@@ -10,7 +10,7 @@ Rails.application.routes.draw do
       get :lookup
     end
   end
-  resources :bookshelf_entries, only: %i[index create edit update destroy] do
+  resources :bookshelf_entries, only: %i[create edit update destroy] do
     patch :move, on: :member
   end
   resources :bookshelves, only: %i[create update destroy] do

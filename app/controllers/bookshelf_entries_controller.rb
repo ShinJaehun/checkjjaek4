@@ -1,11 +1,6 @@
 class BookshelfEntriesController < ApplicationController
   before_action :set_bookshelf_entry, only: %i[edit update destroy move]
 
-  def index
-    authorize BookshelfEntry
-    redirect_to user_library_path(current_user)
-  end
-
   def edit
     authorize @bookshelf_entry
     @book = @bookshelf_entry.book
@@ -80,7 +75,7 @@ class BookshelfEntriesController < ApplicationController
     authorize @bookshelf_entry
     @bookshelf_entry.destroy!
 
-    redirect_to bookshelf_entries_path, notice: t("bookshelf_entries.notices.destroyed"), status: :see_other
+    redirect_to user_library_path(current_user), notice: t("bookshelf_entries.notices.destroyed"), status: :see_other
   end
 
   private

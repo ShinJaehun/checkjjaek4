@@ -309,22 +309,4 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response).to redirect_to(book_search_path)
   end
 
-  it "redirects the legacy bookshelf entries index to the signed-in user's library" do
-    nil_status_user = User.create!(name: "No Status", email: "no-status@example.com", password: "password123!", password_confirmation: "password123!")
-    nil_status_book = Book.create!(title: "상태 없는 책", authors_text: "저자")
-    nil_status_user.bookshelf_entries.create!(book: nil_status_book)
-    sign_in nil_status_user
-
-    get bookshelf_entries_path
-
-    expect(response).to redirect_to(user_library_path(nil_status_user))
-  end
-
-  it "redirects the signed-in user to their own library" do
-    sign_in user
-
-    get bookshelf_entries_path
-
-    expect(response).to redirect_to(user_library_path(user))
-  end
 end
