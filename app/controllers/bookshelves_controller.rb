@@ -10,8 +10,8 @@ class BookshelvesController < ApplicationController
       redirect_to bookshelf_redirect_path(@bookshelf.id),
                   notice: t("bookshelves.notices.created", bookshelf_name: @bookshelf.name)
     else
-      prepare_profile_after_create_failure
-      render bookshelf_failure_template, status: :unprocessable_content
+      prepare_library_after_create_failure
+      render "users/libraries/show", status: :unprocessable_content
     end
   end
 
@@ -22,8 +22,8 @@ class BookshelvesController < ApplicationController
       redirect_to bookshelf_redirect_path(@bookshelf.id),
                   notice: t("bookshelves.notices.updated", bookshelf_name: @bookshelf.name)
     else
-      prepare_profile_after_failure(selected_bookshelf_id: @bookshelf.id, managed_bookshelf: @bookshelf)
-      render bookshelf_failure_template, status: :unprocessable_content
+      prepare_library_after_failure(selected_bookshelf_id: @bookshelf.id, managed_bookshelf: @bookshelf)
+      render "users/libraries/show", status: :unprocessable_content
     end
   end
 
@@ -67,41 +67,38 @@ class BookshelvesController < ApplicationController
     params.fetch(:bookshelf, {}).permit(:name, :visibility, :color_key)
   end
 
-  def prepare_profile_after_create_failure
-    prepare_profile_after_failure(selected_bookshelf_id: params[:bookshelf_id])
+  def prepare_library_after_create_failure
+    prepare_library_after_failure(selected_bookshelf_id: params[:bookshelf_id])
   end
 
-  def prepare_profile_after_failure(selected_bookshelf_id:, managed_bookshelf: nil)
+  def prepare_library_after_failure(selected_bookshelf_id:, managed_bookshelf: nil)
     @user = current_user
     profile_policy = policy(@user)
     @book_friendship = nil
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
-    @show_library_link = true
-    @show_profile_bookshelf_detail = true
     @show_profile_bookshelf_move_control = true
     @show_profile_bookshelf_create_form = true
     @bookshelf = current_user.bookshelves.build(visibility: :public, color_key: "stone") unless @bookshelf&.new_record?
     @profile_bookshelf_visibility_options = Bookshelf.visibilities.keys
     @profile_bookshelf_color_options = Bookshelf::COLOR_KEYS
+    @profile_bookshelf_sort = library_bookshelf_sort
+    @profile_bookshelf_sort_options = BookshelfEntry::PROFILE_SORTS
     @profile_bookshelf_move_targets = current_user.bookshelves.default_first
     @profile_bookshelves = policy_scope(current_user.bookshelves).default_first
     visible_entries = policy_scope(current_user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
-    @selected_bookshelf = selected_profile_bookshelf(@profile_bookshelves, selected_bookshelf_id)
+    @selected_bookshelf = selected_library_bookshelf(@profile_bookshelves, selected_bookshelf_id)
     @managed_bookshelf = managed_bookshelf || (@selected_bookshelf if @selected_bookshelf&.is_default? == false)
     @profile_bookshelf_order_controls = bookshelf_order_controls(@profile_bookshelves)
-    @bookshelf_entries = @selected_bookshelf ? visible_entries.where(bookshelf: @selected_bookshelf).recent_first : BookshelfEntry.none
-    @profile_jjaek = Jjaek.new(user: current_user, target_user: current_user, visibility: :public_jjaek)
-    @profile_jjaek_visibility_options = %w[public_jjaek book_friends private_jjaek]
-    @book_activities = policy_scope(BookActivity).where(user: current_user).includes(:user, :book).recent
-    @jjaeks = policy_scope(current_user.jjaeks).includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]).recent
-    prepare_visible_requote_counts_for(@jjaeks)
-    @profile_activity_items = (@jjaeks.to_a + @book_activities.to_a).sort_by(&:created_at).reverse
-    @show_profile_activity = true
+    @bookshelf_entries = @selected_bookshelf ? visible_entries.where(bookshelf: @selected_bookshelf).profile_sorted(@profile_bookshelf_sort) : BookshelfEntry.none
   end
 
-  def selected_profile_bookshelf(accessible_bookshelves, bookshelf_id)
+  def library_bookshelf_sort
+    BookshelfEntry::PROFILE_SORTS.include?(params[:sort]) ? params[:sort] : "recent"
+  end
+
+  def selected_library_bookshelf(accessible_bookshelves, bookshelf_id)
     bookshelves = accessible_bookshelves.to_a
     requested_bookshelf = bookshelves.find { |bookshelf| bookshelf.id.to_s == bookshelf_id.to_s }
 
@@ -113,19 +110,7 @@ class BookshelvesController < ApplicationController
   end
 
   def bookshelf_redirect_path(bookshelf_id)
-    if library_return?
-      user_library_path(current_user, bookshelf_id: bookshelf_id)
-    else
-      user_path(current_user, bookshelf_id: bookshelf_id)
-    end
-  end
-
-  def bookshelf_failure_template
-    library_return? ? "users/libraries/show" : "users/show"
-  end
-
-  def library_return?
-    params[:return_to] == "library"
+    user_library_path(current_user, bookshelf_id: bookshelf_id)
   end
 
   def bookshelf_order_controls(bookshelves)
