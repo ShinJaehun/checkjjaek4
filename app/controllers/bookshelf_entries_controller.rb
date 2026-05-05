@@ -122,10 +122,6 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def bookshelf_entry_move_redirect_path(bookshelf)
-    if params[:return_to] == "library"
-      user_library_path(current_user, bookshelf_id: bookshelf&.id)
-    else
-      user_path(current_user, bookshelf_id: bookshelf&.id)
-    end
+    user_library_path(current_user, bookshelf_id: bookshelf&.id)
   end
 end

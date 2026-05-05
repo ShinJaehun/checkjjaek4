@@ -118,7 +118,7 @@ RSpec.describe "BookshelfEntries", type: :request do
       patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id }
     }.not_to change(BookshelfEntry, :count)
 
-    expect(response).to redirect_to(user_path(user, bookshelf_id: target_bookshelf.id))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id))
     expect(entry.reload.bookshelf).to eq(target_bookshelf)
     expect(flash[:notice]).to include("이동 대상 책장")
   end
