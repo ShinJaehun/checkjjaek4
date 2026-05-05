@@ -168,10 +168,6 @@ en:
       bookshelf: "Bookshelf"
       status: "Reading status"
       stickers: "Stickers"
-    index:
-      title: "My shelf"
-      description: "Manage book status and stickers."
-      empty: "Your shelf is still empty. Search for a book and start there."
     new:
       title: "Add to shelf"
     edit:
