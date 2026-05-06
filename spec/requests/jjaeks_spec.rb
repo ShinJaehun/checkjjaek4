@@ -259,7 +259,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: original.id))
     end
 
-    it "shows the requote context label on the detail page" do
+    it "shows the book requote context label on the detail page" do
       sign_in viewer
 
       get jjaek_path(requote)
@@ -270,6 +270,18 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(user_path(original_author))
       expect(response.body).to include("ReJjaek request book")
       expect(response.body).to include("Author")
+      expect(response.body).to include("님의 책짹을 다시짹")
+    end
+
+    it "shows the general requote context label on the detail page" do
+      general_original = original_author.jjaeks.create!(content: "REQUEST_ORIGINAL_GENERAL_SOURCE", visibility: :book_friends)
+      general_requote = viewer.jjaeks.create!(content: "REQUEST_VIEWER_GENERAL_REQUOTE_BODY", quoted_jjaek: general_original, visibility: :private_jjaek)
+      sign_in viewer
+
+      get jjaek_path(general_requote)
+
+      expect(response.body).to include("REQUEST_VIEWER_GENERAL_REQUOTE_BODY")
+      expect(response.body).to include("REQUEST_ORIGINAL_GENERAL_SOURCE")
       expect(response.body).to include("님의 짹을 다시짹")
     end
 
@@ -425,6 +437,7 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response.body).to include("REQUEST_BOOK_THUMBNAIL_FEED")
       expect(response.body).to include("THUMBNAIL_FEED_BOOK")
+      expect(response.body).to include("님의 책짹")
       expect(response.body).to include("https://example.com/thumbnail.jpg")
     end
 

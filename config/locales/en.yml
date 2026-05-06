@@ -235,6 +235,8 @@ en:
       book_friends: "Book friends"
       private: "Only me"
   books:
+    thumbnail:
+      no_thumbnail: "No cover"
     show:
       save_state: "Save state"
       state_description: "Save this book's main status and stickers to your shelf."
@@ -254,14 +256,14 @@ en:
       timeline_title: "Book Jjaeks for this book"
   jjaeks:
     contexts:
-      general: "%{author_name}'s Jjaek"
-      profile: "%{author_name} left a Jjaek for %{target_user_name}"
-      book: "%{author_name} left a Book Jjaek about %{book_title}"
-      requote: "%{author_name} wrote a ReJjaek of %{quoted_user_name}'s Jjaek"
       general_html: "%{author_name}'s Jjaek"
-      profile_html: "%{author_name} left a Jjaek for %{target_user_name}"
-      book_html: "%{author_name} left a Book Jjaek about %{book_title}"
-      requote_html: "%{author_name} wrote a ReJjaek of %{quoted_user_name}'s Jjaek"
+      profile_html: "%{author_name}'s Jjaek for %{target_user_name}"
+      book_html: "%{author_name}'s Book Jjaek"
+      requote_html: "%{author_name}'s ReJjaek of %{quoted_user_name}'s %{quoted_context_label}"
+      quoted_general: "Jjaek"
+      quoted_book: "Book Jjaek"
+    card:
+      no_thumbnail: "No cover"
     actions:
       delete: "Delete"
       edit: "Edit"
@@ -288,6 +290,8 @@ en:
       title: "Write about this book"
     labels:
       requote: "ReJjaek from %{name}"
+      quoted_general_suffix: "'s Jjaek"
+      quoted_book_suffix: "'s Book Jjaek"
     meta:
       comments:
         one: "1 comment"

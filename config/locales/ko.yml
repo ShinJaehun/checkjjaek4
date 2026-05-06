@@ -235,6 +235,8 @@ ko:
       book_friends: "책친구 공개"
       private: "나만 보기"
   books:
+    thumbnail:
+      no_thumbnail: "표지 없음"
     show:
       save_state: "상태 저장"
       state_description: "내 서재에 이 책의 대표 상태와 스티커를 저장합니다."
@@ -254,14 +256,14 @@ ko:
       timeline_title: "이 책의 책짹"
   jjaeks:
     contexts:
-      general: "%{author_name}님의 짹"
-      profile: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
-      book: "%{author_name}님이 %{book_title}에 남긴 책짹"
-      requote: "%{author_name}님이 %{quoted_user_name}님의 짹을 다시짹"
       general_html: "%{author_name}님의 짹"
       profile_html: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
-      book_html: "%{author_name}님이 %{book_title}에 남긴 책짹"
-      requote_html: "%{author_name}님이 %{quoted_user_name}님의 짹을 다시짹"
+      book_html: "%{author_name}님의 책짹"
+      requote_html: "%{author_name}님이 %{quoted_user_name}님의 %{quoted_context_label}을 다시짹"
+      quoted_general: "짹"
+      quoted_book: "책짹"
+    card:
+      no_thumbnail: "표지 없음"
     actions:
       delete: "삭제"
       edit: "수정"
@@ -288,6 +290,8 @@ ko:
       title: "책에 대한 글 남기기"
     labels:
       requote: "%{name}님의 짹"
+      quoted_general_suffix: "님의 짹"
+      quoted_book_suffix: "님의 책짹"
     meta:
       comments:
         one: "댓글 1개"
