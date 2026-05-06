@@ -30,7 +30,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(user_path(user))
       expect(response.body).to include(book.title)
       expect(response.body).to include(book_path(book))
-      expect(response.body).to include("에 남긴 책짹")
+      expect(response.body).to include("님의 책짹")
     end
 
     it "shows the book as read-only when the user has no bookshelf entry" do

@@ -558,6 +558,7 @@ RSpec.describe "Users", type: :request do
       get user_path(viewer)
 
       expect(page_text).to include("Viewer님의 짹")
+      expect(response.body).to include(user_path(viewer))
       expect(page_text).not_to include("Viewer님이 Viewer님에게 남긴 짹")
       expect(response.body).to include("SELF_TARGETED_PROFILE_JJAEK")
     end

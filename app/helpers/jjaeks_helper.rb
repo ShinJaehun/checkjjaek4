@@ -1,6 +1,9 @@
 module JjaeksHelper
   def jjaek_context_label(jjaek)
-    t(jjaek_context_translation_key(jjaek), **jjaek_context_translation_options(jjaek))
+    translation_key = jjaek_context_translation_key(jjaek)
+    return if translation_key.blank?
+
+    t(translation_key, **jjaek_context_translation_options(jjaek))
   end
 
   def current_user_like_for(jjaek)
@@ -36,6 +39,7 @@ module JjaeksHelper
 
     if jjaek.quoted_jjaek.present?
       options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user)
+      options[:quoted_context_label] = jjaek.quoted_jjaek.book.present? ? t("jjaeks.contexts.quoted_book") : t("jjaeks.contexts.quoted_general")
     elsif jjaek.book.present?
       options[:book_title] = jjaek_context_book_link(jjaek.book)
     elsif profile_context_label?(jjaek)

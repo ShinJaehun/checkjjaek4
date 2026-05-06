@@ -1,0 +1,30 @@
+<%
+  size_classes = {
+    small: "h-20 w-14 rounded-xl",
+    medium: "h-28 w-20 rounded-2xl",
+    large: "h-44 w-32 rounded-3xl"
+  }
+  size_class = size_classes.fetch(size.to_sym)
+  wrapper_class = [ "overflow-hidden border border-stone-200 bg-stone-50", size_class, local_assigns[:extra_classes] ].compact.join(" ")
+  linked = local_assigns.fetch(:link, url.present?) && url.present?
+%>
+
+<% thumbnail_content = capture do %>
+  <div class="<%= wrapper_class %>">
+    <% if thumbnail.present? %>
+      <%= image_tag thumbnail, alt: title, class: "h-full w-full object-cover object-center" %>
+    <% else %>
+      <div class="flex h-full w-full items-center justify-center px-2 text-center text-[0.7rem] font-medium leading-4 text-stone-400">
+        <%= t("books.thumbnail.no_thumbnail") %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<% if linked %>
+  <%= link_to url, class: "inline-block shrink-0" do %>
+    <%= thumbnail_content %>
+  <% end %>
+<% else %>
+  <%= thumbnail_content %>
+<% end %>
