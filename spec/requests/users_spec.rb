@@ -599,6 +599,24 @@ RSpec.describe "Users", type: :request do
       expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
+    it "shows a ReJjaek on the profile when the quoted original is visible to the viewer" do
+      original = other_user.jjaeks.create!(content: "PROFILE_REQUOTE_VISIBLE_ORIGINAL", visibility: :public_jjaek)
+      profile_user.jjaeks.create!(
+        quoted_jjaek: original,
+        content: "PROFILE_REQUOTE_VISIBLE_BODY",
+        visibility: :public_jjaek
+      )
+      sign_in viewer
+
+      get user_path(profile_user)
+
+      expect(response.body).to include("PROFILE_REQUOTE_VISIBLE_BODY")
+      expect(response.body).to include("PROFILE_REQUOTE_VISIBLE_ORIGINAL")
+      expect(response.body).to include(other_user.name)
+      expect(response.body).to include(user_path(other_user))
+      expect(page_text).to include("Profile User님이 Other님의 짹을 다시짹")
+    end
+
     it "does not show BookActivity on a stranger's profile" do
       BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
       sign_in viewer

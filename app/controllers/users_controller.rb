@@ -75,7 +75,7 @@ class UsersController < ApplicationController
   end
 
   def resolve_profile_jjaeks(access_level)
-    scope = policy_scope(@user.jjaeks).includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
+    scope = policy_scope(Jjaek).where(user: @user).includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
 
     case access_level
     when :none, :following
