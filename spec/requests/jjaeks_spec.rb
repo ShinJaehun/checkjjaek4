@@ -66,6 +66,29 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
+    it "rerenders the book page with only original book jjaeks when a book-linked jjaek is invalid" do
+      viewer.bookshelf_entries.create!(book:)
+      original_book_jjaek = original_author.jjaeks.create!(book:, content: "VISIBLE_BOOK_ORIGINAL", visibility: :public_jjaek)
+      hidden_requote = viewer.jjaeks.create!(book:, content: "HIDDEN_BOOK_REQUOTE", quoted_jjaek: original_book_jjaek, visibility: :private_jjaek)
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            book_id: book.id,
+            content: "",
+            visibility: :public_jjaek
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include(original_book_jjaek.content)
+      expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(response.body).not_to include(hidden_requote.content)
+      expect(response.body).to include('name="jjaek[content]"')
+    end
+
     it "does not create a book-linked jjaek without a shelf entry" do
       sign_in viewer
 
