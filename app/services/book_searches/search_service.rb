@@ -1,8 +1,10 @@
 module BookSearches
   class SearchService
+    DEFAULT_SIZE = 10
+
     class << self
-      def call(query:)
-        raw = BookSearches::KakaoAdapter.search(query: query)
+      def call(query:, page:, size: DEFAULT_SIZE)
+        raw = BookSearches::KakaoAdapter.search(query: query, page: page, size: size)
 
         {
           results: Array(raw["documents"]).map { |item| normalize(item) },

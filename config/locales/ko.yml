@@ -72,6 +72,11 @@ ko:
     results:
       title: "검색 결과"
       meta: "%{count}건의 결과"
+    pagination:
+      label: "검색 결과 페이지"
+      previous: "이전"
+      next: "다음"
+      page: "%{page}페이지"
     fields:
       authors: "저자"
       publisher: "출판사"

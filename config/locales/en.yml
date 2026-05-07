@@ -72,6 +72,11 @@ en:
     results:
       title: "Search results"
       meta: "%{count} results"
+    pagination:
+      label: "Search result pages"
+      previous: "Previous"
+      next: "Next"
+      page: "Page %{page}"
     fields:
       authors: "Authors"
       publisher: "Publisher"

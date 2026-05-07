@@ -166,6 +166,7 @@
 
 - `book_searches#show` 기반 검색 화면
 - query string 기반 GET 검색
+- query string 기반 이전/다음 pagination 제공
 - `BookSearches::SearchService`와 `BookSearches::KakaoAdapter`를 통해
   Kakao 책 검색 API를 호출하고 결과를 정규화함
 

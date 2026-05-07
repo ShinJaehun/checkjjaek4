@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe BookSearches::SearchService do
   it "normalizes kakao book search results for the view" do
-    allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
+    allow(BookSearches::KakaoAdapter).to receive(:search).with(query: "미움받을 용기", page: 2, size: 10).and_return(
       {
         "meta" => { "total_count" => 1, "pageable_count" => 1, "is_end" => true },
         "documents" => [
@@ -19,7 +19,7 @@ RSpec.describe BookSearches::SearchService do
       }
     )
 
-    result = described_class.call(query: "미움받을 용기")
+    result = described_class.call(query: "미움받을 용기", page: 2)
 
     expect(result[:results].first[:authors_text]).to eq("기시미 이치로, 고가 후미타케")
     expect(result[:results].first[:thumbnail]).to be_nil

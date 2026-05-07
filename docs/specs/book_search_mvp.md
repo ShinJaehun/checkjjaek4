@@ -28,6 +28,7 @@
 - Kakao Developers Daum Search Book API 기반 책 검색
 - 검색 입력 폼
 - 검색 결과 목록 표시
+- 검색 결과 pagination
 - 최소한의 검색 결과 정규화/표준화
 - 빈 결과 처리
 - 외부 API 실패 시 안전한 사용자 메시지 처리
@@ -43,6 +44,14 @@
 - 책 검색은 현재 시점의 Kakao Developers 공식 문서를 기준으로 구현한다.
 - 책 검색 엔드포인트는 `GET https://dapi.kakao.com/v3/search/book`를 기준으로 한다.
 - 인증은 Kakao REST API 키를 이용한 요청 헤더 방식으로 처리한다.
+- Kakao 책 검색 API의 `page`, `size`, `meta.is_end`, `meta.pageable_count`를 사용한다.
+- 다음 페이지 존재 여부는 우선 `meta.is_end`를 기준으로 판단한다.
+- `meta.pageable_count`는 결과 수 표시와 보조 판단에 사용한다.
+- `page`는 query string으로 유지한다.
+- 검색 폼 제출 시에는 `page` 값을 넘기지 않고, controller에서 기본값 1로 처리한다.
+- pagination 링크를 클릭할 때만 `page` 값을 query string으로 유지한다.
+- `page` 값이 비정상이면 1로 보정한다.
+- `size`는 앱 내부 상수로 고정하며, MVP 기본값은 10으로 둔다.
 - 외부 API 호출 코드는 controller에 직접 흩뿌리지 않고, 얇은 adapter/service 계층에서 감싼다.
 - 검색 결과는 화면 표시용 데이터로 먼저 사용한다.
 - 검색 결과는 최소한 아래 정보를 우선 노출한다.
@@ -77,6 +86,9 @@
 - 메시지/사진 전용 모델
 - 검색 결과 캐싱/최적화
 - 쿼터 초과 대응의 고급 운영 기능
+- 무한 스크롤
+- Turbo Stream 기반 결과 append
+- 숫자 페이지 전체 목록 UI
 
 ---
 
@@ -92,8 +104,11 @@
   4. 사용자는 결과에서 `책 상세 보기` 또는 `서재에 담기`를 선택할 수 있다.
   5. 결과가 없으면 빈 상태 메시지를 보여준다.
   6. API 실패 시 안전한 오류 메시지를 보여준다.
-- 첫 단계에서는 첫 페이지 결과만 보여주면 충분하다.
-- pagination UI는 이번 spec 범위에 포함하지 않는다.
+  7. 결과가 더 있으면 다음 페이지로 이동할 수 있다.
+  8. 2페이지 이후에는 이전 페이지로 이동할 수 있다.
+- pagination은 GET query string 기반으로 구현한다.
+- MVP에서는 `이전` / `다음` 링크만 제공한다.
+- legacy `checkjjaek3`처럼 숫자 페이지 범위를 직접 계산하는 UI는 후속으로 미룬다.
 
 ---
 
@@ -103,6 +118,9 @@
 - 앱 내부에서는 외부 API 의존을 직접 controller에 넣지 않는다.
 - service 또는 adapter는 작고 명확하게 유지한다.
 - 기본 검색 대상은 제목(`target=title`)으로 시작한다.
+- controller는 `query`와 `page`를 정규화해 service에 넘긴다.
+- service는 `page`, `size`를 adapter에 넘기고, 결과와 meta를 함께 반환한다.
+- adapter는 Kakao API의 `page`, `size`, `is_end`, `pageable_count` 구조를 그대로 활용한다.
 - 문자열은 처음부터 locales를 고려한다.
 - Turbo 응답 최적화는 이번 spec의 필수 범위가 아니다.
 - 지금 단계에서는 “검색이 된다”를 먼저 고정하되,
@@ -117,9 +135,14 @@
 - 비로그인 사용자는 책 검색 기능에 접근할 수 없다.
 - 로그인 사용자는 검색어로 책을 검색할 수 있다.
 - 검색 결과가 있으면 결과 목록이 정상 표시된다.
+- 검색 결과가 더 있으면 `다음` 링크가 표시된다.
+- 마지막 페이지이면 `다음` 링크가 표시되지 않는다.
+- 2페이지 이후에는 `이전` 링크가 표시된다.
+- pagination 링크는 검색어와 page 값을 유지한다.
 - 검색 결과가 없으면 빈 상태 메시지가 표시된다.
 - 외부 API 오류가 발생하면 앱이 깨지지 않고 안전한 오류 메시지를 보여준다.
 - adapter/service는 응답 데이터를 화면에서 쓰기 쉬운 형태로 정규화한다.
+- adapter/service는 Kakao 응답의 `meta.is_end`와 `meta.pageable_count`를 보존한다.
 - `서재에 담기`는 `Book`과 `BookshelfEntry`를 생성 또는 재사용한다.
 - 이미 담긴 책은 중복 `BookshelfEntry`를 만들지 않는다.
 
