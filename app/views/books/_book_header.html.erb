@@ -8,8 +8,7 @@
                link: false %>
 
     <div class="min-w-0 flex-1">
-      <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("books.show.eyebrow") %></p>
-      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= book.title %></h1>
+      <h1 class="text-3xl font-semibold tracking-tight text-stone-900"><%= book.title %></h1>
       <div class="mt-4 space-y-1 text-sm text-stone-500">
         <p><%= t("books.show.authors") %>: <%= book.authors_text.presence || "-" %></p>
         <p><%= t("books.show.publisher") %>: <%= book.publisher.presence || "-" %></p>

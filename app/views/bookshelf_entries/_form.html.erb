@@ -1,22 +1,26 @@
 <%= form_with model: bookshelf_entry, class: "space-y-4" do |form| %>
+  <% show_book_info = local_assigns.fetch(:show_book_info, true) %>
+
   <% if bookshelf_entry.errors.any? %>
     <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       <%= bookshelf_entry.errors.full_messages.to_sentence %>
     </div>
   <% end %>
 
-  <div class="space-y-2">
-    <label class="text-sm font-medium text-stone-700"><%= t("bookshelf_entries.form.book") %></label>
-    <div class="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-700">
-      <div class="font-medium text-stone-900"><%= book.title %></div>
-      <div class="mt-1 text-stone-500"><%= book.authors_text.presence || "-" %></div>
+  <% if show_book_info %>
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-stone-700"><%= t("bookshelf_entries.form.book") %></label>
+      <div class="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-700">
+        <div class="font-medium text-stone-900"><%= book.title %></div>
+        <div class="mt-1 text-stone-500"><%= book.authors_text.presence || "-" %></div>
+      </div>
     </div>
-  </div>
+  <% end %>
 
   <%= bookshelf_entry_book_hidden_fields(book) %>
 
   <div class="space-y-2">
-    <%= form.label :status, t("bookshelf_entries.form.status"), class: "text-sm font-medium text-stone-700" %>
+    <%= form.label :status, local_assigns.fetch(:status_label, t("bookshelf_entries.form.status")), class: "text-sm font-medium text-stone-700" %>
     <%= form.hidden_field :status, value: "" %>
     <div class="flex flex-wrap gap-2">
       <% BookshelfEntry.statuses.keys.each do |status| %>
