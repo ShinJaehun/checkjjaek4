@@ -45,7 +45,7 @@ RSpec.describe "Comments", type: :request do
     post jjaek_comments_path(jjaek), params: { comment: { content: "" } }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("대화")
+    expect(response.body).to include("댓글")
     expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1))
     expect(response.body).not_to include(I18n.t("jjaeks.meta.comments", count: 2))
   end

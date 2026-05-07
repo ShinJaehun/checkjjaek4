@@ -55,7 +55,7 @@ en:
       created: "Comment added."
       destroyed: "Comment removed."
       updated: "Comment updated."
-    title: "Conversation"
+    title: "Comments"
   book_search:
     nav: "Book Search"
     title: "Book Search"
@@ -122,7 +122,6 @@ en:
     index:
       title: "ReJjaeks"
       description: "Browse the posts that ReJjaeked this Jjaek."
-      original_label: "Original Jjaek"
       empty: "No ReJjaeks yet."
   book_activities:
     badges:
@@ -251,7 +250,7 @@ en:
       publisher: "Publisher"
       isbn: "ISBN"
       empty_description: "No description is available for this book yet."
-      empty_jjaeks: "No book-linked Jjaek has been written for this book yet."
+      empty_jjaeks: "No Book Jjaeks have been written for this book yet."
       external_link: "Open external detail"
       read_only_description: "Add this book to your shelf before you can save its state or write a Book Jjaek."
       requote_source: "ReJjaek from %{name}"
@@ -325,7 +324,7 @@ en:
       remove_book_friend: "Remove book friend"
       unfollow: "Following"
     library:
-      book_friend_read_only_notice: "You are viewing bookshelves shared with book friends."
+      book_friend_read_only_notice: "Bookshelves shared with book friends"
       title: "Full Library"
     profile:
       activity_title: "Recent Activity"
@@ -341,8 +340,8 @@ en:
       bookshelf_title: "Bookshelf"
       empty_activity: "No recent activity yet."
       empty_bookshelf: "No visible books yet."
-      empty_public_books: "No public books yet."
+      empty_public_books: "No books to display yet."
       new_jjaek_title: "Write a Jjaek"
-      public_books_title: "Books"
+      public_books_title: "Book list"
       stats: "%{followers} followers · %{following} following"
       view_library: "View library"
