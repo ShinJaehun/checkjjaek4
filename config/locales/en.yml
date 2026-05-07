@@ -238,21 +238,17 @@ en:
     thumbnail:
       no_thumbnail: "No cover"
     show:
-      save_state: "Save state"
-      state_description: "Save this book's main status and stickers to your shelf."
-      state_title: "My shelf status and stickers"
+      save_state: "Save"
+      state_title: "Status and stickers"
+      status_label: "Status"
       authors: "Authors"
       publisher: "Publisher"
       isbn: "ISBN"
-      eyebrow: "Book"
       empty_description: "No description is available for this book yet."
       empty_jjaeks: "No book-linked Jjaek has been written for this book yet."
       external_link: "Open external detail"
-      new_jjaek_description: "Write a short note or a longer thought about this book."
-      new_jjaek_title: "Write a Book Jjaek about this book"
       read_only_description: "Add this book to your shelf before you can save its state or write a Book Jjaek."
       requote_source: "ReJjaek from %{name}"
-      timeline_eyebrow: "Book Timeline"
       timeline_title: "Book Jjaeks for this book"
   jjaeks:
     contexts:
