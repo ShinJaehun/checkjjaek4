@@ -62,7 +62,10 @@
 ### 2. 책 화면 (/books/:id)
 
 - 책 정보 표시
-- viewer 기준 `policy_scope`를 통과한 해당 책의 Jjaek 목록 표시
+- viewer 기준 `policy_scope`를 통과한 해당 책의 원본 책짹 목록 표시
+- `books/:id`의 책짹 목록에는 ReJjaek을 직접 포함하지 않는다
+- 원본 책짹 카드의 visible ReJjaek count는 유지한다
+- ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 책짹 작성 컨텍스트가 열림
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
 
@@ -262,6 +265,7 @@ BooksController#show
 
 - 댓글 / 좋아요 권한 상세는 `docs/architecture/authorization.md`를 본다
 - ReJjaek visibility 제약 상세는 `docs/architecture/jjaek_visibility.md`를 본다
+- ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
 
 ---
 

@@ -345,6 +345,7 @@ RSpec.describe "Jjaeks", type: :request do
       get jjaek_path(original)
 
       expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(response.body).to include(jjaek_requotes_path(original))
     end
 
     it "does not show a requote count when the jjaek has no visible requotes" do

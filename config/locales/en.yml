@@ -118,6 +118,12 @@ en:
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
       comment_created: "%{actor_name} commented on your Jjaek."
       requote_created: "%{actor_name} ReJjaeked your Jjaek."
+  requotes:
+    index:
+      title: "ReJjaeks"
+      description: "Browse the posts that ReJjaeked this Jjaek."
+      original_label: "Original Jjaek"
+      empty: "No ReJjaeks yet."
   book_activities:
     badges:
       status_cleared: "Status cleared"
