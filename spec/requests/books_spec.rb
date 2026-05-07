@@ -33,6 +33,19 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include("님의 책짹")
     end
 
+    it "shows only original book jjaeks on the book page while keeping the requote count on the original" do
+      user.bookshelf_entries.create!(book:, status: :reading)
+      original = user.jjaeks.create!(book:, content: "BOOK_ORIGINAL_BODY")
+      requote = user.jjaeks.create!(book:, content: "BOOK_REQUOTE_BODY", quoted_jjaek: original)
+      sign_in user
+
+      get book_path(book)
+
+      expect(response.body).to include(original.content)
+      expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(response.body).not_to include(requote.content)
+    end
+
     it "shows the book as read-only when the user has no bookshelf entry" do
       other_user = User.create!(name: "Other Reader", email: "other-book-reader@example.com", password: "password123!", password_confirmation: "password123!")
       book.jjaeks.create!(user: other_user, content: "다른 독자의 공개 Jjaek")

@@ -1,18 +1,18 @@
 <section class="mx-auto flex w-full max-w-5xl flex-col gap-6">
-  <%= render "book_header", book: @book %>
+  <%= render "books/book_header", book: @book %>
 
   <section class="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
     <div class="space-y-6">
-      <%= render "bookshelf_panel",
+      <%= render "books/bookshelf_panel",
                  book: @book,
                  bookshelf_entry: @bookshelf_entry,
                  sticker_definitions: @sticker_definitions %>
-      <%= render "timeline", jjaeks: @jjaeks %>
+      <%= render "books/timeline", jjaeks: @jjaeks %>
     </div>
 
     <% if @bookshelf_entry.present? %>
       <aside>
-      <%= render "jjaek_form_panel", book: @book, jjaek: @jjaek, quoted_jjaek: @quoted_jjaek %>
+      <%= render "books/jjaek_form_panel", book: @book, jjaek: @jjaek, quoted_jjaek: @quoted_jjaek %>
       </aside>
     <% end %>
   </section>

@@ -112,7 +112,9 @@ class JjaeksController < ApplicationController
       BookshelfEntry.new(user: current_user, book: @book)
     authorize @bookshelf_entry
     @sticker_definitions = StickerDefinition.alphabetical
-    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).recent
+    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
+      .where(quoted_jjaek_id: nil)
+      .recent
     prepare_visible_requote_counts_for(@jjaeks)
     render "books/show", status: :unprocessable_content
   end
