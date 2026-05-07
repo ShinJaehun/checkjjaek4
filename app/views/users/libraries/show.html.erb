@@ -2,10 +2,6 @@
   <%= render "users/profile_header", user: @user, book_friendship: @book_friendship %>
 
   <% if @show_bookshelf %>
-    <% if current_user != @user %>
-      <p class="text-sm text-stone-500"><%= t("users.library.book_friend_read_only_notice") %></p>
-    <% end %>
-
     <%= render "users/bookshelf_section",
                user: @user,
                bookshelves: @profile_bookshelves,
@@ -22,6 +18,7 @@
                managed_bookshelf: @managed_bookshelf,
                bookshelf_order_controls: @profile_bookshelf_order_controls,
                bookshelf_visibility_options: @profile_bookshelf_visibility_options,
-               bookshelf_color_options: @profile_bookshelf_color_options %>
+               bookshelf_color_options: @profile_bookshelf_color_options,
+               read_only_notice: (t("users.library.book_friend_read_only_notice") if current_user != @user) %>
   <% end %>
 </section>

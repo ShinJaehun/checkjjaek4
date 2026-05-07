@@ -15,6 +15,9 @@
 
   <div>
     <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.bookshelf_title") %></h2>
+    <% if local_assigns[:read_only_notice].present? %>
+      <p class="mt-2 text-sm text-stone-500"><%= local_assigns[:read_only_notice] %></p>
+    <% end %>
   </div>
 
   <% if bookshelves.any? %>

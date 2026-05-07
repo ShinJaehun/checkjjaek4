@@ -55,7 +55,7 @@ ko:
       created: "댓글을 남겼습니다."
       destroyed: "댓글을 삭제했습니다."
       updated: "댓글을 수정했습니다."
-    title: "대화"
+    title: "댓글"
   book_search:
     nav: "책 검색"
     title: "책 검색"
@@ -122,7 +122,6 @@ ko:
     index:
       title: "다시짹"
       description: "이 짹을 다시짹한 글을 모아 봅니다."
-      original_label: "원본 Jjaek"
       empty: "아직 다시짹이 없습니다."
   book_activities:
     badges:
@@ -251,7 +250,7 @@ ko:
       publisher: "출판사"
       isbn: "ISBN"
       empty_description: "아직 이 책의 설명이 없습니다."
-      empty_jjaeks: "아직 이 책에 연결된 책짹이 없습니다."
+      empty_jjaeks: "아직 이 책에 남긴 책짹이 없습니다."
       external_link: "외부 상세 보기"
       read_only_description: "이 책을 서재에 담아야 상태를 저장하고 책짹을 쓸 수 있습니다."
       requote_source: "%{name}님의 Jjaek을 인용 중"
@@ -325,7 +324,7 @@ ko:
       remove_book_friend: "책친구 해제"
       unfollow: "소식받는 중"
     library:
-      book_friend_read_only_notice: "책친구에게 공개된 책장을 보고 있습니다."
+      book_friend_read_only_notice: "책친구에게 공개된 책장"
       title: "전체 서재"
     profile:
       activity_title: "최근 활동"
@@ -341,8 +340,8 @@ ko:
       bookshelf_title: "책장"
       empty_activity: "아직 최근 활동이 없습니다."
       empty_bookshelf: "아직 보이는 책이 없습니다."
-      empty_public_books: "아직 공개된 책이 없습니다."
+      empty_public_books: "아직 표시할 책이 없습니다."
       new_jjaek_title: "짹 쓰기"
-      public_books_title: "책"
+      public_books_title: "책 목록"
       stats: "소식받는 사람 %{followers}명 · 소식받기 %{following}명"
       view_library: "서재 보기"
