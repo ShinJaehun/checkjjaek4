@@ -179,6 +179,14 @@ Library 안에서 볼 수 있는 책장:
 - 원문이 `private_jjaek`이면 ReJjaek할 수 없다
 - 원문 자체가 ReJjaek이면 다시 인용할 수 없다
 
+### ReJjaek 목록 조회
+
+- 원본 Jjaek을 볼 수 있는 사용자만 ReJjaek 목록에 접근할 수 있다
+- `private_jjaek` 원문은 ReJjaek 목록 접근 대상이 아니다
+- ReJjaek 자체에 대해서는 ReJjaek 목록을 제공하지 않는다
+- 목록에는 현재 사용자가 볼 수 있는 ReJjaek만 표시한다
+- 상세 MVP 기준은 `docs/specs/requotes_mvp.md`를 따른다
+
 관련 위치:
 
 - `app/policies/jjaek_policy.rb`
