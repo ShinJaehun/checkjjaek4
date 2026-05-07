@@ -178,6 +178,21 @@
 
 ---
 
+## 공통 책 썸네일 정책
+
+- 책 썸네일은 `app/views/books/_thumbnail.html.erb` 공통 partial을 사용한다.
+- 책 표지는 사진처럼 crop해서 꾸미는 대상이 아니라, 책 정보를 전달하는 이미지로 본다.
+- thumbnail이 있는 경우에는 고정 세로형 wrapper에 억지로 맞추지 않는다.
+- thumbnail 이미지는 max-height / max-width 안에서 원본 비율을 유지해 자연스럽게 표시한다.
+- 이미지를 wrapper에 맞추기 위해 찌그러뜨리거나 강제로 crop하지 않는다.
+- 기본 object-fit은 `object-contain`을 사용한다.
+- 표지 없음 fallback일 때만 size별 고정 박스를 사용한다.
+- 화면별 크기는 partial의 `size` 옵션으로 조정한다.
+- Kakao 썸네일 URL은 임의 크기 치환 없이 API 응답값을 우선 사용한다.
+- crop이 필요한 별도 UI가 생기면 기본 정책이 아니라 명시적 옵션으로 분리한다.
+
+---
+
 ## Jjaek 문맥
 
 하나의 모델로 통합:

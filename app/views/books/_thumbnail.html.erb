@@ -1,24 +1,31 @@
 <%
-  size_classes = {
-    small: "h-20 w-14 rounded-xl",
-    medium: "h-28 w-20 rounded-2xl",
-    large: "h-44 w-32 rounded-3xl"
+  image_size_classes = {
+    small: "max-h-20 max-w-14",
+    medium: "max-h-28 max-w-20",
+    large: "max-h-44 max-w-32"
   }
-  size_class = size_classes.fetch(size.to_sym)
-  wrapper_class = [ "overflow-hidden border border-stone-200 bg-stone-50", size_class, local_assigns[:extra_classes] ].compact.join(" ")
+  fallback_size_classes = {
+    small: "h-20 w-14",
+    medium: "h-28 w-20",
+    large: "h-44 w-32"
+  }
+  image_size_class = image_size_classes.fetch(size.to_sym)
+  fallback_size_class = fallback_size_classes.fetch(size.to_sym)
+  image_class = [ "block h-auto w-auto rounded-sm border border-stone-200 bg-white object-contain object-center", image_size_class, local_assigns[:extra_classes] ].compact.join(" ")
+  fallback_class = [ "overflow-hidden rounded-sm border border-stone-200 bg-stone-50", fallback_size_class, local_assigns[:extra_classes] ].compact.join(" ")
   linked = local_assigns.fetch(:link, url.present?) && url.present?
 %>
 
 <% thumbnail_content = capture do %>
-  <div class="<%= wrapper_class %>">
-    <% if thumbnail.present? %>
-      <%= image_tag thumbnail, alt: title, class: "h-full w-full object-cover object-center" %>
-    <% else %>
+  <% if thumbnail.present? %>
+    <%= image_tag thumbnail, alt: title, class: image_class %>
+  <% else %>
+    <div class="<%= fallback_class %>">
       <div class="flex h-full w-full items-center justify-center px-2 text-center text-[0.7rem] font-medium leading-4 text-stone-400">
         <%= t("books.thumbnail.no_thumbnail") %>
       </div>
-    <% end %>
-  </div>
+    </div>
+  <% end %>
 <% end %>
 
 <% if linked %>
