@@ -296,6 +296,8 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(user_path(original_author))
       expect(response.body).to include("ReJjaek request book")
       expect(response.body).to include("Author")
+      expect(response.body).to include("user_profile_")
+      expect(response.body).to include(%(alt="#{original_author.name}"))
       expect(response.body).to include("님의 책짹을 다시짹")
     end
 

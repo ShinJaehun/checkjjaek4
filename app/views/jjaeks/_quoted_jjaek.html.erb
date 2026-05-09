@@ -1,6 +1,9 @@
 <div class="rounded-2xl border border-stone-200 bg-stone-50/80 px-4 py-3 text-sm text-stone-600">
-  <div class="text-xs font-medium text-stone-600">
-    <%= link_to quoted_jjaek.user.name, user_path(quoted_jjaek.user), class: "font-semibold text-stone-800 hover:text-stone-900" %><%= quoted_jjaek.book.present? ? t("jjaeks.labels.quoted_book_suffix") : t("jjaeks.labels.quoted_general_suffix") %>
+  <div class="flex items-center gap-2 text-xs font-medium text-stone-600">
+    <%= user_avatar_image(quoted_jjaek.user, size: 128, alt: quoted_jjaek.user.name, class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
+    <span>
+      <%= link_to quoted_jjaek.user.name, user_path(quoted_jjaek.user), class: "font-semibold text-stone-800 hover:text-stone-900" %><%= quoted_jjaek.book.present? ? t("jjaeks.labels.quoted_book_suffix") : t("jjaeks.labels.quoted_general_suffix") %>
+    </span>
   </div>
 
   <% if quoted_jjaek.book.present? %>

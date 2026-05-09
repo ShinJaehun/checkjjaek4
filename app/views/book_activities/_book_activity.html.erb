@@ -7,7 +7,10 @@
                size: :small %>
 
     <div class="min-w-0 flex-1">
-      <p class="leading-6"><%= book_activity_card_message(book_activity) %></p>
+      <div class="flex items-start gap-3">
+        <%= user_avatar_image(book_activity.user, size: 128, alt: book_activity.user.name, class: "h-9 w-9 shrink-0 rounded-full object-cover") %>
+        <p class="leading-6"><%= book_activity_card_message(book_activity) %></p>
+      </div>
       <p class="mt-2 text-xs text-stone-400"><%= l(book_activity.created_at, format: :short) %></p>
     </div>
   </div>

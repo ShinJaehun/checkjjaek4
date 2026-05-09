@@ -578,6 +578,8 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("책 활동")
       expect(response.body).not_to include("최근 Jjaek")
       expect(response.body).to include("내 최근 짹")
+      expect(response.body).to include("user_profile_")
+      expect(response.body).to include(%(alt="#{viewer.name}"))
       expect(page_text).to include("Viewer님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
