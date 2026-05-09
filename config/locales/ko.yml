@@ -258,7 +258,6 @@ ko:
       empty_jjaeks: "아직 이 책에 남긴 책짹이 없습니다."
       external_link: "외부 상세 보기"
       read_only_description: "이 책을 서재에 담아야 상태를 저장하고 책짹을 쓸 수 있습니다."
-      requote_source: "%{name}님의 Jjaek을 인용 중"
       timeline_title: "이 책의 책짹"
   jjaeks:
     contexts:

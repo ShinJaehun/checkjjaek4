@@ -258,7 +258,6 @@ en:
       empty_jjaeks: "No Book Jjaeks have been written for this book yet."
       external_link: "Open external detail"
       read_only_description: "Add this book to your shelf before you can save its state or write a Book Jjaek."
-      requote_source: "ReJjaek from %{name}"
       timeline_title: "Book Jjaeks for this book"
   jjaeks:
     contexts:

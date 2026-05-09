@@ -20,16 +20,9 @@ class BooksController < ApplicationController
 
   def prepare_book_write_context
     authorize @bookshelf_entry
-    @quoted_jjaek = find_quoted_jjaek
-    @jjaek = Jjaek.new(user: current_user, book: @book, quoted_jjaek: @quoted_jjaek)
+    @jjaek = Jjaek.new(user: current_user, book: @book)
     authorize @jjaek
     @sticker_definitions = StickerDefinition.alphabetical
-  end
-
-  def find_quoted_jjaek
-    return unless params[:quote_id].present?
-
-    policy_scope(@book.jjaeks).find(params[:quote_id])
   end
 
   def visible_book_jjaeks

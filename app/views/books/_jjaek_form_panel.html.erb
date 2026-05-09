@@ -1,12 +1,5 @@
 <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-  <% if quoted_jjaek.present? %>
-    <div class="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
-      <div class="font-medium text-stone-900"><%= t("books.show.requote_source", name: quoted_jjaek.user.name) %></div>
-      <p class="mt-2 line-clamp-4 whitespace-pre-wrap"><%= quoted_jjaek.content %></p>
-    </div>
-  <% end %>
-
-  <div class="<%= quoted_jjaek.present? ? 'mt-5' : nil %>">
+  <div>
     <%= form_with model: jjaek, class: "space-y-4" do |form| %>
       <% if jjaek.errors.any? %>
         <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -15,7 +8,6 @@
       <% end %>
 
       <%= form.hidden_field :book_id, value: book.id %>
-      <%= form.hidden_field :quoted_jjaek_id, value: quoted_jjaek&.id %>
 
       <div class="space-y-2">
         <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>

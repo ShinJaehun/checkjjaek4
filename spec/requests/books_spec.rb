@@ -15,6 +15,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include("서재에 있는 책")
       expect(response.body).to include(I18n.t("books.show.save_state"))
       expect(response.body).to include('name="jjaek[content]"')
+      expect(response.body).not_to include('name="jjaek[quoted_jjaek_id]"')
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
     end
 
