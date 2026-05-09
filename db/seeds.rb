@@ -94,4 +94,9 @@ User.transaction do
     jjaek: jjaek_a,
     content: "서재 흐름이 잡히니 글도 더 자연스럽게 이어지겠어요."
   )
+
+  User.where(default_avatar_index: nil).find_each do |user|
+    user.update!(default_avatar_index: User.send(:least_used_default_avatar_index))
+  end
+
 end
