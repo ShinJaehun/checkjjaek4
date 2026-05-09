@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  DEFAULT_AVATAR_INDEX_RANGE = (1..32).freeze
+
   devise :database_authenticatable,
          :registerable,
          :recoverable,
@@ -55,7 +57,11 @@ class User < ApplicationRecord
            dependent: :destroy
 
   validates :name, presence: true
+  validates :default_avatar_index,
+            inclusion: { in: DEFAULT_AVATAR_INDEX_RANGE },
+            allow_nil: true
 
+  before_validation :assign_default_avatar_index, on: :create
   after_create :create_default_bookshelf!
 
   def follows?(other_user)
@@ -83,5 +89,19 @@ class User < ApplicationRecord
       bookshelf.name = Bookshelf::DEFAULT_NAME
       bookshelf.visibility = :public
     end
+  end
+
+  private
+
+  def assign_default_avatar_index
+    self.default_avatar_index ||= self.class.least_used_default_avatar_index
+  end
+
+  def self.least_used_default_avatar_index
+    counts = where(default_avatar_index: DEFAULT_AVATAR_INDEX_RANGE)
+      .group(:default_avatar_index)
+      .count
+    minimum_count = DEFAULT_AVATAR_INDEX_RANGE.map { |index| counts.fetch(index, 0) }.min
+    DEFAULT_AVATAR_INDEX_RANGE.select { |index| counts.fetch(index, 0) == minimum_count }.sample
   end
 end

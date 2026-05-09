@@ -1,4 +1,6 @@
 module UsersHelper
+  AVATAR_SIZES = [ 128, 512 ].freeze
+
   BOOKSHELF_TAB_CLASSES_BY_COLOR_KEY = {
     "stone" => {
       selected: "border-stone-900 bg-stone-900 text-white",
@@ -106,7 +108,27 @@ module UsersHelper
     end
   end
 
+  def user_avatar_path(user, size:)
+    "avatars/user_profile_#{avatar_index_for(user).to_s.rjust(2, "0")}_#{avatar_size(size)}.png"
+  end
+
+  def user_avatar_image(user, size:, **options)
+    image_tag user_avatar_path(user, size:), **options
+  end
+
   private
+
+  def avatar_index_for(user)
+    index = user&.default_avatar_index
+    User::DEFAULT_AVATAR_INDEX_RANGE.cover?(index) ? index : 1
+  end
+
+  def avatar_size(size)
+    size = size.to_i
+    return size if AVATAR_SIZES.include?(size)
+
+    raise ArgumentError, "unsupported avatar size"
+  end
 
   def bookshelf_color_palette(bookshelf)
     BOOKSHELF_TAB_CLASSES_BY_COLOR_KEY.fetch(bookshelf.color_key, BOOKSHELF_TAB_CLASSES_BY_COLOR_KEY.fetch("stone"))

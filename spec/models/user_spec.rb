@@ -1,6 +1,67 @@
 require "rails_helper"
 
 RSpec.describe User, type: :model do
+  it "assigns a default avatar index when the user is created" do
+    user = described_class.create!(
+      name: "Avatar User",
+      email: "avatar-user@example.com",
+      password: "password123!",
+      password_confirmation: "password123!"
+    )
+
+    expect(user.default_avatar_index).to be_in(User::DEFAULT_AVATAR_INDEX_RANGE)
+  end
+
+  it "keeps an explicitly assigned default avatar index" do
+    user = described_class.create!(
+      name: "Explicit Avatar User",
+      email: "explicit-avatar-user@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      default_avatar_index: 12
+    )
+
+    expect(user.default_avatar_index).to eq(12)
+  end
+
+  it "is invalid with an out-of-range default avatar index" do
+    user = described_class.new(
+      name: "Invalid Avatar User",
+      email: "invalid-avatar-user@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      default_avatar_index: 33
+    )
+
+    expect(user).not_to be_valid
+  end
+
+  it "chooses from the least used default avatar indexes" do
+    described_class.create!(
+      name: "Used Avatar One",
+      email: "used-avatar-one@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      default_avatar_index: 1
+    )
+    described_class.create!(
+      name: "Used Avatar Two",
+      email: "used-avatar-two@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      default_avatar_index: 2
+    )
+
+    user = described_class.create!(
+      name: "Least Used Avatar User",
+      email: "least-used-avatar-user@example.com",
+      password: "password123!",
+      password_confirmation: "password123!"
+    )
+
+    expect(user.default_avatar_index).to be_between(3, 32).inclusive
+  end
+
   it "creates a default bookshelf when the user is created" do
     user = described_class.create!(
       name: "Default Shelf User",
