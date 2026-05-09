@@ -279,6 +279,9 @@ RSpec.describe "Jjaeks", type: :request do
 
       get jjaek_path(original)
 
+      expect(response.body).to include("user_profile_")
+      expect(response.body).to include("_128")
+      expect(response.body).to include(%(alt="#{original_author.name}"))
       expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: original.id))
     end
 

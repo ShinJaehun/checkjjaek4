@@ -50,6 +50,16 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).not_to include(I18n.t("jjaeks.meta.comments", count: 2))
   end
 
+  it "shows the comment author's avatar on the jjaek page" do
+    sign_in user
+
+    get jjaek_path(jjaek)
+
+    expect(response.body).to include("user_profile_")
+    expect(response.body).to include("_128")
+    expect(response.body).to include(%(alt="#{user.name}"))
+  end
+
   it "redirects guests to sign in when creating a comment" do
     post jjaek_comments_path(jjaek), params: { comment: { content: "Guest comment" } }
 

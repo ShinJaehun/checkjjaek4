@@ -30,6 +30,8 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
+      expect(response.body).to include("user_profile_")
+      expect(response.body).to include("_512")
       expect(response.body).to include(I18n.t("users.profile.public_books_title"))
       expect(response.body).not_to include(I18n.t("users.profile.bookshelf_title"))
       expect(response.body).to include("프로필 서재 전용 책")
