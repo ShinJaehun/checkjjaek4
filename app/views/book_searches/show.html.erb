@@ -42,32 +42,36 @@
 
                 <div class="mt-auto flex flex-wrap items-center gap-3 pt-1">
                   <%= link_to t("book_search.actions.open_internal"),
-                              lookup_books_path(
+                              book[:shelved_book_id].present? ? book_path(book[:shelved_book_id]) : lookup_books_path(
                                 title: book[:title],
-                                authors_text: book[:authors_text],
-                                publisher: book[:publisher],
-                                thumbnail: book[:thumbnail],
-                                isbn: book[:isbn],
-                                description: book[:contents_excerpt],
-                                external_url: book[:url]
-                              ),
+                                  authors_text: book[:authors_text],
+                                  publisher: book[:publisher],
+                                  thumbnail: book[:thumbnail],
+                                  isbn: book[:isbn],
+                                  description: book[:contents_excerpt],
+                                  external_url: book[:url]
+                                ),
                               class: "inline-flex rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
 
-                  <%= button_to t("book_search.actions.add_to_shelf"),
-                                bookshelf_entries_path,
-                                method: :post,
-                                params: {
-                                  book: {
-                                    title: book[:title],
-                                    authors_text: book[:authors_text],
-                                    publisher: book[:publisher],
-                                    thumbnail: book[:thumbnail],
-                                    isbn: book[:isbn],
-                                    description: book[:contents_excerpt],
-                                    external_url: book[:url]
-                                  }
-                                },
-                                class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+                  <% if book[:shelved_book_id].present? %>
+                    <span class="inline-flex rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-600"><%= t("book_search.actions.in_shelf") %></span>
+                  <% else %>
+                    <%= button_to t("book_search.actions.add_to_shelf"),
+                                  bookshelf_entries_path,
+                                  method: :post,
+                                  params: {
+                                    book: {
+                                      title: book[:title],
+                                      authors_text: book[:authors_text],
+                                      publisher: book[:publisher],
+                                      thumbnail: book[:thumbnail],
+                                      isbn: book[:isbn],
+                                      description: book[:contents_excerpt],
+                                      external_url: book[:url]
+                                    }
+                                  },
+                                  class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+                  <% end %>
                 </div>
               </div>
             </div>

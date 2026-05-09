@@ -83,6 +83,7 @@ en:
       isbn: "ISBN"
     actions:
       add_to_shelf: "Add to shelf"
+      in_shelf: "In my library"
       open_internal: "Open book detail"
   follows:
     alerts:

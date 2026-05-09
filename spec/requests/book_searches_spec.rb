@@ -39,6 +39,75 @@ RSpec.describe "BookSearches", type: :request do
     expect(response.body).not_to include(%(name="page"))
   end
 
+  it "marks a search result already in the current user's shelf" do
+    book = Book.create!(
+      title: "이미 담긴 책",
+      authors_text: "저자",
+      isbn: "9780000000001",
+      external_url: "https://example.com/already"
+    )
+    user.bookshelf_entries.create!(book:)
+    sign_in user
+    allow(BookSearches::SearchService).to receive(:call).with(query: "이미 담긴 책", page: 1).and_return(
+      {
+        results: [
+          {
+            title: "이미 담긴 책",
+            authors_text: "저자",
+            publisher: "출판사",
+            thumbnail: nil,
+            isbn: "9780000000001",
+            contents_excerpt: "소개",
+            url: "https://example.com/already"
+          }
+        ],
+        meta: { total_count: 1, pageable_count: 1, is_end: true }
+      }
+    )
+
+    expect {
+      get book_search_path, params: { query: "이미 담긴 책" }
+    }.not_to change { [ Book.count, BookshelfEntry.count ] }
+
+    expect(response.body).to include(I18n.t("book_search.actions.in_shelf"))
+    expect(response.body).not_to include(I18n.t("book_search.actions.add_to_shelf"))
+    expect(response.body).to include(book_path(book))
+    expect(response.body).not_to include("/books/lookup")
+  end
+
+  it "still shows add to shelf when the matching book is only in another user's shelf" do
+    other_user = User.create!(name: "Other", email: "other-book-search@example.com", password: "password123!", password_confirmation: "password123!")
+    book = Book.create!(
+      title: "다른 사람 책",
+      authors_text: "저자",
+      isbn: "9780000000002",
+      external_url: "https://example.com/other"
+    )
+    other_user.bookshelf_entries.create!(book:)
+    sign_in user
+    allow(BookSearches::SearchService).to receive(:call).with(query: "다른 사람 책", page: 1).and_return(
+      {
+        results: [
+          {
+            title: "다른 사람 책",
+            authors_text: "저자",
+            publisher: "출판사",
+            thumbnail: nil,
+            isbn: "9780000000002",
+            contents_excerpt: "소개",
+            url: "https://example.com/other"
+          }
+        ],
+        meta: { total_count: 1, pageable_count: 1, is_end: true }
+      }
+    )
+
+    get book_search_path, params: { query: "다른 사람 책" }
+
+    expect(response.body).to include(I18n.t("book_search.actions.add_to_shelf"))
+    expect(response.body).not_to include(I18n.t("book_search.actions.in_shelf"))
+  end
+
   it "shows a next link when another search results page exists" do
     sign_in user
     allow(BookSearches::SearchService).to receive(:call).with(query: "책", page: 1).and_return(
