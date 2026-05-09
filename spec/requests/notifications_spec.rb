@@ -37,6 +37,9 @@ RSpec.describe "Notifications", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(I18n.t("notifications.title"))
     expect(response.body).to include(I18n.t("notifications.messages.profile_jjaek_created", actor_name: actor.name))
+    expect(response.body).to include("user_profile_")
+    expect(response.body).to include("_128")
+    expect(response.body).to include(%(alt="#{actor.name}"))
     expect(response.body).to include(jjaek_path(jjaek))
   end
 

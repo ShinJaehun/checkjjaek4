@@ -116,6 +116,15 @@ module UsersHelper
     image_tag user_avatar_path(user, size:), **options
   end
 
+  def user_avatar_link(user, image_class:, text_class:)
+    link_to user_path(user), class: "flex min-w-0 items-center gap-3" do
+      safe_join([
+        user_avatar_image(user, size: 128, alt: user.name, class: image_class),
+        tag.span(user.name, class: text_class)
+      ])
+    end
+  end
+
   private
 
   def avatar_index_for(user)

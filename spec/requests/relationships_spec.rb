@@ -53,6 +53,8 @@ RSpec.describe "Relationships", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(I18n.t("relationships.title"))
+    expect(response.body).to include("user_profile_")
+    expect(response.body).to include("_128")
   end
 
   it "does not show the old relationship notification badge in the navigation" do

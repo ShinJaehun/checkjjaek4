@@ -42,7 +42,10 @@
                 </span>
               <% end %>
             <% end %>
-            <%= link_to current_user.name, user_path(current_user), class: "font-medium" %>
+            <%= link_to user_path(current_user), class: "flex items-center gap-2 font-medium" do %>
+              <%= user_avatar_image(current_user, size: 128, alt: current_user.name, class: "h-8 w-8 rounded-full object-cover") %>
+              <span class="hidden sm:inline"><%= current_user.name %></span>
+            <% end %>
             <%= button_to t("auth.actions.sign_out"), destroy_user_session_path, method: :delete, class: "rounded-full border border-stone-300 px-3 py-1.5" %>
           <% else %>
             <%= link_to t("auth.actions.sign_in"), new_user_session_path, class: "rounded-full border border-stone-300 px-3 py-1.5" %>
