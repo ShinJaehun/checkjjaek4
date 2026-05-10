@@ -1,0 +1,14 @@
+<%= form_with model: [jjaek, comment], class: "space-y-3" do |form| %>
+  <% if comment.errors.any? %>
+    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <%= comment.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <div class="space-y-2">
+    <%= form.label :content, t("comments.form.content"), class: "sr-only" %>
+    <%= form.text_area :content, rows: 3, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+
+  <%= form.submit t("comments.actions.submit"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+<% end %>
