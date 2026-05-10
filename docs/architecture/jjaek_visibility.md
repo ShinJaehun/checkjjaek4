@@ -100,6 +100,10 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
 - private 원문은 인용할 수 없다
 - ReJjaek은 원문보다 넓은 공개 범위를 가질 수 없다
 - quoted Jjaek 접근 권한은 조회 시 다시 검사한다
+- ReJjaek은 원문을 복사하지 않고 참조하므로, 원문 수정 시 quoted block도 최신 원문을 보여준다
+- 원문 또는 ReJjaek 본문이 수정된 경우 MVP에서는 수정 이력 전체가 아니라 “수정됨” 표시만 둔다
+- 원문이 삭제되었거나 현재 사용자에게 보이지 않으면 ReJjaek도 공개 목록에서 비노출한다
+- MVP에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다
 - 원문 자체가 ReJjaek이면 중첩 ReJjaek은 허용하지 않는다
 
 관련 위치:

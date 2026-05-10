@@ -94,9 +94,14 @@
 ## ReJjaek 규칙
 
 - `ReJjaek`은 다른 `Jjaek`을 인용하거나 응답한 새 `Jjaek`이다.
+- 원문을 복사하지 않고 `quoted_jjaek`으로 참조한다.
+- 원문이 수정되면 quoted block도 최신 원문을 보여준다.
+- 원문 또는 ReJjaek 본문이 수정된 경우 MVP에서는 수정 이력 전체가 아니라 “수정됨” 표시만 둔다.
 - 원문보다 넓게 공개할 수 없다.
 - 원문이 `나만 보기`면 `ReJjaek`을 만들 수 없다.
 - 원문 접근 권한이 사라지면 `ReJjaek`도 비노출되어야 한다.
+- 원문이 삭제되었거나 현재 사용자에게 보이지 않으면 공개 화면에서는 ReJjaek도 없는 글처럼 취급한다.
+- MVP에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다.
 - 따라서 조회 시에도 원문 접근 권한 재검사가 필요하다.
 - 이 규칙은 model validation만으로 끝내지 말고,
   policy / policy scope / request spec 관점에서도 함께 고정한다.
