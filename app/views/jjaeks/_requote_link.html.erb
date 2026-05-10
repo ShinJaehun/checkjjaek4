@@ -1,0 +1,4 @@
+<% visible_requote_count = visible_requote_count_for(jjaek) %>
+<% if visible_requote_count.positive? %>
+  <%= link_to t("jjaeks.meta.requotes", count: visible_requote_count), jjaek_requotes_path(jjaek), class: "hover:text-stone-700" %>
+<% end %>

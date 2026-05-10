@@ -1,0 +1,33 @@
+<div class="flex items-start justify-between gap-3">
+  <div class="flex min-w-0 items-start gap-3">
+    <%= user_avatar_image(jjaek.user, size: 128, alt: jjaek.user.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
+
+    <div class="min-w-0">
+      <% context_label = jjaek_context_label(jjaek) %>
+      <% if context_label.present? %>
+        <div class="text-sm text-stone-600">
+          <%= context_label %>
+        </div>
+      <% else %>
+        <div class="text-sm font-semibold text-stone-900">
+          <%= link_to jjaek.user.name, user_path(jjaek.user), class: "hover:text-stone-700" %>
+        </div>
+      <% end %>
+      <div class="mt-1 text-xs text-stone-500">
+        <%= l(jjaek.created_at, format: :short) %>
+        · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
+        <% if show_requote_book_link?(jjaek) %>
+          ·
+          <%= link_to jjaek.book.title, book_path(jjaek.book), class: "font-medium hover:text-stone-700" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <% if jjaek.user == current_user %>
+    <div class="flex items-center gap-2 text-xs text-stone-500">
+      <%= link_to t("jjaeks.actions.edit"), edit_jjaek_path(jjaek) %>
+      <%= button_to t("jjaeks.actions.delete"), jjaek_path(jjaek), method: :delete, form: { data: { turbo_confirm: t("jjaeks.confirmations.destroy") } }, class: "text-red-600" %>
+    </div>
+  <% end %>
+</div>

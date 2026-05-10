@@ -12,6 +12,9 @@ Turbo를 바로 적용하면 ERB view 안에 조건문, helper 호출, form/butt
 
 이 문서는 기능 spec이 아니라, Turbo 적용 전 view 리팩토링 기준 문서다.
 
+이번 단계의 목적은 Turbo 구현이 아니라, Turbo를 적용해도 ERB가 더 복잡해지지 않도록
+기존 view의 책임 경계를 먼저 정리하는 것이다.
+
 ---
 
 ## 기본 원칙
@@ -84,6 +87,7 @@ Turbo Frame/Stream 코드는 리팩토링 단계에서는 넣지 않는다.
 - Stimulus controller 추가
 - JavaScript 추가
 - DnD 구현
+- 기능 변경
 - 새 기능 추가
 - 디자인 변경
 - 사용자 흐름 변경
@@ -96,6 +100,12 @@ Turbo Frame/Stream 코드는 리팩토링 단계에서는 넣지 않는다.
 ---
 
 ## 우선 점검 대상
+
+- `app/views/jjaeks/_jjaek.html.erb`
+- `app/views/jjaeks/show.html.erb`
+- layout / flash / notification badge
+- `app/views/book_searches/show.html.erb`
+- `app/views/relationships/index.html.erb`
 
 ### 1. Jjaek card
 
@@ -353,8 +363,7 @@ View 리팩토링 단계의 완료 기준:
 - 디자인 변화 없음
 - 기존 request/system spec 통과
 - Jjaek card의 책임이 의미 단위 partial로 나뉨
-- 댓글 영역이 partial로 분리됨
+- 댓글 영역은 다음 단계에서 partial로 분리할 수 있는 계획이 문서화됨
 - Turbo target 후보가 될 영역의 경계가 명확해짐
 - view 안의 복잡한 조건/라벨/버튼 상태 계산이 줄어듦
 - 이후 Turbo 적용 시 ERB 복잡도가 급격히 증가하지 않는 구조가 됨
-
