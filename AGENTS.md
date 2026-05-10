@@ -35,9 +35,8 @@
    - `docs/architecture/jjaek_visibility.md`
      - visibility 의미와 적용 범위 정리
 
-3. 현재 활성 reboot 기준 문서
+3. 현재 활성 제품/도메인 기준 문서
    - `docs/specs/bookjjaek_reboot_spec.md`
-   - `docs/reboot/reboot_plan.md`
 
 4. 현재 작업과 직접 관련된 spec 문서
    - 예: `docs/specs/book_search_mvp.md`
@@ -51,7 +50,7 @@
 원칙:
 
 - 현재 `checkjjaek4`의 활성 기준은
-  `AGENTS.md` → `docs/architecture/current_system.md` → `docs/architecture/authorization.md` → `docs/architecture/jjaek_visibility.md` → `docs/specs/bookjjaek_reboot_spec.md` → `docs/reboot/reboot_plan.md`
+  `AGENTS.md` → `docs/architecture/current_system.md` → `docs/architecture/authorization.md` → `docs/architecture/jjaek_visibility.md` → `docs/specs/bookjjaek_reboot_spec.md`
   순으로 먼저 읽는 것을 기본값으로 둔다.
 - `docs/archive/*`와 `docs/legacy/*`는 과거 판단 기록 보존용이다.
 - 사용자가 명시적으로 요청하거나, 현재 active docs만으로 맥락을 알 수 없는 경우에만 참고한다.
@@ -62,22 +61,20 @@
 
 ---
 
-## bookjjaek 리부트 작업 규칙
+## bookjjaek 작업 규칙
 
-- 현재 리부트 작업의 기준 문서는 아래 두 개다.
-  - `docs/specs/bookjjaek_reboot_spec.md`
-  - `docs/reboot/reboot_plan.md`
+- 현재 제품/도메인 기준 문서는 `docs/specs/bookjjaek_reboot_spec.md`다.
 - 현재 구현 상태와 주요 흐름은 `docs/architecture/current_system.md`를 기준으로 빠르게 파악한다.
 - 권한 구조와 visibility 상세는 아래 문서를 함께 본다.
   - `docs/architecture/authorization.md`
   - `docs/architecture/jjaek_visibility.md`
 - `checkjjaek4`는 기존의 post 중심 SNS를 억지로 확장하는 프로젝트가 아니라,
-  **책과 서재가 중요한 문맥을 이루는 독서 커뮤니티 서비스로 리부트 중인 프로젝트**로 본다.
+  **책과 서재가 중요한 문맥을 이루는 독서 커뮤니티 서비스로 리부트된 현재 시스템을 기준으로 기능을 확장하는 프로젝트**로 본다.
 
 - 여러 책장, 그룹, Topic, 작가 정규화, 인용문 기능, 범용 SNS 확장은 현재 MVP 범위가 아니다.
-- 복잡한 리부트 작업은 한 번에 크게 수정하지 말고,
+- 복잡한 도메인 작업은 한 번에 크게 수정하지 말고,
   **분석 → 계획 제안 → diff 제시 → 승인 후 반영** 순서를 지킨다.
-- 새 repo를 만드는 대신, 같은 repo 안에서 점진적으로 리부트하는 방향을 기본값으로 둔다.
+- 새 repo를 만드는 대신, 같은 repo 안에서 현재 구조를 기준으로 점진적으로 기능을 확장하는 방향을 기본값으로 둔다.
 - 핵심 도메인과 현재 구현 흐름은 `docs/architecture/current_system.md`를 따른다.
 - 제품 방향과 흔들리면 안 되는 도메인 원칙은 `docs/specs/bookjjaek_reboot_spec.md`를 따른다.
 
@@ -89,7 +86,7 @@
 - 권한 구조와 visibility 해석은
   `docs/architecture/authorization.md`,
   `docs/architecture/jjaek_visibility.md`를 함께 따른다.
-- 장기 제품 방향과 MVP 범위 판단은 `docs/specs/bookjjaek_reboot_spec.md`와 `docs/reboot/reboot_plan.md`를 따른다.
+- 장기 제품 방향과 MVP 범위 판단은 `docs/specs/bookjjaek_reboot_spec.md`를 따른다.
 
 ---
 
@@ -173,7 +170,7 @@
 - 코드 변경으로 현재 구현이 달라진 경우, `docs/architecture/current_system.md`를 포함한 해당 기준 문서를 함께 갱신한다.
 - 새 기능이 기존 spec의 기준을 대체하면 active spec을 둘로 나누어 병렬 유지하지 않는다.
 - canonical spec을 하나로 정하고, 중복되는 기존 spec은 필요한 내용을 흡수한 뒤 삭제하거나 archive로 이동한다.
-- 이때 `docs/architecture/current_system.md`, `docs/reboot/reboot_plan.md` 등 참조 문서도 새 canonical 기준만 가리키도록 정리한다.
+- 이때 `docs/architecture/current_system.md` 등 참조 문서도 새 canonical 기준만 가리키도록 정리한다.
 - 작업 결과는 사용자가 확인한 뒤 필요할 때 git 커밋으로 남긴다.
 
 ---

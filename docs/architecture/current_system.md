@@ -303,6 +303,7 @@ BooksController#show
 - 권한 구조: docs/architecture/authorization.md
 - visibility 구조: docs/architecture/jjaek_visibility.md
 - 기능 spec: docs/specs/*
-- 제품 방향: docs/reboot/reboot_plan.md
+- 제품/도메인 기준: docs/specs/bookjjaek_reboot_spec.md
+- 과거 리부트 계획: docs/archive/reboot_plan.md (참고용)
 - 리팩토링: docs/refactor/*
 - 테스트 전략: docs/testing/rspec_strategy.md

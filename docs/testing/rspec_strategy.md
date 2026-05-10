@@ -3,7 +3,7 @@
 ## 상태
 
 현재 테스트 우선순위는
-`docs/specs/bookjjaek_reboot_spec.md`와 `docs/reboot/reboot_plan.md`
+`docs/specs/bookjjaek_reboot_spec.md`와 `docs/architecture/current_system.md`
 를 기준으로 해석한다.
 
 ---

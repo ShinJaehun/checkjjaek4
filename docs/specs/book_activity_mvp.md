@@ -545,7 +545,6 @@ metadata 후보:
 구현 상태가 바뀌면 아래 문서를 함께 갱신한다.
 
 - `docs/architecture/current_system.md`
-- `docs/reboot/reboot_plan.md`
 - 필요한 경우 `docs/architecture/authorization.md`
 - 필요한 경우 `docs/architecture/jjaek_visibility.md`
 
@@ -573,8 +572,6 @@ metadata 후보:
 
 - `docs/specs/bookjjaek_reboot_spec.md`
   - BookActivity의 제품 방향과 책임 경계
-- `docs/reboot/reboot_plan.md`
-  - BookActivity가 부분 완료 상태임을 추적
 - `docs/architecture/current_system.md`
   - 현재 구현된 BookActivity 흐름 확인
 - `docs/architecture/authorization.md`

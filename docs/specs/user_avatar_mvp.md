@@ -8,7 +8,6 @@
 
 - `docs/specs/bookjjaek_reboot_spec.md`
 - `docs/architecture/current_system.md`
-- `docs/reboot/reboot_plan.md`
 
 ---
 

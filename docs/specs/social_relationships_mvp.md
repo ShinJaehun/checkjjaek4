@@ -194,10 +194,8 @@ MVP에서는 이 두 의미를 우선 `books/:id` 하나로 처리할 수 있다
 
 - `docs/specs/bookjjaek_reboot_spec.md`
 - `docs/architecture/current_system.md`
-- `docs/reboot/reboot_plan.md`
 
 원칙:
 - 제품/도메인 전체 방향은 `bookjjaek_reboot_spec.md`
 - 현재 구현 사실은 `current_system.md`
-- 구현 단계와 순서는 `reboot_plan.md`
 - 관계/Relationship Page/관계 알림/댓글 visibility 세부 기준은 `social_relationships_mvp.md`
