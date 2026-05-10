@@ -1,19 +1,14 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
   <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-    <p class="text-sm uppercase tracking-[0.3em] text-stone-400"><%= t("jjaeks.new.eyebrow") %></p>
-    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900">
-      <%= @quoted_jjaek.present? ? t("jjaeks.new.requote_title") : t("jjaeks.new.title") %>
-    </h1>
-
     <% if @book.present? %>
-      <div class="mt-5 rounded-2xl bg-stone-50 px-4 py-4">
+      <div class="rounded-2xl bg-stone-50 px-4 py-4">
         <div class="text-sm font-medium text-stone-900"><%= @book.title %></div>
         <div class="mt-1 text-sm text-stone-500"><%= @book.authors_text.presence || "-" %></div>
       </div>
     <% end %>
 
     <% if @quoted_jjaek.present? %>
-      <div class="mt-4">
+      <div class="<%= @book.present? ? "mt-4" : "" %>">
         <%= render "jjaeks/quoted_jjaek", quoted_jjaek: @quoted_jjaek %>
       </div>
     <% end %>
@@ -31,9 +26,6 @@
 
         <div class="space-y-2">
           <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
-          <% if @quoted_jjaek.present? %>
-            <p class="text-xs text-stone-500"><%= t("jjaeks.form.requote_visibility_notice") %></p>
-          <% end %>
           <%= form.select :visibility,
                           @jjaek_visibility_options.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
                           {},
@@ -41,7 +33,14 @@
         </div>
 
         <div class="space-y-2">
-          <%= form.label :content, t("jjaeks.form.content"), class: "text-sm font-medium text-stone-700" %>
+          <% content_label_key = if @quoted_jjaek.present?
+                                  "jjaeks.form.requote_content"
+                                elsif @book.present?
+                                  "jjaeks.form.book_jjaek_content"
+                                else
+                                  "jjaeks.form.jjaek_content"
+                                end %>
+          <%= form.label :content, t(content_label_key), class: "sr-only" %>
           <%= form.text_area :content, rows: 8, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
         </div>
 

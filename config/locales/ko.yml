@@ -288,14 +288,11 @@ ko:
     confirmations:
       destroy: "이 Jjaek을 삭제할까요?"
     form:
-      content: "이 책에서 오래 남은 생각을 적어보세요"
-      general_content: "지금 남기고 싶은 생각"
-      requote_visibility_notice: "인용한 글보다 넓게 공개할 수 없습니다."
+      content: "내용"
+      jjaek_content: "짹 내용"
+      book_jjaek_content: "책짹 내용"
+      requote_content: "다시짹 내용"
       visibility: "공개 범위"
-    new:
-      eyebrow: "Jjaek 작성"
-      requote_title: "다시짹 작성"
-      title: "책에 대한 글 남기기"
     labels:
       requote: "%{name}님의 짹"
       quoted_general_suffix: "님의 짹"

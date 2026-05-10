@@ -225,7 +225,6 @@ RSpec.describe "Jjaeks", type: :request do
       }.not_to change(Jjaek, :count)
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include(I18n.t("jjaeks.new.requote_title"))
       expect(response.body).to include("ReJjaek request book")
       expect(response.body).to include("Author")
       expect(response.body).to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
@@ -461,7 +460,6 @@ RSpec.describe "Jjaeks", type: :request do
       get new_jjaek_path, params: { quoted_jjaek_id: original.id }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(I18n.t("jjaeks.form.requote_visibility_notice"))
       expect(response.body).to include('option selected="selected" value="book_friends"')
       expect(response.body).to include('option value="private_jjaek"')
       expect(response.body).not_to include('option value="public_jjaek"')
@@ -478,7 +476,6 @@ RSpec.describe "Jjaeks", type: :request do
       get new_jjaek_path, params: { quoted_jjaek_id: public_original.id }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(I18n.t("jjaeks.form.requote_visibility_notice"))
       expect(response.body).to include('option selected="selected" value="public_jjaek"')
       expect(response.body).to include('option value="book_friends"')
       expect(response.body).to include('option value="private_jjaek"')
