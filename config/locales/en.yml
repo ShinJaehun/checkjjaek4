@@ -286,9 +286,6 @@ en:
       view: "Open thread"
     confirmations:
       destroy: "Delete this Jjaek?"
-    edit:
-      quoted_original: "Original Jjaek"
-      title: "Edit Jjaek"
     form:
       content: "What stayed with you from this book?"
       general_content: "What do you want to share?"

@@ -258,9 +258,7 @@ RSpec.describe "Jjaeks", type: :request do
       get edit_jjaek_path(general_jjaek)
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(I18n.t("jjaeks.edit.title"))
       expect(response.body).to include("GENERAL_EDIT_BODY")
-      expect(response.body).not_to include(I18n.t("jjaeks.edit.quoted_original"))
     end
 
     it "shows the quoted original when editing a requote" do
@@ -269,7 +267,6 @@ RSpec.describe "Jjaeks", type: :request do
       get edit_jjaek_path(requote)
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(I18n.t("jjaeks.edit.quoted_original"))
       expect(response.body).to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
       expect(response.body).to include(original_author.name)
     end
