@@ -8,9 +8,11 @@ class Jjaek < ApplicationRecord
   belongs_to :quoted_jjaek, class_name: "Jjaek", optional: true
   belongs_to :target_user, class_name: "User", optional: true, inverse_of: :targeted_jjaeks
 
-  has_many :requotes, class_name: "Jjaek", foreign_key: :quoted_jjaek_id, dependent: :nullify, inverse_of: :quoted_jjaek
+  has_many :requotes, class_name: "Jjaek", foreign_key: :quoted_jjaek_id, inverse_of: :quoted_jjaek
   has_many :comments, dependent: :destroy
   has_many :likes, dependent: :destroy
+
+  before_destroy :mark_requotes_as_deleted_source
 
   validates :content, presence: true, length: { maximum: 2_000 }
   validate :quoted_jjaek_must_be_requotable
@@ -21,7 +23,11 @@ class Jjaek < ApplicationRecord
   scope :recent, -> { order(created_at: :desc) }
 
   def requote?
-    quoted_jjaek_id.present?
+    quoted_jjaek_id.present? || quoted_source_deleted?
+  end
+
+  def quoted_source_deleted?
+    quoted_source_deleted_at.present?
   end
 
   def comments_count
@@ -44,6 +50,17 @@ class Jjaek < ApplicationRecord
     else
       public_send(name).count
     end
+  end
+
+  def mark_requotes_as_deleted_source
+    requotes.update_all(
+      quoted_jjaek_id: nil,
+      quoted_source_author_name: user.name,
+      quoted_source_deleted_at: Time.current,
+      quoted_source_kind: book.present? ? "book" : "general",
+      visibility: self.class.visibilities[:private_jjaek],
+      updated_at: Time.current
+    )
   end
 
   def quoted_jjaek_must_be_requotable

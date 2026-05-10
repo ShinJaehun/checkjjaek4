@@ -310,6 +310,25 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("님의 짹을 다시짹")
     end
 
+    it "shows an edited marker for an edited jjaek" do
+      original.update_column(:updated_at, original.created_at + 2.minutes)
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).to include(I18n.t("jjaeks.meta.edited"))
+    end
+
+    it "shows the latest quoted original with an edited marker" do
+      original.update_columns(content: "REQUEST_UPDATED_ORIGINAL_SOURCE", updated_at: original.created_at + 2.minutes)
+      sign_in viewer
+
+      get jjaek_path(requote)
+
+      expect(response.body).to include("REQUEST_UPDATED_ORIGINAL_SOURCE")
+      expect(response.body).to include(I18n.t("jjaeks.meta.edited"))
+    end
+
     it "does not show a requote entry for a private jjaek" do
       private_jjaek = viewer.jjaeks.create!(
         content: "REQUEST_PRIVATE_NO_REQUOTE_ENTRY",
@@ -408,6 +427,30 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response).to redirect_to(root_path)
     end
+
+    it "blocks a user's own requote when the original becomes private" do
+      sign_in viewer
+      requote
+      original.update!(visibility: :private_jjaek)
+
+      get jjaek_path(requote)
+
+      expect(response).to redirect_to(root_path)
+    end
+
+    it "shows a deleted-source requote with a private note to its author" do
+      sign_in viewer
+      requote
+      original.destroy!
+
+      get jjaek_path(requote.reload)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("REQUEST_VIEWER_REQUOTE_BODY")
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source_title.book", name: original_author.name))
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source"))
+      expect(response.body).not_to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
+    end
   end
 
   describe "GET /jjaeks/new" do
@@ -489,6 +532,29 @@ RSpec.describe "Jjaeks", type: :request do
       sign_in viewer
       requote
       friendship.destroy!
+
+      get root_path
+
+      expect(response.body).not_to include("REQUEST_VIEWER_REQUOTE_BODY")
+    end
+
+    it "does not show a deleted-source requote in another user's home feed" do
+      public_original = original_author.jjaeks.create!(content: "REQUEST_PUBLIC_DELETED_SOURCE", visibility: :public_jjaek)
+      public_requote = viewer.jjaeks.create!(content: "REQUEST_PUBLIC_REQUOTE_DELETED_SOURCE", quoted_jjaek: public_original, visibility: :public_jjaek)
+      observer = User.create!(name: "Observer", email: "observer-deleted-source@example.com", password: "password123!", password_confirmation: "password123!")
+      observer.active_follows.create!(followee: viewer)
+      public_original.destroy!
+      sign_in observer
+
+      get root_path
+
+      expect(response.body).not_to include(public_requote.content)
+    end
+
+    it "hides a requote from the home feed when the original becomes private" do
+      sign_in viewer
+      requote
+      original.update!(visibility: :private_jjaek)
 
       get root_path
 

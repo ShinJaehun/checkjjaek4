@@ -270,6 +270,7 @@ ko:
       profile_html: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
       book_html: "%{author_name}님의 책짹"
       requote_html: "%{author_name}님이 %{quoted_user_name}님의 %{quoted_context_label}을 다시짹"
+      deleted_requote_html: "%{author_name}님의 다시짹"
       quoted_general: "짹"
       quoted_book: "책짹"
     card:
@@ -299,7 +300,13 @@ ko:
       requote: "%{name}님의 짹"
       quoted_general_suffix: "님의 짹"
       quoted_book_suffix: "님의 책짹"
+      deleted_quoted_source_title:
+        general: "%{name}님의 짹"
+        book: "%{name}님의 책짹"
+      deleted_quoted_source_unknown_author: "알 수 없는 사용자"
+      deleted_quoted_source: "원문이 삭제되어 나만 볼 수 있습니다."
     meta:
+      edited: "수정됨"
       comments:
         one: "댓글 1개"
         other: "댓글 %{count}개"

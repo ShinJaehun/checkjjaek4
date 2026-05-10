@@ -43,10 +43,12 @@ class JjaekPolicy < ApplicationPolicy
 
     def with_visible_quoted_jjaeks(records)
       visible_quoted_jjaek_ids = visible_records.select(:id)
+      deleted_source_requotes = records.where(user_id: user.id).where.not(quoted_source_deleted_at: nil)
 
       records
-        .where(quoted_jjaek_id: nil)
+        .where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
         .or(records.where(quoted_jjaek_id: visible_quoted_jjaek_ids))
+        .or(deleted_source_requotes)
     end
   end
 
@@ -72,10 +74,12 @@ class JjaekPolicy < ApplicationPolicy
 
     def with_visible_quoted_jjaeks(records)
       visible_quoted_jjaek_ids = Scope.new(user, scope).resolve.select(:id)
+      deleted_source_requotes = records.where(user_id: user.id).where.not(quoted_source_deleted_at: nil)
 
       records
-        .where(quoted_jjaek_id: nil)
+        .where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
         .or(records.where(quoted_jjaek_id: visible_quoted_jjaek_ids))
+        .or(deleted_source_requotes)
     end
   end
 
@@ -105,6 +109,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def quoted_jjaek_visible_to_user?
+    return record.user_id == user.id if record.quoted_source_deleted?
     return true unless record.quoted_jjaek
 
     self.class.new(user, record.quoted_jjaek).show?

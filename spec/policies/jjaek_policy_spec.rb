@@ -23,6 +23,22 @@ RSpec.describe JjaekPolicy do
       expect(described_class.new(viewer, requote).show?).to be(false)
     end
 
+    it "hides a user's own requote when the original becomes private" do
+      existing_requote = requote
+      original.update!(visibility: :private_jjaek)
+
+      expect(described_class.new(viewer, existing_requote).show?).to be(false)
+    end
+
+    it "shows a deleted-source requote only to its author" do
+      requote
+      original.destroy!
+      requote.reload
+
+      expect(described_class.new(viewer, requote).show?).to be(true)
+      expect(described_class.new(original_author, requote).show?).to be(false)
+    end
+
     it "shows a requote when the original is still visible to the viewer" do
       expect(described_class.new(viewer, requote).show?).to be(true)
     end
@@ -151,6 +167,24 @@ RSpec.describe JjaekPolicy do
       expect(resolved).not_to include(requote)
     end
 
+    it "excludes a requote when the original becomes private" do
+      existing_requote = requote
+      original.update!(visibility: :private_jjaek)
+
+      resolved = described_class.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).not_to include(existing_requote)
+    end
+
+    it "includes a deleted-source requote only in the author's own scope" do
+      requote
+      original.destroy!
+      requote.reload
+
+      expect(described_class.new(viewer, Jjaek.all).resolve).to include(requote)
+      expect(described_class.new(original_author, Jjaek.all).resolve).not_to include(requote)
+    end
+
     it "includes a requote when the original is still visible to the viewer" do
       resolved = described_class.new(viewer, Jjaek.all).resolve
 
@@ -231,6 +265,24 @@ RSpec.describe JjaekPolicy do
       resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
 
       expect(resolved).not_to include(requote)
+    end
+
+    it "excludes a requote when the quoted original becomes private" do
+      existing_requote = requote
+      original.update!(visibility: :private_jjaek)
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).not_to include(existing_requote)
+    end
+
+    it "includes a deleted-source requote only in the author's own feed" do
+      requote
+      original.destroy!
+      requote.reload
+
+      expect(JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve).to include(requote)
+      expect(JjaekPolicy::FeedScope.new(original_author, Jjaek.all).resolve).not_to include(requote)
     end
 
     it "includes a requote when the quoted original is still visible to the viewer" do

@@ -40,6 +40,20 @@ RSpec.describe Jjaek, type: :model do
     expect(nested_requote).not_to be_valid
   end
 
+  it "keeps requotes private and marked when the original is destroyed" do
+    original = other_user.jjaeks.create!(book:, content: "원문")
+    requote = user.jjaeks.create!(book:, content: "인용", quoted_jjaek: original)
+
+    expect { original.destroy! }.to change(described_class, :count).by(-1)
+
+    requote.reload
+    expect(requote).to be_private_jjaek
+    expect(requote).to be_quoted_source_deleted
+    expect(requote.quoted_jjaek_id).to be_nil
+    expect(requote.quoted_source_author_name).to eq(other_user.name)
+    expect(requote.quoted_source_kind).to eq("book")
+  end
+
   it "counts only persisted comments when the association target includes a form object" do
     jjaek = user.jjaeks.create!(content: "댓글 집계")
     jjaek.comments.create!(user: other_user, content: "저장된 댓글")

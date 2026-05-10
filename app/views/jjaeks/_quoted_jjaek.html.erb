@@ -4,6 +4,10 @@
     <span>
       <%= link_to quoted_jjaek.user.name, user_path(quoted_jjaek.user), class: "font-semibold text-stone-800 hover:text-stone-900" %><%= quoted_jjaek.book.present? ? t("jjaeks.labels.quoted_book_suffix") : t("jjaeks.labels.quoted_general_suffix") %>
     </span>
+    <% if jjaek_edited?(quoted_jjaek) %>
+      <span class="text-stone-400">·</span>
+      <span class="text-stone-500"><%= t("jjaeks.meta.edited") %></span>
+    <% end %>
   </div>
 
   <% if quoted_jjaek.book.present? %>

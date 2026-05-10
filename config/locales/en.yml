@@ -270,6 +270,7 @@ en:
       profile_html: "%{author_name}'s Jjaek for %{target_user_name}"
       book_html: "%{author_name}'s Book Jjaek"
       requote_html: "%{author_name}'s ReJjaek of %{quoted_user_name}'s %{quoted_context_label}"
+      deleted_requote_html: "%{author_name}'s ReJjaek"
       quoted_general: "Jjaek"
       quoted_book: "Book Jjaek"
     card:
@@ -299,7 +300,13 @@ en:
       requote: "ReJjaek from %{name}"
       quoted_general_suffix: "'s Jjaek"
       quoted_book_suffix: "'s Book Jjaek"
+      deleted_quoted_source_title:
+        general: "%{name}'s Jjaek"
+        book: "%{name}'s Book Jjaek"
+      deleted_quoted_source_unknown_author: "Unknown user"
+      deleted_quoted_source: "The original was deleted, so only you can see this."
     meta:
+      edited: "Edited"
       comments:
         one: "1 comment"
         other: "%{count} comments"

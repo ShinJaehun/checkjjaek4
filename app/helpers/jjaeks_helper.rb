@@ -20,10 +20,18 @@ module JjaeksHelper
     @visible_requote_counts_by_jjaek_id.to_h.fetch(jjaek.id, 0)
   end
 
+  def jjaek_edited?(jjaek)
+    return false if jjaek.created_at.blank? || jjaek.updated_at.blank?
+
+    jjaek.updated_at > jjaek.created_at + 1.second
+  end
+
   private
 
   def jjaek_context_translation_key(jjaek)
-    if jjaek.quoted_jjaek.present?
+    if jjaek.quoted_source_deleted?
+      "jjaeks.contexts.deleted_requote_html"
+    elsif jjaek.quoted_jjaek.present?
       "jjaeks.contexts.requote_html"
     elsif jjaek.book.present?
       "jjaeks.contexts.book_html"

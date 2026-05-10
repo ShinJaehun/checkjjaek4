@@ -16,6 +16,9 @@
       <div class="mt-1 text-xs text-stone-500">
         <%= l(jjaek.created_at, format: :short) %>
         · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
+        <% if jjaek_edited?(jjaek) %>
+          · <%= t("jjaeks.meta.edited") %>
+        <% end %>
         <% if show_requote_book_link?(jjaek) %>
           ·
           <%= link_to jjaek.book.title, book_path(jjaek.book), class: "font-medium hover:text-stone-700" %>
