@@ -1,0 +1,19 @@
+<nav class="flex items-center justify-between gap-3 pt-2 text-sm" aria-label="<%= t("book_search.pagination.label") %>">
+  <div>
+    <% if has_previous_page %>
+      <%= link_to t("book_search.pagination.previous"),
+                  book_search_path(query: query, page: page - 1),
+                  class: "inline-flex rounded-full border border-stone-300 px-4 py-2 font-medium text-stone-700" %>
+    <% end %>
+  </div>
+
+  <div class="text-stone-500"><%= t("book_search.pagination.page", page: page) %></div>
+
+  <div>
+    <% if has_next_page %>
+      <%= link_to t("book_search.pagination.next"),
+                  book_search_path(query: query, page: page + 1),
+                  class: "inline-flex rounded-full border border-stone-300 px-4 py-2 font-medium text-stone-700" %>
+    <% end %>
+  </div>
+</nav>

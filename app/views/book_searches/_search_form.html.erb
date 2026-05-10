@@ -1,0 +1,8 @@
+<%= form_with url: book_search_path, method: :get, local: true, class: "mt-6 space-y-3" do |form| %>
+  <div class="space-y-2">
+    <%= form.label :query, t("book_search.form.query"), class: "text-sm font-medium text-stone-700" %>
+    <%= form.text_field :query, value: query, placeholder: t("book_search.placeholder"), class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+
+  <%= form.submit t("book_search.form.submit"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+<% end %>

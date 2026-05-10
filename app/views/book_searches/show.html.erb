@@ -3,14 +3,7 @@
     <h1 class="text-3xl font-semibold tracking-tight text-stone-900"><%= t("book_search.title") %></h1>
     <p class="mt-2 text-sm leading-6 text-stone-500"><%= t("book_search.description") %></p>
 
-    <%= form_with url: book_search_path, method: :get, local: true, class: "mt-6 space-y-3" do |form| %>
-      <div class="space-y-2">
-        <%= form.label :query, t("book_search.form.query"), class: "text-sm font-medium text-stone-700" %>
-        <%= form.text_field :query, value: @query, placeholder: t("book_search.placeholder"), class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
-      </div>
-
-      <%= form.submit t("book_search.form.submit"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
-    <% end %>
+    <%= render "book_searches/search_form", query: @query %>
   </section>
 
   <% if @query.present? %>
@@ -22,90 +15,14 @@
         </div>
 
         <% @results.each do |book| %>
-          <article class="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-            <div class="flex flex-col gap-4 sm:flex-row">
-              <div class="shrink-0">
-                <%= render "books/thumbnail",
-                           title: book[:title],
-                           thumbnail: book[:thumbnail],
-                           url: nil,
-                           size: :large,
-                           link: false %>
-              </div>
-
-              <div class="flex min-w-0 flex-1 flex-col gap-3">
-                <div class="space-y-2">
-                  <h3 class="text-lg font-semibold text-stone-900"><%= book[:title] %></h3>
-                  <p class="text-sm text-stone-500"><%= [ book[:authors_text].presence, book[:publisher].presence ].compact.join(" · ").presence || "-" %></p>
-                  <p class="line-clamp-3 text-sm leading-6 text-stone-700"><%= book[:contents_excerpt].presence || "-" %></p>
-                </div>
-
-                <div class="mt-auto flex flex-wrap items-center gap-3 pt-1">
-                  <%= link_to t("book_search.actions.open_internal"),
-                              book[:shelved_book_id].present? ? book_path(book[:shelved_book_id]) : lookup_books_path(
-                                title: book[:title],
-                                  authors_text: book[:authors_text],
-                                  publisher: book[:publisher],
-                                  thumbnail: book[:thumbnail],
-                                  isbn: book[:isbn],
-                                  description: book[:contents_excerpt],
-                                  external_url: book[:url]
-                                ),
-                              class: "inline-flex rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
-
-                  <% if book[:shelved_book_id].present? %>
-                    <span class="inline-flex rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-600"><%= t("book_search.actions.in_shelf") %></span>
-                  <% else %>
-                    <% bookshelf_select_id = "bookshelf_entry_bookshelf_id_#{book.object_id}" %>
-                    <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
-                      <%= fields_for :book do |book_form| %>
-                        <%= book_form.hidden_field :title, value: book[:title] %>
-                        <%= book_form.hidden_field :authors_text, value: book[:authors_text] %>
-                        <%= book_form.hidden_field :publisher, value: book[:publisher] %>
-                        <%= book_form.hidden_field :thumbnail, value: book[:thumbnail] %>
-                        <%= book_form.hidden_field :isbn, value: book[:isbn] %>
-                        <%= book_form.hidden_field :description, value: book[:contents_excerpt] %>
-                        <%= book_form.hidden_field :external_url, value: book[:url] %>
-                      <% end %>
-
-                      <% if @bookshelves.size > 1 %>
-                        <div class="w-full min-w-0 max-w-full space-y-1 sm:max-w-xs">
-                          <%= label_tag bookshelf_select_id, t("bookshelf_entries.form.target_bookshelf"), class: "text-xs font-medium text-stone-600" %>
-                          <%= select_tag "bookshelf_entry[bookshelf_id]",
-                                         options_from_collection_for_select(@bookshelves, :id, :name),
-                                         id: bookshelf_select_id,
-                                         class: "w-full max-w-full truncate rounded-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700" %>
-                        </div>
-                      <% end %>
-
-                      <%= form.submit t("book_search.actions.add_to_shelf"), class: "shrink-0 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
-                    <% end %>
-                  <% end %>
-                </div>
-              </div>
-            </div>
-          </article>
+          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves %>
         <% end %>
 
-        <nav class="flex items-center justify-between gap-3 pt-2 text-sm" aria-label="<%= t("book_search.pagination.label") %>">
-          <div>
-            <% if @has_previous_page %>
-              <%= link_to t("book_search.pagination.previous"),
-                          book_search_path(query: @query, page: @page - 1),
-                          class: "inline-flex rounded-full border border-stone-300 px-4 py-2 font-medium text-stone-700" %>
-            <% end %>
-          </div>
-
-          <div class="text-stone-500"><%= t("book_search.pagination.page", page: @page) %></div>
-
-          <div>
-            <% if @has_next_page %>
-              <%= link_to t("book_search.pagination.next"),
-                          book_search_path(query: @query, page: @page + 1),
-                          class: "inline-flex rounded-full border border-stone-300 px-4 py-2 font-medium text-stone-700" %>
-            <% end %>
-          </div>
-        </nav>
+        <%= render "book_searches/pagination",
+                   query: @query,
+                   page: @page,
+                   has_previous_page: @has_previous_page,
+                   has_next_page: @has_next_page %>
       </section>
     <% else %>
       <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
