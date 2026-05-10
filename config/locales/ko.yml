@@ -96,12 +96,14 @@ ko:
       not_found: "책친구 관계를 찾을 수 없습니다."
     notices:
       accepted: "책친구 신청을 수락했습니다."
+      cancelled: "책친구 신청을 취소했습니다."
       created: "책친구 신청을 보냈습니다."
-      destroyed: "책친구 관계를 정리했습니다."
+      rejected: "책친구 요청을 거절했습니다."
+      removed: "책친구 관계를 해제했습니다."
   relationships:
     nav: "책친구"
     title: "책친구"
-    description: "책친구 요청, 소식 받기, 공개 범위 설정하기"
+    description: "책친구 요청과 소식받기 관계를 관리합니다. 책친구 공개 글은 책친구에게만 보입니다."
     sections:
       received_book_friend_requests: "받은 책친구 요청"
       sent_book_friend_requests: "보낸 책친구 요청"
@@ -328,7 +330,7 @@ ko:
       reject_book_friend_request: "요청 거절"
       request_book_friend: "책친구 신청"
       remove_book_friend: "책친구 해제"
-      unfollow: "소식받는 중"
+      unfollow: "소식받기 해제"
     library:
       book_friend_read_only_notice: "책친구에게 공개된 책장"
       title: "전체 서재"

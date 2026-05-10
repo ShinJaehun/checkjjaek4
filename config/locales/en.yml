@@ -96,12 +96,14 @@ en:
       not_found: "Book friendship was not found."
     notices:
       accepted: "Book friendship accepted."
+      cancelled: "Book friend request cancelled."
       created: "Book friend request sent."
-      destroyed: "Book friendship removed."
+      rejected: "Book friend request rejected."
+      removed: "Book friendship removed."
   relationships:
     nav: "Book friends"
     title: "Book friends"
-    description: "Book friend requests, following updates, and visibility settings"
+    description: "Manage book friend requests and following relationships. Book-friends-only Jjaeks are visible only to book friends."
     sections:
       received_book_friend_requests: "Received book friend requests"
       sent_book_friend_requests: "Sent book friend requests"
@@ -328,7 +330,7 @@ en:
       reject_book_friend_request: "Reject request"
       request_book_friend: "Request book friend"
       remove_book_friend: "Remove book friend"
-      unfollow: "Following"
+      unfollow: "Unfollow updates"
     library:
       book_friend_read_only_notice: "Bookshelves shared with book friends"
       title: "Full Library"

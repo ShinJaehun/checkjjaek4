@@ -32,8 +32,9 @@ class BookFriendshipsController < ApplicationController
     end
 
     authorize friendship
+    notice_key = destroy_notice_key(friendship)
     friendship.destroy!
-    redirect_to redirect_target, notice: t("book_friendships.notices.destroyed")
+    redirect_to redirect_target, notice: t("book_friendships.notices.#{notice_key}")
   end
 
   private
@@ -44,5 +45,12 @@ class BookFriendshipsController < ApplicationController
 
   def redirect_target
     params[:return_to] == "relationships" ? relationships_path : user_path(@user)
+  end
+
+  def destroy_notice_key(friendship)
+    return :removed if friendship.accepted?
+    return :cancelled if friendship.requester_id == current_user.id
+
+    :rejected
   end
 end

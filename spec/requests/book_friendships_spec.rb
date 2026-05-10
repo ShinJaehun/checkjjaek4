@@ -52,4 +52,34 @@ RSpec.describe "BookFriendships", type: :request do
 
     expect(response).to redirect_to(user_path(user))
   end
+
+  it "shows a cancel notice when the requester deletes a pending request" do
+    BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in user
+
+    delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
+
+    expect(response).to redirect_to(relationships_path)
+    expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.cancelled"))
+  end
+
+  it "shows a reject notice when the addressee deletes a pending request" do
+    BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in other_user
+
+    delete user_book_friendship_path(user), params: { return_to: "relationships" }
+
+    expect(response).to redirect_to(relationships_path)
+    expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.rejected"))
+  end
+
+  it "shows a remove notice when deleting an accepted book friendship" do
+    BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    sign_in user
+
+    delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
+
+    expect(response).to redirect_to(relationships_path)
+    expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.removed"))
+  end
 end

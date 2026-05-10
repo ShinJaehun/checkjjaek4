@@ -53,6 +53,7 @@ RSpec.describe "Relationships", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(I18n.t("relationships.title"))
+    expect(response.body).to include(I18n.t("relationships.description"))
     expect(response.body).to include("user_profile_")
     expect(response.body).to include("_128")
   end
@@ -129,6 +130,18 @@ RSpec.describe "Relationships", type: :request do
     get relationships_path
 
     expect(parse_html.at_css("#received-book-friend-requests")).not_to be_nil
+  end
+
+  it "shows clear relationship action labels" do
+    sign_in viewer
+
+    get relationships_path
+
+    expect(response.body).to include(I18n.t("users.actions.accept_book_friend"))
+    expect(response.body).to include(I18n.t("users.actions.reject_book_friend_request"))
+    expect(response.body).to include(I18n.t("users.actions.cancel_book_friend_request"))
+    expect(response.body).to include(I18n.t("users.actions.remove_book_friend"))
+    expect(response.body).to include(I18n.t("users.actions.unfollow"))
   end
 
   it "does not show other users' requests or relationships" do
