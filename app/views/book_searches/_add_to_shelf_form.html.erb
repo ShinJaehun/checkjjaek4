@@ -1,4 +1,4 @@
-<% bookshelf_select_id = "bookshelf_entry_bookshelf_id_#{book.object_id}" %>
+<% bookshelf_select_id = book_search_bookshelf_select_id(book) %>
 <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
   <%= fields_for :book do |book_form| %>
     <%= book_form.hidden_field :title, value: book[:title] %>
