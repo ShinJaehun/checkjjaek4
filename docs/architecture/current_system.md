@@ -216,8 +216,14 @@
 ReJjaek은 원문을 복사하지 않고 `quoted_jjaek`으로 참조한다.
 원문이 수정되면 quoted block도 최신 원문을 보여준다.
 원문 또는 ReJjaek 본문이 수정된 경우 MVP에서는 수정 이력 전체가 아니라 “수정됨” 표시만 둔다.
-원문이 삭제되었거나 현재 사용자에게 보이지 않으면 ReJjaek도 공개 목록에서 비노출한다.
-MVP에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다.
+원문이 삭제되지 않았지만 현재 사용자에게 보이지 않으면, 해당 사용자에게는 ReJjaek도 조회 시점 권한 기준으로 비노출한다.
+이 경우 ReJjaek을 자동으로 private 전환하지 않는다.
+원문이 hard delete되면 ReJjaek 본문은 보존하고 `private_jjaek`으로 전환한다.
+이후 ReJjaek 작성자 본인에게만 보이며, quoted block 위치에는
+“원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
+deleted-source 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기고,
+원문 본문/책 메타/avatar snapshot은 저장하지 않는다.
+공개 화면에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다.
 
 ---
 

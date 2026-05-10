@@ -102,8 +102,13 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
 - quoted Jjaek 접근 권한은 조회 시 다시 검사한다
 - ReJjaek은 원문을 복사하지 않고 참조하므로, 원문 수정 시 quoted block도 최신 원문을 보여준다
 - 원문 또는 ReJjaek 본문이 수정된 경우 MVP에서는 수정 이력 전체가 아니라 “수정됨” 표시만 둔다
-- 원문이 삭제되었거나 현재 사용자에게 보이지 않으면 ReJjaek도 공개 목록에서 비노출한다
-- MVP에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다
+- 원문이 삭제되지 않았지만 현재 사용자에게 보이지 않으면, 해당 사용자에게는 ReJjaek도 권한 기준으로 비노출한다
+- 원문 visibility 변경/권한 상실만으로 ReJjaek을 자동 private 전환하지 않는다
+- 원문이 hard delete되면 ReJjaek은 삭제하지 않고 `private_jjaek`으로 전환해 작성자 본인에게만 보존한다
+- deleted-source ReJjaek은 작성자 본인에게만 “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다
+- deleted-source 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기며,
+  원문 본문/책 메타/avatar snapshot은 저장하지 않는다
+- 공개 화면에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다
 - 원문 자체가 ReJjaek이면 중첩 ReJjaek은 허용하지 않는다
 
 관련 위치:
