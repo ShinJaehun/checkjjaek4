@@ -183,8 +183,7 @@
 
 이번 `BookActivity` MVP에서 하지 않는다.
 
-- 여러 책장 구조
-- 책장별 공개 범위
+- BookActivity 노출 정책을 책장 visibility와 정교하게 연결
 - 그룹 활동
 - 교실 활동
 - 추천/랭킹
@@ -234,7 +233,8 @@ Jjaek과 함께 합성한다.
 - follow-only 사용자의 BookActivity는 노출하지 않는다.
 - stranger의 BookActivity는 노출하지 않는다.
 
-현재는 여러 책장과 책장 공개 범위가 아직 없으므로,
+현재는 여러 책장 구조와 책장 visibility가 구현되어 있지만,
+BookActivity 노출 정책은 아직 책장 visibility와 정교하게 연결하지 않는다.
 MVP에서는 과한 visibility 모델을 먼저 만들지 않는다.
 
 후속 단계에서 아래를 다시 판단한다.
@@ -255,7 +255,7 @@ MVP에서는 과한 visibility 모델을 먼저 만들지 않는다.
 - 소식받기만 한 사용자는 해당 사용자의 BookActivity를 볼 수 없다.
 - Jjaek과 BookActivity는 `created_at` 기준 내림차순으로 함께 정렬한다.
 
-다만 이 규칙은 여러 책장/책장 공개 범위 도입 전까지 임시 정책이다.
+다만 이 규칙은 BookActivity 노출 정책을 책장 visibility와 정교하게 연결하기 전까지의 현재 정책이다.
 
 ### 책 상세 후보 규칙
 
@@ -294,18 +294,19 @@ MVP에서는 과한 visibility 모델을 먼저 만들지 않는다.
 - 과거 활동의 공개 범위가 나중에 바뀔 수 있다.
 - 특정 활동만 비공개로 두기 어렵다.
 
-### 후보 B. BookshelfEntry 공개 범위를 따른다
+### 후보 B. Bookshelf visibility를 따른다
 
-`BookshelfEntry` 또는 향후 `Bookshelf`의 공개 범위를 따른다.
+`BookActivity`가 참조하는 `BookshelfEntry`의 `Bookshelf` visibility를 따른다.
 
 장점:
 
 - 서재/책장 공개 범위와 자연스럽게 연결된다.
-- 여러 책장 도입 이후 확장성이 있다.
+- 여러 책장 구조와 자연스럽게 연결된다.
 
 단점:
 
-- 현재는 여러 책장/책장 공개 범위가 없어서 바로 적용하기 어렵다.
+- 과거 활동의 노출이 현재 책장 이동이나 visibility 변경에 따라 바뀔 수 있다.
+- follow-only / stranger에게 BookActivity를 어디까지 노출할지 별도 결정이 필요하다.
 
 ### 후보 C. BookActivity 자체 visibility를 가진다
 
@@ -325,7 +326,7 @@ MVP에서는 과한 visibility 모델을 먼저 만들지 않는다.
 ### MVP 판단
 
 초기 MVP에서는 후보 B를 장기 방향으로 염두에 두되,
-여러 책장 구조가 없으므로 단순한 관계 기반 scope로 시작한다.
+현재는 단순한 관계 기반 scope로 시작한다.
 
 즉, 처음부터 복잡한 BookActivity visibility UI를 만들지 않는다.
 
@@ -538,7 +539,8 @@ metadata 후보:
 ### Step 5. 후속 피드 판단
 
 - books/:id에 BookActivity를 노출할지 결정
-- 여러 책장/책장 공개 범위와 visibility를 연결할지 결정
+- BookActivity 노출 정책을 책장 visibility와 정교하게 연결할지 결정
+- follow-only / stranger에게 BookActivity를 어떻게 노출할지 결정
 
 ### Step 6. 문서 갱신
 
@@ -555,7 +557,7 @@ metadata 후보:
 아래는 후속 단계에서 별도 판단이 필요하다.
 
 - BookActivity에 자체 visibility 컬럼을 둘지
-- 여러 책장 도입 전 임시 공개 정책을 어디까지 둘지
+- 현재 관계 기반 공개 정책을 책장 visibility와 어떻게 연결할지
 - home feed에 바로 섞을지, 별도 활동 섹션으로 둘지
 - 책 상세에 BookActivity를 노출할지
 - status/sticker 변경을 한 요청 안에서 하나의 활동으로 묶을지, 개별 활동으로 나눌지

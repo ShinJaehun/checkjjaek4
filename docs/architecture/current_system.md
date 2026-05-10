@@ -167,6 +167,8 @@
 - `book_searches#show` 기반 검색 화면
 - query string 기반 GET 검색
 - query string 기반 이전/다음 pagination 제공
+- 검색 결과에서 새 책을 `서재에 담기` 할 때 사용자의 책장이 2개 이상이면 대상 책장 select를 표시
+- 대상 책장을 선택하지 않으면 기본 책장 “내 책장”에 담김
 - `BookSearches::SearchService`와 `BookSearches::KakaoAdapter`를 통해
   Kakao 책 검색 API를 호출하고 결과를 정규화함
 
@@ -175,6 +177,13 @@
 - service:
   - app/services/book_searches/search_service.rb
   - app/services/book_searches/kakao_adapter.rb
+
+### 8. 책 상세 read-only 서재 담기
+
+- 현재 사용자의 `BookshelfEntry`가 없는 책 상세 화면은 read-only 상태로 표시됨
+- 이 상태에서 `서재에 담기`를 할 수 있음
+- 사용자의 책장이 2개 이상이면 대상 책장 select를 표시
+- 대상 책장을 선택하지 않으면 기본 책장 “내 책장”에 담김
 
 ---
 

@@ -151,7 +151,8 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - Tailwind class
 - 문구의 정확한 HTML 배치
 - 레거시와 1:1 동일한 DOM 구조
-- 아직 확정되지 않은 `BookActivity` 후속 범위, 그룹, 여러 책장 관련 기능
+- 아직 확정되지 않은 `BookActivity` 후속 범위, 그룹, 책장 DnD/정렬 관련 기능
+- 새 책 담기 시 대상 책장 선택처럼 확정된 여러 책장 흐름은 request spec으로 고정한다.
 
 ---
 
