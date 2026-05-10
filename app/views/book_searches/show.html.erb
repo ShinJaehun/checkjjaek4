@@ -56,21 +56,30 @@
                   <% if book[:shelved_book_id].present? %>
                     <span class="inline-flex rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-600"><%= t("book_search.actions.in_shelf") %></span>
                   <% else %>
-                    <%= button_to t("book_search.actions.add_to_shelf"),
-                                  bookshelf_entries_path,
-                                  method: :post,
-                                  params: {
-                                    book: {
-                                      title: book[:title],
-                                      authors_text: book[:authors_text],
-                                      publisher: book[:publisher],
-                                      thumbnail: book[:thumbnail],
-                                      isbn: book[:isbn],
-                                      description: book[:contents_excerpt],
-                                      external_url: book[:url]
-                                    }
-                                  },
-                                  class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+                    <% bookshelf_select_id = "bookshelf_entry_bookshelf_id_#{book.object_id}" %>
+                    <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
+                      <%= fields_for :book do |book_form| %>
+                        <%= book_form.hidden_field :title, value: book[:title] %>
+                        <%= book_form.hidden_field :authors_text, value: book[:authors_text] %>
+                        <%= book_form.hidden_field :publisher, value: book[:publisher] %>
+                        <%= book_form.hidden_field :thumbnail, value: book[:thumbnail] %>
+                        <%= book_form.hidden_field :isbn, value: book[:isbn] %>
+                        <%= book_form.hidden_field :description, value: book[:contents_excerpt] %>
+                        <%= book_form.hidden_field :external_url, value: book[:url] %>
+                      <% end %>
+
+                      <% if @bookshelves.size > 1 %>
+                        <div class="w-full min-w-0 max-w-full space-y-1 sm:max-w-xs">
+                          <%= label_tag bookshelf_select_id, t("bookshelf_entries.form.target_bookshelf"), class: "text-xs font-medium text-stone-600" %>
+                          <%= select_tag "bookshelf_entry[bookshelf_id]",
+                                         options_from_collection_for_select(@bookshelves, :id, :name),
+                                         id: bookshelf_select_id,
+                                         class: "w-full max-w-full truncate rounded-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700" %>
+                        </div>
+                      <% end %>
+
+                      <%= form.submit t("book_search.actions.add_to_shelf"), class: "shrink-0 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+                    <% end %>
                   <% end %>
                 </div>
               </div>

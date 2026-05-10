@@ -58,11 +58,23 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include("다른 독자의 공개 Jjaek")
       expect(response.body).to include(I18n.t("books.show.read_only_description"))
       expect(response.body).to include(%(action="#{bookshelf_entries_path}"))
-      expect(response.body).to include(%(name="book_id" value="#{book.id}"))
+      expect(response.body).to include(%(name="book_id"))
+      expect(response.body).to include(%(value="#{book.id}"))
       expect(response.body).not_to include("/bookshelf_entries/new")
       expect(response.body).to include(I18n.t("bookshelf_entries.new.title"))
       expect(response.body).not_to include('name="bookshelf_entry[status]"')
       expect(response.body).not_to include('name="jjaek[content]"')
+    end
+
+    it "shows a bookshelf select in the read-only add form when the user has multiple bookshelves" do
+      user.bookshelves.create!(name: "따로 담을 책장", visibility: :private)
+      sign_in user
+
+      get book_path(book)
+
+      expect(response.body).to include(I18n.t("bookshelf_entries.form.target_bookshelf"))
+      expect(response.body).to include(%(name="bookshelf_entry[bookshelf_id]"))
+      expect(response.body).to include("따로 담을 책장")
     end
 
     it "adds a read-only book to the shelf and returns to the writable book page" do

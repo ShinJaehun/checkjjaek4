@@ -18,7 +18,8 @@ class BookshelfEntriesController < ApplicationController
     previous_status = @bookshelf_entry.status
     previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
 
-    @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:sticker_definition_ids))
+    @bookshelf_entry.bookshelf = bookshelf_for_create if was_new_record && bookshelf_entry_params[:bookshelf_id].present?
+    @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
     assign_stickers(@bookshelf_entry)
 
     if @bookshelf_entry.save
@@ -40,7 +41,7 @@ class BookshelfEntriesController < ApplicationController
     previous_status = @bookshelf_entry.status
     previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
 
-    @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:sticker_definition_ids))
+    @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
     assign_stickers(@bookshelf_entry)
 
     if @bookshelf_entry.save
@@ -85,7 +86,7 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def bookshelf_entry_params
-    params.fetch(:bookshelf_entry, {}).permit(:status, sticker_definition_ids: [])
+    params.fetch(:bookshelf_entry, {}).permit(:bookshelf_id, :status, sticker_definition_ids: [])
   end
 
   def book_attributes
@@ -96,6 +97,10 @@ class BookshelfEntriesController < ApplicationController
     return Book.find(params[:book_id]) if params[:book_id].present?
 
     Book.find_or_initialize_from_search(book_attributes)
+  end
+
+  def bookshelf_for_create
+    current_user.bookshelves.find(bookshelf_entry_params[:bookshelf_id])
   end
 
   def prepare_book_show_failure

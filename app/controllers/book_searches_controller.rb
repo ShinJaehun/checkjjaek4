@@ -8,6 +8,7 @@ class BookSearchesController < ApplicationController
     @meta = {}
     @has_previous_page = false
     @has_next_page = false
+    @bookshelves = current_user.bookshelves.default_first
     return if @query.blank?
 
     result = BookSearches::SearchService.call(query: @query, page: @page)

@@ -198,6 +198,7 @@ en:
     form:
       book: "Book"
       bookshelf: "Bookshelf"
+      target_bookshelf: "Bookshelf"
       status: "Reading status"
       stickers: "Stickers"
     new:

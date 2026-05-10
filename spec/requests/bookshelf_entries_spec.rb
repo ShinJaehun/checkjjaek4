@@ -34,6 +34,62 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response).to redirect_to(book_path(Book.last))
     expect(BookshelfEntry.last.status).to be_nil
     expect(BookshelfEntry.last.sticker_definitions).to be_empty
+    expect(BookshelfEntry.last.bookshelf).to eq(user.default_bookshelf)
+  end
+
+  it "adds a searched book to the selected owned bookshelf" do
+    target_bookshelf = user.bookshelves.create!(name: "선택한 책장", visibility: :private)
+    sign_in user
+
+    post bookshelf_entries_path, params: {
+      book: {
+        title: "선택 책장 책",
+        authors_text: "저자",
+        isbn: "selected-shelf-001"
+      },
+      bookshelf_entry: {
+        bookshelf_id: target_bookshelf.id
+      }
+    }
+
+    expect(response).to redirect_to(book_path(Book.last))
+    expect(BookshelfEntry.last.bookshelf).to eq(target_bookshelf)
+  end
+
+  it "does not add a book to another user's bookshelf" do
+    unshelved_book = Book.create!(title: "아직 안 담은 책", authors_text: "저자")
+    other_bookshelf = book_friend.bookshelves.create!(name: "다른 사람 책장", visibility: :public)
+    sign_in user
+
+    expect {
+      post bookshelf_entries_path, params: {
+        book_id: unshelved_book.id,
+        bookshelf_entry: {
+          bookshelf_id: other_bookshelf.id
+        }
+      }
+    }.not_to change(BookshelfEntry, :count)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "does not overwrite the bookshelf when an existing book is posted again" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    original_bookshelf = entry.bookshelf
+    target_bookshelf = user.bookshelves.create!(name: "덮어쓰면 안 되는 책장", visibility: :private)
+    sign_in user
+
+    expect {
+      post bookshelf_entries_path, params: {
+        book_id: user_book.id,
+        bookshelf_entry: {
+          bookshelf_id: target_bookshelf.id
+        }
+      }
+    }.not_to change(BookshelfEntry, :count)
+
+    expect(response).to redirect_to(book_path(user_book))
+    expect(entry.reload.bookshelf).to eq(original_bookshelf)
   end
 
   it "records added_to_shelf when a new book is added" do

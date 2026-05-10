@@ -39,6 +39,33 @@ RSpec.describe "BookSearches", type: :request do
     expect(response.body).not_to include(%(name="page"))
   end
 
+  it "shows a bookshelf select when the user has multiple bookshelves" do
+    user.bookshelves.create!(name: "읽을 책장", visibility: :private)
+    sign_in user
+    allow(BookSearches::SearchService).to receive(:call).with(query: "책장 선택", page: 1).and_return(
+      {
+        results: [
+          {
+            title: "책장 선택",
+            authors_text: "저자",
+            publisher: "출판사",
+            thumbnail: nil,
+            isbn: "9780000000099",
+            contents_excerpt: "소개",
+            url: "https://example.com/select-shelf"
+          }
+        ],
+        meta: { total_count: 1, pageable_count: 1, is_end: true }
+      }
+    )
+
+    get book_search_path, params: { query: "책장 선택" }
+
+    expect(response.body).to include(I18n.t("bookshelf_entries.form.target_bookshelf"))
+    expect(response.body).to include(%(name="bookshelf_entry[bookshelf_id]"))
+    expect(response.body).to include("읽을 책장")
+  end
+
   it "marks a search result already in the current user's shelf" do
     book = Book.create!(
       title: "이미 담긴 책",

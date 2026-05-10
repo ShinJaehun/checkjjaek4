@@ -11,6 +11,7 @@ class BooksController < ApplicationController
 
   def show
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
+    @bookshelves = current_user.bookshelves.default_first
     prepare_book_write_context if @bookshelf_entry.present?
     @jjaeks = visible_book_jjaeks
     prepare_visible_requote_counts_for(@jjaeks)
