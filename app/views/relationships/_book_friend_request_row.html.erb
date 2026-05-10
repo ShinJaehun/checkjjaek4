@@ -1,0 +1,27 @@
+<% friendship = record %>
+<article class="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <% if direction == :received %>
+      <%= user_avatar_link(friendship.requester, image_class: "h-10 w-10 shrink-0 rounded-full object-cover", text_class: "font-medium text-stone-900") %>
+      <div class="flex shrink-0 flex-wrap gap-3">
+        <%= button_to t("users.actions.accept_book_friend"),
+                      user_book_friendship_path(friendship.requester),
+                      method: :patch,
+                      params: { return_to: "relationships" },
+                      class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+        <%= button_to t("users.actions.reject_book_friend_request"),
+                      user_book_friendship_path(friendship.requester),
+                      method: :delete,
+                      params: { return_to: "relationships" },
+                      class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+      </div>
+    <% else %>
+      <%= user_avatar_link(friendship.addressee, image_class: "h-10 w-10 shrink-0 rounded-full object-cover", text_class: "font-medium text-stone-900") %>
+      <%= button_to t("users.actions.cancel_book_friend_request"),
+                    user_book_friendship_path(friendship.addressee),
+                    method: :delete,
+                    params: { return_to: "relationships" },
+                    class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+    <% end %>
+  </div>
+</article>
