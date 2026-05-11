@@ -224,6 +224,9 @@ ReJjaek은 원문을 복사하지 않고 `quoted_jjaek`으로 참조한다.
 deleted-source 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기고,
 원문 본문/책 메타/avatar snapshot은 저장하지 않는다.
 공개 화면에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다.
+한 사용자는 같은 원문 Jjaek을 한 번만 ReJjaek할 수 있으며,
+동일 사용자 + 동일 원문 중복 ReJjaek 요청은 새 ReJjaek을 만들지 않는다.
+다른 사용자가 같은 원문을 ReJjaek하는 것은 허용한다.
 
 ---
 

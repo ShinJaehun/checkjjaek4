@@ -178,6 +178,8 @@ Library 안에서 볼 수 있는 책장:
 - 현재 사용자가 원문 Jjaek을 볼 수 있어야 한다
 - 원문이 `private_jjaek`이면 ReJjaek할 수 없다
 - 원문 자체가 ReJjaek이면 다시 인용할 수 없다
+- 같은 사용자가 같은 원문을 이미 ReJjaek했다면 새 ReJjaek 버튼을 보여주지 않는다
+- MVP에서는 버튼 숨김만으로 충분하다
 
 ### ReJjaek 목록 조회
 

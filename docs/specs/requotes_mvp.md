@@ -67,6 +67,7 @@
   - 원본이 viewer에게 보여야 한다.
   - 원본이 `private_jjaek`이면 안 된다.
   - 원본 자체가 ReJjaek이면 안 된다.
+  - 같은 사용자가 같은 원문을 이미 ReJjaek했다면 새 ReJjaek을 만들지 않는다.
 
 - `JjaekPolicy::Scope`
   - viewer가 볼 수 있는 Jjaek만 반환한다.
@@ -96,6 +97,8 @@
 6. `private_jjaek` 원본 Jjaek은 ReJjaek 목록 접근 대상이 아니다.
 7. ReJjaek 자체에 대해서는 다시 ReJjaek 목록을 제공하지 않는다.
 8. 기존 Jjaek 카드 partial을 재사용해 목록을 렌더링한다.
+9. 한 사용자는 같은 원문 Jjaek을 한 번만 ReJjaek할 수 있다.
+10. 다른 사용자가 같은 원문을 ReJjaek하는 것은 허용한다.
 
 ### 제외
 
@@ -109,6 +112,13 @@
 8. 기존 홈/프로필 피드 카드 레이아웃 변경
 9. 기존 ReJjaek 생성 관련 request spec 재배치
 10. 기존 ReJjaek 관련 model/policy 코드 리팩토링
+
+### 버튼 노출
+
+- 이미 같은 원문을 ReJjaek한 사용자에게는 새 ReJjaek 버튼을 숨기거나 “내 다시짹 보기”로 대체할 수 있다.
+- MVP에서는 버튼 숨김만으로 충분하다.
+- 원문 자체가 ReJjaek이면 중첩 ReJjaek 금지 원칙에 따라 새 ReJjaek 버튼을 보여주지 않는다.
+- deleted-source private 상태는 살아 있는 원문에 대한 중복 ReJjaek 제한과 별도 상태로 구분한다.
 
 ---
 

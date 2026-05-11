@@ -306,7 +306,12 @@ ReJjaek은 새 Jjaek이지만,
 11. MVP에서는 공개 화면에 “삭제된 원문입니다” placeholder를 표시하지 않는다.
 12. 초기 MVP에서는 구현 단순성과 권한 일관성을 위해
    ReJjaek이 다른 ReJjaek을 다시 인용하는 **중첩 ReJjaek**은 허용하지 않는다.
-13. ReJjaek의 1차 작성 진입 UX는 아래 `ReJjaek 1차 UX` 기준을 따른다.
+13. 한 사용자는 같은 원문 Jjaek을 한 번만 ReJjaek할 수 있다.
+    동일 사용자 + 동일 원문 중복 ReJjaek 요청은 새 ReJjaek을 만들지 않는다.
+    다른 사용자가 같은 원문을 ReJjaek하는 것은 허용한다.
+14. 원문 hard delete로 인해 기존 ReJjaek이 deleted-source private 상태가 된 경우는 별도 상태이며,
+    살아 있는 원문에 대한 중복 ReJjaek 제한과 구분한다.
+15. ReJjaek의 1차 작성 진입 UX는 아래 `ReJjaek 1차 UX` 기준을 따른다.
     이를 별도 모델로 곧바로 분리하지는 않으며,
     우선 `Jjaek`의 `quoted_jjaek` 문맥으로 유지한다.
 
@@ -474,6 +479,8 @@ ReJjaek은 새 Jjaek이지만,
 - 1차 MVP의 다시짹 작성 진입은 `jjaeks/:id` 상세 화면에 둔다.
 - 다시짹은 책짹의 하위 기능이 아니라, 특정 짹에 대한 인용/응답 작성이다.
 - 원문이 private이거나 원문 자체가 ReJjaek이면 다시짹 작성 진입을 노출하지 않는다.
+- 이미 같은 원문을 ReJjaek한 사용자에게는 새 ReJjaek 버튼을 숨기거나 “내 다시짹 보기”로 대체할 수 있다.
+- MVP에서는 버튼 숨김만으로 충분하다.
 - 다시짹은 원문보다 넓은 공개 범위로 작성할 수 없다.
 - 원문이 삭제되었거나 원문 접근 권한이 사라지면 다시짹도 공개 목록에서 조회되지 않아야 한다.
 - books/:id, home feed, users/:id 카드 액션은 후속 단계에서 검토한다.

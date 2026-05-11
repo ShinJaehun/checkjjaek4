@@ -110,6 +110,7 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
   원문 본문/책 메타/avatar snapshot은 저장하지 않는다
 - 공개 화면에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다
 - 원문 자체가 ReJjaek이면 중첩 ReJjaek은 허용하지 않는다
+- 이미 같은 원문을 ReJjaek한 사용자에게는 새 ReJjaek 버튼을 보여주지 않는다
 
 관련 위치:
 
