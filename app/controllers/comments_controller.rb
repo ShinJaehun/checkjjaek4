@@ -39,7 +39,14 @@ class CommentsController < ApplicationController
     authorize @comment
     @comment.destroy!
 
-    redirect_to jjaek_path(@jjaek), notice: t("comments.notices.destroyed")
+    @jjaek.reload
+    @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+    @comment = Comment.new(jjaek: @jjaek)
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to jjaek_path(@jjaek), notice: t("comments.notices.destroyed") }
+    end
   end
 
   private

@@ -117,4 +117,30 @@ RSpec.describe "Comments", type: :request do
       delete jjaek_comment_path(jjaek, comment)
     }.to change(Comment, :count).by(-1)
   end
+
+  it "keeps the html fallback redirect when deleting a comment" do
+    sign_in user
+
+    delete jjaek_comment_path(jjaek, comment)
+
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:notice]).to eq(I18n.t("comments.notices.destroyed"))
+  end
+
+  it "replaces only the comments panel on turbo stream comment deletion" do
+    jjaek.update!(content: "JJAKE_CARD_DELETE_ONLY_BODY")
+    comment.update!(content: "COMMENT_TO_DELETE_BODY")
+    remaining_comment = jjaek.comments.create!(user: author, content: "COMMENT_TO_KEEP_BODY")
+    sign_in user
+
+    expect {
+      delete jjaek_comment_path(jjaek, comment), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Comment, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include("COMMENT_TO_DELETE_BODY")
+    expect(response.body).to include(remaining_comment.content)
+    expect(response.body).not_to include("JJAKE_CARD_DELETE_ONLY_BODY")
+  end
 end
