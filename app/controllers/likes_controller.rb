@@ -6,7 +6,11 @@ class LikesController < ApplicationController
     authorize @like
 
     if @like.persisted? || @like.save
-      redirect_back fallback_location: root_path, notice: t("likes.notices.created")
+      @jjaek.reload
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_back fallback_location: root_path, notice: t("likes.notices.created") }
+      end
     else
       redirect_back fallback_location: root_path, alert: @like.errors.full_messages.to_sentence
     end
@@ -23,7 +27,11 @@ class LikesController < ApplicationController
     authorize @like
     @like.destroy!
 
-    redirect_back fallback_location: root_path, notice: t("likes.notices.destroyed")
+    @jjaek.reload
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_back fallback_location: root_path, notice: t("likes.notices.destroyed") }
+    end
   end
 
   private

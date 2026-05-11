@@ -14,6 +14,29 @@ RSpec.describe "Likes", type: :request do
     }.to change(Like, :count).by(1)
   end
 
+  it "keeps the html fallback redirect when liking a jjaek" do
+    sign_in user
+
+    post jjaek_like_path(jjaek)
+
+    expect(response).to redirect_to(root_path)
+    expect(flash[:notice]).to eq(I18n.t("likes.notices.created"))
+  end
+
+  it "replaces only the like summary action on turbo stream like" do
+    sign_in user
+
+    expect {
+      post jjaek_like_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Like, :count).by(1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"))
+    expect(response.body).to include("좋아요 1개")
+    expect(response.body).to include("좋아요 취소")
+    expect(response.body).not_to include(jjaek.content)
+  end
+
   it "redirects guests to sign in when liking a jjaek" do
     post jjaek_like_path(jjaek)
 
@@ -36,6 +59,31 @@ RSpec.describe "Likes", type: :request do
     expect {
       delete jjaek_like_path(jjaek)
     }.to change(Like, :count).by(-1)
+  end
+
+  it "keeps the html fallback redirect when unliking a jjaek" do
+    sign_in user
+    jjaek.likes.create!(user:)
+
+    delete jjaek_like_path(jjaek)
+
+    expect(response).to redirect_to(root_path)
+    expect(flash[:notice]).to eq(I18n.t("likes.notices.destroyed"))
+  end
+
+  it "replaces only the like summary action on turbo stream unlike" do
+    sign_in user
+    jjaek.likes.create!(user:)
+
+    expect {
+      delete jjaek_like_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Like, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"))
+    expect(response.body).to include("좋아요 0개")
+    expect(response.body).not_to include("좋아요 취소")
+    expect(response.body).not_to include(jjaek.content)
   end
 
   it "redirects back with an alert when the like does not exist" do
