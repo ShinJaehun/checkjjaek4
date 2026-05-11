@@ -355,6 +355,14 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.meta.edited"))
     end
 
+    it "renders a stable comments panel target" do
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).to include(%(id="comments_panel_jjaek_#{original.id}"))
+    end
+
     it "shows the latest quoted original with an edited marker" do
       original.update_columns(content: "REQUEST_UPDATED_ORIGINAL_SOURCE", updated_at: original.created_at + 2.minutes)
       sign_in viewer
