@@ -1,0 +1,3 @@
+<%= turbo_stream.replace dom_id(@jjaek, :comments_panel) do %>
+  <%= render "comments/comments_panel", jjaek: @jjaek, comments: @comments, comment: @comment %>
+<% end %>

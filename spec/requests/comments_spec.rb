@@ -17,6 +17,32 @@ RSpec.describe "Comments", type: :request do
     expect(response).to redirect_to(jjaek_path(jjaek))
   end
 
+  it "keeps the html fallback redirect when creating a comment" do
+    sign_in user
+
+    post jjaek_comments_path(jjaek), params: { comment: { content: "HTML fallback note" } }
+
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:notice]).to eq(I18n.t("comments.notices.created"))
+  end
+
+  it "replaces only the comments panel on turbo stream comment creation" do
+    jjaek.update!(content: "JJAKE_CARD_ONLY_BODY")
+    sign_in user
+
+    expect {
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "Turbo panel note" } },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(jjaek.comments, :count).by(1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).to include("Turbo panel note")
+    expect(response.body).to include(%(name="comment[content]"))
+    expect(response.body).not_to include("JJAKE_CARD_ONLY_BODY")
+  end
+
   it "creates a notification when another user comments on your jjaek" do
     sign_in user
 

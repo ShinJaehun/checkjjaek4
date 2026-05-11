@@ -8,7 +8,14 @@ class CommentsController < ApplicationController
 
     if @comment.save
       Notification.notify_comment_created(@comment)
-      redirect_to jjaek_path(@jjaek), notice: t("comments.notices.created")
+      @jjaek.reload
+      @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+      @comment = Comment.new(jjaek: @jjaek)
+
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to jjaek_path(@jjaek), notice: t("comments.notices.created") }
+      end
     else
       @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
       prepare_visible_requote_counts_for([ @jjaek ])
