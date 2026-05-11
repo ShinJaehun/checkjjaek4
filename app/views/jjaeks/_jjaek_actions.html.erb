@@ -1,6 +1,6 @@
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
   <%= render "jjaeks/like_summary_action", jjaek: jjaek %>
-  <span><%= t("jjaeks.meta.comments", count: jjaek.comments_count) %></span>
+  <%= render "jjaeks/comment_action", jjaek: jjaek %>
   <%= render "jjaeks/requote_link", jjaek: jjaek %>
   <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>
 </div>
