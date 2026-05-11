@@ -40,6 +40,32 @@ RSpec.describe Jjaek, type: :model do
     expect(nested_requote).not_to be_valid
   end
 
+  it "does not allow the same user to requote the same original twice" do
+    original = other_user.jjaeks.create!(book:, content: "원문")
+    user.jjaeks.create!(book:, content: "첫 인용", quoted_jjaek: original)
+    duplicate_requote = described_class.new(user:, book:, content: "두 번째 인용", quoted_jjaek: original)
+
+    expect(duplicate_requote).not_to be_valid
+    expect(duplicate_requote.errors.of_kind?(:quoted_jjaek_id, :taken)).to be(true)
+  end
+
+  it "allows different users to requote the same original" do
+    original = other_user.jjaeks.create!(book:, content: "원문")
+    user.jjaeks.create!(book:, content: "첫 인용", quoted_jjaek: original)
+    another_user = User.create!(name: "Another", email: "another-jjaek@example.com", password: "password123!", password_confirmation: "password123!")
+    other_requote = described_class.new(user: another_user, book:, content: "다른 사용자 인용", quoted_jjaek: original)
+
+    expect(other_requote).to be_valid
+  end
+
+  it "allows regular jjaeks and book jjaeks from the same user" do
+    general_jjaek = described_class.new(user:, content: "일반 짹")
+    book_jjaek = described_class.new(user:, book:, content: "책짹")
+
+    expect(general_jjaek).to be_valid
+    expect(book_jjaek).to be_valid
+  end
+
   it "keeps requotes private and marked when the original is destroyed" do
     original = other_user.jjaeks.create!(book:, content: "원문")
     requote = user.jjaeks.create!(book:, content: "인용", quoted_jjaek: original)

@@ -64,6 +64,24 @@ RSpec.describe JjaekPolicy do
     end
   end
 
+  describe "#create_requote?" do
+    it "allows the button when the viewer has not requoted the original" do
+      expect(described_class.new(viewer, original).create_requote?).to be(true)
+    end
+
+    it "hides the button when the viewer has already requoted the original" do
+      requote
+
+      expect(described_class.new(viewer, original).create_requote?).to be(false)
+    end
+
+    it "does not hide the button because another user requoted the original" do
+      unrelated_author.jjaeks.create!(book:, content: "OTHER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek)
+
+      expect(described_class.new(viewer, original).create_requote?).to be(true)
+    end
+  end
+
   describe "#create?" do
     it "allows creating a general jjaek without a book" do
       jjaek = viewer.jjaeks.build(content: "GENERAL_POLICY_JJAEK")

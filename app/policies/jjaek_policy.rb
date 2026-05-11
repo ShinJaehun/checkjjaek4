@@ -14,6 +14,10 @@ class JjaekPolicy < ApplicationPolicy
     show? && !record.private_jjaek? && !record.requote?
   end
 
+  def create_requote?
+    requote? && !already_requoted?
+  end
+
   def update?
     user.present? && record.user_id == user.id
   end
@@ -113,5 +117,11 @@ class JjaekPolicy < ApplicationPolicy
     return true unless record.quoted_jjaek
 
     self.class.new(user, record.quoted_jjaek).show?
+  end
+
+  def already_requoted?
+    return false unless user.present? && record.persisted?
+
+    Jjaek.exists?(user_id: user.id, quoted_jjaek_id: record.id)
   end
 end

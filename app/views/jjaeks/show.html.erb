@@ -1,7 +1,7 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
   <%= render "jjaeks/jjaek", jjaek: @jjaek %>
 
-  <% if policy(@jjaek).requote? %>
+  <% if policy(@jjaek).create_requote? %>
     <div>
       <%= link_to t("jjaeks.actions.requote"),
                   new_jjaek_path(quoted_jjaek_id: @jjaek.id),

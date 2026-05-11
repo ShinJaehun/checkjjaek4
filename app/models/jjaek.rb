@@ -15,6 +15,9 @@ class Jjaek < ApplicationRecord
   before_destroy :mark_requotes_as_deleted_source
 
   validates :content, presence: true, length: { maximum: 2_000 }
+  validates :quoted_jjaek_id,
+            uniqueness: { scope: :user_id },
+            allow_nil: true
   validate :quoted_jjaek_must_be_requotable
   validate :quoted_jjaek_must_not_be_requote
   validate :quoted_jjaek_visibility_must_not_expand

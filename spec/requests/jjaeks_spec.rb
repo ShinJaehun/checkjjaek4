@@ -125,6 +125,23 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
+    it "does not create a duplicate requote for the same user and original" do
+      sign_in viewer
+      requote
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            quoted_jjaek_id: original.id,
+            content: "REQUEST_DUPLICATE_REQUOTE_BODY",
+            visibility: :private_jjaek
+          }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
     it "creates a notification when writing a profile-context jjaek on another user's profile" do
       sign_in viewer
 
@@ -278,6 +295,26 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("user_profile_")
       expect(response.body).to include("_128")
       expect(response.body).to include(%(alt="#{original_author.name}"))
+      expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: original.id))
+    end
+
+    it "does not show a requote entry after the viewer has already requoted the original" do
+      requote
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: original.id))
+    end
+
+    it "shows a requote entry when only another user has requoted the original" do
+      other_requoter = User.create!(name: "Other Requoter", email: "other-requoter@example.com", password: "password123!", password_confirmation: "password123!")
+      BookFriendship.create!(requester: other_requoter, addressee: original_author, status: :accepted)
+      other_requoter.jjaeks.create!(book:, content: "OTHER_USER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek)
+      sign_in viewer
+
+      get jjaek_path(original)
+
       expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: original.id))
     end
 
