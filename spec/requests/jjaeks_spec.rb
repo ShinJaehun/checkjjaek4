@@ -361,6 +361,7 @@ RSpec.describe "Jjaeks", type: :request do
       get jjaek_path(original)
 
       expect(response.body).to include(%(id="comments_panel_jjaek_#{original.id}"))
+      expect(response.body).to include(%(href="/jjaeks/#{original.id}#comments_panel_jjaek_#{original.id}"))
     end
 
     it "shows the latest quoted original with an edited marker" do

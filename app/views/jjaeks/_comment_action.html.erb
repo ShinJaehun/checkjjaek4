@@ -1,1 +1,3 @@
-<span><%= t("jjaeks.meta.comments", count: jjaek.comments_count) %></span>
+<%= link_to t("jjaeks.meta.comments", count: jjaek.comments_count),
+            jjaek_path(jjaek, anchor: dom_id(jjaek, :comments_panel)),
+            class: "font-medium text-stone-700" %>
