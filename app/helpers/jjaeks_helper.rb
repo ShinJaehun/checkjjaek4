@@ -26,6 +26,15 @@ module JjaeksHelper
     jjaek.updated_at > jjaek.created_at + 1.second
   end
 
+  def comments_panel_dom_id(jjaek, context: :detail)
+    case context.to_sym
+    when :detail
+      dom_id(jjaek, :comments_panel)
+    else
+      raise ArgumentError, "Unsupported comments panel context: #{context}"
+    end
+  end
+
   private
 
   def jjaek_context_translation_key(jjaek)
