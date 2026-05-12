@@ -41,7 +41,7 @@
     <% if @feed_items.any? %>
       <% @feed_items.each do |feed_item| %>
         <% if feed_item.is_a?(Jjaek) %>
-          <%= render "jjaeks/jjaek", jjaek: feed_item %>
+          <%= render "jjaeks/jjaek", jjaek: feed_item, inline_comments_context: :home %>
         <% else %>
           <%= render "book_activities/book_activity", book_activity: feed_item %>
         <% end %>

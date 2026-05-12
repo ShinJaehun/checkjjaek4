@@ -75,12 +75,13 @@ RSpec.describe "Homes", type: :request do
     end
 
     it "still shows existing Jjaeks in the home feed" do
-      viewer.jjaeks.create!(content: "HOME_FEED_EXISTING_JJAEK", visibility: :public_jjaek)
+      jjaek = viewer.jjaeks.create!(content: "HOME_FEED_EXISTING_JJAEK", visibility: :public_jjaek)
       sign_in viewer
 
       get root_path
 
       expect(response.body).to include("HOME_FEED_EXISTING_JJAEK")
+      expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
     end
 
     it "orders Jjaeks and BookActivities together by created_at" do

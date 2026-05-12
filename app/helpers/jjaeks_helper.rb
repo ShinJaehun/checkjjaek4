@@ -30,6 +30,8 @@ module JjaeksHelper
     case context.to_sym
     when :detail
       dom_id(jjaek, :comments_panel)
+    when :home
+      dom_id(jjaek, :comments_panel_home)
     else
       raise ArgumentError, "Unsupported comments panel context: #{context}"
     end
