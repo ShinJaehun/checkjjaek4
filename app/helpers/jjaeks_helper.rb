@@ -37,6 +37,15 @@ module JjaeksHelper
     end
   end
 
+  def requotes_panel_dom_id(jjaek, context: :detail)
+    case context.to_sym
+    when :detail
+      dom_id(jjaek, :requotes_panel)
+    else
+      raise ArgumentError, "Unsupported requotes panel context: #{context}"
+    end
+  end
+
   private
 
   def jjaek_context_translation_key(jjaek)

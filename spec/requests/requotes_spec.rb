@@ -52,6 +52,46 @@ RSpec.describe "Requotes", type: :request do
       expect(response.body).not_to include("HIDDEN_REQUOTE_IN_LIST")
     end
 
+    it "replaces the detail requotes panel on turbo stream index" do
+      visible_book_friends_requote = original_author.jjaeks.create!(
+        content: "VISIBLE_TURBO_BOOK_FRIENDS_REQUOTE",
+        quoted_jjaek: original,
+        visibility: :book_friends
+      )
+
+      hidden_requoter = User.create!(
+        name: "Hidden Requoter",
+        email: "hidden-turbo-requote-list@example.com",
+        password: "password123!",
+        password_confirmation: "password123!"
+      )
+
+      BookFriendship.create!(
+        requester: hidden_requoter,
+        addressee: original_author,
+        status: :accepted
+      )
+
+      hidden_requoter.jjaeks.create!(
+        content: "HIDDEN_TURBO_REQUOTE_IN_LIST",
+        quoted_jjaek: original,
+        visibility: :book_friends
+      )
+
+      viewer_requote
+      sign_in viewer
+
+      get jjaek_requotes_path(original), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+      expect(response.body).to include(%(target="requotes_panel_jjaek_#{original.id}"))
+      expect(response.body).to include(%(id="requotes_panel_jjaek_#{original.id}"))
+      expect(response.body).to include(visible_book_friends_requote.content)
+      expect(response.body).to include(viewer_requote.content)
+      expect(response.body).not_to include("HIDDEN_TURBO_REQUOTE_IN_LIST")
+      expect(response.body).not_to include(I18n.t("requotes.index.description"))
+    end
+
     it "does not allow requote list access for a private original" do
       private_original = viewer.jjaeks.create!(content: "PRIVATE_REQUOTE_LIST_SOURCE", visibility: :private_jjaek)
       sign_in viewer

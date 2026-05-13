@@ -9,5 +9,17 @@
     </div>
   <% end %>
 
+  <% visible_requote_count = visible_requote_count_for(@jjaek) %>
+  <% if visible_requote_count.positive? %>
+    <div>
+      <%= link_to t("jjaeks.meta.requotes", count: visible_requote_count),
+                  jjaek_requotes_path(@jjaek),
+                  data: { turbo_stream: true },
+                  class: "inline-flex rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:border-stone-400 hover:text-stone-900" %>
+    </div>
+  <% end %>
+
+  <div id="<%= requotes_panel_dom_id(@jjaek) %>"></div>
+
   <%= render "comments/comments_panel", jjaek: @jjaek, comments: @comments, comment: @comment %>
 </section>

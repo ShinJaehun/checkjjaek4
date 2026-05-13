@@ -1,0 +1,13 @@
+<section id="<%= requotes_panel_dom_id(jjaek) %>" class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+  <h2 class="sr-only"><%= t("requotes.index.title") %></h2>
+
+  <div class="space-y-4">
+    <% if requotes.any? %>
+      <% requotes.each do |requote| %>
+        <%= render "jjaeks/jjaek", jjaek: requote %>
+      <% end %>
+    <% else %>
+      <p class="text-sm text-stone-500"><%= t("requotes.index.empty") %></p>
+    <% end %>
+  </div>
+</section>
