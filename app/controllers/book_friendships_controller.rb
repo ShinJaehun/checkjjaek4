@@ -34,7 +34,18 @@ class BookFriendshipsController < ApplicationController
     authorize friendship
     notice_key = destroy_notice_key(friendship)
     friendship.destroy!
-    redirect_to redirect_target, notice: t("book_friendships.notices.#{notice_key}")
+
+    if params[:return_to] == "relationships" && notice_key == :cancelled
+      @sent_book_friend_requests = current_user.requested_book_friendships.pending.includes(:addressee)
+      flash.now[:notice] = t("book_friendships.notices.#{notice_key}")
+
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to redirect_target, notice: t("book_friendships.notices.#{notice_key}") }
+      end
+    else
+      redirect_to redirect_target, notice: t("book_friendships.notices.#{notice_key}")
+    end
   end
 
   private
