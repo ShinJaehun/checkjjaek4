@@ -230,21 +230,30 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 
 ---
 
-## 5차 후보: 관계 화면 row 갱신
+## 관계 화면 section 갱신
+
+상태: 부분 완료 - 핵심 relationship hub actions 기준
 
 관계 화면은 section/row partial로 분리되어 있다.
 
-Turbo 후보:
+구현 완료:
 
-- 받은 책친구 요청 거절 시 row 제거
-- 보낸 책친구 요청 취소 시 row 제거
-- 소식받기 해제 시 row 제거
+- 소식받기 해제 시 `#following-users` section을 replace한다.
+- 보낸 책친구 요청 취소 시 `#sent-book-friend-requests` section을 replace한다.
+- 받은 책친구 요청 거절 시 `#received-book-friend-requests` section을 replace한다.
+- 받은 책친구 요청 수락 시 `#received-book-friend-requests`와 `#book-friends` section을 함께 replace한다.
+- 책친구 제거 시 `#book-friends` section을 replace한다.
+- 각 성공 Turbo Stream 응답은 `#flash-messages`를 update한다.
+- HTML fallback redirect는 유지한다.
+- 마지막 항목 제거 시 section partial의 empty state가 반영된다.
 
-주의:
+구현 원칙:
 
-- 책친구 요청 수락은 row 제거와 book friends section 추가가 동시에 필요하다.
-- 따라서 수락 Turbo화는 나중으로 둔다.
-- soft rejection notification 정책은 변경하지 않는다.
+- row 단위 제거가 아니라 `relationships/section` partial을 재사용한 section replace로 처리한다.
+- policy/state transition 로직은 변경하지 않는다.
+- relationships 전체 page replace는 하지 않는다.
+- notification badge 갱신, ActionCable, Stimulus/JavaScript, modal은 추가하지 않는다.
+- 전체 relationships 기능이 Turbo화된 것은 아니며, relationship hub의 핵심 관계 action에 한정한다.
 
 ---
 
@@ -281,9 +290,12 @@ Turbo 후보:
 - 책장 생성/수정/삭제 Turbo화
 - notification 실시간 push
 - PWA/service worker
-- 관계 화면 전체 Turbo화
+- relationships 전체 페이지 Turbo Frame화
+- ActionCable/실시간 관계 반영
+- Stimulus/JavaScript 기반 동적 UI
+- modal 기반 관계 관리
 - 책 검색 전체 Turbo화
-- 모든 form의 Turbo Stream 응답화
+- 모든 form/action의 Turbo Stream화
 
 ---
 
@@ -297,7 +309,7 @@ Turbo 후보:
 6. home/profile/book inline comments panel 닫기 UX 적용 완료
 7. 상세 페이지 ReJjaek 목록 panel 적용 완료
 8. flash / notification badge 공통 갱신 검토
-9. 관계 화면 row 제거 검토
+9. 관계 화면 핵심 action section 갱신 적용 완료
 10. 책 검색 result card 갱신 검토
 
 ---
@@ -317,7 +329,9 @@ Turbo MVP 완료 기준:
 
 - Jjaek card 내부 주요 상호작용이 필요한 화면 맥락 안에서 단계적으로 처리된다.
 - 좋아요, home/profile/book 댓글, 상세 페이지 ReJjaek 목록은 partial 갱신 구조를 갖는다.
+- relationships hub의 핵심 관계 action은 section replace 구조를 갖는다.
 - Requotes 화면 inline comments panel은 별도 검토 대상으로 남긴다.
 - home/profile/book/requotes inline ReJjaek panel은 별도 검토 대상으로 남긴다.
+- relationships 전체 페이지 Turbo Frame화와 모든 관계 action Turbo화는 별도 검토 대상으로 남긴다.
 - full redirect가 더 안전한 영역은 그대로 유지한다.
 - view가 Turbo/JS 코드로 다시 복잡해지지 않는다.
