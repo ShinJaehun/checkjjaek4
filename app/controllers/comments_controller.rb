@@ -25,7 +25,7 @@ class CommentsController < ApplicationController
       prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
 
       respond_to do |format|
-        format.turbo_stream
+        format.turbo_stream { flash.now[:notice] = t("comments.notices.created") }
         format.html { redirect_to jjaek_path(@jjaek), notice: t("comments.notices.created") }
       end
     else
@@ -60,7 +60,7 @@ class CommentsController < ApplicationController
     prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
 
     respond_to do |format|
-      format.turbo_stream
+      format.turbo_stream { flash.now[:notice] = t("comments.notices.destroyed") }
       format.html { redirect_to jjaek_path(@jjaek), notice: t("comments.notices.destroyed") }
     end
   end

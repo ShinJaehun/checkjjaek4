@@ -12,6 +12,10 @@
 <% end %>
 
 <% unless @comment.errors.any? %>
+  <%= turbo_stream.update "flash-messages" do %>
+    <%= render "shared/flash" %>
+  <% end %>
+
   <%= turbo_stream.replace dom_id(@jjaek, :comment_action) do %>
     <%= render "jjaeks/comment_action", jjaek: @jjaek %>
   <% end %>
