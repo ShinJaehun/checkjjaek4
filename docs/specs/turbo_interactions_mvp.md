@@ -83,7 +83,7 @@ Turbo 적용 전 view 리팩토링으로 다음 구조를 정리했다.
 
 ## 2차 대상: 댓글 inline panel
 
-상태: 부분 완료
+상태: 부분 완료 - home/profile/book 기준 구현 완료 / Requotes 화면 보류
 
 ### 현재 문제
 
@@ -91,7 +91,9 @@ Turbo 적용 전 view 리팩토링으로 다음 구조를 정리했다.
 
 ### 목표
 
-사용자가 홈 피드에서 이미 Jjaek을 보고 있다면, 댓글 보기 액션을 눌러 card 아래에서 댓글 목록과 입력 form을 볼 수 있게 한다.
+사용자가 home feed, profile 화면, book 상세 timeline에서 이미 Jjaek을 보고 있다면, 댓글 보기 액션을 눌러 card 아래에서 댓글 목록과 입력 form을 볼 수 있게 한다.
+
+Requotes 화면의 inline comments panel은 아직 구현하지 않는다.
 
 ### 구현 기준
 
@@ -106,19 +108,25 @@ Turbo 적용 전 view 리팩토링으로 다음 구조를 정리했다.
 - 상세 페이지 댓글 create/destroy는 Turbo Stream으로 comments panel을 갱신한다.
 - 댓글 create 실패 시 Turbo Stream 응답은 comments panel 내부를 422 상태로 다시 렌더링하고 validation error를 표시한다.
 - 댓글 create/destroy 성공 시 댓글 count/action 영역도 함께 갱신한다.
-- 홈 피드 Jjaek card에는 댓글 count 링크와 별도의 `댓글 보기` inline trigger가 함께 표시된다.
+- home/profile/book Jjaek card에는 댓글 count 링크와 별도의 `댓글 보기` inline trigger가 함께 표시된다.
 - 댓글 count 링크는 기존처럼 Jjaek 상세 페이지 comments panel anchor로 이동한다.
-- 홈 피드 `댓글 보기` trigger는 `comments_panel_home_jjaek_ID` placeholder에 comments panel을 로드한다.
-- 홈 inline panel에서 댓글 create/destroy를 수행하면 home context를 유지해 같은 home panel을 갱신한다.
-- 홈 inline panel에는 닫기 액션이 있으며, 닫기 시 `comments_panel_home_jjaek_ID`를 같은 id의 빈 placeholder로 되돌린다.
+- `댓글 보기` trigger는 context별 comments panel placeholder에 comments panel을 로드한다.
+- comments panel target id는 아래처럼 context별로 구분한다.
+  - detail: `comments_panel_jjaek_ID`
+  - home: `comments_panel_home_jjaek_ID`
+  - profile: `comments_panel_profile_USERID_jjaek_ID`
+  - book: `comments_panel_book_BOOKID_jjaek_ID`
+- home/profile/book inline panel에서 댓글 create/destroy를 수행하면 해당 context panel을 갱신한다.
+- home/profile/book inline panel에는 닫기 액션이 있으며, 닫기 시 해당 context panel을 같은 id의 빈 placeholder로 되돌린다.
+- profile context는 `profile_user_id`가 존재할 때만 inline target을 사용하며, 없으면 detail fallback한다.
+- book context는 `book_id`가 있고 Jjaek의 `book_id`와 일치할 때만 inline target을 사용하며, 맞지 않으면 detail fallback한다.
+- raw DOM id는 params로 받지 않는다.
 - detail comments panel에는 닫기 액션을 표시하지 않는다.
 - HTML fallback은 기존 상세 페이지 흐름을 유지한다.
 
 ### 미구현/보류
 
-- profile 화면 inline comments panel
-- book 화면 inline comments panel
-- ReJjaek/requotes 화면 inline comments panel
+- Requotes 화면 inline comments panel
 - Stimulus 기반 open/close toggle
 - modal 기반 comments UI
 - 실시간 broadcast
@@ -230,7 +238,7 @@ Turbo 후보:
 다음은 Turbo MVP 범위에서 제외한다.
 
 - 앱 전체 Turbo Frame 구조 전환
-- profile/book/requotes inline comments panel
+- Requotes 화면 inline comments panel
 - home/profile/book/requotes inline ReJjaek panel
 - Stimulus 기반 comments toggle
 - modal 기반 comments UI
@@ -252,8 +260,8 @@ Turbo 후보:
 2. 좋아요 count + button partial 정리
 3. 좋아요 Turbo Stream 적용 완료
 4. 상세 페이지 댓글 작성/삭제 Turbo 적용 완료
-5. 홈 피드 inline comments panel 적용 완료
-6. 홈 inline comments panel 닫기 UX 적용 완료
+5. home/profile/book inline comments panel 적용 완료
+6. home/profile/book inline comments panel 닫기 UX 적용 완료
 7. 상세 페이지 ReJjaek 목록 panel 적용 완료
 8. flash / notification badge 공통 갱신 검토
 9. 관계 화면 row 제거 검토
@@ -275,7 +283,8 @@ Turbo 1차 완료 기준:
 Turbo MVP 완료 기준:
 
 - Jjaek card 내부 주요 상호작용이 필요한 화면 맥락 안에서 단계적으로 처리된다.
-- 좋아요, 댓글, 상세 페이지 ReJjaek 목록은 partial 갱신 구조를 갖는다.
+- 좋아요, home/profile/book 댓글, 상세 페이지 ReJjaek 목록은 partial 갱신 구조를 갖는다.
+- Requotes 화면 inline comments panel은 별도 검토 대상으로 남긴다.
 - home/profile/book/requotes inline ReJjaek panel은 별도 검토 대상으로 남긴다.
 - full redirect가 더 안전한 영역은 그대로 유지한다.
 - view가 Turbo/JS 코드로 다시 복잡해지지 않는다.
