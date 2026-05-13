@@ -129,6 +129,8 @@ en:
       comment_created: "%{actor_name} commented on your Jjaek."
       requote_created: "%{actor_name} ReJjaeked your Jjaek."
   requotes:
+    actions:
+      view_panel: "View ReJjaeks"
     index:
       title: "ReJjaeks"
       description: "Browse the posts that ReJjaeked this Jjaek."

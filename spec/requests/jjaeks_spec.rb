@@ -376,6 +376,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(%(id="requotes_panel_jjaek_#{original.id}"))
       expect(response.body).to include(%(href="/jjaeks/#{original.id}/requotes"))
       expect(response.body).to include(%(data-turbo-stream="true"))
+      expect(response.body).to include(I18n.t("requotes.actions.view_panel"))
     end
 
     it "shows the latest quoted original with an edited marker" do

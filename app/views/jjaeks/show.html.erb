@@ -12,7 +12,7 @@
   <% visible_requote_count = visible_requote_count_for(@jjaek) %>
   <% if visible_requote_count.positive? %>
     <div>
-      <%= link_to t("jjaeks.meta.requotes", count: visible_requote_count),
+      <%= link_to t("requotes.actions.view_panel"),
                   jjaek_requotes_path(@jjaek),
                   data: { turbo_stream: true },
                   class: "inline-flex rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:border-stone-400 hover:text-stone-900" %>

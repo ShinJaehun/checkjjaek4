@@ -129,6 +129,8 @@ ko:
       comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
       requote_created: "%{actor_name}님이 내 Jjaek을 다시짹했습니다."
   requotes:
+    actions:
+      view_panel: "다시짹 보기"
     index:
       title: "다시짹"
       description: "이 짹을 다시짹한 글을 모아 봅니다."
