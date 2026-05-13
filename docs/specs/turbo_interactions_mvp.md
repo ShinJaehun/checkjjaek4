@@ -43,6 +43,8 @@ Turbo 적용 전 view 리팩토링으로 다음 구조를 정리했다.
 
 ## 1차 대상: Jjaek 좋아요
 
+상태: 완료
+
 ### 현재 문제
 
 좋아요/좋아요 취소 시 전체 페이지가 다시 렌더링된다.
@@ -64,9 +66,14 @@ Turbo 적용 전 view 리팩토링으로 다음 구조를 정리했다.
 - 실패/권한 오류 흐름은 기존 정책을 유지한다.
 - flash 갱신은 1차 범위에서 제외할 수 있다.
 
+### 현재 구현
+
+- 좋아요/좋아요 취소 Turbo Stream 응답은 해당 Jjaek의 좋아요 action 영역을 갱신한다.
+- HTML fallback은 기존 redirect 흐름을 유지한다.
+- Jjaek card 전체 replace는 하지 않는다.
+
 ### 하지 않을 것
 
-- 댓글 Turbo화
 - ReJjaek 목록 Turbo화
 - notification badge Turbo화
 - flash Turbo화
@@ -76,13 +83,15 @@ Turbo 적용 전 view 리팩토링으로 다음 구조를 정리했다.
 
 ## 2차 대상: 댓글 inline panel
 
+상태: 부분 완료
+
 ### 현재 문제
 
 댓글을 보거나 작성하려면 Jjaek 상세 화면으로 이동해야 한다.
 
 ### 목표
 
-사용자가 피드/프로필/책 상세 timeline에서 이미 Jjaek을 보고 있다면, 댓글 수 또는 댓글 보기 액션을 눌러 card 아래에서 댓글 목록과 입력 form을 볼 수 있게 한다.
+사용자가 홈 피드에서 이미 Jjaek을 보고 있다면, 댓글 보기 액션을 눌러 card 아래에서 댓글 목록과 입력 form을 볼 수 있게 한다.
 
 ### 구현 기준
 
@@ -91,6 +100,29 @@ Turbo 적용 전 view 리팩토링으로 다음 구조를 정리했다.
 - 댓글 작성 성공 시 댓글 목록과 댓글 수를 갱신한다.
 - 댓글 작성 실패 시 panel 내부에 validation error를 표시한다.
 - HTML fallback은 Jjaek 상세 페이지를 유지한다.
+
+### 현재 구현
+
+- 상세 페이지 댓글 create/destroy는 Turbo Stream으로 comments panel을 갱신한다.
+- 댓글 create 실패 시 Turbo Stream 응답은 comments panel 내부를 422 상태로 다시 렌더링하고 validation error를 표시한다.
+- 댓글 create/destroy 성공 시 댓글 count/action 영역도 함께 갱신한다.
+- 홈 피드 Jjaek card에는 댓글 count 링크와 별도의 `댓글 보기` inline trigger가 함께 표시된다.
+- 댓글 count 링크는 기존처럼 Jjaek 상세 페이지 comments panel anchor로 이동한다.
+- 홈 피드 `댓글 보기` trigger는 `comments_panel_home_jjaek_ID` placeholder에 comments panel을 로드한다.
+- 홈 inline panel에서 댓글 create/destroy를 수행하면 home context를 유지해 같은 home panel을 갱신한다.
+- 홈 inline panel에는 닫기 액션이 있으며, 닫기 시 `comments_panel_home_jjaek_ID`를 같은 id의 빈 placeholder로 되돌린다.
+- detail comments panel에는 닫기 액션을 표시하지 않는다.
+- HTML fallback은 기존 상세 페이지 흐름을 유지한다.
+
+### 미구현/보류
+
+- profile 화면 inline comments panel
+- book 화면 inline comments panel
+- ReJjaek/requotes 화면 inline comments panel
+- Stimulus 기반 open/close toggle
+- modal 기반 comments UI
+- 실시간 broadcast
+- 같은 화면에 동일 Jjaek이 여러 번 렌더된 경우의 동시 갱신
 
 ---
 
@@ -172,6 +204,11 @@ Turbo 후보:
 다음은 Turbo MVP 범위에서 제외한다.
 
 - 앱 전체 Turbo Frame 구조 전환
+- profile/book/requotes inline comments panel
+- Stimulus 기반 comments toggle
+- modal 기반 comments UI
+- 실시간 broadcast
+- 같은 화면의 동일 Jjaek 다중 렌더 동시 갱신
 - 서재 DnD
 - 책장 생성/수정/삭제 Turbo화
 - notification 실시간 push
@@ -186,13 +223,14 @@ Turbo 후보:
 
 1. Jjaek action 구조 정리
 2. 좋아요 count + button partial 정리
-3. 좋아요 Turbo Stream 적용
-4. 댓글 panel 표시
-5. 댓글 작성/삭제 Turbo 적용
-6. ReJjaek 목록 panel 검토
-7. flash / notification badge 공통 갱신 검토
-8. 관계 화면 row 제거 검토
-9. 책 검색 result card 갱신 검토
+3. 좋아요 Turbo Stream 적용 완료
+4. 상세 페이지 댓글 작성/삭제 Turbo 적용 완료
+5. 홈 피드 inline comments panel 적용 완료
+6. 홈 inline comments panel 닫기 UX 적용 완료
+7. ReJjaek 목록 panel 검토
+8. flash / notification badge 공통 갱신 검토
+9. 관계 화면 row 제거 검토
+10. 책 검색 result card 갱신 검토
 
 ---
 
@@ -205,11 +243,12 @@ Turbo 1차 완료 기준:
 - 기존 request spec이 통과한다.
 - Turbo Stream 요청에 대한 request spec이 추가된다.
 - 권한/visibility 정책 변경이 없다.
-- 댓글/ReJjaek/notification/flash는 아직 변경하지 않는다.
+- ReJjaek/notification/flash는 아직 변경하지 않는다.
 
 Turbo MVP 완료 기준:
 
-- Jjaek card 내부 주요 상호작용이 현재 맥락 안에서 처리된다.
-- 좋아요, 댓글, ReJjaek 목록이 단계적으로 partial 갱신 구조를 갖는다.
+- Jjaek card 내부 주요 상호작용이 필요한 화면 맥락 안에서 단계적으로 처리된다.
+- 좋아요와 댓글은 partial 갱신 구조를 갖는다.
+- ReJjaek 목록은 별도 검토 대상으로 남긴다.
 - full redirect가 더 안전한 영역은 그대로 유지한다.
 - view가 Turbo/JS 코드로 다시 복잡해지지 않는다.
