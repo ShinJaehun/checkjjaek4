@@ -128,13 +128,17 @@ Turbo 적용 전 view 리팩토링으로 다음 구조를 정리했다.
 
 ## 3차 대상: ReJjaek 목록 panel
 
+상태: 부분 완료 - detail page 기준 구현 완료 / feed 확장 보류
+
 ### 현재 문제
 
 ReJjaek count를 클릭하면 별도 목록 페이지로 이동한다.
 
 ### 목표
 
-ReJjaek count/link 클릭 시 현재 card 아래에서 ReJjaek 목록을 볼 수 있는 구조를 검토한다.
+Jjaek 상세 페이지에서 ReJjaek 목록을 현재 화면 안에서 확인할 수 있게 한다.
+
+홈 피드, 프로필, 책 상세, ReJjaek 목록 화면의 inline ReJjaek panel은 아직 구현하지 않는다.
 
 ### 주의
 
@@ -146,6 +150,28 @@ ReJjaek은 visibility 정책 영향이 크다.
 - 기존 RequotesController#index와 policy_scope를 유지한다.
 - inline panel에서도 visible ReJjaek만 보여준다.
 - HTML fallback으로 기존 index 페이지 접근을 유지한다.
+
+### 현재 구현
+
+- Jjaek 상세 페이지에 detail-only `requotes_panel_jjaek_ID` placeholder를 둔다.
+- Jjaek 상세 페이지에만 `다시짹 보기` Turbo trigger를 표시한다.
+- 공통 Jjaek card action의 `_requote_link.html.erb`는 기존 `다시짹 N개` HTML 링크를 유지한다.
+- `GET /jjaeks/:jjaek_id/requotes` HTML 요청은 기존 ReJjaek index 페이지를 그대로 렌더한다.
+- Turbo Stream 요청은 `requotes_panel_jjaek_ID` target만 replace한다.
+- RequotesController#index의 기존 `authorize @jjaek, :requote?`와 `policy_scope(Jjaek)` 기반 visible ReJjaek 조회를 유지한다.
+- panel 안에서는 visible heading을 반복 표시하지 않고 `sr-only` heading만 유지한다.
+- ReJjaek policy, visibility, source deletion 로직은 변경하지 않는다.
+
+### 미구현/보류
+
+- home feed inline ReJjaek panel
+- profile 화면 inline ReJjaek panel
+- book 화면 inline ReJjaek panel
+- ReJjaek 목록 화면 안의 inline ReJjaek panel
+- Stimulus 기반 open/close toggle
+- modal 기반 ReJjaek UI
+- 실시간 broadcast
+- 같은 화면에 동일 Jjaek이 여러 번 렌더된 경우의 동시 갱신
 
 ---
 
@@ -205,6 +231,7 @@ Turbo 후보:
 
 - 앱 전체 Turbo Frame 구조 전환
 - profile/book/requotes inline comments panel
+- home/profile/book/requotes inline ReJjaek panel
 - Stimulus 기반 comments toggle
 - modal 기반 comments UI
 - 실시간 broadcast
@@ -227,7 +254,7 @@ Turbo 후보:
 4. 상세 페이지 댓글 작성/삭제 Turbo 적용 완료
 5. 홈 피드 inline comments panel 적용 완료
 6. 홈 inline comments panel 닫기 UX 적용 완료
-7. ReJjaek 목록 panel 검토
+7. 상세 페이지 ReJjaek 목록 panel 적용 완료
 8. flash / notification badge 공통 갱신 검토
 9. 관계 화면 row 제거 검토
 10. 책 검색 result card 갱신 검토
@@ -248,7 +275,7 @@ Turbo 1차 완료 기준:
 Turbo MVP 완료 기준:
 
 - Jjaek card 내부 주요 상호작용이 필요한 화면 맥락 안에서 단계적으로 처리된다.
-- 좋아요와 댓글은 partial 갱신 구조를 갖는다.
-- ReJjaek 목록은 별도 검토 대상으로 남긴다.
+- 좋아요, 댓글, 상세 페이지 ReJjaek 목록은 partial 갱신 구조를 갖는다.
+- home/profile/book/requotes inline ReJjaek panel은 별도 검토 대상으로 남긴다.
 - full redirect가 더 안전한 영역은 그대로 유지한다.
 - view가 Turbo/JS 코드로 다시 복잡해지지 않는다.
