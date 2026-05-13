@@ -187,16 +187,36 @@ ReJjaek은 visibility 정책 영향이 크다.
 
 ### flash
 
+상태: 부분 완료 - comments create/destroy Turbo 성공 기준
+
 Turbo Stream을 여러 곳에서 쓰기 시작하면 flash도 독립 갱신 대상이 될 수 있다.
 
-다만 1차 좋아요 Turbo화에서는 flash 갱신을 필수로 보지 않는다.
+현재 구현:
+
+- layout에 stable `#flash-messages` wrapper를 항상 렌더한다.
+- comments create/destroy Turbo 성공 시 `flash.now[:notice]`를 사용한다.
+- comments create/destroy Turbo Stream 응답에서 `#flash-messages`를 update한다.
+- comments create 실패 422 응답에는 flash update를 포함하지 않는다.
+- likes Turbo는 좋아요 action 영역 갱신만 유지하며 flash update를 추가하지 않았다.
+
+원칙:
+
+- 모든 Turbo action에 무조건 flash를 붙이지 않는다.
+- 좋아요처럼 button/count 변화만으로 충분히 피드백되는 interaction에는 flash update를 필수로 보지 않는다.
+- 사용자에게 의미 있는 성공/실패 피드백이 필요한 action부터 선택적으로 적용한다.
 
 ### notification badge
+
+상태: 보류
 
 현재 notification badge는 partial로 분리되어 있다.  
 하지만 badge가 없을 때 DOM 자체가 사라지는 구조라, Turbo Stream 교체 대상으로 쓰려면 wrapper 설계가 필요하다.
 
-따라서 notification badge 실시간 갱신은 후순위로 둔다.
+notification badge는 current_user의 unread count 기준이다.  
+따라서 댓글/다시짹 작성자의 현재 화면에서 직접 갱신하면 안 된다.
+
+알림 읽음/확인 흐름 Turbo화와 notification badge 갱신은 별도 단계로 둔다.
+ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 
 ---
 
@@ -242,7 +262,10 @@ Turbo 후보:
 - home/profile/book/requotes inline ReJjaek panel
 - Stimulus 기반 comments toggle
 - modal 기반 comments UI
+- notification badge Turbo 갱신
+- 알림 읽음/확인 흐름 Turbo화
 - 실시간 broadcast
+- 모든 Turbo action에 무조건 flash 추가
 - 같은 화면의 동일 Jjaek 다중 렌더 동시 갱신
 - 서재 DnD
 - 책장 생성/수정/삭제 Turbo화
