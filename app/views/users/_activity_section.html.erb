@@ -6,7 +6,7 @@
   <% if activity_items.any? %>
     <% activity_items.each do |activity_item| %>
       <% if activity_item.is_a?(Jjaek) %>
-        <%= render "jjaeks/jjaek", jjaek: activity_item %>
+        <%= render "jjaeks/jjaek", jjaek: activity_item, inline_comments_context: :profile, inline_comments_profile_user: user %>
       <% else %>
         <%= render "book_activities/book_activity", book_activity: activity_item %>
       <% end %>

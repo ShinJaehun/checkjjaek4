@@ -74,14 +74,14 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).not_to include(%(name="comment[content]"))
   end
 
-  it "ignores closed panel state outside the home comments context" do
+  it "ignores closed panel state outside inline comments contexts" do
     sign_in user
 
     get jjaek_comments_path(jjaek, comments_context: "detail", panel_state: "closed"),
         headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(response.body).to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
     expect(response.body).to include(comment.content)
     expect(response.body).to include(%(name="comment[content]"))
   end
@@ -111,6 +111,94 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
   end
 
+  it "loads the profile inline comments panel on turbo stream index" do
+    sign_in user
+
+    get jjaek_comments_path(jjaek, comments_context: "profile", profile_user_id: author.id),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_profile_#{author.id}_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(comment.content)
+    expect(response.body).to include(%(name="profile_user_id"))
+    expect(response.body).to include(%(value="#{author.id}"))
+  end
+
+  it "replaces the profile comments panel on turbo stream comment creation with profile context" do
+    sign_in user
+
+    expect {
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "Profile panel note" }, comments_context: "profile", profile_user_id: author.id },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(jjaek.comments, :count).by(1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_profile_#{author.id}_jjaek_#{jjaek.id}"))
+    expect(response.body).to include("Profile panel note")
+    expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+  end
+
+  it "replaces the profile comments panel on turbo stream comment deletion with profile context" do
+    comment.update!(content: "PROFILE_COMMENT_TO_DELETE_BODY")
+    sign_in user
+
+    expect {
+      delete jjaek_comment_path(jjaek, comment),
+             params: { comments_context: "profile", profile_user_id: author.id },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Comment, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_profile_#{author.id}_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include("PROFILE_COMMENT_TO_DELETE_BODY")
+    expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+  end
+
+  it "loads the book inline comments panel on turbo stream index" do
+    sign_in user
+
+    get jjaek_comments_path(jjaek, comments_context: "book", book_id: book.id),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(comment.content)
+    expect(response.body).to include(%(name="book_id"))
+    expect(response.body).to include(%(value="#{book.id}"))
+  end
+
+  it "replaces the book comments panel on turbo stream comment creation with book context" do
+    sign_in user
+
+    expect {
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "Book panel note" }, comments_context: "book", book_id: book.id },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(jjaek.comments, :count).by(1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"))
+    expect(response.body).to include("Book panel note")
+    expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+  end
+
+  it "replaces the book comments panel on turbo stream comment deletion with book context" do
+    comment.update!(content: "BOOK_COMMENT_TO_DELETE_BODY")
+    sign_in user
+
+    expect {
+      delete jjaek_comment_path(jjaek, comment),
+             params: { comments_context: "book", book_id: book.id },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Comment, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include("BOOK_COMMENT_TO_DELETE_BODY")
+    expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+  end
+
   it "falls back to the detail comments panel target for invalid comments context" do
     sign_in user
 
@@ -121,6 +209,29 @@ RSpec.describe "Comments", type: :request do
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
     expect(response.body).not_to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+  end
+
+  it "falls back to the detail comments panel target for missing profile context owner" do
+    sign_in user
+
+    get jjaek_comments_path(jjaek, comments_context: "profile"),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include("comments_panel_profile_")
+  end
+
+  it "falls back to the detail comments panel target when the book context does not match the jjaek" do
+    other_book = Book.create!(title: "다른 책", authors_text: "저자")
+    sign_in user
+
+    get jjaek_comments_path(jjaek, comments_context: "book", book_id: other_book.id),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include("comments_panel_book_#{other_book.id}_jjaek_#{jjaek.id}")
   end
 
   it "creates a notification when another user comments on your jjaek" do

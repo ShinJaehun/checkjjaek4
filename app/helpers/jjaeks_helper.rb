@@ -26,12 +26,20 @@ module JjaeksHelper
     jjaek.updated_at > jjaek.created_at + 1.second
   end
 
-  def comments_panel_dom_id(jjaek, context: :detail)
+  def comments_panel_dom_id(jjaek, context: :detail, profile_user: nil, book: nil)
     case context.to_sym
     when :detail
       dom_id(jjaek, :comments_panel)
     when :home
       dom_id(jjaek, :comments_panel_home)
+    when :profile
+      raise ArgumentError, "profile_user is required for profile comments panel context" if profile_user.blank?
+
+      "comments_panel_profile_#{profile_user.id}_jjaek_#{jjaek.id}"
+    when :book
+      raise ArgumentError, "book is required for book comments panel context" if book.blank?
+
+      "comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"
     else
       raise ArgumentError, "Unsupported comments panel context: #{context}"
     end

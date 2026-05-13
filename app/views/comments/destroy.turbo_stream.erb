@@ -1,4 +1,4 @@
-<% comments_panel_id = comments_panel_dom_id(@jjaek, context: @comments_context) %>
+<% comments_panel_id = comments_panel_dom_id(@jjaek, context: @comments_context, profile_user: @comments_profile_user, book: @comments_book) %>
 
 <%= turbo_stream.replace comments_panel_id do %>
   <%= render "comments/comments_panel",
@@ -6,7 +6,9 @@
              comments: @comments,
              comment: @comment,
              comments_panel_id: comments_panel_id,
-             comments_context: @comments_context %>
+             comments_context: @comments_context,
+             comments_profile_user: @comments_profile_user,
+             comments_book: @comments_book %>
 <% end %>
 
 <%= turbo_stream.replace dom_id(@jjaek, :comment_action) do %>

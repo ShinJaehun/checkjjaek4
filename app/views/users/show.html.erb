@@ -22,6 +22,6 @@
   <% end %>
 
   <% if @show_profile_activity %>
-    <%= render "users/activity_section", activity_items: @profile_activity_items %>
+    <%= render "users/activity_section", activity_items: @profile_activity_items, user: @user %>
   <% end %>
 </section>

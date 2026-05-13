@@ -26,6 +26,10 @@ RSpec.describe "Books", type: :request do
       get book_path(book)
 
       expect(response.body).to include(book_jjaek.content)
+      expect(response.body).to include(%(id="comments_panel_book_#{book.id}_jjaek_#{book_jjaek.id}"))
+      expect(response.body).to include(%(href="/jjaeks/#{book_jjaek.id}/comments?book_id=#{book.id}&amp;comments_context=book))
+      expect(response.body).to include(%(data-turbo-stream="true"))
+      expect(response.body).to include(%(href="/jjaeks/#{book_jjaek.id}#comments_panel_jjaek_#{book_jjaek.id}"))
       expect(response.body).to include(user.name)
       expect(response.body).to include(user_path(user))
       expect(response.body).to include(book.title)

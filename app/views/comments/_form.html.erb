@@ -1,7 +1,11 @@
 <% comments_context = local_assigns.fetch(:comments_context, :detail) %>
+<% comments_profile_user = local_assigns[:comments_profile_user] %>
+<% comments_book = local_assigns[:comments_book] %>
 
 <%= form_with model: [jjaek, comment], class: "space-y-3" do |form| %>
   <%= hidden_field_tag :comments_context, comments_context %>
+  <%= hidden_field_tag :profile_user_id, comments_profile_user.id if comments_profile_user.present? %>
+  <%= hidden_field_tag :book_id, comments_book.id if comments_book.present? %>
 
   <% if comment.errors.any? %>
     <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

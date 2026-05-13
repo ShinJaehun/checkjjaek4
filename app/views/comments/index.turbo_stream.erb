@@ -1,14 +1,16 @@
-<% comments_panel_id = comments_panel_dom_id(@jjaek, context: @comments_context) %>
+<% comments_panel_id = comments_panel_dom_id(@jjaek, context: @comments_context, profile_user: @comments_profile_user, book: @comments_book) %>
 
 <%= turbo_stream.replace comments_panel_id do %>
   <% if @comments_panel_closed %>
-    <div id="<%= comments_panel_dom_id(@jjaek, context: :home) %>"></div>
+    <div id="<%= comments_panel_id %>"></div>
   <% else %>
     <%= render "comments/comments_panel",
                jjaek: @jjaek,
                comments: @comments,
                comment: @comment,
                comments_panel_id: comments_panel_id,
-               comments_context: @comments_context %>
+               comments_context: @comments_context,
+               comments_profile_user: @comments_profile_user,
+               comments_book: @comments_book %>
   <% end %>
 <% end %>

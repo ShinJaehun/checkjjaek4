@@ -1,10 +1,15 @@
 <% inline_comments_context = local_assigns[:inline_comments_context] %>
+<% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
+<% inline_comments_book = local_assigns[:inline_comments_book] %>
+<% inline_comments_params = { comments_context: inline_comments_context } %>
+<% inline_comments_params[:profile_user_id] = inline_comments_profile_user.id if inline_comments_profile_user.present? %>
+<% inline_comments_params[:book_id] = inline_comments_book.id if inline_comments_book.present? %>
 
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
   <%= render "jjaeks/like_summary_action", jjaek: jjaek %>
   <%= render "jjaeks/comment_action", jjaek: jjaek %>
   <% if inline_comments_context.present? %>
-    <%= link_to t("comments.actions.view_inline"), jjaek_comments_path(jjaek), data: { turbo_stream: true }, class: "font-medium text-stone-700" %>
+    <%= link_to t("comments.actions.view_inline"), jjaek_comments_path(jjaek, inline_comments_params), data: { turbo_stream: true }, class: "font-medium text-stone-700" %>
   <% end %>
   <%= render "jjaeks/requote_link", jjaek: jjaek %>
   <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>

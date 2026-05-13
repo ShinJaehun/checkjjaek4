@@ -1,13 +1,12 @@
 class CommentsController < ApplicationController
-  COMMENTS_CONTEXTS = %w[detail home].freeze
+  COMMENTS_CONTEXTS = %w[detail home profile book].freeze
 
   before_action :set_jjaek
-  before_action :set_comments_context, only: %i[create destroy]
+  before_action :set_comments_context, only: %i[index create destroy]
   before_action :set_comment, only: %i[update destroy]
 
   def index
-    @comments_context = :home
-    @comments_panel_closed = params[:comments_context] == "home" && params[:panel_state] == "closed"
+    @comments_panel_closed = inline_comments_context? && params[:panel_state] == "closed"
     prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
 
     respond_to do |format|
@@ -78,17 +77,57 @@ class CommentsController < ApplicationController
   end
 
   def set_comments_context
-    @comments_context =
-      if COMMENTS_CONTEXTS.include?(params[:comments_context])
-        params[:comments_context].to_sym
-      else
-        :detail
-      end
+    requested_context = params[:comments_context].presence || default_comments_context
+
+    unless COMMENTS_CONTEXTS.include?(requested_context)
+      set_detail_comments_context
+      return
+    end
+
+    case requested_context
+    when "profile"
+      set_profile_comments_context
+    when "book"
+      set_book_comments_context
+    else
+      @comments_context = requested_context.to_sym
+    end
   end
 
   def prepare_comments_panel(comment:)
     @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
     @comment = comment
+  end
+
+  def default_comments_context
+    action_name == "index" ? "home" : "detail"
+  end
+
+  def set_detail_comments_context
+    @comments_context = :detail
+    @comments_profile_user = nil
+    @comments_book = nil
+  end
+
+  def set_profile_comments_context
+    @comments_profile_user = User.find_by(id: params[:profile_user_id])
+    return set_detail_comments_context if @comments_profile_user.blank?
+
+    @comments_context = :profile
+    @comments_book = nil
+  end
+
+  def set_book_comments_context
+    @comments_book = Book.find_by(id: params[:book_id])
+    return set_detail_comments_context if @comments_book.blank?
+    return set_detail_comments_context unless @jjaek.book_id == @comments_book.id
+
+    @comments_context = :book
+    @comments_profile_user = nil
+  end
+
+  def inline_comments_context?
+    %i[home profile book].include?(@comments_context)
   end
 
   def comment_params

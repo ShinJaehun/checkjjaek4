@@ -1,4 +1,9 @@
 <% comments_context = local_assigns.fetch(:comments_context, :detail) %>
+<% comments_profile_user = local_assigns[:comments_profile_user] %>
+<% comments_book = local_assigns[:comments_book] %>
+<% destroy_comments_params = { comments_context: comments_context } %>
+<% destroy_comments_params[:profile_user_id] = comments_profile_user.id if comments_profile_user.present? %>
+<% destroy_comments_params[:book_id] = comments_book.id if comments_book.present? %>
 
 <article class="rounded-2xl bg-stone-50 px-4 py-3">
   <div class="flex items-center justify-between gap-3">
@@ -10,7 +15,7 @@
       <%= button_to t("comments.actions.delete"),
                     jjaek_comment_path(jjaek, comment),
                     method: :delete,
-                    params: { comments_context: comments_context },
+                    params: destroy_comments_params,
                     class: "text-xs text-red-600" %>
     <% end %>
   </div>
