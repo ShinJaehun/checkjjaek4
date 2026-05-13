@@ -131,4 +131,39 @@ RSpec.describe "BookFriendships", type: :request do
     expect(response).to redirect_to(relationships_path)
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.removed"))
   end
+
+  it "updates the book friends section when removing a book friendship from the relationship hub with Turbo" do
+    BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    sign_in user
+
+    expect {
+      delete user_book_friendship_path(other_user),
+             params: { return_to: "relationships" },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(BookFriendship, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(action="replace" target="book-friends"))
+    expect(response.body).to include(%(action="update" target="flash-messages"))
+    expect(response.body).to include(I18n.t("relationships.empty.book_friends"))
+  end
+
+  it "keeps remaining book friends when removing one book friendship from the relationship hub with Turbo" do
+    remaining_user = User.create!(name: "Remaining Friend", email: "remaining-book-friend@example.com", password: "password123!", password_confirmation: "password123!")
+    BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    BookFriendship.create!(requester: user, addressee: remaining_user, status: :accepted)
+    sign_in user
+
+    expect {
+      delete user_book_friendship_path(other_user),
+             params: { return_to: "relationships" },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(BookFriendship, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(action="replace" target="book-friends"))
+    expect(response.body).to include(%(action="update" target="flash-messages"))
+    expect(response.body).not_to include(other_user.name)
+    expect(response.body).to include(remaining_user.name)
+  end
 end
