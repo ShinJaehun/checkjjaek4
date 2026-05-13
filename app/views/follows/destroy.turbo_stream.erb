@@ -1,0 +1,12 @@
+<%= turbo_stream.replace "following-users" do %>
+  <%= render "relationships/section",
+             section_id: "following-users",
+             title: t("relationships.sections.following_users"),
+             collection: @following_users,
+             row_partial: "relationships/followee_row",
+             empty_message: t("relationships.empty.following_users") %>
+<% end %>
+
+<%= turbo_stream.update "flash-messages" do %>
+  <%= render "shared/flash" %>
+<% end %>

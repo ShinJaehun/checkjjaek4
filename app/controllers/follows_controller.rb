@@ -24,7 +24,17 @@ class FollowsController < ApplicationController
 
     follow.destroy!
 
-    redirect_to redirect_target, notice: t("follows.notices.destroyed")
+    if params[:return_to] == "relationships"
+      @following_users = current_user.followees.order(:name)
+      flash.now[:notice] = t("follows.notices.destroyed")
+
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to redirect_target, notice: t("follows.notices.destroyed") }
+      end
+    else
+      redirect_to redirect_target, notice: t("follows.notices.destroyed")
+    end
   end
 
   private

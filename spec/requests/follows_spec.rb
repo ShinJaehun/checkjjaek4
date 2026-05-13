@@ -46,6 +46,22 @@ RSpec.describe "Follows", type: :request do
     expect(response).to redirect_to(relationships_path)
   end
 
+  it "updates the following users section when unfollowing from the relationship hub with Turbo" do
+    sign_in user
+    user.active_follows.create!(followee: other_user)
+
+    expect {
+      delete user_follow_path(other_user),
+             params: { return_to: "relationships" },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Follow, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(action="replace" target="following-users"))
+    expect(response.body).to include(%(action="update" target="flash-messages"))
+    expect(response.body).to include(I18n.t("relationships.empty.following_users"))
+  end
+
   it "redirects back with an alert when the follow does not exist" do
     sign_in user
 
