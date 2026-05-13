@@ -2,7 +2,15 @@
 <% comments_panel_id = local_assigns.fetch(:comments_panel_id, comments_panel_dom_id(jjaek, context: comments_context)) %>
 
 <section id="<%= comments_panel_id %>" class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-  <h2 class="text-lg font-semibold text-stone-900"><%= t("comments.title") %></h2>
+  <div class="flex items-center justify-between gap-4">
+    <h2 class="text-lg font-semibold text-stone-900"><%= t("comments.title") %></h2>
+    <% if comments_context.to_sym == :home %>
+      <%= link_to t("comments.actions.close_inline"),
+                  jjaek_comments_path(jjaek, comments_context: :home, panel_state: :closed),
+                  data: { turbo_stream: true },
+                  class: "text-xs font-medium text-stone-500 hover:text-stone-700" %>
+    <% end %>
+  </div>
 
   <div class="mt-4 space-y-4">
     <% comments.each do |comment_record| %>

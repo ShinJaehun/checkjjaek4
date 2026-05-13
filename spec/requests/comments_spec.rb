@@ -57,7 +57,33 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(comment.content)
     expect(response.body).to include(%(name="comments_context"))
     expect(response.body).to include(%(value="home"))
+    expect(response.body).to include(I18n.t("comments.actions.close_inline"))
     expect(response.body).not_to include("JJAKE_CARD_INDEX_ONLY_BODY")
+  end
+
+  it "closes the home inline comments panel on turbo stream index" do
+    sign_in user
+
+    get jjaek_comments_path(jjaek, comments_context: "home", panel_state: "closed"),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(comment.content)
+    expect(response.body).not_to include(%(name="comment[content]"))
+  end
+
+  it "ignores closed panel state outside the home comments context" do
+    sign_in user
+
+    get jjaek_comments_path(jjaek, comments_context: "detail", panel_state: "closed"),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(comment.content)
+    expect(response.body).to include(%(name="comment[content]"))
   end
 
   it "redirects html comments index requests to the detail comments panel anchor" do
@@ -174,6 +200,7 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include("user_profile_")
     expect(response.body).to include("_128")
     expect(response.body).to include(%(alt="#{user.name}"))
+    expect(response.body).not_to include(I18n.t("comments.actions.close_inline"))
   end
 
   it "redirects guests to sign in when creating a comment" do

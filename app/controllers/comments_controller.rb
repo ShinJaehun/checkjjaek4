@@ -7,6 +7,7 @@ class CommentsController < ApplicationController
 
   def index
     @comments_context = :home
+    @comments_panel_closed = params[:comments_context] == "home" && params[:panel_state] == "closed"
     prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
 
     respond_to do |format|

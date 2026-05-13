@@ -47,6 +47,7 @@ ko:
       my_shelf: "내 서재 보기"
   comments:
     actions:
+      close_inline: "닫기"
       delete: "삭제"
       submit: "댓글 남기기"
       view_inline: "댓글 보기"

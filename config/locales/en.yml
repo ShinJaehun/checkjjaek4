@@ -47,6 +47,7 @@ en:
       my_shelf: "Open my shelf"
   comments:
     actions:
+      close_inline: "Close"
       delete: "Delete"
       submit: "Add comment"
       view_inline: "View comments"
