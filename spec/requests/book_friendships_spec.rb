@@ -44,6 +44,23 @@ RSpec.describe "BookFriendships", type: :request do
     expect(response).to redirect_to(relationships_path)
   end
 
+  it "updates received requests and book friends when accepting from the relationship hub with Turbo" do
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in other_user
+
+    patch user_book_friendship_path(user),
+          params: { return_to: "relationships" },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(friendship.reload).to be_accepted
+    expect(response.body).to include(%(action="replace" target="received-book-friend-requests"))
+    expect(response.body).to include(%(action="replace" target="book-friends"))
+    expect(response.body).to include(%(action="update" target="flash-messages"))
+    expect(response.body).to include(I18n.t("relationships.empty.received_book_friend_requests"))
+    expect(response.body).to include(user.name)
+  end
+
   it "falls back to the user profile for an unknown return_to value" do
     BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user

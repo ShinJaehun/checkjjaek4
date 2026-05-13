@@ -20,7 +20,19 @@ class BookFriendshipsController < ApplicationController
     authorize friendship, :accept?
 
     friendship.accepted!
-    redirect_to redirect_target, notice: t("book_friendships.notices.accepted")
+
+    if params[:return_to] == "relationships"
+      @received_book_friend_requests = current_user.received_book_friendships.pending.includes(:requester)
+      @book_friends = User.where(id: BookFriendship.connected_ids_for(current_user)).order(:name)
+      flash.now[:notice] = t("book_friendships.notices.accepted")
+
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to redirect_target, notice: t("book_friendships.notices.accepted") }
+      end
+    else
+      redirect_to redirect_target, notice: t("book_friendships.notices.accepted")
+    end
   end
 
   def destroy

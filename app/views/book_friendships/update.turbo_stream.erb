@@ -1,0 +1,23 @@
+<%= turbo_stream.replace "received-book-friend-requests" do %>
+  <%= render "relationships/section",
+             section_id: "received-book-friend-requests",
+             section_class: "scroll-mt-6 space-y-4",
+             title: t("relationships.sections.received_book_friend_requests"),
+             collection: @received_book_friend_requests,
+             row_partial: "relationships/book_friend_request_row",
+             row_locals: { direction: :received },
+             empty_message: t("relationships.empty.received_book_friend_requests") %>
+<% end %>
+
+<%= turbo_stream.replace "book-friends" do %>
+  <%= render "relationships/section",
+             section_id: "book-friends",
+             title: t("relationships.sections.book_friends"),
+             collection: @book_friends,
+             row_partial: "relationships/book_friend_row",
+             empty_message: t("relationships.empty.book_friends") %>
+<% end %>
+
+<%= turbo_stream.update "flash-messages" do %>
+  <%= render "shared/flash" %>
+<% end %>
