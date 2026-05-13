@@ -37,6 +37,33 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(BookshelfEntry.last.bookshelf).to eq(user.default_bookshelf)
   end
 
+  it "updates the search result card when adding a searched book with Turbo" do
+    sign_in user
+
+    expect {
+      post bookshelf_entries_path,
+           params: {
+             bookshelf_entry_source: "book_search",
+             book: {
+               title: "터보 검색 책",
+               authors_text: "저자",
+               publisher: "출판사",
+               isbn: "turbo-search-001",
+               description: "소개",
+               external_url: "https://example.com/turbo-search-001"
+             }
+           },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(BookshelfEntry, :count).by(1)
+
+    target = "book_search_result_#{Digest::SHA256.hexdigest("turbo-search-001")[0, 12]}"
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(action="replace" target="#{target}"))
+    expect(response.body).to include(%(action="update" target="flash-messages"))
+    expect(response.body).to include(I18n.t("book_search.actions.in_shelf"))
+    expect(response.body).not_to include(I18n.t("book_search.actions.add_to_shelf"))
+  end
+
   it "adds a searched book to the selected owned bookshelf" do
     target_bookshelf = user.bookshelves.create!(name: "선택한 책장", visibility: :private)
     sign_in user

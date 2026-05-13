@@ -257,18 +257,40 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 
 ---
 
-## 6차 후보: 책 검색 결과 row 갱신
+## 책 검색 result card 갱신
+
+상태: 부분 완료 - 검색 결과 card add-to-shelf 성공 기준
 
 책 검색 결과는 result card와 add-to-shelf form으로 분리되어 있다.
 
-Turbo 후보:
+구현 완료:
 
-- 검색 결과에서 `서재에 담기` 후 해당 result card를 “이미 담김” 상태로 교체
+- `book_search_result_dom_id(book)` 기반 stable DOM id를 추가했다.
+- target id는 `book_search_result_<digest>` 형식을 사용한다.
+- `bookshelf_entry_source: "book_search"` 요청만 Turbo Stream으로 처리한다.
+- 책 검색 결과에서 `서재에 담기` 성공 시 해당 result card만 replace한다.
+- 성공 Turbo Stream 응답은 `#flash-messages`를 update한다.
+- replace 후 card는 `내 서재에 있음` 상태로 전환된다.
+- HTML fallback은 기존처럼 `book_path(@book)` redirect를 유지한다.
 
-주의:
+구현 원칙:
 
-- 현재는 서재에 담은 뒤 책 상세로 이동하는 흐름이다.
-- 이 흐름은 제품 의도가 있을 수 있으므로 별도 판단 후 적용한다.
+- 검색 결과 목록 전체 replace가 아니라 result card 단위 replace로 처리한다.
+- raw DOM id를 params로 받지 않는다.
+- 서버가 검색 결과 정보로 target id를 다시 계산한다.
+- 검색 API 호출 로직은 변경하지 않는다.
+- 책/책장 도메인 정책은 변경하지 않는다.
+- 책 검색 전체가 Turbo화된 것은 아니며, 검색 결과 card의 add-to-shelf 성공 케이스에 한정한다.
+
+보류:
+
+- 검색 결과 목록 전체 Turbo replace
+- 검색 페이지 전체 Turbo Frame화
+- pagination Turbo화
+- 책 상세 read-only add form Turbo화
+- 책장 생성/수정/삭제 Turbo화
+- Stimulus/JavaScript
+- modal
 
 ---
 
@@ -294,6 +316,10 @@ Turbo 후보:
 - ActionCable/실시간 관계 반영
 - Stimulus/JavaScript 기반 동적 UI
 - modal 기반 관계 관리
+- 검색 결과 목록 전체 Turbo replace
+- 검색 페이지 전체 Turbo Frame화
+- pagination Turbo화
+- 책 상세 read-only add form Turbo화
 - 책 검색 전체 Turbo화
 - 모든 form/action의 Turbo Stream화
 
@@ -310,7 +336,7 @@ Turbo 후보:
 7. 상세 페이지 ReJjaek 목록 panel 적용 완료
 8. flash / notification badge 공통 갱신 검토
 9. 관계 화면 핵심 action section 갱신 적용 완료
-10. 책 검색 result card 갱신 검토
+10. 책 검색 result card add-to-shelf 갱신 적용 완료
 
 ---
 
@@ -330,8 +356,10 @@ Turbo MVP 완료 기준:
 - Jjaek card 내부 주요 상호작용이 필요한 화면 맥락 안에서 단계적으로 처리된다.
 - 좋아요, home/profile/book 댓글, 상세 페이지 ReJjaek 목록은 partial 갱신 구조를 갖는다.
 - relationships hub의 핵심 관계 action은 section replace 구조를 갖는다.
+- 책 검색 결과의 add-to-shelf 성공 케이스는 result card replace 구조를 갖는다.
 - Requotes 화면 inline comments panel은 별도 검토 대상으로 남긴다.
 - home/profile/book/requotes inline ReJjaek panel은 별도 검토 대상으로 남긴다.
 - relationships 전체 페이지 Turbo Frame화와 모든 관계 action Turbo화는 별도 검토 대상으로 남긴다.
+- 책 검색 전체 Turbo화와 pagination Turbo화는 별도 검토 대상으로 남긴다.
 - full redirect가 더 안전한 영역은 그대로 유지한다.
 - view가 Turbo/JS 코드로 다시 복잡해지지 않는다.

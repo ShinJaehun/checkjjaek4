@@ -29,7 +29,18 @@ class BookshelfEntriesController < ApplicationController
         previous_status: previous_status,
         previous_sticker_definition_ids: previous_sticker_definition_ids
       )
-      redirect_to book_path(@book), notice: t("bookshelf_entries.notices.created")
+
+      if book_search_result_source?
+        prepare_book_search_result_card
+        flash.now[:notice] = t("bookshelf_entries.notices.created")
+
+        respond_to do |format|
+          format.turbo_stream
+          format.html { redirect_to book_path(@book), notice: t("bookshelf_entries.notices.created") }
+        end
+      else
+        redirect_to book_path(@book), notice: t("bookshelf_entries.notices.created")
+      end
     else
       @sticker_definitions = StickerDefinition.alphabetical
       redirect_back fallback_location: book_search_path, alert: @bookshelf_entry.errors.full_messages.to_sentence
@@ -101,6 +112,25 @@ class BookshelfEntriesController < ApplicationController
 
   def bookshelf_for_create
     current_user.bookshelves.find(bookshelf_entry_params[:bookshelf_id])
+  end
+
+  def book_search_result_source?
+    params[:bookshelf_entry_source] == "book_search"
+  end
+
+  def prepare_book_search_result_card
+    attributes = book_attributes
+    @book_search_result = {
+      title: attributes[:title],
+      authors_text: attributes[:authors_text],
+      publisher: attributes[:publisher],
+      thumbnail: attributes[:thumbnail],
+      isbn: attributes[:isbn],
+      contents_excerpt: attributes[:description],
+      url: attributes[:external_url],
+      shelved_book_id: @book.id
+    }
+    @bookshelves = current_user.bookshelves.default_first
   end
 
   def prepare_book_show_failure

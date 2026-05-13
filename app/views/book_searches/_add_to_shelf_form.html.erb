@@ -9,6 +9,7 @@
     <%= book_form.hidden_field :description, value: book[:contents_excerpt] %>
     <%= book_form.hidden_field :external_url, value: book[:url] %>
   <% end %>
+  <%= hidden_field_tag :bookshelf_entry_source, "book_search" %>
 
   <% if bookshelves.size > 1 %>
     <div class="w-full min-w-0 max-w-full space-y-1 sm:max-w-xs">

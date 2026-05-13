@@ -1,0 +1,7 @@
+<%= turbo_stream.replace book_search_result_dom_id(@book_search_result) do %>
+  <%= render "book_searches/result_card", book: @book_search_result, bookshelves: @bookshelves %>
+<% end %>
+
+<%= turbo_stream.update "flash-messages" do %>
+  <%= render "shared/flash" %>
+<% end %>
