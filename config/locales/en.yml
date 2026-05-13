@@ -49,6 +49,7 @@ en:
     actions:
       delete: "Delete"
       submit: "Add comment"
+      view_inline: "View comments"
     form:
       content: "Comment"
     notices:

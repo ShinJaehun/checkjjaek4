@@ -49,6 +49,7 @@ ko:
     actions:
       delete: "삭제"
       submit: "댓글 남기기"
+      view_inline: "댓글 보기"
     form:
       content: "댓글"
     notices:

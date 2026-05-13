@@ -84,6 +84,7 @@ RSpec.describe "Homes", type: :request do
       expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
       expect(response.body).to include(%(href="/jjaeks/#{jjaek.id}/comments"))
       expect(response.body).to include(%(data-turbo-stream="true"))
+      expect(page_text).to include(I18n.t("comments.actions.view_inline"))
       expect(response.body).to include(%(href="/jjaeks/#{jjaek.id}#comments_panel_jjaek_#{jjaek.id}"))
     end
 
