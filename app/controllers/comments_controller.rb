@@ -18,8 +18,13 @@ class CommentsController < ApplicationController
       end
     else
       @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
-      prepare_visible_requote_counts_for([ @jjaek ])
-      render "jjaeks/show", status: :unprocessable_content
+      respond_to do |format|
+        format.turbo_stream { render :create, status: :unprocessable_content }
+        format.html do
+          prepare_visible_requote_counts_for([ @jjaek ])
+          render "jjaeks/show", status: :unprocessable_content
+        end
+      end
     end
   end
 

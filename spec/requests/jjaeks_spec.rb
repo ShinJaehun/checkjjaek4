@@ -361,6 +361,7 @@ RSpec.describe "Jjaeks", type: :request do
       get jjaek_path(original)
 
       expect(response.body).to include(%(id="comments_panel_jjaek_#{original.id}"))
+      expect(response.body).to include(%(id="comment_action_jjaek_#{original.id}"))
       expect(response.body).to include(%(href="/jjaeks/#{original.id}#comments_panel_jjaek_#{original.id}"))
       expect(response.body).not_to include(%(id="comments_panel_home_jjaek_#{original.id}"))
     end

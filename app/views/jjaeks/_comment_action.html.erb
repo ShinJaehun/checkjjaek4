@@ -1,3 +1,5 @@
-<%= link_to t("jjaeks.meta.comments", count: jjaek.comments_count),
-            jjaek_path(jjaek, anchor: dom_id(jjaek, :comments_panel)),
-            class: "font-medium text-stone-700" %>
+<span id="<%= dom_id(jjaek, :comment_action) %>">
+  <%= link_to t("jjaeks.meta.comments", count: jjaek.comments_count),
+              jjaek_path(jjaek, anchor: dom_id(jjaek, :comments_panel)),
+              class: "font-medium text-stone-700" %>
+</span>

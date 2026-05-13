@@ -38,7 +38,9 @@ RSpec.describe "Comments", type: :request do
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
     expect(response.body).to include("Turbo panel note")
+    expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 2))
     expect(response.body).to include(%(name="comment[content]"))
     expect(response.body).not_to include("JJAKE_CARD_ONLY_BODY")
   end
@@ -74,6 +76,25 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include("댓글")
     expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1))
     expect(response.body).not_to include(I18n.t("jjaeks.meta.comments", count: 2))
+  end
+
+  it "replaces only the comments panel on turbo stream comment creation failure" do
+    jjaek.update!(content: "JJAKE_CARD_FAILURE_ONLY_BODY")
+    sign_in user
+
+    expect {
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "" } },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.not_to change(jjaek.comments, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(%(name="comment[content]"))
+    expect(response.body).to include("field_with_errors")
+    expect(response.body).not_to include("JJAKE_CARD_FAILURE_ONLY_BODY")
   end
 
   it "shows the comment author's avatar on the jjaek page" do
@@ -139,8 +160,10 @@ RSpec.describe "Comments", type: :request do
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
     expect(response.body).not_to include("COMMENT_TO_DELETE_BODY")
     expect(response.body).to include(remaining_comment.content)
+    expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1))
     expect(response.body).not_to include("JJAKE_CARD_DELETE_ONLY_BODY")
   end
 end
