@@ -82,6 +82,9 @@ RSpec.describe "Homes", type: :request do
 
       expect(response.body).to include("HOME_FEED_EXISTING_JJAEK")
       expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
+      expect(response.body).to include(%(href="/jjaeks/#{jjaek.id}/comments"))
+      expect(response.body).to include(%(data-turbo-stream="true"))
+      expect(response.body).to include(%(href="/jjaeks/#{jjaek.id}#comments_panel_jjaek_#{jjaek.id}"))
     end
 
     it "orders Jjaeks and BookActivities together by created_at" do

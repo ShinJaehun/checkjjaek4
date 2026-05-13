@@ -1,6 +1,11 @@
+<% inline_comments_context = local_assigns[:inline_comments_context] %>
+
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
   <%= render "jjaeks/like_summary_action", jjaek: jjaek %>
   <%= render "jjaeks/comment_action", jjaek: jjaek %>
+  <% if inline_comments_context.present? %>
+    <%= link_to t("comments.title"), jjaek_comments_path(jjaek), data: { turbo_stream: true }, class: "font-medium text-stone-700" %>
+  <% end %>
   <%= render "jjaeks/requote_link", jjaek: jjaek %>
   <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>
 </div>

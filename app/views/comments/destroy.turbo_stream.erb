@@ -1,5 +1,12 @@
-<%= turbo_stream.replace comments_panel_dom_id(@jjaek) do %>
-  <%= render "comments/comments_panel", jjaek: @jjaek, comments: @comments, comment: @comment %>
+<% comments_panel_id = comments_panel_dom_id(@jjaek, context: @comments_context) %>
+
+<%= turbo_stream.replace comments_panel_id do %>
+  <%= render "comments/comments_panel",
+             jjaek: @jjaek,
+             comments: @comments,
+             comment: @comment,
+             comments_panel_id: comments_panel_id,
+             comments_context: @comments_context %>
 <% end %>
 
 <%= turbo_stream.replace dom_id(@jjaek, :comment_action) do %>

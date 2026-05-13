@@ -1,4 +1,8 @@
+<% comments_context = local_assigns.fetch(:comments_context, :detail) %>
+
 <%= form_with model: [jjaek, comment], class: "space-y-3" do |form| %>
+  <%= hidden_field_tag :comments_context, comments_context %>
+
   <% if comment.errors.any? %>
     <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       <%= comment.errors.full_messages.to_sentence %>

@@ -19,7 +19,7 @@ Rails.application.routes.draw do
   end
   resources :jjaeks, only: %i[new show create edit update destroy] do
     resources :requotes, only: :index
-    resources :comments, only: %i[create update destroy]
+    resources :comments, only: %i[index create update destroy]
     resource :like, only: %i[create destroy]
   end
 

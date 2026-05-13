@@ -45,6 +45,58 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).not_to include("JJAKE_CARD_ONLY_BODY")
   end
 
+  it "loads the home inline comments panel on turbo stream index" do
+    jjaek.update!(content: "JJAKE_CARD_INDEX_ONLY_BODY")
+    sign_in user
+
+    get jjaek_comments_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(comment.content)
+    expect(response.body).to include(%(name="comments_context"))
+    expect(response.body).to include(%(value="home"))
+    expect(response.body).not_to include("JJAKE_CARD_INDEX_ONLY_BODY")
+  end
+
+  it "redirects html comments index requests to the detail comments panel anchor" do
+    sign_in user
+
+    get jjaek_comments_path(jjaek)
+
+    expect(response).to redirect_to("#{jjaek_path(jjaek)}#comments_panel_jjaek_#{jjaek.id}")
+  end
+
+  it "replaces the home comments panel on turbo stream comment creation with home context" do
+    sign_in user
+
+    expect {
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "Home panel note" }, comments_context: "home" },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(jjaek.comments, :count).by(1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).to include("Home panel note")
+    expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+  end
+
+  it "falls back to the detail comments panel target for invalid comments context" do
+    sign_in user
+
+    post jjaek_comments_path(jjaek),
+         params: { comment: { content: "Invalid context note" }, comments_context: "profile" },
+         headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+  end
+
   it "creates a notification when another user comments on your jjaek" do
     sign_in user
 
@@ -95,6 +147,23 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(%(name="comment[content]"))
     expect(response.body).to include("field_with_errors")
     expect(response.body).not_to include("JJAKE_CARD_FAILURE_ONLY_BODY")
+  end
+
+  it "replaces only the home comments panel on turbo stream comment creation failure with home context" do
+    sign_in user
+
+    expect {
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "" }, comments_context: "home" },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.not_to change(jjaek.comments, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+    expect(response.body).to include("field_with_errors")
   end
 
   it "shows the comment author's avatar on the jjaek page" do
@@ -165,5 +234,23 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(remaining_comment.content)
     expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1))
     expect(response.body).not_to include("JJAKE_CARD_DELETE_ONLY_BODY")
+  end
+
+  it "replaces the home comments panel on turbo stream comment deletion with home context" do
+    comment.update!(content: "HOME_COMMENT_TO_DELETE_BODY")
+    sign_in user
+
+    expect {
+      delete jjaek_comment_path(jjaek, comment),
+             params: { comments_context: "home" },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Comment, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include("HOME_COMMENT_TO_DELETE_BODY")
+    expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
   end
 end

@@ -1,6 +1,19 @@
 class CommentsController < ApplicationController
+  COMMENTS_CONTEXTS = %w[detail home].freeze
+
   before_action :set_jjaek
+  before_action :set_comments_context, only: %i[create destroy]
   before_action :set_comment, only: %i[update destroy]
+
+  def index
+    @comments_context = :home
+    prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to jjaek_path(@jjaek, anchor: helpers.comments_panel_dom_id(@jjaek)) }
+    end
+  end
 
   def create
     @comment = Comment.new(comment_params.merge(jjaek: @jjaek, user: current_user))
@@ -9,15 +22,14 @@ class CommentsController < ApplicationController
     if @comment.save
       Notification.notify_comment_created(@comment)
       @jjaek.reload
-      @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
-      @comment = Comment.new(jjaek: @jjaek)
+      prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
 
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to jjaek_path(@jjaek), notice: t("comments.notices.created") }
       end
     else
-      @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+      prepare_comments_panel(comment: @comment)
       respond_to do |format|
         format.turbo_stream { render :create, status: :unprocessable_content }
         format.html do
@@ -45,8 +57,7 @@ class CommentsController < ApplicationController
     @comment.destroy!
 
     @jjaek.reload
-    @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
-    @comment = Comment.new(jjaek: @jjaek)
+    prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
 
     respond_to do |format|
       format.turbo_stream
@@ -63,6 +74,20 @@ class CommentsController < ApplicationController
 
   def set_comment
     @comment = @jjaek.comments.find(params[:id])
+  end
+
+  def set_comments_context
+    @comments_context =
+      if COMMENTS_CONTEXTS.include?(params[:comments_context])
+        params[:comments_context].to_sym
+      else
+        :detail
+      end
+  end
+
+  def prepare_comments_panel(comment:)
+    @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+    @comment = comment
   end
 
   def comment_params

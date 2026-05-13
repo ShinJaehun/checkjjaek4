@@ -3,7 +3,7 @@
 <article class="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
   <%= render "jjaeks/jjaek_header", jjaek: jjaek %>
   <%= render "jjaeks/jjaek_body", jjaek: jjaek %>
-  <%= render "jjaeks/jjaek_actions", jjaek: jjaek %>
+  <%= render "jjaeks/jjaek_actions", jjaek: jjaek, inline_comments_context: inline_comments_context %>
 
   <% if inline_comments_context.present? %>
     <div id="<%= comments_panel_dom_id(jjaek, context: inline_comments_context) %>"></div>
