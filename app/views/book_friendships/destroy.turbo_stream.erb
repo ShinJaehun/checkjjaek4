@@ -1,11 +1,12 @@
-<%= turbo_stream.replace "sent-book-friend-requests" do %>
+<%= turbo_stream.replace @relationship_section_id do %>
   <%= render "relationships/section",
-             section_id: "sent-book-friend-requests",
-             title: t("relationships.sections.sent_book_friend_requests"),
-             collection: @sent_book_friend_requests,
-             row_partial: "relationships/book_friend_request_row",
-             row_locals: { direction: :sent },
-             empty_message: t("relationships.empty.sent_book_friend_requests") %>
+             section_id: @relationship_section_id,
+             section_class: @relationship_section_class,
+             title: @relationship_section_title,
+             collection: @relationship_section_collection,
+             row_partial: @relationship_section_row_partial,
+             row_locals: @relationship_section_row_locals,
+             empty_message: @relationship_section_empty_message %>
 <% end %>
 
 <%= turbo_stream.update "flash-messages" do %>

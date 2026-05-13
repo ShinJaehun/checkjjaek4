@@ -89,6 +89,22 @@ RSpec.describe "BookFriendships", type: :request do
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.rejected"))
   end
 
+  it "updates the received book friend requests section when rejecting from the relationship hub with Turbo" do
+    BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in other_user
+
+    expect {
+      delete user_book_friendship_path(user),
+             params: { return_to: "relationships" },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(BookFriendship, :count).by(-1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include(%(action="replace" target="received-book-friend-requests"))
+    expect(response.body).to include(%(action="update" target="flash-messages"))
+    expect(response.body).to include(I18n.t("relationships.empty.received_book_friend_requests"))
+  end
+
   it "shows a remove notice when deleting an accepted book friendship" do
     BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
     sign_in user
