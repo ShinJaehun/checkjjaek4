@@ -22,9 +22,21 @@ RSpec.describe "Notifications", type: :request do
 
     get root_path
 
-    badge = parse_html.at_css("#notification-badge")
+    container = parse_html.at_css("#notification-badge-container")
+    badge = container.at_css("#notification-badge")
+    expect(container).not_to be_nil
     expect(badge).not_to be_nil
     expect(badge.text.strip).to eq("1")
+  end
+
+  it "renders the notification badge container when there are no unread notifications" do
+    sign_in recipient
+
+    get root_path
+
+    container = parse_html.at_css("#notification-badge-container")
+    expect(container).not_to be_nil
+    expect(container.at_css("#notification-badge")).to be_nil
   end
 
   it "shows the current user's notification list" do

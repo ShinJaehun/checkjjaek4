@@ -9,7 +9,9 @@
         <%= link_to t("relationships.nav"), relationships_path, class: "font-medium" %>
         <%= link_to notifications_path, class: "font-medium" do %>
           <span><%= t("notifications.nav") %></span>
-          <%= render "shared/notification_badge" %>
+          <span id="notification-badge-container">
+            <%= render "shared/notification_badge" %>
+          </span>
         <% end %>
         <%= link_to user_path(current_user), class: "flex items-center gap-2 font-medium" do %>
           <%= user_avatar_image(current_user, size: 128, alt: current_user.name, class: "h-8 w-8 rounded-full object-cover") %>
