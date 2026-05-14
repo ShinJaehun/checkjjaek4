@@ -1,8 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["moveForm", "bookshelfInput", "tab", "dropzone"]
+  static targets = ["moveForm", "bookshelfInput", "tab", "dropzone", "dropHint"]
   static values = { selectedBookshelfId: Number }
+
+  connect() {
+    this.hoverDelay = 500
+  }
 
   dragstart(event) {
     this.moveUrl = event.params.moveUrl
@@ -11,7 +15,7 @@ export default class extends Controller {
   }
 
   dragend() {
-    this.clearHighlights()
+    this.resetDragState()
     this.moveUrl = null
   }
 
@@ -19,16 +23,18 @@ export default class extends Controller {
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
     this.highlight(event.currentTarget)
+    this.scheduleArmTarget(event.currentTarget, event.params.bookshelfId, event.params.bookshelfName)
   }
 
   dragleaveTab(event) {
+    this.clearArmTimer()
     this.unhighlight(event.currentTarget)
   }
 
   dropOnTab(event) {
     event.preventDefault()
     this.moveTo(event.params.bookshelfId)
-    this.clearHighlights()
+    this.resetDragState()
   }
 
   dragoverSelected(event) {
@@ -43,8 +49,8 @@ export default class extends Controller {
 
   dropOnSelected(event) {
     event.preventDefault()
-    this.moveTo(this.selectedBookshelfIdValue)
-    this.clearHighlights()
+    this.moveTo(this.armedBookshelfId || this.selectedBookshelfIdValue)
+    this.resetDragState()
   }
 
   moveTo(bookshelfId) {
@@ -69,5 +75,53 @@ export default class extends Controller {
   clearHighlights() {
     this.tabTargets.forEach((tab) => this.unhighlight(tab))
     if (this.hasDropzoneTarget) this.unhighlight(this.dropzoneTarget)
+  }
+
+  scheduleArmTarget(tab, bookshelfId, bookshelfName) {
+    const targetBookshelfId = Number(bookshelfId)
+    if (!targetBookshelfId || targetBookshelfId === this.selectedBookshelfIdValue) return
+    if (targetBookshelfId === this.armedBookshelfId) return
+    if (targetBookshelfId === this.pendingBookshelfId) return
+
+    this.clearArmTimer()
+    this.pendingBookshelfId = targetBookshelfId
+    this.armTimer = window.setTimeout(() => {
+      this.armedBookshelfId = targetBookshelfId
+      this.armedBookshelfName = bookshelfName
+      this.pendingBookshelfId = null
+      this.highlight(tab)
+      this.showDropHint()
+    }, this.hoverDelay)
+  }
+
+  showDropHint() {
+    if (!this.hasDropHintTarget || !this.armedBookshelfName) return
+
+    this.dropHintTarget.textContent = `여기에 놓으면 '${this.armedBookshelfName}'으로 이동합니다.`
+    this.dropHintTarget.classList.remove("hidden")
+    if (this.hasDropzoneTarget) this.highlight(this.dropzoneTarget)
+  }
+
+  clearArmTimer() {
+    if (!this.armTimer) return
+
+    window.clearTimeout(this.armTimer)
+    this.armTimer = null
+    this.pendingBookshelfId = null
+  }
+
+  clearArmedTarget() {
+    this.armedBookshelfId = null
+    this.armedBookshelfName = null
+    if (this.hasDropHintTarget) {
+      this.dropHintTarget.textContent = ""
+      this.dropHintTarget.classList.add("hidden")
+    }
+  }
+
+  resetDragState() {
+    this.clearArmTimer()
+    this.clearArmedTarget()
+    this.clearHighlights()
   }
 }
