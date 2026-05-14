@@ -183,7 +183,7 @@ ReJjaek은 visibility 정책 영향이 크다.
 
 ---
 
-## 4차 후보: flash / notification badge
+## 공통 갱신 기반: flash / notification badge
 
 ### flash
 
@@ -288,9 +288,21 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 - 검색 페이지 전체 Turbo Frame화
 - pagination Turbo화
 - 책 상세 read-only add form Turbo화
-- 책장 생성/수정/삭제 Turbo화
+- 책장 생성/수정/삭제/정렬/책 이동 Turbo화
 - Stimulus/JavaScript
 - modal
+
+---
+
+## 책장 Turbo화 보류 기준
+
+책장 생성/수정/삭제, 책 이동, 책장 정렬, 책 순서 변경의 Turbo화는 이번 Turbo MVP wrap-up 범위에서 제외한다.
+
+bookshelf UI는 향후 Drag and Drop 인터페이스 도입 가능성이 높으므로, 지금 Turbo Stream을 먼저 적용하지 않는다.
+DnD 도입 시에는 Stimulus/SortableJS, 순서 저장 endpoint, Turbo 갱신 범위, 모바일 대체 UI를 함께 설계한다.
+
+현재는 HTML fallback 기반 흐름을 유지한다.
+따라서 bookshelf 관련 Turbo화는 “나중에 할 Turbo 후보”가 아니라 “DnD 설계 이후 재검토할 보류 항목”으로 둔다.
 
 ---
 
@@ -308,8 +320,8 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 - 실시간 broadcast
 - 모든 Turbo action에 무조건 flash 추가
 - 같은 화면의 동일 Jjaek 다중 렌더 동시 갱신
-- 서재 DnD
-- 책장 생성/수정/삭제 Turbo화
+- 알림 읽음 정책 변경 및 read_all action
+- 책장 생성/수정/삭제/정렬/책 이동 Turbo화는 DnD 설계 이후 재검토
 - notification 실시간 push
 - PWA/service worker
 - relationships 전체 페이지 Turbo Frame화
@@ -321,6 +333,7 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 - pagination Turbo화
 - 책 상세 read-only add form Turbo화
 - 책 검색 전체 Turbo화
+- Stimulus 기반 toggle
 - 모든 form/action의 Turbo Stream화
 
 ---
@@ -345,11 +358,15 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 Turbo 1차 완료 기준:
 
 - 좋아요 클릭 시 전체 페이지 reload 없이 count/button이 갱신된다.
-- HTML fallback이 유지된다.
-- 기존 request spec이 통과한다.
-- Turbo Stream 요청에 대한 request spec이 추가된다.
 - 권한/visibility 정책 변경이 없다.
-- ReJjaek/notification/flash는 아직 변경하지 않는다.
+- 댓글 작성/삭제는 상세 페이지와 home/profile/book inline comments panel에서 panel과 count/action 영역을 갱신한다.
+- 상세 페이지 ReJjaek panel은 현재 화면 안에서 panel만 갱신한다.
+- flash는 stable wrapper 기반으로 일부 Turbo 성공 응답에서 update된다.
+- notification badge는 stable wrapper foundation만 완료했고 실제 Turbo 갱신은 보류한다.
+- relationships hub의 핵심 관계 action은 section replace 구조를 갖는다.
+- 책 검색 결과 add-to-shelf 성공 케이스는 result card replace 구조를 갖는다.
+- HTML fallback이 유지된다.
+- 기존 request spec과 Turbo Stream 요청 spec이 통과한다.
 
 Turbo MVP 완료 기준:
 
@@ -363,3 +380,15 @@ Turbo MVP 완료 기준:
 - 책 검색 전체 Turbo화와 pagination Turbo화는 별도 검토 대상으로 남긴다.
 - full redirect가 더 안전한 영역은 그대로 유지한다.
 - view가 Turbo/JS 코드로 다시 복잡해지지 않는다.
+
+---
+
+## 브라우저 스모크 체크리스트
+
+- 좋아요/취소가 count와 button만 갱신되는가.
+- 상세 페이지 댓글 작성/삭제가 comments panel과 comment count를 갱신하는가.
+- home/profile/book에서 댓글 보기/작성/삭제/닫기가 정상 동작하는가.
+- Jjaek 상세 페이지에서 다시짹 보기가 panel만 갱신하는가.
+- 관계 화면에서 unfollow / 요청 취소 / 거절 / 수락 / 책친구 끊기가 section 단위로 갱신되는가.
+- 책 검색 결과에서 서재에 담기 후 해당 result card만 `내 서재에 있음` 상태로 바뀌는가.
+- 알림 badge unread count가 0이어도 wrapper DOM이 유지되는가.

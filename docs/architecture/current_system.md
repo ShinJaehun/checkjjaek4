@@ -307,6 +307,17 @@ BooksController#show
 - ReJjaek visibility 제약 상세는 `docs/architecture/jjaek_visibility.md`를 본다
 - ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
 
+Turbo 1차 적용 상태:
+
+- 좋아요는 count/button 영역만 갱신한다.
+- 댓글은 상세 페이지와 home/profile/book inline comments panel에서 panel과 count/action 영역을 갱신한다.
+- 상세 페이지 ReJjaek 목록은 detail panel만 갱신한다.
+- flash는 stable wrapper 기반으로 일부 Turbo 성공 응답에서 갱신된다.
+- notification badge는 stable wrapper foundation만 완료했고 실제 Turbo 갱신은 보류 상태다.
+- relationships hub의 핵심 관계 action은 section 단위로 갱신한다.
+- 책 검색 결과의 `서재에 담기` 성공 케이스는 해당 result card만 갱신한다.
+- bookshelf 관련 Turbo화는 현재 HTML fallback 흐름을 유지하며, DnD 설계 이후 재검토한다.
+
 ---
 
 ## 테스트 구조
