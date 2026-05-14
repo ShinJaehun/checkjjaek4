@@ -26,7 +26,7 @@
 
   <% if bookshelves.any? %>
     <% if local_assigns[:show_move_control] %>
-      <p class="text-xs text-stone-500">책 카드를 책장 이름 위로 드래그해 이동할 수 있어요.</p>
+      <p class="text-xs text-stone-500">책 카드를 책장 이름 위에 잠시 올린 뒤 아래 영역에 놓아 이동할 수 있어요.</p>
     <% end %>
 
     <nav class="flex flex-wrap gap-2" aria-label="<%= t("users.profile.bookshelf_tabs") %>">
@@ -40,6 +40,8 @@
                     data: (local_assigns[:show_move_control] ? {
                       bookshelf_dnd_target: "tab",
                       bookshelf_dnd_bookshelf_id_param: bookshelf.id,
+                      bookshelf_dnd_bookshelf_name_param: bookshelf.name,
+                      bookshelf_dnd_preview_url_param: bookshelf_section_path.call(bookshelf_id: bookshelf.id, sort: bookshelf_sort, preview: "bookshelf_entries"),
                       action: "dragover->bookshelf-dnd#dragoverTab dragleave->bookshelf-dnd#dragleaveTab drop->bookshelf-dnd#dropOnTab"
                     } : {}) do %>
           <span><%= bookshelf.name %></span>
@@ -197,6 +199,15 @@
   <% end %>
 
   <% if bookshelf_entries.any? %>
+    <% if local_assigns[:show_move_control] %>
+      <p class="hidden rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600"
+         data-bookshelf-dnd-target="dropHint"></p>
+
+      <div class="hidden"
+           data-bookshelf-dnd-target="previewPanel"
+           data-action="dragover->bookshelf-dnd#dragoverPreview dragleave->bookshelf-dnd#dragleavePreview drop->bookshelf-dnd#dropOnPreview"></div>
+    <% end %>
+
     <div class="grid gap-3 sm:grid-cols-2"
          <% if local_assigns[:show_move_control] %>
            data-bookshelf-dnd-target="dropzone"
@@ -212,6 +223,15 @@
       <% end %>
     </div>
   <% else %>
+    <% if local_assigns[:show_move_control] %>
+      <p class="hidden rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600"
+         data-bookshelf-dnd-target="dropHint"></p>
+
+      <div class="hidden"
+           data-bookshelf-dnd-target="previewPanel"
+           data-action="dragover->bookshelf-dnd#dragoverPreview dragleave->bookshelf-dnd#dragleavePreview drop->bookshelf-dnd#dropOnPreview"></div>
+    <% end %>
+
     <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm"
              <% if local_assigns[:show_move_control] %>
                data-bookshelf-dnd-target="dropzone"

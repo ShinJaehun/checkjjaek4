@@ -6,6 +6,7 @@ class Users::LibrariesController < ApplicationController
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
     prepare_library_bookshelf(policy(@user))
+    return render_bookshelf_entries_preview if bookshelf_entries_preview_request?
   end
 
   private
@@ -54,5 +55,21 @@ class Users::LibrariesController < ApplicationController
     regular_bookshelves.each_with_index.to_h do |bookshelf, index|
       [ bookshelf.id, { move_up: index.positive?, move_down: index < regular_bookshelves.size - 1 } ]
     end
+  end
+
+  def bookshelf_entries_preview_request?
+    params[:preview] == "bookshelf_entries"
+  end
+
+  def render_bookshelf_entries_preview
+    return head :forbidden unless current_user == @user
+    return head :not_found unless @selected_bookshelf
+
+    render partial: "users/libraries/bookshelf_entries_preview",
+           locals: {
+             bookshelf: @selected_bookshelf,
+             bookshelf_entries: @bookshelf_entries.limit(6)
+           },
+           layout: false
   end
 end
