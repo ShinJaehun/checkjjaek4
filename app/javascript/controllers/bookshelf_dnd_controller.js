@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["moveForm", "bookshelfInput", "tab", "dropzone", "dropHint"]
+  static targets = ["moveForm", "bookshelfInput", "tab", "dropzone", "dropHint", "previewPanel"]
   static values = { selectedBookshelfId: Number }
 
   connect() {
@@ -23,7 +23,7 @@ export default class extends Controller {
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
     this.highlight(event.currentTarget)
-    this.scheduleArmTarget(event.currentTarget, event.params.bookshelfId, event.params.bookshelfName)
+    this.scheduleArmTarget(event.currentTarget, event.params.bookshelfId, event.params.bookshelfName, event.params.previewUrl)
   }
 
   dragleaveTab(event) {
@@ -53,6 +53,22 @@ export default class extends Controller {
     this.resetDragState()
   }
 
+  dragoverPreview(event) {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = "move"
+    this.highlight(this.previewPanelTarget)
+  }
+
+  dragleavePreview() {
+    this.unhighlight(this.previewPanelTarget)
+  }
+
+  dropOnPreview(event) {
+    event.preventDefault()
+    this.moveTo(this.armedBookshelfId)
+    this.resetDragState()
+  }
+
   moveTo(bookshelfId) {
     const targetBookshelfId = Number(bookshelfId)
     if (!this.moveUrl || !targetBookshelfId) return
@@ -75,9 +91,10 @@ export default class extends Controller {
   clearHighlights() {
     this.tabTargets.forEach((tab) => this.unhighlight(tab))
     if (this.hasDropzoneTarget) this.unhighlight(this.dropzoneTarget)
+    if (this.hasPreviewPanelTarget) this.unhighlight(this.previewPanelTarget)
   }
 
-  scheduleArmTarget(tab, bookshelfId, bookshelfName) {
+  scheduleArmTarget(tab, bookshelfId, bookshelfName, previewUrl) {
     const targetBookshelfId = Number(bookshelfId)
     if (!targetBookshelfId || targetBookshelfId === this.selectedBookshelfIdValue) return
     if (targetBookshelfId === this.armedBookshelfId) return
@@ -92,6 +109,7 @@ export default class extends Controller {
       this.pendingBookshelfId = null
       this.highlight(tab)
       this.showDropHint()
+      this.fetchPreview(previewUrl, targetBookshelfId)
     }, this.hoverDelay)
   }
 
@@ -118,11 +136,36 @@ export default class extends Controller {
       this.dropHintTarget.textContent = ""
       this.dropHintTarget.classList.add("hidden")
     }
+    this.clearPreview()
   }
 
   resetDragState() {
     this.clearArmTimer()
     this.clearArmedTarget()
     this.clearHighlights()
+  }
+
+  async fetchPreview(previewUrl, bookshelfId) {
+    if (!this.hasPreviewPanelTarget || !previewUrl) return
+
+    try {
+      const response = await fetch(previewUrl, {
+        headers: { Accept: "text/html" },
+        credentials: "same-origin"
+      })
+      if (!response.ok || this.armedBookshelfId !== bookshelfId) return
+
+      this.previewPanelTarget.innerHTML = await response.text()
+      this.previewPanelTarget.classList.remove("hidden")
+    } catch (_error) {
+      this.clearPreview()
+    }
+  }
+
+  clearPreview() {
+    if (!this.hasPreviewPanelTarget) return
+
+    this.previewPanelTarget.innerHTML = ""
+    this.previewPanelTarget.classList.add("hidden")
   }
 }

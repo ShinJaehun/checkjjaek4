@@ -235,6 +235,9 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - 책장 인덱스 클릭은 기존 URL 기반 탭 선택 흐름을 유지한다.
 - 다른 책장 인덱스 위에 일정 시간 hover하면 target 책장이 armed 상태가 된다.
 - armed target이 있는 상태에서 현재 보이는 책장 영역에 드롭하면 armed target 책장으로 이동한다.
+- armed target 책장의 실제 책 목록 일부를 별도 preview panel에 표시한다.
+- preview panel은 현재 책 목록 grid를 제거하거나 숨기지 않고 별도 영역으로 표시한다.
+- preview panel에 드롭하면 기존 책장 이동 요청으로 armed target 책장에 이동한다.
 - 현재 열린 책장에 다시 드롭하면 move 요청을 보내지 않는다.
 - 이동 성공 후 기존 redirect 흐름으로 target 책장을 열어 보여준다.
 - drag 중에는 bookshelf section 전체나 현재 책 목록 DOM을 교체하지 않는다.
