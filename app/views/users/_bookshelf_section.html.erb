@@ -25,6 +25,10 @@
   </div>
 
   <% if bookshelves.any? %>
+    <% if local_assigns[:show_move_control] %>
+      <p class="text-xs text-stone-500">책 카드를 책장 이름 위로 드래그해 이동할 수 있어요.</p>
+    <% end %>
+
     <nav class="flex flex-wrap gap-2" aria-label="<%= t("users.profile.bookshelf_tabs") %>">
       <% bookshelves.each do |bookshelf| %>
         <% selected = bookshelf == selected_bookshelf %>

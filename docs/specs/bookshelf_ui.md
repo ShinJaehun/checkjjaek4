@@ -214,7 +214,8 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - 새 endpoint를 추가하지 않는다.
 - 기존 select 기반 책 이동 fallback은 유지한다.
 - 책장 인덱스 클릭은 기존 URL 기반 탭 선택 흐름을 유지한다.
-- 책 카드를 책장 인덱스 위에 올리면 target 책장을 표시하고, 해당 인덱스에 드롭하면 그 책장으로 이동한다.
+- 책 카드를 책장 인덱스 위에 올리면 target 책장을 highlight하고, 해당 인덱스에 드롭하면 그 책장으로 이동한다.
+- 현재 열린 책장에 다시 드롭하면 move 요청을 보내지 않는다.
 - drag 중 bookshelf section 전체를 교체하지 않는다.
 - 이동 성공 후 기존 redirect 흐름으로 target 책장을 열어 보여준다.
 - SortableJS는 도입하지 않는다.

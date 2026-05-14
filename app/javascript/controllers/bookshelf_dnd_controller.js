@@ -28,6 +28,7 @@ export default class extends Controller {
   dropOnTab(event) {
     event.preventDefault()
     this.moveTo(event.params.bookshelfId)
+    this.clearHighlights()
   }
 
   dragoverSelected(event) {
@@ -43,13 +44,16 @@ export default class extends Controller {
   dropOnSelected(event) {
     event.preventDefault()
     this.moveTo(this.selectedBookshelfIdValue)
+    this.clearHighlights()
   }
 
   moveTo(bookshelfId) {
-    if (!this.moveUrl || !bookshelfId) return
+    const targetBookshelfId = Number(bookshelfId)
+    if (!this.moveUrl || !targetBookshelfId) return
+    if (targetBookshelfId === this.selectedBookshelfIdValue) return
 
     this.moveFormTarget.action = this.moveUrl
-    this.bookshelfInputTarget.value = bookshelfId
+    this.bookshelfInputTarget.value = targetBookshelfId
     this.moveFormTarget.requestSubmit()
   }
 
