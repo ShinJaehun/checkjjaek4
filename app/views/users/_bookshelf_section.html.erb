@@ -1,4 +1,8 @@
-<section class="space-y-4">
+<section class="space-y-4"
+         <% if local_assigns[:show_move_control] %>
+           data-controller="bookshelf-dnd"
+           data-bookshelf-dnd-selected-bookshelf-id-value="<%= selected_bookshelf&.id %>"
+         <% end %>>
   <% bookshelves = Array(local_assigns[:bookshelves]) %>
   <% bookshelf_section_path = ->(options = {}) { user_library_path(user, options) } %>
   <% return_to = "library" %>
@@ -28,12 +32,27 @@
                     class: [
                       "inline-flex shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition",
                       bookshelf_tab_class(bookshelf, selected: selected)
-                    ] do %>
+                    ],
+                    data: (local_assigns[:show_move_control] ? {
+                      bookshelf_dnd_target: "tab",
+                      bookshelf_dnd_bookshelf_id_param: bookshelf.id,
+                      action: "dragover->bookshelf-dnd#dragoverTab dragleave->bookshelf-dnd#dragleaveTab drop->bookshelf-dnd#dropOnTab"
+                    } : {}) do %>
           <span><%= bookshelf.name %></span>
           <span class="<%= bookshelf_tab_count_class(bookshelf, selected: selected) %>">(<%= bookshelf_entry_counts.fetch(bookshelf.id, 0) %>)</span>
         <% end %>
       <% end %>
     </nav>
+  <% end %>
+
+  <% if local_assigns[:show_move_control] %>
+    <%= form_with url: "#",
+                  method: :patch,
+                  data: { bookshelf_dnd_target: "moveForm" },
+                  class: "hidden" do %>
+      <%= hidden_field_tag :bookshelf_id, selected_bookshelf&.id, data: { bookshelf_dnd_target: "bookshelfInput" } %>
+      <%= hidden_field_tag :return_to, return_to %>
+    <% end %>
   <% end %>
 
   <% if selected_bookshelf.present? && bookshelf_sort_options.any? %>
@@ -174,7 +193,11 @@
   <% end %>
 
   <% if bookshelf_entries.any? %>
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div class="grid gap-3 sm:grid-cols-2"
+         <% if local_assigns[:show_move_control] %>
+           data-bookshelf-dnd-target="dropzone"
+           data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
+         <% end %>>
       <% bookshelf_entries.each do |bookshelf_entry| %>
         <%= render "bookshelf_entries/profile_bookshelf_entry",
                    bookshelf_entry:,
@@ -185,7 +208,11 @@
       <% end %>
     </div>
   <% else %>
-    <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
+    <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm"
+             <% if local_assigns[:show_move_control] %>
+               data-bookshelf-dnd-target="dropzone"
+               data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
+             <% end %>>
       <%= empty_message %>
     </section>
   <% end %>

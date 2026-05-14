@@ -122,6 +122,7 @@
 - stranger / follow-only가 접근하면 프로필 화면으로 redirect된다
 - 접근 가능한 책장 탭, 선택된 책장 책 목록, 책 이동, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
 - 관리 기능은 self에게만 제공한다
+- self는 기존 select fallback 또는 책장 인덱스 기반 Drag and Drop으로 책을 다른 내 책장으로 이동할 수 있다
 
 관련 코드:
 - controller: app/controllers/users/libraries_controller.rb
