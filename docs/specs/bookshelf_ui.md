@@ -295,9 +295,12 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - `sort=manual`일 때 `position ASC, id ASC`로 정렬한다.
 - `PATCH /bookshelf_entries/reorder`는 같은 책장 안 전체 BookshelfEntry id를 전달받아 position을 재배정한다.
 - reorder 요청은 owner만 가능하며, 다른 책장/다른 사용자 entry id가 섞이거나 id가 누락되면 실패한다.
+- sort가 `manual`이고 owner 화면일 때만 책 카드에 정렬 handle을 표시한다.
+- 정렬 handle을 드래그하면 같은 책장 안 카드 순서를 바꾸고 기존 reorder endpoint로 저장한다.
+- 책 카드 본문 drag는 책장 간 이동 DnD 역할을 유지한다.
 - 기본 정렬은 아직 `recent`를 유지한다.
 - 제목순, 저자순, 최근 추가순 같은 정렬은 별도 보기 옵션으로 유지할 수 있다.
-- 책 순서 DnD 단계에서는 SortableJS 도입을 검토한다.
+- 책 순서 DnD 1차는 SortableJS를 사용한다.
 
 controller 역할은 분리한다.
 
@@ -321,15 +324,12 @@ controller 역할은 분리한다.
 4. 책장 안 책 순서 변경을 별도 단계로 진행한다.
    - `BookshelfEntry` position 도입
    - reorder endpoint 추가
-   - SortableJS 도입 검토
+   - SortableJS 기반 정렬 handle UI 추가
    - 모바일/접근성 fallback 검토
  
-이번 범위에서 하지 않는 것:
+아직 하지 않는 것:
  
 - 책장 인덱스 자체 순서 변경
-- 책장 안 책 순서 변경
-- `BookshelfEntry.position` migration
-- SortableJS 도입
 - hover 중 전체 bookshelf section 교체
 - Turbo Frame으로 책장 영역 전체 교체
 - 책장별 책 미리보기 UI

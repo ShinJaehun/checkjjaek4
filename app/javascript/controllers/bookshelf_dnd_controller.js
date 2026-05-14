@@ -9,6 +9,8 @@ export default class extends Controller {
   }
 
   dragstart(event) {
+    if (event.target.closest("[data-bookshelf-entries-sort-handle]")) return
+
     this.moveUrl = event.params.moveUrl
     event.dataTransfer.effectAllowed = "move"
     event.dataTransfer.setData("text/plain", this.moveUrl)
