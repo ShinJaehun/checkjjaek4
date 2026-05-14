@@ -293,6 +293,8 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - 새 책은 해당 책장의 마지막 position으로 들어간다.
 - 책장 간 이동 시 target 책장의 마지막 position으로 들어간다.
 - `sort=manual`일 때 `position ASC, id ASC`로 정렬한다.
+- `PATCH /bookshelf_entries/reorder`는 같은 책장 안 전체 BookshelfEntry id를 전달받아 position을 재배정한다.
+- reorder 요청은 owner만 가능하며, 다른 책장/다른 사용자 entry id가 섞이거나 id가 누락되면 실패한다.
 - 기본 정렬은 아직 `recent`를 유지한다.
 - 제목순, 저자순, 최근 추가순 같은 정렬은 별도 보기 옵션으로 유지할 수 있다.
 - 책 순서 DnD 단계에서는 SortableJS 도입을 검토한다.

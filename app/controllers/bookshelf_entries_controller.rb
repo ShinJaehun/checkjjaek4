@@ -82,6 +82,16 @@ class BookshelfEntriesController < ApplicationController
                 alert: @bookshelf_entry.errors.full_messages.to_sentence
   end
 
+  def reorder
+    bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
+    authorize BookshelfEntry, :reorder?
+
+    BookshelfEntry.reorder_within!(bookshelf:, ordered_ids: params[:bookshelf_entry_ids])
+    redirect_to user_library_path(current_user, bookshelf_id: bookshelf.id, sort: "manual")
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound
+    head :unprocessable_content
+  end
+
   def destroy
     authorize @bookshelf_entry
     @bookshelf_entry.destroy!

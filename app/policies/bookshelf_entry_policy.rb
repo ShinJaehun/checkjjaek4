@@ -19,6 +19,10 @@ class BookshelfEntryPolicy < ApplicationPolicy
     create?
   end
 
+  def reorder?
+    user.present?
+  end
+
   def destroy?
     create?
   end

@@ -126,6 +126,7 @@ user_id + book_id = unique
 `BookshelfEntry.position`은 같은 `bookshelf_id` 안에서 책의 사용자 지정 순서를 저장한다.
 새 BookshelfEntry는 해당 책장의 마지막 position으로 들어간다.
 책을 다른 책장으로 이동하면 target Bookshelf의 마지막 position으로 이동한다.
+책장 안 재정렬은 같은 Bookshelf의 전체 BookshelfEntry id 세트가 전달된 경우에만 transaction으로 position을 재배정한다.
 기존 기본 목록 정렬은 아직 recent 기준을 유지하고, 사용자 지정 순서는 별도 `manual` 정렬로 사용한다.
 
 ---
@@ -275,6 +276,7 @@ enum :visibility,
 14. BookActivity visibility 기존 정책이 깨지지 않는다.
 15. BookshelfEntry는 같은 책장 안에서 position을 가진다.
 16. 책장 이동 시 BookshelfEntry는 target 책장의 마지막 position으로 이동한다.
+17. 책장 안 재정렬은 같은 Bookshelf의 전체 entry id 세트를 기준으로만 성공한다.
 
 ---
 

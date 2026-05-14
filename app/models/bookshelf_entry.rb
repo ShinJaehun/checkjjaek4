@@ -41,6 +41,18 @@ class BookshelfEntry < ApplicationRecord
     save!
   end
 
+  def self.reorder_within!(bookshelf:, ordered_ids:)
+    ids = Array(ordered_ids).map(&:to_i)
+    current_ids = bookshelf.bookshelf_entries.order(:id).pluck(:id)
+    raise ActiveRecord::RecordInvalid, bookshelf unless ids.sort == current_ids.sort
+
+    transaction do
+      ids.each_with_index do |id, index|
+        bookshelf.bookshelf_entries.find(id).update!(position: index + 1)
+      end
+    end
+  end
+
   private
 
   def assign_default_bookshelf
