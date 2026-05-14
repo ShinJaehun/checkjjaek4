@@ -74,13 +74,12 @@ class BookshelfEntriesController < ApplicationController
 
     target_bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
 
-    if @bookshelf_entry.update(bookshelf: target_bookshelf)
-      redirect_to bookshelf_entry_move_redirect_path(target_bookshelf),
-                  notice: t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
-    else
-      redirect_to bookshelf_entry_move_redirect_path(@bookshelf_entry.bookshelf),
-                  alert: @bookshelf_entry.errors.full_messages.to_sentence
-    end
+    @bookshelf_entry.move_to_bookshelf!(target_bookshelf)
+    redirect_to bookshelf_entry_move_redirect_path(target_bookshelf),
+                notice: t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
+  rescue ActiveRecord::RecordInvalid
+    redirect_to bookshelf_entry_move_redirect_path(@bookshelf_entry.bookshelf),
+                alert: @bookshelf_entry.errors.full_messages.to_sentence
   end
 
   def destroy

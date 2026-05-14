@@ -195,6 +195,8 @@ RSpec.describe "BookshelfEntries", type: :request do
   it "moves the user's own shelf entry to another owned bookshelf" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "이동 대상 책장", visibility: :private)
+    existing_target_book = Book.create!(title: "이미 대상에 있는 책", authors_text: "저자")
+    user.bookshelf_entries.create!(book: existing_target_book, bookshelf: target_bookshelf)
     sign_in user
 
     expect {
@@ -203,6 +205,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id))
     expect(entry.reload.bookshelf).to eq(target_bookshelf)
+    expect(entry.position).to eq(2)
     expect(flash[:notice]).to include("이동 대상 책장")
   end
 

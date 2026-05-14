@@ -1,5 +1,5 @@
 class BookshelfEntry < ApplicationRecord
-  PROFILE_SORTS = %w[recent title author status].freeze
+  PROFILE_SORTS = %w[recent manual title author status].freeze
 
   enum :status, { wish: 0, reading: 1, finished: 2 }, validate: { allow_nil: true }
 
@@ -11,13 +11,17 @@ class BookshelfEntry < ApplicationRecord
   has_many :sticker_definitions, through: :bookshelf_entry_stickers
 
   before_validation :assign_default_bookshelf
+  before_validation :assign_position, on: :create
 
   validates :book_id, uniqueness: { scope: :user_id }
+  validates :position, numericality: { only_integer: true, greater_than: 0 }
   validate :bookshelf_belongs_to_user
 
   scope :recent_first, -> { includes(:book, :sticker_definitions).order(updated_at: :desc) }
   scope :profile_sorted, ->(sort) {
     case sort
+    when "manual"
+      includes(:book, :sticker_definitions).order(position: :asc, id: :asc)
     when "title"
       joins(:book).includes(:book, :sticker_definitions).order(books: { title: :asc }, id: :asc)
     when "author"
@@ -28,6 +32,14 @@ class BookshelfEntry < ApplicationRecord
       recent_first
     end
   }
+
+  def move_to_bookshelf!(target_bookshelf)
+    return true if bookshelf_id == target_bookshelf.id
+
+    self.bookshelf = target_bookshelf
+    self.position = next_position_in(target_bookshelf)
+    save!
+  end
 
   private
 
@@ -43,5 +55,15 @@ class BookshelfEntry < ApplicationRecord
     return if bookshelf.user_id == user_id
 
     errors.add(:bookshelf, :invalid)
+  end
+
+  def assign_position
+    return if position.present? || bookshelf.blank?
+
+    self.position = next_position_in(bookshelf)
+  end
+
+  def next_position_in(target_bookshelf)
+    target_bookshelf.bookshelf_entries.where.not(id: id).maximum(:position).to_i + 1
   end
 end

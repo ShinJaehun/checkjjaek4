@@ -29,6 +29,36 @@ RSpec.describe BookshelfEntry, type: :model do
     expect(entry.bookshelf).to eq(user.default_bookshelf)
   end
 
+  it "assigns the next position in the bookshelf" do
+    described_class.create!(user:, book:)
+    next_book = Book.create!(title: "다음 책", authors_text: "저자")
+
+    entry = described_class.create!(user:, book: next_book)
+
+    expect(entry.position).to eq(2)
+  end
+
+  it "orders manual profile sorting by position" do
+    first_book = Book.create!(title: "첫 책", authors_text: "저자")
+    second_book = Book.create!(title: "둘째 책", authors_text: "저자")
+    second = described_class.create!(user:, book: second_book, position: 2)
+    first = described_class.create!(user:, book: first_book, position: 1)
+
+    expect(described_class.profile_sorted("manual")).to eq([ first, second ])
+  end
+
+  it "moves an entry to the last position in the target bookshelf" do
+    entry = described_class.create!(user:, book:)
+    target_bookshelf = user.bookshelves.create!(name: "이동 대상")
+    target_book = Book.create!(title: "대상 책장 책", authors_text: "저자")
+    described_class.create!(user:, book: target_book, bookshelf: target_bookshelf)
+
+    entry.move_to_bookshelf!(target_bookshelf)
+
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
+    expect(entry.position).to eq(2)
+  end
+
   it "requires the entry user and bookshelf owner to match" do
     other_user = User.create!(name: "Other", email: "other-entry@example.com", password: "password123!", password_confirmation: "password123!")
     entry = described_class.new(user:, book:, bookshelf: other_user.default_bookshelf)
