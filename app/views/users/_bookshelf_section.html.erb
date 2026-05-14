@@ -8,6 +8,7 @@
   <% return_to = "library" %>
   <% bookshelf_entry_counts = local_assigns[:bookshelf_entry_counts] || {} %>
   <% bookshelf_sort = local_assigns[:bookshelf_sort] || "recent" %>
+  <% bookshelf_sort_enabled = local_assigns[:show_move_control] && bookshelf_sort == "manual" && selected_bookshelf.present? %>
   <% bookshelf_sort_options = local_assigns[:bookshelf_sort_options] || [] %>
   <% move_target_bookshelves = local_assigns[:move_target_bookshelves] || [] %>
   <% new_bookshelf = local_assigns[:new_bookshelf] %>
@@ -209,6 +210,11 @@
     <% end %>
 
     <div class="grid gap-3 sm:grid-cols-2"
+         <% if bookshelf_sort_enabled %>
+           data-controller="bookshelf-entries-sort"
+           data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
+           data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
+         <% end %>
          <% if local_assigns[:show_move_control] %>
            data-bookshelf-dnd-target="dropzone"
            data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
@@ -218,6 +224,7 @@
                    bookshelf_entry:,
                    show_status: show_status,
                    show_move_control: show_move_control,
+                   show_sort_handle: bookshelf_sort_enabled,
                    move_target_bookshelves: move_target_bookshelves,
                    return_to: return_to %>
       <% end %>

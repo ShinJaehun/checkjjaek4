@@ -24,6 +24,7 @@ UI에서 책장을 어떻게 표시하고 조작할지는 `docs/specs/bookshelf_
 - `Bookshelf`는 사용자가 책을 꽂아두는 책장이다.
 - `BookshelfEntry`는 사용자와 책의 관계를 나타낸다.
 - `BookshelfEntry`는 상태와 스티커 정보를 가진다.
+- `BookshelfEntry`는 같은 책장 안에서 사용자 지정 순서를 위한 `position`을 가진다.
 - `BookActivity`는 `BookshelfEntry`의 상태/스티커 변화에서 발생한다.
 - BookActivity는 현재 self / accepted book_friend에게만 노출한다.
 - Bookshelf visibility와 BookActivity visibility는 아직 연동하지 않는다.
@@ -45,6 +46,7 @@ BookshelfEntry
   belongs_to :user
   belongs_to :book
   belongs_to :bookshelf
+  position within bookshelf
 ```
 
 현재 구조에서는 `BookshelfEntry`에 `bookshelf_id`를 직접 둔다.
@@ -120,6 +122,12 @@ user_id + book_id = unique
 ```
 
 이 정책은 validation과 테스트로 보강한다.
+
+`BookshelfEntry.position`은 같은 `bookshelf_id` 안에서 책의 사용자 지정 순서를 저장한다.
+새 BookshelfEntry는 해당 책장의 마지막 position으로 들어간다.
+책을 다른 책장으로 이동하면 target Bookshelf의 마지막 position으로 이동한다.
+책장 안 재정렬은 같은 Bookshelf의 전체 BookshelfEntry id 세트가 전달된 경우에만 transaction으로 position을 재배정한다.
+기존 기본 목록 정렬은 아직 recent 기준을 유지하고, 사용자 지정 순서는 별도 `manual` 정렬로 사용한다.
 
 ---
 
@@ -266,6 +274,9 @@ enum :visibility,
 12. 한 사용자 기준 같은 `book_id`의 BookshelfEntry가 중복 생성되지 않는다.
 13. visibility scope가 self / accepted book_friend / stranger 기준으로 동작한다.
 14. BookActivity visibility 기존 정책이 깨지지 않는다.
+15. BookshelfEntry는 같은 책장 안에서 position을 가진다.
+16. 책장 이동 시 BookshelfEntry는 target 책장의 마지막 position으로 이동한다.
+17. 책장 안 재정렬은 같은 Bookshelf의 전체 entry id 세트를 기준으로만 성공한다.
 
 ---
 

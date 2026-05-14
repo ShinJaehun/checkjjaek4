@@ -195,6 +195,8 @@ RSpec.describe "BookshelfEntries", type: :request do
   it "moves the user's own shelf entry to another owned bookshelf" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "이동 대상 책장", visibility: :private)
+    existing_target_book = Book.create!(title: "이미 대상에 있는 책", authors_text: "저자")
+    user.bookshelf_entries.create!(book: existing_target_book, bookshelf: target_bookshelf)
     sign_in user
 
     expect {
@@ -203,6 +205,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id))
     expect(entry.reload.bookshelf).to eq(target_bookshelf)
+    expect(entry.position).to eq(2)
     expect(flash[:notice]).to include("이동 대상 책장")
   end
 
@@ -247,6 +250,80 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to have_http_status(:not_found)
     expect(entry.reload.bookshelf).to eq(original_bookshelf)
+  end
+
+  it "reorders the user's own shelf entries" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    second_book = Book.create!(title: "순서 변경 책", authors_text: "저자")
+    second_entry = user.bookshelf_entries.create!(book: second_book, bookshelf: entry.bookshelf)
+    sign_in user
+
+    patch reorder_bookshelf_entries_path, params: {
+      bookshelf_id: entry.bookshelf_id,
+      bookshelf_entry_ids: [ second_entry.id, entry.id ]
+    }
+
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: entry.bookshelf_id, sort: "manual"))
+    expect(second_entry.reload.position).to eq(1)
+    expect(entry.reload.position).to eq(2)
+  end
+
+  it "rejects reordering another user's bookshelf" do
+    bookshelf = book_friend.default_bookshelf
+    entry = book_friend.bookshelf_entries.find_by!(book: friend_book)
+    sign_in user
+
+    patch reorder_bookshelf_entries_path, params: {
+      bookshelf_id: bookshelf.id,
+      bookshelf_entry_ids: [ entry.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+  end
+
+  it "rejects reordering when another user's entry id is included" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    other_entry = book_friend.bookshelf_entries.find_by!(book: friend_book)
+    sign_in user
+
+    patch reorder_bookshelf_entries_path, params: {
+      bookshelf_id: entry.bookshelf_id,
+      bookshelf_entry_ids: [ entry.id, other_entry.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(entry.reload.position).to eq(1)
+  end
+
+  it "rejects reordering when another owned bookshelf entry id is included" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    other_bookshelf = user.bookshelves.create!(name: "다른 내 책장", visibility: :public)
+    other_book = Book.create!(title: "다른 내 책장 책", authors_text: "저자")
+    other_entry = user.bookshelf_entries.create!(book: other_book, bookshelf: other_bookshelf)
+    sign_in user
+
+    patch reorder_bookshelf_entries_path, params: {
+      bookshelf_id: entry.bookshelf_id,
+      bookshelf_entry_ids: [ entry.id, other_entry.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(entry.reload.position).to eq(1)
+  end
+
+  it "rejects reordering when an entry id is missing" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    second_book = Book.create!(title: "누락 확인 책", authors_text: "저자")
+    user.bookshelf_entries.create!(book: second_book, bookshelf: entry.bookshelf)
+    sign_in user
+
+    patch reorder_bookshelf_entries_path, params: {
+      bookshelf_id: entry.bookshelf_id,
+      bookshelf_entry_ids: [ entry.id ]
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(entry.reload.position).to eq(1)
   end
 
   it "records bookshelf_entry_updated when a shelf entry status changes" do
