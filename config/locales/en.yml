@@ -198,6 +198,7 @@ en:
     actions:
       create: "Save to shelf"
       move: "Move"
+      reorder: "Reorder"
       update: "Update shelf entry"
     form:
       book: "Book"
@@ -346,6 +347,7 @@ en:
         label: "Book sort"
         options:
           author: "Author"
+          manual: "Custom order"
           recent: "Recent"
           status: "Status"
           title: "Title"

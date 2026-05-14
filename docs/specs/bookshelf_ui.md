@@ -243,7 +243,7 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - 현재 열린 책장에 다시 드롭하면 move 요청을 보내지 않는다.
 - 이동 성공 후 기존 redirect 흐름으로 target 책장을 열어 보여준다.
 - drag 중에는 bookshelf section 전체나 현재 책 목록 DOM을 교체하지 않는다.
-- SortableJS는 아직 도입하지 않는다.
+- 책장 간 이동 DnD에는 SortableJS를 사용하지 않는다.
 
 현재 구현은 “hover 중 실제 책장 목록이 열린다”가 아니라, “hover한 책장을 이동 대상으로 지정한 뒤 drop 성공 후 해당 책장을 연다”에 가깝다.
 
@@ -321,10 +321,10 @@ controller 역할은 분리한다.
    - 책장 인덱스 hover 시 target 책장이 열린 것처럼 표시
    - 열린 책장 영역에 drop
    - 이동 후 target 책장 유지
-4. 책장 안 책 순서 변경을 별도 단계로 진행한다.
-   - `BookshelfEntry` position 도입
-   - reorder endpoint 추가
-   - SortableJS 기반 정렬 handle UI 추가
+4. 책장 안 책 순서 변경 1차를 유지한다.
+   - `BookshelfEntry` position 기반 저장
+   - reorder endpoint
+   - SortableJS 기반 정렬 handle UI
    - 모바일/접근성 fallback 검토
  
 아직 하지 않는 것:
@@ -332,10 +332,19 @@ controller 역할은 분리한다.
 - 책장 인덱스 자체 순서 변경
 - hover 중 전체 bookshelf section 교체
 - Turbo Frame으로 책장 영역 전체 교체
-- 책장별 책 미리보기 UI
+- 책장별 상시 미리보기 UI 또는 책장별 미리보기 확장 화면
 - 모바일 전용 고급 DnD 구현
 - 기존 select 이동 UI 제거
 - 한 책을 여러 책장에 중복 저장
+
+### 브라우저 스모크 체크리스트
+
+- `sort=manual`에서 owner에게만 순서 변경 handle이 보인다.
+- 순서 변경 후 새로고침해도 같은 순서가 유지된다.
+- `recent`, `title`, `author`, `status` 정렬에서는 순서 변경 handle이 숨겨진다.
+- 책장 인덱스 직접 drop으로 책장 간 이동이 동작한다.
+- 책장 인덱스 hover 시 preview panel이 표시되고, panel drop으로 이동할 수 있다.
+- 기존 select 기반 책 이동 fallback이 계속 동작한다.
  
 ---
 

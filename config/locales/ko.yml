@@ -198,6 +198,7 @@ ko:
     actions:
       create: "서재에 저장"
       move: "이동"
+      reorder: "순서 변경"
       update: "서재 항목 수정"
     form:
       book: "책"
@@ -346,6 +347,7 @@ ko:
         label: "책 정렬"
         options:
           author: "저자순"
+          manual: "사용자 지정순"
           recent: "최근순"
           status: "상태순"
           title: "제목순"
