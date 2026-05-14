@@ -216,10 +216,10 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - 책장 인덱스 클릭은 기존 URL 기반 탭 선택 흐름을 유지한다.
 - 책 카드를 책장 인덱스 위에 올리면 target 책장을 highlight하고, 해당 인덱스에 드롭하면 그 책장으로 이동한다.
 - 다른 책장 인덱스 위에 일정 시간 hover하면 실제 목록을 교체하지 않고 target 책장만 armed 상태로 저장한다.
-- armed target이 있는 상태에서 현재 열린 책장 영역에 드롭하면 armed target 책장으로 이동한다.
+- armed target이 있는 상태에서 현재 보이는 책장 영역에 드롭하면 armed target 책장으로 이동한다.
 - 현재 열린 책장에 다시 드롭하면 move 요청을 보내지 않는다.
 - drag 중 bookshelf section 전체를 교체하지 않는다.
-- 이동 성공 후 기존 redirect 흐름으로 target 책장을 열어 보여준다.
+- 이동 성공 후 기존 redirect 흐름으로 target 책장을 열어 보여준다. hover 중에는 실제 책장 목록을 열지 않는다.
 - SortableJS는 도입하지 않는다.
 
 이번 범위에서 하지 않는 것:

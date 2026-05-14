@@ -84,6 +84,7 @@ export default class extends Controller {
     if (targetBookshelfId === this.pendingBookshelfId) return
 
     this.clearArmTimer()
+    this.clearArmedTarget()
     this.pendingBookshelfId = targetBookshelfId
     this.armTimer = window.setTimeout(() => {
       this.armedBookshelfId = targetBookshelfId
@@ -97,7 +98,7 @@ export default class extends Controller {
   showDropHint() {
     if (!this.hasDropHintTarget || !this.armedBookshelfName) return
 
-    this.dropHintTarget.textContent = `여기에 놓으면 '${this.armedBookshelfName}'으로 이동합니다.`
+    this.dropHintTarget.textContent = `아래 책장 영역에 놓으면 '${this.armedBookshelfName}'으로 이동합니다.`
     this.dropHintTarget.classList.remove("hidden")
     if (this.hasDropzoneTarget) this.highlight(this.dropzoneTarget)
   }
