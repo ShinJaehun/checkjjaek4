@@ -242,15 +242,17 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - 책장 인덱스 클릭은 기존 URL 기반 탭 선택 흐름을 유지한다.
 - 다른 책장 인덱스 위에 일정 시간 hover하면 target 책장이 armed 상태가 된다.
 - armed target이 있는 상태에서 현재 보이는 책장 영역에 드롭하면 armed target 책장으로 이동한다.
-- armed target 책장의 실제 책 목록 일부를 별도 preview panel에 표시한다.
-- preview panel은 현재 책 목록 grid를 제거하거나 숨기지 않고 별도 영역으로 표시한다.
-- preview panel에 드롭하면 기존 책장 이동 요청으로 armed target 책장에 이동한다.
+- armed target 책장의 header와 실제 책 목록 일부를 selected bookshelf panel 전체 위의 preview overlay로 표시한다.
+- preview overlay는 현재 header와 책 목록 DOM을 제거하거나 실제 selected bookshelf를 바꾸지 않고, drop 전까지 시각적으로만 target 책장이 임시로 열린 것처럼 보여준다.
+- preview overlay는 source panel 높이를 최소 높이로 삼고, target preview 내용이 더 크면 자연스럽게 확장된다.
+- visible 안내문은 별도로 두지 않고, preview overlay 자체가 이동 대상 안내 역할을 한다.
+- preview overlay에 드롭하면 기존 책장 이동 요청으로 armed target 책장에 이동한다.
 - 현재 열린 책장에 다시 드롭하면 move 요청을 보내지 않는다.
 - 이동 성공 후 기존 redirect 흐름으로 target 책장을 열어 보여준다.
 - drag 중에는 bookshelf section 전체나 현재 책 목록 DOM을 교체하지 않는다.
 - 책장 간 이동 DnD에는 SortableJS를 사용하지 않는다.
 
-현재 구현은 “hover 중 실제 책장 목록이 열린다”가 아니라, “hover한 책장을 이동 대상으로 지정한 뒤 drop 성공 후 해당 책장을 연다”에 가깝다.
+현재 구현은 “hover 중 실제 selected bookshelf를 바꾼다”가 아니라, “selected bookshelf panel 전체 위에 target preview overlay를 올리고 drop 성공 후 해당 책장을 연다”에 가깝다.
 
 이 방식은 drag 중 원본 책 카드 DOM이 사라지는 문제를 피하기 위한 안전한 1차 구현이다.
 

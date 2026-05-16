@@ -89,7 +89,10 @@
   <% end %>
 
   <% if selected_bookshelf.present? %>
-    <section class="mt-0.5 relative z-0 overflow-hidden rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(selected_bookshelf) %>">
+    <section class="mt-0.5 relative z-0 overflow-visible rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(selected_bookshelf) %>"
+             <% if local_assigns[:show_move_control] %>
+               data-bookshelf-dnd-target="panel"
+             <% end %>>
       <header class="flex flex-col gap-3 border-b border-stone-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
@@ -132,46 +135,45 @@
       </header>
 
       <div class="space-y-3 p-4">
-        <% if local_assigns[:show_move_control] %>
-          <p class="hidden rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600"
-             data-bookshelf-dnd-target="dropHint"></p>
-
-          <div class="hidden"
-               data-bookshelf-dnd-target="previewPanel"
-               data-action="dragover->bookshelf-dnd#dragoverPreview dragleave->bookshelf-dnd#dragleavePreview drop->bookshelf-dnd#dropOnPreview"></div>
-        <% end %>
-
-        <% if bookshelf_entries.any? %>
-          <div class="grid gap-3 sm:grid-cols-2"
-               <% if bookshelf_sort_enabled %>
-                 data-controller="bookshelf-entries-sort"
-                 data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
-                 data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
-               <% end %>
-               <% if local_assigns[:show_move_control] %>
-                 data-bookshelf-dnd-target="dropzone"
-                 data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
-               <% end %>>
-            <% bookshelf_entries.each do |bookshelf_entry| %>
-              <%= render "bookshelf_entries/profile_bookshelf_entry",
-                         bookshelf_entry:,
-                         show_status: show_status,
-                         show_move_control: show_move_control,
-                         show_sort_handle: bookshelf_sort_enabled,
-                         move_target_bookshelves: move_target_bookshelves,
-                         return_to: return_to %>
-            <% end %>
-          </div>
-        <% else %>
-          <section class="rounded-2xl border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500"
-                   <% if local_assigns[:show_move_control] %>
-                     data-bookshelf-dnd-target="dropzone"
-                     data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
-                   <% end %>>
-            <%= empty_message %>
-          </section>
-        <% end %>
+        <div class="min-h-32">
+          <% if bookshelf_entries.any? %>
+            <div class="grid gap-3 sm:grid-cols-2"
+                 <% if bookshelf_sort_enabled %>
+                   data-controller="bookshelf-entries-sort"
+                   data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
+                   data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
+                 <% end %>
+                 <% if local_assigns[:show_move_control] %>
+                   data-bookshelf-dnd-target="dropzone"
+                   data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
+                 <% end %>>
+              <% bookshelf_entries.each do |bookshelf_entry| %>
+                <%= render "bookshelf_entries/profile_bookshelf_entry",
+                           bookshelf_entry:,
+                           show_status: show_status,
+                           show_move_control: show_move_control,
+                           show_sort_handle: bookshelf_sort_enabled,
+                           move_target_bookshelves: move_target_bookshelves,
+                           return_to: return_to %>
+              <% end %>
+            </div>
+          <% else %>
+            <section class="rounded-2xl border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500"
+                     <% if local_assigns[:show_move_control] %>
+                       data-bookshelf-dnd-target="dropzone"
+                       data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
+                     <% end %>>
+              <%= empty_message %>
+            </section>
+          <% end %>
+        </div>
       </div>
+
+      <% if local_assigns[:show_move_control] %>
+        <div class="hidden absolute inset-x-0 top-0 z-30 min-h-[24rem] rounded-b-2xl rounded-tr-2xl border-2 border-stone-300 bg-white p-4 shadow-lg ring-2 ring-stone-200"
+             data-bookshelf-dnd-target="previewPanel"
+             data-action="dragover->bookshelf-dnd#dragoverPreview dragleave->bookshelf-dnd#dragleavePreview drop->bookshelf-dnd#dropOnPreview"></div>
+      <% end %>
     </section>
   <% end %>
 

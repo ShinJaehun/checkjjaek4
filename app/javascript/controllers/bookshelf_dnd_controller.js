@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["moveForm", "bookshelfInput", "tab", "dropzone", "dropHint", "previewPanel"]
+  static targets = ["moveForm", "bookshelfInput", "tab", "dropzone", "panel", "previewPanel"]
   static values = { selectedBookshelfId: Number }
 
   connect() {
@@ -131,17 +131,8 @@ export default class extends Controller {
       this.armedBookshelfName = bookshelfName
       this.pendingBookshelfId = null
       this.highlight(tab)
-      this.showDropHint()
       this.fetchPreview(previewUrl, targetBookshelfId)
     }, this.hoverDelay)
-  }
-
-  showDropHint() {
-    if (!this.hasDropHintTarget || !this.armedBookshelfName) return
-
-    this.dropHintTarget.textContent = `아래 책장 영역에 놓으면 '${this.armedBookshelfName}'으로 이동합니다.`
-    this.dropHintTarget.classList.remove("hidden")
-    if (this.hasDropzoneTarget) this.highlight(this.dropzoneTarget)
   }
 
   clearArmTimer() {
@@ -155,10 +146,6 @@ export default class extends Controller {
   clearArmedTarget() {
     this.armedBookshelfId = null
     this.armedBookshelfName = null
-    if (this.hasDropHintTarget) {
-      this.dropHintTarget.textContent = ""
-      this.dropHintTarget.classList.add("hidden")
-    }
     this.clearPreview()
   }
 
@@ -180,15 +167,24 @@ export default class extends Controller {
 
       this.previewPanelTarget.innerHTML = await response.text()
       this.previewPanelTarget.classList.remove("hidden")
+      this.syncPreviewOverlayHeight()
     } catch (_error) {
       this.clearPreview()
     }
+  }
+
+  syncPreviewOverlayHeight() {
+    if (!this.hasPreviewPanelTarget || !this.hasPanelTarget) return
+
+    const minHeight = Math.max(this.panelTarget.offsetHeight, 384)
+    this.previewPanelTarget.style.minHeight = `${minHeight}px`
   }
 
   clearPreview() {
     if (!this.hasPreviewPanelTarget) return
 
     this.previewPanelTarget.innerHTML = ""
+    this.previewPanelTarget.style.minHeight = ""
     this.previewPanelTarget.classList.add("hidden")
   }
 

@@ -70,7 +70,8 @@ class Users::LibrariesController < ApplicationController
     render partial: "users/libraries/bookshelf_entries_preview",
            locals: {
              bookshelf: @selected_bookshelf,
-             bookshelf_entries: @bookshelf_entries.limit(6)
+             bookshelf_entries: @bookshelf_entries.limit(6),
+             bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@selected_bookshelf.id, 0)
            },
            layout: false
   end
