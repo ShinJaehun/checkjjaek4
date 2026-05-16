@@ -128,7 +128,8 @@
 - 책장 안 책 순서 변경은 `sort=manual`에서만 활성화되며, `BookshelfEntry.position`과 `PATCH /bookshelf_entries/reorder`를 사용한다
 - Library UX redesign 1차 방향은 책장 tab/index를 사전 index 또는 바인더 tab처럼 보이게 하고, 선택된 책장과 책 목록 영역을 `Bookshelf.color_key` 기반 accent로 약하게 연결하는 것이다
 - 1차에서는 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
-- 정렬, 새 책장, 책장 관리 UI는 tab/index와 책 목록 사이의 drag 동선을 방해하지 않도록 선택된 책장 header 또는 접이식 관리 패널로 분리하는 방향이다
+- 정렬은 선택된 책장 header 오른쪽 컨트롤로 제공하며, 새 책장 생성과 선택된 일반 책장 관리는 tab/index와 책 목록 사이의 drag 동선을 방해하지 않도록 페이지 내 사전 렌더링 modal로 분리한다
+- 책장 관리 modal은 Turbo Frame fetch 없이 Stimulus로 create/edit panel을 전환하고, 기존 create/update/move_up/move_down/destroy 흐름을 재사용한다
 - compact book card는 표지, 제목, 저자, 상태/별점 중심으로 줄이고, publisher, 긴 sticker 목록, 카드 내부 책장 이동 select는 정리 대상으로 본다
 - full-card drag 기반 책장 안 순서 변경은 최종 UX 방향이지만, 책장 간 DnD와 충돌 가능성이 있어 1차에서는 기존 handle 기반 reorder를 유지한다
 

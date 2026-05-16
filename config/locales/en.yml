@@ -221,10 +221,12 @@ en:
       finished: "Finished"
   bookshelves:
     actions:
+      close: "Close"
       create: "Create bookshelf"
       destroy: "Delete bookshelf"
-      move_down: "Move down"
-      move_up: "Move up"
+      move_down: "Move right"
+      move_up: "Move left"
+      open_create: "Create bookshelf"
       update: "Update bookshelf"
     alerts:
       destroy_failed: "Bookshelf could not be deleted."
@@ -240,6 +242,7 @@ en:
     form:
       color_key: "Color"
       edit_title: "Manage bookshelf"
+      manage_title: "Manage bookshelf"
       name: "Bookshelf name"
       name_placeholder: "New bookshelf name"
       title: "New bookshelf"

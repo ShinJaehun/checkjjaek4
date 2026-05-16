@@ -648,9 +648,13 @@ Library 정리 화면의 책 카드는 책을 빠르게 훑고 옮기는 데 집
 
 - 선택된 책장 header에는 책장 이름, 책 수, visibility, 정렬 컨트롤, 설정 버튼을 배치하는 방향을 우선한다.
 - 정렬은 선택된 책장 header 오른쪽의 작은 컨트롤로 옮긴다.
-- 새 책장/책장 관리는 선택된 책장 header의 설정 버튼 또는 접이식 관리 패널로 분리한다.
-- modal/drawer는 이후 후보로 남기고, 1차에서는 HTML fallback과 Rails form 흐름이 단순한 접이식 관리 패널을 우선 검토한다.
-- 이번 구현에서는 modal/drawer를 만들지 않고, 책장 관리 modal/drawer 분리는 후속 후보로 남긴다.
+- 새 책장 생성은 책장 tab/index 영역의 작은 `+` 버튼에서 modal로 진입한다.
+- 선택된 일반 책장 관리는 selected bookshelf header의 “책장 관리” 버튼에서 같은 modal의 edit mode로 진입한다.
+- modal markup은 페이지 안에 미리 렌더링하고, Turbo Frame fetch 없이 Stimulus로 create/edit panel 전환과 열기/닫기만 처리한다.
+- create/edit modal shell은 공유하되, form action은 기존 `POST /bookshelves`, `PATCH /bookshelves/:id` 흐름을 재사용한다.
+- edit mode에는 책장 이름, 공개 범위, 색상 수정과 move_up / move_down, 빈 책장 삭제 controls를 함께 둔다.
+- validation 실패 시 실패한 create/edit modal을 다시 열린 상태로 렌더링하고 form errors를 표시한다.
+- 기존 details 접이식 관리 영역은 제거한다.
 - 책장 tab/index 영역에는 책장 선택과 drop target 역할만 남긴다.
 - Library 화면 상단은 프로필 card를 재사용하지 않고, 작은 avatar와 “사용자 이름의 서재” header만 둔다.
 
@@ -675,14 +679,8 @@ Library 정리 화면의 책 카드는 책을 빠르게 훑고 옮기는 데 집
 - 책장 삭제 시 안의 책 처리 정책
 - 실제 hover open 실험
 - 책장 안 책 순서 Drag and Drop
-- 별도 책장 관리 화면 분리
-- 책장 관리 modal/drawer 도입
-  - 새 책장 생성은 책장 tab/index 영역의 `+` 버튼에서 진입하는 방향을 검토한다.
-  - 선택된 책장 관리는 selected bookshelf header의 “책장 관리” 버튼에서 진입하는 방향을 검토한다.
-  - 생성/수정 modal shell은 가능하면 하나로 공유한다.
-  - modal 안에서 책장 이름, 공개 범위, 색상 설정을 처리한다.
-  - edit 모드에서는 순서 조정(move_up/move_down)과 빈 책장 삭제도 함께 배치할 수 있다.
-  - 이번 1차 UX redesign에서는 구현하지 않고 후속 작업으로 둔다.
+- 별도 책장 관리 화면 또는 drawer 분리
+- modal focus trap, body scroll lock, 전환 애니메이션 보강
 - full-card drag 기반 reorder와 책장 간 DnD 이벤트 경계 재설계
 - 사용자별 책 문맥 화면
 - BookActivity visibility 변경

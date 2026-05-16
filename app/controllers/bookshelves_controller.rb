@@ -10,6 +10,7 @@ class BookshelvesController < ApplicationController
       redirect_to bookshelf_redirect_path(@bookshelf.id),
                   notice: t("bookshelves.notices.created", bookshelf_name: @bookshelf.name)
     else
+      @bookshelf_management_modal_mode = "create"
       prepare_library_after_create_failure
       render "users/libraries/show", status: :unprocessable_content
     end
@@ -22,6 +23,7 @@ class BookshelvesController < ApplicationController
       redirect_to bookshelf_redirect_path(@bookshelf.id),
                   notice: t("bookshelves.notices.updated", bookshelf_name: @bookshelf.name)
     else
+      @bookshelf_management_modal_mode = "edit"
       prepare_library_after_failure(selected_bookshelf_id: @bookshelf.id, managed_bookshelf: @bookshelf)
       render "users/libraries/show", status: :unprocessable_content
     end
