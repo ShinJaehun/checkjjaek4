@@ -13,6 +13,7 @@ export default class extends Controller {
       handle: "[data-bookshelf-entries-sort-handle]",
       draggable: "[data-bookshelf-entry-id]",
       filter: "a, button, input, select, textarea, summary, details, form",
+      preventOnFilter: false,
       onEnd: (event) => this.handleEnd(event)
     })
   }

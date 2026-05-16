@@ -307,6 +307,7 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - 넓은 reorder handle을 책장 tab/preview panel에 놓는 경우 reorder 요청은 보내지 않는다.
 - 책장 간 이동 drop이 발생한 drag에서는 SortableJS reorder 요청을 보내지 않는다.
 - 링크, 버튼, details, select, form 같은 interactive 요소는 reorder drag 시작 대상에서 제외한다.
+- 책장 이동 fallback details/select/form은 reorder drag 대상에서 제외하지만 기본 조작은 유지한다.
 - reorder handle 밖의 책 카드 drag도 책장 간 이동 DnD 역할을 유지한다.
 - 본인 Library의 기본 정렬은 `manual`이다.
 - visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다.
