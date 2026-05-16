@@ -300,13 +300,16 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - `sort=manual`일 때 `position ASC, id ASC`로 정렬한다.
 - `PATCH /bookshelf_entries/reorder`는 같은 책장 안 전체 BookshelfEntry id를 전달받아 position을 재배정한다.
 - reorder 요청은 owner만 가능하며, 다른 책장/다른 사용자 entry id가 섞이거나 id가 누락되면 실패한다.
-- sort가 `manual`이고 owner 화면일 때만 책 카드의 비상호작용 본문 영역을 넓은 reorder handle로 사용한다.
+- sort가 `manual`이고 owner 화면일 때만 책 카드 전체에 가까운 영역을 reorder handle로 사용한다.
 - 작은 “순서 변경” 버튼은 두지 않는다.
-- 넓은 reorder handle을 같은 책장 안에서 드래그하면 카드 순서를 바꾸고 기존 reorder endpoint로 저장한다.
-- 넓은 reorder handle을 책장 tab/drop target에 놓으면 기존 책장 간 이동 흐름을 사용한다.
-- 넓은 reorder handle을 책장 tab/preview panel에 놓는 경우 reorder 요청은 보내지 않는다.
+- 카드 전체에 가까운 reorder handle을 같은 책장 안에서 드래그하면 카드 순서를 바꾸고 기존 reorder endpoint로 저장한다.
+- 카드 전체에 가까운 reorder handle을 책장 tab/drop target에 놓으면 기존 책장 간 이동 흐름을 사용한다.
+- 카드 전체에 가까운 reorder handle을 책장 tab/preview panel에 놓는 경우 reorder 요청은 보내지 않는다.
 - 책장 간 이동 drop이 발생한 drag에서는 SortableJS reorder 요청을 보내지 않는다.
-- 링크, 버튼, details, select, form 같은 interactive 요소는 reorder drag 시작 대상에서 제외한다.
+- 썸네일은 클릭 시 책 상세 링크로 동작하고, drag 시 책장 간 이동 drag source로 동작한다.
+- 책 제목 링크 drag는 책장 tab hover, preview open, 책장 이동을 발생시키지 않는다.
+- 책장 tab, preview panel, dropzone은 유효한 책 이동 drag에만 반응한다.
+- 링크, 버튼, details, summary, select, input, form 같은 interactive 요소는 reorder drag 시작 대상에서 제외한다.
 - 책장 이동 fallback details/select/form은 reorder drag 대상에서 제외하지만 기본 조작은 유지한다.
 - reorder handle 밖의 책 카드 drag도 책장 간 이동 DnD 역할을 유지한다.
 - 본인 Library의 기본 정렬은 `manual`이다.

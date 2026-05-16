@@ -10,7 +10,8 @@ export default class extends Controller {
 
   dragstart(event) {
     this.moveUrl = null
-    if (event.target.closest("a, button, input, select, textarea, summary, details, form")) return
+    const dragPreviewSource = event.target.closest("[data-bookshelf-dnd-drag-preview]")
+    if (!dragPreviewSource && event.target.closest("a, button, input, select, textarea, summary, details, form")) return
 
     this.moveUrl = event.params.moveUrl
     event.dataTransfer.effectAllowed = "move"
@@ -25,6 +26,8 @@ export default class extends Controller {
   }
 
   dragoverTab(event) {
+    if (!this.hasActiveMove()) return
+
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
     this.highlight(event.currentTarget)
@@ -37,12 +40,16 @@ export default class extends Controller {
   }
 
   dropOnTab(event) {
+    if (!this.hasActiveMove()) return
+
     event.preventDefault()
     this.moveTo(event.params.bookshelfId)
     this.resetDragState()
   }
 
   dragoverSelected(event) {
+    if (!this.hasActiveMove()) return
+
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
     this.highlight(this.dropzoneTarget)
@@ -53,12 +60,16 @@ export default class extends Controller {
   }
 
   dropOnSelected(event) {
+    if (!this.hasActiveMove()) return
+
     event.preventDefault()
     this.moveTo(this.armedBookshelfId || this.selectedBookshelfIdValue)
     this.resetDragState()
   }
 
   dragoverPreview(event) {
+    if (!this.hasActiveMove()) return
+
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
     this.highlight(this.previewPanelTarget)
@@ -69,9 +80,15 @@ export default class extends Controller {
   }
 
   dropOnPreview(event) {
+    if (!this.hasActiveMove()) return
+
     event.preventDefault()
     this.moveTo(this.armedBookshelfId)
     this.resetDragState()
+  }
+
+  hasActiveMove() {
+    return !!this.moveUrl
   }
 
   moveTo(bookshelfId) {
