@@ -3,52 +3,60 @@ module UsersHelper
 
   BOOKSHELF_TAB_CLASSES_BY_COLOR_KEY = {
     "stone" => {
-      selected: "border-stone-900 bg-stone-900 text-white",
-      unselected: "border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-400 hover:text-stone-900",
+      selected: "border-stone-900 bg-stone-900 text-white shadow-sm ring-2 ring-stone-200",
+      unselected: "border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-400 hover:bg-white hover:text-stone-900",
       count_selected: "text-stone-200",
-      count_unselected: "text-stone-400"
+      count_unselected: "text-stone-400",
+      panel: "border-stone-300 ring-stone-200"
     },
     "red" => {
-      selected: "border-red-700 bg-red-600 text-white",
-      unselected: "border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:text-red-900",
+      selected: "border-red-700 bg-red-600 text-white shadow-sm ring-2 ring-red-100",
+      unselected: "border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-white hover:text-red-900",
       count_selected: "text-red-100",
-      count_unselected: "text-red-400"
+      count_unselected: "text-red-400",
+      panel: "border-red-200 ring-red-100"
     },
     "orange" => {
-      selected: "border-orange-700 bg-orange-500 text-white",
-      unselected: "border-orange-200 bg-orange-50 text-orange-700 hover:border-orange-300 hover:text-orange-900",
+      selected: "border-orange-700 bg-orange-500 text-white shadow-sm ring-2 ring-orange-100",
+      unselected: "border-orange-200 bg-orange-50 text-orange-700 hover:border-orange-300 hover:bg-white hover:text-orange-900",
       count_selected: "text-orange-100",
-      count_unselected: "text-orange-400"
+      count_unselected: "text-orange-400",
+      panel: "border-orange-200 ring-orange-100"
     },
     "yellow" => {
-      selected: "border-yellow-600 bg-yellow-400 text-yellow-950",
-      unselected: "border-yellow-200 bg-yellow-50 text-yellow-800 hover:border-yellow-300 hover:text-yellow-950",
+      selected: "border-yellow-600 bg-yellow-400 text-yellow-950 shadow-sm ring-2 ring-yellow-100",
+      unselected: "border-yellow-200 bg-yellow-50 text-yellow-800 hover:border-yellow-300 hover:bg-white hover:text-yellow-950",
       count_selected: "text-yellow-800",
-      count_unselected: "text-yellow-500"
+      count_unselected: "text-yellow-500",
+      panel: "border-yellow-200 ring-yellow-100"
     },
     "green" => {
-      selected: "border-green-700 bg-green-600 text-white",
-      unselected: "border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:text-green-900",
+      selected: "border-green-700 bg-green-600 text-white shadow-sm ring-2 ring-green-100",
+      unselected: "border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-white hover:text-green-900",
       count_selected: "text-green-100",
-      count_unselected: "text-green-400"
+      count_unselected: "text-green-400",
+      panel: "border-green-200 ring-green-100"
     },
     "blue" => {
-      selected: "border-blue-700 bg-blue-600 text-white",
-      unselected: "border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:text-blue-900",
+      selected: "border-blue-700 bg-blue-600 text-white shadow-sm ring-2 ring-blue-100",
+      unselected: "border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-white hover:text-blue-900",
       count_selected: "text-blue-100",
-      count_unselected: "text-blue-400"
+      count_unselected: "text-blue-400",
+      panel: "border-blue-200 ring-blue-100"
     },
     "purple" => {
-      selected: "border-purple-700 bg-purple-600 text-white",
-      unselected: "border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:text-purple-900",
+      selected: "border-purple-700 bg-purple-600 text-white shadow-sm ring-2 ring-purple-100",
+      unselected: "border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-white hover:text-purple-900",
       count_selected: "text-purple-100",
-      count_unselected: "text-purple-400"
+      count_unselected: "text-purple-400",
+      panel: "border-purple-200 ring-purple-100"
     },
     "pink" => {
-      selected: "border-pink-700 bg-pink-600 text-white",
-      unselected: "border-pink-200 bg-pink-50 text-pink-700 hover:border-pink-300 hover:text-pink-900",
+      selected: "border-pink-700 bg-pink-600 text-white shadow-sm ring-2 ring-pink-100",
+      unselected: "border-pink-200 bg-pink-50 text-pink-700 hover:border-pink-300 hover:bg-white hover:text-pink-900",
       count_selected: "text-pink-100",
-      count_unselected: "text-pink-400"
+      count_unselected: "text-pink-400",
+      panel: "border-pink-200 ring-pink-100"
     }
   }.freeze
 
@@ -58,6 +66,10 @@ module UsersHelper
 
   def bookshelf_tab_count_class(bookshelf, selected:)
     bookshelf_color_palette(bookshelf).fetch(selected ? :count_selected : :count_unselected)
+  end
+
+  def bookshelf_panel_class(bookshelf)
+    bookshelf_color_palette(bookshelf).fetch(:panel)
   end
 
   def profile_follow_button_options(user)

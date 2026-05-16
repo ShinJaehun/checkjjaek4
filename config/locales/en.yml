@@ -352,6 +352,9 @@ en:
           status: "Status"
           title: "Title"
         submit: "Sort"
+      bookshelf_scroll:
+        next: "Next bookshelf"
+        previous: "Previous bookshelf"
       bookshelf_tabs: "Bookshelves"
       bookshelf_title: "Bookshelf"
       empty_activity: "No recent activity yet."

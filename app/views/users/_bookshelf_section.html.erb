@@ -29,27 +29,58 @@
     <% if local_assigns[:show_move_control] %>
       <p class="text-xs text-stone-500">책 카드를 책장 이름 위에 잠시 올린 뒤 아래 영역에 놓아 이동할 수 있어요.</p>
     <% end %>
+  <% end %>
 
-    <nav class="flex flex-wrap gap-2" aria-label="<%= t("users.profile.bookshelf_tabs") %>">
-      <% bookshelves.each do |bookshelf| %>
-        <% selected = bookshelf == selected_bookshelf %>
-        <%= link_to bookshelf_section_path.call(bookshelf_id: bookshelf.id, sort: bookshelf_sort),
-                    class: [
-                      "inline-flex shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition",
-                      bookshelf_tab_class(bookshelf, selected: selected)
-                    ],
-                    data: (local_assigns[:show_move_control] ? {
-                      bookshelf_dnd_target: "tab",
-                      bookshelf_dnd_bookshelf_id_param: bookshelf.id,
-                      bookshelf_dnd_bookshelf_name_param: bookshelf.name,
-                      bookshelf_dnd_preview_url_param: bookshelf_section_path.call(bookshelf_id: bookshelf.id, sort: bookshelf_sort, preview: "bookshelf_entries"),
-                      action: "dragover->bookshelf-dnd#dragoverTab dragleave->bookshelf-dnd#dragleaveTab drop->bookshelf-dnd#dropOnTab"
-                    } : {}) do %>
-          <span><%= bookshelf.name %></span>
-          <span class="<%= bookshelf_tab_count_class(bookshelf, selected: selected) %>">(<%= bookshelf_entry_counts.fetch(bookshelf.id, 0) %>)</span>
+  <% if bookshelves.any? || selected_bookshelf.present? %>
+    <div class="space-y-0">
+  <% end %>
+
+  <% if bookshelves.any? %>
+    <div class="relative z-10" data-controller="horizontal-scroll">
+      <button type="button"
+              class="absolute left-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm"
+              data-action="horizontal-scroll#scrollLeft"
+              aria-label="<%= t("users.profile.bookshelf_scroll.previous") %>">
+        &lt;
+      </button>
+
+      <nav class="flex items-end gap-1 overflow-x-auto px-7 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+           data-horizontal-scroll-target="scroller"
+           aria-label="<%= t("users.profile.bookshelf_tabs") %>">
+        <% bookshelves.each do |bookshelf| %>
+          <% selected = bookshelf == selected_bookshelf %>
+          <% tab_data = selected ? { horizontal_scroll_target: "selected" } : {} %>
+          <% if local_assigns[:show_move_control] %>
+            <% tab_data.merge!(
+              bookshelf_dnd_target: "tab",
+              bookshelf_dnd_bookshelf_id_param: bookshelf.id,
+              bookshelf_dnd_bookshelf_name_param: bookshelf.name,
+              bookshelf_dnd_preview_url_param: bookshelf_section_path.call(bookshelf_id: bookshelf.id, sort: bookshelf_sort, preview: "bookshelf_entries"),
+              action: "dragover->bookshelf-dnd#dragoverTab dragleave->bookshelf-dnd#dragleaveTab drop->bookshelf-dnd#dropOnTab"
+            ) %>
+          <% end %>
+          <%= link_to bookshelf_section_path.call(bookshelf_id: bookshelf.id, sort: bookshelf_sort),
+                      class: [
+                        "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-t-xl border-2 px-4 py-2 text-sm font-semibold transition",
+                        ("max-w-48" unless selected),
+                        (selected ? "relative z-20 -mb-[2px]" : "relative z-0"),
+                        bookshelf_tab_class(bookshelf, selected: selected)
+                      ].compact,
+                      data: tab_data do %>
+            <span class="<%= selected ? "whitespace-nowrap" : "min-w-0 truncate" %>"><%= bookshelf.name %></span>
+            <span class="shrink-0 <%= bookshelf_tab_count_class(bookshelf, selected: selected) %>">(<%= bookshelf_entry_counts.fetch(bookshelf.id, 0) %>)</span>
+          <% end %>
         <% end %>
-      <% end %>
-    </nav>
+      </nav>
+      <div class="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white to-transparent"></div>
+      <div class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent"></div>
+      <button type="button"
+              class="absolute right-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm"
+              data-action="horizontal-scroll#scrollRight"
+              aria-label="<%= t("users.profile.bookshelf_scroll.next") %>">
+        &gt;
+      </button>
+    </div>
   <% end %>
 
   <% if local_assigns[:show_move_control] %>
@@ -62,189 +93,213 @@
     <% end %>
   <% end %>
 
-  <% if selected_bookshelf.present? && bookshelf_sort_options.any? %>
-    <%= form_with url: bookshelf_section_path.call, method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
-      <%= form.hidden_field :bookshelf_id, value: selected_bookshelf.id %>
+  <% if selected_bookshelf.present? %>
+    <section class="mt-0.5 relative z-0 overflow-hidden rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(selected_bookshelf) %>">
+      <header class="flex flex-col gap-3 border-b border-stone-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
+        <div class="min-w-0">
+          <p class="text-xs font-medium text-stone-500"><%= t("users.profile.bookshelf_title") %></p>
+          <div class="mt-1 flex flex-wrap items-center gap-2">
+            <h3 class="break-words text-xl font-semibold text-stone-900"><%= selected_bookshelf.name %></h3>
+            <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
+              <%= bookshelf_entry_counts.fetch(selected_bookshelf.id, 0) %>
+            </span>
+            <span class="rounded-full border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-500">
+              <%= t("bookshelves.visibility.#{selected_bookshelf.visibility}") %>
+            </span>
+          </div>
+        </div>
 
-      <div>
-        <%= form.label :sort, t("users.profile.bookshelf_sort.label"), class: "block text-xs font-medium text-stone-500" %>
-        <%= form.select :sort,
-                        bookshelf_sort_options.map { |sort| [ t("users.profile.bookshelf_sort.options.#{sort}"), sort ] },
-                        { selected: bookshelf_sort },
-                        class: "mt-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
+        <div class="flex flex-wrap items-end gap-2">
+          <% if bookshelf_sort_options.any? %>
+            <%= form_with url: bookshelf_section_path.call, method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
+              <%= form.hidden_field :bookshelf_id, value: selected_bookshelf.id %>
+
+              <div>
+                <%= form.label :sort, t("users.profile.bookshelf_sort.label"), class: "block text-xs font-medium text-stone-500" %>
+                <%= form.select :sort,
+                                bookshelf_sort_options.map { |sort| [ t("users.profile.bookshelf_sort.options.#{sort}"), sort ] },
+                                { selected: bookshelf_sort },
+                                class: "mt-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
+              </div>
+
+              <%= form.submit t("users.profile.bookshelf_sort.submit"),
+                              class: "rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700" %>
+            <% end %>
+          <% end %>
+        </div>
+      </header>
+
+      <% if local_assigns[:show_create_form] && new_bookshelf.present? %>
+        <details class="border-b border-stone-100 px-4 py-3">
+          <summary class="cursor-pointer text-sm font-semibold text-stone-700"><%= t("bookshelves.form.edit_title") %></summary>
+
+          <div class="mt-4 space-y-4">
+            <section>
+              <h4 class="text-sm font-semibold text-stone-900"><%= t("bookshelves.form.title") %></h4>
+
+              <% if new_bookshelf.errors.any? %>
+                <div class="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <ul class="list-disc pl-5">
+                    <% new_bookshelf.errors.full_messages.each do |message| %>
+                      <li><%= message %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              <% end %>
+
+              <%= form_with model: new_bookshelf, url: bookshelves_path, class: "mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]" do |form| %>
+                <%= hidden_field_tag :return_to, return_to %>
+
+                <div>
+                  <%= form.label :name, t("bookshelves.form.name"), class: "sr-only" %>
+                  <%= form.text_field :name,
+                                      placeholder: t("bookshelves.form.name_placeholder"),
+                                      class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
+                </div>
+
+                <div>
+                  <%= form.label :visibility, t("bookshelves.form.visibility"), class: "sr-only" %>
+                  <%= form.select :visibility,
+                                  bookshelf_visibility_options.map { |visibility| [ t("bookshelves.visibility.#{visibility}"), visibility ] },
+                                  {},
+                                  class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
+                </div>
+
+                <div>
+                  <%= form.label :color_key, t("bookshelves.form.color_key"), class: "sr-only" %>
+                  <%= form.select :color_key,
+                                  bookshelf_color_options.map { |color_key| [ t("bookshelves.color_keys.#{color_key}"), color_key ] },
+                                  {},
+                                  class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
+                </div>
+
+                <%= form.submit t("bookshelves.actions.create"),
+                                class: "rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white" %>
+              <% end %>
+            </section>
+
+            <% if managed_bookshelf.present? && !managed_bookshelf.is_default? %>
+              <section class="border-t border-stone-100 pt-4">
+                <h4 class="text-sm font-semibold text-stone-900"><%= t("bookshelves.form.edit_title") %></h4>
+
+                <% if managed_bookshelf.errors.any? %>
+                  <div class="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    <ul class="list-disc pl-5">
+                      <% managed_bookshelf.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                <% end %>
+
+                <%= form_with model: managed_bookshelf, class: "mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]" do |form| %>
+                  <%= hidden_field_tag :return_to, return_to %>
+
+                  <div>
+                    <%= form.label :name, t("bookshelves.form.name"), class: "sr-only" %>
+                    <%= form.text_field :name,
+                                        class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
+                  </div>
+
+                  <div>
+                    <%= form.label :visibility, t("bookshelves.form.visibility"), class: "sr-only" %>
+                    <%= form.select :visibility,
+                                    bookshelf_visibility_options.map { |visibility| [ t("bookshelves.visibility.#{visibility}"), visibility ] },
+                                    {},
+                                    class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
+                  </div>
+
+                  <div>
+                    <%= form.label :color_key, t("bookshelves.form.color_key"), class: "sr-only" %>
+                    <%= form.select :color_key,
+                                    bookshelf_color_options.map { |color_key| [ t("bookshelves.color_keys.#{color_key}"), color_key ] },
+                                    {},
+                                    class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
+                  </div>
+
+                  <%= form.submit t("bookshelves.actions.update"),
+                                  class: "rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white" %>
+                <% end %>
+
+                <% order_controls = bookshelf_order_controls.fetch(managed_bookshelf.id, {}) %>
+                <% if order_controls[:move_up] || order_controls[:move_down] %>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <% if order_controls[:move_up] %>
+                      <%= button_to t("bookshelves.actions.move_up"),
+                                    move_up_bookshelf_path(managed_bookshelf),
+                                    method: :patch,
+                                    params: { return_to: return_to },
+                                    class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
+                    <% end %>
+
+                    <% if order_controls[:move_down] %>
+                      <%= button_to t("bookshelves.actions.move_down"),
+                                    move_down_bookshelf_path(managed_bookshelf),
+                                    method: :patch,
+                                    params: { return_to: return_to },
+                                    class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
+                    <% end %>
+                  </div>
+                <% end %>
+
+                <% if bookshelf_entry_counts.fetch(managed_bookshelf.id, 0).zero? %>
+                  <%= button_to t("bookshelves.actions.destroy"),
+                                bookshelf_path(managed_bookshelf),
+                                method: :delete,
+                                params: { return_to: return_to },
+                                class: "mt-3 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700" %>
+                <% end %>
+              </section>
+            <% end %>
+          </div>
+        </details>
+      <% end %>
+
+      <div class="space-y-3 p-4">
+        <% if local_assigns[:show_move_control] %>
+          <p class="hidden rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600"
+             data-bookshelf-dnd-target="dropHint"></p>
+
+          <div class="hidden"
+               data-bookshelf-dnd-target="previewPanel"
+               data-action="dragover->bookshelf-dnd#dragoverPreview dragleave->bookshelf-dnd#dragleavePreview drop->bookshelf-dnd#dropOnPreview"></div>
+        <% end %>
+
+        <% if bookshelf_entries.any? %>
+          <div class="grid gap-3 sm:grid-cols-2"
+               <% if bookshelf_sort_enabled %>
+                 data-controller="bookshelf-entries-sort"
+                 data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
+                 data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
+               <% end %>
+               <% if local_assigns[:show_move_control] %>
+                 data-bookshelf-dnd-target="dropzone"
+                 data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
+               <% end %>>
+            <% bookshelf_entries.each do |bookshelf_entry| %>
+              <%= render "bookshelf_entries/profile_bookshelf_entry",
+                         bookshelf_entry:,
+                         show_status: show_status,
+                         show_move_control: show_move_control,
+                         show_sort_handle: bookshelf_sort_enabled,
+                         move_target_bookshelves: move_target_bookshelves,
+                         return_to: return_to %>
+            <% end %>
+          </div>
+        <% else %>
+          <section class="rounded-2xl border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500"
+                   <% if local_assigns[:show_move_control] %>
+                     data-bookshelf-dnd-target="dropzone"
+                     data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
+                   <% end %>>
+            <%= empty_message %>
+          </section>
+        <% end %>
       </div>
-
-      <%= form.submit t("users.profile.bookshelf_sort.submit"),
-                      class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
-    <% end %>
-  <% end %>
-
-  <% if local_assigns[:show_create_form] && new_bookshelf.present? %>
-    <section class="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-      <h3 class="text-sm font-semibold text-stone-900"><%= t("bookshelves.form.title") %></h3>
-
-      <% if new_bookshelf.errors.any? %>
-        <div class="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          <ul class="list-disc pl-5">
-            <% new_bookshelf.errors.full_messages.each do |message| %>
-              <li><%= message %></li>
-            <% end %>
-          </ul>
-        </div>
-      <% end %>
-
-      <%= form_with model: new_bookshelf, url: bookshelves_path, class: "mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]" do |form| %>
-        <%= hidden_field_tag :return_to, return_to %>
-
-        <div>
-          <%= form.label :name, t("bookshelves.form.name"), class: "sr-only" %>
-          <%= form.text_field :name,
-                              placeholder: t("bookshelves.form.name_placeholder"),
-                              class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
-        </div>
-
-        <div>
-          <%= form.label :visibility, t("bookshelves.form.visibility"), class: "sr-only" %>
-          <%= form.select :visibility,
-                          bookshelf_visibility_options.map { |visibility| [ t("bookshelves.visibility.#{visibility}"), visibility ] },
-                          {},
-                          class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
-        </div>
-
-        <div>
-          <%= form.label :color_key, t("bookshelves.form.color_key"), class: "sr-only" %>
-          <%= form.select :color_key,
-                          bookshelf_color_options.map { |color_key| [ t("bookshelves.color_keys.#{color_key}"), color_key ] },
-                          {},
-                          class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
-        </div>
-
-        <%= form.submit t("bookshelves.actions.create"),
-                        class: "rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white" %>
-      <% end %>
     </section>
   <% end %>
 
-  <% if local_assigns[:show_create_form] && managed_bookshelf.present? && !managed_bookshelf.is_default? %>
-    <section class="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-      <h3 class="text-sm font-semibold text-stone-900"><%= t("bookshelves.form.edit_title") %></h3>
-
-      <% if managed_bookshelf.errors.any? %>
-        <div class="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          <ul class="list-disc pl-5">
-            <% managed_bookshelf.errors.full_messages.each do |message| %>
-              <li><%= message %></li>
-            <% end %>
-          </ul>
-        </div>
-      <% end %>
-
-      <%= form_with model: managed_bookshelf, class: "mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]" do |form| %>
-        <%= hidden_field_tag :return_to, return_to %>
-
-        <div>
-          <%= form.label :name, t("bookshelves.form.name"), class: "sr-only" %>
-          <%= form.text_field :name,
-                              class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
-        </div>
-
-        <div>
-          <%= form.label :visibility, t("bookshelves.form.visibility"), class: "sr-only" %>
-          <%= form.select :visibility,
-                          bookshelf_visibility_options.map { |visibility| [ t("bookshelves.visibility.#{visibility}"), visibility ] },
-                          {},
-                          class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
-        </div>
-
-        <div>
-          <%= form.label :color_key, t("bookshelves.form.color_key"), class: "sr-only" %>
-          <%= form.select :color_key,
-                          bookshelf_color_options.map { |color_key| [ t("bookshelves.color_keys.#{color_key}"), color_key ] },
-                          {},
-                          class: "w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
-        </div>
-
-        <%= form.submit t("bookshelves.actions.update"),
-                        class: "rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white" %>
-      <% end %>
-
-      <% order_controls = bookshelf_order_controls.fetch(managed_bookshelf.id, {}) %>
-      <% if order_controls[:move_up] || order_controls[:move_down] %>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <% if order_controls[:move_up] %>
-            <%= button_to t("bookshelves.actions.move_up"),
-                          move_up_bookshelf_path(managed_bookshelf),
-                          method: :patch,
-                          params: { return_to: return_to },
-                          class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
-          <% end %>
-
-          <% if order_controls[:move_down] %>
-            <%= button_to t("bookshelves.actions.move_down"),
-                          move_down_bookshelf_path(managed_bookshelf),
-                          method: :patch,
-                          params: { return_to: return_to },
-                          class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
-          <% end %>
-        </div>
-      <% end %>
-
-      <% if bookshelf_entry_counts.fetch(managed_bookshelf.id, 0).zero? %>
-        <%= button_to t("bookshelves.actions.destroy"),
-                      bookshelf_path(managed_bookshelf),
-                      method: :delete,
-                      params: { return_to: return_to },
-                      class: "mt-3 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700" %>
-      <% end %>
-    </section>
-  <% end %>
-
-  <% if bookshelf_entries.any? %>
-    <% if local_assigns[:show_move_control] %>
-      <p class="hidden rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600"
-         data-bookshelf-dnd-target="dropHint"></p>
-
-      <div class="hidden"
-           data-bookshelf-dnd-target="previewPanel"
-           data-action="dragover->bookshelf-dnd#dragoverPreview dragleave->bookshelf-dnd#dragleavePreview drop->bookshelf-dnd#dropOnPreview"></div>
-    <% end %>
-
-    <div class="grid gap-3 sm:grid-cols-2"
-         <% if bookshelf_sort_enabled %>
-           data-controller="bookshelf-entries-sort"
-           data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
-           data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
-         <% end %>
-         <% if local_assigns[:show_move_control] %>
-           data-bookshelf-dnd-target="dropzone"
-           data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
-         <% end %>>
-      <% bookshelf_entries.each do |bookshelf_entry| %>
-        <%= render "bookshelf_entries/profile_bookshelf_entry",
-                   bookshelf_entry:,
-                   show_status: show_status,
-                   show_move_control: show_move_control,
-                   show_sort_handle: bookshelf_sort_enabled,
-                   move_target_bookshelves: move_target_bookshelves,
-                   return_to: return_to %>
-      <% end %>
+  <% if bookshelves.any? || selected_bookshelf.present? %>
     </div>
-  <% else %>
-    <% if local_assigns[:show_move_control] %>
-      <p class="hidden rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600"
-         data-bookshelf-dnd-target="dropHint"></p>
-
-      <div class="hidden"
-           data-bookshelf-dnd-target="previewPanel"
-           data-action="dragover->bookshelf-dnd#dragoverPreview dragleave->bookshelf-dnd#dragleavePreview drop->bookshelf-dnd#dropOnPreview"></div>
-    <% end %>
-
-    <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm"
-             <% if local_assigns[:show_move_control] %>
-               data-bookshelf-dnd-target="dropzone"
-               data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
-             <% end %>>
-      <%= empty_message %>
-    </section>
   <% end %>
 </section>

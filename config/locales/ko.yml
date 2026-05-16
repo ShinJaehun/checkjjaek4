@@ -352,6 +352,9 @@ ko:
           status: "상태순"
           title: "제목순"
         submit: "정렬"
+      bookshelf_scroll:
+        next: "다음 책장"
+        previous: "이전 책장"
       bookshelf_tabs: "책장"
       bookshelf_title: "책장"
       empty_activity: "아직 최근 활동이 없습니다."
