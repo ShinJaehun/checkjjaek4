@@ -341,6 +341,7 @@ en:
     library:
       book_friend_read_only_notice: "Bookshelves shared with book friends"
       title: "Full Library"
+      title_with_name: "%{name}'s Library"
     profile:
       activity_title: "Recent Activity"
       bookshelf_sort:

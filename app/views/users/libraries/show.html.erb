@@ -1,5 +1,13 @@
-<section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
-  <%= render "users/profile_header", user: @user, book_friendship: @book_friendship %>
+<section class="mx-auto flex w-full max-w-4xl flex-col gap-4">
+  <header class="flex min-w-0 items-center gap-3">
+    <%= user_avatar_image(@user, size: 128, alt: @user.name, class: "h-12 w-12 shrink-0 rounded-full object-cover") %>
+    <div class="min-w-0">
+      <h1 class="truncate text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.library.title_with_name", name: @user.name) %></h1>
+      <% if current_user != @user %>
+        <p class="mt-1 text-sm text-stone-500"><%= t("users.library.book_friend_read_only_notice") %></p>
+      <% end %>
+    </div>
+  </header>
 
   <% if @show_bookshelf %>
     <%= render "users/bookshelf_section",
@@ -18,7 +26,6 @@
                managed_bookshelf: @managed_bookshelf,
                bookshelf_order_controls: @profile_bookshelf_order_controls,
                bookshelf_visibility_options: @profile_bookshelf_visibility_options,
-               bookshelf_color_options: @profile_bookshelf_color_options,
-               read_only_notice: (t("users.library.book_friend_read_only_notice") if current_user != @user) %>
+               bookshelf_color_options: @profile_bookshelf_color_options %>
   <% end %>
 </section>

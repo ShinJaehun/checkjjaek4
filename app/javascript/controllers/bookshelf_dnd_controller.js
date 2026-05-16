@@ -14,10 +14,12 @@ export default class extends Controller {
     this.moveUrl = event.params.moveUrl
     event.dataTransfer.effectAllowed = "move"
     event.dataTransfer.setData("text/plain", this.moveUrl)
+    this.setDragPreview(event)
   }
 
   dragend() {
     this.resetDragState()
+    this.clearDragPreview()
     this.moveUrl = null
   }
 
@@ -169,5 +171,36 @@ export default class extends Controller {
 
     this.previewPanelTarget.innerHTML = ""
     this.previewPanelTarget.classList.add("hidden")
+  }
+
+  setDragPreview(event) {
+    const previewSource = event.currentTarget.querySelector("[data-bookshelf-dnd-drag-preview]")
+    const image = previewSource?.querySelector("img")
+
+    this.dragPreview = image?.complete ? image.cloneNode(true) : this.placeholderDragPreview(previewSource)
+    this.dragPreview.classList.add("pointer-events-none")
+    this.dragPreview.style.position = "fixed"
+    this.dragPreview.style.top = "-1000px"
+    this.dragPreview.style.left = "-1000px"
+    this.dragPreview.style.width = "56px"
+    this.dragPreview.style.height = "80px"
+    this.dragPreview.style.objectFit = "contain"
+    document.body.appendChild(this.dragPreview)
+
+    event.dataTransfer.setDragImage(this.dragPreview, 28, 40)
+  }
+
+  placeholderDragPreview(previewSource) {
+    const placeholder = previewSource?.querySelector("div")?.cloneNode(true) || document.createElement("div")
+    placeholder.textContent = placeholder.textContent.trim() || "표지 없음"
+    placeholder.className = "flex items-center justify-center rounded-sm border border-stone-200 bg-stone-50 px-2 text-center text-xs font-medium text-stone-400"
+    return placeholder
+  }
+
+  clearDragPreview() {
+    if (!this.dragPreview) return
+
+    this.dragPreview.remove()
+    this.dragPreview = null
   }
 }

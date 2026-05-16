@@ -643,7 +643,9 @@ Library 정리 화면의 책 카드는 책을 빠르게 훑고 옮기는 데 집
 - 정렬은 선택된 책장 header 오른쪽의 작은 컨트롤로 옮긴다.
 - 새 책장/책장 관리는 선택된 책장 header의 설정 버튼 또는 접이식 관리 패널로 분리한다.
 - modal/drawer는 이후 후보로 남기고, 1차에서는 HTML fallback과 Rails form 흐름이 단순한 접이식 관리 패널을 우선 검토한다.
+- 이번 구현에서는 modal/drawer를 만들지 않고, 책장 관리 modal/drawer 분리는 후속 후보로 남긴다.
 - 책장 tab/index 영역에는 책장 선택과 drop target 역할만 남긴다.
+- Library 화면 상단은 프로필 card를 재사용하지 않고, 작은 avatar와 “사용자 이름의 서재” header만 둔다.
 
 ---
 

@@ -18,19 +18,6 @@
   <% bookshelf_color_options = local_assigns[:bookshelf_color_options] || [] %>
   <% empty_message = local_assigns[:empty_message] || t("users.profile.empty_bookshelf") %>
 
-  <div>
-    <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.bookshelf_title") %></h2>
-    <% if local_assigns[:read_only_notice].present? %>
-      <p class="mt-2 text-sm text-stone-500"><%= local_assigns[:read_only_notice] %></p>
-    <% end %>
-  </div>
-
-  <% if bookshelves.any? %>
-    <% if local_assigns[:show_move_control] %>
-      <p class="text-xs text-stone-500">책 카드를 책장 이름 위에 잠시 올린 뒤 아래 영역에 놓아 이동할 수 있어요.</p>
-    <% end %>
-  <% end %>
-
   <% if bookshelves.any? || selected_bookshelf.present? %>
     <div class="space-y-0">
   <% end %>
@@ -44,7 +31,7 @@
         &lt;
       </button>
 
-      <nav class="flex items-end gap-1 overflow-x-auto px-7 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      <nav class="flex items-end gap-1 overflow-x-auto px-7 pt-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
            data-horizontal-scroll-target="scroller"
            aria-label="<%= t("users.profile.bookshelf_tabs") %>">
         <% bookshelves.each do |bookshelf| %>
@@ -72,8 +59,6 @@
           <% end %>
         <% end %>
       </nav>
-      <div class="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white to-transparent"></div>
-      <div class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent"></div>
       <button type="button"
               class="absolute right-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm"
               data-action="horizontal-scroll#scrollRight"
@@ -97,8 +82,7 @@
     <section class="mt-0.5 relative z-0 overflow-hidden rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(selected_bookshelf) %>">
       <header class="flex flex-col gap-3 border-b border-stone-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0">
-          <p class="text-xs font-medium text-stone-500"><%= t("users.profile.bookshelf_title") %></p>
-          <div class="mt-1 flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <h3 class="break-words text-xl font-semibold text-stone-900"><%= selected_bookshelf.name %></h3>
             <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
               <%= bookshelf_entry_counts.fetch(selected_bookshelf.id, 0) %>
@@ -115,11 +99,11 @@
               <%= form.hidden_field :bookshelf_id, value: selected_bookshelf.id %>
 
               <div>
-                <%= form.label :sort, t("users.profile.bookshelf_sort.label"), class: "block text-xs font-medium text-stone-500" %>
+                <%= form.label :sort, t("users.profile.bookshelf_sort.label"), class: "sr-only" %>
                 <%= form.select :sort,
                                 bookshelf_sort_options.map { |sort| [ t("users.profile.bookshelf_sort.options.#{sort}"), sort ] },
                                 { selected: bookshelf_sort },
-                                class: "mt-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
+                                class: "rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
               </div>
 
               <%= form.submit t("users.profile.bookshelf_sort.submit"),
@@ -131,7 +115,7 @@
 
       <% if local_assigns[:show_create_form] && new_bookshelf.present? %>
         <details class="border-b border-stone-100 px-4 py-3">
-          <summary class="cursor-pointer text-sm font-semibold text-stone-700"><%= t("bookshelves.form.edit_title") %></summary>
+          <summary class="ml-auto w-fit cursor-pointer rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700"><%= t("bookshelves.form.edit_title") %></summary>
 
           <div class="mt-4 space-y-4">
             <section>
