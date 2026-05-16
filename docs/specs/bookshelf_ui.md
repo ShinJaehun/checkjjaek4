@@ -669,6 +669,13 @@ Library 정리 화면의 책 카드는 책을 빠르게 훑고 옮기는 데 집
 - 실제 hover open 실험
 - 책장 안 책 순서 Drag and Drop
 - 별도 책장 관리 화면 분리
+- 책장 관리 modal/drawer 도입
+  - 새 책장 생성은 책장 tab/index 영역의 `+` 버튼에서 진입하는 방향을 검토한다.
+  - 선택된 책장 관리는 selected bookshelf header의 “책장 관리” 버튼에서 진입하는 방향을 검토한다.
+  - 생성/수정 modal shell은 가능하면 하나로 공유한다.
+  - modal 안에서 책장 이름, 공개 범위, 색상 설정을 처리한다.
+  - edit 모드에서는 순서 조정(move_up/move_down)과 빈 책장 삭제도 함께 배치할 수 있다.
+  - 이번 1차 UX redesign에서는 구현하지 않고 후속 작업으로 둔다.
 - full-card drag 기반 reorder와 책장 간 DnD 이벤트 경계 재설계
 - 사용자별 책 문맥 화면
 - BookActivity visibility 변경
