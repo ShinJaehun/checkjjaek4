@@ -9,7 +9,8 @@ export default class extends Controller {
   }
 
   dragstart(event) {
-    if (event.target.closest("[data-bookshelf-entries-sort-handle]")) return
+    this.moveUrl = null
+    if (event.target.closest("a, button, input, select, textarea, summary, details, form")) return
 
     this.moveUrl = event.params.moveUrl
     event.dataTransfer.effectAllowed = "move"
@@ -78,6 +79,7 @@ export default class extends Controller {
     if (!this.moveUrl || !targetBookshelfId) return
     if (targetBookshelfId === this.selectedBookshelfIdValue) return
 
+    document.documentElement.dataset.bookshelfDndExternalMove = "true"
     this.moveFormTarget.action = this.moveUrl
     this.bookshelfInputTarget.value = targetBookshelfId
     this.moveFormTarget.requestSubmit()

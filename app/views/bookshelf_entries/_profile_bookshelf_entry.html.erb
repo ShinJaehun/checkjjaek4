@@ -16,7 +16,10 @@
 
     <div class="min-w-0 flex-1">
       <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
+        <div class="min-w-0 <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_sort_handle, false) %>"
+             <% if local_assigns.fetch(:show_sort_handle, false) %>
+               data-bookshelf-entries-sort-handle
+             <% end %>>
           <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "line-clamp-2 text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
           <p class="mt-1 text-sm text-stone-500"><%= bookshelf_entry.book.authors_text.presence || "-" %></p>
 
@@ -26,14 +29,6 @@
         </div>
 
         <div class="flex shrink-0 flex-col items-end gap-1.5">
-          <% if local_assigns.fetch(:show_sort_handle, false) %>
-            <button type="button"
-                    class="cursor-grab rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-500 active:cursor-grabbing"
-                    data-bookshelf-entries-sort-handle>
-              <%= t("bookshelf_entries.actions.reorder") %>
-            </button>
-          <% end %>
-
           <% if local_assigns.fetch(:show_status, false) && bookshelf_entry.status.present? %>
             <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
           <% end %>
@@ -41,7 +36,10 @@
       </div>
 
       <% if local_assigns.fetch(:show_status, false) && bookshelf_entry.sticker_definitions.any? %>
-        <div class="mt-2 flex flex-wrap gap-1.5">
+        <div class="mt-2 flex flex-wrap gap-1.5 <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_sort_handle, false) %>"
+             <% if local_assigns.fetch(:show_sort_handle, false) %>
+               data-bookshelf-entries-sort-handle
+             <% end %>>
           <% bookshelf_entry.sticker_definitions.first(3).each do |sticker| %>
             <span class="rounded-full border border-stone-300 px-2.5 py-1 text-xs text-stone-600"><%= sticker.name %></span>
           <% end %>

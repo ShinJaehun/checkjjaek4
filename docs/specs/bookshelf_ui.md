@@ -300,9 +300,14 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - `sort=manual`일 때 `position ASC, id ASC`로 정렬한다.
 - `PATCH /bookshelf_entries/reorder`는 같은 책장 안 전체 BookshelfEntry id를 전달받아 position을 재배정한다.
 - reorder 요청은 owner만 가능하며, 다른 책장/다른 사용자 entry id가 섞이거나 id가 누락되면 실패한다.
-- sort가 `manual`이고 owner 화면일 때만 책 카드에 정렬 handle을 표시한다.
-- 정렬 handle을 드래그하면 같은 책장 안 카드 순서를 바꾸고 기존 reorder endpoint로 저장한다.
-- 책 카드 본문 drag는 책장 간 이동 DnD 역할을 유지한다.
+- sort가 `manual`이고 owner 화면일 때만 책 카드의 비상호작용 본문 영역을 넓은 reorder handle로 사용한다.
+- 작은 “순서 변경” 버튼은 두지 않는다.
+- 넓은 reorder handle을 같은 책장 안에서 드래그하면 카드 순서를 바꾸고 기존 reorder endpoint로 저장한다.
+- 넓은 reorder handle을 책장 tab/drop target에 놓으면 기존 책장 간 이동 흐름을 사용한다.
+- 넓은 reorder handle을 책장 tab/preview panel에 놓는 경우 reorder 요청은 보내지 않는다.
+- 책장 간 이동 drop이 발생한 drag에서는 SortableJS reorder 요청을 보내지 않는다.
+- 링크, 버튼, details, select, form 같은 interactive 요소는 reorder drag 시작 대상에서 제외한다.
+- reorder handle 밖의 책 카드 drag도 책장 간 이동 DnD 역할을 유지한다.
 - 본인 Library의 기본 정렬은 `manual`이다.
 - visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다.
 - 제목순, 저자순, 최근 추가순 같은 정렬은 별도 보기 옵션으로 유지할 수 있다.
@@ -310,8 +315,9 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 
 최종 UX 방향:
 
-- 같은 책장 안 순서 변경은 카드 전체 drag로 처리하는 방향을 검토한다.
-- 다만 카드 전체 drag는 책장 간 이동 DnD와 같은 drag gesture를 공유하므로 1차에서는 구현하지 않는다.
+- 같은 책장 안 순서 변경은 최종적으로 카드 전체 drag로 처리하는 방향을 검토한다.
+- 다만 1차 구현은 진짜 full-card drag가 아니라 카드 본문 대부분을 사용하는 넓은 reorder handle이다.
+- 진짜 full-card drag는 책장 간 이동 DnD와 같은 drag gesture를 공유하므로 1차에서는 구현하지 않는다.
 - 카드 안의 링크, 버튼, select, form, 더보기 메뉴 같은 interactive 요소에서는 drag가 시작되지 않도록 guard가 필요하다.
 - 같은 목록 안 drop은 reorder, 책장 tab/index drop은 move가 되도록 이벤트 경계를 분명히 나눈다.
 - 기존 handle 기반 reorder, SortableJS 구조, reorder endpoint는 1차에서 유지한다.
