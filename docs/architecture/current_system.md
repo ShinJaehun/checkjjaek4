@@ -124,6 +124,7 @@
 - 관리 기능은 self에게만 제공한다
 - self는 기존 select fallback 또는 책장 인덱스 기반 Drag and Drop으로 책을 다른 내 책장으로 이동할 수 있다
 - 책장 간 이동 DnD는 hover target preview panel을 제공하며, 이동 성공 후 target 책장을 연다
+- 본인 Library의 기본 책 목록 정렬은 `manual`이고, visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다
 - 책장 안 책 순서 변경은 `sort=manual`에서만 활성화되며, `BookshelfEntry.position`과 `PATCH /bookshelf_entries/reorder`를 사용한다
 
 관련 코드:

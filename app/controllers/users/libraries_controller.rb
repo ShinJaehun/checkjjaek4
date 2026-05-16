@@ -40,7 +40,9 @@ class Users::LibrariesController < ApplicationController
   end
 
   def library_bookshelf_sort
-    BookshelfEntry::PROFILE_SORTS.include?(params[:sort]) ? params[:sort] : "recent"
+    return params[:sort] if BookshelfEntry::PROFILE_SORTS.include?(params[:sort])
+
+    current_user == @user ? "manual" : "recent"
   end
 
   def selected_library_bookshelf(accessible_bookshelves)
