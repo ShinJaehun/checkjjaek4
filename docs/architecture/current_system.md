@@ -68,6 +68,7 @@
 - ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 책짹 작성 컨텍스트가 열림
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
+- 현재 사용자의 `BookshelfEntry`가 있을 때 현재 책장 이름을 보여주고, 사용자의 책장이 2개 이상이면 기존 책장 이동 흐름으로 책장을 옮길 수 있음
 
 관련 코드:
 - controller: app/controllers/books_controller.rb (show)

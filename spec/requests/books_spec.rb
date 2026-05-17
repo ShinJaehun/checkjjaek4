@@ -18,6 +18,31 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
     end
 
+    it "shows the current bookshelf context for a shelved book" do
+      bookshelf = user.bookshelves.create!(name: "상세 책장", visibility: :private)
+      user.bookshelf_entries.create!(book:, bookshelf:, status: :reading)
+      sign_in user
+
+      get book_path(book)
+
+      expect(response.body).to include(I18n.t("books.show.current_bookshelf"))
+      expect(response.body).to include("상세 책장")
+    end
+
+    it "shows a bookshelf move form when the user has multiple bookshelves" do
+      bookshelf = user.bookshelves.create!(name: "현재 상세 책장", visibility: :private)
+      target_bookshelf = user.bookshelves.create!(name: "옮길 상세 책장", visibility: :private)
+      entry = user.bookshelf_entries.create!(book:, bookshelf:)
+      sign_in user
+
+      get book_path(book)
+
+      expect(response.body).to include(%(action="#{move_bookshelf_entry_path(entry)}"))
+      expect(response.body).to include(%(name="bookshelf_id"))
+      expect(response.body).to include(%(value="book"))
+      expect(response.body).to include(target_bookshelf.name)
+    end
+
     it "shows the book-context label for book-linked jjaeks" do
       user.bookshelf_entries.create!(book:, status: :reading)
       book_jjaek = user.jjaeks.create!(book:, content: "BOOK_CONTEXT_LABEL_BODY")
@@ -68,6 +93,14 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(I18n.t("bookshelf_entries.new.title"))
       expect(response.body).not_to include('name="bookshelf_entry[status]"')
       expect(response.body).not_to include('name="jjaek[content]"')
+    end
+
+    it "redirects guests before showing the library context" do
+      user.bookshelf_entries.create!(book:, status: :reading)
+
+      get book_path(book)
+
+      expect(response).to redirect_to(new_user_session_path)
     end
 
     it "shows a bookshelf select in the read-only add form when the user has multiple bookshelves" do

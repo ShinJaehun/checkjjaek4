@@ -266,6 +266,8 @@ ko:
     show:
       save_state: "저장"
       state_title: "상태와 스티커"
+      library_context_title: "내 서재 정보"
+      current_bookshelf: "현재 책장"
       status_label: "상태"
       authors: "저자"
       publisher: "출판사"

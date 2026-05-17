@@ -183,6 +183,7 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 본인은 자신의 BookshelfEntry를 다른 내 책장으로 이동할 수 있다.
 
 - 책 카드에 책장 이동 select를 표시한다.
+- Book 상세 화면에서도 현재 사용자의 해당 책 BookshelfEntry가 있으면 현재 책장 이름을 보여주고, 책장이 2개 이상일 때 같은 이동 흐름으로 책장을 옮길 수 있다.
 - select에는 자신의 Bookshelf만 표시한다.
 - 현재 책장이 기본 선택값이다.
 - 다른 책장을 선택하면 기존 `BookshelfEntry.bookshelf_id`를 변경한다.

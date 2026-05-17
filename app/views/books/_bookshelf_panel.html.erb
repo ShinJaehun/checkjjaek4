@@ -1,7 +1,30 @@
 <% if bookshelf_entry.present? %>
-  <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-    <h2 class="text-lg font-semibold text-stone-900"><%= t("books.show.state_title") %></h2>
-    <div class="mt-5">
+  <div class="space-y-4">
+    <section class="rounded-[2rem] border border-stone-200 bg-white p-6 text-sm text-stone-700 shadow-sm">
+      <h2 class="sr-only"><%= t("books.show.library_context_title") %></h2>
+      <p>
+        <span class="text-stone-500"><%= t("books.show.current_bookshelf") %></span>
+        <span class="font-medium text-stone-900"><%= bookshelf_entry.bookshelf.name %></span>
+      </p>
+
+      <% if local_assigns[:bookshelves]&.size.to_i > 1 %>
+        <%= form_with url: move_bookshelf_entry_path(bookshelf_entry), method: :patch, class: "mt-3 flex flex-col gap-2 sm:flex-row sm:items-end" do %>
+          <%= hidden_field_tag :return_to, "book" %>
+
+          <div class="min-w-0 flex-1">
+            <%= label_tag :bookshelf_id, t("bookshelf_entries.form.move_bookshelf"), class: "text-xs font-medium text-stone-600" %>
+            <%= select_tag :bookshelf_id,
+                           options_from_collection_for_select(bookshelves, :id, :name, bookshelf_entry.bookshelf_id),
+                           class: "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
+          </div>
+
+          <%= submit_tag t("bookshelf_entries.actions.move"), class: "rounded-xl bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700" %>
+        <% end %>
+      <% end %>
+    </section>
+
+    <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+      <h2 class="sr-only"><%= t("books.show.state_title") %></h2>
       <%= render "bookshelf_entries/form",
                  bookshelf_entry:,
                  book:,
@@ -9,8 +32,8 @@
                  show_book_info: false,
                  status_label: t("books.show.status_label"),
                  submit_label: t("books.show.save_state") %>
-    </div>
-  </section>
+    </section>
+  </div>
 <% else %>
   <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
     <p><%= t("books.show.read_only_description") %></p>

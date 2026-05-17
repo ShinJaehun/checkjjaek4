@@ -266,6 +266,8 @@ en:
     show:
       save_state: "Save"
       state_title: "Status and stickers"
+      library_context_title: "My library info"
+      current_bookshelf: "Current bookshelf"
       status_label: "Status"
       authors: "Authors"
       publisher: "Publisher"

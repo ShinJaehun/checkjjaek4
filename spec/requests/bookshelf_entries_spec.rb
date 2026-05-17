@@ -209,6 +209,18 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(flash[:notice]).to include("이동 대상 책장")
   end
 
+  it "returns to the book page when moving from the book context" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "책 상세 이동 대상", visibility: :private)
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "book" }
+
+    expect(response).to redirect_to(book_path(user_book))
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
+    expect(flash[:notice]).to include("책 상세 이동 대상")
+  end
+
   it "changes only the bookshelf when moving a shelf entry" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     entry.sticker_definitions << sticker
@@ -250,6 +262,21 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to have_http_status(:not_found)
     expect(entry.reload.bookshelf).to eq(original_bookshelf)
+  end
+
+  it "returns to the book page when a book-context move fails validation" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "실패 후 돌아갈 책장", visibility: :private)
+    sign_in user
+    allow_any_instance_of(BookshelfEntry).to receive(:move_to_bookshelf!) do |record|
+      record.errors.add(:base, "이동 실패")
+      raise ActiveRecord::RecordInvalid.new(record)
+    end
+
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "book" }
+
+    expect(response).to redirect_to(book_path(user_book))
+    expect(flash[:alert]).to be_present
   end
 
   it "reorders the user's own shelf entries" do
