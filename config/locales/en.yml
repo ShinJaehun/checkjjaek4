@@ -203,6 +203,7 @@ en:
     form:
       book: "Book"
       bookshelf: "Bookshelf"
+      move_bookshelf: "Move to shelf"
       target_bookshelf: "Bookshelf"
       status: "Reading status"
       stickers: "Stickers"

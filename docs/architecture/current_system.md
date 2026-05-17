@@ -124,14 +124,17 @@
 - 관리 기능은 self에게만 제공한다
 - self는 기존 select fallback 또는 책장 인덱스 기반 Drag and Drop으로 책을 다른 내 책장으로 이동할 수 있다
 - 책장 간 이동 DnD는 selected bookshelf panel의 header와 목록을 덮는 hover target preview overlay를 제공하며, 이동 성공 후 target 책장을 연다
+- hover target preview overlay는 drop 성공 전까지 실제 selected bookshelf를 바꾸지 않는다
 - 본인 Library의 기본 책 목록 정렬은 `manual`이고, visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다
 - 책장 안 책 순서 변경은 `sort=manual`에서만 활성화되며, `BookshelfEntry.position`과 `PATCH /bookshelf_entries/reorder`를 사용한다
-- Library UX redesign 1차 방향은 책장 tab/index를 사전 index 또는 바인더 tab처럼 보이게 하고, 선택된 책장과 책 목록 영역을 `Bookshelf.color_key` 기반 accent로 약하게 연결하는 것이다
-- 1차에서는 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
+- owner의 `manual` 정렬에서는 카드 본문/빈 영역 drag로 같은 책장 안 순서를 바꿀 수 있다
+- 링크, 버튼, details/summary, select, input, form 같은 interactive 요소는 reorder drag 대상에서 제외한다
+- 썸네일은 클릭 시 책 상세 링크로 동작하고, drag 시 책장 간 이동 drag source로 동작한다
+- Library UX는 책장 tab/index를 사전 index 또는 바인더 tab처럼 보이게 하고, 선택된 책장과 책 목록 영역을 `Bookshelf.color_key` 기반 accent로 약하게 연결한다
+- 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
 - 정렬은 선택된 책장 header 오른쪽 컨트롤로 제공하며, 새 책장 생성과 선택된 일반 책장 관리는 tab/index와 책 목록 사이의 drag 동선을 방해하지 않도록 페이지 내 사전 렌더링 modal로 분리한다
 - 책장 관리 modal은 Turbo Frame fetch 없이 Stimulus로 create/edit panel을 전환하고, 기존 create/update/move_up/move_down/destroy 흐름을 재사용한다
-- compact book card는 표지, 제목, 저자, 상태/별점 중심으로 줄이고, publisher, 긴 sticker 목록, 카드 내부 책장 이동 select는 정리 대상으로 본다
-- full-card drag 기반 책장 안 순서 변경은 최종 UX 방향이지만, 책장 간 DnD와 충돌 가능성이 있어 1차에서는 기존 handle 기반 reorder를 유지한다
+- compact book card는 표지, 제목, 저자, 상태/스티커 요약 중심으로 표시하고, 책장 이동 select fallback은 접이식 영역에 둔다
 
 관련 코드:
 - controller: app/controllers/users/libraries_controller.rb

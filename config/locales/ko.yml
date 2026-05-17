@@ -203,6 +203,7 @@ ko:
     form:
       book: "책"
       bookshelf: "책장"
+      move_bookshelf: "책장 이동"
       target_bookshelf: "담을 책장"
       status: "대표 상태"
       stickers: "스티커"

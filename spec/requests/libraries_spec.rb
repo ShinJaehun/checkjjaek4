@@ -19,7 +19,8 @@ RSpec.describe "Libraries", type: :request do
 
       get user_library_path(owner, bookshelf_id: bookshelf.id)
 
-      expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
+      expect(response.body).to include(I18n.t("users.library.title_with_name", name: owner.name))
+      expect(response.body).to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).not_to include(I18n.t("users.library.title"))
       expect(response.body).to include("LIBRARY_PUBLIC_SHELF")
       expect(response.body).to include("LIBRARY_PUBLIC_BOOK")
@@ -32,7 +33,8 @@ RSpec.describe "Libraries", type: :request do
 
       get user_library_path(viewer, bookshelf_id: bookshelf.id)
 
-      expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
+      expect(response.body).to include(I18n.t("users.library.title_with_name", name: viewer.name))
+      expect(response.body).to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).not_to include(I18n.t("users.library.title"))
       expect(response.body).not_to include(I18n.t("users.library.book_friend_read_only_notice"))
       expect(response.body).to include("SELF_LIBRARY_PRIVATE_SHELF")
@@ -47,7 +49,8 @@ RSpec.describe "Libraries", type: :request do
 
       get user_library_path(owner, bookshelf_id: bookshelf.id)
 
-      expect(response.body).to include(I18n.t("users.profile.bookshelf_title"))
+      expect(response.body).to include(I18n.t("users.library.title_with_name", name: owner.name))
+      expect(response.body).to include(%(aria-label="#{I18n.t("users.profile.bookshelf_tabs")}"))
       expect(response.body).not_to include(I18n.t("users.library.title"))
       expect(response.body).to include(I18n.t("users.library.book_friend_read_only_notice"))
       expect(response.body).to include("FRIEND_LIBRARY_PUBLIC_SHELF")
