@@ -30,7 +30,19 @@ class BookshelvesController < ApplicationController
   end
 
   def destroy
+    if @bookshelf.is_default? && @bookshelf.user_id == current_user.id
+      return redirect_to bookshelf_redirect_path(@bookshelf.id),
+                         alert: t("bookshelves.alerts.default_destroy_denied"),
+                         status: :see_other
+    end
+
     authorize @bookshelf
+
+    if @bookshelf.bookshelf_entries.exists?
+      return redirect_to bookshelf_redirect_path(@bookshelf.id),
+                         alert: t("bookshelves.alerts.not_empty"),
+                         status: :see_other
+    end
 
     if @bookshelf.destroy
       redirect_to bookshelf_redirect_path(fallback_bookshelf_after_destroy&.id),

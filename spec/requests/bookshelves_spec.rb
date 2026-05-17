@@ -181,6 +181,16 @@ RSpec.describe "Bookshelves", type: :request do
     expect(flash[:notice]).to include("빈 책장")
   end
 
+  it "renders a destroy confirmation for an empty regular bookshelf" do
+    bookshelf = user.bookshelves.create!(name: "삭제 확인 책장", visibility: :private)
+    sign_in user
+
+    get user_library_path(user, bookshelf_id: bookshelf.id)
+
+    expect(response.body).to include(I18n.t("bookshelves.confirm_destroy"))
+    expect(response.body).to include(I18n.t("bookshelves.actions.destroy"))
+  end
+
   it "does not delete the default bookshelf" do
     bookshelf = user.default_bookshelf
     sign_in user
@@ -189,7 +199,8 @@ RSpec.describe "Bookshelves", type: :request do
       delete bookshelf_path(bookshelf)
     }.not_to change(Bookshelf, :count)
 
-    expect(response).to redirect_to(root_path)
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: bookshelf.id))
+    expect(flash[:alert]).to eq(I18n.t("bookshelves.alerts.default_destroy_denied"))
     expect(Bookshelf.exists?(bookshelf.id)).to be(true)
   end
 
@@ -208,16 +219,30 @@ RSpec.describe "Bookshelves", type: :request do
   it "does not delete a non-empty bookshelf" do
     bookshelf = user.bookshelves.create!(name: "책 있는 책장", visibility: :public)
     book = Book.create!(title: "삭제 막는 책", authors_text: "저자")
-    user.bookshelf_entries.create!(book:, bookshelf:)
+    entry = user.bookshelf_entries.create!(book:, bookshelf:)
     sign_in user
 
     expect {
       delete bookshelf_path(bookshelf)
-    }.not_to change(Bookshelf, :count)
+    }.to change(Bookshelf, :count).by(0)
+      .and change(BookshelfEntry, :count).by(0)
 
     expect(response).to redirect_to(user_library_path(user, bookshelf_id: bookshelf.id))
-    expect(flash[:alert]).to be_present
+    expect(flash[:alert]).to eq(I18n.t("bookshelves.alerts.not_empty"))
     expect(Bookshelf.exists?(bookshelf.id)).to be(true)
+    expect(BookshelfEntry.exists?(entry.id)).to be(true)
+  end
+
+  it "renders a not-empty notice instead of destroy controls for a non-empty bookshelf" do
+    bookshelf = user.bookshelves.create!(name: "삭제 불가 책장", visibility: :public)
+    book = Book.create!(title: "삭제 불가 책", authors_text: "저자")
+    user.bookshelf_entries.create!(book:, bookshelf:)
+    sign_in user
+
+    get user_library_path(user, bookshelf_id: bookshelf.id)
+
+    expect(response.body).to include(I18n.t("bookshelves.alerts.not_empty"))
+    expect(response.body).not_to include(I18n.t("bookshelves.confirm_destroy"))
   end
 
   it "moves an owned regular bookshelf up" do

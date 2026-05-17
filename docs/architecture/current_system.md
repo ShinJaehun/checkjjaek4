@@ -134,6 +134,8 @@
 - 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
 - 정렬은 선택된 책장 header 오른쪽 컨트롤로 제공하며, 새 책장 생성과 선택된 일반 책장 관리는 tab/index와 책 목록 사이의 drag 동선을 방해하지 않도록 페이지 내 사전 렌더링 modal로 분리한다
 - 책장 관리 modal은 Turbo Frame fetch 없이 Stimulus로 create/edit panel을 전환하고, 기존 create/update/move_up/move_down/destroy 흐름을 재사용한다
+- 기본 책장 “내 책장”은 삭제할 수 없다
+- 일반 책장은 비어 있을 때만 삭제할 수 있고, 책이 들어 있는 책장은 삭제 버튼 대신 안내 문구를 보여준다
 - compact book card는 표지, 제목, 저자, 상태/스티커 요약 중심으로 표시하고, 책장 이동 select fallback은 접이식 영역에 둔다
 
 관련 코드:

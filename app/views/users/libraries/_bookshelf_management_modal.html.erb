@@ -153,7 +153,12 @@
                         bookshelf_path(managed_bookshelf),
                         method: :delete,
                         params: { return_to: return_to },
+                        form: { data: { turbo_confirm: t("bookshelves.confirm_destroy") } },
                         class: "mt-4 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700" %>
+        <% else %>
+          <p class="mt-4 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-600">
+            <%= t("bookshelves.alerts.not_empty") %>
+          </p>
         <% end %>
       </div>
     <% end %>
