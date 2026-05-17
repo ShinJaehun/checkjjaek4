@@ -231,9 +231,9 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 기본 책장인 “내 책장”도 이동 대상이 될 수 있다.
 책 이동이 성공하면 원래 책장에서는 해당 책이 사라지고, 이동한 책장이 열린다.
 
-### 현재 구현: 책장 간 이동 DnD 1차
+### 현재 구현: 책장 간 이동 DnD
 
-현재 구현은 안전한 책장 간 이동을 우선한다.
+현재 구현은 drag 중 원본 책 카드 DOM을 유지하는 책장 간 이동을 제공한다.
 
 구현된 동작:
 
@@ -257,7 +257,7 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 
 현재 구현은 “hover 중 실제 selected bookshelf를 바꾼다”가 아니라, “selected bookshelf panel 전체 위에 target preview overlay를 올리고 drop 성공 후 해당 책장을 연다”에 가깝다.
 
-이 방식은 drag 중 원본 책 카드 DOM이 사라지는 문제를 피하기 위한 안전한 1차 구현이다.
+이 방식은 drag 중 원본 책 카드 DOM이 사라지는 문제를 피한다.
 
 ### 책장 안 책 순서 변경
 
@@ -629,8 +629,12 @@ Library 정리 화면의 책 카드는 책을 빠르게 훑고 옮기는 데 집
 
 아래 기능은 이 문서에 계속 누적하지 않고, 필요하면 별도 spec 문서 또는 해당 브랜치에서 구체화한다.
 
-- 별도 책장 관리 화면 또는 drawer 분리
-- modal focus trap, body scroll lock, 전환 애니메이션 보강
+- modal close 후 focus return
+- modal focus trap
+- body scroll lock
+- modal animation
+- drawer 전환 또는 별도 책장 관리 화면 필요 여부
+- system spec 기반 JS interaction 테스트
 - 사용자별 책 문맥 화면
 - BookActivity visibility 변경
 - Notification 연동
