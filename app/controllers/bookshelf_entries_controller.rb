@@ -87,7 +87,10 @@ class BookshelfEntriesController < ApplicationController
     authorize BookshelfEntry, :reorder?
 
     BookshelfEntry.reorder_within!(bookshelf:, ordered_ids: params[:bookshelf_entry_ids])
-    redirect_to user_library_path(current_user, bookshelf_id: bookshelf.id, sort: "manual")
+    options = { bookshelf_id: bookshelf.id, sort: "manual" }
+    options[:view] = library_view_param if library_view_param
+
+    redirect_to user_library_path(current_user, options)
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound
     head :unprocessable_content
   end
@@ -168,6 +171,20 @@ class BookshelfEntriesController < ApplicationController
   def bookshelf_entry_move_redirect_path(bookshelf)
     return book_path(@bookshelf_entry.book) if params[:return_to] == "book"
 
-    user_library_path(current_user, bookshelf_id: bookshelf&.id)
+    options = { bookshelf_id: bookshelf&.id }
+    options[:view] = library_view_param if library_view_param
+    options[:sort] = library_sort_param if library_sort_param
+
+    user_library_path(current_user, options.compact)
+  end
+
+  def library_view_param
+    return params[:view] if %w[detail compact].include?(params[:view])
+
+    "detail" if params[:view].present?
+  end
+
+  def library_sort_param
+    params[:sort] if BookshelfEntry::PROFILE_SORTS.include?(params[:sort])
   end
 end

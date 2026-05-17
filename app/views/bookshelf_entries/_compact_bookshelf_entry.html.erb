@@ -1,0 +1,45 @@
+<%
+  metadata = [ bookshelf_entry.book.authors_text.presence, bookshelf_entry.book.publisher.presence ].compact.join(" · ").presence || "-"
+  sticker_names = bookshelf_entry.sticker_definitions.map(&:name)
+%>
+
+<article class="h-full min-h-52 rounded-xl border border-stone-200 bg-white p-2.5 shadow-sm <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_move_control, false) %>"
+         data-bookshelf-entry-id="<%= bookshelf_entry.id %>"
+         data-bookshelf-entry-view="compact"
+         <% if local_assigns.fetch(:show_sort_handle, false) %>
+           data-bookshelf-entries-sort-handle
+         <% end %>
+         <% if local_assigns.fetch(:show_move_control, false) %>
+           draggable="true"
+           data-action="dragstart->bookshelf-dnd#dragstart dragend->bookshelf-dnd#dragend"
+           data-bookshelf-dnd-move-url-param="<%= move_bookshelf_entry_path(bookshelf_entry) %>"
+         <% end %>>
+  <div class="flex h-full flex-col gap-2">
+    <div class="flex min-h-28 items-start justify-center" data-bookshelf-dnd-drag-preview>
+      <%= render "books/thumbnail",
+                 title: bookshelf_entry.book.title,
+                 thumbnail: bookshelf_entry.book.thumbnail,
+                 url: book_path(bookshelf_entry.book),
+                 size: :medium %>
+    </div>
+
+    <div class="min-w-0">
+      <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "line-clamp-2 text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
+      <p class="mt-1 truncate text-xs text-stone-500"><%= metadata %></p>
+    </div>
+
+    <% if local_assigns.fetch(:show_status, false) && (bookshelf_entry.status.present? || bookshelf_entry.sticker_definitions.any?) %>
+      <div class="mt-auto flex min-h-7 flex-wrap items-center gap-1.5 pt-1">
+        <% if bookshelf_entry.status.present? %>
+          <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
+        <% end %>
+
+        <% if bookshelf_entry.sticker_definitions.any? %>
+          <span class="rounded-full border border-stone-200 px-2.5 py-1 text-xs text-stone-500"
+                title="<%= sticker_names.join(", ") %>"
+                aria-label="스티커: <%= sticker_names.join(", ") %>"><%= bookshelf_entry.sticker_definitions.size %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</article>

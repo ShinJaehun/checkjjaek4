@@ -1,4 +1,6 @@
 class Users::LibrariesController < ApplicationController
+  LIBRARY_VIEW_MODES = %w[detail compact].freeze
+
   def show
     @user = User.find(params[:user_id])
     authorize @user, :show?
@@ -21,7 +23,7 @@ class Users::LibrariesController < ApplicationController
     @profile_bookshelf_color_options = Bookshelf::COLOR_KEYS
     @profile_bookshelf_sort = library_bookshelf_sort
     @profile_bookshelf_sort_options = BookshelfEntry::PROFILE_SORTS
-    @profile_bookshelf_move_targets = @show_profile_bookshelf_move_control ? current_user.bookshelves.default_first : Bookshelf.none
+    @profile_bookshelf_view = library_bookshelf_view
 
     return unless @show_bookshelf
 
@@ -43,6 +45,12 @@ class Users::LibrariesController < ApplicationController
     return params[:sort] if BookshelfEntry::PROFILE_SORTS.include?(params[:sort])
 
     current_user == @user ? "manual" : "recent"
+  end
+
+  def library_bookshelf_view
+    return params[:view] if LIBRARY_VIEW_MODES.include?(params[:view])
+
+    "detail"
   end
 
   def selected_library_bookshelf(accessible_bookshelves)

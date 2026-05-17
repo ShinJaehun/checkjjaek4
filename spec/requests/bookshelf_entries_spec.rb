@@ -221,6 +221,28 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(flash[:notice]).to include("책 상세 이동 대상")
   end
 
+  it "keeps the library view and sort when moving from the library context" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "간단 보기 이동 대상", visibility: :private)
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "library", view: "compact", sort: "title" }
+
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id, view: "compact", sort: "title"))
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
+  end
+
+  it "falls back to detail and omits invalid sort when moving from the library context" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "잘못된 보기 이동 대상", visibility: :private)
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "library", view: "unknown", sort: "unknown" }
+
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id, view: "detail"))
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
+  end
+
   it "changes only the bookshelf when moving a shelf entry" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     entry.sticker_definitions << sticker
@@ -293,6 +315,21 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response).to redirect_to(user_library_path(user, bookshelf_id: entry.bookshelf_id, sort: "manual"))
     expect(second_entry.reload.position).to eq(1)
     expect(entry.reload.position).to eq(2)
+  end
+
+  it "keeps the library view when reordering shelf entries" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    second_book = Book.create!(title: "간단 보기 순서 변경 책", authors_text: "저자")
+    second_entry = user.bookshelf_entries.create!(book: second_book, bookshelf: entry.bookshelf)
+    sign_in user
+
+    patch reorder_bookshelf_entries_path, params: {
+      bookshelf_id: entry.bookshelf_id,
+      bookshelf_entry_ids: [ second_entry.id, entry.id ],
+      view: "compact"
+    }
+
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: entry.bookshelf_id, sort: "manual", view: "compact"))
   end
 
   it "rejects reordering another user's bookshelf" do

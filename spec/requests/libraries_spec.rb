@@ -105,27 +105,107 @@ RSpec.describe "Libraries", type: :request do
       second = viewer.bookshelves.create!(name: "LIBRARY_SECOND")
       sign_in viewer
 
-      get user_library_path(viewer, bookshelf_id: first.id, sort: "title")
+      get user_library_path(viewer, bookshelf_id: first.id, sort: "title", view: "compact")
 
-      expect(response.body).to include(CGI.escapeHTML(user_library_path(viewer, bookshelf_id: second.id, sort: "title")))
-      expect(response.body).to include(%(action="#{user_library_path(viewer)}"))
+      document = Nokogiri::HTML(response.body)
+      second_tab = document.css("a").find { |link| link.text.include?(second.name) }
+      sort_form = document.at_css(%(form[action="#{user_library_path(viewer)}"]))
+
+      expect(second_tab["href"]).to eq(user_library_path(viewer, bookshelf_id: second.id, sort: "title", view: "compact"))
+      expect(sort_form).to be_present
+    end
+
+    it "renders detail view by default" do
+      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_DETAIL_SHELF")
+      entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_DETAIL_BOOK")
+      sign_in viewer
+
+      get user_library_path(viewer, bookshelf_id: bookshelf.id)
+
+      document = Nokogiri::HTML(response.body)
+      detail_card = document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="detail"]))
+      move_form = document.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))
+
+      expect(detail_card).to be_present
+      expect(move_form).to be_nil
+    end
+
+    it "renders compact view when requested" do
+      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_COMPACT_SHELF")
+      entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_COMPACT_BOOK")
+      first_sticker = StickerDefinition.create!(key: "libraries_spec_compact_first", name: "재미")
+      second_sticker = StickerDefinition.create!(key: "libraries_spec_compact_second", name: "여운")
+      entry.sticker_definitions << [ first_sticker, second_sticker ]
+      sign_in viewer
+
+      get user_library_path(viewer, bookshelf_id: bookshelf.id, view: "compact")
+
+      document = Nokogiri::HTML(response.body)
+      compact_card = document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))
+      move_form = document.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))
+
+      expect(compact_card).to be_present
+      sticker_badge = compact_card.at_css(%([aria-label="스티커: 재미, 여운"]))
+
+      expect(compact_card.has_attribute?("data-bookshelf-entries-sort-handle")).to be(true)
+      expect(sticker_badge).to be_present
+      expect(sticker_badge["title"]).to eq("재미, 여운")
+      expect(move_form).to be_nil
+    end
+
+    it "falls back to detail view for an invalid view mode" do
+      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_INVALID_VIEW_SHELF")
+      entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_INVALID_VIEW_BOOK")
+      sign_in viewer
+
+      get user_library_path(viewer, bookshelf_id: bookshelf.id, view: "unknown")
+
+      document = Nokogiri::HTML(response.body)
+
+      expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="detail"]))).to be_present
+      expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_nil
+    end
+
+    it "keeps bookshelf and sort params in view mode links" do
+      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_VIEW_LINK_SHELF")
+      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_VIEW_LINK_BOOK")
+      sign_in viewer
+
+      get user_library_path(viewer, bookshelf_id: bookshelf.id, sort: "title")
+
+      document = Nokogiri::HTML(response.body)
+      view_toggle = document.at_css("[data-library-summary] [data-library-view-toggle]")
+
+      expect(view_toggle).to be_present
+
+      compact_link = view_toggle.css("a").find do |link|
+        link.text.strip == I18n.t("users.library.view_modes.compact")
+      end
+      detail_link = view_toggle.css("a").find do |link|
+        link.text.strip == I18n.t("users.library.view_modes.detail")
+      end
+
+      expect(compact_link["href"]).to eq(user_library_path(viewer, bookshelf_id: bookshelf.id, sort: "title", view: "compact"))
+      expect(detail_link["href"]).to eq(user_library_path(viewer, bookshelf_id: bookshelf.id, sort: "title", view: "detail"))
     end
 
     it "shows owner management controls on the library screen" do
       bookshelf = viewer.bookshelves.create!(name: "LIBRARY_MANAGED_SHELF")
       second_bookshelf = viewer.bookshelves.create!(name: "LIBRARY_SECOND_MANAGED_SHELF")
-      create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "SELF_LIBRARY_MOVABLE_BOOK")
+      entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "SELF_LIBRARY_MOVABLE_BOOK")
       sign_in viewer
 
       get user_library_path(viewer, bookshelf_id: bookshelf.id)
 
+      document = Nokogiri::HTML(response.body)
+
       expect(response.body).to include(I18n.t("bookshelves.form.title"))
       expect(response.body).to include(I18n.t("bookshelves.form.edit_title"))
       expect(response.body).to include(I18n.t("bookshelves.actions.move_down"))
-      expect(response.body).to include(I18n.t("bookshelf_entries.actions.move"))
       expect(response.body).to include(second_bookshelf.name)
       expect(response.body).to include('name="return_to"')
       expect(response.body).to include('value="library"')
+      expect(document.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))).to be_nil
 
       get user_library_path(viewer, bookshelf_id: second_bookshelf.id)
 

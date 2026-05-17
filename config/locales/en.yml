@@ -349,8 +349,13 @@ en:
       unfollow: "Unfollow updates"
     library:
       book_friend_read_only_notice: "Bookshelves shared with book friends"
+      empty_bookshelf_preview: "No books are in this bookshelf yet."
       title: "Full Library"
       title_with_name: "%{name}'s Library"
+      view_mode_label: "View mode"
+      view_modes:
+        compact: "Compact"
+        detail: "Detail"
     profile:
       activity_title: "Recent Activity"
       bookshelf_sort:

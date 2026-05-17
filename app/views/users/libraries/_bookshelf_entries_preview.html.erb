@@ -1,4 +1,5 @@
 <% bookshelf_entry_count = local_assigns[:bookshelf_entry_count] || bookshelf_entries.size %>
+<% bookshelf_view = @profile_bookshelf_view || "detail" %>
 
 <section class="space-y-4">
   <header class="flex flex-wrap items-center gap-2 border-b border-stone-100 pb-4">
@@ -12,12 +13,16 @@
   </header>
 
   <% if bookshelf_entries.any? %>
-    <div class="grid gap-2 sm:grid-cols-2">
+    <div class="grid gap-2 <%= bookshelf_view == "compact" ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "sm:grid-cols-2" %>">
       <% bookshelf_entries.each do |bookshelf_entry| %>
-        <%= render "bookshelf_entries/bookshelf_entry_preview", bookshelf_entry: %>
+        <%= render "bookshelf_entries/#{bookshelf_view == "compact" ? "compact_bookshelf_entry" : "profile_bookshelf_entry"}",
+                   bookshelf_entry:,
+                   show_status: true,
+                   show_move_control: false,
+                   show_sort_handle: false %>
       <% end %>
     </div>
   <% else %>
-    <p class="text-sm text-stone-500">아직 이 책장에 담긴 책이 없습니다.</p>
+    <p class="text-sm text-stone-500"><%= t("users.library.empty_bookshelf_preview") %></p>
   <% end %>
 </section>

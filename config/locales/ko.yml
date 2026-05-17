@@ -349,8 +349,13 @@ ko:
       unfollow: "소식받기 해제"
     library:
       book_friend_read_only_notice: "책친구에게 공개된 책장"
+      empty_bookshelf_preview: "아직 이 책장에 담긴 책이 없습니다."
       title: "전체 서재"
       title_with_name: "%{name}의 서재"
+      view_mode_label: "보기 방식"
+      view_modes:
+        compact: "간단 보기"
+        detail: "상세 보기"
     profile:
       activity_title: "최근 활동"
       bookshelf_sort:

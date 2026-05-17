@@ -1,5 +1,11 @@
-<article class="rounded-2xl border border-stone-200 bg-white p-3 shadow-sm <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_move_control, false) %>"
+<%
+  metadata = [ bookshelf_entry.book.authors_text.presence, bookshelf_entry.book.publisher.presence ].compact.join(" · ").presence || "-"
+  sticker_names = bookshelf_entry.sticker_definitions.map(&:name)
+%>
+
+<article class="h-full min-h-36 rounded-2xl border border-stone-200 bg-white p-3 shadow-sm <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_move_control, false) %>"
          data-bookshelf-entry-id="<%= bookshelf_entry.id %>"
+         data-bookshelf-entry-view="detail"
          <% if local_assigns.fetch(:show_sort_handle, false) %>
            data-bookshelf-entries-sort-handle
          <% end %>
@@ -8,61 +14,36 @@
            data-action="dragstart->bookshelf-dnd#dragstart dragend->bookshelf-dnd#dragend"
            data-bookshelf-dnd-move-url-param="<%= move_bookshelf_entry_path(bookshelf_entry) %>"
          <% end %>>
-  <div class="flex gap-3">
-    <div data-bookshelf-dnd-drag-preview>
+  <div class="flex h-full gap-3">
+    <div class="flex w-20 shrink-0 justify-center" data-bookshelf-dnd-drag-preview>
       <%= render "books/thumbnail",
                  title: bookshelf_entry.book.title,
                  thumbnail: bookshelf_entry.book.thumbnail,
                  url: book_path(bookshelf_entry.book),
-                 size: :small %>
+                 size: :medium %>
     </div>
 
-    <div class="min-w-0 flex-1">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "line-clamp-2 text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
-          <p class="mt-1 text-sm text-stone-500"><%= bookshelf_entry.book.authors_text.presence || "-" %></p>
-
-          <% if bookshelf_entry.book.publisher.present? %>
-            <p class="mt-1 truncate text-xs text-stone-400"><%= bookshelf_entry.book.publisher %></p>
-          <% end %>
-        </div>
-
-        <div class="flex shrink-0 flex-col items-end gap-1.5">
-          <% if local_assigns.fetch(:show_status, false) && bookshelf_entry.status.present? %>
-            <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
-          <% end %>
-        </div>
+    <div class="flex min-w-0 flex-1 flex-col">
+      <div class="min-w-0">
+        <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "block truncate text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
+        <p class="mt-1 truncate text-sm text-stone-500"><%= metadata %></p>
       </div>
 
-      <% if local_assigns.fetch(:show_status, false) && bookshelf_entry.sticker_definitions.any? %>
-        <div class="mt-2 flex flex-wrap gap-1.5">
-          <% bookshelf_entry.sticker_definitions.first(3).each do |sticker| %>
+      <% if local_assigns.fetch(:show_status, false) && (bookshelf_entry.status.present? || bookshelf_entry.sticker_definitions.any?) %>
+        <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
+          <% if bookshelf_entry.status.present? %>
+            <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
+          <% end %>
+
+          <% bookshelf_entry.sticker_definitions.first(2).each do |sticker| %>
             <span class="rounded-full border border-stone-300 px-2.5 py-1 text-xs text-stone-600"><%= sticker.name %></span>
           <% end %>
-          <% if bookshelf_entry.sticker_definitions.size > 3 %>
-            <span class="rounded-full border border-stone-200 px-2.5 py-1 text-xs text-stone-400">+<%= bookshelf_entry.sticker_definitions.size - 3 %></span>
+          <% if bookshelf_entry.sticker_definitions.size > 2 %>
+            <span class="rounded-full border border-stone-200 px-2.5 py-1 text-xs text-stone-400"
+                  title="<%= sticker_names.join(", ") %>"
+                  aria-label="스티커: <%= sticker_names.join(", ") %>">+<%= bookshelf_entry.sticker_definitions.size - 2 %></span>
           <% end %>
         </div>
-      <% end %>
-
-      <% if local_assigns.fetch(:show_move_control, false) %>
-        <details class="mt-3">
-          <summary class="cursor-pointer text-xs font-medium text-stone-500"><%= t("bookshelf_entries.form.move_bookshelf") %></summary>
-
-          <%= form_with url: move_bookshelf_entry_path(bookshelf_entry), method: :patch, class: "mt-2 flex flex-col gap-2 sm:flex-row sm:items-end" do %>
-            <%= hidden_field_tag :return_to, local_assigns[:return_to] || "profile" %>
-
-            <div class="min-w-0 flex-1">
-              <%= label_tag :bookshelf_id, t("bookshelf_entries.form.bookshelf"), class: "sr-only" %>
-              <%= select_tag :bookshelf_id,
-                             options_from_collection_for_select(move_target_bookshelves, :id, :name, bookshelf_entry.bookshelf_id),
-                             class: "w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
-            </div>
-
-            <%= submit_tag t("bookshelf_entries.actions.move"), class: "rounded-xl bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700" %>
-          <% end %>
-        </details>
       <% end %>
     </div>
   </div>
