@@ -187,8 +187,10 @@ RSpec.describe "Bookshelves", type: :request do
 
     get user_library_path(user, bookshelf_id: bookshelf.id)
 
-    expect(response.body).to include(I18n.t("bookshelves.confirm_destroy"))
-    expect(response.body).to include(I18n.t("bookshelves.actions.destroy"))
+    destroy_form = bookshelf_destroy_form(response.body, bookshelf)
+
+    expect(destroy_form).to be_present
+    expect(destroy_form["data-turbo-confirm"]).to eq(I18n.t("bookshelves.confirm_destroy"))
   end
 
   it "does not delete the default bookshelf" do
@@ -241,8 +243,10 @@ RSpec.describe "Bookshelves", type: :request do
 
     get user_library_path(user, bookshelf_id: bookshelf.id)
 
+    destroy_form = bookshelf_destroy_form(response.body, bookshelf)
+
     expect(response.body).to include(I18n.t("bookshelves.alerts.not_empty"))
-    expect(response.body).not_to include(I18n.t("bookshelves.confirm_destroy"))
+    expect(destroy_form).to be_nil
   end
 
   it "moves an owned regular bookshelf up" do
@@ -311,5 +315,13 @@ RSpec.describe "Bookshelves", type: :request do
 
   def ordered_regular_bookshelves(owner)
     owner.bookshelves.where(is_default: false).default_first.to_a
+  end
+
+  def bookshelf_destroy_form(response_body, bookshelf)
+    doc = Nokogiri::HTML(response_body)
+
+    doc.css(%(form[action="#{bookshelf_path(bookshelf)}"])).find do |form|
+      form.at_css(%(input[name="_method"][value="delete"]))
+    end
   end
 end
