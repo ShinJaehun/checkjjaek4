@@ -87,6 +87,7 @@
       <%= hidden_field_tag :return_to, return_to %>
       <%= hidden_field_tag :view, bookshelf_view %>
       <%= hidden_field_tag :sort, bookshelf_sort %>
+      <%= hidden_field_tag :before_entry_id, nil, data: { bookshelf_dnd_target: "beforeEntryInput" } %>
     <% end %>
   <% end %>
 

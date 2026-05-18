@@ -23,6 +23,8 @@ RSpec.describe "User libraries", type: :request do
     expect(response.body).to include("Preview Book")
     expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
     expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_present
+    expect(document.at_css(%([data-bookshelf-dnd-before-entry-id-param="#{entry.id}"]))).to be_present
+    expect(document.at_css(%([data-action*="dropOnInsertSlot"]))).to be_present
   end
 
   it "renders a detail bookshelf entries preview by default" do

@@ -127,6 +127,7 @@
 - select 기반 책장 이동은 Book 상세 화면에서 제공한다
 - 책장 간 이동 DnD는 selected bookshelf panel의 header와 목록을 덮는 hover target preview overlay를 제공하며, 이동 성공 후 target 책장을 연다
 - hover target preview overlay는 drop 성공 전까지 실제 selected bookshelf를 바꾸지 않는다
+- preview overlay 안의 책 사이 drop slot에 드롭하면 해당 위치에 삽입하고 `sort=manual`로 전환하며, preview 빈 영역/tab/panel drop은 target 책장 끝에 삽입한다
 - 본인 Library의 기본 책 목록 정렬은 `manual`이고, visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다
 - 책장 안 책 순서 변경은 `sort=manual`에서만 활성화되며, `BookshelfEntry.position`과 `PATCH /bookshelf_entries/reorder`를 사용한다
 - owner의 `manual` 정렬에서는 같은 목록 안 카드 drag로 같은 책장 안 순서를 바꿀 수 있다

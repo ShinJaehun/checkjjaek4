@@ -253,6 +253,11 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - preview overlay는 source panel 높이를 최소 높이로 삼고, target preview 내용이 더 크면 자연스럽게 확장된다.
 - visible 안내문은 별도로 두지 않고, preview overlay 자체가 이동 대상 안내 역할을 한다.
 - preview overlay에 드롭하면 기존 책장 이동 요청으로 armed target 책장에 이동한다.
+- preview overlay 안의 책 사이 drop slot에 드롭하면 해당 위치에 삽입한다.
+- 첫 카드 앞 slot은 첫 카드 앞에 삽입하고, 카드 사이 slot은 뒤쪽 카드 앞에 삽입한다.
+- 마지막 카드 뒤 slot은 target 책장 끝에 삽입한다.
+- preview overlay 빈 영역, 책장 tab, selected panel에 드롭하면 target 책장 끝에 삽입한다.
+- 위치 삽입 drop 후에는 사용자가 수동 위치를 지정한 것으로 보고 `sort=manual`로 전환한다.
 - 현재 열린 책장에 다시 드롭하면 move 요청을 보내지 않는다.
 - 이동 성공 후 기존 redirect 흐름으로 target 책장을 열어 보여준다.
 - drag 중에는 bookshelf section 전체나 현재 책 목록 DOM을 교체하지 않는다.
@@ -279,7 +284,8 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - `bookshelf_entries.position`을 도입한다.
 - 같은 bookshelf scope 안에서 position을 관리한다.
 - 새 책은 해당 책장의 마지막 position으로 들어간다.
-- 책장 간 이동 시 target 책장의 마지막 position으로 들어간다.
+- 책장 간 이동 시 기본적으로 target 책장의 마지막 position으로 들어간다.
+- `before_entry_id`가 함께 전달되면 target 책장 안의 해당 entry 앞에 들어간다.
 - `sort=manual`일 때 `position ASC, id ASC`로 정렬한다.
 - `PATCH /bookshelf_entries/reorder`는 같은 책장 안 전체 BookshelfEntry id를 전달받아 position을 재배정한다.
 - reorder 요청은 owner만 가능하며, 다른 책장/다른 사용자 entry id가 섞이거나 id가 누락되면 실패한다.

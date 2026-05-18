@@ -232,6 +232,63 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.bookshelf).to eq(target_bookshelf)
   end
 
+  it "inserts a moved shelf entry before a target shelf entry" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "앞에 넣을 책장", visibility: :private)
+    before_entry = user.bookshelf_entries.create!(book: Book.create!(title: "앞 기준 책", authors_text: "저자"), bookshelf: target_bookshelf)
+    after_entry = user.bookshelf_entries.create!(book: Book.create!(title: "뒤 책", authors_text: "저자"), bookshelf: target_bookshelf)
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: {
+      bookshelf_id: target_bookshelf.id,
+      before_entry_id: before_entry.id,
+      return_to: "library",
+      view: "compact",
+      sort: "title"
+    }
+
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id, view: "compact", sort: "manual"))
+    expect(target_bookshelf.bookshelf_entries.order(:position).pluck(:id)).to eq([ entry.id, before_entry.id, after_entry.id ])
+    expect(entry.reload.position).to eq(1)
+    expect(before_entry.reload.position).to eq(2)
+    expect(after_entry.reload.position).to eq(3)
+  end
+
+  it "rejects moving before another user's shelf entry" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "내 target 책장", visibility: :private)
+    before_entry = book_friend.bookshelf_entries.find_by!(book: friend_book)
+    original_bookshelf = entry.bookshelf
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: {
+      bookshelf_id: target_bookshelf.id,
+      before_entry_id: before_entry.id
+    }
+
+    expect(response).to have_http_status(:not_found)
+    expect(entry.reload.bookshelf).to eq(original_bookshelf)
+  end
+
+  it "rejects moving before an entry outside the target bookshelf" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "삽입 target 책장", visibility: :private)
+    other_bookshelf = user.bookshelves.create!(name: "다른 내 책장", visibility: :private)
+    before_entry = user.bookshelf_entries.create!(book: Book.create!(title: "다른 책장 기준 책", authors_text: "저자"), bookshelf: other_bookshelf)
+    original_bookshelf = entry.bookshelf
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: {
+      bookshelf_id: target_bookshelf.id,
+      before_entry_id: before_entry.id,
+      return_to: "library"
+    }
+
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: original_bookshelf.id, sort: "manual"))
+    expect(entry.reload.bookshelf).to eq(original_bookshelf)
+    expect(target_bookshelf.bookshelf_entries).to be_empty
+  end
+
   it "falls back to detail and omits invalid sort when moving from the library context" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "잘못된 보기 이동 대상", visibility: :private)

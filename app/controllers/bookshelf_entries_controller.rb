@@ -73,8 +73,9 @@ class BookshelfEntriesController < ApplicationController
     authorize @bookshelf_entry, :move?
 
     target_bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
+    before_entry = before_entry_for_move
 
-    @bookshelf_entry.move_to_bookshelf!(target_bookshelf)
+    @bookshelf_entry.move_to_bookshelf!(target_bookshelf, before_entry:)
     redirect_to bookshelf_entry_move_redirect_path(target_bookshelf),
                 notice: t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
   rescue ActiveRecord::RecordInvalid
@@ -124,6 +125,12 @@ class BookshelfEntriesController < ApplicationController
 
   def bookshelf_for_create
     current_user.bookshelves.find(bookshelf_entry_params[:bookshelf_id])
+  end
+
+  def before_entry_for_move
+    return if params[:before_entry_id].blank?
+
+    current_user.bookshelf_entries.find(params[:before_entry_id])
   end
 
   def book_search_result_source?
@@ -185,6 +192,8 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def library_sort_param
+    return "manual" if params[:before_entry_id].present?
+
     params[:sort] if BookshelfEntry::PROFILE_SORTS.include?(params[:sort])
   end
 end

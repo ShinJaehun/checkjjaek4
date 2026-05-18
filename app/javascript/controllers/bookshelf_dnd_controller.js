@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["moveForm", "bookshelfInput", "tab", "dropzone", "panel", "previewPanel"]
+  static targets = ["moveForm", "bookshelfInput", "beforeEntryInput", "tab", "dropzone", "panel", "previewPanel"]
   static values = { selectedBookshelfId: Number }
 
   connect() {
@@ -82,7 +82,29 @@ export default class extends Controller {
     if (!this.hasActiveMove()) return
 
     event.preventDefault()
-    this.moveTo(this.armedBookshelfId)
+    this.moveTo(this.armedBookshelfId, this.beforeEntryIdFromPreview(event))
+    this.resetDragState()
+  }
+
+  dragoverInsertSlot(event) {
+    if (!this.hasActiveMove()) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    event.dataTransfer.dropEffect = "move"
+    this.highlightInsertSlot(event.currentTarget)
+  }
+
+  dragleaveInsertSlot(event) {
+    this.unhighlightInsertSlot(event.currentTarget)
+  }
+
+  dropOnInsertSlot(event) {
+    if (!this.hasActiveMove()) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.moveTo(this.armedBookshelfId, event.params.beforeEntryId || null)
     this.resetDragState()
   }
 
@@ -90,7 +112,7 @@ export default class extends Controller {
     return !!this.moveUrl
   }
 
-  moveTo(bookshelfId) {
+  moveTo(bookshelfId, beforeEntryId = null) {
     const targetBookshelfId = Number(bookshelfId)
     if (!this.moveUrl || !targetBookshelfId) return
     if (targetBookshelfId === this.selectedBookshelfIdValue) return
@@ -98,7 +120,12 @@ export default class extends Controller {
     document.documentElement.dataset.bookshelfDndExternalMove = "true"
     this.moveFormTarget.action = this.moveUrl
     this.bookshelfInputTarget.value = targetBookshelfId
+    this.beforeEntryInputTarget.value = beforeEntryId || ""
     this.moveFormTarget.requestSubmit()
+  }
+
+  beforeEntryIdFromPreview(event) {
+    return event.target.closest("[data-bookshelf-entry-id]")?.dataset.bookshelfEntryId
   }
 
   highlight(element) {
@@ -110,10 +137,28 @@ export default class extends Controller {
     element.classList.remove("outline", "outline-2", "outline-stone-400", "outline-offset-2")
   }
 
+  highlightInsertSlot(element) {
+    this.clearInsertSlotHighlights()
+    element.classList.remove("border-transparent")
+    element.classList.add("border-dashed", "border-stone-400", "bg-stone-100")
+  }
+
+  unhighlightInsertSlot(element) {
+    element.classList.remove("border-dashed", "border-stone-400", "bg-stone-100")
+    element.classList.add("border-transparent")
+  }
+
   clearHighlights() {
     this.tabTargets.forEach((tab) => this.unhighlight(tab))
     if (this.hasDropzoneTarget) this.unhighlight(this.dropzoneTarget)
     if (this.hasPreviewPanelTarget) this.unhighlight(this.previewPanelTarget)
+    this.clearInsertSlotHighlights()
+  }
+
+  clearInsertSlotHighlights() {
+    this.element
+      .querySelectorAll("[data-bookshelf-dnd-before-entry-id-param], [data-action*='dropOnInsertSlot']")
+      .forEach((slot) => this.unhighlightInsertSlot(slot))
   }
 
   scheduleArmTarget(tab, bookshelfId, bookshelfName, previewUrl) {
