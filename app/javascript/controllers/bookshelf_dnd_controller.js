@@ -10,9 +10,7 @@ export default class extends Controller {
 
   dragstart(event) {
     this.moveUrl = null
-    const dragPreviewSource = event.target.closest("[data-bookshelf-dnd-drag-preview]")
-    if (!dragPreviewSource && event.currentTarget.hasAttribute("data-bookshelf-entries-sort-handle")) return
-    if (!dragPreviewSource && event.target.closest("a, button, input, select, textarea, summary, details, form")) return
+    if (event.target.closest("button, input, select, textarea, summary, details, form")) return
 
     this.moveUrl = event.params.moveUrl
     event.dataTransfer.effectAllowed = "move"

@@ -129,9 +129,9 @@
 - hover target preview overlay는 drop 성공 전까지 실제 selected bookshelf를 바꾸지 않는다
 - 본인 Library의 기본 책 목록 정렬은 `manual`이고, visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다
 - 책장 안 책 순서 변경은 `sort=manual`에서만 활성화되며, `BookshelfEntry.position`과 `PATCH /bookshelf_entries/reorder`를 사용한다
-- owner의 `manual` 정렬에서는 카드 본문/빈 영역 drag로 같은 책장 안 순서를 바꿀 수 있다
-- 링크, 버튼, input, form 같은 interactive 요소는 reorder drag 대상에서 제외한다
-- 썸네일은 클릭 시 책 상세 링크로 동작하고, drag 시 책장 간 이동 drag source로 동작한다
+- owner의 `manual` 정렬에서는 같은 목록 안 카드 drag로 같은 책장 안 순서를 바꿀 수 있다
+- 버튼, input, select, textarea, form 같은 control 요소는 reorder drag 대상에서 제외한다
+- detail/compact 카드 전체는 책장 간 이동 drag source로 동작하며, 책 제목 링크는 클릭 시 책 상세 링크로 동작하고 drag 시 책장 간 이동 drag source로 동작한다
 - Library UX는 책장 tab/index를 사전 index 또는 바인더 tab처럼 보이게 하고, 선택된 책장과 책 목록 영역을 `Bookshelf.color_key` 기반 accent로 약하게 연결한다
 - 책장 tab/index는 horizontal scroll과 좌우 버튼으로 탐색하며, 선택된 tab은 자동으로 화면 안에 보이게 한다
 - 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다

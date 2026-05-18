@@ -127,6 +127,9 @@ RSpec.describe "Libraries", type: :request do
       move_form = document.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))
 
       expect(detail_card).to be_present
+      expect(detail_card["draggable"]).to eq("true")
+      expect(detail_card["data-action"]).to include("dragstart->bookshelf-dnd#dragstart")
+      expect(detail_card["data-bookshelf-dnd-move-url-param"]).to eq(move_bookshelf_entry_path(entry))
       expect(move_form).to be_nil
     end
 
@@ -148,6 +151,9 @@ RSpec.describe "Libraries", type: :request do
       sticker_badge = compact_card.at_css(%([aria-label="스티커: 재미, 여운"]))
 
       expect(compact_card.has_attribute?("data-bookshelf-entries-sort-handle")).to be(true)
+      expect(compact_card["draggable"]).to eq("true")
+      expect(compact_card["data-action"]).to include("dragstart->bookshelf-dnd#dragstart")
+      expect(compact_card["data-bookshelf-dnd-move-url-param"]).to eq(move_bookshelf_entry_path(entry))
       expect(sticker_badge).to be_present
       expect(sticker_badge["title"]).to eq("재미, 여운")
       expect(move_form).to be_nil
