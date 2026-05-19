@@ -11,6 +11,7 @@
   <% bookshelf_sort = local_assigns[:bookshelf_sort] || "recent" %>
   <% bookshelf_view = local_assigns[:bookshelf_view] || @profile_bookshelf_view || "detail" %>
   <% bookshelf_sort_enabled = local_assigns[:show_move_control] && bookshelf_sort == "manual" && selected_bookshelf.present? %>
+  <% cross_shelf_sortable_spike_enabled = bookshelf_sort_enabled && @cross_shelf_sortable_spike_target_bookshelf.present? %>
   <% bookshelf_sort_options = local_assigns[:bookshelf_sort_options] || [] %>
   <% new_bookshelf = local_assigns[:new_bookshelf] %>
   <% managed_bookshelf = local_assigns[:managed_bookshelf] %>
@@ -92,6 +93,12 @@
   <% end %>
 
   <% if selected_bookshelf.present? %>
+    <% if cross_shelf_sortable_spike_enabled %>
+      <div data-controller="cross-shelf-sortable"
+           data-cross-shelf-sortable-reorder-url-value="<%= reorder_bookshelf_entries_path(view: bookshelf_view) %>"
+           data-cross-shelf-sortable-view-value="<%= bookshelf_view %>">
+    <% end %>
+
     <section class="mt-0.5 relative z-0 overflow-visible rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(selected_bookshelf) %>"
              <% if local_assigns[:show_move_control] %>
                data-bookshelf-dnd-target="panel"
@@ -142,7 +149,10 @@
         <div class="min-h-32">
           <% if bookshelf_entries.any? %>
             <div class="grid gap-3 <%= bookshelf_view == "compact" ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "sm:grid-cols-2" %>"
-                 <% if bookshelf_sort_enabled %>
+                 <% if cross_shelf_sortable_spike_enabled %>
+                   data-cross-shelf-sortable-target="list"
+                   data-cross-shelf-sortable-bookshelf-id="<%= selected_bookshelf.id %>"
+                 <% elsif bookshelf_sort_enabled %>
                    data-controller="bookshelf-entries-sort"
                    data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
                    data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path(view: bookshelf_view) %>"
@@ -155,12 +165,16 @@
                 <%= render "bookshelf_entries/#{bookshelf_view == "compact" ? "compact_bookshelf_entry" : "profile_bookshelf_entry"}",
                            bookshelf_entry:,
                            show_status: show_status,
-                           show_move_control: show_move_control,
+                           show_move_control: show_move_control && !cross_shelf_sortable_spike_enabled,
                            show_sort_handle: bookshelf_sort_enabled %>
               <% end %>
             </div>
           <% else %>
             <section class="rounded-2xl border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500"
+                     <% if cross_shelf_sortable_spike_enabled %>
+                       data-cross-shelf-sortable-target="list"
+                       data-cross-shelf-sortable-bookshelf-id="<%= selected_bookshelf.id %>"
+                     <% end %>
                      <% if local_assigns[:show_move_control] %>
                        data-bookshelf-dnd-target="dropzone"
                        data-action="dragover->bookshelf-dnd#dragoverSelected dragleave->bookshelf-dnd#dragleaveSelected drop->bookshelf-dnd#dropOnSelected"
@@ -177,6 +191,15 @@
              data-action="dragover->bookshelf-dnd#dragoverPreview dragleave->bookshelf-dnd#dragleavePreview drop->bookshelf-dnd#dropOnPreview"></div>
       <% end %>
     </section>
+
+    <% if cross_shelf_sortable_spike_enabled %>
+      <%= render "users/libraries/cross_shelf_sortable_target",
+                 bookshelf: @cross_shelf_sortable_spike_target_bookshelf,
+                 bookshelf_entries: @cross_shelf_sortable_spike_entries,
+                 bookshelf_entry_count: bookshelf_entry_counts.fetch(@cross_shelf_sortable_spike_target_bookshelf.id, 0),
+                 bookshelf_view: bookshelf_view %>
+      </div>
+    <% end %>
   <% end %>
 
   <% if bookshelves.any? || selected_bookshelf.present? %>

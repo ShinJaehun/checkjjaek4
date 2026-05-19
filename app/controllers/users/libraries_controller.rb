@@ -31,11 +31,18 @@ class Users::LibrariesController < ApplicationController
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
     @selected_bookshelf = selected_library_bookshelf(@profile_bookshelves)
+    @cross_shelf_sortable_spike_target_bookshelf = cross_shelf_sortable_spike_target_bookshelf(@profile_bookshelves)
     @managed_bookshelf = @selected_bookshelf if @show_profile_bookshelf_create_form && @selected_bookshelf&.is_default? == false
     @profile_bookshelf_order_controls = @show_profile_bookshelf_create_form ? bookshelf_order_controls(@profile_bookshelves) : {}
     @bookshelf_entries =
       if @selected_bookshelf
         visible_entries.where(bookshelf: @selected_bookshelf).profile_sorted(@profile_bookshelf_sort)
+      else
+        BookshelfEntry.none
+      end
+    @cross_shelf_sortable_spike_entries =
+      if @cross_shelf_sortable_spike_target_bookshelf
+        visible_entries.where(bookshelf: @cross_shelf_sortable_spike_target_bookshelf).profile_sorted("manual")
       else
         BookshelfEntry.none
       end
@@ -65,6 +72,14 @@ class Users::LibrariesController < ApplicationController
     regular_bookshelves.each_with_index.to_h do |bookshelf, index|
       [ bookshelf.id, { move_up: index.positive?, move_down: index < regular_bookshelves.size - 1 } ]
     end
+  end
+
+  def cross_shelf_sortable_spike_target_bookshelf(bookshelves)
+    return unless current_user == @user
+    return unless @profile_bookshelf_sort == "manual"
+    return unless @selected_bookshelf
+
+    bookshelves.find { |bookshelf| bookshelf.id != @selected_bookshelf.id }
   end
 
   def bookshelf_entries_preview_request?
