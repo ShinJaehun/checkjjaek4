@@ -18,6 +18,11 @@
           user_library_path(@user, options)
         end %>
         <div class="flex shrink-0 flex-wrap items-center gap-1" aria-label="<%= t("users.library.view_mode_label") %>" data-library-view-toggle>
+          <% if current_user == @user %>
+            <%= link_to t("users.library.organize_mode"),
+                        organize_user_library_path(@user),
+                        class: "rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700" %>
+          <% end %>
           <% %w[detail compact].each do |view_mode| %>
             <%= link_to t("users.library.view_modes.#{view_mode}"),
                         library_view_path.call(view_mode),

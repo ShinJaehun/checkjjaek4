@@ -348,11 +348,17 @@ en:
       remove_book_friend: "Remove book friend"
       unfollow: "Unfollow updates"
     library:
+      back_to_library: "Back to library"
       book_friend_read_only_notice: "Bookshelves shared with book friends"
       cross_shelf_target:
         choose: "Choose target bookshelf"
         label: "Move to"
       empty_bookshelf_preview: "No books are in this bookshelf yet."
+      organize_board_label: "Bookshelf organize board"
+      organize_description: "Organize multiple bookshelves in one board."
+      organize_mode: "Organize"
+      organize_title: "Organize books"
+      toggle_bookshelf: "Collapse or expand bookshelf"
       title: "Full Library"
       title_with_name: "%{name}'s Library"
       view_mode_label: "View mode"

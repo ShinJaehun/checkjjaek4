@@ -10,6 +10,15 @@ class Users::LibrariesController < ApplicationController
     prepare_library_bookshelf(policy(@user))
   end
 
+  def organize
+    @user = User.find(params[:user_id])
+    authorize @user, :show?
+    return redirect_to user_path(@user) unless policy(@user).show_library?
+    return head :forbidden unless current_user == @user
+
+    prepare_organize_bookshelves
+  end
+
   private
 
   def prepare_library_bookshelf(profile_policy)
@@ -82,5 +91,13 @@ class Users::LibrariesController < ApplicationController
     requested_bookshelf = target_bookshelves.find { |bookshelf| bookshelf.id.to_s == params[:target_bookshelf_id].to_s }
 
     requested_bookshelf || target_bookshelves.first
+  end
+
+  def prepare_organize_bookshelves
+    @profile_bookshelf_view = "compact"
+    @organize_bookshelves = policy_scope(@user.bookshelves).default_first
+    visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
+    @organize_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
+    @organize_entries_by_bookshelf_id = visible_entries.profile_sorted("manual").group_by(&:bookshelf_id)
   end
 end
