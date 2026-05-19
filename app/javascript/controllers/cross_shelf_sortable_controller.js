@@ -11,7 +11,7 @@ export default class extends Controller {
   connect() {
     this.sortables = this.listTargets.map((list) => Sortable.create(list, {
       animation: 120,
-      group: "bookshelf-entries-cross-shelf-spike",
+      group: "bookshelf-entries-cross-shelf",
       handle: "[data-bookshelf-entries-sort-handle]",
       draggable: "[data-bookshelf-entry-id]",
       filter: "a, button, input, select, textarea, summary, details, form",
@@ -27,8 +27,6 @@ export default class extends Controller {
 
   async moveAcrossShelves(event) {
     if (event.from === event.to) return
-
-    document.documentElement.dataset.bookshelfDndExternalMove = "true"
 
     const entryId = event.item.dataset.bookshelfEntryId
     const targetBookshelfId = event.to.dataset.crossShelfSortableBookshelfId

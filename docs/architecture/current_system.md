@@ -123,16 +123,16 @@
 - stranger / follow-only가 접근하면 프로필 화면으로 redirect된다
 - 접근 가능한 책장 탭, 선택된 책장 책 목록, 책장 간 Drag and Drop 이동, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬, 보기 모드를 제공한다
 - 관리 기능은 self에게만 제공한다
-- self는 Library에서 책장 인덱스 기반 Drag and Drop으로 책을 다른 내 책장으로 이동할 수 있다
+- self는 Library에서 SortableJS group 기반 Drag and Drop으로 책을 다른 내 책장으로 이동할 수 있다
 - select 기반 책장 이동은 Book 상세 화면에서 제공한다
-- 책장 간 이동 DnD는 selected bookshelf panel의 header와 목록을 덮는 hover target preview overlay를 제공하며, 이동 성공 후 target 책장을 연다
-- hover target preview overlay는 drop 성공 전까지 실제 selected bookshelf를 바꾸지 않는다
-- preview overlay 안의 책 사이 drop slot에 드롭하면 해당 위치에 삽입하고 `sort=manual`로 전환하며, preview 빈 영역/tab/panel drop은 target 책장 끝에 삽입한다
+- 책장 간 이동 DnD는 현재 선택된 책장 list와 사용자가 선택한 이동 대상 책장 list 두 개에만 SortableJS group을 적용한다
+- 모든 책장 list를 한 번에 DOM에 렌더링하지 않고, 이동 대상 책장은 한 번에 하나만 렌더링한다
+- 이동 대상 책장 list 안 원하는 위치에 드롭하면 기존 `PATCH /bookshelf_entries/:id/move`에 `before_entry_id`를 함께 보내 해당 위치에 삽입한다
 - 본인 Library의 기본 책 목록 정렬은 `manual`이고, visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다
 - 책장 안 책 순서 변경은 `sort=manual`에서만 활성화되며, `BookshelfEntry.position`과 `PATCH /bookshelf_entries/reorder`를 사용한다
 - owner의 `manual` 정렬에서는 같은 목록 안 카드 drag로 같은 책장 안 순서를 바꿀 수 있다
 - 버튼, input, select, textarea, form 같은 control 요소는 reorder drag 대상에서 제외한다
-- detail/compact 카드 전체는 책장 간 이동 drag source로 동작하며, 책 제목 링크는 클릭 시 책 상세 링크로 동작하고 drag 시 책장 간 이동 drag source로 동작한다
+- detail/compact 카드 전체는 `manual` 정렬에서 SortableJS drag source로 동작하며, 책 제목 링크는 클릭 시 책 상세 링크로 동작한다
 - Library UX는 책장 tab/index를 사전 index 또는 바인더 tab처럼 보이게 하고, 선택된 책장과 책 목록 영역을 `Bookshelf.color_key` 기반 accent로 약하게 연결한다
 - 책장 tab/index는 horizontal scroll과 좌우 버튼으로 탐색하며, 선택된 tab은 자동으로 화면 안에 보이게 한다
 - 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
@@ -145,7 +145,7 @@
 - compact book card는 상세 보기보다 더 많은 책이 한 화면에 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
 - detail/compact 모두 저자와 출판사를 한 줄 metadata로 표시하고, 상태와 스티커를 카드 하단 footer row에 표시한다
 - sticker 목록은 일부 표시와 `+N` 또는 count badge로 요약하며, compact count badge는 전체 sticker 이름을 `title`/`aria-label`로 제공한다
-- compact view의 hover preview overlay는 compact card style을 따르고, detail/compact 모두 Library 카드 안에는 책장 이동 select/form을 두지 않는다
+- detail/compact 모두 Library 카드 안에는 책장 이동 select/form을 두지 않는다
 
 관련 코드:
 - controller: app/controllers/users/libraries_controller.rb

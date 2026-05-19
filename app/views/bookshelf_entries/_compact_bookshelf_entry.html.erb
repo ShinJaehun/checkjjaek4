@@ -3,19 +3,14 @@
   sticker_names = bookshelf_entry.sticker_definitions.map(&:name)
 %>
 
-<article class="h-full min-h-52 rounded-xl border border-stone-200 bg-white p-2.5 shadow-sm <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_move_control, false) %>"
+<article class="h-full min-h-52 rounded-xl border border-stone-200 bg-white p-2.5 shadow-sm <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_sort_handle, false) %>"
          data-bookshelf-entry-id="<%= bookshelf_entry.id %>"
          data-bookshelf-entry-view="compact"
          <% if local_assigns.fetch(:show_sort_handle, false) %>
            data-bookshelf-entries-sort-handle
-         <% end %>
-         <% if local_assigns.fetch(:show_move_control, false) %>
-           draggable="true"
-           data-action="dragstart->bookshelf-dnd#dragstart dragend->bookshelf-dnd#dragend"
-           data-bookshelf-dnd-move-url-param="<%= move_bookshelf_entry_path(bookshelf_entry) %>"
          <% end %>>
   <div class="flex h-full flex-col gap-2">
-    <div class="flex min-h-28 items-start justify-center" data-bookshelf-dnd-drag-preview>
+    <div class="flex min-h-28 items-start justify-center">
       <%= render "books/thumbnail",
                  title: bookshelf_entry.book.title,
                  thumbnail: bookshelf_entry.book.thumbnail,

@@ -23,24 +23,10 @@ export default class extends Controller {
   }
 
   handleEnd(event) {
-    if (this.consumeExternalMove()) return
-    if (this.externalDropTarget(event)) return
     if (event.from !== event.to) return
     if (event.oldIndex === event.newIndex) return
 
     this.reorder()
-  }
-
-  consumeExternalMove() {
-    const root = document.documentElement
-    const externalMove = root.dataset.bookshelfDndExternalMove === "true"
-    delete root.dataset.bookshelfDndExternalMove
-    return externalMove
-  }
-
-  externalDropTarget(event) {
-    const target = event.originalEvent?.target
-    return !!target?.closest("[data-bookshelf-dnd-target='tab'], [data-bookshelf-dnd-target='previewPanel']")
   }
 
   async reorder() {

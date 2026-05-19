@@ -8,7 +8,6 @@ class Users::LibrariesController < ApplicationController
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
     prepare_library_bookshelf(policy(@user))
-    return render_bookshelf_entries_preview if bookshelf_entries_preview_request?
   end
 
   private
@@ -31,7 +30,7 @@ class Users::LibrariesController < ApplicationController
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
     @selected_bookshelf = selected_library_bookshelf(@profile_bookshelves)
-    @cross_shelf_sortable_spike_target_bookshelf = cross_shelf_sortable_spike_target_bookshelf(@profile_bookshelves)
+    @cross_shelf_sortable_target_bookshelf = cross_shelf_sortable_target_bookshelf(@profile_bookshelves)
     @managed_bookshelf = @selected_bookshelf if @show_profile_bookshelf_create_form && @selected_bookshelf&.is_default? == false
     @profile_bookshelf_order_controls = @show_profile_bookshelf_create_form ? bookshelf_order_controls(@profile_bookshelves) : {}
     @bookshelf_entries =
@@ -40,9 +39,9 @@ class Users::LibrariesController < ApplicationController
       else
         BookshelfEntry.none
       end
-    @cross_shelf_sortable_spike_entries =
-      if @cross_shelf_sortable_spike_target_bookshelf
-        visible_entries.where(bookshelf: @cross_shelf_sortable_spike_target_bookshelf).profile_sorted("manual")
+    @cross_shelf_sortable_target_entries =
+      if @cross_shelf_sortable_target_bookshelf
+        visible_entries.where(bookshelf: @cross_shelf_sortable_target_bookshelf).profile_sorted("manual")
       else
         BookshelfEntry.none
       end
@@ -74,28 +73,14 @@ class Users::LibrariesController < ApplicationController
     end
   end
 
-  def cross_shelf_sortable_spike_target_bookshelf(bookshelves)
+  def cross_shelf_sortable_target_bookshelf(bookshelves)
     return unless current_user == @user
     return unless @profile_bookshelf_sort == "manual"
     return unless @selected_bookshelf
 
-    bookshelves.find { |bookshelf| bookshelf.id != @selected_bookshelf.id }
-  end
+    target_bookshelves = bookshelves.reject { |bookshelf| bookshelf.id == @selected_bookshelf.id }
+    requested_bookshelf = target_bookshelves.find { |bookshelf| bookshelf.id.to_s == params[:target_bookshelf_id].to_s }
 
-  def bookshelf_entries_preview_request?
-    params[:preview] == "bookshelf_entries"
-  end
-
-  def render_bookshelf_entries_preview
-    return head :forbidden unless current_user == @user
-    return head :not_found unless @selected_bookshelf
-
-    render partial: "users/libraries/bookshelf_entries_preview",
-           locals: {
-             bookshelf: @selected_bookshelf,
-             bookshelf_entries: @bookshelf_entries.limit(6),
-             bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@selected_bookshelf.id, 0)
-           },
-           layout: false
+    requested_bookshelf || target_bookshelves.first
   end
 end

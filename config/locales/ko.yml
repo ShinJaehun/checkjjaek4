@@ -349,6 +349,9 @@ ko:
       unfollow: "소식받기 해제"
     library:
       book_friend_read_only_notice: "책친구에게 공개된 책장"
+      cross_shelf_target:
+        choose: "이동 대상 책장 선택"
+        label: "이동할 책장"
       empty_bookshelf_preview: "아직 이 책장에 담긴 책이 없습니다."
       title: "전체 서재"
       title_with_name: "%{name}의 서재"
