@@ -31,7 +31,7 @@
   </div>
 
   <section class="mt-0.5 overflow-hidden rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(bookshelf) %>">
-    <header class="border-b border-stone-100 px-4 py-3"
+    <header class="border-b border-stone-100 px-4 py-3 <%= bookshelf_header_class(bookshelf) %>"
           <% if target_panel %>
             data-bookshelf-transfer-target="append"
             data-bookshelf-transfer-bookshelf-id="<%= bookshelf.id %>"
