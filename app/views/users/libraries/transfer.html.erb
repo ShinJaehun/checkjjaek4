@@ -1,0 +1,51 @@
+<section class="mx-auto flex w-full max-w-4xl flex-col gap-2">
+  <style>
+    @keyframes fade-slide-in {
+      from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <header class="rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-sm">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0">
+        <h1 class="truncate text-xl font-semibold tracking-tight text-stone-900"><%= t("users.library.transfer.title") %></h1>
+      </div>
+
+      <%= link_to t("users.library.transfer.back_to_library"),
+                  user_library_path(@user, bookshelf_id: @source_bookshelf.id),
+                  class: "shrink-0 rounded-xl border border-stone-200 px-3 py-1.5 text-sm font-semibold text-stone-700" %>
+    </div>
+  </header>
+
+  <div data-controller="bookshelf-transfer"
+       data-bookshelf-transfer-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
+       data-bookshelf-transfer-ui-source-bookshelf-id-value="<%= @source_bookshelf.id %>"
+       data-bookshelf-transfer-ui-target-bookshelf-id-value="<%= @target_bookshelf.id %>">
+    <%= render "users/libraries/transfer_bookshelf_panel",
+               user: @user,
+               bookshelves: @profile_bookshelves,
+               bookshelf: @source_bookshelf,
+               paired_bookshelf: @target_bookshelf,
+               bookshelf_entries: @source_bookshelf_entries,
+               bookshelf_entry_counts: @profile_bookshelf_entry_counts,
+               bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@source_bookshelf.id, 0),
+               panel_role: :source %>
+
+    <%= render "users/libraries/transfer_bookshelf_panel",
+               user: @user,
+               bookshelves: @profile_bookshelves,
+               bookshelf: @target_bookshelf,
+               paired_bookshelf: @source_bookshelf,
+               bookshelf_entries: @target_bookshelf_entries,
+               bookshelf_entry_counts: @profile_bookshelf_entry_counts,
+               bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@target_bookshelf.id, 0),
+               panel_role: :target %>
+  </div>
+</section>

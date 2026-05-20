@@ -10,11 +10,15 @@
            data-bookshelf-entries-sort-handle
          <% end %>>
   <div class="flex h-full gap-3">
-    <div class="flex w-20 shrink-0 justify-center">
+    <div class="flex w-20 shrink-0 justify-center"
+         <% if local_assigns.fetch(:show_sort_handle, false) %>
+           data-bookshelf-entries-sort-handle
+         <% end %>>
       <%= render "books/thumbnail",
                  title: bookshelf_entry.book.title,
                  thumbnail: bookshelf_entry.book.thumbnail,
                  url: book_path(bookshelf_entry.book),
+                 link: false,
                  size: :medium %>
     </div>
 

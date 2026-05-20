@@ -349,16 +349,19 @@ en:
       unfollow: "Unfollow updates"
     library:
       book_friend_read_only_notice: "Bookshelves shared with book friends"
-      cross_shelf_target:
-        choose: "Choose target bookshelf"
-        label: "Move to"
       empty_bookshelf_preview: "No books are in this bookshelf yet."
       title: "Full Library"
       title_with_name: "%{name}'s Library"
-      view_mode_label: "View mode"
-      view_modes:
-        compact: "Compact"
-        detail: "Detail"
+      transfer:
+        back_to_library: "Back to library"
+        choose_source: "Choose source bookshelf"
+        choose_target: "Choose target bookshelf"
+        eyebrow: "Bookshelf transfer"
+        not_enough_bookshelves: "Bookshelf transfer is available when you have at least two bookshelves."
+        open: "Move books"
+        source_label: "Source bookshelf"
+        target_label: "Target bookshelf"
+        title: "Move books between bookshelves"
     profile:
       activity_title: "Recent Activity"
       bookshelf_sort:

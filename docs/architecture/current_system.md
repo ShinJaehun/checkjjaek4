@@ -121,36 +121,50 @@
 - 내부 데이터 모델은 기존 `Bookshelf`와 `BookshelfEntry`를 그대로 사용한다
 - self / accepted book_friend만 접근할 수 있다
 - stranger / follow-only가 접근하면 프로필 화면으로 redirect된다
-- 접근 가능한 책장 탭, 선택된 책장 책 목록, 책장 간 Drag and Drop 이동, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬, 보기 모드를 제공한다
+- 접근 가능한 책장 탭, 선택된 책장 책 목록, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
 - 관리 기능은 self에게만 제공한다
-- self는 Library에서 SortableJS group 기반 Drag and Drop으로 책을 다른 내 책장으로 이동할 수 있다
+- 기본 Library는 책장 하나만 detail 카드로 표시한다
+- 기본 Library의 책장 탭은 선택 책장 전환만 담당한다
+- 기본 Library에는 책장 간 Drag and Drop 이동 UI를 두지 않는다
 - select 기반 책장 이동은 Book 상세 화면에서 제공한다
-- 책장 간 이동 DnD는 현재 선택된 책장 list와 사용자가 선택한 이동 대상 책장 list 두 개에만 SortableJS group을 적용한다
-- 모든 책장 list를 한 번에 DOM에 렌더링하지 않고, 이동 대상 책장은 한 번에 하나만 렌더링한다
-- 이동 대상 책장 list 안 원하는 위치에 드롭하면 기존 `PATCH /bookshelf_entries/:id/move`에 `before_entry_id`를 함께 보내 해당 위치에 삽입한다
 - 본인 Library의 기본 책 목록 정렬은 `manual`이고, visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다
 - 책장 안 책 순서 변경은 `sort=manual`에서만 활성화되며, `BookshelfEntry.position`과 `PATCH /bookshelf_entries/reorder`를 사용한다
 - owner의 `manual` 정렬에서는 같은 목록 안 카드 drag로 같은 책장 안 순서를 바꿀 수 있다
 - 버튼, input, select, textarea, form 같은 control 요소는 reorder drag 대상에서 제외한다
-- detail/compact 카드 전체는 `manual` 정렬에서 SortableJS drag source로 동작하며, 책 제목 링크는 클릭 시 책 상세 링크로 동작한다
+- detail 카드 전체는 `manual` 정렬에서 SortableJS drag source로 동작하며, 책 제목 링크는 클릭 시 책 상세 링크로 동작한다
 - Library UX는 책장 tab/index를 사전 index 또는 바인더 tab처럼 보이게 하고, 선택된 책장과 책 목록 영역을 `Bookshelf.color_key` 기반 accent로 약하게 연결한다
 - 책장 tab/index는 horizontal scroll과 좌우 버튼으로 탐색하며, 선택된 tab은 자동으로 화면 안에 보이게 한다
 - 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
 - 정렬은 선택된 책장 header 오른쪽 컨트롤로 제공하며, 새 책장 생성과 선택된 일반 책장 관리는 tab/index와 책 목록 사이의 drag 동선을 방해하지 않도록 페이지 내 사전 렌더링 modal로 분리한다
-- Library 보기 모드는 URL query parameter `view=detail|compact`로만 처리하며, 기본값과 invalid fallback은 `detail`이고, 전환 UI는 tab/index 위 Library summary/header card 오른쪽에 둔다
-- 책장 탭 이동, 정렬 변경, 같은 책장 안 순서 변경, Drag and Drop 책장 이동 후에도 현재 `view`와 허용된 `sort`를 유지한다
 - 책장 관리 modal은 Turbo Frame fetch 없이 Stimulus로 create/edit panel을 전환하고, 기존 create/update/move_up/move_down/destroy 흐름을 재사용한다
 - 기본 책장 “내 책장”은 삭제할 수 없다
 - 일반 책장은 비어 있을 때만 삭제할 수 있고, 책이 들어 있는 책장은 삭제 버튼 대신 안내 문구를 보여준다
-- compact book card는 상세 보기보다 더 많은 책이 한 화면에 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
+- Library 카드 안에는 책장 이동 select/form을 두지 않는다
+
+### 4-1. 책장 이동 모드 (/users/:user_id/library/transfer)
+
+- owner만 접근할 수 있다
+- 책장이 2개 미만이면 기본 Library로 redirect된다
+- 위쪽에는 출발 책장, 아래쪽에는 이동 대상 책장을 표시한다
+- transfer mode는 compact 카드로만 표시한다
+- source / target 책장 선택 UI를 각각 제공한다
+- source와 target은 항상 달라야 하며, 중복되면 controller에서 target을 source 다음 책장으로 보정한다
+- 다음 책장은 책장 정렬 순서 기준으로 순환한다
+- source list에서 target list로 Drag and Drop 이동할 수 있다
+- target list 안에 drop하면 `PATCH /bookshelf_entries/:id/move`에 `before_entry_id`를 함께 보내 해당 위치에 삽입한다
+- target header에 drop하면 `before_entry_id` 없이 target 책장 끝에 append한다
+- 같은 책장 안 reorder는 `PATCH /bookshelf_entries/reorder`를 그대로 사용한다
+- 여러 책 선택/bulk move는 현재 구현 범위가 아니다
+- compact book card는 한 화면에 더 많은 책이 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
 - detail/compact 모두 저자와 출판사를 한 줄 metadata로 표시하고, 상태와 스티커를 카드 하단 footer row에 표시한다
 - sticker 목록은 일부 표시와 `+N` 또는 count badge로 요약하며, compact count badge는 전체 sticker 이름을 `title`/`aria-label`로 제공한다
-- detail/compact 모두 Library 카드 안에는 책장 이동 select/form을 두지 않는다
 
 관련 코드:
 - controller: app/controllers/users/libraries_controller.rb
 - view: app/views/users/libraries/show.html.erb
+  - app/views/users/libraries/transfer.html.erb
   - app/views/users/_bookshelf_section.html.erb
+  - app/views/users/libraries/_transfer_bookshelf_panel.html.erb
   - app/views/bookshelf_entries/_profile_bookshelf_entry.html.erb
   - app/views/bookshelf_entries/_compact_bookshelf_entry.html.erb
 

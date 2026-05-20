@@ -349,16 +349,19 @@ ko:
       unfollow: "소식받기 해제"
     library:
       book_friend_read_only_notice: "책친구에게 공개된 책장"
-      cross_shelf_target:
-        choose: "이동 대상 책장 선택"
-        label: "이동할 책장"
       empty_bookshelf_preview: "아직 이 책장에 담긴 책이 없습니다."
       title: "전체 서재"
       title_with_name: "%{name}의 서재"
-      view_mode_label: "보기 방식"
-      view_modes:
-        compact: "간단 보기"
-        detail: "상세 보기"
+      transfer:
+        back_to_library: "서재로 돌아가기"
+        choose_source: "출발 책장 선택"
+        choose_target: "이동 대상 책장 선택"
+        eyebrow: "책장 이동"
+        not_enough_bookshelves: "책장이 2개 이상일 때 책장 이동 모드를 사용할 수 있습니다."
+        open: "책장 이동"
+        source_label: "출발 책장"
+        target_label: "이동 대상 책장"
+        title: "책장 이동"
     profile:
       activity_title: "최근 활동"
       bookshelf_sort:

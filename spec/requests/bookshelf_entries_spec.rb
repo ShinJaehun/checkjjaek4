@@ -374,7 +374,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.position).to eq(2)
   end
 
-  it "keeps the library view when reordering shelf entries" do
+  it "returns to the detail-only library when reordering shelf entries" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     second_book = Book.create!(title: "간단 보기 순서 변경 책", authors_text: "저자")
     second_entry = user.bookshelf_entries.create!(book: second_book, bookshelf: entry.bookshelf)
@@ -386,7 +386,25 @@ RSpec.describe "BookshelfEntries", type: :request do
       view: "compact"
     }
 
-    expect(response).to redirect_to(user_library_path(user, bookshelf_id: entry.bookshelf_id, sort: "manual", view: "compact"))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: entry.bookshelf_id, sort: "manual"))
+  end
+
+  it "returns to the transfer screen when moving from transfer mode" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    source_bookshelf = entry.bookshelf
+    target_bookshelf = user.bookshelves.create!(name: "이동 모드 대상", visibility: :private)
+    ui_target_bookshelf = user.bookshelves.create!(name: "UI 대상 유지", visibility: :private)
+    sign_in user
+
+    patch move_bookshelf_entry_path(entry), params: {
+      bookshelf_id: target_bookshelf.id,
+      return_to: "library_transfer",
+      source_bookshelf_id: source_bookshelf.id,
+      target_bookshelf_id: ui_target_bookshelf.id
+    }
+
+    expect(response).to redirect_to(transfer_user_library_path(user, source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: ui_target_bookshelf.id))
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
   end
 
   it "rejects reordering another user's bookshelf" do

@@ -25,7 +25,9 @@ Rails.application.routes.draw do
   end
 
   resources :users, only: :show do
-    resource :library, only: :show, controller: "users/libraries"
+    resource :library, only: :show, controller: "users/libraries" do
+      get :transfer
+    end
     resource :follow, only: %i[create destroy]
     resource :book_friendship, only: %i[create update destroy]
   end

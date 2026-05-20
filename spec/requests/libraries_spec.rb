@@ -105,13 +105,13 @@ RSpec.describe "Libraries", type: :request do
       second = viewer.bookshelves.create!(name: "LIBRARY_SECOND")
       sign_in viewer
 
-      get user_library_path(viewer, bookshelf_id: first.id, sort: "title", view: "compact")
+      get user_library_path(viewer, bookshelf_id: first.id, sort: "title")
 
       document = Nokogiri::HTML(response.body)
       second_tab = document.css("a").find { |link| link.text.include?(second.name) }
       sort_form = document.at_css(%(form[action="#{user_library_path(viewer)}"]))
 
-      expect(second_tab["href"]).to eq(user_library_path(viewer, bookshelf_id: second.id, sort: "title", view: "compact"))
+      expect(second_tab["href"]).to eq(user_library_path(viewer, bookshelf_id: second.id, sort: "title"))
       expect(sort_form).to be_present
     end
 
@@ -133,37 +133,12 @@ RSpec.describe "Libraries", type: :request do
       expect(move_form).to be_nil
     end
 
-    it "renders compact view when requested" do
+    it "keeps detail view even when compact view is requested" do
       bookshelf = viewer.bookshelves.create!(name: "LIBRARY_COMPACT_SHELF")
       entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_COMPACT_BOOK")
-      first_sticker = StickerDefinition.create!(key: "libraries_spec_compact_first", name: "재미")
-      second_sticker = StickerDefinition.create!(key: "libraries_spec_compact_second", name: "여운")
-      entry.sticker_definitions << [ first_sticker, second_sticker ]
       sign_in viewer
 
       get user_library_path(viewer, bookshelf_id: bookshelf.id, view: "compact")
-
-      document = Nokogiri::HTML(response.body)
-      compact_card = document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))
-      move_form = document.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))
-
-      expect(compact_card).to be_present
-      sticker_badge = compact_card.at_css(%([aria-label="스티커: 재미, 여운"]))
-
-      expect(compact_card.has_attribute?("data-bookshelf-entries-sort-handle")).to be(true)
-      expect(compact_card["draggable"]).to be_nil
-      expect(compact_card["data-action"]).to be_nil
-      expect(sticker_badge).to be_present
-      expect(sticker_badge["title"]).to eq("재미, 여운")
-      expect(move_form).to be_nil
-    end
-
-    it "falls back to detail view for an invalid view mode" do
-      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_INVALID_VIEW_SHELF")
-      entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_INVALID_VIEW_BOOK")
-      sign_in viewer
-
-      get user_library_path(viewer, bookshelf_id: bookshelf.id, view: "unknown")
 
       document = Nokogiri::HTML(response.body)
 
@@ -171,7 +146,7 @@ RSpec.describe "Libraries", type: :request do
       expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_nil
     end
 
-    it "keeps bookshelf and sort params in view mode links" do
+    it "does not render a view mode toggle on the library screen" do
       bookshelf = viewer.bookshelves.create!(name: "LIBRARY_VIEW_LINK_SHELF")
       create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_VIEW_LINK_BOOK")
       sign_in viewer
@@ -179,19 +154,8 @@ RSpec.describe "Libraries", type: :request do
       get user_library_path(viewer, bookshelf_id: bookshelf.id, sort: "title")
 
       document = Nokogiri::HTML(response.body)
-      view_toggle = document.at_css("[data-library-summary] [data-library-view-toggle]")
 
-      expect(view_toggle).to be_present
-
-      compact_link = view_toggle.css("a").find do |link|
-        link.text.strip == I18n.t("users.library.view_modes.compact")
-      end
-      detail_link = view_toggle.css("a").find do |link|
-        link.text.strip == I18n.t("users.library.view_modes.detail")
-      end
-
-      expect(compact_link["href"]).to eq(user_library_path(viewer, bookshelf_id: bookshelf.id, sort: "title", view: "compact"))
-      expect(detail_link["href"]).to eq(user_library_path(viewer, bookshelf_id: bookshelf.id, sort: "title", view: "detail"))
+      expect(document.at_css("[data-library-summary] [data-library-view-toggle]")).to be_nil
     end
 
     it "shows owner management controls on the library screen" do

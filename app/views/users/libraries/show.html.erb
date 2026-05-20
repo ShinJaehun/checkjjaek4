@@ -11,22 +11,10 @@
         </div>
       </div>
 
-      <% if @show_bookshelf %>
-        <% library_view_path = ->(view_mode) do
-          options = { sort: @profile_bookshelf_sort, view: view_mode }
-          options[:bookshelf_id] = @selected_bookshelf.id if @selected_bookshelf
-          user_library_path(@user, options)
-        end %>
-        <div class="flex shrink-0 flex-wrap items-center gap-1" aria-label="<%= t("users.library.view_mode_label") %>" data-library-view-toggle>
-          <% %w[detail compact].each do |view_mode| %>
-            <%= link_to t("users.library.view_modes.#{view_mode}"),
-                        library_view_path.call(view_mode),
-                        class: [
-                          "rounded-xl border px-3 py-2 text-sm font-semibold",
-                          (@profile_bookshelf_view == view_mode ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 text-stone-700")
-                        ] %>
-          <% end %>
-        </div>
+      <% if current_user == @user && @profile_bookshelves&.size.to_i > 1 %>
+        <%= link_to t("users.library.transfer.open"),
+                    transfer_user_library_path(@user, source_bookshelf_id: @selected_bookshelf&.id),
+                    class: "shrink-0 rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700" %>
       <% end %>
     </div>
   </header>
@@ -48,6 +36,7 @@
                bookshelf_management_modal_mode: @bookshelf_management_modal_mode,
                bookshelf_order_controls: @profile_bookshelf_order_controls,
                bookshelf_visibility_options: @profile_bookshelf_visibility_options,
-               bookshelf_color_options: @profile_bookshelf_color_options %>
+               bookshelf_color_options: @profile_bookshelf_color_options,
+               bookshelf_view: "detail" %>
   <% end %>
 </section>

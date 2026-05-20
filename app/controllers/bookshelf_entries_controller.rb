@@ -89,7 +89,6 @@ class BookshelfEntriesController < ApplicationController
 
     BookshelfEntry.reorder_within!(bookshelf:, ordered_ids: params[:bookshelf_entry_ids])
     options = { bookshelf_id: bookshelf.id, sort: "manual" }
-    options[:view] = library_view_param if library_view_param
 
     redirect_to user_library_path(current_user, options)
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound
@@ -177,12 +176,22 @@ class BookshelfEntriesController < ApplicationController
 
   def bookshelf_entry_move_redirect_path(bookshelf)
     return book_path(@bookshelf_entry.book) if params[:return_to] == "book"
+    return bookshelf_entry_transfer_redirect_path(bookshelf) if params[:return_to] == "library_transfer"
 
     options = { bookshelf_id: bookshelf&.id }
     options[:view] = library_view_param if library_view_param
     options[:sort] = library_sort_param if library_sort_param
 
     user_library_path(current_user, options.compact)
+  end
+
+  def bookshelf_entry_transfer_redirect_path(bookshelf)
+    options = {
+      source_bookshelf_id: params[:source_bookshelf_id].presence || @bookshelf_entry.bookshelf_id,
+      target_bookshelf_id: params[:target_bookshelf_id].presence || bookshelf&.id
+    }
+
+    transfer_user_library_path(current_user, options.compact)
   end
 
   def library_view_param
