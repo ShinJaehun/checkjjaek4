@@ -179,7 +179,6 @@ class BookshelfEntriesController < ApplicationController
     return bookshelf_entry_transfer_redirect_path(bookshelf) if params[:return_to] == "library_transfer"
 
     options = { bookshelf_id: bookshelf&.id }
-    options[:view] = library_view_param if library_view_param
     options[:sort] = library_sort_param if library_sort_param
 
     user_library_path(current_user, options.compact)
@@ -192,12 +191,6 @@ class BookshelfEntriesController < ApplicationController
     }
 
     transfer_user_library_path(current_user, options.compact)
-  end
-
-  def library_view_param
-    return params[:view] if %w[detail compact].include?(params[:view])
-
-    "detail" if params[:view].present?
   end
 
   def library_sort_param

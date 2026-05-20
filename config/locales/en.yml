@@ -356,7 +356,6 @@ en:
         back_to_library: "Back to library"
         choose_source: "Choose source bookshelf"
         choose_target: "Choose target bookshelf"
-        eyebrow: "Bookshelf transfer"
         not_enough_bookshelves: "Bookshelf transfer is available when you have at least two bookshelves."
         open: "Move books"
         source_label: "Source bookshelf"

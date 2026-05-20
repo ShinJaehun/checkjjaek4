@@ -356,7 +356,6 @@ ko:
         back_to_library: "서재로 돌아가기"
         choose_source: "출발 책장 선택"
         choose_target: "이동 대상 책장 선택"
-        eyebrow: "책장 이동"
         not_enough_bookshelves: "책장이 2개 이상일 때 책장 이동 모드를 사용할 수 있습니다."
         open: "책장 이동"
         source_label: "출발 책장"

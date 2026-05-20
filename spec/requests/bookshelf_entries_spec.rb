@@ -221,14 +221,14 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(flash[:notice]).to include("책 상세 이동 대상")
   end
 
-  it "keeps the library view and sort when moving from the library context" do
+  it "keeps the library sort when moving from the library context" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    target_bookshelf = user.bookshelves.create!(name: "간단 보기 이동 대상", visibility: :private)
+    target_bookshelf = user.bookshelves.create!(name: "이동 대상", visibility: :private)
     sign_in user
 
-    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "library", view: "compact", sort: "title" }
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "library", sort: "title" }
 
-    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id, view: "compact", sort: "title"))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id, sort: "title"))
     expect(entry.reload.bookshelf).to eq(target_bookshelf)
   end
 
@@ -243,11 +243,10 @@ RSpec.describe "BookshelfEntries", type: :request do
       bookshelf_id: target_bookshelf.id,
       before_entry_id: before_entry.id,
       return_to: "library",
-      view: "compact",
       sort: "title"
     }
 
-    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id, view: "compact", sort: "manual"))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id, sort: "manual"))
     expect(target_bookshelf.bookshelf_entries.order(:position).pluck(:id)).to eq([ entry.id, before_entry.id, after_entry.id ])
     expect(entry.reload.position).to eq(1)
     expect(before_entry.reload.position).to eq(2)
@@ -289,14 +288,14 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(target_bookshelf.bookshelf_entries).to be_empty
   end
 
-  it "falls back to detail and omits invalid sort when moving from the library context" do
+  it "omits invalid sort when moving from the library context" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "잘못된 보기 이동 대상", visibility: :private)
     sign_in user
 
     patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "library", view: "unknown", sort: "unknown" }
 
-    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id, view: "detail"))
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: target_bookshelf.id))
     expect(entry.reload.bookshelf).to eq(target_bookshelf)
   end
 
@@ -374,16 +373,15 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.position).to eq(2)
   end
 
-  it "returns to the detail-only library when reordering shelf entries" do
+  it "returns to the library after reordering shelf entries" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    second_book = Book.create!(title: "간단 보기 순서 변경 책", authors_text: "저자")
+    second_book = Book.create!(title: "순서 변경 책 2", authors_text: "저자")
     second_entry = user.bookshelf_entries.create!(book: second_book, bookshelf: entry.bookshelf)
     sign_in user
 
     patch reorder_bookshelf_entries_path, params: {
       bookshelf_id: entry.bookshelf_id,
-      bookshelf_entry_ids: [ second_entry.id, entry.id ],
-      view: "compact"
+      bookshelf_entry_ids: [ second_entry.id, entry.id ]
     }
 
     expect(response).to redirect_to(user_library_path(user, bookshelf_id: entry.bookshelf_id, sort: "manual"))

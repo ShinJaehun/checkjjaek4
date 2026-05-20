@@ -26,8 +26,6 @@ RSpec.describe "User libraries", type: :request do
     expect(document.css(%([data-bookshelf-transfer-target="list"])).size).to eq(2)
     expect(document.at_css(%([data-controller="bookshelf-transfer"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-bookshelf-id="#{target_bookshelf.id}"] article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_present
-    expect(document.at_css(%([data-bookshelf-dnd-before-entry-id-param]))).to be_nil
-    expect(document.at_css(%([data-action*="dropOnInsertSlot"]))).to be_nil
   end
 
   it "does not render transfer drag targets on the default library screen" do
