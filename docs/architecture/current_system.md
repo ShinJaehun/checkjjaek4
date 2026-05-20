@@ -148,14 +148,16 @@
 - 위쪽에는 출발 책장, 아래쪽에는 이동 대상 책장을 표시한다
 - transfer mode는 compact 카드로만 표시한다
 - source / target 책장 선택 UI를 각각 제공한다
-- source와 target은 항상 달라야 하며, 중복되면 controller에서 target을 source 다음 책장으로 보정한다
-- 다음 책장은 책장 정렬 순서 기준으로 순환한다
+- source와 target은 항상 달라야 하며, 중복되면 `changed=source|target` 기준으로 사용자가 바꾼 쪽은 유지하고 반대쪽을 다음 책장으로 순환 보정한다
+- 다음 책장은 책장 정렬 순서 기준으로 순환하며, 마지막 책장 다음은 첫 책장이다
 - source list에서 target list로 Drag and Drop 이동할 수 있다
 - target list 안에 drop하면 `PATCH /bookshelf_entries/:id/move`에 `before_entry_id`를 함께 보내 해당 위치에 삽입한다
 - target header에 drop하면 `before_entry_id` 없이 target 책장 끝에 append한다
+- 이동 후에는 transfer 화면의 UI source / target 조합을 유지한다
 - 같은 책장 안 reorder는 `PATCH /bookshelf_entries/reorder`를 그대로 사용한다
 - 여러 책 선택/bulk move는 현재 구현 범위가 아니다
 - compact book card는 한 화면에 더 많은 책이 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
+- compact / detail 카드의 썸네일과 카드 여백은 drag handle로 동작하며, 책 제목 링크는 클릭 시 책 상세로 이동한다
 - detail/compact 모두 저자와 출판사를 한 줄 metadata로 표시하고, 상태와 스티커를 카드 하단 footer row에 표시한다
 - sticker 목록은 일부 표시와 `+N` 또는 count badge로 요약하며, compact count badge는 전체 sticker 이름을 `title`/`aria-label`로 제공한다
 

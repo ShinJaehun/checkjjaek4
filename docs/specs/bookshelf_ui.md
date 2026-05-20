@@ -230,7 +230,8 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 
 책은 한 번에 하나의 책장에만 속한다.
 기본 책장인 “내 책장”도 이동 대상이 될 수 있다.
-책 이동이 성공하면 원래 책장에서는 해당 책이 사라지고, 이동한 책장이 열린다.
+책 이동이 성공하면 원래 책장에서는 해당 책이 사라진다.
+책장 이동 모드에서 이동한 경우에는 transfer 화면의 UI source / target 조합을 유지한다.
 
 ### 현재 구현: 책장 이동 모드
 
@@ -242,17 +243,19 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - 책 카드를 이동 대상 책장 list에 드롭하면 해당 책장으로 이동한다.
 - 이동 대상 책장은 한 번에 하나만 실제 list DOM으로 렌더링한다.
 - 모든 책장 list를 한 번에 DOM에 렌더링하지 않는다.
-- 사용자는 이동 대상 책장 패널 안의 책장 선택 링크로 target 책장을 바꿀 수 있다.
+- 사용자는 source / target 책장 선택 링크로 위/아래 책장을 각각 바꿀 수 있다.
+- source와 target이 같아지면 `changed=source|target` 기준으로 사용자가 바꾼 쪽은 유지하고 반대쪽을 다음 책장으로 순환 보정한다.
+- 다음 책장은 책장 정렬 순서 기준으로 순환하며, 마지막 책장 다음은 첫 책장이다.
 - 이동은 기존 `BookshelfEntriesController#move`와 `PATCH /bookshelf_entries/:id/move`를 사용한다.
 - 새 이동 endpoint는 추가하지 않는다.
 - Library 카드 안 select 기반 책 이동 fallback은 제공하지 않는다.
 - 책장 인덱스 클릭은 기존 URL 기반 탭 선택 흐름을 유지한다.
 - 이동 대상 책장 list 안 원하는 위치에 드롭하면 해당 위치에 삽입한다.
 - 드롭된 카드의 다음 형제 entry를 `before_entry_id`로 계산한다.
-- 마지막 위치에 드롭하면 `before_entry_id` 없이 target 책장 끝에 삽입한다.
+- target header에 드롭하거나 마지막 위치에 드롭하면 `before_entry_id` 없이 target 책장 끝에 삽입한다.
 - 위치 삽입 drop 후에는 사용자가 수동 위치를 지정한 것으로 보고 `sort=manual`로 전환한다.
 - 현재 열린 책장에 다시 드롭하면 move 요청을 보내지 않는다.
-- 이동 성공 후 기존 redirect 흐름으로 target 책장을 열어 보여준다.
+- 이동 성공 후 transfer 화면의 UI source / target 조합을 유지한다.
 - drag 중에는 bookshelf section 전체나 현재 책 목록 DOM을 Turbo로 교체하지 않는다.
 
 ### 책장 안 책 순서 변경
@@ -287,6 +290,7 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 - target 책장 header에 놓으면 `before_entry_id` 없이 target 책장 끝에 append한다.
 - 책장 간 이동은 move endpoint, 같은 책장 안 reorder는 reorder endpoint를 사용한다.
 - 기본 Library의 detail 카드와 책장 이동 모드의 compact 카드는 SortableJS drag source로 동작한다.
+- 썸네일과 카드 여백은 drag handle로 동작한다.
 - 책 제목 링크는 클릭 시 책 상세 링크로 동작한다.
 - 버튼, input, select, textarea, form 같은 control 요소는 reorder drag 시작 대상에서 제외한다.
 - reorder handle 밖의 책 카드 drag도 책장 간 이동 DnD 역할을 유지한다.
@@ -316,8 +320,14 @@ controller 역할은 분리한다.
 - `sort=manual`에서 owner에게만 순서 변경 handle이 보인다.
 - 순서 변경 후 새로고침해도 같은 순서가 유지된다.
 - `recent`, `title`, `author`, `status` 정렬에서는 순서 변경 handle이 숨겨진다.
-- 이동 대상 책장 패널에서 target 책장을 바꿀 수 있다.
-- 선택된 책장 책을 이동 대상 책장 list로 드래그해 원하는 위치에 삽입할 수 있다.
+- 기본 Library는 detail 카드로 고정되고 detail/compact 전환 UI가 없다.
+- owner는 책장 이동 모드에 진입할 수 있다.
+- 책장 이동 모드에서 source / target 책장을 각각 바꿀 수 있다.
+- source와 target이 같아지면 사용자가 바꾼 쪽은 유지되고 반대쪽이 다음 책장으로 순환 보정된다.
+- 썸네일과 카드 여백에서는 drag가 시작되고, 제목 링크 클릭은 책 상세로 이동한다.
+- source 책장 책을 target list로 드래그해 원하는 위치에 삽입할 수 있다.
+- target header에 드롭하면 target 책장 끝에 append된다.
+- drag 중 카드 폭이 책장 전체로 깨지지 않는다.
 - Library 카드 안에는 책장 이동 select/form이 노출되지 않고, Book 상세의 select 이동 form은 유지된다.
  
 ---
@@ -682,6 +692,7 @@ stranger/follow-only는 다음을 볼 수 있다.
 5. 다른 사용자의 Bookshelf로 이동할 수 없다.
 6. Library 카드 안에는 책장 이동 select/form이 보이지 않는다.
 7. Book 상세의 책장 이동 select는 self에게만 보인다.
+8. 책장 이동 모드에서 이동한 경우에는 transfer 화면의 UI source / target 조합을 유지한다.
 
 ### 책장 생성
 
