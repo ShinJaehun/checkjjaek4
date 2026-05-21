@@ -83,6 +83,29 @@ class BookshelfEntriesController < ApplicationController
                 alert: @bookshelf_entry.errors.full_messages.to_sentence
   end
 
+  def bulk_move
+    authorize BookshelfEntry, :bulk_move?
+
+    requested_ids = Array(params[:bookshelf_entry_ids]).reject(&:blank?).map(&:to_i)
+    unique_ids = requested_ids.uniq
+    target_bookshelf = current_user.bookshelves.find(params[:target_bookshelf_id])
+    entries_by_id = current_user.bookshelf_entries.where(id: unique_ids).index_by(&:id)
+    raise ActiveRecord::RecordNotFound if entries_by_id.size != unique_ids.size
+
+    ordered_entries = unique_ids.map { |id| entries_by_id.fetch(id) }
+    moved_count = BookshelfEntry.bulk_move_to_bookshelf!(entries: ordered_entries, target_bookshelf:)
+
+    options = {
+      source_bookshelf_id: bulk_move_source_bookshelf_id(target_bookshelf),
+      target_bookshelf_id: bulk_move_target_bookshelf_id(target_bookshelf)
+    }
+
+    redirect_to transfer_user_library_path(current_user, options.compact),
+                notice: t("bookshelf_entries.notices.bulk_moved", count: moved_count, bookshelf_name: target_bookshelf.name)
+  rescue ActiveRecord::RecordInvalid
+    redirect_to transfer_user_library_path(current_user), alert: t("bookshelf_entries.alerts.bulk_move_failed")
+  end
+
   def reorder
     bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
     authorize BookshelfEntry, :reorder?
@@ -110,6 +133,18 @@ class BookshelfEntriesController < ApplicationController
 
   def bookshelf_entry_params
     params.fetch(:bookshelf_entry, {}).permit(:bookshelf_id, :status, sticker_definition_ids: [])
+  end
+
+  def bulk_move_source_bookshelf_id(target_bookshelf)
+    return target_bookshelf.id if params[:return_to_target_as_source].present?
+
+    params[:source_bookshelf_id].presence
+  end
+
+  def bulk_move_target_bookshelf_id(target_bookshelf)
+    return if params[:return_to_target_as_source].present?
+
+    target_bookshelf.id
   end
 
   def book_attributes

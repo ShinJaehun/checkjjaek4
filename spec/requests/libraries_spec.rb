@@ -115,6 +115,22 @@ RSpec.describe "Libraries", type: :request do
       expect(sort_form).to be_present
     end
 
+    it "renders a mobile bookshelf switch select without move controls" do
+      first = viewer.bookshelves.create!(name: "MOBILE_SELECT_FIRST")
+      second = viewer.bookshelves.create!(name: "MOBILE_SELECT_SECOND")
+      sign_in viewer
+
+      get user_library_path(viewer, bookshelf_id: first.id, sort: "title")
+
+      document = Nokogiri::HTML(response.body)
+      mobile_select = document.at_css(%(select[data-library-mobile-bookshelf-select="true"][name="bookshelf_id"]))
+
+      expect(mobile_select).to be_present
+      expect(mobile_select.at_css(%(option[value="#{second.id}"]))).to be_present
+      expect(document.at_css(%(form[action="#{bulk_move_bookshelf_entries_path}"]))).to be_nil
+      expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
+    end
+
     it "renders detail view by default" do
       bookshelf = viewer.bookshelves.create!(name: "LIBRARY_DETAIL_SHELF")
       entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_DETAIL_BOOK")

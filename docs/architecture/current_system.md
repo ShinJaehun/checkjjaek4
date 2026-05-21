@@ -124,7 +124,9 @@
 - 접근 가능한 책장 탭, 선택된 책장 책 목록, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
 - 관리 기능은 self에게만 제공한다
 - 기본 Library는 책장 하나만 detail 카드로 표시한다
-- 기본 Library의 책장 탭은 선택 책장 전환만 담당한다
+- 기본 Library의 책장 전환 UI는 선택 책장을 바꾸는 탐색만 담당한다
+- 기본 Library의 작은 화면에서는 책장 탭 대신 책장 전환 select/dropdown을 표시한다
+- 기본 Library의 중간/큰 화면에서는 기존 책장 탭을 표시한다
 - 기본 Library에는 책장 간 Drag and Drop 이동 UI를 두지 않는다
 - select 기반 책장 이동은 Book 상세 화면에서 제공한다
 - 본인 Library의 기본 책 목록 정렬은 `manual`이고, visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다
@@ -145,17 +147,24 @@
 
 - owner만 접근할 수 있다
 - 책장이 2개 미만이면 기본 Library로 redirect된다
-- 위쪽에는 출발 책장, 아래쪽에는 이동 대상 책장을 표시한다
+- 작은 화면은 md 미만, 중간 화면은 md 이상 lg 미만, 큰 화면은 lg 이상으로 나눈다
+- 중간/큰 화면에서는 위쪽에 출발 책장, 아래쪽에 이동 대상 책장을 표시한다
 - transfer mode는 compact 카드로만 표시한다
-- source / target 책장 선택 UI를 각각 제공한다
+- 중간/큰 화면에서는 source / target 책장 선택 UI를 각각 제공한다
 - source와 target은 항상 달라야 하며, 중복되면 `changed=source|target` 기준으로 사용자가 바꾼 쪽은 유지하고 반대쪽을 다음 책장으로 순환 보정한다
 - 다음 책장은 책장 정렬 순서 기준으로 순환하며, 마지막 책장 다음은 첫 책장이다
-- source list에서 target list로 Drag and Drop 이동할 수 있다
+- 중간/큰 화면에서는 source list에서 target list로 Drag and Drop 이동할 수 있다
 - target list 안에 drop하면 `PATCH /bookshelf_entries/:id/move`에 `before_entry_id`를 함께 보내 해당 위치에 삽입한다
 - target header에 drop하면 `before_entry_id` 없이 target 책장 끝에 append한다
+- 작은 화면에서는 source 책장 하나만 표시하고 target panel은 숨긴다
+- 작은 화면에서는 source compact dropdown으로 정리할 책장을 바꾼다
+- 작은 화면에서는 선택 버튼으로 selection mode에 들어가 여러 권을 선택한 뒤 하단 action bar의 target 책장 버튼 목록에서 대상 책장을 골라 `PATCH /bookshelf_entries/bulk_move`로 이동할 수 있다
+- 작은 화면에서는 책장 안 순서 변경 Drag and Drop을 제공하지 않는다
+- 작은 화면 bulk move 후에는 이동한 target 책장을 source로 열어 보여준다
+- bulk move는 선택된 entry id 순서를 보존하며, 대상 책장 끝에 append한다
+- bulk move에서 같은 책장으로 이동하는 entry는 건너뛰고, 다른 사용자 entry나 다른 사용자 target 책장은 거부한다
 - 이동 후에는 transfer 화면의 UI source / target 조합을 유지한다
 - 같은 책장 안 reorder는 `PATCH /bookshelf_entries/reorder`를 그대로 사용한다
-- 여러 책 선택/bulk move는 현재 구현 범위가 아니다
 - compact book card는 한 화면에 더 많은 책이 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
 - compact / detail 카드의 썸네일과 카드 여백은 drag handle로 동작하며, 책 제목 링크는 클릭 시 책 상세로 이동한다
 - detail/compact 모두 저자와 출판사를 한 줄 metadata로 표시하고, 상태와 스티커를 카드 하단 footer row에 표시한다

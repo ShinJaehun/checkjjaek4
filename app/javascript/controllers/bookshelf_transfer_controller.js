@@ -2,26 +2,46 @@ import { Controller } from "@hotwired/stimulus"
 import Sortable from "sortablejs"
 
 export default class extends Controller {
-  static targets = ["append", "list"]
+  static targets = [
+    "append",
+    "entry",
+    "list",
+    "movePanel",
+    "selectedCount",
+    "selectedIds",
+    "selectionBar",
+    "selectionCheckbox",
+    "selectionCheckboxWrapper",
+    "selectionModeButton"
+  ]
   static values = {
+    cancelSelectionLabel: String,
     reorderUrl: String,
+    selectModeLabel: String,
     uiSourceBookshelfId: Number,
     uiTargetBookshelfId: Number
   }
 
   connect() {
-    this.sortables = this.listTargets.map((list) => this.createSortable(list))
+    this.selectionMode = false
+    this.sortables = []
+    this.desktopQuery = window.matchMedia("(min-width: 768px)")
+    this.handleBreakpointChange = () => this.resetForBreakpoint()
+    this.addBreakpointListener()
+    this.syncSortables()
+    this.syncSelection()
   }
 
   disconnect() {
-    this.sortables?.forEach((sortable) => sortable.destroy())
+    this.removeBreakpointListener()
+    this.destroySortables()
   }
 
-  createSortable(element) {
+  createSortable(element, options = {}) {
     return Sortable.create(element, {
       animation: 120,
-      group: "bookshelf-transfer",
-      handle: "[data-bookshelf-entries-sort-handle]",
+      group: options.group || "bookshelf-transfer",
+      handle: options.handle || "[data-bookshelf-entries-sort-handle]",
       draggable: "[data-bookshelf-entry-id]",
       filter: "a, button, input, select, textarea, summary, details, form",
       preventOnFilter: false,
@@ -31,9 +51,99 @@ export default class extends Controller {
     })
   }
 
+  toggleSelectionMode() {
+    if (this.selectionMode) {
+      this.exitSelectionMode()
+    } else {
+      this.enterSelectionMode()
+    }
+  }
+
+  toggleEntrySelection(event) {
+    event?.stopPropagation()
+    this.syncSelection()
+  }
+
+  clearSelection() {
+    this.exitSelectionMode()
+  }
+
+  toggleMovePanel() {
+    if (!this.hasMovePanelTarget) return
+    if (this.selectedEntryIds().length === 0) return
+
+    this.movePanelTarget.classList.toggle("hidden")
+    this.movePanelTarget.classList.toggle("grid")
+  }
+
+  submitSourceSelect(event) {
+    event.currentTarget.form.requestSubmit()
+  }
+
+  toggleCardSelection(event) {
+    if (this.controlElement(event.target)) return
+
+    if (!this.selectionMode) return
+
+    const checkbox = this.checkboxForEntry(event.currentTarget)
+    if (!checkbox) return
+
+    event.preventDefault()
+    checkbox.checked = !checkbox.checked
+    this.syncSelection()
+  }
+
+  syncSelection() {
+    const selectedIds = this.selectedEntryIds()
+
+    if (this.hasSelectionBarTarget) {
+      this.selectionBarTarget.classList.toggle("hidden", !this.selectionMode || selectedIds.length === 0)
+    }
+
+    if (this.hasSelectedCountTarget) {
+      this.selectedCountTarget.textContent = selectedIds.length
+    }
+
+    if (this.hasSelectedIdsTarget) {
+      this.selectedIdsTarget.replaceChildren(
+        ...selectedIds.map((id) => this.hiddenEntryIdInput(id))
+      )
+    }
+
+    if ((!this.selectionMode || selectedIds.length === 0) && this.hasMovePanelTarget) {
+      this.movePanelTarget.classList.add("hidden")
+      this.movePanelTarget.classList.remove("grid")
+    }
+
+    this.selectionCheckboxWrapperTargets.forEach((wrapper) => {
+      wrapper.classList.toggle("hidden", !this.selectionMode)
+      wrapper.classList.toggle("inline-flex", this.selectionMode)
+    })
+
+    this.entryTargets.forEach((entry) => {
+      const checkbox = this.checkboxForEntry(entry)
+      const selected = checkbox?.checked
+
+      if (!checkbox) {
+        this.clearEntrySelectionStyle(entry)
+        return
+      }
+
+      entry.classList.toggle("border-stone-900", selected)
+      entry.classList.toggle("bg-stone-50", selected)
+      entry.classList.toggle("ring-2", selected)
+      entry.classList.toggle("ring-stone-900", selected)
+    })
+
+    if (this.hasSelectionModeButtonTarget) {
+      this.selectionModeButtonTarget.textContent = this.selectionMode ? this.cancelSelectionLabelValue : this.selectModeLabelValue
+    }
+  }
+
   startDragging(event) {
     this.draggingEntryId = event.item.dataset.bookshelfEntryId
     this.draggedFromBookshelfId = event.from.dataset.bookshelfTransferBookshelfId
+    this.draggedFromEntryIds = this.entryIds(event.from)
   }
 
   dragoverAppend(event) {
@@ -99,10 +209,10 @@ export default class extends Controller {
 
   async reorderWithinShelf(event) {
     if (event.from !== event.to) return
-    if (event.oldIndex === event.newIndex) return
 
     const bookshelfId = event.to.dataset.bookshelfTransferBookshelfId
     if (!bookshelfId) return
+    if (this.sameEntryOrder(this.draggedFromEntryIds, this.entryIds(event.to))) return
 
     await this.reorderList(event.to, bookshelfId)
   }
@@ -129,6 +239,106 @@ export default class extends Controller {
 
   entryIds(list) {
     return Array.from(list.querySelectorAll("[data-bookshelf-entry-id]")).map((entry) => entry.dataset.bookshelfEntryId)
+  }
+
+  sameEntryOrder(previousIds, currentIds) {
+    if (!previousIds) return false
+    if (previousIds.length !== currentIds.length) return false
+
+    return previousIds.every((id, index) => id === currentIds[index])
+  }
+
+  selectedCheckboxes() {
+    return Array.from(this.element.querySelectorAll("input[name^='transfer_selection_']:checked"))
+  }
+
+  selectedEntryIds() {
+    return this.selectedCheckboxes().map((checkbox) => checkbox.value)
+  }
+
+  hiddenEntryIdInput(id) {
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = "bookshelf_entry_ids[]"
+    input.value = id
+    return input
+  }
+
+  enterSelectionMode(entry = null) {
+    this.selectionMode = true
+    if (entry) {
+      const checkbox = this.checkboxForEntry(entry)
+      if (checkbox) checkbox.checked = true
+    }
+    this.syncSelection()
+    this.syncSortables()
+  }
+
+  exitSelectionMode() {
+    this.selectionMode = false
+    this.selectionCheckboxTargets.forEach((checkbox) => {
+      checkbox.checked = false
+    })
+    this.element.querySelectorAll("[data-bookshelf-entry-id]").forEach((entry) => this.clearEntrySelectionStyle(entry))
+    this.syncSelection()
+    this.syncSortables()
+  }
+
+  checkboxForEntry(entry) {
+    return entry.querySelector("input[name^='transfer_selection_']")
+  }
+
+  controlElement(element) {
+    return element.closest("a, button, input, select, textarea, summary, details, form, label")
+  }
+
+  clearEntrySelectionStyle(entry) {
+    entry.classList.remove("border-stone-900", "bg-stone-50", "ring-2", "ring-stone-900")
+  }
+
+  resetForBreakpoint() {
+    this.exitSelectionMode()
+    this.syncSortables()
+  }
+
+  syncSortables() {
+    if (this.desktopTransfer()) {
+      if (this.sortableMode === "desktop") return
+
+      this.destroySortables()
+      this.sortables = this.listTargets.map((list) => this.createSortable(list))
+      this.sortableMode = "desktop"
+    } else {
+      this.destroySortables()
+    }
+  }
+
+  destroySortables() {
+    this.sortables?.forEach((sortable) => sortable.destroy())
+    this.sortables = []
+    this.sortableMode = null
+  }
+
+  addBreakpointListener() {
+    if (this.desktopQuery.addEventListener) {
+      this.desktopQuery.addEventListener("change", this.handleBreakpointChange)
+    } else {
+      this.desktopQuery.addListener(this.handleBreakpointChange)
+    }
+  }
+
+  removeBreakpointListener() {
+    if (!this.desktopQuery) return
+
+    if (this.desktopQuery.removeEventListener) {
+      this.desktopQuery.removeEventListener("change", this.handleBreakpointChange)
+    } else {
+      this.desktopQuery.removeListener(this.handleBreakpointChange)
+    }
+  }
+
+  desktopTransfer() {
+    return this.desktopQuery?.matches ?? window.matchMedia("(min-width: 768px)").matches
   }
 
   csrfToken() {

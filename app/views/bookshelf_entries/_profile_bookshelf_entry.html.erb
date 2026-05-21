@@ -3,13 +3,13 @@
   sticker_names = bookshelf_entry.sticker_definitions.map(&:name)
 %>
 
-<article class="h-full min-h-36 rounded-2xl border border-stone-200 bg-white p-3 shadow-sm <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_sort_handle, false) %>"
+<article class="h-full min-h-36 w-full max-w-full overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-sm <%= "cursor-grab active:cursor-grabbing" if local_assigns.fetch(:show_sort_handle, false) %>"
          data-bookshelf-entry-id="<%= bookshelf_entry.id %>"
          data-bookshelf-entry-view="detail"
          <% if local_assigns.fetch(:show_sort_handle, false) %>
            data-bookshelf-entries-sort-handle
          <% end %>>
-  <div class="flex h-full gap-3">
+  <div class="flex h-full min-w-0 gap-3">
     <div class="flex w-20 shrink-0 justify-center"
          <% if local_assigns.fetch(:show_sort_handle, false) %>
            data-bookshelf-entries-sort-handle
@@ -22,25 +22,37 @@
                  size: :medium %>
     </div>
 
-    <div class="flex min-w-0 flex-1 flex-col">
-      <div class="min-w-0">
-        <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "block truncate text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
+    <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div class="min-w-0 overflow-hidden">
+        <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "line-clamp-2 break-words text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
         <p class="mt-1 truncate text-sm text-stone-500"><%= metadata %></p>
       </div>
 
       <% if local_assigns.fetch(:show_status, false) && (bookshelf_entry.status.present? || bookshelf_entry.sticker_definitions.any?) %>
-        <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
+        <div class="mt-auto flex min-w-0 flex-wrap items-center gap-1.5 overflow-hidden pt-3">
           <% if bookshelf_entry.status.present? %>
-            <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
+            <span class="max-w-full truncate rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
           <% end %>
 
-          <% bookshelf_entry.sticker_definitions.first(2).each do |sticker| %>
-            <span class="rounded-full border border-stone-300 px-2.5 py-1 text-xs text-stone-600"><%= sticker.name %></span>
-          <% end %>
-          <% if bookshelf_entry.sticker_definitions.size > 2 %>
-            <span class="rounded-full border border-stone-200 px-2.5 py-1 text-xs text-stone-400"
-                  title="<%= sticker_names.join(", ") %>"
-                  aria-label="스티커: <%= sticker_names.join(", ") %>">+<%= bookshelf_entry.sticker_definitions.size - 2 %></span>
+          <% if bookshelf_entry.sticker_definitions.any? %>
+            <details class="relative min-w-0 max-w-full md:hidden [&[open]>summary]:absolute [&[open]>summary]:inset-0 [&[open]>summary]:z-10 [&[open]>summary]:opacity-0">
+              <summary class="inline-flex h-6 min-w-6 cursor-pointer list-none items-center justify-center rounded-full border border-stone-300 px-2 text-xs font-medium text-stone-600"
+                       aria-label="<%= t("bookshelf_entries.stickers.summary", count: bookshelf_entry.sticker_definitions.size) %>">
+                <span aria-hidden="true"><%= bookshelf_entry.sticker_definitions.size %></span>
+                <span class="sr-only"><%= t("bookshelf_entries.stickers.summary", count: bookshelf_entry.sticker_definitions.size) %></span>
+              </summary>
+              <div class="mt-1 flex max-w-full flex-wrap gap-1">
+                <% bookshelf_entry.sticker_definitions.each do |sticker| %>
+                  <span class="max-w-full truncate rounded-full border border-stone-200 px-2.5 py-1 text-xs text-stone-500"><%= sticker.name %></span>
+                <% end %>
+              </div>
+            </details>
+
+            <div class="hidden min-w-0 max-w-full flex-wrap gap-1 md:flex">
+              <% bookshelf_entry.sticker_definitions.each do |sticker| %>
+                <span class="max-w-full truncate rounded-full border border-stone-300 px-2.5 py-1 text-xs text-stone-600"><%= sticker.name %></span>
+              <% end %>
+            </div>
           <% end %>
         </div>
       <% end %>

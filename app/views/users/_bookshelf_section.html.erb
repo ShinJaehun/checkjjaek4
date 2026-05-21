@@ -22,7 +22,18 @@
   <% end %>
 
   <% if bookshelves.any? %>
-    <div class="relative z-10" data-controller="horizontal-scroll">
+    <%= form_with url: bookshelf_section_path.call, method: :get, class: "px-1 pb-1 md:hidden", data: { library_mobile_bookshelf_select_form: true } do |form| %>
+      <%= form.hidden_field :sort, value: bookshelf_sort %>
+      <%= form.label :bookshelf_id, t("users.profile.bookshelf_tabs"), class: "sr-only" %>
+      <%= form.select :bookshelf_id,
+                      bookshelves.map { |bookshelf| [ "#{bookshelf.name} (#{bookshelf_entry_counts.fetch(bookshelf.id, 0)})", bookshelf.id ] },
+                      { selected: selected_bookshelf&.id },
+                      class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-900 shadow-sm",
+                      data: { library_mobile_bookshelf_select: true },
+                      onchange: "this.form.requestSubmit()" %>
+    <% end %>
+
+    <div class="relative z-10 hidden md:block" data-controller="horizontal-scroll">
       <button type="button"
               class="absolute left-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm"
               data-action="horizontal-scroll#scrollLeft"

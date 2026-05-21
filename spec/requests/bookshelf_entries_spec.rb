@@ -405,6 +405,92 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.bookshelf).to eq(target_bookshelf)
   end
 
+  it "bulk moves selected shelf entries to the target bookshelf in requested order" do
+    source_bookshelf = user.default_bookshelf
+    target_bookshelf = user.bookshelves.create!(name: "묶음 이동 대상", visibility: :private)
+    existing_entry = user.bookshelf_entries.create!(book: Book.create!(title: "기존 대상 책", authors_text: "저자"), bookshelf: target_bookshelf)
+    first_entry = user.bookshelf_entries.create!(book: Book.create!(title: "첫 번째 선택", authors_text: "저자"), bookshelf: source_bookshelf)
+    second_entry = user.bookshelf_entries.create!(book: Book.create!(title: "두 번째 선택", authors_text: "저자"), bookshelf: source_bookshelf)
+    sign_in user
+
+    patch bulk_move_bookshelf_entries_path, params: {
+      bookshelf_entry_ids: [ second_entry.id, first_entry.id, second_entry.id ],
+      target_bookshelf_id: target_bookshelf.id,
+      source_bookshelf_id: source_bookshelf.id
+    }
+
+    expect(response).to redirect_to(transfer_user_library_path(user, source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: target_bookshelf.id))
+    expect(target_bookshelf.bookshelf_entries.order(:position).pluck(:id)).to eq([ existing_entry.id, second_entry.id, first_entry.id ])
+    expect(second_entry.reload.position).to eq(2)
+    expect(first_entry.reload.position).to eq(3)
+  end
+
+  it "skips entries that already belong to the target bookshelf during bulk move" do
+    target_bookshelf = user.bookshelves.create!(name: "이미 있는 대상", visibility: :private)
+    existing_entry = user.bookshelf_entries.create!(book: Book.create!(title: "이미 대상", authors_text: "저자"), bookshelf: target_bookshelf)
+    moving_entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    patch bulk_move_bookshelf_entries_path, params: {
+      bookshelf_entry_ids: [ existing_entry.id, moving_entry.id ],
+      target_bookshelf_id: target_bookshelf.id
+    }
+
+    expect(response).to redirect_to(transfer_user_library_path(user, target_bookshelf_id: target_bookshelf.id))
+    expect(target_bookshelf.bookshelf_entries.order(:position).pluck(:id)).to eq([ existing_entry.id, moving_entry.id ])
+    expect(existing_entry.reload.position).to eq(1)
+    expect(moving_entry.reload.position).to eq(2)
+  end
+
+  it "opens the target bookshelf as source after mobile bulk move" do
+    source_bookshelf = user.default_bookshelf
+    target_bookshelf = user.bookshelves.create!(name: "모바일 이동 대상", visibility: :private)
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    patch bulk_move_bookshelf_entries_path, params: {
+      bookshelf_entry_ids: [ entry.id ],
+      target_bookshelf_id: target_bookshelf.id,
+      source_bookshelf_id: source_bookshelf.id,
+      return_to_target_as_source: "1"
+    }
+
+    expect(response).to redirect_to(transfer_user_library_path(user, source_bookshelf_id: target_bookshelf.id))
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
+  end
+
+  it "rejects bulk moving when another user's shelf entry id is included" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    other_entry = book_friend.bookshelf_entries.find_by!(book: friend_book)
+    target_bookshelf = user.bookshelves.create!(name: "내 묶음 대상", visibility: :private)
+    original_bookshelf = entry.bookshelf
+    sign_in user
+
+    patch bulk_move_bookshelf_entries_path, params: {
+      bookshelf_entry_ids: [ entry.id, other_entry.id ],
+      target_bookshelf_id: target_bookshelf.id
+    }
+
+    expect(response).to have_http_status(:not_found)
+    expect(entry.reload.bookshelf).to eq(original_bookshelf)
+    expect(target_bookshelf.bookshelf_entries).to be_empty
+  end
+
+  it "rejects bulk moving to another user's bookshelf" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    other_bookshelf = book_friend.bookshelves.create!(name: "남의 묶음 대상", visibility: :private)
+    original_bookshelf = entry.bookshelf
+    sign_in user
+
+    patch bulk_move_bookshelf_entries_path, params: {
+      bookshelf_entry_ids: [ entry.id ],
+      target_bookshelf_id: other_bookshelf.id
+    }
+
+    expect(response).to have_http_status(:not_found)
+    expect(entry.reload.bookshelf).to eq(original_bookshelf)
+  end
+
   it "rejects reordering another user's bookshelf" do
     bookshelf = book_friend.default_bookshelf
     entry = book_friend.bookshelf_entries.find_by!(book: friend_book)

@@ -212,14 +212,19 @@ en:
     edit:
       title: "Edit shelf entry"
     notices:
+      bulk_moved: "Moved %{count} books to '%{bookshelf_name}'."
       created: "Book added to your shelf."
       destroyed: "Shelf entry removed."
       moved: "Book moved to '%{bookshelf_name}'."
       updated: "Shelf entry updated."
+    alerts:
+      bulk_move_failed: "Could not move the selected books."
     statuses:
       wish: "Want to read"
       reading: "Reading"
       finished: "Finished"
+    stickers:
+      summary: "%{count} stickers"
   bookshelves:
     confirm_destroy: "Delete this bookshelf?"
     actions:
@@ -354,10 +359,18 @@ en:
       title_with_name: "%{name}'s Library"
       transfer:
         back_to_library: "Back to library"
+        bulk_submit: "Move"
+        bulk_target_label: "Move to which bookshelf?"
+        cancel_selection: "Cancel selection"
         choose_source: "Choose source bookshelf"
         choose_target: "Choose target bookshelf"
+        clear_selection: "Clear"
+        mobile_source_label: "Bookshelf to organize"
         not_enough_bookshelves: "Bookshelf transfer is available when you have at least two bookshelves."
         open: "Move books"
+        select_mode: "Select"
+        select_book: "Select %{title}"
+        selected_count_suffix: " selected"
         source_label: "Source bookshelf"
         target_label: "Target bookshelf"
         title: "Move books between bookshelves"

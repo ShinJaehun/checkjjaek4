@@ -60,6 +60,23 @@ class BookshelfEntry < ApplicationRecord
     end
   end
 
+  def self.bulk_move_to_bookshelf!(entries:, target_bookshelf:)
+    transaction do
+      next_position = target_bookshelf.bookshelf_entries.maximum(:position).to_i
+      moved_count = 0
+
+      entries.each do |entry|
+        next if entry.bookshelf_id == target_bookshelf.id
+
+        next_position += 1
+        entry.update!(bookshelf: target_bookshelf, position: next_position)
+        moved_count += 1
+      end
+
+      moved_count
+    end
+  end
+
   private
 
   def assign_default_bookshelf

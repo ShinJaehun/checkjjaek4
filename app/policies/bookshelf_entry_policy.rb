@@ -19,6 +19,10 @@ class BookshelfEntryPolicy < ApplicationPolicy
     create?
   end
 
+  def bulk_move?
+    user.present?
+  end
+
   def reorder?
     user.present?
   end
