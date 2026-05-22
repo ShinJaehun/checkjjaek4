@@ -31,11 +31,9 @@ RSpec.describe "User libraries", type: :request do
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"][name="source_bookshelf_id"]))).to be_present
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"] option[value="#{selected_bookshelf.id}"]))&.text).to eq("Selected Shelf (1)")
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"] option[value="#{target_bookshelf.id}"]))&.text).to eq("Target Shelf (1)")
-    expect(document.at_css(%([data-bookshelf-transfer-desktop-target-panel].hidden.md\\:block))).to be_present
     expect(document.at_css(%(form[action="#{bulk_move_bookshelf_entries_path}"]))).to be_present
-    expect(document.at_css(%([data-bookshelf-transfer-target-list]))).to be_present
-    expect(document.at_css(%(button[data-bookshelf-transfer-target-button="true"][name="target_bookshelf_id"][value="#{target_bookshelf.id}"]))).to be_present
-    expect(document.at_css(%(button[data-bookshelf-transfer-target-button="true"][value="#{selected_bookshelf.id}"]))).to be_nil
+    expect(document.at_css(%(button[name="target_bookshelf_id"][value="#{target_bookshelf.id}"]))).to be_present
+    expect(document.at_css(%(button[name="target_bookshelf_id"][value="#{selected_bookshelf.id}"]))).to be_nil
     expect(document.at_css(%(input[name="return_to_target_as_source"][value="1"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-target="selectionCheckboxWrapper"] input[type="checkbox"][value="#{source_entry.id}"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-bookshelf-id="#{target_bookshelf.id}"] article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_present

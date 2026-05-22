@@ -264,12 +264,8 @@ export default class extends Controller {
     return input
   }
 
-  enterSelectionMode(entry = null) {
+  enterSelectionMode() {
     this.selectionMode = true
-    if (entry) {
-      const checkbox = this.checkboxForEntry(entry)
-      if (checkbox) checkbox.checked = true
-    }
     this.syncSelection()
     this.syncSortables()
   }

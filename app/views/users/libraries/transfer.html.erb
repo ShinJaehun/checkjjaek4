@@ -45,8 +45,7 @@
   <div>
     <%= form_with url: transfer_user_library_path(@user),
                   method: :get,
-                  class: "px-1 py-1 md:hidden",
-                  data: { bookshelf_transfer_source_select_form: true } do %>
+                  class: "px-1 py-1 md:hidden" do %>
       <%= hidden_field_tag :target_bookshelf_id, @target_bookshelf.id %>
       <%= hidden_field_tag :changed, "source" %>
       <%= label_tag :source_bookshelf_id, t("users.library.transfer.mobile_source_label"), class: "sr-only" %>
@@ -56,7 +55,7 @@
                        @source_bookshelf.id
                      ),
                      class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-900 shadow-sm",
-                     data: { action: "change->bookshelf-transfer#submitSourceSelect", bookshelf_transfer_target: "sourceSelect", bookshelf_transfer_source_select: true } %>
+                     data: { action: "change->bookshelf-transfer#submitSourceSelect", bookshelf_transfer_source_select: true } %>
     <% end %>
 
     <%= render "users/libraries/transfer_bookshelf_panel",
@@ -69,7 +68,7 @@
                bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@source_bookshelf.id, 0),
                panel_role: :source %>
 
-    <div class="hidden md:block" data-bookshelf-transfer-desktop-target-panel>
+    <div class="hidden md:block">
       <%= render "users/libraries/transfer_bookshelf_panel",
                  user: @user,
                  bookshelves: @profile_bookshelves,
@@ -110,7 +109,7 @@
           <%= hidden_field_tag :source_bookshelf_id, @source_bookshelf.id %>
           <%= hidden_field_tag :return_to_target_as_source, "1" %>
           <p class="text-sm font-semibold text-stone-900"><%= t("users.library.transfer.bulk_target_label") %></p>
-          <div class="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto pb-1" data-bookshelf-transfer-target-list>
+          <div class="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto pb-1">
             <% mobile_target_bookshelves.each do |bookshelf| %>
               <%= button_tag type: :submit,
                              name: :target_bookshelf_id,
@@ -118,8 +117,7 @@
                              class: [
                                "w-full rounded-xl border px-3 py-2 text-left text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1",
                                bookshelf_tab_class(bookshelf, selected: false)
-                             ].join(" "),
-                             data: { bookshelf_transfer_target_button: true } do %>
+                             ].join(" ") do %>
                 <%= bookshelf.name %>
               <% end %>
             <% end %>

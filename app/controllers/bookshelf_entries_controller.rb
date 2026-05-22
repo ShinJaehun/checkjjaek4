@@ -86,21 +86,10 @@ class BookshelfEntriesController < ApplicationController
   def bulk_move
     authorize BookshelfEntry, :bulk_move?
 
-    requested_ids = Array(params[:bookshelf_entry_ids]).reject(&:blank?).map(&:to_i)
-    unique_ids = requested_ids.uniq
     target_bookshelf = current_user.bookshelves.find(params[:target_bookshelf_id])
-    entries_by_id = current_user.bookshelf_entries.where(id: unique_ids).index_by(&:id)
-    raise ActiveRecord::RecordNotFound if entries_by_id.size != unique_ids.size
+    moved_count = BookshelfEntry.bulk_move_to_bookshelf!(entries: bulk_move_entries, target_bookshelf:)
 
-    ordered_entries = unique_ids.map { |id| entries_by_id.fetch(id) }
-    moved_count = BookshelfEntry.bulk_move_to_bookshelf!(entries: ordered_entries, target_bookshelf:)
-
-    options = {
-      source_bookshelf_id: bulk_move_source_bookshelf_id(target_bookshelf),
-      target_bookshelf_id: bulk_move_target_bookshelf_id(target_bookshelf)
-    }
-
-    redirect_to transfer_user_library_path(current_user, options.compact),
+    redirect_to transfer_user_library_path(current_user, bulk_move_redirect_options(target_bookshelf)),
                 notice: t("bookshelf_entries.notices.bulk_moved", count: moved_count, bookshelf_name: target_bookshelf.name)
   rescue ActiveRecord::RecordInvalid
     redirect_to transfer_user_library_path(current_user), alert: t("bookshelf_entries.alerts.bulk_move_failed")
@@ -133,6 +122,21 @@ class BookshelfEntriesController < ApplicationController
 
   def bookshelf_entry_params
     params.fetch(:bookshelf_entry, {}).permit(:bookshelf_id, :status, sticker_definition_ids: [])
+  end
+
+  def bulk_move_entries
+    requested_ids = Array(params[:bookshelf_entry_ids]).reject(&:blank?).map(&:to_i).uniq
+    entries_by_id = current_user.bookshelf_entries.where(id: requested_ids).index_by(&:id)
+    raise ActiveRecord::RecordNotFound if entries_by_id.size != requested_ids.size
+
+    requested_ids.map { |id| entries_by_id.fetch(id) }
+  end
+
+  def bulk_move_redirect_options(target_bookshelf)
+    {
+      source_bookshelf_id: bulk_move_source_bookshelf_id(target_bookshelf),
+      target_bookshelf_id: bulk_move_target_bookshelf_id(target_bookshelf)
+    }.compact
   end
 
   def bulk_move_source_bookshelf_id(target_bookshelf)
