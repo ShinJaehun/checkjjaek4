@@ -231,3 +231,11 @@ Library 안에서 볼 수 있는 책장:
 - `app/policies/comment_policy.rb`
 - `app/policies/like_policy.rb`
 - `app/policies/jjaek_policy.rb`
+
+### 미구현 Group 목표 정책
+
+Group은 현재 구현되어 있지 않다.
+향후 그룹에서는 글과 댓글의 열람 권한이 그룹 접근 정책을 따르고,
+작성 행위는 현재 그룹 멤버에게만 허용하는 더 엄격한 목표 정책을 적용한다.
+
+그룹 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
