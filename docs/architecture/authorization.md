@@ -44,6 +44,8 @@ checkjjaek4의 서버측 권한 판단은 Pundit policy 중심으로 유지한�
 - `app/policies/book_activity_policy.rb`
 - `app/policies/book_friendship_policy.rb`
 - `app/policies/book_search_policy.rb`
+- `app/policies/group_policy.rb`
+- `app/policies/group_membership_policy.rb`
 
 ---
 
@@ -232,10 +234,27 @@ Library 안에서 볼 수 있는 책장:
 - `app/policies/like_policy.rb`
 - `app/policies/jjaek_policy.rb`
 
-### 미구현 Group 목표 정책
+---
 
-Group은 현재 구현되어 있지 않다.
+## Group 기반 권한
+
+현재 구현된 Group 기반은 `GroupPolicy`와 `GroupMembershipPolicy`를 사용한다.
+
+- 공개 그룹과 승인 그룹은 로그인 사용자가 발견하고 기본 정보를 조회할 수 있다
+- 비공개 그룹은 owner 또는 active member만 목록과 상세에서 조회할 수 있다
+- 일반 사용자의 생성 권한은 공개 그룹과 승인 그룹으로 제한한다
+- 공개 그룹은 즉시 active membership을 만들고, 승인 그룹은 pending 가입 요청을 만든다
+- owner만 자기 그룹의 pending membership을 active로 승인할 수 있다
+- 사용자는 자신의 pending 요청을 취소하거나 자신의 active 일반 membership에서 탈퇴할 수 있다
+- owner membership은 탈퇴·삭제할 수 없다
+
+Group Jjaek과 그룹 댓글은 아직 구현되어 있지 않다.
 향후 그룹에서는 글과 댓글의 열람 권한이 그룹 접근 정책을 따르고,
-작성 행위는 현재 그룹 멤버에게만 허용하는 더 엄격한 목표 정책을 적용한다.
+작성 행위는 현재 그룹 멤버에게만 허용하는 목표 정책을 적용한다.
 
 그룹 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
+
+관련 위치:
+
+- `app/policies/group_policy.rb`
+- `app/policies/group_membership_policy.rb`

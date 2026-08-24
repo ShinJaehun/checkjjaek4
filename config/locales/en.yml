@@ -11,6 +11,13 @@ en:
           attributes:
             base:
               too_many_bookshelves: "You can create up to %{count} bookshelves."
+        group_membership:
+          attributes:
+            status:
+              owner_must_be_active: "must remain active for the group owner"
+              invalid_transition: "cannot return an active membership to pending"
+            base:
+              owner_membership_cannot_be_destroyed: "The group owner cannot leave the group"
   auth:
     actions:
       sign_in: "Sign in"
@@ -45,6 +52,52 @@ en:
     actions:
       search_books: "Search books"
       my_shelf: "Open my shelf"
+  groups:
+    nav: "Groups"
+    owner: "Owner: %{name}"
+    types:
+      public_group: "Public group"
+      approval_group: "Approval group"
+      private_group: "Private group"
+    index:
+      title: "Reading groups"
+      description: "Find a reading community to read and talk with."
+      empty: "No groups are available to discover yet."
+    new:
+      title: "Create a group"
+      description: "Choose how readers join and start a reading community."
+    form:
+      name: "Group name"
+      description: "Description"
+      group_type: "Group type"
+      private_group_later: "Private group creation will be available with invitations."
+    actions:
+      new: "Create group"
+      create: "Create group"
+      cancel: "Cancel"
+      back: "Back to groups"
+    pending:
+      title: "Join requests"
+      empty: "No join requests are pending."
+    notices:
+      created: "Group created."
+  group_memberships:
+    statuses:
+      owner: "Group owner"
+      pending: "Pending approval"
+      active: "Member"
+    actions:
+      join: "Join"
+      request: "Request to join"
+      cancel: "Cancel request"
+      approve: "Approve"
+      leave: "Leave group"
+    notices:
+      joined: "You joined the group."
+      requested: "Join request sent."
+      cancelled: "Join request cancelled."
+      approved: "Join request approved."
+      left: "You left the group."
   comments:
     actions:
       close_inline: "Close"

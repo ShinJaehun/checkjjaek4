@@ -4,6 +4,9 @@ Rails.application.routes.draw do
   devise_for :users
   get "/relationships", to: "relationships#index"
   resources :notifications, only: :index
+  resources :groups, only: %i[index show new create] do
+    resources :group_memberships, only: %i[create update destroy]
+  end
   resource :book_search, only: :show, controller: "book_searches"
   resources :books, only: :show do
     collection do

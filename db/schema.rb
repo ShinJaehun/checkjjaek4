@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_14_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_24_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -113,6 +113,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_090000) do
     t.index ["follower_id"], name: "index_follows_on_follower_id"
   end
 
+  create_table "group_memberships", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "group_id", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["group_id", "user_id"], name: "index_group_memberships_on_group_id_and_user_id", unique: true
+    t.index ["group_id"], name: "index_group_memberships_on_group_id"
+    t.index ["user_id"], name: "index_group_memberships_on_user_id"
+  end
+
+  create_table "groups", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "group_type", default: 0, null: false
+    t.string "name", null: false
+    t.bigint "owner_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_id"], name: "index_groups_on_owner_id"
+  end
+
   create_table "jjaeks", force: :cascade do |t|
     t.bigint "book_id"
     t.text "content", null: false
@@ -198,6 +219,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_090000) do
   add_foreign_key "comments", "users"
   add_foreign_key "follows", "users", column: "followee_id"
   add_foreign_key "follows", "users", column: "follower_id"
+  add_foreign_key "group_memberships", "groups"
+  add_foreign_key "group_memberships", "users"
+  add_foreign_key "groups", "users", column: "owner_id"
   add_foreign_key "jjaeks", "books"
   add_foreign_key "jjaeks", "jjaeks", column: "quoted_jjaek_id"
   add_foreign_key "jjaeks", "users"

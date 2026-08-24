@@ -31,6 +31,15 @@ class User < ApplicationRecord
            inverse_of: :actor,
            dependent: :destroy
 
+  has_many :owned_groups,
+           class_name: "Group",
+           foreign_key: :owner_id,
+           inverse_of: :owner,
+           dependent: :restrict_with_error
+  has_many :group_memberships, dependent: :destroy
+  has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
+  has_many :joined_groups, through: :active_group_memberships, source: :group
+
   has_many :active_follows,
            class_name: "Follow",
            foreign_key: :follower_id,

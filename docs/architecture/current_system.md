@@ -26,6 +26,8 @@
 - Like
 - Notification
 - BookActivity
+- Group
+- GroupMembership
 
 역할 요약:
 
@@ -39,6 +41,8 @@
 - Like: Jjaek에 대한 좋아요
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
+- Group: 일반 사용자 독서 공동체와 그룹 종류·owner
+- GroupMembership: 사용자와 Group 사이의 pending/active 가입 상태
 
 ---
 
@@ -193,6 +197,31 @@
 관련 코드:
 - controller: app/controllers/relationships_controller.rb
 - view: app/views/relationships/index.html.erb
+
+---
+
+### 5-1. 그룹 화면 (/groups)
+
+- 로그인 사용자가 공개 그룹과 승인 그룹을 만들고 발견할 수 있음
+- 그룹 소유권은 `Group.owner_id`를 기준으로 하며 owner도 active membership을 가짐
+- 공개 그룹은 즉시 가입, 승인 그룹은 pending 요청 후 owner 승인 방식
+- pending 요청은 요청자 본인이 취소할 수 있음
+- active 일반 member는 탈퇴할 수 있고 owner는 탈퇴할 수 없음
+- 비공개 그룹은 owner/active member만 목록과 상세에서 조회할 수 있음
+- 초대 기능이 없어 비공개 그룹은 사용자 생성 UI에서 아직 제공하지 않음
+- Group Jjaek, 댓글, 공유, 초대, 좋아요, 알림, moderator와 moderation 상세는 구현되지 않음
+
+관련 코드:
+- controller:
+  - app/controllers/groups_controller.rb
+  - app/controllers/group_memberships_controller.rb
+- model:
+  - app/models/group.rb
+  - app/models/group_membership.rb
+- policy:
+  - app/policies/group_policy.rb
+  - app/policies/group_membership_policy.rb
+- view: app/views/groups/*
 
 ---
 

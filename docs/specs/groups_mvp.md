@@ -9,11 +9,22 @@ Group은 일반 사용자가 함께 읽고 기록하고 토론하는 독서 공�
 
 ---
 
-## 현재 상태: 그룹 미구현
+## 현재 상태
 
-Group은 현재 구현되어 있지 않다.
+Group 기반은 현재 다음 범위까지 구현되어 있다.
 
-이 문서의 내용은 모두 목표 정책이며, 현재 모델·권한·화면·피드 동작을 설명하지 않는다.
+- `Group`과 `GroupMembership`
+- 공개 그룹과 승인 그룹의 사용자 생성
+- 발견 가능한 그룹 및 active membership이 있는 비공개 그룹의 목록 조회
+- 공개 그룹 즉시 가입
+- 승인 그룹 가입 요청·요청 취소·owner 승인
+- 일반 active member 탈퇴와 owner membership 삭제 방지
+- 비공개 그룹의 owner/active member 조회 권한 기반
+
+비공개 그룹은 초대 기능이 없어 사용자 생성 UI에서는 아직 제공하지 않는다.
+Group Jjaek, 댓글, ReJjaek/share, 초대, 좋아요, 알림과 moderation 상세는 미구현이며,
+이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
+
 또한 여기서 사용하는 `visibility`, `discoverability`, `join policy`는 제품 정책을 설명하기 위한 개념적 구분이다. 실제 DB column, enum, association 구조를 확정하지 않는다.
 
 ---
