@@ -24,6 +24,19 @@ RSpec.describe GroupMembership, type: :model do
     expect(membership.update(status: :pending)).to be(false)
   end
 
+  it "supports an invitation becoming active" do
+    membership = described_class.create!(group: group, user: member, status: :invited)
+
+    expect(membership).to be_invited
+    expect(membership.update(status: :active)).to be(true)
+  end
+
+  it "does not allow an invitation to become pending" do
+    membership = described_class.create!(group: group, user: member, status: :invited)
+
+    expect(membership.update(status: :pending)).to be(false)
+  end
+
   it "does not allow the owner membership to be destroyed" do
     membership = group.group_memberships.find_by!(user: owner)
 

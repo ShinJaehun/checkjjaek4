@@ -1,7 +1,8 @@
 class GroupMembershipsController < ApplicationController
-  before_action :set_group
+  before_action :set_group, except: %i[accept decline]
   before_action :authorize_group_access, only: %i[update destroy]
   before_action :set_membership, only: %i[update destroy]
+  before_action :set_own_invitation, only: %i[accept decline]
 
   def create
     @membership = @group.group_memberships.build(
@@ -25,6 +26,31 @@ class GroupMembershipsController < ApplicationController
     redirect_to @group, notice: t("group_memberships.notices.approved")
   end
 
+  def invite
+    @membership = @group.group_memberships.build(user_id: params[:user_id], status: :invited)
+    authorize @membership, :invite?
+
+    if @membership.save
+      redirect_to @group, notice: t("group_memberships.notices.invited")
+    else
+      redirect_to @group, alert: @membership.errors.full_messages.to_sentence
+    end
+  end
+
+  def accept
+    authorize @membership, :accept?
+    @membership.active!
+
+    redirect_to @membership.group, notice: t("group_memberships.notices.accepted")
+  end
+
+  def decline
+    authorize @membership, :decline?
+    @membership.destroy!
+
+    redirect_to groups_path, notice: t("group_memberships.notices.declined"), status: :see_other
+  end
+
   def destroy
     authorize @membership
     pending = @membership.pending?
@@ -43,6 +69,10 @@ class GroupMembershipsController < ApplicationController
 
   def set_membership
     @membership = @group.group_memberships.find(params[:id])
+  end
+
+  def set_own_invitation
+    @membership = current_user.group_memberships.invited.find_by!(id: params[:id], group_id: params[:group_id])
   end
 
   def authorize_group_access

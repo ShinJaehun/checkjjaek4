@@ -22,14 +22,32 @@ RSpec.describe "Groups", type: :request do
     expect(response).to redirect_to(group_path(group))
   end
 
-  it "does not allow private group creation through the user endpoint" do
+  it "allows private group creation with an owner membership" do
     sign_in user
 
     expect {
       post groups_path, params: { group: { name: "Private", group_type: "private_group" } }
-    }.not_to change(Group, :count)
+    }.to change(Group, :count).by(1).and change(GroupMembership, :count).by(1)
 
-    expect(response).to redirect_to(root_path)
+    expect(Group.last.group_memberships.find_by(user: user)).to be_active
+    expect(response).to redirect_to(group_path(Group.last))
+  end
+
+
+  it "shows only the current user's invitations outside the discoverable list" do
+    owner = User.create!(name: "Owner", email: "invitation-owner@example.com", password: "password123!", password_confirmation: "password123!")
+    other = User.create!(name: "Other", email: "invitation-other@example.com", password: "password123!", password_confirmation: "password123!")
+    invited_group = Group.create!(owner: owner, name: "Invitation only", group_type: :private_group)
+    other_group = Group.create!(owner: owner, name: "Someone else's invitation", group_type: :private_group)
+    invited_group.group_memberships.create!(user: user, status: :invited)
+    other_group.group_memberships.create!(user: other, status: :invited)
+    sign_in user
+
+    get groups_path
+
+    expect(response.body).to include("받은 동아리 초대", invited_group.name)
+    expect(response.body).not_to include(other_group.name)
+    expect(GroupPolicy::Scope.new(user, Group.all).resolve).not_to include(invited_group)
   end
 
   it "lists public, approval, and joined private groups only" do
@@ -55,5 +73,20 @@ RSpec.describe "Groups", type: :request do
     get group_path(private_group)
 
     expect(response).to have_http_status(:not_found)
+  end
+
+
+  it "shows the invitation form only to a private group owner" do
+    invitee = User.create!(name: "Invitee", email: "invite-form-user@example.com", password: "password123!", password_confirmation: "password123!")
+    group = Group.create!(owner: user, name: "Private invitations", group_type: :private_group)
+    sign_in user
+
+    get group_path(group)
+    expect(response.body).to include("동아리 초대", invitee.name)
+
+    group.group_memberships.create!(user: invitee, status: :active)
+    sign_in invitee
+    get group_path(group)
+    expect(response.body).not_to include("동아리 초대")
   end
 end

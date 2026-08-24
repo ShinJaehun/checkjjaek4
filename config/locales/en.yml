@@ -15,7 +15,7 @@ en:
           attributes:
             status:
               owner_must_be_active: "must remain active for the club owner"
-              invalid_transition: "cannot return an active membership to pending"
+              invalid_transition: "is not an allowed membership status transition"
             base:
               owner_membership_cannot_be_destroyed: "The club owner cannot leave the club"
   auth:
@@ -70,7 +70,6 @@ en:
       name: "Club name"
       description: "Description"
       group_type: "Club type"
-      private_group_later: "Private club creation will be available with invitations."
     actions:
       new: "Create club"
       create: "Create club"
@@ -79,6 +78,11 @@ en:
     pending:
       title: "Join requests"
       empty: "No join requests are pending."
+    invitations:
+      title: "Club invitations"
+      invite_title: "Invite to club"
+      user: "User"
+      empty_candidates: "No users are available to invite."
     notices:
       created: "Club created."
     jjaeks:
@@ -94,18 +98,25 @@ en:
       owner: "Club owner"
       pending: "Pending approval"
       active: "Member"
+      invited: "Invited"
     actions:
       join: "Join"
       request: "Request to join"
       cancel: "Cancel request"
       approve: "Approve"
       leave: "Leave club"
+      invite: "Invite"
+      accept: "Accept invitation"
+      decline: "Decline invitation"
     notices:
       joined: "You joined the club."
       requested: "Join request sent."
       cancelled: "Join request cancelled."
       approved: "Join request approved."
       left: "You left the club."
+      invited: "Club invitation sent."
+      accepted: "Club invitation accepted."
+      declined: "Club invitation declined."
   comments:
     actions:
       close_inline: "Close"

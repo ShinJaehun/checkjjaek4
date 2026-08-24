@@ -1,5 +1,5 @@
 class Group < ApplicationRecord
-  USER_CREATABLE_TYPES = %w[public_group approval_group].freeze
+  USER_CREATABLE_TYPES = %w[public_group approval_group private_group].freeze
 
   enum :group_type,
        { public_group: 0, approval_group: 1, private_group: 2 },

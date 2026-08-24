@@ -4,6 +4,7 @@ class GroupsController < ApplicationController
   def index
     authorize Group
     @groups = policy_scope(Group).includes(:owner, :group_memberships).order(created_at: :desc)
+    @invitations = current_user.group_memberships.invited.includes(group: :owner).order(created_at: :desc)
   end
 
   def show
@@ -13,6 +14,11 @@ class GroupsController < ApplicationController
       @group.group_memberships.pending.includes(:user).order(:created_at)
     else
       GroupMembership.none
+    end
+    @invite_candidates = if @group.private_group? && @group.owner?(current_user)
+      User.where.not(id: @group.group_memberships.select(:user_id)).order(:name)
+    else
+      User.none
     end
     prepare_jjaek_context
   end

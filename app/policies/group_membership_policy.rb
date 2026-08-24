@@ -10,6 +10,19 @@ class GroupMembershipPolicy < ApplicationPolicy
     user.present? && record.group.owner?(user) && record.pending?
   end
 
+  def invite?
+    user.present? && record.group.private_group? && record.group.owner?(user) &&
+      record.invited? && record.user_id != user.id
+  end
+
+  def accept?
+    own_membership? && record.invited?
+  end
+
+  def decline?
+    own_membership? && record.invited?
+  end
+
   def destroy?
     own_membership? && !record.group.owner?(user)
   end

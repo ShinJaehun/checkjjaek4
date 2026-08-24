@@ -146,4 +146,104 @@ RSpec.describe "Group memberships", type: :request do
       delete group_group_membership_path(group, membership)
     }.not_to change(GroupMembership, :count)
   end
+
+  describe "private group invitations" do
+    let(:group) { Group.create!(owner: owner, name: "Private", group_type: :private_group) }
+
+    it "lets the owner invite a user without granting group access" do
+      group
+      sign_in owner
+
+      expect {
+        post invite_group_group_memberships_path(group), params: { user_id: member.id }
+      }.to change(GroupMembership, :count).by(1)
+
+      invitation = group.group_memberships.find_by!(user: member)
+      expect(invitation).to be_invited
+
+      sign_in member
+      get group_path(group)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "blocks duplicate and self invitations" do
+      group.group_memberships.create!(user: member, status: :invited)
+      sign_in owner
+
+      expect {
+        post invite_group_group_memberships_path(group), params: { user_id: member.id }
+        post invite_group_group_memberships_path(group), params: { user_id: owner.id }
+      }.not_to change(GroupMembership, :count)
+    end
+
+    it "blocks invitations by members and in public or approval groups" do
+      regular_member = User.create!(name: "Regular", email: "regular-inviter@example.com", password: "password123!", password_confirmation: "password123!")
+      group.group_memberships.create!(user: regular_member, status: :active)
+      sign_in regular_member
+
+      expect {
+        post invite_group_group_memberships_path(group), params: { user_id: member.id }
+      }.not_to change(GroupMembership, :count)
+
+      sign_in owner
+      %i[public_group approval_group].each do |group_type|
+        discoverable_group = Group.create!(owner: owner, name: group_type.to_s, group_type: group_type)
+        expect {
+          post invite_group_group_memberships_path(discoverable_group), params: { user_id: member.id }
+        }.not_to change(GroupMembership, :count)
+      end
+    end
+
+    it "does not let another user accept an invitation" do
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      other = User.create!(name: "Other invitee", email: "other-invitee@example.com", password: "password123!", password_confirmation: "password123!")
+      sign_in other
+
+      patch accept_group_group_membership_path(group, invitation)
+      expect(response).to have_http_status(:not_found)
+      expect(invitation.reload).to be_invited
+    end
+
+    it "does not grant Jjaek access before an invitation is accepted" do
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      jjaek = owner.jjaeks.create!(group: group, content: "Private club activity")
+      sign_in member
+
+      get jjaek_path(jjaek)
+
+      expect(response).to have_http_status(:not_found)
+      expect(invitation.reload).to be_invited
+    end
+
+    it "lets the invitee accept and then access the group and its Jjaek" do
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      jjaek = owner.jjaeks.create!(group: group, content: "Private club activity")
+      sign_in member
+      patch accept_group_group_membership_path(group, invitation)
+
+      expect(invitation.reload).to be_active
+      expect(response).to redirect_to(group_path(group))
+
+      get group_path(group)
+      expect(response).to have_http_status(:ok)
+
+      get jjaek_path(jjaek)
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "lets only the invitee decline" do
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      other = User.create!(name: "Other decliner", email: "other-decliner@example.com", password: "password123!", password_confirmation: "password123!")
+      sign_in other
+
+      expect {
+        delete decline_group_group_membership_path(group, invitation)
+      }.not_to change(GroupMembership, :count)
+
+      sign_in member
+      expect {
+        delete decline_group_group_membership_path(group, invitation)
+      }.to change(GroupMembership, :count).by(-1)
+    end
+  end
 end

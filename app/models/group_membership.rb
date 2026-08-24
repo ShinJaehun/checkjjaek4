@@ -1,12 +1,12 @@
 class GroupMembership < ApplicationRecord
-  enum :status, { pending: 0, active: 1 }, default: :pending, validate: true
+  enum :status, { pending: 0, active: 1, invited: 2 }, default: :pending, validate: true
 
   belongs_to :group
   belongs_to :user
 
   validates :user_id, uniqueness: { scope: :group_id }
   validate :owner_must_be_active
-  validate :active_membership_cannot_return_to_pending
+  validate :status_transition_must_be_valid
 
   before_destroy :prevent_owner_membership_destroy
 
@@ -19,8 +19,9 @@ class GroupMembership < ApplicationRecord
     errors.add(:status, :owner_must_be_active)
   end
 
-  def active_membership_cannot_return_to_pending
-    return unless status_changed? && status_was == "active" && pending?
+  def status_transition_must_be_valid
+    return unless persisted? && status_changed?
+    return if status == "active" && status_was.in?(%w[pending invited])
 
     errors.add(:status, :invalid_transition)
   end

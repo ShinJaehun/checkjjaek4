@@ -15,7 +15,7 @@ ko:
           attributes:
             status:
               owner_must_be_active: "동아리 운영자는 참여 중 상태여야 합니다"
-              invalid_transition: "참여 중 상태에서 승인 대기로 변경할 수 없습니다"
+              invalid_transition: "허용되지 않는 참여 상태 변경입니다"
             base:
               owner_membership_cannot_be_destroyed: "동아리 운영자는 탈퇴할 수 없습니다"
   auth:
@@ -70,7 +70,6 @@ ko:
       name: "동아리 이름"
       description: "동아리 소개"
       group_type: "동아리 종류"
-      private_group_later: "비공개 동아리 생성은 초대 기능과 함께 제공할 예정입니다."
     actions:
       new: "동아리 만들기"
       create: "동아리 만들기"
@@ -79,6 +78,11 @@ ko:
     pending:
       title: "가입 요청"
       empty: "대기 중인 가입 요청이 없습니다."
+    invitations:
+      title: "받은 동아리 초대"
+      invite_title: "동아리 초대"
+      user: "초대할 사용자"
+      empty_candidates: "초대할 수 있는 사용자가 없습니다."
     notices:
       created: "동아리를 만들었습니다."
     jjaeks:
@@ -94,18 +98,25 @@ ko:
       owner: "동아리 운영자"
       pending: "승인 대기"
       active: "참여 중"
+      invited: "초대됨"
     actions:
       join: "가입하기"
       request: "가입 요청"
       cancel: "요청 취소"
       approve: "승인"
       leave: "탈퇴하기"
+      invite: "초대하기"
+      accept: "초대 수락"
+      decline: "초대 거절"
     notices:
       joined: "동아리에 가입했습니다."
       requested: "가입을 요청했습니다."
       cancelled: "가입 요청을 취소했습니다."
       approved: "가입 요청을 승인했습니다."
       left: "동아리에서 탈퇴했습니다."
+      invited: "동아리에 초대했습니다."
+      accepted: "동아리 초대를 수락했습니다."
+      declined: "동아리 초대를 거절했습니다."
   comments:
     actions:
       close_inline: "닫기"

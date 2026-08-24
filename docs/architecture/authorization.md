@@ -248,9 +248,12 @@ Library 안에서 볼 수 있는 책장:
 
 - 공개 동아리와 승인 동아리는 로그인 사용자가 발견하고 기본 정보를 조회할 수 있다
 - 비공개 동아리는 owner 또는 active member만 목록과 상세에서 조회할 수 있다
-- 일반 사용자의 생성 권한은 공개 동아리와 승인 동아리로 제한한다
+- 일반 사용자는 공개·승인·비공개 동아리를 생성할 수 있다
 - 공개 동아리는 즉시 active membership을 만들고, 승인 동아리는 pending 가입 요청을 만든다
 - owner만 자기 동아리의 pending membership을 active로 승인할 수 있다
+- 비공개 동아리 owner만 membership이 없는 사용자를 `invited` 상태로 초대할 수 있다
+- 초대받은 당사자만 초대를 수락해 `active`로 바꾸거나 거절해 삭제할 수 있다
+- `invited`는 비공개 동아리의 목록·상세·내부 Jjaek 접근 권한을 부여하지 않는다
 - 사용자는 자신의 pending 요청을 취소하거나 자신의 active 일반 membership에서 탈퇴할 수 있다
 - owner membership은 탈퇴·삭제할 수 없다
 

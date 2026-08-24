@@ -21,12 +21,16 @@
 - 승인 동아리 가입 요청·요청 취소·owner 승인
 - 일반 active member 탈퇴와 owner membership 삭제 방지
 - 비공개 동아리의 owner/active member 조회 권한 기반
+- 비공개 동아리 생성과 owner의 기존 사용자 초대
+- 받은 초대의 수락·거절
 - 동아리 안의 `짹`과 `책짹` 작성·조회
 - 권한 있는 사용자의 작성자 프로필에서 동아리의 `짹`과 `책짹` 조회
 
-비공개 동아리는 초대 기능이 없어 사용자 생성 UI에서는 아직 제공하지 않는다.
+비공개 동아리는 사용자 생성 UI에서 제공하며, owner가 기존 사용자를 초대할 수 있다.
+초대는 `GroupMembership`의 `invited` 상태로 표현하고 수락하면 `active`, 거절하면 삭제한다.
+초대 상태만으로 동아리나 내부 콘텐츠 조회 권한을 얻지는 않는다.
 동아리 다시짹/share, 댓글, 좋아요, 홈 피드 편입, 동아리 Jjaek 수정·삭제,
-초대, 알림과 moderation 상세는 미구현이며,
+초대 알림, 이메일·링크 초대와 moderation 상세는 미구현이며,
 이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
 
 또한 여기서 사용하는 `visibility`, `discoverability`, `join policy`는 제품 정책을 설명하기 위한 개념적 구분이다. 실제 DB column, enum, association 구조를 확정하지 않는다.

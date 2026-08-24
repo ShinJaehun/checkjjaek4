@@ -5,7 +5,11 @@ Rails.application.routes.draw do
   get "/relationships", to: "relationships#index"
   resources :notifications, only: :index
   resources :groups, only: %i[index show new create] do
-    resources :group_memberships, only: %i[create update destroy]
+    resources :group_memberships, only: %i[create update destroy] do
+      post :invite, on: :collection
+      patch :accept, on: :member
+      delete :decline, on: :member
+    end
     resources :jjaeks, only: :create
   end
   resource :book_search, only: :show, controller: "book_searches"

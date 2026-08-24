@@ -61,6 +61,26 @@
     </section>
   <% end %>
 
+  <% if @group.private_group? && @group.owner?(current_user) %>
+    <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-semibold text-stone-900"><%= t("groups.invitations.invite_title") %></h2>
+      <% if @invite_candidates.any? %>
+        <%= form_with url: invite_group_group_memberships_path(@group), class: "mt-4 flex flex-wrap items-end gap-3" do |form| %>
+          <div class="min-w-64 flex-1">
+            <%= form.label :user_id, t("groups.invitations.user"), class: "mb-2 block text-sm font-medium text-stone-700" %>
+            <%= form.select :user_id,
+                            @invite_candidates.map { |user| [user.name, user.id] },
+                            {},
+                            class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+          </div>
+          <%= form.submit t("group_memberships.actions.invite"), class: "rounded-full bg-stone-900 px-4 py-2.5 text-sm font-medium text-white" %>
+        <% end %>
+      <% else %>
+        <p class="mt-4 text-sm text-stone-500"><%= t("groups.invitations.empty_candidates") %></p>
+      <% end %>
+    </section>
+  <% end %>
+
   <% if @jjaek.present? %>
     <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
       <div class="flex items-center gap-2">

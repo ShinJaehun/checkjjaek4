@@ -21,6 +21,15 @@ RSpec.describe GroupPolicy do
       private_group.group_memberships.create!(user: viewer, status: :active)
       expect(described_class.new(viewer, private_group).show?).to be(true)
     end
+
+    it "does not treat an invitation as private group access" do
+      private_group = Group.create!(owner: owner, name: "Invited", group_type: :private_group)
+      private_group.group_memberships.create!(user: viewer, status: :invited)
+
+      policy = described_class.new(viewer, private_group)
+      expect(policy.show?).to be(false)
+      expect(policy.read_jjaeks?).to be(false)
+    end
   end
 
   describe described_class::Scope do
@@ -38,9 +47,9 @@ RSpec.describe GroupPolicy do
     end
   end
 
-  it "does not allow a regular user to create a private group" do
+  it "allows a signed-in user to create a private group" do
     private_group = Group.new(owner: viewer, name: "Private", group_type: :private_group)
 
-    expect(described_class.new(viewer, private_group).create?).to be(false)
+    expect(described_class.new(viewer, private_group).create?).to be(true)
   end
 end
