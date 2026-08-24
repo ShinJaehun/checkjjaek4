@@ -14,6 +14,14 @@ class GroupPolicy < ApplicationPolicy
     user.present? && record.owner_id == user.id && record.group_type.in?(Group::USER_CREATABLE_TYPES)
   end
 
+  def read_jjaeks?
+    user.present? && (record.public_group? || record.active_member?(user))
+  end
+
+  def create_jjaek?
+    user.present? && record.active_member?(user)
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?

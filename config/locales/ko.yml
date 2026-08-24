@@ -14,10 +14,10 @@ ko:
         group_membership:
           attributes:
             status:
-              owner_must_be_active: "그룹 운영자는 참여 중 상태여야 합니다"
+              owner_must_be_active: "동아리 운영자는 참여 중 상태여야 합니다"
               invalid_transition: "참여 중 상태에서 승인 대기로 변경할 수 없습니다"
             base:
-              owner_membership_cannot_be_destroyed: "그룹 운영자는 탈퇴할 수 없습니다"
+              owner_membership_cannot_be_destroyed: "동아리 운영자는 탈퇴할 수 없습니다"
   auth:
     actions:
       sign_in: "로그인"
@@ -48,42 +48,50 @@ ko:
     description: "책 읽기... 좋아하세요?"
     feed_title: "최근 활동"
     empty_feed: "아직 피드에 보이는 항목이 없습니다. 책을 서재에 담거나 다른 독자를 소식받기 해보세요."
-    new_jjaek_title: "짹 쓰기"
+    new_jjaek_title: "짹"
     actions:
       search_books: "책 검색"
       my_shelf: "내 서재 보기"
   groups:
-    nav: "그룹"
+    nav: "동아리"
     owner: "운영자: %{name}"
     types:
-      public_group: "공개 그룹"
-      approval_group: "승인 그룹"
-      private_group: "비공개 그룹"
+      public_group: "공개 동아리"
+      approval_group: "승인 동아리"
+      private_group: "비공개 동아리"
     index:
-      title: "독서 그룹"
+      title: "독서 동아리"
       description: "함께 읽고 이야기할 독서 공동체를 찾아보세요."
-      empty: "아직 발견할 수 있는 그룹이 없습니다."
+      empty: "아직 발견할 수 있는 동아리가 없습니다."
     new:
-      title: "새 그룹 만들기"
-      description: "그룹의 가입 방식을 정하고 독서 공동체를 시작합니다."
+      title: "새 동아리 만들기"
+      description: "동아리의 가입 방식을 정하고 독서 공동체를 시작합니다."
     form:
-      name: "그룹 이름"
-      description: "그룹 소개"
-      group_type: "그룹 종류"
-      private_group_later: "비공개 그룹 생성은 초대 기능과 함께 제공할 예정입니다."
+      name: "동아리 이름"
+      description: "동아리 소개"
+      group_type: "동아리 종류"
+      private_group_later: "비공개 동아리 생성은 초대 기능과 함께 제공할 예정입니다."
     actions:
-      new: "그룹 만들기"
-      create: "그룹 만들기"
+      new: "동아리 만들기"
+      create: "동아리 만들기"
       cancel: "취소"
-      back: "그룹 목록으로"
+      back: "동아리 목록으로"
     pending:
       title: "가입 요청"
       empty: "대기 중인 가입 요청이 없습니다."
     notices:
-      created: "그룹을 만들었습니다."
+      created: "동아리를 만들었습니다."
+    jjaeks:
+      tabs:
+        general: "짹"
+        book: "책짹"
+      title: "동아리의 짹과 책짹"
+      empty: "아직 이 동아리에 남긴 짹이나 책짹이 없습니다."
+      general_description: "이 동아리에 짹을 남깁니다."
+      book_search_context: "%{group_name} 동아리에 남길 책짹의 책을 찾습니다."
   group_memberships:
     statuses:
-      owner: "그룹 운영자"
+      owner: "동아리 운영자"
       pending: "승인 대기"
       active: "참여 중"
     actions:
@@ -93,11 +101,11 @@ ko:
       approve: "승인"
       leave: "탈퇴하기"
     notices:
-      joined: "그룹에 가입했습니다."
+      joined: "동아리에 가입했습니다."
       requested: "가입을 요청했습니다."
       cancelled: "가입 요청을 취소했습니다."
       approved: "가입 요청을 승인했습니다."
-      left: "그룹에서 탈퇴했습니다."
+      left: "동아리에서 탈퇴했습니다."
   comments:
     actions:
       close_inline: "닫기"
@@ -338,6 +346,8 @@ ko:
       timeline_title: "이 책의 책짹"
   jjaeks:
     contexts:
+      group_general_html: "%{author_name}님이 %{group_name}에 남긴 짹"
+      group_book_html: "%{author_name}님이 %{group_name}에 남긴 책짹 · %{book_title}"
       general_html: "%{author_name}님의 짹"
       profile_html: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
       book_html: "%{author_name}님의 책짹"
@@ -446,7 +456,7 @@ ko:
       empty_activity: "아직 최근 활동이 없습니다."
       empty_bookshelf: "아직 보이는 책이 없습니다."
       empty_public_books: "아직 표시할 책이 없습니다."
-      new_jjaek_title: "짹 쓰기"
+      new_jjaek_title: "짹"
       public_books_title: "책 목록"
       stats: "소식받는 사람 %{followers}명 · 소식받기 %{following}명"
       view_library: "서재 보기"

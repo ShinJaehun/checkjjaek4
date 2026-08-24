@@ -1,6 +1,8 @@
 class BookSearchesController < ApplicationController
   def show
     authorize :book_search, :show?
+    @group = find_group_context
+    authorize @group, :create_jjaek? if @group.present?
 
     @query = params[:query].to_s.strip
     @page = normalized_page
@@ -25,6 +27,12 @@ class BookSearchesController < ApplicationController
   def normalized_page
     page = Integer(params[:page], exception: false)
     page&.positive? ? page : 1
+  end
+
+  def find_group_context
+    return if params[:group_id].blank?
+
+    policy_scope(Group).find(params[:group_id])
   end
 
   def mark_shelved_results(results)

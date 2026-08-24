@@ -138,6 +138,8 @@ Library 안에서 볼 수 있는 책장:
 
 - `JjaekPolicy#show?`는 현재 사용자가 해당 Jjaek을 볼 수 있는지 판단한다
 - quoted Jjaek이 있는 경우 quoted Jjaek도 현재 사용자에게 visible 해야 한다
+- 동아리의 `짹`과 `책짹`은 개인 visibility보다 동아리 콘텐츠 접근 권한을 우선한다
+- 공개 동아리는 로그인 사용자가 조회할 수 있고, 승인/비공개 동아리는 active member만 조회할 수 있다
 
 목표 상태 기준 보완:
 
@@ -157,6 +159,8 @@ Library 안에서 볼 수 있는 책장:
 - 작성자는 현재 사용자 본인이어야 한다
 - 책 문맥 작성은 현재 사용자의 `BookshelfEntry` 존재 여부와 연결된다
 - profile-context 작성은 대상 사용자에 대한 권한 규칙을 함께 따른다
+- 동아리의 `짹`과 `책짹`은 active member만 작성할 수 있다
+- 동아리 책짹도 작성자의 `BookshelfEntry`가 있어야 한다
 
 관련 위치:
 
@@ -167,7 +171,8 @@ Library 안에서 볼 수 있는 책장:
 
 현재 구현 기준:
 
-- 수정과 삭제는 작성자 본인만 가능하다
+- 일반 Jjaek의 수정과 삭제는 작성자 본인만 가능하다
+- 동아리 Jjaek 수정·삭제는 아직 구현하지 않아 작성자에게도 허용하지 않는다
 
 관련 위치:
 
@@ -209,6 +214,7 @@ Library 안에서 볼 수 있는 책장:
 - 현재 사용자를 대상으로 한 profile-context Jjaek
 - 소식받는 사용자의 공개 Jjaek
 - 책친구 공개 Jjaek
+- 동아리 Jjaek은 현재 FeedScope에서 제외한다
 
 이 scope는 프로필 조회 권한과 분리해서 읽어야 한다.
 특정 사용자의 `public_jjaek`을 프로필에서 볼 수 있다고 해서
@@ -236,25 +242,27 @@ Library 안에서 볼 수 있는 책장:
 
 ---
 
-## Group 기반 권한
+## 동아리 기반 권한
 
-현재 구현된 Group 기반은 `GroupPolicy`와 `GroupMembershipPolicy`를 사용한다.
+현재 구현된 동아리 기반은 `GroupPolicy`와 `GroupMembershipPolicy`를 사용한다.
 
-- 공개 그룹과 승인 그룹은 로그인 사용자가 발견하고 기본 정보를 조회할 수 있다
-- 비공개 그룹은 owner 또는 active member만 목록과 상세에서 조회할 수 있다
-- 일반 사용자의 생성 권한은 공개 그룹과 승인 그룹으로 제한한다
-- 공개 그룹은 즉시 active membership을 만들고, 승인 그룹은 pending 가입 요청을 만든다
-- owner만 자기 그룹의 pending membership을 active로 승인할 수 있다
+- 공개 동아리와 승인 동아리는 로그인 사용자가 발견하고 기본 정보를 조회할 수 있다
+- 비공개 동아리는 owner 또는 active member만 목록과 상세에서 조회할 수 있다
+- 일반 사용자의 생성 권한은 공개 동아리와 승인 동아리로 제한한다
+- 공개 동아리는 즉시 active membership을 만들고, 승인 동아리는 pending 가입 요청을 만든다
+- owner만 자기 동아리의 pending membership을 active로 승인할 수 있다
 - 사용자는 자신의 pending 요청을 취소하거나 자신의 active 일반 membership에서 탈퇴할 수 있다
 - owner membership은 탈퇴·삭제할 수 없다
 
-Group Jjaek과 그룹 댓글은 아직 구현되어 있지 않다.
-향후 그룹에서는 글과 댓글의 열람 권한이 그룹 접근 정책을 따르고,
-작성 행위는 현재 그룹 멤버에게만 허용하는 목표 정책을 적용한다.
+동아리에서는 같은 `Jjaek` 모델과 optional `group` / `book` association으로 `짹`과 `책짹`을 제공한다.
+동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
+작성은 모든 동아리 종류에서 active member에게만 허용한다.
+동아리 Jjaek의 다시짹, 댓글, 좋아요와 수정·삭제는 아직 구현하지 않는다.
 
-그룹 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
+동아리 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
 
 관련 위치:
 
 - `app/policies/group_policy.rb`
 - `app/policies/group_membership_policy.rb`
+- `app/policies/jjaek_policy.rb`

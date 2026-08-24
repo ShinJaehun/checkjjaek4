@@ -10,6 +10,7 @@ class Group < ApplicationRecord
   has_many :group_memberships, dependent: :destroy
   has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
   has_many :members, through: :active_group_memberships, source: :user
+  has_many :jjaeks, dependent: :restrict_with_error
 
   validates :name, presence: true
 

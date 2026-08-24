@@ -5,8 +5,8 @@ module BookSearchesHelper
     "book_search_result_#{Digest::SHA256.hexdigest(identifier)[0, 12]}"
   end
 
-  def book_search_result_path(book)
-    return book_path(book[:shelved_book_id]) if book[:shelved_book_id].present?
+  def book_search_result_path(book, group_id: nil)
+    return book_path(book[:shelved_book_id], group_id:) if book[:shelved_book_id].present?
 
     lookup_books_path(
       title: book[:title],
@@ -15,7 +15,8 @@ module BookSearchesHelper
       thumbnail: book[:thumbnail],
       isbn: book[:isbn],
       description: book[:contents_excerpt],
-      external_url: book[:url]
+      external_url: book[:url],
+      group_id:
     )
   end
 

@@ -1,10 +1,10 @@
 class CommentPolicy < ApplicationPolicy
   def create?
-    user.present? && JjaekPolicy.new(user, record.jjaek).show?
+    user.present? && record.jjaek.group_id.blank? && JjaekPolicy.new(user, record.jjaek).show?
   end
 
   def update?
-    user.present? && record.user_id == user.id
+    user.present? && record.jjaek.group_id.blank? && record.user_id == user.id
   end
 
   def destroy?

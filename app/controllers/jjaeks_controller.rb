@@ -6,7 +6,7 @@ class JjaeksController < ApplicationController
   end
 
   def show
-    prepare_comments
+    prepare_comments unless @jjaek.group_id.present?
     prepare_visible_requote_counts_for([ @jjaek ])
   end
 
@@ -14,7 +14,7 @@ class JjaeksController < ApplicationController
   end
 
   def create
-    authorize target_user, :write_jjaek? if target_user.present?
+    authorize target_user, :write_jjaek? if @group.blank? && target_user.present?
 
     @jjaek.assign_attributes(jjaek_params)
 
@@ -27,7 +27,7 @@ class JjaeksController < ApplicationController
   end
 
   def update
-    if @jjaek.update(jjaek_params.except(:book_id, :quoted_jjaek_id, :target_user_id))
+    if @jjaek.update(jjaek_params.except(:book_id, :group_id, :quoted_jjaek_id, :target_user_id))
       redirect_to jjaek_path(@jjaek), notice: t("jjaeks.notices.updated")
     else
       render :edit, status: :unprocessable_content
@@ -43,24 +43,32 @@ class JjaeksController < ApplicationController
 
   def set_jjaek
     @jjaek = Jjaek.find(params[:id])
+
+    if @jjaek.group_id.present? && !policy(@jjaek).show?
+      raise ActiveRecord::RecordNotFound
+    end
     authorize @jjaek
   end
 
   def build_new_jjaek
+    @group = find_jjaek_group
     @book = find_jjaek_book
     @quoted_jjaek = find_quoted_jjaek
     @jjaek_visibility_options = jjaek_visibility_options_for(@quoted_jjaek)
     @jjaek = Jjaek.new(
       user: current_user,
       book: @book,
+      group: @group,
       quoted_jjaek: @quoted_jjaek,
-      target_user:,
+      target_user: @group.present? ? nil : target_user,
       visibility: default_jjaek_visibility_for(@quoted_jjaek)
     )
     authorize @jjaek
   end
 
   def render_failed_create
+    return render_group_book_create_failure if @group.present? && @book.present?
+    return render_group_create_failure if @group.present?
     return render_book_create_failure if @book.present?
     return render :new, status: :unprocessable_content if @quoted_jjaek.present?
     return render_profile_create_failure if render_profile_create_failure?
@@ -94,7 +102,16 @@ class JjaeksController < ApplicationController
   end
 
   def create_success_path
+    return group_path(@group) if @group.present?
+
     target_user.present? ? root_path : jjaek_path(@jjaek)
+  end
+
+  def find_jjaek_group
+    group_id = request.path_parameters[:group_id]
+    return if group_id.blank?
+
+    policy_scope(Group).find(group_id)
   end
 
   def find_jjaek_book
@@ -113,10 +130,30 @@ class JjaeksController < ApplicationController
     authorize @bookshelf_entry
     @sticker_definitions = StickerDefinition.alphabetical
     @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
+      .where(group_id: nil)
       .where(quoted_jjaek_id: nil)
       .recent
     prepare_visible_requote_counts_for(@jjaeks)
     render "books/show", status: :unprocessable_content
+  end
+
+  def render_group_book_create_failure
+    @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
+    @bookshelves = current_user.bookshelves.default_first
+    @sticker_definitions = StickerDefinition.alphabetical
+    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
+      .where(group_id: nil, quoted_jjaek_id: nil)
+      .recent
+    prepare_visible_requote_counts_for(@jjaeks)
+    render "books/show", status: :unprocessable_content
+  end
+
+  def render_group_create_failure
+    @membership = @group.group_memberships.find_by(user: current_user)
+    @pending_memberships = @group.owner?(current_user) ? @group.group_memberships.pending.includes(:user).order(:created_at) : GroupMembership.none
+    @can_read_group_jjaeks = true
+    @jjaeks = policy_scope(@group.jjaeks).includes(:user, :book, :group).recent
+    render "groups/show", status: :unprocessable_content
   end
 
   def render_profile_create_failure?
@@ -189,7 +226,7 @@ class JjaeksController < ApplicationController
   end
 
   def resolve_profile_jjaeks(access_level)
-    scope = policy_scope(@user.jjaeks).includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
+    scope = policy_scope(@user.jjaeks).includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
 
     case access_level
     when :none, :following

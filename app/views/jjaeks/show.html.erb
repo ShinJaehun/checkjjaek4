@@ -1,7 +1,7 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
   <%= render "jjaeks/jjaek", jjaek: @jjaek %>
 
-  <% if policy(@jjaek).create_requote? %>
+  <% if @jjaek.group_id.blank? && policy(@jjaek).create_requote? %>
     <div>
       <%= link_to t("jjaeks.actions.requote"),
                   new_jjaek_path(quoted_jjaek_id: @jjaek.id),
@@ -10,7 +10,7 @@
   <% end %>
 
   <% visible_requote_count = visible_requote_count_for(@jjaek) %>
-  <% if visible_requote_count.positive? %>
+  <% if @jjaek.group_id.blank? && visible_requote_count.positive? %>
     <div>
       <%= link_to t("requotes.actions.view_panel"),
                   jjaek_requotes_path(@jjaek),
@@ -21,5 +21,7 @@
 
   <div id="<%= requotes_panel_dom_id(@jjaek) %>"></div>
 
-  <%= render "comments/comments_panel", jjaek: @jjaek, comments: @comments, comment: @comment %>
+  <% if @jjaek.group_id.blank? %>
+    <%= render "comments/comments_panel", jjaek: @jjaek, comments: @comments, comment: @comment %>
+  <% end %>
 </section>

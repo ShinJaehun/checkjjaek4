@@ -5,6 +5,7 @@ class Jjaek < ApplicationRecord
 
   belongs_to :user
   belongs_to :book, optional: true
+  belongs_to :group, optional: true
   belongs_to :quoted_jjaek, class_name: "Jjaek", optional: true
   belongs_to :target_user, class_name: "User", optional: true, inverse_of: :targeted_jjaeks
 
@@ -20,8 +21,13 @@ class Jjaek < ApplicationRecord
             allow_nil: true
   validate :quoted_jjaek_must_be_requotable
   validate :quoted_jjaek_must_not_be_requote
+  validate :quoted_jjaek_must_not_be_group_context
   validate :quoted_jjaek_visibility_must_not_expand
   validate :target_user_visibility_must_not_be_private
+  validate :group_context_must_not_be_requote
+  validate :group_context_must_not_target_user
+
+  before_validation :normalize_group_visibility
 
   scope :recent, -> { order(created_at: :desc) }
 
@@ -79,6 +85,12 @@ class Jjaek < ApplicationRecord
     errors.add(:quoted_jjaek, :invalid)
   end
 
+  def quoted_jjaek_must_not_be_group_context
+    return unless quoted_jjaek&.group_id.present?
+
+    errors.add(:quoted_jjaek, :invalid)
+  end
+
   def quoted_jjaek_visibility_must_not_expand
     return unless quoted_jjaek.present?
     return if visibility_rank >= quoted_jjaek.send(:visibility_rank)
@@ -100,5 +112,21 @@ class Jjaek < ApplicationRecord
     when "book_friends" then 1
     else 2
     end
+  end
+
+  def normalize_group_visibility
+    self.visibility = :public_jjaek if group_id.present?
+  end
+
+  def group_context_must_not_be_requote
+    return unless group_id.present? && quoted_jjaek_id.present?
+
+    errors.add(:quoted_jjaek, :invalid)
+  end
+
+  def group_context_must_not_target_user
+    return unless group_id.present? && target_user_id.present?
+
+    errors.add(:target_user, :invalid)
   end
 end

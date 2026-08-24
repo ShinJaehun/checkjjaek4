@@ -36,10 +36,10 @@ class BookshelfEntriesController < ApplicationController
 
         respond_to do |format|
           format.turbo_stream
-          format.html { redirect_to book_path(@book), notice: t("bookshelf_entries.notices.created") }
+          format.html { redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created") }
         end
       else
-        redirect_to book_path(@book), notice: t("bookshelf_entries.notices.created")
+        redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created")
       end
     else
       @sticker_definitions = StickerDefinition.alphabetical
@@ -196,12 +196,16 @@ class BookshelfEntriesController < ApplicationController
     @quoted_jjaek = nil
     @jjaek = Jjaek.new(user: current_user, book: @book)
     authorize @jjaek
-    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).recent
+    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])).where(group_id: nil).recent
     prepare_visible_requote_counts_for(@jjaeks)
   end
 
   def assign_stickers(entry)
     entry.sticker_definition_ids = Array(bookshelf_entry_params[:sticker_definition_ids]).reject(&:blank?)
+  end
+
+  def group_context_id
+    params[:group_id].presence
   end
 
   def record_bookshelf_entry_change(entry, was_new_record:, previous_status:, previous_sticker_definition_ids:)

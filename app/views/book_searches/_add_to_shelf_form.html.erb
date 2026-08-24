@@ -10,6 +10,7 @@
     <%= book_form.hidden_field :external_url, value: book[:url] %>
   <% end %>
   <%= hidden_field_tag :bookshelf_entry_source, "book_search" %>
+  <%= hidden_field_tag :group_id, local_assigns[:group_id] if local_assigns[:group_id].present? %>
 
   <% if bookshelves.size > 1 %>
     <div class="w-full min-w-0 max-w-full space-y-1 sm:max-w-xs">

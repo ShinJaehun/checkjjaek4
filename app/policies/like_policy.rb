@@ -1,6 +1,6 @@
 class LikePolicy < ApplicationPolicy
   def create?
-    user.present? && JjaekPolicy.new(user, record.jjaek).show?
+    user.present? && record.jjaek.group_id.blank? && JjaekPolicy.new(user, record.jjaek).show?
   end
 
   def destroy?

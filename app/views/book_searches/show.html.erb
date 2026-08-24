@@ -3,7 +3,11 @@
     <h1 class="text-3xl font-semibold tracking-tight text-stone-900"><%= t("book_search.title") %></h1>
     <p class="mt-2 text-sm leading-6 text-stone-500"><%= t("book_search.description") %></p>
 
-    <%= render "book_searches/search_form", query: @query %>
+    <% if @group.present? %>
+      <p class="mt-2 text-sm font-medium text-amber-700"><%= t("groups.jjaeks.book_search_context", group_name: @group.name) %></p>
+    <% end %>
+
+    <%= render "book_searches/search_form", query: @query, group_id: @group&.id %>
   </section>
 
   <% if @query.present? %>
@@ -15,12 +19,13 @@
         </div>
 
         <% @results.each do |book| %>
-          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves %>
+          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves, group_id: @group&.id %>
         <% end %>
 
         <%= render "book_searches/pagination",
                    query: @query,
                    page: @page,
+                   group_id: @group&.id,
                    has_previous_page: @has_previous_page,
                    has_next_page: @has_next_page %>
       </section>

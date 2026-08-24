@@ -2,7 +2,7 @@
   <div>
     <% if has_previous_page %>
       <%= link_to t("book_search.pagination.previous"),
-                  book_search_path(query: query, page: page - 1),
+                  book_search_path(query: query, page: page - 1, group_id: local_assigns[:group_id]),
                   class: "inline-flex rounded-full border border-stone-300 px-4 py-2 font-medium text-stone-700" %>
     <% end %>
   </div>
@@ -12,7 +12,7 @@
   <div>
     <% if has_next_page %>
       <%= link_to t("book_search.pagination.next"),
-                  book_search_path(query: query, page: page + 1),
+                  book_search_path(query: query, page: page + 1, group_id: local_assigns[:group_id]),
                   class: "inline-flex rounded-full border border-stone-300 px-4 py-2 font-medium text-stone-700" %>
     <% end %>
   </div>

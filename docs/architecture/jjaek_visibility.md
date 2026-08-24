@@ -73,11 +73,13 @@ visibility는 1차 조건이고, 최종 판단은 policy / policy_scope가 담�
 
 visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.md`를 우선 기준으로 본다.
 
-Group은 현재 미구현이다.
-향후 Group은 개인 Jjaek의 `public_jjaek`, `book_friends`, `private_jjaek`과 별개인 게시 공간으로 본다.
-그룹 접근 정책을 기존 visibility enum 값으로 표현하지 않으며,
-그룹 작성 화면에 개인 Jjaek visibility 선택을 그대로 제공하지 않는 방향을 따른다.
-목표 그룹 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
+현재 동아리의 `짹`과 `책짹` 작성·조회 기반이 구현되어 있다.
+동아리는 개인 Jjaek의 `public_jjaek`, `book_friends`, `private_jjaek`과 별개인 게시 공간으로 본다.
+동아리 접근 정책을 기존 visibility enum 값으로 표현하지 않으며,
+동아리 작성 화면에는 개인 Jjaek visibility 선택을 제공하지 않는다.
+기존 non-null column을 위한 내부 저장값은 동아리의 공개 범위 의미로 해석하지 않고,
+조회 시 동아리 문맥 권한을 먼저 적용한다.
+목표 동아리 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
 
 ---
 
@@ -132,7 +134,6 @@ Group은 현재 미구현이다.
 - 댓글과 좋아요는 부모 Jjaek을 볼 수 있는 사용자만 가능하다
 - 즉, 상호작용 가능 범위는 부모 Jjaek visibility와 접근 가능 범위를 넘을 수 없다
 
-Group은 현재 미구현이며, 향후 그룹 댓글은 부모 글의 그룹 접근 범위를 상속한다.
-공개 그룹에서 글을 읽을 수 있는 그룹 비회원도 댓글 작성은 할 수 없으며,
-그룹 내 작성 행위는 현재 그룹 멤버에게만 허용한다.
+동아리 댓글과 좋아요는 아직 미구현이며 현재 동아리 Jjaek에서는 policy와 UI 모두 차단한다.
+향후 동아리 댓글은 부모 글의 동아리 접근 범위를 상속하는 목표 정책을 따른다.
 상세 목표 정책은 `docs/specs/groups_mvp.md`를 본다.

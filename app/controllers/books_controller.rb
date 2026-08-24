@@ -2,14 +2,18 @@ class BooksController < ApplicationController
   before_action :set_book, only: :show
 
   def lookup
+    group = find_group_context
+    authorize group, :create_jjaek? if group.present?
     book = Book.find_or_initialize_from_search(lookup_book_params)
     authorize book, :show?
     book.save! if book.new_record? || book.changed?
 
-    redirect_to book_path(book)
+    redirect_to book_path(book, group_id: group&.id)
   end
 
   def show
+    @group = find_group_context
+    authorize @group, :create_jjaek? if @group.present?
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
     @bookshelves = current_user.bookshelves.default_first
     prepare_book_write_context if @bookshelf_entry.present?
@@ -22,7 +26,7 @@ class BooksController < ApplicationController
   def prepare_book_write_context
     authorize @bookshelf_entry
     @quoted_jjaek = find_quoted_jjaek
-    @jjaek = Jjaek.new(user: current_user, book: @book, quoted_jjaek: @quoted_jjaek)
+    @jjaek = Jjaek.new(user: current_user, book: @book, group: @group, quoted_jjaek: @quoted_jjaek)
     authorize @jjaek
     @sticker_definitions = StickerDefinition.alphabetical
   end
@@ -35,6 +39,7 @@ class BooksController < ApplicationController
 
   def visible_book_jjaeks
     policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
+      .where(group_id: nil)
       .where(quoted_jjaek_id: nil)
       .recent
   end
@@ -42,6 +47,12 @@ class BooksController < ApplicationController
   def set_book
     @book = Book.find(params[:id])
     authorize @book, :show?
+  end
+
+  def find_group_context
+    return if params[:group_id].blank?
+
+    policy_scope(Group).find(params[:group_id])
   end
 
   def lookup_book_params

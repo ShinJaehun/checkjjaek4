@@ -26,8 +26,8 @@
 - Like
 - Notification
 - BookActivity
-- Group
-- GroupMembership
+- `Group`
+- `GroupMembership`
 
 역할 요약:
 
@@ -41,8 +41,8 @@
 - Like: Jjaek에 대한 좋아요
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
-- Group: 일반 사용자 독서 공동체와 그룹 종류·owner
-- GroupMembership: 사용자와 Group 사이의 pending/active 가입 상태
+- `Group`: 일반 사용자 독서 동아리와 동아리 종류·owner
+- `GroupMembership`: 사용자와 동아리 사이의 pending/active 가입 상태
 
 ---
 
@@ -200,16 +200,22 @@
 
 ---
 
-### 5-1. 그룹 화면 (/groups)
+### 5-1. 동아리 화면 (/groups)
 
-- 로그인 사용자가 공개 그룹과 승인 그룹을 만들고 발견할 수 있음
-- 그룹 소유권은 `Group.owner_id`를 기준으로 하며 owner도 active membership을 가짐
-- 공개 그룹은 즉시 가입, 승인 그룹은 pending 요청 후 owner 승인 방식
+- 로그인 사용자가 공개 동아리와 승인 동아리를 만들고 발견할 수 있음
+- 동아리 소유권은 `Group.owner_id`를 기준으로 하며 owner도 active membership을 가짐
+- 공개 동아리는 즉시 가입, 승인 동아리는 pending 요청 후 owner 승인 방식
 - pending 요청은 요청자 본인이 취소할 수 있음
 - active 일반 member는 탈퇴할 수 있고 owner는 탈퇴할 수 없음
-- 비공개 그룹은 owner/active member만 목록과 상세에서 조회할 수 있음
-- 초대 기능이 없어 비공개 그룹은 사용자 생성 UI에서 아직 제공하지 않음
-- Group Jjaek, 댓글, 공유, 초대, 좋아요, 알림, moderator와 moderation 상세는 구현되지 않음
+- 비공개 동아리는 owner/active member만 목록과 상세에서 조회할 수 있음
+- 초대 기능이 없어 비공개 동아리는 사용자 생성 UI에서 아직 제공하지 않음
+- active member는 동아리 안에서 `짹`과 `책짹`을 작성할 수 있음
+- 두 형태 모두 `Jjaek`의 optional `group_id` / `book_id` 조합으로 표현함
+- 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
+- 공개 동아리의 Jjaek은 로그인 사용자가, 승인/비공개 동아리의 Jjaek은 active member만 조회할 수 있음
+- 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에만 표시하며 홈 피드와 전역 책 상세에서는 제외함
+- 동아리 Jjaek의 다시짹, 댓글, 좋아요, 수정·삭제는 구현되지 않음
+- 공유, 초대, 알림, moderator와 moderation 상세도 구현되지 않음
 
 관련 코드:
 - controller:
@@ -287,6 +293,8 @@
 
 - 일반 짹
 - 책짹 (book_id 있음)
+- 동아리의 짹 (group_id 있음, book_id 없음)
+- 동아리의 책짹 (group_id 있음, book_id 있음)
 - profile-context 짹 (target_user_id 있음)
 - ReJjaek (quoted_jjaek 있음)
 

@@ -47,5 +47,14 @@ RSpec.describe CommentPolicy do
 
       expect(described_class.new(nil, comment).create?).to be(false)
     end
+
+    it "does not allow comments on a group jjaek" do
+      group = Group.create!(owner: other_user, name: "Readers", group_type: :public_group)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+      comment = group_jjaek.comments.build(user:, content: "Not available")
+
+      expect(described_class.new(user, comment).create?).to be(false)
+      expect(described_class.new(user, comment).update?).to be(false)
+    end
   end
 end

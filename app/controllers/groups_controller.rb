@@ -14,6 +14,7 @@ class GroupsController < ApplicationController
     else
       GroupMembership.none
     end
+    prepare_jjaek_context
   end
 
   def new
@@ -40,5 +41,16 @@ class GroupsController < ApplicationController
 
   def group_params
     params.fetch(:group, {}).permit(:name, :description, :group_type)
+  end
+
+  def prepare_jjaek_context
+    group_policy = policy(@group)
+    @can_read_group_jjaeks = group_policy.read_jjaeks?
+    @jjaeks = if @can_read_group_jjaeks
+      policy_scope(@group.jjaeks).includes(:user, :book, :group).recent
+    else
+      Jjaek.none
+    end
+    @jjaek = Jjaek.new(user: current_user, group: @group) if group_policy.create_jjaek?
   end
 end

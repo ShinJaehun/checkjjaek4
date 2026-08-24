@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   resources :notifications, only: :index
   resources :groups, only: %i[index show new create] do
     resources :group_memberships, only: %i[create update destroy]
+    resources :jjaeks, only: :create
   end
   resource :book_search, only: :show, controller: "book_searches"
   resources :books, only: :show do

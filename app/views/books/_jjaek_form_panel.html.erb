@@ -1,4 +1,10 @@
 <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+  <% if jjaek.group_id.present? %>
+    <div class="mb-5 flex items-center gap-2">
+      <%= link_to t("groups.jjaeks.tabs.general"), group_path(jjaek.group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+      <span class="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white"><%= t("groups.jjaeks.tabs.book") %></span>
+    </div>
+  <% end %>
   <% if quoted_jjaek.present? %>
     <div class="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
       <div class="font-medium text-stone-900"><%= t("books.show.requote_source", name: quoted_jjaek.user.name) %></div>
@@ -7,7 +13,7 @@
   <% end %>
 
   <div class="<%= quoted_jjaek.present? ? 'mt-5' : nil %>">
-    <%= form_with model: jjaek, class: "space-y-4" do |form| %>
+    <%= form_with model: (jjaek.group_id.present? ? [jjaek.group, jjaek] : jjaek), class: "space-y-4" do |form| %>
       <% if jjaek.errors.any? %>
         <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <%= jjaek.errors.full_messages.to_sentence %>
@@ -17,20 +23,22 @@
       <%= form.hidden_field :book_id, value: book.id %>
       <%= form.hidden_field :quoted_jjaek_id, value: quoted_jjaek&.id %>
 
-      <div class="space-y-2">
-        <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
-        <%= form.select :visibility,
-                        Jjaek.visibilities.keys.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
-                        {},
-                        class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
-      </div>
+      <% if jjaek.group_id.blank? %>
+        <div class="space-y-2">
+          <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
+          <%= form.select :visibility,
+                          Jjaek.visibilities.keys.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
+                          {},
+                          class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+        </div>
+      <% end %>
 
       <div class="space-y-2">
         <%= form.label :content, t("jjaeks.form.book_jjaek_content"), class: "sr-only" %>
         <%= form.text_area :content, rows: 8, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
       </div>
 
-      <%= form.submit t("jjaeks.actions.publish_book"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+      <%= form.submit t(jjaek.group_id.present? ? "groups.jjaeks.tabs.book" : "jjaeks.actions.publish_book"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
     <% end %>
   </div>
 </section>

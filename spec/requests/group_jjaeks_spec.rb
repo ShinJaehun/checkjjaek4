@@ -1,0 +1,254 @@
+require "rails_helper"
+
+RSpec.describe "Group Jjaeks", type: :request do
+  let!(:owner) { User.create!(name: "Owner", email: "group-jjaeks-owner@example.com", password: "password123!", password_confirmation: "password123!") }
+  let!(:member) { User.create!(name: "Member", email: "group-jjaeks-member@example.com", password: "password123!", password_confirmation: "password123!") }
+  let!(:pending_user) { User.create!(name: "Pending", email: "group-jjaeks-pending@example.com", password: "password123!", password_confirmation: "password123!") }
+  let!(:non_member) { User.create!(name: "Non-member", email: "group-jjaeks-non-member@example.com", password: "password123!", password_confirmation: "password123!") }
+  let!(:book) { Book.create!(title: "Group Book", authors_text: "Author") }
+
+  it "lets an active member create a group jjaek without a book" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    sign_in member
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { content: "Group jjaek" } }
+    }.to change(group.jjaeks, :count).by(1)
+
+    expect(group.jjaeks.last.book_id).to be_nil
+    expect(response).to redirect_to(group_path(group))
+  end
+
+  it "lets an active member create a group book jjaek for a shelved book" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    member.bookshelf_entries.create!(book: book)
+    sign_in member
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "Group book jjaek" } }
+    }.to change(group.jjaeks, :count).by(1)
+
+    expect(group.jjaeks.last.book).to eq(book)
+  end
+
+  it "does not create a group book jjaek for a book outside the member's shelf" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    sign_in member
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "No shelf" } }
+    }.not_to change(Jjaek, :count)
+
+    expect(response).to redirect_to(root_path)
+  end
+
+  it "does not let a non-member create either kind of group jjaek" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    non_member.bookshelf_entries.create!(book: book)
+    sign_in non_member
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { content: "General" } }
+      post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "Book" } }
+    }.not_to change(Jjaek, :count)
+  end
+
+  it "does not let a pending user create either kind of group jjaek" do
+    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group.group_memberships.create!(user: pending_user, status: :pending)
+    pending_user.bookshelf_entries.create!(book: book)
+    sign_in pending_user
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { content: "General" } }
+      post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "Book" } }
+    }.not_to change(Jjaek, :count)
+  end
+
+  it "uses the nested route group instead of a body group_id" do
+    route_group = Group.create!(owner: owner, name: "Route group", group_type: :public_group)
+    other_group = Group.create!(owner: owner, name: "Other group", group_type: :public_group)
+    sign_in owner
+
+    post group_jjaeks_path(route_group), params: { jjaek: { group_id: other_group.id, content: "Scoped" } }
+
+    expect(Jjaek.last.group).to eq(route_group)
+  end
+
+  it "does not treat a group_id on the regular endpoint as group context" do
+    group = Group.create!(owner: owner, name: "Group", group_type: :public_group)
+    sign_in owner
+
+    post jjaeks_path, params: { group_id: group.id, jjaek: { content: "Regular endpoint" } }
+
+    expect(Jjaek.last.group_id).to be_nil
+  end
+
+  it "allows a non-member to view both kinds in a public group" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    general = owner.jjaeks.create!(group:, content: "Public general")
+    book_jjaek = owner.jjaeks.create!(group:, book:, content: "Public book")
+    sign_in non_member
+
+    get jjaek_path(general)
+    expect(response).to have_http_status(:ok)
+    get jjaek_path(book_jjaek)
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "denies direct access to a group jjaek for an approval group non-member" do
+    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    general = owner.jjaeks.create!(group:, content: "Approval general")
+    sign_in non_member
+
+    get jjaek_path(general)
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "denies direct access to a group book jjaek for an approval group non-member" do
+    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    book_jjaek = owner.jjaeks.create!(group:, book:, content: "Approval book")
+    sign_in non_member
+
+    get jjaek_path(book_jjaek)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "denies direct access to a group jjaek for a private group non-member" do
+    group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    general = owner.jjaeks.create!(group:, content: "Private general")
+    sign_in non_member
+
+    get jjaek_path(general)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "denies direct access to a group book jjaek for a private group non-member" do
+    group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    book_jjaek = owner.jjaeks.create!(group:, book:, content: "Private book")
+    sign_in non_member
+
+    get jjaek_path(book_jjaek)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "allows active members to access approval and private group jjaeks directly" do
+    approval_group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    private_group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    approval_group.group_memberships.create!(user: member, status: :active)
+    private_group.group_memberships.create!(user: member, status: :active)
+    approval_jjaek = owner.jjaeks.create!(group: approval_group, content: "Approval member content")
+    private_jjaek = owner.jjaeks.create!(group: private_group, content: "Private member content")
+    sign_in member
+
+    get jjaek_path(approval_jjaek)
+    expect(response).to have_http_status(:ok)
+    get jjaek_path(private_jjaek)
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "does not allow the author to update or destroy a group jjaek" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    jjaek = owner.jjaeks.create!(group:, content: "Group jjaek")
+    sign_in owner
+
+    patch jjaek_path(jjaek), params: { jjaek: { content: "Changed" } }
+    expect(response).to redirect_to(root_path)
+    expect(jjaek.reload.content).to eq("Group jjaek")
+
+    expect {
+      delete jjaek_path(jjaek)
+    }.not_to change(Jjaek, :count)
+  end
+
+  it "keeps group book jjaeks out of the general book timeline" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group_book_jjaek = owner.jjaeks.create!(group:, book:, content: "Group-only book jjaek")
+    sign_in non_member
+
+    get book_path(book)
+
+    expect(response.body).not_to include(group_book_jjaek.content)
+  end
+
+  it "shows group jjaeks on the author profile only when the viewer can read the group" do
+    public_group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    approval_group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    public_jjaek = owner.jjaeks.create!(group: public_group, content: "Profile public group jjaek")
+    approval_jjaek = owner.jjaeks.create!(group: approval_group, book:, content: "Profile approval group book jjaek")
+    sign_in non_member
+
+    get user_path(owner)
+
+    expect(response.body).to include(public_jjaek.content)
+    expect(response.body).not_to include(approval_jjaek.content)
+
+    approval_group.group_memberships.create!(user: non_member, status: :active)
+    get user_path(owner)
+
+    expect(response.body).to include(public_jjaek.content, approval_jjaek.content)
+  end
+
+  it "does not render interactions or edit controls for group jjaeks" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    jjaek = owner.jjaeks.create!(group:, content: "Read only group jjaek")
+    sign_in owner
+
+    get group_path(group)
+
+    expect(response.body).not_to include(edit_jjaek_path(jjaek))
+    expect(response.body).not_to include(jjaek_comments_path(jjaek))
+    expect(response.body).not_to include(jjaek_like_path(jjaek))
+  end
+
+  it "shows the book search context only to an active member" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+
+    sign_in member
+    get book_search_path(group_id: group.id)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(group.name)
+
+    sign_in non_member
+    get book_search_path(group_id: group.id)
+    expect(response).to redirect_to(root_path)
+  end
+
+  it "shows the group book jjaek form without a visibility selector for a shelved book" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    member.bookshelf_entries.create!(book: book)
+    sign_in member
+
+    get book_path(book, group_id: group.id)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(I18n.t("groups.jjaeks.tabs.general"), I18n.t("groups.jjaeks.tabs.book"))
+    expect(response.body).not_to include(%(name="jjaek[visibility]"))
+    expect(response.body).to include(group_jjaeks_path(group))
+  end
+
+  it "keeps group context while adding a searched book to the shelf" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    sign_in member
+
+    get book_path(book, group_id: group.id)
+
+    expect(response.body).not_to include(group_jjaeks_path(group))
+    expect(response.body).to include(%(name="group_id"))
+    expect(response.body).to include(%(value="#{group.id}"))
+
+    post bookshelf_entries_path, params: { book_id: book.id, group_id: group.id }
+
+    expect(response).to redirect_to(book_path(book, group_id: group.id))
+    expect(member.bookshelf_entries.exists?(book: book)).to be(true)
+  end
+end

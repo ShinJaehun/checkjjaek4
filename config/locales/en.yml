@@ -14,10 +14,10 @@ en:
         group_membership:
           attributes:
             status:
-              owner_must_be_active: "must remain active for the group owner"
+              owner_must_be_active: "must remain active for the club owner"
               invalid_transition: "cannot return an active membership to pending"
             base:
-              owner_membership_cannot_be_destroyed: "The group owner cannot leave the group"
+              owner_membership_cannot_be_destroyed: "The club owner cannot leave the club"
   auth:
     actions:
       sign_in: "Sign in"
@@ -48,42 +48,50 @@ en:
     description: "Do you like reading books?"
     feed_title: "Recent activity"
     empty_feed: "No items are in your feed yet. Add a book to your shelf or follow another reader."
-    new_jjaek_title: "Write a Jjaek"
+    new_jjaek_title: "Jjaek"
     actions:
       search_books: "Search books"
       my_shelf: "Open my shelf"
   groups:
-    nav: "Groups"
+    nav: "Clubs"
     owner: "Owner: %{name}"
     types:
-      public_group: "Public group"
-      approval_group: "Approval group"
-      private_group: "Private group"
+      public_group: "Public club"
+      approval_group: "Approval club"
+      private_group: "Private club"
     index:
-      title: "Reading groups"
+      title: "Reading clubs"
       description: "Find a reading community to read and talk with."
-      empty: "No groups are available to discover yet."
+      empty: "No clubs are available to discover yet."
     new:
-      title: "Create a group"
+      title: "Create a club"
       description: "Choose how readers join and start a reading community."
     form:
-      name: "Group name"
+      name: "Club name"
       description: "Description"
-      group_type: "Group type"
-      private_group_later: "Private group creation will be available with invitations."
+      group_type: "Club type"
+      private_group_later: "Private club creation will be available with invitations."
     actions:
-      new: "Create group"
-      create: "Create group"
+      new: "Create club"
+      create: "Create club"
       cancel: "Cancel"
-      back: "Back to groups"
+      back: "Back to clubs"
     pending:
       title: "Join requests"
       empty: "No join requests are pending."
     notices:
-      created: "Group created."
+      created: "Club created."
+    jjaeks:
+      tabs:
+        general: "Jjaek"
+        book: "Book Jjaek"
+      title: "Club Jjaeks and Book Jjaeks"
+      empty: "No Jjaeks or Book Jjaeks have been added to this club yet."
+      general_description: "Leave a Jjaek in this club."
+      book_search_context: "Find a book for a Book Jjaek in %{group_name}."
   group_memberships:
     statuses:
-      owner: "Group owner"
+      owner: "Club owner"
       pending: "Pending approval"
       active: "Member"
     actions:
@@ -91,13 +99,13 @@ en:
       request: "Request to join"
       cancel: "Cancel request"
       approve: "Approve"
-      leave: "Leave group"
+      leave: "Leave club"
     notices:
-      joined: "You joined the group."
+      joined: "You joined the club."
       requested: "Join request sent."
       cancelled: "Join request cancelled."
       approved: "Join request approved."
-      left: "You left the group."
+      left: "You left the club."
   comments:
     actions:
       close_inline: "Close"
@@ -338,6 +346,8 @@ en:
       timeline_title: "Book Jjaeks for this book"
   jjaeks:
     contexts:
+      group_general_html: "%{author_name} posted a Jjaek in %{group_name}"
+      group_book_html: "%{author_name} posted a Book Jjaek in %{group_name} · %{book_title}"
       general_html: "%{author_name}'s Jjaek"
       profile_html: "%{author_name}'s Jjaek for %{target_user_name}"
       book_html: "%{author_name}'s Book Jjaek"
@@ -446,7 +456,7 @@ en:
       empty_activity: "No recent activity yet."
       empty_bookshelf: "No visible books yet."
       empty_public_books: "No books to display yet."
-      new_jjaek_title: "Write a Jjaek"
+      new_jjaek_title: "Jjaek"
       public_books_title: "Book list"
       stats: "%{followers} followers · %{following} following"
       view_library: "View library"

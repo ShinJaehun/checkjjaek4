@@ -15,7 +15,9 @@
       <% end %>
       <div class="mt-1 text-xs text-stone-500">
         <%= l(jjaek.created_at, format: :short) %>
-        · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
+        <% if jjaek.group_id.blank? %>
+          · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
+        <% end %>
         <% if jjaek_edited?(jjaek) %>
           · <%= t("jjaeks.meta.edited") %>
         <% end %>
@@ -27,7 +29,7 @@
     </div>
   </div>
 
-  <% if jjaek.user == current_user %>
+  <% if jjaek.group_id.blank? && jjaek.user == current_user %>
     <div class="flex items-center gap-2 text-xs text-stone-500">
       <%= link_to t("jjaeks.actions.edit"), edit_jjaek_path(jjaek) %>
       <%= button_to t("jjaeks.actions.delete"), jjaek_path(jjaek), method: :delete, form: { data: { turbo_confirm: t("jjaeks.confirmations.destroy") } }, class: "text-red-600" %>

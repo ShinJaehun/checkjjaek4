@@ -40,6 +40,7 @@
     <div class="mt-4">
       <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
         <%= hidden_field_tag :book_id, book.id %>
+        <%= hidden_field_tag :group_id, local_assigns[:group_id] if local_assigns[:group_id].present? %>
 
         <% if local_assigns[:bookshelves]&.size.to_i > 1 %>
           <div class="w-full min-w-0 max-w-full space-y-1 sm:max-w-xs">

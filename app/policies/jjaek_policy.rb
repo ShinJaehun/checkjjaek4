@@ -1,17 +1,19 @@
 class JjaekPolicy < ApplicationPolicy
   def show?
-    user.present? && visible_to_user? && quoted_jjaek_visible_to_user?
+    user.present? && context_visible_to_user? && quoted_jjaek_visible_to_user?
   end
 
   def create?
     user.present? &&
       record.user_id == user.id &&
+      group_context_allowed? &&
       book_context_allowed? &&
+      quoted_context_allowed? &&
       target_user_context_allowed?
   end
 
   def requote?
-    show? && !record.private_jjaek? && !record.requote?
+    show? && record.group_id.blank? && !record.private_jjaek? && !record.requote?
   end
 
   def create_requote?
@@ -19,7 +21,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def update?
-    user.present? && record.user_id == user.id
+    user.present? && record.group_id.blank? && record.user_id == user.id
   end
 
   def destroy?
@@ -37,12 +39,19 @@ class JjaekPolicy < ApplicationPolicy
 
     def visible_records
       friend_ids = BookFriendship.connected_ids_for(user)
+      active_group_ids = GroupMembership.active.where(user: user).select(:group_id)
 
-      scope
+      personal_records = scope.where(group_id: nil)
         .where(user_id: user.id)
-        .or(scope.where(target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
-        .or(scope.where(visibility: Jjaek.visibilities[:public_jjaek]))
-        .or(scope.where(user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
+        .or(scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
+        .or(scope.where(group_id: nil, visibility: Jjaek.visibilities[:public_jjaek]))
+        .or(scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
+
+      public_group_ids = Group.public_group.select(:id)
+      group_records = scope.where(group_id: public_group_ids)
+        .or(scope.where(group_id: active_group_ids))
+
+      personal_records.or(group_records)
     end
 
     def with_visible_quoted_jjaeks(records)
@@ -70,10 +79,10 @@ class JjaekPolicy < ApplicationPolicy
       friend_ids = BookFriendship.connected_ids_for(user)
 
       scope
-        .where(user_id: user.id)
-        .or(scope.where(target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
-        .or(scope.where(user_id: followee_ids, visibility: Jjaek.visibilities[:public_jjaek]))
-        .or(scope.where(user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
+        .where(group_id: nil, user_id: user.id)
+        .or(scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
+        .or(scope.where(group_id: nil, user_id: followee_ids, visibility: Jjaek.visibilities[:public_jjaek]))
+        .or(scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
     end
 
     def with_visible_quoted_jjaeks(records)
@@ -95,12 +104,30 @@ class JjaekPolicy < ApplicationPolicy
     user.bookshelf_entries.exists?(book_id: record.book_id)
   end
 
+  def group_context_allowed?
+    return true if record.group_id.blank?
+
+    GroupPolicy.new(user, record.group).create_jjaek?
+  end
+
+  def quoted_context_allowed?
+    return false if record.group_id.present? && record.quoted_jjaek_id.present?
+
+    record.quoted_jjaek&.group_id.blank?
+  end
+
   def target_user_context_allowed?
     return true if record.target_user_id.blank?
     return true if record.target_user_id == user.id
     return false if record.private_jjaek?
 
     UserPolicy.new(user, record.target_user).write_jjaek?
+  end
+
+  def context_visible_to_user?
+    return GroupPolicy.new(user, record.group).read_jjaeks? if record.group_id.present?
+
+    visible_to_user?
   end
 
   def visible_to_user?
