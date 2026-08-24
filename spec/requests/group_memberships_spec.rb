@@ -246,4 +246,226 @@ RSpec.describe "Group memberships", type: :request do
       }.to change(GroupMembership, :count).by(-1)
     end
   end
+
+
+  describe "owner membership management" do
+    it "deactivates an approval group member and revokes internal content access" do
+      group = Group.create!(owner: owner, name: "Remove approval", group_type: :approval_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      jjaek = owner.jjaeks.create!(group: group, content: "Members only")
+      sign_in owner
+
+      expect {
+        patch deactivate_group_group_membership_path(group, membership)
+      }.not_to change(GroupMembership, :count)
+      expect(membership.reload).to be_inactive
+
+      sign_in member
+
+      get group_path(group)
+      expect(response).to have_http_status(:ok)
+
+      get jjaek_path(jjaek)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "lets a deactivated private member see basic group status without management access" do
+      group = Group.create!(owner: owner, name: "Remove private", group_type: :private_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      sign_in owner
+
+      expect {
+        patch deactivate_group_group_membership_path(group, membership)
+      }.not_to change(GroupMembership, :count)
+      expect(membership.reload).to be_inactive
+
+      sign_out owner
+      sign_in member
+
+      expect(group.reload.active_member?(member)).to be(false)
+      expect(GroupPolicy.new(member, group).read_jjaeks?).to be(false)
+      expect(GroupPolicy.new(member, group).create_jjaek?).to be(false)
+
+      get group_path(group)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("활동 중지")
+      expect(response.body).not_to include("동아리 구성원", "다시 활성화", "내보내기")
+    end
+
+    it "deactivates a private group member and revokes Jjaek access" do
+      group = Group.create!(owner: owner, name: "Remove private", group_type: :private_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      jjaek = owner.jjaeks.create!(group: group, content: "Private members only")
+      sign_in owner
+
+      expect {
+        patch deactivate_group_group_membership_path(group, membership)
+      }.not_to change(GroupMembership, :count)
+      expect(membership.reload).to be_inactive
+
+      sign_out owner
+      sign_in member
+
+      expect(group.reload.active_member?(member)).to be(false)
+      expect(JjaekPolicy.new(member, jjaek.reload).show?).to be(false)
+
+      get jjaek_path(jjaek)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "keeps public read access but removes public write access while inactive" do
+      group = Group.create!(owner: owner, name: "Public removal", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      sign_in owner
+      patch deactivate_group_group_membership_path(group, membership)
+
+      sign_in member
+      get group_path(group)
+      expect(response).to have_http_status(:ok)
+      expect(GroupPolicy.new(member, group).create_jjaek?).to be(false)
+    end
+
+    it "blocks deactivation by non-owners and deactivation of the owner" do
+      other = User.create!(name: "Other manager", email: "other-manager@example.com", password: "password123!", password_confirmation: "password123!")
+      group = Group.create!(owner: owner, name: "Removal guards", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      owner_membership = group.group_memberships.find_by!(user: owner)
+      sign_in other
+
+      patch deactivate_group_group_membership_path(group, membership)
+      expect(membership.reload).to be_active
+
+      sign_in owner
+      patch deactivate_group_group_membership_path(group, owner_membership)
+      expect(owner_membership.reload).to be_active
+    end
+
+    it "reactivates an inactive member and restores private group access" do
+      group = Group.create!(owner: owner, name: "Reactivate", group_type: :private_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      membership.update!(status: :inactive)
+      sign_in owner
+
+      patch reactivate_group_group_membership_path(group, membership)
+
+      expect(membership.reload).to be_active
+      sign_in member
+      get group_path(group)
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "requires inactive status before final removal" do
+      group = Group.create!(owner: owner, name: "Two step removal", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      sign_in owner
+
+      expect {
+        delete remove_group_group_membership_path(group, membership)
+      }.not_to change(GroupMembership, :count)
+
+      membership.update!(status: :inactive)
+      expect {
+        delete remove_group_group_membership_path(group, membership)
+      }.to change(GroupMembership, :count).by(-1)
+    end
+
+    it "does not let an inactive member bypass status through another membership flow" do
+      public_group = Group.create!(owner: owner, name: "Inactive public", group_type: :public_group)
+      approval_group = Group.create!(owner: owner, name: "Inactive approval", group_type: :approval_group)
+      private_group = Group.create!(owner: owner, name: "Inactive private", group_type: :private_group)
+      [public_group, approval_group, private_group].each do |group|
+        membership = group.group_memberships.create!(user: member, status: :active)
+        membership.update!(status: :inactive)
+      end
+      sign_in member
+
+      expect {
+        post group_group_memberships_path(public_group)
+        post group_group_memberships_path(approval_group)
+      }.not_to change(GroupMembership, :count)
+
+      inactive_membership = public_group.group_memberships.find_by!(user: member)
+      expect {
+        delete group_group_membership_path(public_group, inactive_membership)
+      }.not_to change(GroupMembership, :count)
+
+      sign_in owner
+      expect {
+        post invite_group_group_memberships_path(private_group), params: { user_id: member.id }
+      }.not_to change(GroupMembership, :count)
+    end
+
+    it "rejects an approval request without preventing a later request" do
+      group = Group.create!(owner: owner, name: "Reject request", group_type: :approval_group)
+      membership = group.group_memberships.create!(user: member, status: :pending)
+      sign_in owner
+
+      expect {
+        delete reject_group_group_membership_path(group, membership)
+      }.to change(GroupMembership, :count).by(-1)
+
+      delete reject_group_group_membership_path(group, membership)
+      expect(response).to have_http_status(:not_found)
+
+      sign_in member
+      expect {
+        post group_group_memberships_path(group)
+      }.to change(GroupMembership, :count).by(1)
+      expect(group.group_memberships.find_by!(user: member)).to be_pending
+    end
+
+    it "revokes a private invitation and removes it from the invitee's index" do
+      group = Group.create!(owner: owner, name: "Revoked invitation", group_type: :private_group)
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      sign_in owner
+
+      expect {
+        delete revoke_group_group_membership_path(group, invitation)
+      }.to change(GroupMembership, :count).by(-1)
+
+      sign_in member
+      get groups_path
+      expect(response.body).not_to include(group.name)
+    end
+
+    it "blocks reject and revoke for the wrong actor, state, or group type" do
+      approval = Group.create!(owner: owner, name: "Approval guards", group_type: :approval_group)
+      pending = approval.group_memberships.create!(user: member, status: :pending)
+      private_group = Group.create!(owner: owner, name: "Private guards", group_type: :private_group)
+      invitation = private_group.group_memberships.create!(user: member, status: :invited)
+      other = User.create!(name: "Other actions", email: "other-actions@example.com", password: "password123!", password_confirmation: "password123!")
+      sign_in other
+
+      expect {
+        delete reject_group_group_membership_path(approval, pending)
+        delete revoke_group_group_membership_path(private_group, invitation)
+      }.not_to change(GroupMembership, :count)
+
+      sign_in owner
+      pending.update!(status: :active)
+      invitation.update!(status: :active)
+      wrong_reject_group = Group.create!(owner: owner, name: "Public reject", group_type: :public_group)
+      wrong_reject = wrong_reject_group.group_memberships.create!(user: member, status: :pending)
+      wrong_revoke = approval.group_memberships.create!(user: other, status: :invited)
+      expect {
+        delete reject_group_group_membership_path(approval, pending)
+        delete revoke_group_group_membership_path(private_group, invitation)
+        delete reject_group_group_membership_path(wrong_reject_group, wrong_reject)
+        delete revoke_group_group_membership_path(approval, wrong_revoke)
+      }.not_to change(GroupMembership, :count)
+    end
+
+    it "shows approval and invitation management actions to owners" do
+      approval = Group.create!(owner: owner, name: "Approval UI", group_type: :approval_group)
+      approval.group_memberships.create!(user: member, status: :pending)
+      sign_in owner
+      get group_path(approval)
+      expect(response.body).to include("승인", "거절")
+
+      private_group = Group.create!(owner: owner, name: "Invitation UI", group_type: :private_group)
+      private_group.group_memberships.create!(user: member, status: :invited)
+      get group_path(private_group)
+      expect(response.body).to include("보낸 초대", "초대 취소")
+    end
+  end
 end

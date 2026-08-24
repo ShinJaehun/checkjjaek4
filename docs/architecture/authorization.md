@@ -247,7 +247,8 @@ Library 안에서 볼 수 있는 책장:
 현재 구현된 동아리 기반은 `GroupPolicy`와 `GroupMembershipPolicy`를 사용한다.
 
 - 공개 동아리와 승인 동아리는 로그인 사용자가 발견하고 기본 정보를 조회할 수 있다
-- 비공개 동아리는 owner 또는 active member만 목록과 상세에서 조회할 수 있다
+- 비공개 동아리는 owner, active member와 inactive member가 목록과 기본 상세를 조회할 수 있다
+- 비공개 동아리의 inactive member는 자신의 활동 중지 상태만 확인하며 내부 콘텐츠 읽기·작성 권한은 갖지 않는다
 - 일반 사용자는 공개·승인·비공개 동아리를 생성할 수 있다
 - 공개 동아리는 즉시 active membership을 만들고, 승인 동아리는 pending 가입 요청을 만든다
 - owner만 자기 동아리의 pending membership을 active로 승인할 수 있다
@@ -256,6 +257,15 @@ Library 안에서 볼 수 있는 책장:
 - `invited`는 비공개 동아리의 목록·상세·내부 Jjaek 접근 권한을 부여하지 않는다
 - 사용자는 자신의 pending 요청을 취소하거나 자신의 active 일반 membership에서 탈퇴할 수 있다
 - owner membership은 탈퇴·삭제할 수 없다
+- owner만 동아리 이름과 소개를 수정할 수 있고 동아리 종류는 수정할 수 없다
+- owner만 active 일반 member를 `inactive`로 활동 중지할 수 있고, inactive member를 다시 active로 복구할 수 있다
+- 최종 내보내기는 inactive 일반 member에게만 허용하며 owner membership은 대상이 될 수 없다
+- 승인 동아리 owner만 pending 요청을 거절할 수 있다
+- 비공개 동아리 owner만 아직 수락되지 않은 `invited` membership을 취소할 수 있다
+- inactive는 active membership 권한을 얻지 않으며 pending 가입 요청과 다른 상태다
+- inactive membership은 자기 탈퇴나 새 가입·초대 흐름으로 우회할 수 없다
+- 일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제한다
+- 활동 중지·내보내기·거절·초대 취소는 ban이 아니므로 이후 가입 또는 재초대를 영구 차단하지 않는다
 
 동아리에서는 같은 `Jjaek` 모델과 optional `group` / `book` association으로 `짹`과 `책짹`을 제공한다.
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,

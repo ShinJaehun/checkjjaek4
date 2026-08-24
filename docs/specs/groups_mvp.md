@@ -15,20 +15,30 @@
 동아리 기반은 현재 다음 범위까지 구현되어 있다.
 
 - `Group`과 `GroupMembership`
-- 공개 동아리와 승인 동아리의 사용자 생성
+- 공개·승인·비공개 동아리의 사용자 생성
 - 발견 가능한 동아리 및 active membership이 있는 비공개 동아리의 목록 조회
 - 공개 동아리 즉시 가입
 - 승인 동아리 가입 요청·요청 취소·owner 승인
 - 일반 active member 탈퇴와 owner membership 삭제 방지
-- 비공개 동아리의 owner/active member 조회 권한 기반
+- 비공개 동아리의 owner/active member 및 기본 상태 확인을 위한 inactive member 상세 조회 기반
 - 비공개 동아리 생성과 owner의 기존 사용자 초대
 - 받은 초대의 수락·거절
+- owner의 동아리 이름·소개 수정
+- owner의 active 구성원 활동 중지·재활성화·최종 내보내기, 승인 요청 거절, 보낸 초대 취소
 - 동아리 안의 `짹`과 `책짹` 작성·조회
 - 권한 있는 사용자의 작성자 프로필에서 동아리의 `짹`과 `책짹` 조회
 
 비공개 동아리는 사용자 생성 UI에서 제공하며, owner가 기존 사용자를 초대할 수 있다.
 초대는 `GroupMembership`의 `invited` 상태로 표현하고 수락하면 `active`, 거절하면 삭제한다.
 초대 상태만으로 동아리나 내부 콘텐츠 조회 권한을 얻지는 않는다.
+동아리 종류는 생성 후 변경하지 않는다.
+`pending`은 승인 동아리 가입 승인 대기이며, `inactive`와 혼용하지 않는다.
+owner의 구성원 관리는 active → inactive 활동 중지 → 최종 내보내기 순서다.
+활동 중지는 ban이 아니며 owner가 다시 활성화할 수 있다. 최종 내보내기는 inactive 상태에서만 가능하다.
+inactive member는 기존 자기 탈퇴 경로로 membership을 삭제하거나 새 가입·초대로 상태를 우회할 수 없다.
+비공개 동아리의 inactive member는 동아리 기본 상세와 자신의 활동 중지 상태는 확인할 수 있지만 내부 콘텐츠 읽기·작성 권한은 갖지 않는다.
+일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제한다.
+내보내기·가입 요청 거절·초대 취소는 이후 가입이나 재초대를 영구 차단하지 않는다.
 동아리 다시짹/share, 댓글, 좋아요, 홈 피드 편입, 동아리 Jjaek 수정·삭제,
 초대 알림, 이메일·링크 초대와 moderation 상세는 미구현이며,
 이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
@@ -273,6 +283,9 @@ Classroom은 동아리 MVP 범위에 포함하지 않으며 동아리의 subtype
 - `book_friends`, `private_jjaek`의 동아리 공유
 - nested ReJjaek
 - 알림 정책 상세 설계
+- 동아리 삭제와 owner 양도
+- moderator 역할과 ban/block/suspension
+- 동아리 콘텐츠 moderation
 
 ---
 

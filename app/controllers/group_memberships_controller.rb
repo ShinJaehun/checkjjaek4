@@ -1,7 +1,7 @@
 class GroupMembershipsController < ApplicationController
   before_action :set_group, except: %i[accept decline]
-  before_action :authorize_group_access, only: %i[update destroy]
-  before_action :set_membership, only: %i[update destroy]
+  before_action :authorize_group_access, only: %i[update destroy reject revoke remove deactivate reactivate]
+  before_action :set_membership, only: %i[update destroy reject revoke remove deactivate reactivate]
   before_action :set_own_invitation, only: %i[accept decline]
 
   def create
@@ -49,6 +49,41 @@ class GroupMembershipsController < ApplicationController
     @membership.destroy!
 
     redirect_to groups_path, notice: t("group_memberships.notices.declined"), status: :see_other
+  end
+
+  def reject
+    authorize @membership, :reject?
+    @membership.destroy!
+
+    redirect_to @group, notice: t("group_memberships.notices.rejected"), status: :see_other
+  end
+
+  def revoke
+    authorize @membership, :revoke?
+    @membership.destroy!
+
+    redirect_to @group, notice: t("group_memberships.notices.revoked"), status: :see_other
+  end
+
+  def remove
+    authorize @membership, :remove?
+    @membership.destroy!
+
+    redirect_to @group, notice: t("group_memberships.notices.removed"), status: :see_other
+  end
+
+  def deactivate
+    authorize @membership, :deactivate?
+    @membership.inactive!
+
+    redirect_to @group, notice: t("group_memberships.notices.deactivated")
+  end
+
+  def reactivate
+    authorize @membership, :reactivate?
+    @membership.active!
+
+    redirect_to @group, notice: t("group_memberships.notices.reactivated")
   end
 
   def destroy

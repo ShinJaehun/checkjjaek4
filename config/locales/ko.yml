@@ -66,6 +66,8 @@ ko:
     new:
       title: "새 동아리 만들기"
       description: "동아리의 가입 방식을 정하고 독서 공동체를 시작합니다."
+    edit:
+      title: "동아리 수정"
     form:
       name: "동아리 이름"
       description: "동아리 소개"
@@ -73,18 +75,25 @@ ko:
     actions:
       new: "동아리 만들기"
       create: "동아리 만들기"
+      edit: "동아리 수정"
+      update: "수정하기"
       cancel: "취소"
       back: "동아리 목록으로"
     pending:
       title: "가입 요청"
       empty: "대기 중인 가입 요청이 없습니다."
+    members:
+      title: "동아리 구성원"
+      inactive_title: "활동 중지된 구성원"
     invitations:
       title: "받은 동아리 초대"
       invite_title: "동아리 초대"
       user: "초대할 사용자"
       empty_candidates: "초대할 수 있는 사용자가 없습니다."
+      sent_title: "보낸 초대"
     notices:
       created: "동아리를 만들었습니다."
+      updated: "동아리를 수정했습니다."
     jjaeks:
       tabs:
         general: "짹"
@@ -99,6 +108,7 @@ ko:
       pending: "승인 대기"
       active: "참여 중"
       invited: "초대됨"
+      inactive: "활동 중지"
     actions:
       join: "가입하기"
       request: "가입 요청"
@@ -108,6 +118,11 @@ ko:
       invite: "초대하기"
       accept: "초대 수락"
       decline: "초대 거절"
+      reject: "거절"
+      revoke: "초대 취소"
+      remove: "내보내기"
+      deactivate: "활동 중지"
+      reactivate: "다시 활성화"
     notices:
       joined: "동아리에 가입했습니다."
       requested: "가입을 요청했습니다."
@@ -117,6 +132,11 @@ ko:
       invited: "동아리에 초대했습니다."
       accepted: "동아리 초대를 수락했습니다."
       declined: "동아리 초대를 거절했습니다."
+      rejected: "가입 요청을 거절했습니다."
+      revoked: "동아리 초대를 취소했습니다."
+      removed: "동아리에서 내보냈습니다."
+      deactivated: "구성원의 활동을 중지했습니다."
+      reactivated: "구성원을 다시 활성화했습니다."
   comments:
     actions:
       close_inline: "닫기"

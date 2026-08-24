@@ -4,11 +4,16 @@ Rails.application.routes.draw do
   devise_for :users
   get "/relationships", to: "relationships#index"
   resources :notifications, only: :index
-  resources :groups, only: %i[index show new create] do
+  resources :groups, only: %i[index show new create edit update] do
     resources :group_memberships, only: %i[create update destroy] do
       post :invite, on: :collection
       patch :accept, on: :member
       delete :decline, on: :member
+      delete :reject, on: :member
+      delete :revoke, on: :member
+      delete :remove, on: :member
+      patch :deactivate, on: :member
+      patch :reactivate, on: :member
     end
     resources :jjaeks, only: :create
   end

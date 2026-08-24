@@ -42,7 +42,7 @@
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
 - `Group`: 일반 사용자 독서 동아리와 동아리 종류·owner
-- `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active 상태
+- `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active/inactive 상태
 
 ---
 
@@ -207,18 +207,27 @@
 - 공개 동아리는 즉시 가입, 승인 동아리는 pending 요청 후 owner 승인 방식
 - pending 요청은 요청자 본인이 취소할 수 있음
 - active 일반 member는 탈퇴할 수 있고 owner는 탈퇴할 수 없음
-- 비공개 동아리는 owner/active member만 목록과 상세에서 조회할 수 있음
+- 비공개 동아리는 owner/active/inactive member가 목록과 기본 상세에서 조회할 수 있음
+- 비공개 동아리의 inactive member는 자신의 활동 중지 상태를 확인할 수 있지만 내부 콘텐츠 읽기·작성 권한은 없음
 - 일반 사용자가 비공개 동아리를 생성할 수 있음
 - 비공개 동아리 owner가 기존 사용자를 `invited` membership으로 초대할 수 있음
 - 초대받은 사용자는 동아리 목록의 별도 초대 영역에서 수락하거나 거절할 수 있음
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
+- owner가 동아리 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
+- owner 상세 화면에서 active 구성원을 활동 중지하고 inactive 구성원을 다시 활성화하거나 최종 내보낼 수 있음
+- 승인 동아리 owner는 pending 가입 요청을 거절할 수 있음
+- 비공개 동아리 owner는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
+- inactive는 active 권한을 부여하지 않으며 pending 가입 요청과 별도 상태임
+- inactive membership은 자기 탈퇴나 새 가입·초대로 상태를 우회할 수 없음
+- 일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제함
+- 활동 중지·내보내기·거절·초대 취소는 ban이 아니며 재가입 또는 재초대를 영구 차단하지 않음
 - active member는 동아리 안에서 `짹`과 `책짹`을 작성할 수 있음
 - 두 형태 모두 `Jjaek`의 optional `group_id` / `book_id` 조합으로 표현함
 - 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
 - 공개 동아리의 Jjaek은 로그인 사용자가, 승인/비공개 동아리의 Jjaek은 active member만 조회할 수 있음
 - 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에만 표시하며 홈 피드와 전역 책 상세에서는 제외함
 - 동아리 Jjaek의 다시짹, 댓글, 좋아요, 수정·삭제는 구현되지 않음
-- 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
+- 동아리 삭제·owner 양도·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
 
 관련 코드:
 - controller:

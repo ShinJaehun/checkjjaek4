@@ -89,4 +89,61 @@ RSpec.describe "Groups", type: :request do
     get group_path(group)
     expect(response.body).not_to include("동아리 초대")
   end
+
+
+  describe "owner management" do
+    let(:group) { Group.create!(owner: user, name: "Original", description: "Before", group_type: :approval_group) }
+
+    it "lets the owner edit name and description without changing group type" do
+      sign_in user
+
+      get edit_group_path(group)
+      expect(response).to have_http_status(:ok)
+
+      patch group_path(group), params: { group: { name: "Updated", description: "After", group_type: "private_group" } }
+
+      expect(response).to redirect_to(group_path(group))
+      expect(group.reload).to have_attributes(name: "Updated", description: "After", group_type: "approval_group")
+    end
+
+    it "renders edit with 422 when validation fails" do
+      sign_in user
+
+      patch group_path(group), params: { group: { name: "", description: "After" } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).not_to include("동아리 종류")
+    end
+
+    it "blocks a non-owner from edit and update" do
+      group.group_memberships.create!(user: other_user = User.create!(name: "Member", email: "group-edit-member@example.com", password: "password123!", password_confirmation: "password123!"), status: :active)
+      sign_in other_user
+
+      get edit_group_path(group)
+      expect(response).to redirect_to(root_path)
+
+      patch group_path(group), params: { group: { name: "Hijacked" } }
+      expect(response).to redirect_to(root_path)
+      expect(group.reload.name).to eq("Original")
+    end
+
+    it "shows owner controls and member list only to the owner" do
+      member = User.create!(name: "Listed member", email: "listed-member@example.com", password: "password123!", password_confirmation: "password123!")
+      group.group_memberships.create!(user: member, status: :active)
+      sign_in user
+
+      get group_path(group)
+      expect(response.body).to include("동아리 수정", "동아리 구성원", member.name, "활동 중지")
+      expect(response.body).not_to include("내보내기")
+
+      group.group_memberships.find_by!(user: member).update!(status: :inactive)
+      get group_path(group)
+      expect(response.body).to include("활동 중지된 구성원", "다시 활성화", "내보내기")
+
+      sign_in member
+      get group_path(group)
+      expect(response.body).to include("활동 중지")
+      expect(response.body).not_to include("동아리 수정", "동아리 구성원", "다시 활성화", "내보내기")
+    end
+  end
 end

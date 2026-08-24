@@ -1,5 +1,5 @@
 class GroupsController < ApplicationController
-  before_action :set_group, only: :show
+  before_action :set_group, only: %i[show edit update]
 
   def index
     authorize Group
@@ -12,6 +12,21 @@ class GroupsController < ApplicationController
     @membership = @group.group_memberships.find_by(user: current_user)
     @pending_memberships = if @group.owner?(current_user)
       @group.group_memberships.pending.includes(:user).order(:created_at)
+    else
+      GroupMembership.none
+    end
+    @active_memberships = if @group.owner?(current_user)
+      @group.group_memberships.active.includes(:user).order(:created_at)
+    else
+      GroupMembership.none
+    end
+    @inactive_memberships = if @group.owner?(current_user)
+      @group.group_memberships.inactive.includes(:user).order(:created_at)
+    else
+      GroupMembership.none
+    end
+    @sent_invitations = if @group.private_group? && @group.owner?(current_user)
+      @group.group_memberships.invited.includes(:user).order(:created_at)
     else
       GroupMembership.none
     end
@@ -29,7 +44,7 @@ class GroupsController < ApplicationController
   end
 
   def create
-    @group = current_user.owned_groups.build(group_params)
+    @group = current_user.owned_groups.build(create_group_params)
     authorize @group
 
     if @group.save
@@ -39,14 +54,32 @@ class GroupsController < ApplicationController
     end
   end
 
+  def edit
+    authorize @group
+  end
+
+  def update
+    authorize @group
+
+    if @group.update(update_group_params)
+      redirect_to @group, notice: t("groups.notices.updated")
+    else
+      render :edit, status: :unprocessable_content
+    end
+  end
+
   private
 
   def set_group
     @group = policy_scope(Group).find(params[:id])
   end
 
-  def group_params
+  def create_group_params
     params.fetch(:group, {}).permit(:name, :description, :group_type)
+  end
+
+  def update_group_params
+    params.fetch(:group, {}).permit(:name, :description)
   end
 
   def prepare_jjaek_context

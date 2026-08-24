@@ -15,16 +15,20 @@
     <%= form.text_area :description, rows: 5, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
   </div>
 
-  <div>
-    <%= form.label :group_type, t("groups.form.group_type"), class: "mb-2 block text-sm font-medium text-stone-700" %>
-    <%= form.select :group_type,
-                    Group::USER_CREATABLE_TYPES.map { |type| [t("groups.types.#{type}"), type] },
-                    {},
-                    class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
-  </div>
+  <% if group.new_record? %>
+    <div>
+      <%= form.label :group_type, t("groups.form.group_type"), class: "mb-2 block text-sm font-medium text-stone-700" %>
+      <%= form.select :group_type,
+                      Group::USER_CREATABLE_TYPES.map { |type| [t("groups.types.#{type}"), type] },
+                      {},
+                      class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+    </div>
+  <% end %>
 
   <div class="flex items-center gap-3">
-    <%= form.submit t("groups.actions.create"), class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
-    <%= link_to t("groups.actions.cancel"), groups_path, class: "text-sm font-medium text-stone-600" %>
+    <%= form.submit t(group.new_record? ? "groups.actions.create" : "groups.actions.update"), class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
+    <%= link_to t("groups.actions.cancel"),
+                group.persisted? ? group_path(group) : groups_path,
+                class: "text-sm font-medium text-stone-600" %>
   </div>
 <% end %>

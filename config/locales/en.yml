@@ -66,6 +66,8 @@ en:
     new:
       title: "Create a club"
       description: "Choose how readers join and start a reading community."
+    edit:
+      title: "Edit club"
     form:
       name: "Club name"
       description: "Description"
@@ -73,18 +75,25 @@ en:
     actions:
       new: "Create club"
       create: "Create club"
+      edit: "Edit club"
+      update: "Update club"
       cancel: "Cancel"
       back: "Back to clubs"
     pending:
       title: "Join requests"
       empty: "No join requests are pending."
+    members:
+      title: "Club members"
+      inactive_title: "Inactive members"
     invitations:
       title: "Club invitations"
       invite_title: "Invite to club"
       user: "User"
       empty_candidates: "No users are available to invite."
+      sent_title: "Sent invitations"
     notices:
       created: "Club created."
+      updated: "Club updated."
     jjaeks:
       tabs:
         general: "Jjaek"
@@ -99,6 +108,7 @@ en:
       pending: "Pending approval"
       active: "Member"
       invited: "Invited"
+      inactive: "Inactive"
     actions:
       join: "Join"
       request: "Request to join"
@@ -108,6 +118,11 @@ en:
       invite: "Invite"
       accept: "Accept invitation"
       decline: "Decline invitation"
+      reject: "Reject"
+      revoke: "Cancel invitation"
+      remove: "Remove"
+      deactivate: "Deactivate"
+      reactivate: "Reactivate"
     notices:
       joined: "You joined the club."
       requested: "Join request sent."
@@ -117,6 +132,11 @@ en:
       invited: "Club invitation sent."
       accepted: "Club invitation accepted."
       declined: "Club invitation declined."
+      rejected: "Join request rejected."
+      revoked: "Club invitation cancelled."
+      removed: "Member removed from the club."
+      deactivated: "Member deactivated."
+      reactivated: "Member reactivated."
   comments:
     actions:
       close_inline: "Close"

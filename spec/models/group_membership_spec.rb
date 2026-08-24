@@ -37,6 +37,27 @@ RSpec.describe GroupMembership, type: :model do
     expect(membership.update(status: :pending)).to be(false)
   end
 
+  it "allows active and inactive membership transitions" do
+    membership = described_class.create!(group: group, user: member, status: :active)
+
+    expect(membership.update(status: :inactive)).to be(true)
+    expect(membership.update(status: :active)).to be(true)
+  end
+
+  it "does not allow inactive membership to become pending or invited" do
+    membership = described_class.create!(group: group, user: member, status: :active)
+    membership.update!(status: :inactive)
+
+    expect(membership.update(status: :pending)).to be(false)
+    expect(membership.update(status: :invited)).to be(false)
+  end
+
+  it "does not allow the owner membership to become inactive" do
+    membership = group.group_memberships.find_by!(user: owner)
+
+    expect(membership.update(status: :inactive)).to be(false)
+  end
+
   it "does not allow the owner membership to be destroyed" do
     membership = group.group_memberships.find_by!(user: owner)
 

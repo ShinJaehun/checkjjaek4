@@ -1,5 +1,5 @@
 class GroupMembership < ApplicationRecord
-  enum :status, { pending: 0, active: 1, invited: 2 }, default: :pending, validate: true
+  enum :status, { pending: 0, active: 1, invited: 2, inactive: 3 }, default: :pending, validate: true
 
   belongs_to :group
   belongs_to :user
@@ -21,7 +21,12 @@ class GroupMembership < ApplicationRecord
 
   def status_transition_must_be_valid
     return unless persisted? && status_changed?
-    return if status == "active" && status_was.in?(%w[pending invited])
+    return if [status_was, status].in?([
+      %w[pending active],
+      %w[invited active],
+      %w[active inactive],
+      %w[inactive active]
+    ])
 
     errors.add(:status, :invalid_transition)
   end

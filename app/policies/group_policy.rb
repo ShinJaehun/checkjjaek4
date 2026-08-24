@@ -7,12 +7,18 @@ class GroupPolicy < ApplicationPolicy
     return false unless user.present?
     return true unless record.private_group?
 
-    record.active_member?(user)
+    record.group_memberships.where(user: user, status: %i[active inactive]).exists?
   end
 
   def create?
     user.present? && record.owner_id == user.id && record.group_type.in?(Group::USER_CREATABLE_TYPES)
   end
+
+  def update?
+    user.present? && record.owner?(user)
+  end
+
+  alias_method :edit?, :update?
 
   def read_jjaeks?
     user.present? && (record.public_group? || record.active_member?(user))
@@ -26,9 +32,9 @@ class GroupPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
-      active_group_ids = GroupMembership.active.where(user: user).select(:group_id)
+      accessible_private_group_ids = GroupMembership.where(user: user, status: %i[active inactive]).select(:group_id)
       scope.where(group_type: %i[public_group approval_group])
-        .or(scope.where(id: active_group_ids))
+        .or(scope.where(id: accessible_private_group_ids))
         .distinct
     end
   end
