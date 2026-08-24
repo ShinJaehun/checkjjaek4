@@ -236,6 +236,16 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).not_to include("comments_panel_book_#{other_book.id}_jjaek_#{jjaek.id}")
   end
 
+  it "falls back to detail when group context is used for a personal Jjaek" do
+    sign_in user
+
+    get jjaek_comments_path(jjaek, comments_context: "group"),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include(%(target="comments_panel_group_jjaek_#{jjaek.id}"))
+  end
+
   it "creates a notification when another user comments on your jjaek" do
     sign_in user
 
@@ -314,6 +324,7 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include("user_profile_")
     expect(response.body).to include("_128")
     expect(response.body).to include(%(alt="#{user.name}"))
+    expect(response.body).to include(I18n.t("comments.actions.edit"))
     expect(response.body).not_to include(I18n.t("comments.actions.close_inline"))
   end
 
@@ -330,6 +341,19 @@ RSpec.describe "Comments", type: :request do
 
     expect(response).to redirect_to(jjaek_path(jjaek))
     expect(comment.reload.content).to eq("Updated comment")
+  end
+
+  it "updates only the requested personal comments panel through Turbo" do
+    sign_in user
+
+    patch jjaek_comment_path(jjaek, comment),
+          params: { comment: { content: "Home updated" }, comments_context: "home" },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response).to have_http_status(:ok)
+    expect(comment.reload.content).to eq("Home updated")
+    expect(response.body).to include(%(target="comments_panel_home_jjaek_#{jjaek.id}"), "Home updated")
+    expect(response.body).not_to include(%(target="comment_action_jjaek_#{jjaek.id}"))
   end
 
   it "does not allow another user to update the comment" do
@@ -395,5 +419,233 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
     expect(response.body).not_to include("HOME_COMMENT_TO_DELETE_BODY")
     expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+  end
+
+  describe "group Jjaek comments" do
+    it "lets an active member create a comment and renders the group Turbo panel" do
+      group = Group.create!(owner: author, name: "Group comments", group_type: :private_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Group source")
+      sign_in user
+
+      expect {
+        post jjaek_comments_path(group_jjaek),
+             params: { comment: { content: "Group note" }, comments_context: "group" },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      }.to change(group_jjaek.comments, :count).by(1)
+
+      expect(response.body).to include(%(target="comments_panel_group_jjaek_#{group_jjaek.id}"))
+      expect(response.body).to include(%(target="comment_action_jjaek_#{group_jjaek.id}"))
+      expect(response.body).to include("Group note")
+    end
+
+    it "lets a public nonmember read comments without showing or accepting the form" do
+      group = Group.create!(owner: author, name: "Public comments", group_type: :public_group)
+      group_jjaek = author.jjaeks.create!(group:, content: "Public source")
+      existing = group_jjaek.comments.create!(user: author, content: "Readable comment")
+      sign_in user
+
+      get jjaek_comments_path(group_jjaek, comments_context: "group"),
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(existing.content)
+      expect(response.body).not_to include(%(name="comment[content]"))
+
+      expect {
+        post jjaek_comments_path(group_jjaek), params: { comment: { content: "Blocked" } }
+      }.not_to change(Comment, :count)
+    end
+
+    it "hides approval and private comment indexes from nonmembers" do
+      %i[approval_group private_group].each do |group_type|
+        group = Group.create!(owner: author, name: group_type.to_s, group_type:)
+        group_jjaek = author.jjaeks.create!(group:, content: "Hidden source")
+        sign_in user
+
+        get jjaek_comments_path(group_jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    it "hides approval and private comment creation from nonmembers" do
+      %i[approval_group private_group].each do |group_type|
+        group = Group.create!(owner: author, name: "#{group_type} create", group_type:)
+        group_jjaek = author.jjaeks.create!(group:, content: "Hidden source")
+        sign_in user
+
+        post jjaek_comments_path(group_jjaek), params: { comment: { content: "Blocked" } }
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    it "lets an inactive private member see the group but not its Jjaek or comments" do
+      group = Group.create!(owner: author, name: "Inactive private", group_type: :private_group)
+      membership = group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Hidden while inactive")
+      membership.update!(status: :inactive)
+      sign_in user
+
+      get group_path(group)
+      expect(response).to have_http_status(:ok)
+      get jjaek_path(group_jjaek)
+      expect(response).to have_http_status(:not_found)
+      get jjaek_comments_path(group_jjaek)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns the group panel with 422 on validation failure" do
+      group = Group.create!(owner: author, name: "Invalid comment", group_type: :approval_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Group source")
+      sign_in user
+
+      post jjaek_comments_path(group_jjaek),
+           params: { comment: { content: "" }, comments_context: "group" },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include(%(target="comments_panel_group_jjaek_#{group_jjaek.id}"))
+      expect(response.body).not_to include(%(target="comment_action_jjaek_#{group_jjaek.id}"))
+    end
+
+    it "updates only the group panel and count when an active member deletes a comment" do
+      group = Group.create!(owner: author, name: "Delete comment", group_type: :approval_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Group source")
+      own_comment = group_jjaek.comments.create!(user:, content: "Delete me")
+      sign_in user
+
+      expect {
+        delete jjaek_comment_path(group_jjaek, own_comment),
+               params: { comments_context: "group" },
+               headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      }.to change(Comment, :count).by(-1)
+
+      expect(response.body).to include(%(target="comments_panel_group_jjaek_#{group_jjaek.id}"))
+      expect(response.body).to include(%(target="comment_action_jjaek_#{group_jjaek.id}"))
+      expect(response.body).not_to include("Delete me")
+    end
+
+    it "lets an inactive or former member delete only their own old comment safely" do
+      group = Group.create!(owner: author, name: "Old comments", group_type: :private_group)
+      membership = group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Private source")
+      own_comment = group_jjaek.comments.create!(user:, content: "Old comment")
+      other_comment = group_jjaek.comments.create!(user: author, content: "Other comment")
+      membership.update!(status: :inactive)
+      sign_in user
+
+      expect {
+        delete jjaek_comment_path(group_jjaek, own_comment),
+               headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      }.to change(Comment, :count).by(-1)
+      expect(response).to redirect_to(groups_path)
+      expect(response.body).not_to include(group_jjaek.content, other_comment.content)
+
+      expect {
+        delete jjaek_comment_path(group_jjaek, other_comment)
+      }.not_to change(Comment, :count)
+
+      membership.update!(status: :active)
+      membership.destroy!
+      former_comment = group_jjaek.comments.create!(user:, content: "Former comment")
+      expect {
+        delete jjaek_comment_path(group_jjaek, former_comment)
+      }.to change(Comment, :count).by(-1)
+      expect(response).to redirect_to(groups_path)
+    end
+
+    it "shows comments but not likes or requotes on a group Jjaek card" do
+      group = Group.create!(owner: author, name: "Group card", group_type: :public_group)
+      group_jjaek = author.jjaeks.create!(group:, content: "CARD_ACTIONS")
+      sign_in user
+
+      get group_path(group)
+
+      expect(response.body).to include(jjaek_comments_path(group_jjaek, comments_context: "group"))
+      expect(response.body).not_to include(jjaek_like_path(group_jjaek), new_jjaek_path(quoted_jjaek_id: group_jjaek.id))
+    end
+
+
+    it "shows the form and only the current user's delete action to an active member" do
+      group = Group.create!(owner: author, name: "Comment controls", group_type: :approval_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Controls")
+      own_comment = group_jjaek.comments.create!(user:, content: "Mine")
+      other_comment = group_jjaek.comments.create!(user: author, content: "Theirs")
+      sign_in user
+
+      get jjaek_path(group_jjaek)
+
+      document = Nokogiri::HTML(response.body)
+      own_comment_ui = document.at_css("#comment_#{own_comment.id}")
+      other_comment_ui = document.at_css("#comment_#{other_comment.id}")
+
+      expect(own_comment_ui.at_css('[data-comment-edit-target="actions"]').text).to match(/수정.*삭제/m)
+      expect(own_comment_ui.at_css('[data-comment-edit-target="display"]')["class"]).not_to include("hidden")
+      expect(own_comment_ui.at_css('[data-comment-edit-target="form"]')["class"]).to include("hidden")
+      expect(
+        own_comment_ui
+          .at_css('textarea[name="comment[content]"]')
+          .text
+          .delete_prefix("\n")
+      ).to eq(own_comment.content)
+      expect(other_comment_ui.at_css('[data-action="comment-edit#open"]')).to be_nil
+    end
+
+
+    it "hides edit but keeps delete for an inactive member's public group comment" do
+      group = Group.create!(owner: author, name: "Inactive controls", group_type: :public_group)
+      membership = group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Controls")
+      own_comment = group_jjaek.comments.create!(user:, content: "Mine")
+      membership.update!(status: :inactive)
+      sign_in user
+
+      get jjaek_path(group_jjaek)
+
+      expect(response.body).to include(jjaek_comment_path(group_jjaek, own_comment), I18n.t("comments.actions.delete"))
+      expect(response.body).not_to include(I18n.t("comments.actions.edit"), I18n.t("comments.actions.update"))
+    end
+
+    it "updates only the group comments panel through Turbo" do
+      group = Group.create!(owner: author, name: "Turbo update", group_type: :approval_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "GROUP_CARD_BODY")
+      own_comment = group_jjaek.comments.create!(user:, content: "Before update")
+      sign_in user
+
+      patch jjaek_comment_path(group_jjaek, own_comment),
+            params: { comment: { content: "After update" }, comments_context: "group" },
+            headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:ok)
+      expect(own_comment.reload.content).to eq("After update")
+      expect(response.body).to include(%(target="comments_panel_group_jjaek_#{group_jjaek.id}"), "After update")
+      expect(response.body).not_to include(%(target="comment_action_jjaek_#{group_jjaek.id}"), "GROUP_CARD_BODY")
+    end
+
+    it "returns the group panel with 422 when a Turbo update is invalid" do
+      group = Group.create!(owner: author, name: "Invalid update", group_type: :approval_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "GROUP_UPDATE_FAILURE_BODY")
+      own_comment = group_jjaek.comments.create!(user:, content: "Before update")
+      sign_in user
+
+      patch jjaek_comment_path(group_jjaek, own_comment),
+            params: { comment: { content: "" }, comments_context: "group" },
+            headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(own_comment.reload.content).to eq("Before update")
+      expect(response.body).to include(%(target="comments_panel_group_jjaek_#{group_jjaek.id}"), "field_with_errors")
+      expect(response.body).not_to include(%(target="comment_action_jjaek_#{group_jjaek.id}"), "GROUP_UPDATE_FAILURE_BODY")
+
+      document = Nokogiri::HTML(response.body)
+      comment_ui = document.at_css("#comment_#{own_comment.id}")
+      expect(comment_ui.at_css('[data-comment-edit-target="display"]')["class"]).to include("hidden")
+      expect(comment_ui.at_css('[data-comment-edit-target="form"]')["class"]).not_to include("hidden")
+      expect(comment_ui.at_css(".field_with_errors")).to be_present
+    end
   end
 end

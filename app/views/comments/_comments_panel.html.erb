@@ -9,7 +9,7 @@
 <section id="<%= comments_panel_id %>" class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
   <div class="flex items-center justify-between gap-4">
     <h2 class="text-lg font-semibold text-stone-900"><%= t("comments.title") %></h2>
-    <% if %i[home profile book].include?(comments_context.to_sym) %>
+    <% if %i[home profile book group].include?(comments_context.to_sym) %>
       <%= link_to t("comments.actions.close_inline"),
                   jjaek_comments_path(jjaek, close_comments_params),
                   data: { turbo_stream: true },
@@ -28,12 +28,14 @@
     <% end %>
   </div>
 
-  <div class="mt-6">
-    <%= render "comments/form",
-               jjaek: jjaek,
-               comment: comment,
-               comments_context: comments_context,
-               comments_profile_user: comments_profile_user,
-               comments_book: comments_book %>
-  </div>
+  <% if policy(Comment.new(jjaek: jjaek, user: current_user)).create? %>
+    <div class="mt-6">
+      <%= render "comments/form",
+                 jjaek: jjaek,
+                 comment: comment,
+                 comments_context: comments_context,
+                 comments_profile_user: comments_profile_user,
+                 comments_book: comments_book %>
+    </div>
+  <% end %>
 </section>

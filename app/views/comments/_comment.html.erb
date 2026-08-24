@@ -4,20 +4,40 @@
 <% destroy_comments_params = { comments_context: comments_context } %>
 <% destroy_comments_params[:profile_user_id] = comments_profile_user.id if comments_profile_user.present? %>
 <% destroy_comments_params[:book_id] = comments_book.id if comments_book.present? %>
+<% editing = comment.errors.any? %>
+<% displayed_content = editing ? comment.content_in_database : comment.content %>
 
-<article class="rounded-2xl bg-stone-50 px-4 py-3">
+<article id="<%= dom_id(comment) %>" class="rounded-2xl bg-stone-50 px-4 py-3" data-controller="comment-edit">
   <div class="flex items-center justify-between gap-3">
     <div class="flex min-w-0 items-center gap-2">
       <%= user_avatar_image(comment.user, size: 128, alt: comment.user.name, class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
       <div class="text-sm font-medium text-stone-800"><%= comment.user.name %></div>
     </div>
-    <% if comment.user == current_user %>
-      <%= button_to t("comments.actions.delete"),
-                    jjaek_comment_path(jjaek, comment),
-                    method: :delete,
-                    params: destroy_comments_params,
-                    class: "text-xs text-red-600" %>
-    <% end %>
+    <div class="flex items-center gap-3 <%= "hidden" if editing %>" data-comment-edit-target="actions">
+      <% if policy(comment).update? %>
+        <button type="button" class="text-xs font-medium text-stone-600" data-action="comment-edit#open"><%= t("comments.actions.edit") %></button>
+      <% end %>
+      <% if policy(comment).destroy? %>
+        <%= button_to t("comments.actions.delete"),
+                      jjaek_comment_path(jjaek, comment),
+                      method: :delete,
+                      params: destroy_comments_params,
+                      class: "text-xs text-red-600" %>
+      <% end %>
+    </div>
   </div>
-  <p class="mt-2 text-sm leading-6 text-stone-700"><%= comment.content %></p>
+  <p class="mt-2 text-sm leading-6 text-stone-700 <%= "hidden" if editing %>" data-comment-edit-target="display"><%= displayed_content %></p>
+
+  <% if policy(comment).update? %>
+    <div class="mt-3 <%= "hidden" unless editing %>" data-comment-edit-target="form">
+      <%= render "comments/form",
+                 jjaek: jjaek,
+                 comment: comment,
+                 comments_context: comments_context,
+                 comments_profile_user: comments_profile_user,
+                 comments_book: comments_book,
+                 submit_key: "comments.actions.update",
+                 edit_form: true %>
+    </div>
+  <% end %>
 </article>

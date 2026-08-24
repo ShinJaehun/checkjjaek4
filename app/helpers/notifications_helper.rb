@@ -1,5 +1,13 @@
 module NotificationsHelper
   def notification_message(notification)
+    if notification.comment_created? && notification.notifiable&.jjaek&.group.present?
+      return t(
+        "notifications.messages.group_comment_created",
+        actor_name: notification.actor.name,
+        group_name: notification.notifiable.jjaek.group.name
+      )
+    end
+
     t("notifications.messages.#{notification.action}", actor_name: notification.actor.name)
   end
 

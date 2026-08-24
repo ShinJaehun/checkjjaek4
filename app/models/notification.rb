@@ -41,6 +41,8 @@ class Notification < ApplicationRecord
   end
 
   def self.notify_comment_created(comment)
+    return unless JjaekPolicy.new(comment.jjaek.user, comment.jjaek).show?
+
     notify_once(
       recipient: comment.jjaek.user,
       actor: comment.user,

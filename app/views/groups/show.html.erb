@@ -179,7 +179,7 @@
     <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("groups.jjaeks.title") %></h2>
     <% if @jjaeks.any? %>
       <% @jjaeks.each do |jjaek| %>
-        <%= render "jjaeks/jjaek", jjaek: jjaek %>
+        <%= render "jjaeks/jjaek", jjaek: jjaek, inline_comments_context: :group %>
       <% end %>
     <% else %>
       <section class="rounded-3xl border border-dashed border-stone-300 bg-white/70 p-8 text-center text-sm text-stone-500"><%= t("groups.jjaeks.empty") %></section>

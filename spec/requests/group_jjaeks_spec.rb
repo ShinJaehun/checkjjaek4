@@ -195,7 +195,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).to include(public_jjaek.content, approval_jjaek.content)
   end
 
-  it "does not render interactions or edit controls for group jjaeks" do
+  it "renders comments but not unsupported interactions or edit controls for group jjaeks" do
     group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
     jjaek = owner.jjaeks.create!(group:, content: "Read only group jjaek")
     sign_in owner
@@ -203,8 +203,11 @@ RSpec.describe "Group Jjaeks", type: :request do
     get group_path(group)
 
     expect(response.body).not_to include(edit_jjaek_path(jjaek))
-    expect(response.body).not_to include(jjaek_comments_path(jjaek))
+    expect(response.body).to include(
+      jjaek_comments_path(jjaek, comments_context: "group")
+    )
     expect(response.body).not_to include(jjaek_like_path(jjaek))
+    expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: jjaek.id))
   end
 
   it "shows the book search context only to an active member" do

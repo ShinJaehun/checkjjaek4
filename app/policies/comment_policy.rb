@@ -1,13 +1,19 @@
 class CommentPolicy < ApplicationPolicy
   def create?
-    user.present? && record.jjaek.group_id.blank? && JjaekPolicy.new(user, record.jjaek).show?
+    return false unless user.present? && JjaekPolicy.new(user, record.jjaek).show?
+    return true if record.jjaek.group_id.blank?
+
+    record.jjaek.group.active_member?(user)
   end
 
   def update?
-    user.present? && record.jjaek.group_id.blank? && record.user_id == user.id
+    return false unless user.present? && record.user_id == user.id
+    return true if record.jjaek.group_id.blank?
+
+    JjaekPolicy.new(user, record.jjaek).show? && record.jjaek.group.active_member?(user)
   end
 
   def destroy?
-    update?
+    user.present? && record.user_id == user.id
   end
 end

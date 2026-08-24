@@ -6,7 +6,7 @@ class JjaeksController < ApplicationController
   end
 
   def show
-    prepare_comments unless @jjaek.group_id.present?
+    prepare_comments
     prepare_visible_requote_counts_for([ @jjaek ])
   end
 

@@ -53,4 +53,33 @@ RSpec.describe Notification, type: :model do
       described_class.notify_profile_jjaek_created(hidden_jjaek)
     }.not_to change(described_class, :count)
   end
+
+  it "notifies a group Jjaek author only while the source is visible" do
+    owner = User.create!(name: "Group owner", email: "notification-group-owner@example.com", password: "password123!", password_confirmation: "password123!")
+    group = Group.create!(owner:, name: "Notifications", group_type: :private_group)
+    author_membership = group.group_memberships.create!(user: recipient, status: :active)
+    group.group_memberships.create!(user: actor, status: :active)
+    group_jjaek = recipient.jjaeks.create!(group:, content: "Group source")
+    visible_comment = group_jjaek.comments.create!(user: actor, content: "Visible")
+
+    expect {
+      described_class.notify_comment_created(visible_comment)
+    }.to change(described_class, :count).by(1)
+
+    author_membership.update!(status: :inactive)
+    hidden_comment = group_jjaek.comments.create!(user: actor, content: "Hidden")
+    expect {
+      described_class.notify_comment_created(hidden_comment)
+    }.not_to change(described_class, :count)
+  end
+
+  it "does not notify an author about their own group comment" do
+    group = Group.create!(owner: recipient, name: "Own comments", group_type: :public_group)
+    group_jjaek = recipient.jjaeks.create!(group:, content: "Own source")
+    own_comment = group_jjaek.comments.create!(user: recipient, content: "Own")
+
+    expect {
+      described_class.notify_comment_created(own_comment)
+    }.not_to change(described_class, :count)
+  end
 end

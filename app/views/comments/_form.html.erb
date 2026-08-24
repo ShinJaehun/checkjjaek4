@@ -1,6 +1,8 @@
 <% comments_context = local_assigns.fetch(:comments_context, :detail) %>
 <% comments_profile_user = local_assigns[:comments_profile_user] %>
 <% comments_book = local_assigns[:comments_book] %>
+<% submit_key = local_assigns.fetch(:submit_key, "comments.actions.submit") %>
+<% edit_form = local_assigns.fetch(:edit_form, false) %>
 
 <%= form_with model: [jjaek, comment], class: "space-y-3" do |form| %>
   <%= hidden_field_tag :comments_context, comments_context %>
@@ -18,5 +20,10 @@
     <%= form.text_area :content, rows: 3, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
   </div>
 
-  <%= form.submit t("comments.actions.submit"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+  <div class="flex items-center <%= edit_form ? "justify-end" : "justify-start" %> gap-3">
+    <%= form.submit t(submit_key), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+    <% if edit_form %>
+      <button type="button" class="text-sm font-medium text-stone-600" data-action="comment-edit#cancel"><%= t("comments.actions.cancel") %></button>
+    <% end %>
+  </div>
 <% end %>

@@ -141,6 +141,9 @@ ko:
     actions:
       close_inline: "닫기"
       delete: "삭제"
+      edit: "수정"
+      update: "수정하기"
+      cancel: "취소"
       submit: "댓글 남기기"
       view_inline: "댓글 보기"
     form:
@@ -219,6 +222,7 @@ ko:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
       profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
       comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
+      group_comment_created: "%{group_name} 동아리에서 %{actor_name}님이 내 글에 댓글을 남겼습니다."
       requote_created: "%{actor_name}님이 내 Jjaek을 다시짹했습니다."
   requotes:
     actions:

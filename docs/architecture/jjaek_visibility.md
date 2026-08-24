@@ -134,6 +134,7 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
 - 댓글과 좋아요는 부모 Jjaek을 볼 수 있는 사용자만 가능하다
 - 즉, 상호작용 가능 범위는 부모 Jjaek visibility와 접근 가능 범위를 넘을 수 없다
 
-동아리 댓글과 좋아요는 아직 미구현이며 현재 동아리 Jjaek에서는 policy와 UI 모두 차단한다.
+동아리 댓글은 부모 동아리 Jjaek의 열람 권한을 상속하며 active member만 작성·수정할 수 있다.
+동아리 좋아요는 아직 미구현이며 policy와 UI에서 차단한다.
 향후 동아리 댓글은 부모 글의 동아리 접근 범위를 상속하는 목표 정책을 따른다.
 상세 목표 정책은 `docs/specs/groups_mvp.md`를 본다.

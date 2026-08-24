@@ -48,13 +48,42 @@ RSpec.describe CommentPolicy do
       expect(described_class.new(nil, comment).create?).to be(false)
     end
 
-    it "does not allow comments on a group jjaek" do
-      group = Group.create!(owner: other_user, name: "Readers", group_type: :public_group)
-      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
-      comment = group_jjaek.comments.build(user:, content: "Not available")
+    it "allows active members to create and update their own group comments" do
+      %i[public_group approval_group private_group].each do |group_type|
+        group = Group.create!(owner: other_user, name: group_type.to_s, group_type:)
+        group.group_memberships.create!(user:, status: :active)
+        group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+        comment = group_jjaek.comments.create!(user:, content: "Mine")
 
+        expect(described_class.new(user, comment).create?).to be(true)
+        expect(described_class.new(user, comment).update?).to be(true)
+      end
+    end
+
+    it "allows public group reading but not commenting for a nonmember" do
+      group = Group.create!(owner: other_user, name: "Public", group_type: :public_group)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+      comment = group_jjaek.comments.build(user:, content: "Blocked")
+
+      expect(JjaekPolicy.new(user, group_jjaek).show?).to be(true)
       expect(described_class.new(user, comment).create?).to be(false)
+    end
+
+    it "blocks group comment creation and update when membership is inactive" do
+      group = Group.create!(owner: other_user, name: "Approval", group_type: :approval_group)
+      membership = group.group_memberships.create!(user:, status: :active)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+      comment = group_jjaek.comments.create!(user:, content: "Existing")
+      membership.update!(status: :inactive)
+
+      expect(described_class.new(user, group_jjaek.comments.build(user:, content: "Blocked")).create?).to be(false)
       expect(described_class.new(user, comment).update?).to be(false)
+      expect(described_class.new(user, comment).destroy?).to be(true)
+      expect(described_class.new(other_user, comment).destroy?).to be(false)
+
+      membership.destroy!
+      expect(described_class.new(user, comment).update?).to be(false)
+      expect(described_class.new(user, comment).destroy?).to be(true)
     end
   end
 end

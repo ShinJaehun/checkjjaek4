@@ -1,8 +1,9 @@
 class CommentsController < ApplicationController
-  COMMENTS_CONTEXTS = %w[detail home profile book].freeze
+  COMMENTS_CONTEXTS = %w[detail home profile book group].freeze
 
-  before_action :set_jjaek
-  before_action :set_comments_context, only: %i[index create destroy]
+  before_action :set_readable_jjaek, except: :destroy
+  before_action :set_destroy_jjaek, only: :destroy
+  before_action :set_comments_context, only: %i[index create update destroy]
   before_action :set_comment, only: %i[update destroy]
 
   def index
@@ -44,17 +45,31 @@ class CommentsController < ApplicationController
     authorize @comment
 
     if @comment.update(comment_params)
-      redirect_to jjaek_path(@jjaek), notice: t("comments.notices.updated")
+      prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
+      respond_to do |format|
+        format.turbo_stream { flash.now[:notice] = t("comments.notices.updated") }
+        format.html { redirect_to jjaek_path(@jjaek), notice: t("comments.notices.updated") }
+      end
     else
-      @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
-      prepare_visible_requote_counts_for([ @jjaek ])
-      render "jjaeks/show", status: :unprocessable_content
+      prepare_comments_panel(comment: Comment.new(jjaek: @jjaek), editing_comment: @comment)
+      respond_to do |format|
+        format.turbo_stream { render :update, status: :unprocessable_content }
+        format.html do
+          prepare_visible_requote_counts_for([ @jjaek ])
+          render "jjaeks/show", status: :unprocessable_content
+        end
+      end
     end
   end
 
   def destroy
     authorize @comment
     @comment.destroy!
+
+    unless policy(@jjaek).show?
+      redirect_to groups_path, notice: t("comments.notices.destroyed"), status: :see_other
+      return
+    end
 
     @jjaek.reload
     prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
@@ -67,9 +82,15 @@ class CommentsController < ApplicationController
 
   private
 
-  def set_jjaek
+  def set_readable_jjaek
     @jjaek = Jjaek.find(params[:jjaek_id])
+    raise ActiveRecord::RecordNotFound if @jjaek.group_id.present? && !policy(@jjaek).show?
+
     authorize @jjaek, :show?
+  end
+
+  def set_destroy_jjaek
+    @jjaek = Jjaek.find(params[:jjaek_id])
   end
 
   def set_comment
@@ -89,13 +110,18 @@ class CommentsController < ApplicationController
       set_profile_comments_context
     when "book"
       set_book_comments_context
+    when "group"
+      set_group_comments_context
     else
       @comments_context = requested_context.to_sym
     end
   end
 
-  def prepare_comments_panel(comment:)
+  def prepare_comments_panel(comment:, editing_comment: nil)
     @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+    if editing_comment.present?
+      @comments = @comments.map { |record| record.id == editing_comment.id ? editing_comment : record }
+    end
     @comment = comment
   end
 
@@ -126,8 +152,16 @@ class CommentsController < ApplicationController
     @comments_profile_user = nil
   end
 
+  def set_group_comments_context
+    return set_detail_comments_context if @jjaek.group_id.blank?
+
+    @comments_context = :group
+    @comments_profile_user = nil
+    @comments_book = nil
+  end
+
   def inline_comments_context?
-    %i[home profile book].include?(@comments_context)
+    %i[home profile book group].include?(@comments_context)
   end
 
   def comment_params

@@ -226,7 +226,10 @@
 - 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
 - 공개 동아리의 Jjaek은 로그인 사용자가, 승인/비공개 동아리의 Jjaek은 active member만 조회할 수 있음
 - 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에만 표시하며 홈 피드와 전역 책 상세에서는 제외함
-- 동아리 Jjaek의 다시짹, 댓글, 좋아요, 수정·삭제는 구현되지 않음
+- 동아리 Jjaek은 기존 `Comment` 모델과 Turbo panel을 사용함
+- 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
+- inactive·탈퇴 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
+- 동아리 owner의 타인 댓글 삭제와 동아리 좋아요·다시짹/share·Jjaek 수정·삭제는 구현되지 않음
 - 동아리 삭제·owner 양도·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
 
 관련 코드:
@@ -409,7 +412,7 @@ BooksController#show
 Turbo 1차 적용 상태:
 
 - 좋아요는 count/button 영역만 갱신한다.
-- 댓글은 상세 페이지와 home/profile/book inline comments panel에서 panel과 count/action 영역을 갱신한다.
+- 댓글은 상세 페이지와 home/profile/book/group inline comments panel에서 panel과 count/action 영역을 갱신한다.
 - 상세 페이지 ReJjaek 목록은 detail panel만 갱신한다.
 - flash는 stable wrapper 기반으로 일부 Turbo 성공 응답에서 갱신된다.
 - notification badge는 stable wrapper foundation만 완료했고 실제 Turbo 갱신은 보류 상태다.

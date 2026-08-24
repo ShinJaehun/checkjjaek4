@@ -116,6 +116,23 @@ RSpec.describe "Notifications", type: :request do
     get notifications_path
 
     expect(response.body).to include(jjaek_path(jjaek))
+    expect(response.body).to include(I18n.t("notifications.messages.comment_created", actor_name: actor.name))
+  end
+
+  it "shows the club name for a group comment notification" do
+    group = Group.create!(owner: recipient, name: "함께 읽기", group_type: :private_group)
+    group.group_memberships.create!(user: actor, status: :active)
+    jjaek = recipient.jjaeks.create!(group:, content: "GROUP_COMMENTED_JJAEK")
+    comment = jjaek.comments.create!(user: actor, content: "GROUP_COMMENT_NOTIFICATION")
+    Notification.notify_comment_created(comment)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(response.body).to include(
+      I18n.t("notifications.messages.group_comment_created", actor_name: actor.name, group_name: group.name)
+    )
+    expect(response.body).to include(jjaek_path(jjaek))
   end
 
   it "links a requote notification to the new requote" do

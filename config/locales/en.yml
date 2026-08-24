@@ -141,6 +141,9 @@ en:
     actions:
       close_inline: "Close"
       delete: "Delete"
+      edit: "Edit"
+      update: "Update"
+      cancel: "Cancel"
       submit: "Add comment"
       view_inline: "View comments"
     form:
@@ -219,6 +222,7 @@ en:
       book_friendship_requested: "%{actor_name} sent you a book friend request."
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
       comment_created: "%{actor_name} commented on your Jjaek."
+      group_comment_created: "%{actor_name} commented on your post in the %{group_name} club."
       requote_created: "%{actor_name} ReJjaeked your Jjaek."
   requotes:
     actions:

@@ -40,6 +40,10 @@ module JjaeksHelper
       raise ArgumentError, "book is required for book comments panel context" if book.blank?
 
       "comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"
+    when :group
+      return dom_id(jjaek, :comments_panel) if jjaek.group_id.blank?
+
+      dom_id(jjaek, :comments_panel_group)
     else
       raise ArgumentError, "Unsupported comments panel context: #{context}"
     end
