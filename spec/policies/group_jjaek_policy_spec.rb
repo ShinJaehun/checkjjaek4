@@ -65,14 +65,41 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     expect(described_class.new(owner, owner.jjaeks.build(group:, book:, content: "No shelf entry")).create?).to be(false)
   end
 
-  it "does not allow requote, update, or destroy for a group jjaek" do
+  it "allows an active author to update and destroy a group jjaek" do
     group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
-    jjaek = owner.jjaeks.create!(group:, content: "Group jjaek")
-    policy = described_class.new(owner, jjaek)
+    group.group_memberships.create!(user: member, status: :active)
+    jjaek = member.jjaeks.create!(group:, content: "Group jjaek")
+    policy = described_class.new(member, jjaek)
 
     expect(policy.requote?).to be(false)
-    expect(policy.update?).to be(false)
-    expect(policy.destroy?).to be(false)
+    expect(policy.update?).to be(true)
+    expect(policy.destroy?).to be(true)
+  end
+
+  it "allows an inactive or former author only to destroy their group jjaek" do
+    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    membership = group.group_memberships.create!(user: member, status: :inactive)
+    jjaek = member.jjaeks.create!(group:, content: "Old group jjaek")
+
+    expect(described_class.new(member, jjaek).update?).to be(false)
+    expect(described_class.new(member, jjaek).destroy?).to be(true)
+
+    membership.destroy!
+
+    expect(described_class.new(member, jjaek).update?).to be(false)
+    expect(described_class.new(member, jjaek).destroy?).to be(true)
+  end
+
+  it "does not let another member or the group owner manage someone else's jjaek" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    group.group_memberships.create!(user: non_member, status: :active)
+    jjaek = member.jjaeks.create!(group:, content: "Member jjaek")
+
+    [ owner, non_member ].each do |viewer|
+      expect(described_class.new(viewer, jjaek).update?).to be(false)
+      expect(described_class.new(viewer, jjaek).destroy?).to be(false)
+    end
   end
 
   it "keeps update and destroy for a regular jjaek" do
@@ -81,6 +108,17 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
 
     expect(policy.update?).to be(true)
     expect(policy.destroy?).to be(true)
+  end
+
+  it "does not allow updating, destroying, or requoting a deleted jjaek" do
+    jjaek = owner.jjaeks.create!(content: "Deleted")
+    jjaek.comments.create!(user: member, content: "Existing")
+    jjaek.destroy_or_tombstone!
+    policy = described_class.new(owner, jjaek)
+
+    expect(policy.update?).to be(false)
+    expect(policy.destroy?).to be(false)
+    expect(policy.requote?).to be(false)
   end
 
   it "excludes group jjaeks and book jjaeks from FeedScope" do

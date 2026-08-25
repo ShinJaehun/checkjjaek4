@@ -418,9 +418,12 @@ en:
         general: "%{name}'s Jjaek"
         book: "%{name}'s Book Jjaek"
       deleted_quoted_source_unknown_author: "Unknown user"
-      deleted_quoted_source: "The original was deleted, so only you can see this."
+      deleted_quoted_source: "The original post was deleted."
+      deleted: "This post was deleted by its author."
     meta:
-      edited: "Edited"
+      created_at: "Written at %{time}"
+      edited_at: "Edited at %{time}"
+      deleted_at: "Deleted at %{time}"
       comments:
         one: "1 comment"
         other: "%{count} comments"

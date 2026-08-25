@@ -1,5 +1,6 @@
 class JjaeksController < ApplicationController
-  before_action :set_jjaek, only: %i[show edit update destroy]
+  before_action :set_jjaek, only: %i[show edit update]
+  before_action :set_destroy_jjaek, only: :destroy
   before_action :build_new_jjaek, only: %i[new create]
 
   def new
@@ -27,7 +28,7 @@ class JjaeksController < ApplicationController
   end
 
   def update
-    if @jjaek.update(jjaek_params.except(:book_id, :group_id, :quoted_jjaek_id, :target_user_id))
+    if @jjaek.update(update_jjaek_params)
       redirect_to jjaek_path(@jjaek), notice: t("jjaeks.notices.updated")
     else
       render :edit, status: :unprocessable_content
@@ -35,8 +36,9 @@ class JjaeksController < ApplicationController
   end
 
   def destroy
-    @jjaek.destroy!
-    redirect_to root_path, notice: t("jjaeks.notices.destroyed"), status: :see_other
+    group = @jjaek.group
+    @jjaek.destroy_or_tombstone!
+    redirect_to destroy_success_path(group), notice: t("jjaeks.notices.destroyed"), status: :see_other
   end
 
   private
@@ -48,6 +50,11 @@ class JjaeksController < ApplicationController
       raise ActiveRecord::RecordNotFound
     end
     authorize @jjaek
+  end
+
+  def set_destroy_jjaek
+    @jjaek = Jjaek.find(params[:id])
+    authorize @jjaek, :destroy?
   end
 
   def build_new_jjaek
@@ -251,6 +258,19 @@ class JjaeksController < ApplicationController
 
   def jjaek_params
     params.require(:jjaek).permit(:book_id, :content, :visibility, :quoted_jjaek_id, :target_user_id)
+  end
+
+  def update_jjaek_params
+    return jjaek_params.slice(:content) if @jjaek.group_id.present?
+
+    jjaek_params.except(:book_id, :group_id, :quoted_jjaek_id, :target_user_id)
+  end
+
+  def destroy_success_path(group)
+    return root_path if group.blank?
+    return group_path(group) if policy(group).show?
+
+    groups_path
   end
 
   def jjaek_visibility_options_for(quoted_jjaek)

@@ -48,6 +48,13 @@ RSpec.describe LikePolicy do
       expect(described_class.new(nil, like).create?).to be(false)
     end
 
+    it "does not allow a new like on a deleted jjaek" do
+      jjaek_record.comments.create!(user:, content: "Keeps shell")
+      jjaek_record.destroy_or_tombstone!
+
+      expect(described_class.new(user, jjaek_record.likes.build(user:)).create?).to be(false)
+    end
+
     it "does not allow likes on a group jjaek" do
       group = Group.create!(owner: other_user, name: "Readers", group_type: :public_group)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")

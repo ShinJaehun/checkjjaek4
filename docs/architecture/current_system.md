@@ -229,7 +229,8 @@
 - 동아리 Jjaek은 기존 `Comment` 모델과 Turbo panel을 사용함
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - inactive·탈퇴 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
-- 동아리 owner의 타인 댓글 삭제와 동아리 좋아요·다시짹/share·Jjaek 수정·삭제는 구현되지 않음
+- 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 inactive·탈퇴 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
+- 동아리 owner의 타인 댓글·Jjaek 삭제와 동아리 좋아요·다시짹/share는 구현되지 않음
 - 동아리 삭제·owner 양도·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
 
 관련 코드:
@@ -317,10 +318,12 @@
 
 ReJjaek은 원문을 복사하지 않고 `quoted_jjaek`으로 참조한다.
 원문이 수정되면 quoted block도 최신 원문을 보여준다.
-원문 또는 ReJjaek 본문이 수정된 경우 MVP에서는 수정 이력 전체가 아니라 “수정됨” 표시만 둔다.
+모든 Jjaek은 권한 범위에서 본문을 수정할 수 있고 실제 본문 수정 시각만 표시하며 수정 이력 전체 조회는 제공하지 않는다.
+댓글이 없는 Jjaek 삭제는 hard delete하고, persisted 댓글이 있으면 본문을 제거한 tombstone과 기존 댓글을 보존한다.
+삭제된 Jjaek에는 새 댓글, 좋아요, ReJjaek을 허용하지 않는다.
 원문이 삭제되지 않았지만 현재 사용자에게 보이지 않으면, 해당 사용자에게는 ReJjaek도 조회 시점 권한 기준으로 비노출한다.
 이 경우 ReJjaek을 자동으로 private 전환하지 않는다.
-원문이 hard delete되면 ReJjaek 본문은 보존하고 `private_jjaek`으로 전환한다.
+원문이 hard delete되거나 tombstone되면 ReJjaek 본문은 보존하고 `private_jjaek`으로 전환한다.
 이후 ReJjaek 작성자 본인에게만 보이며, quoted block 위치에는
 “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
 deleted-source 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기고,

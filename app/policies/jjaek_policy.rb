@@ -13,7 +13,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def requote?
-    show? && record.group_id.blank? && !record.private_jjaek? && !record.requote?
+    show? && !record.deleted? && record.group_id.blank? && !record.private_jjaek? && !record.requote?
   end
 
   def create_requote?
@@ -21,11 +21,14 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def update?
-    user.present? && record.group_id.blank? && record.user_id == user.id
+    return false unless user.present? && record.user_id == user.id && !record.deleted?
+    return true if record.group_id.blank?
+
+    record.group.active_member?(user)
   end
 
   def destroy?
-    update?
+    user.present? && record.user_id == user.id && !record.deleted?
   end
 
   class Scope < ApplicationPolicy::Scope
@@ -111,9 +114,10 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def quoted_context_allowed?
-    return false if record.group_id.present? && record.quoted_jjaek_id.present?
+    return true if record.quoted_jjaek_id.blank?
+    return false if record.group_id.present?
 
-    record.quoted_jjaek&.group_id.blank?
+    self.class.new(user, record.quoted_jjaek).requote?
   end
 
   def target_user_context_allowed?

@@ -172,7 +172,10 @@ Library 안에서 볼 수 있는 책장:
 현재 구현 기준:
 
 - 일반 Jjaek의 수정과 삭제는 작성자 본인만 가능하다
-- 동아리 Jjaek 수정·삭제는 아직 구현하지 않아 작성자에게도 허용하지 않는다
+- 동아리 Jjaek은 active 작성자만 수정할 수 있고, 작성자는 inactive 또는 탈퇴 후에도 자기 기존 글을 삭제할 수 있다
+- 동아리 owner에게 타인 Jjaek 수정·삭제 권한은 아직 없다
+- 삭제된 Jjaek은 다시 수정하거나 삭제할 수 없으며 새 댓글·좋아요·ReJjaek도 만들 수 없다
+- 댓글이 없는 글은 hard delete하고, 댓글이 있는 글은 본문을 제거한 tombstone과 기존 댓글을 보존한다
 
 관련 위치:
 
@@ -274,7 +277,8 @@ Library 안에서 볼 수 있는 책장:
 동아리에서는 같은 `Jjaek` 모델과 optional `group` / `book` association으로 `짹`과 `책짹`을 제공한다.
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
 작성은 모든 동아리 종류에서 active member에게만 허용한다.
-동아리 Jjaek의 댓글은 구현되어 있으며 좋아요, 다시짹/share와 Jjaek 수정·삭제는 아직 구현하지 않는다.
+동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, inactive 또는 탈퇴한 작성자도 자기 기존 글은 삭제할 수 있다.
+동아리 owner의 타인 글 moderation과 동아리 좋아요, 다시짹/share는 아직 구현하지 않는다.
 
 동아리 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
 

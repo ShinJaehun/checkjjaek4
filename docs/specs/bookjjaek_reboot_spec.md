@@ -292,11 +292,11 @@ ReJjaek은 새 Jjaek이지만,
 3. ReJjaek 가능 여부의 핵심 기준은 **BookshelfEntry 존재 여부가 아니라 원문 접근 권한**이다.
 4. ReJjaek은 원문 내용을 복사 저장하지 않고 참조한다.
 5. 원문이 수정되면 ReJjaek의 quoted block도 최신 원문을 보여준다.
-6. 원문 또는 ReJjaek 본문이 수정된 경우 MVP에서는 수정 이력 전체가 아니라 “수정됨” 표시만 둔다.
+6. 원문 또는 ReJjaek 본문이 실제 수정된 시각을 표시하며 수정 이력 전체 조회는 제공하지 않는다.
 7. ReJjaek 조회 시에도 원문 접근 권한을 다시 검사한다.
 8. 원문이 삭제되지 않았지만 private_jjaek/book_friends 변경이나 관계 변경으로 현재 사용자에게 보이지 않으면,
    해당 사용자에게는 ReJjaek도 비노출한다. 이 경우 ReJjaek을 자동으로 private_jjaek으로 전환하지 않는다.
-9. 원문이 hard delete되면 ReJjaek은 삭제하지 않고 private_jjaek으로 전환한다.
+9. 원문이 hard delete되거나 댓글을 보존하는 tombstone이 되면 ReJjaek은 삭제하지 않고 private_jjaek으로 전환한다.
    다른 사용자 홈 피드, 프로필, 책 상세, 검색 결과, 상세 접근에서는 노출하지 않는다.
    ReJjaek 작성자 본인의 홈 피드/프로필/상세에서는 보일 수 있다.
 10. hard delete된 원문의 quoted block 위치에는 작성자 본인에게만

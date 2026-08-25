@@ -418,9 +418,12 @@ ko:
         general: "%{name}님의 짹"
         book: "%{name}님의 책짹"
       deleted_quoted_source_unknown_author: "알 수 없는 사용자"
-      deleted_quoted_source: "원문이 삭제되어 나만 볼 수 있습니다."
+      deleted_quoted_source: "원문이 삭제되었습니다."
+      deleted: "작성자가 삭제한 글입니다."
     meta:
-      edited: "수정됨"
+      created_at: "%{time}에 작성함"
+      edited_at: "%{time}에 수정함"
+      deleted_at: "%{time}에 삭제함"
       comments:
         one: "댓글 1개"
         other: "댓글 %{count}개"

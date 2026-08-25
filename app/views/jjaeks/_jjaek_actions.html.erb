@@ -6,14 +6,14 @@
 <% inline_comments_params[:book_id] = inline_comments_book.id if inline_comments_book.present? %>
 
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
-  <% if jjaek.group_id.blank? %>
+  <% if jjaek.group_id.blank? && !jjaek.deleted? %>
     <%= render "jjaeks/like_summary_action", jjaek: jjaek %>
   <% end %>
   <%= render "jjaeks/comment_action", jjaek: jjaek %>
   <% if inline_comments_context.present? %>
     <%= link_to t("comments.actions.view_inline"), jjaek_comments_path(jjaek, inline_comments_params), data: { turbo_stream: true }, class: "font-medium text-stone-700" %>
   <% end %>
-  <% if jjaek.group_id.blank? %>
+  <% if jjaek.group_id.blank? && !jjaek.deleted? %>
     <%= render "jjaeks/requote_link", jjaek: jjaek %>
   <% end %>
   <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>

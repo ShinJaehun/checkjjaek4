@@ -64,5 +64,18 @@ RSpec.describe "Jjaeks basic flow", type: :request do
 
       expect(response).to redirect_to(root_path)
     end
+
+
+    it "tombstones a jjaek with comments and preserves the conversation" do
+      comment = own_jjaek.comments.create!(user: stranger, content: "Existing comment")
+      sign_in user
+
+      expect { delete jjaek_path(own_jjaek) }.not_to change(Jjaek, :count)
+
+      expect(own_jjaek.reload).to be_deleted
+      expect(own_jjaek.content).to eq("")
+      expect(own_jjaek.comments).to contain_exactly(comment)
+      expect(response).to redirect_to(root_path)
+    end
   end
 end

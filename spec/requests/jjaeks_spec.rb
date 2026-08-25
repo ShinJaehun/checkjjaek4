@@ -346,13 +346,14 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("님의 짹을 다시짹")
     end
 
-    it "shows an edited marker for an edited jjaek" do
-      original.update_column(:updated_at, original.created_at + 2.minutes)
+    it "shows written and edited timestamps for an edited jjaek" do
+      original.update_column(:content_edited_at, original.created_at + 2.minutes)
       sign_in viewer
 
       get jjaek_path(original)
 
-      expect(response.body).to include(I18n.t("jjaeks.meta.edited"))
+      expect(response.body).to include(I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short)))
+      expect(response.body).to include(I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short)))
     end
 
     it "renders a stable comments panel target" do
@@ -379,14 +380,58 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(I18n.t("requotes.actions.view_panel"))
     end
 
-    it "shows the latest quoted original with an edited marker" do
-      original.update_columns(content: "REQUEST_UPDATED_ORIGINAL_SOURCE", updated_at: original.created_at + 2.minutes)
+    it "shows the latest quoted original with its edited timestamp" do
+      original.update_columns(content: "REQUEST_UPDATED_ORIGINAL_SOURCE", content_edited_at: original.created_at + 2.minutes)
       sign_in viewer
 
       get jjaek_path(requote)
 
       expect(response.body).to include("REQUEST_UPDATED_ORIGINAL_SOURCE")
-      expect(response.body).to include(I18n.t("jjaeks.meta.edited"))
+      expect(response.body).to include(I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short)))
+    end
+
+
+    it "shows a deleted book jjaek shell without its original body or interaction forms" do
+      original.comments.create!(user: viewer, content: "PRESERVED_DELETED_COMMENT")
+      original.destroy_or_tombstone!
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response.body).not_to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted"), book.title, "PRESERVED_DELETED_COMMENT")
+      expect(response.body).to include(I18n.t("jjaeks.meta.deleted_at", time: I18n.l(original.deleted_at, format: :short)))
+      expect(response.body).not_to include(%(action="#{jjaek_like_path(original)}"))
+      expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: original.id))
+      expect(response.body).not_to include(%(action="#{jjaek_comments_path(original)}"))
+    end
+
+    it "shows only the tombstone body and comments when a requote itself is deleted" do
+      requote.comments.create!(user: original_author, content: "PRESERVED_REQUOTE_COMMENT")
+      requote.destroy_or_tombstone!
+      sign_in viewer
+
+      get jjaek_path(requote)
+
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted"), "PRESERVED_REQUOTE_COMMENT")
+      expect(response.body).not_to include("REQUEST_VIEWER_REQUOTE_BODY")
+      expect(response.body).not_to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
+    end
+
+    it "rejects direct comment, like, and requote creation for a deleted jjaek" do
+      original.comments.create!(user: viewer, content: "Keeps shell")
+      original.destroy_or_tombstone!
+      sign_in viewer
+
+      expect {
+        post jjaek_comments_path(original), params: { comment: { content: "Blocked" } }
+      }.not_to change(Comment, :count)
+      expect {
+        post jjaek_like_path(original)
+      }.not_to change(Like, :count)
+      expect {
+        post jjaeks_path, params: { jjaek: { content: "Blocked", quoted_jjaek_id: original.id } }
+      }.not_to change(Jjaek, :count)
     end
 
     it "does not show a requote entry for a private jjaek" do

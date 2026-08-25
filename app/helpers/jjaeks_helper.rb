@@ -21,9 +21,7 @@ module JjaeksHelper
   end
 
   def jjaek_edited?(jjaek)
-    return false if jjaek.created_at.blank? || jjaek.updated_at.blank?
-
-    jjaek.updated_at > jjaek.created_at + 1.second
+    jjaek.content_edited_at.present?
   end
 
   def comments_panel_dom_id(jjaek, context: :detail, profile_user: nil, book: nil)

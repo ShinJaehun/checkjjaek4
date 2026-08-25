@@ -1,6 +1,6 @@
 class CommentPolicy < ApplicationPolicy
   def create?
-    return false unless user.present? && JjaekPolicy.new(user, record.jjaek).show?
+    return false unless user.present? && !record.jjaek.deleted? && JjaekPolicy.new(user, record.jjaek).show?
     return true if record.jjaek.group_id.blank?
 
     record.jjaek.group.active_member?(user)

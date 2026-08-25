@@ -9,6 +9,47 @@ RSpec.describe Jjaek, type: :model do
     jjaek = described_class.new(user:, content: "책 없이 남기는 짹")
 
     expect(jjaek).to be_valid
+    jjaek.save!
+    expect(jjaek.content_edited_at).to be_nil
+  end
+
+  it "records only successful content edits" do
+    jjaek = user.jjaeks.create!(content: "A")
+
+    jjaek.update!(visibility: :private_jjaek)
+    expect(jjaek.content_edited_at).to be_nil
+
+    jjaek.update!(content: "B")
+    edited_at = jjaek.content_edited_at
+    expect(edited_at).to be_present
+
+    expect(jjaek.update(content: "")).to be(false)
+    expect(jjaek.reload.content_edited_at).to eq(edited_at)
+  end
+
+  it "hard deletes a jjaek without persisted comments" do
+    jjaek = user.jjaeks.create!(content: "No comments")
+
+    expect { jjaek.destroy_or_tombstone! }.to change(described_class, :count).by(-1)
+  end
+
+  it "tombstones a jjaek with comments and preserves its context and edited timestamp" do
+    group = Group.create!(owner: user, name: "Readers", group_type: :public_group)
+    jjaek = user.jjaeks.create!(group:, book:, content: "A")
+    jjaek.update!(content: "B")
+    edited_at = jjaek.content_edited_at
+    comment = jjaek.comments.create!(user: other_user, content: "대화")
+
+    expect { jjaek.destroy_or_tombstone! }.not_to change(described_class, :count)
+
+    jjaek.reload
+    expect(jjaek).to be_deleted
+    expect(jjaek.content).to eq("")
+    expect(jjaek.content_edited_at).to eq(edited_at)
+    expect(jjaek.comments).to contain_exactly(comment)
+    expect(jjaek.user).to eq(user)
+    expect(jjaek.book).to eq(book)
+    expect(jjaek.group).to eq(group)
   end
 
   it "allows a profile-context jjaek with a target user" do
@@ -100,6 +141,18 @@ RSpec.describe Jjaek, type: :model do
     expect(requote.quoted_jjaek_id).to be_nil
     expect(requote.quoted_source_author_name).to eq(other_user.name)
     expect(requote.quoted_source_kind).to eq("book")
+  end
+
+  it "marks requotes as deleted source when the original is tombstoned" do
+    original = other_user.jjaeks.create!(book:, content: "원문")
+    requote = user.jjaeks.create!(book:, content: "인용", quoted_jjaek: original)
+    original.comments.create!(user:, content: "댓글")
+
+    original.destroy_or_tombstone!
+
+    expect(original.reload).to be_deleted
+    expect(requote.reload).to be_quoted_source_deleted
+    expect(requote.quoted_jjaek_id).to be_nil
   end
 
   it "counts only persisted comments when the association target includes a form object" do

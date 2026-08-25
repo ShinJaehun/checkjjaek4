@@ -6,7 +6,7 @@
     </span>
     <% if jjaek_edited?(quoted_jjaek) %>
       <span class="text-stone-400">·</span>
-      <span class="text-stone-500"><%= t("jjaeks.meta.edited") %></span>
+      <span class="text-stone-500"><%= t("jjaeks.meta.edited_at", time: l(quoted_jjaek.content_edited_at, format: :short)) %></span>
     <% end %>
   </div>
 

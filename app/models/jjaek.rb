@@ -15,7 +15,7 @@ class Jjaek < ApplicationRecord
 
   before_destroy :mark_requotes_as_deleted_source
 
-  validates :content, presence: true, length: { maximum: 2_000 }
+  validates :content, presence: true, length: { maximum: 2_000 }, unless: :deleted?
   validates :quoted_jjaek_id,
             uniqueness: { scope: :user_id },
             allow_nil: true
@@ -28,6 +28,7 @@ class Jjaek < ApplicationRecord
   validate :group_context_must_not_target_user
 
   before_validation :normalize_group_visibility
+  before_update :record_content_edited_at
 
   scope :recent, -> { order(created_at: :desc) }
 
@@ -37,6 +38,20 @@ class Jjaek < ApplicationRecord
 
   def quoted_source_deleted?
     quoted_source_deleted_at.present?
+  end
+
+  def deleted?
+    deleted_at.present?
+  end
+
+  def destroy_or_tombstone!
+    return destroy! unless comments.exists?
+
+    transaction do
+      deletion_time = Time.current
+      mark_requotes_as_deleted_source(deletion_time)
+      update_columns(content: "", deleted_at: deletion_time, updated_at: deletion_time)
+    end
   end
 
   def comments_count
@@ -61,14 +76,18 @@ class Jjaek < ApplicationRecord
     end
   end
 
-  def mark_requotes_as_deleted_source
+  def record_content_edited_at
+    self.content_edited_at = Time.current if will_save_change_to_content? && !will_save_change_to_deleted_at?
+  end
+
+  def mark_requotes_as_deleted_source(deletion_time = Time.current)
     requotes.update_all(
       quoted_jjaek_id: nil,
       quoted_source_author_name: user.name,
-      quoted_source_deleted_at: Time.current,
+      quoted_source_deleted_at: deletion_time,
       quoted_source_kind: book.present? ? "book" : "general",
       visibility: self.class.visibilities[:private_jjaek],
-      updated_at: Time.current
+      updated_at: deletion_time
     )
   end
 

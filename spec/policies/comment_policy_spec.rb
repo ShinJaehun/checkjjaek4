@@ -48,6 +48,15 @@ RSpec.describe CommentPolicy do
       expect(described_class.new(nil, comment).create?).to be(false)
     end
 
+    it "does not create a new comment on a deleted jjaek but keeps existing comment permissions" do
+      comment = jjaek_record.comments.create!(user:, content: "Existing")
+      jjaek_record.destroy_or_tombstone!
+
+      expect(described_class.new(user, jjaek_record.comments.build(user:, content: "New")).create?).to be(false)
+      expect(described_class.new(user, comment).update?).to be(true)
+      expect(described_class.new(user, comment).destroy?).to be(true)
+    end
+
     it "allows active members to create and update their own group comments" do
       %i[public_group approval_group private_group].each do |group_type|
         group = Group.create!(owner: other_user, name: group_type.to_s, group_type:)

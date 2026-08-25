@@ -153,18 +153,156 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
-  it "does not allow the author to update or destroy a group jjaek" do
+  it "shows edit and delete actions to an active author in the existing header action area" do
     group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
-    jjaek = owner.jjaeks.create!(group:, content: "Group jjaek")
+    group.group_memberships.create!(user: member, status: :active)
+    jjaek = member.jjaeks.create!(group:, content: "Group jjaek")
+    sign_in member
+
+    get group_path(group)
+
+    header = Nokogiri::HTML(response.body).at_css("article > div:first-child")
+    expect(header.to_html).to include(edit_jjaek_path(jjaek), jjaek_path(jjaek))
+    expect(header.text).to match(/수정.*삭제/m)
+  end
+
+  it "does not show edit or delete actions for another user's group jjaek" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    jjaek = member.jjaeks.create!(group:, content: "Member jjaek")
     sign_in owner
 
-    patch jjaek_path(jjaek), params: { jjaek: { content: "Changed" } }
-    expect(response).to redirect_to(root_path)
-    expect(jjaek.reload.content).to eq("Group jjaek")
+    get group_path(group)
 
-    expect {
-      delete jjaek_path(jjaek)
-    }.not_to change(Jjaek, :count)
+    expect(response.body).not_to include(edit_jjaek_path(jjaek))
+    expect(response.body).not_to include(%(action="#{jjaek_path(jjaek)}"))
+  end
+
+  it "edits only the content of a group jjaek without showing visibility" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    other_group = Group.create!(owner: owner, name: "Other", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    jjaek = member.jjaeks.create!(group:, content: "Before", visibility: :public_jjaek)
+    quoted_jjaek = owner.jjaeks.create!(content: "Quoted")
+    sign_in member
+
+    get edit_jjaek_path(jjaek)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(group.name)
+    expect(response.body).not_to include(%(name="jjaek[visibility]"))
+
+    patch jjaek_path(jjaek), params: {
+      jjaek: {
+        content: "Changed",
+        visibility: :private_jjaek,
+        group_id: other_group.id,
+        quoted_jjaek_id: quoted_jjaek.id,
+        target_user_id: non_member.id
+      }
+    }
+
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(jjaek.reload.content).to eq("Changed")
+    expect(jjaek.visibility).to eq("public_jjaek")
+    expect(jjaek.group).to eq(group)
+    expect(jjaek.quoted_jjaek).to be_nil
+    expect(jjaek.target_user).to be_nil
+  end
+
+  it "keeps the book association while editing a group book jjaek" do
+    other_book = Book.create!(title: "Other Book", authors_text: "Other Author")
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    jjaek = member.jjaeks.create!(group:, book:, content: "Before")
+    sign_in member
+
+    patch jjaek_path(jjaek), params: { jjaek: { content: "After", book_id: other_book.id } }
+
+    expect(jjaek.reload.content).to eq("After")
+    expect(jjaek.book).to eq(book)
+  end
+
+  it "rerenders an invalid group edit with the entered content and no visibility field" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    jjaek = member.jjaeks.create!(group:, content: "Before")
+    sign_in member
+
+    patch jjaek_path(jjaek), params: { jjaek: { content: "" } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(%(name="jjaek[content]"))
+    expect(response.body).not_to include(%(name="jjaek[visibility]"))
+    expect(jjaek.reload.content).to eq("Before")
+  end
+
+  it "returns not found when an inactive author tries to update" do
+    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group.group_memberships.create!(user: member, status: :inactive)
+    jjaek = member.jjaeks.create!(group:, content: "Before")
+    sign_in member
+
+    patch jjaek_path(jjaek), params: { jjaek: { content: "Inactive change" } }
+
+    expect(response).to have_http_status(:not_found)
+    expect(jjaek.reload.content).to eq("Before")
+  end
+
+  it "returns not found when a former author tries to update" do
+    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    jjaek = member.jjaeks.create!(group:, content: "Before")
+    sign_in member
+
+    patch jjaek_path(jjaek), params: { jjaek: { content: "Former change" } }
+
+    expect(response).to have_http_status(:not_found)
+    expect(jjaek.reload.content).to eq("Before")
+  end
+
+  it "lets an inactive author delete an old private-group jjaek and redirects to the group" do
+    group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    group.group_memberships.create!(user: member, status: :inactive)
+    jjaek = member.jjaeks.create!(group:, content: "Inactive secret")
+    sign_in member
+
+    expect { delete jjaek_path(jjaek) }.to change(Jjaek, :count).by(-1)
+    expect(response).to redirect_to(group_path(group))
+    expect(response.body).not_to include("Inactive secret")
+  end
+
+  it "lets a former author delete an inaccessible old private-group jjaek and redirects safely" do
+    group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    jjaek = member.jjaeks.create!(group:, content: "Former secret")
+    sign_in member
+
+    expect { delete jjaek_path(jjaek) }.to change(Jjaek, :count).by(-1)
+    expect(response).to redirect_to(groups_path)
+    expect(response.body).not_to include("Former secret")
+  end
+
+  it "tombstones a group book jjaek with comments and preserves its book and conversation" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    jjaek = member.jjaeks.create!(group:, book:, content: "Group discussion")
+    comment = jjaek.comments.create!(user: owner, content: "Existing comment")
+    sign_in member
+
+    expect { delete jjaek_path(jjaek) }.not_to change(Jjaek, :count)
+
+    expect(jjaek.reload).to be_deleted
+    expect(jjaek.book).to eq(book)
+    expect(jjaek.comments).to contain_exactly(comment)
+    expect(response).to redirect_to(group_path(group))
+  end
+
+  it "does not let the owner delete another member's group jjaek" do
+    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    jjaek = member.jjaeks.create!(group:, content: "Member jjaek")
+    sign_in owner
+
+    expect { delete jjaek_path(jjaek) }.not_to change(Jjaek, :count)
   end
 
   it "keeps group book jjaeks out of the general book timeline" do
@@ -195,14 +333,14 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).to include(public_jjaek.content, approval_jjaek.content)
   end
 
-  it "renders comments but not unsupported interactions or edit controls for group jjaeks" do
+  it "renders comments but not unsupported interactions for group jjaeks" do
     group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
     jjaek = owner.jjaeks.create!(group:, content: "Read only group jjaek")
     sign_in owner
 
     get group_path(group)
 
-    expect(response.body).not_to include(edit_jjaek_path(jjaek))
+    expect(response.body).to include(edit_jjaek_path(jjaek))
     expect(response.body).to include(
       jjaek_comments_path(jjaek, comments_context: "group")
     )
