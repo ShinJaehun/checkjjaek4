@@ -6,7 +6,7 @@
 <% inline_comments_params[:book_id] = inline_comments_book.id if inline_comments_book.present? %>
 
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
-  <% if jjaek.group_id.blank? && !jjaek.deleted? %>
+  <% if jjaek.group_id.blank? && (!jjaek.deleted? || current_user_like_for(jjaek)) %>
     <%= render "jjaeks/like_summary_action", jjaek: jjaek %>
   <% end %>
   <%= render "jjaeks/comment_action", jjaek: jjaek %>

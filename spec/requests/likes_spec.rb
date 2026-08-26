@@ -61,6 +61,22 @@ RSpec.describe "Likes", type: :request do
     }.to change(Like, :count).by(-1)
   end
 
+  it "lets the user remove their existing like from a tombstoned jjaek" do
+    sign_in user
+    jjaek.likes.create!(user:)
+    jjaek.comments.create!(user: author, content: "Keeps shell")
+    jjaek.destroy_or_tombstone!
+
+    get jjaek_path(jjaek)
+    expect(response.body).to include(I18n.t("likes.actions.unlike"))
+
+    expect {
+      delete jjaek_like_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Like, :count).by(-1)
+    expect(response.body).to include(%(action="remove"))
+    expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"))
+  end
+
   it "keeps the html fallback redirect when unliking a jjaek" do
     sign_in user
     jjaek.likes.create!(user:)

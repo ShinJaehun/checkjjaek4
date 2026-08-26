@@ -55,10 +55,27 @@ RSpec.describe LikePolicy do
       expect(described_class.new(user, jjaek_record.likes.build(user:)).create?).to be(false)
     end
 
+    it "lets the owner remove an existing like from a deleted jjaek" do
+      like = jjaek_record.likes.create!(user:)
+      jjaek_record.comments.create!(user:, content: "Keeps shell")
+      jjaek_record.destroy_or_tombstone!
+
+      expect(described_class.new(user, jjaek_record.likes.build(user:)).create?).to be(false)
+      expect(described_class.new(user, like).destroy?).to be(true)
+    end
+
+    it "does not let another user remove a like from a deleted jjaek" do
+      like = jjaek_record.likes.create!(user:)
+      jjaek_record.comments.create!(user:, content: "Keeps shell")
+      jjaek_record.destroy_or_tombstone!
+
+      expect(described_class.new(other_user, like).destroy?).to be(false)
+    end
+
     it "does not allow likes on a group jjaek" do
       group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
-      like = group_jjaek.likes.build(user:)
+      like = group_jjaek.likes.create!(user:)
 
       expect(described_class.new(user, like).create?).to be(false)
       expect(described_class.new(user, like).destroy?).to be(false)

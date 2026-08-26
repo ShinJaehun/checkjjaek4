@@ -4,6 +4,9 @@ class LikePolicy < ApplicationPolicy
   end
 
   def destroy?
-    create? && record.user_id == user.id
+    user.present? &&
+      record.user_id == user.id &&
+      record.jjaek.group_id.blank? &&
+      JjaekPolicy.new(user, record.jjaek).show?
   end
 end
