@@ -4,8 +4,13 @@ class Follow < ApplicationRecord
 
   validates :followee_id, uniqueness: { scope: :follower_id }
   validate :followee_is_not_follower
+  validate :accounts_must_be_active, on: :create
 
   private
+
+  def accounts_must_be_active
+    errors.add(:base, :invalid) unless follower&.active_account? && followee&.active_account?
+  end
 
   def followee_is_not_follower
     return if follower_id.blank? || followee_id.blank?

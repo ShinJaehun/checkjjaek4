@@ -18,6 +18,13 @@ RSpec.describe UsersHelper, type: :helper do
     expect(helper.user_avatar_path(User.new(default_avatar_index: 99), size: 128)).to eq("avatars/user_profile_01_128.png")
   end
 
+  it "uses one anonymous avatar for withdrawn users regardless of a legacy avatar index" do
+    user = User.new(default_avatar_index: 7, withdrawn_at: Time.current)
+
+    expect(helper.user_avatar_path(user, size: 128)).to eq("avatars/withdrawn_user.svg")
+    expect(helper.user_avatar_path(user, size: 512)).to eq("avatars/withdrawn_user.svg")
+  end
+
   it "returns an avatar image tag" do
     user = User.new(default_avatar_index: 3)
 

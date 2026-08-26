@@ -42,6 +42,7 @@
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
 - `Group`: 일반 사용자 독서 동아리와 동아리 종류·단일 관리자(`owner_id`)
+- `User`: `withdrawn_at` 기반 terminal 탈퇴 상태와 익명 User row 보존
 - `Group`: global admin 승인 기반 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active/inactive 상태
 
@@ -245,6 +246,16 @@
 - 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 inactive·탈퇴 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
 - 동아리 관리자의 타인 댓글·Jjaek 삭제와 동아리 좋아요·다시짹/share는 구현되지 않음
 - 동아리 hard delete·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
+
+### 5-2. 계정 탈퇴
+
+- 전용 확인 화면에서 현재 비밀번호를 재확인하고 하나의 transaction으로 처리함
+- User row는 삭제하지 않고 `withdrawn_at`, 익명 이름과 비전송 placeholder 이메일로 갱신해 Jjaek·Comment 작성자 연결을 보존함
+- Follow, BookFriendship, Like, Notification, 일반 GroupMembership과 개인 서재·BookActivity를 정리함
+- active Group 관리자는 이전 또는 운영 종료 전 탈퇴할 수 없음
+- 최초 개설 pending 신청은 관리자 외 membership·콘텐츠·예상 밖 event가 없을 때만 정리하며 아니면 탈퇴를 rollback함
+- 재운영 pending Group은 삭제하지 않고 inactive로 복귀시켜 역사적 관리자 reference·inactive membership·콘텐츠·lifecycle history를 보존함
+- withdrawn user 대상 Follow, 책친구, Group 초대와 profile-context Jjaek 생성을 차단함
 
 관련 코드:
 - controller:

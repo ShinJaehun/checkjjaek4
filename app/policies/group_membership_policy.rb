@@ -17,11 +17,11 @@ class GroupMembershipPolicy < ApplicationPolicy
 
   def invite?
     record.group.active? && user.present? && record.group.private_group? && record.group.owner?(user) &&
-      record.invited? && record.user_id != user.id
+      record.invited? && record.user&.active_account? && record.user_id != user.id
   end
 
   def accept?
-    record.group.active? && own_membership? && record.invited?
+    record.group.active? && record.user.active_account? && own_membership? && record.invited?
   end
 
   def decline?

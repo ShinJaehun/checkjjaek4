@@ -1,4 +1,26 @@
 en:
+  devise:
+    failure:
+      withdrawn: "This account has been withdrawn."
+  account_withdrawals:
+    nav: "Withdraw account"
+    title: "Withdraw account"
+    current_password: "Current password"
+    submit: "Withdraw account"
+    cancel: "Cancel"
+    warnings:
+      no_login: "You cannot sign in again after withdrawal."
+      content_preserved: "Your Jjaeks and comments remain under ‘Withdrawn user’ to preserve conversation context."
+      relationships_removed: "Follows, book friendships, likes, and personal reading operations data are removed."
+      group_admin: "If you administer an active club, transfer admin rights or close the club first."
+    notices:
+      completed: "Your account has been withdrawn."
+    errors:
+      invalid_password: "The current password is incorrect."
+      global_admin: "A global admin account cannot be withdrawn here."
+      active_group_admin: "Transfer admin rights or close these clubs first: %{groups}"
+      pending_group_content: "Withdrawal is blocked because a pending club contains unexpected content."
+      use_confirmation: "Enter your current password on the account withdrawal confirmation page."
   activerecord:
     errors:
       models:

@@ -35,7 +35,7 @@ class GroupsController < ApplicationController
       GroupMembership.none
     end
     @invite_candidates = if @group.private_group? && @group.owner?(current_user)
-      User.where.not(id: @group.group_memberships.select(:user_id)).order(:name)
+      User.active_accounts.where.not(id: @group.group_memberships.select(:user_id)).order(:name)
     else
       User.none
     end

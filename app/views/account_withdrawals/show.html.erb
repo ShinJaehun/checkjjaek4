@@ -1,0 +1,24 @@
+<section class="mx-auto w-full max-w-2xl rounded-[2rem] border border-red-200 bg-white p-6 shadow-sm">
+  <h1 class="text-3xl font-semibold tracking-tight text-stone-900"><%= t("account_withdrawals.title") %></h1>
+  <div class="mt-5 space-y-2 text-sm leading-6 text-stone-600">
+    <p><%= t("account_withdrawals.warnings.no_login") %></p>
+    <p><%= t("account_withdrawals.warnings.content_preserved") %></p>
+    <p><%= t("account_withdrawals.warnings.relationships_removed") %></p>
+    <p><%= t("account_withdrawals.warnings.group_admin") %></p>
+  </div>
+
+  <% if @error.present? %>
+    <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @error %></p>
+  <% end %>
+
+  <%= form_with url: account_withdrawal_path, method: :delete, scope: :account_withdrawal, class: "mt-6 space-y-4" do |form| %>
+    <div>
+      <%= form.label :current_password, t("account_withdrawals.current_password"), class: "mb-2 block text-sm font-medium text-stone-700" %>
+      <%= form.password_field :current_password, required: true, autocomplete: "current-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" %>
+    </div>
+    <div class="flex items-center gap-3">
+      <%= form.submit t("account_withdrawals.submit"), class: "rounded-full bg-red-700 px-5 py-2.5 text-sm font-medium text-white" %>
+      <%= link_to t("account_withdrawals.cancel"), user_path(current_user), class: "text-sm text-stone-600 underline" %>
+    </div>
+  <% end %>
+</section>

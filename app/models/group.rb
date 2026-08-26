@@ -54,6 +54,32 @@ class Group < ApplicationRecord
     end
   end
 
+  def cancel_pending_application_for_withdrawal!
+    safe_memberships = group_memberships.where.not(user_id: owner_id).none? &&
+      group_memberships.active.where(user_id: owner_id).exists?
+    safe_events = lifecycle_events.where.not(event_type: :opening_requested).none? &&
+      lifecycle_events.opening_requested.count <= 1
+
+    unless pending_approval? && closed_at.nil? && !jjaeks.exists? && safe_memberships && safe_events
+      errors.add(:base, :invalid)
+      raise ActiveRecord::RecordInvalid.new(self)
+    end
+
+    destroy!
+  end
+
+  def cancel_reactivation_for_withdrawal!
+    unless pending_approval? && closed_at.present?
+      errors.add(:base, :invalid)
+      raise ActiveRecord::RecordInvalid.new(self)
+    end
+
+    @cancelling_reactivation_for_withdrawal = true
+    update!(lifecycle_status: :inactive)
+  ensure
+    @cancelling_reactivation_for_withdrawal = false
+  end
+
   private
 
   def application_purpose_must_be_present_for_new_application
@@ -71,6 +97,7 @@ class Group < ApplicationRecord
 
   def closure_reason_must_be_present_when_closing
     return unless will_save_change_to_lifecycle_status? && inactive? && closure_reason.blank?
+    return if cancelling_reactivation_for_withdrawal?
 
     errors.add(:closure_reason, :blank)
   end
@@ -82,11 +109,16 @@ class Group < ApplicationRecord
       %w[active inactive],
       %w[inactive pending_approval]
     ])
+    return if cancelling_reactivation_for_withdrawal?
 
     errors.add(:lifecycle_status, :invalid_transition)
   end
 
   def create_owner_membership!
     group_memberships.create!(user: owner, status: :active)
+  end
+
+  def cancelling_reactivation_for_withdrawal?
+    @cancelling_reactivation_for_withdrawal == true
   end
 end

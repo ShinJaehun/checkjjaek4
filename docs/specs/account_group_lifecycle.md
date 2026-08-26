@@ -3,12 +3,12 @@
 ## 목적과 상태
 
 이 문서는 계정 탈퇴와 Group 승인·운영 lifecycle의 canonical 목표 정책이다.
-계정 탈퇴는 아직 구현되지 않았다. Group 승인·운영 lifecycle과 단일 동아리 관리자 이전은 구현되어 있으며,
+계정 탈퇴, Group 승인·운영 lifecycle과 단일 동아리 관리자 이전은 구현되어 있으며,
 현재 구현 사실은 `docs/architecture/current_system.md`와 `docs/architecture/authorization.md`를 따른다.
 
 ---
 
-## 계정 탈퇴
+## 계정 탈퇴 `(현재 구현)`
 
 계정 탈퇴는 단순한 `User` hard delete나 모든 콘텐츠 삭제가 아니다.
 
@@ -18,6 +18,13 @@
 - 다른 사용자와 형성한 대화 맥락을 위해 기존 Jjaek과 Comment 본문은 익명 작성자의 콘텐츠로 보존한다.
 - 탈퇴 전에 사용자가 개별 Jjaek이나 Comment를 직접 삭제했다면 기존 개별 콘텐츠 삭제 정책을 적용한다.
 - 따라서 계정 탈퇴와 내 모든 콘텐츠 삭제는 같은 동작이 아니다.
+- `users.withdrawn_at`을 terminal 상태로 사용하고 User row를 익명화해 보존하며 복구·유예 기간은 두지 않는다.
+- 이름은 “탈퇴한 사용자”, 이메일은 원본을 보존하지 않는 비전송 placeholder로 교체하고 Devise 로그인을 차단한다.
+- 기존 avatar identity도 제거하고 모든 탈퇴 사용자를 동일한 공통 anonymous avatar로 표시한다.
+- 탈퇴 User row와 id는 과거 Jjaek·Comment의 역사적 reference로 계속 유지한다.
+- 원래 이메일은 해제되므로 같은 이름·이메일·비밀번호로 다시 가입할 수 있지만, 이는 기존 계정 복구가 아니라 새로운 User row와 id 생성이다.
+- 재가입 후에도 과거 Jjaek·Comment는 새 User가 아니라 기존 withdrawn User id를 계속 참조한다.
+- 재가입한 새 User는 기존 탈퇴 계정과 무관한 새 avatar identity를 가진다.
 
 관계성 데이터는 다음 방향으로 정리한다.
 
@@ -26,12 +33,14 @@
 - Like 등 탈퇴 사용자의 개인 반응 관계를 제거한다.
 - GroupMembership에서 탈퇴 사용자가 더 이상 active member로 남지 않게 정리한다.
 - active Group의 동아리 관리자는 아래 관리자 lifecycle을 먼저 해결하지 않으면 탈퇴할 수 없다.
+- Notification과 개인 Bookshelf, BookshelfEntry, BookActivity도 정리한다.
+
+탈퇴한 사용자를 대상으로 새 Follow, BookFriendship, Group 초대와 profile-context Jjaek을 만들 수 없다.
 
 Notification 등 사회적 콘텐츠가 아닌 개인 운영 데이터는 구현 단계에서 정리 대상으로 본다.
 정확한 보존·삭제 방식은 이 문서에서 확정하지 않는다.
 
-`User` row 자체를 익명화할지, deleted-user placeholder를 둘지, soft-delete column을 둘지도
-구현 설계에서 결정한다. 이 문서는 제품에 보이는 결과와 lifecycle만 확정한다.
+global admin의 self-withdrawal과 다른 사용자를 강제 탈퇴시키는 기능은 제공하지 않는다.
 
 ---
 
@@ -75,7 +84,7 @@ spam/abuse scoring은 후속 결정으로 남긴다.
 
 ---
 
-## active Group 관리자의 계정 탈퇴 `(목표 정책 · 일부 미구현)`
+## active Group 관리자의 계정 탈퇴 `(현재 구현)`
 
 active Group 관리자는 Group을 그대로 둔 채 계정을 탈퇴할 수 없다.
 탈퇴 전에 관리자 권한 이전 또는 Group 운영 종료 중 하나를 완료해야 한다.
@@ -102,6 +111,11 @@ active Group 관리자는 Group을 그대로 둔 채 계정을 탈퇴할 수 없
 운영 종료 후 정확한 read scope는 구현 전에 추가로 결정한다.
 특히 과거 public Group이었다는 이유만으로 비회원 열람을 계속 허용한다고 전제하지 않는다.
 Group hard delete는 이 lifecycle의 기본 동작이 아니다.
+
+계정 탈퇴 시 `closed_at`이 없는 최초 개설 승인 대기 Group은 관리자 외 membership, 운영 콘텐츠 또는 예상 밖 lifecycle
+event가 없는 정상 신청만 정리하며, 예상 밖 데이터가 있으면 전체 탈퇴를 중단한다. `closed_at`이 있는 재운영 승인 대기
+Group은 삭제하지 않고 재운영 신청만 취소해 inactive로 되돌린다. 이때 `owner_id`, 기존 콘텐츠, 종료 metadata,
+`reactivation_requested`를 포함한 lifecycle history와 익명화된 역사적 관리자 membership을 inactive 상태로 보존한다.
 
 ---
 

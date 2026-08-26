@@ -133,7 +133,10 @@ module UsersHelper
   end
 
   def user_avatar_path(user, size:)
-    "avatars/user_profile_#{avatar_index_for(user).to_s.rjust(2, "0")}_#{avatar_size(size)}.png"
+    size = avatar_size(size)
+    return "avatars/withdrawn_user.svg" if user&.withdrawn?
+
+    "avatars/user_profile_#{avatar_index_for(user).to_s.rjust(2, "0")}_#{size}.png"
   end
 
   def user_avatar_image(user, size:, **options)

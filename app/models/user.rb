@@ -1,5 +1,6 @@
 class User < ApplicationRecord
   DEFAULT_AVATAR_INDEX_RANGE = (1..32).freeze
+  WITHDRAWN_NAME = "탈퇴한 사용자"
 
   devise :database_authenticatable,
          :registerable,
@@ -12,6 +13,7 @@ class User < ApplicationRecord
   has_many :bookshelf_entries, dependent: :destroy
   has_many :bookshelves, dependent: :destroy
   has_many :books, through: :bookshelf_entries
+  has_many :book_activities, dependent: :destroy
   has_many :jjaeks, dependent: :destroy
   has_many :targeted_jjaeks,
            class_name: "Jjaek",
@@ -75,6 +77,24 @@ class User < ApplicationRecord
 
   before_validation :assign_default_avatar_index, on: :create
   after_create :create_default_bookshelf!
+
+  scope :active_accounts, -> { where(withdrawn_at: nil) }
+
+  def withdrawn?
+    withdrawn_at.present?
+  end
+
+  def active_account?
+    !withdrawn?
+  end
+
+  def active_for_authentication?
+    super && active_account?
+  end
+
+  def inactive_message
+    withdrawn? ? :withdrawn : super
+  end
 
   def follows?(other_user)
     followees.exists?(other_user.id)

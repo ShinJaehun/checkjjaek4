@@ -8,7 +8,7 @@ class UserPolicy < ApplicationPolicy
   end
 
   def follow?
-    user.present? && record != user
+    user.present? && user.active_account? && record.active_account? && record != user
   end
 
   def show_bookshelf?
@@ -42,6 +42,6 @@ class UserPolicy < ApplicationPolicy
   end
 
   def write_profile_jjaek?
-    %i[self book_friend].include?(profile_access_level)
+    record.active_account? && %i[self book_friend].include?(profile_access_level)
   end
 end

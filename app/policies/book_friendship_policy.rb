@@ -1,6 +1,7 @@
 class BookFriendshipPolicy < ApplicationPolicy
   def create?
-    user.present? && record.requester_id == user.id && record.addressee_id != user.id
+    user.present? && user.active_account? && record.addressee&.active_account? &&
+      record.requester_id == user.id && record.addressee_id != user.id
   end
 
   def accept?

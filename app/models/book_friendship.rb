@@ -6,6 +6,7 @@ class BookFriendship < ApplicationRecord
 
   validate :not_self
   validate :unique_pair, on: :create
+  validate :accounts_must_be_active, on: :create
 
   scope :accepted_only, -> { where(status: :accepted) }
 
@@ -27,6 +28,10 @@ class BookFriendship < ApplicationRecord
   end
 
   private
+
+  def accounts_must_be_active
+    errors.add(:base, :invalid) unless requester&.active_account? && addressee&.active_account?
+  end
 
   def unique_pair
     return if requester_id.blank? || addressee_id.blank?

@@ -66,6 +66,51 @@ RSpec.describe Group, type: :model do
     expect(group.update(lifecycle_status: :active)).to be(true)
   end
 
+  describe "#cancel_reactivation_for_withdrawal!" do
+    it "cancels only a reactivation request without allowing the transition generally" do
+      group = described_class.create!(
+        owner: owner,
+        name: "Reactivation",
+        group_type: :public_group,
+        lifecycle_status: :active
+      )
+      closed_at = Time.current
+
+      group.update!(
+        lifecycle_status: :inactive,
+        closure_reason: "Finished",
+        closed_at: closed_at
+      )
+      group.update!(lifecycle_status: :pending_approval)
+
+      expect(group.update(lifecycle_status: :inactive)).to be(false)
+      expect(group.reload).to be_pending_approval
+
+      group.cancel_reactivation_for_withdrawal!
+
+      expect(group.reload).to be_inactive
+      expect(group.closure_reason).to eq("Finished")
+      expect(group.closed_at).to be_within(1.second).of(closed_at)
+    end
+
+    it "rejects an initial pending application" do
+      group = described_class.create!(
+        owner: owner,
+        name: "Initial application",
+        group_type: :public_group,
+        application_purpose: "Read together"
+      )
+
+      expect {
+        group.cancel_reactivation_for_withdrawal!
+      }.to raise_error(ActiveRecord::RecordInvalid)
+
+      expect(group.reload).to be_pending_approval
+      expect(group.closed_at).to be_nil
+    end
+  end
+
+
   it "creates an active membership for its owner" do
     group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, lifecycle_status: :active)
 

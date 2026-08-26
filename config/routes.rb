@@ -1,7 +1,8 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   root "homes#show"
-  devise_for :users
+  devise_for :users, controllers: { registrations: "users/registrations" }
+  resource :account_withdrawal, only: %i[show destroy]
   get "/relationships", to: "relationships#index"
   resources :notifications, only: :index
   namespace :admin do

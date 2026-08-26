@@ -1,4 +1,26 @@
 ko:
+  devise:
+    failure:
+      withdrawn: "탈퇴한 계정입니다."
+  account_withdrawals:
+    nav: "계정 탈퇴"
+    title: "계정 탈퇴"
+    current_password: "현재 비밀번호"
+    submit: "계정 탈퇴"
+    cancel: "취소"
+    warnings:
+      no_login: "탈퇴 후에는 다시 로그인할 수 없습니다."
+      content_preserved: "작성한 짹과 댓글은 대화 맥락을 위해 ‘탈퇴한 사용자’의 글로 남습니다."
+      relationships_removed: "팔로우, 책친구, 좋아요와 개인 독서 운영 데이터는 정리됩니다."
+      group_admin: "운영 중 동아리의 관리자라면 먼저 관리자 권한을 이전하거나 동아리 운영을 종료해야 합니다."
+    notices:
+      completed: "계정 탈퇴가 완료되었습니다."
+    errors:
+      invalid_password: "현재 비밀번호가 올바르지 않습니다."
+      global_admin: "global admin 계정은 이 화면에서 탈퇴할 수 없습니다."
+      active_group_admin: "먼저 다음 동아리의 관리자 권한을 이전하거나 운영을 종료해 주세요: %{groups}"
+      pending_group_content: "예상하지 못한 콘텐츠가 있는 승인 대기 동아리 때문에 탈퇴할 수 없습니다."
+      use_confirmation: "계정 탈퇴 확인 화면에서 현재 비밀번호를 입력해 주세요."
   activerecord:
     errors:
       models:

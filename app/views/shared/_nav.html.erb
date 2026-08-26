@@ -21,6 +21,7 @@
           <%= user_avatar_image(current_user, size: 128, alt: current_user.name, class: "h-8 w-8 rounded-full object-cover") %>
           <span class="hidden sm:inline"><%= current_user.name %></span>
         <% end %>
+        <%= link_to t("account_withdrawals.nav"), account_withdrawal_path, class: "font-medium text-red-700" %>
         <%= button_to t("auth.actions.sign_out"), destroy_user_session_path, method: :delete, class: "rounded-full border border-stone-300 px-3 py-1.5" %>
       <% else %>
         <%= link_to t("auth.actions.sign_in"), new_user_session_path, class: "rounded-full border border-stone-300 px-3 py-1.5" %>

@@ -295,6 +295,16 @@ Library 안에서 볼 수 있는 책장:
 
 동아리 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
 
+## 계정 탈퇴 권한과 보존
+
+- 로그인한 일반 사용자는 전용 확인 화면에서 현재 비밀번호를 검증한 뒤 자기 계정만 탈퇴할 수 있다
+- global admin과 active Group 관리자는 직접 탈퇴할 수 없다
+- 탈퇴는 hard delete가 아니라 `withdrawn_at` 설정과 User 익명화이며 Jjaek·Comment 작성자 연결을 보존한다
+- `closed_at`이 없는 최초 pending Group은 관리자 외 membership·콘텐츠·예상 밖 event가 없을 때만 신청을 정리한다
+- `closed_at`이 있는 재운영 pending Group은 삭제하지 않고 inactive로 복귀시키며 역사적 관리자 reference·inactive membership·콘텐츠·lifecycle history를 보존한다
+- 탈퇴 사용자의 일반 membership과 사회적 관계·개인 독서 운영 데이터는 제거한다
+- withdrawn user를 대상으로 Follow, BookFriendship, Group 초대와 profile-context Jjaek을 만들 수 없다
+
 관련 위치:
 
 - `app/policies/group_policy.rb`

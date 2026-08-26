@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <% unless user == current_user %>
+    <% unless user == current_user || user.withdrawn? %>
       <div class="flex flex-wrap items-center gap-3">
         <% follow_button = profile_follow_button_options(user) %>
         <%= button_to follow_button[:label], follow_button[:path], method: follow_button[:method], class: follow_button[:class_name] %>
