@@ -43,6 +43,7 @@
 
 특징:
 - 양방향 신뢰 관계로 해석한다.
+- 두 사용자 사이에는 pending/accepted를 통틀어 하나의 관계만 존재하며, requester/addressee는 최초 요청 방향을 유지한다.
 - `book_friends` visibility 접근의 기준이다.
 - `Follow`와는 독립 관계다.
 - `BookFriendship`을 해제해도 기존 `Follow`는 해제되지 않는다.

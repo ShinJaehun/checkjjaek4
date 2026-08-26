@@ -2,17 +2,22 @@ class BookFriendshipsController < ApplicationController
   before_action :set_user
 
   def create
-    friendship = current_user.requested_book_friendships.find_or_initialize_by(addressee: @user)
+    friendship = current_user.requested_book_friendships.build(addressee: @user)
     authorize friendship
 
-    should_notify = friendship.new_record?
+    if BookFriendship.between(current_user, @user)
+      redirect_to redirect_target, alert: t("book_friendships.alerts.already_exists")
+      return
+    end
 
-    if friendship.persisted? || friendship.save
-      Notification.notify_book_friendship_requested(friendship) if should_notify
+    if friendship.save
+      Notification.notify_book_friendship_requested(friendship)
       redirect_to redirect_target, notice: t("book_friendships.notices.created")
     else
       redirect_to redirect_target, alert: friendship.errors.full_messages.to_sentence
     end
+  rescue ActiveRecord::RecordNotUnique
+    redirect_to redirect_target, alert: t("book_friendships.alerts.already_exists")
   end
 
   def update

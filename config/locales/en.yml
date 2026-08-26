@@ -190,6 +190,7 @@ en:
       destroyed: "You stopped following this reader."
   book_friendships:
     alerts:
+      already_exists: "A book friendship or request already exists."
       not_found: "Book friendship was not found."
     notices:
       accepted: "Book friendship accepted."

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_25_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -35,8 +35,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_25_090000) do
     t.bigint "requester_id", null: false
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.index "LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id)", name: "index_book_friendships_on_unordered_pair", unique: true
     t.index ["addressee_id"], name: "index_book_friendships_on_addressee_id"
-    t.index ["requester_id", "addressee_id"], name: "index_book_friendships_on_requester_id_and_addressee_id", unique: true
     t.index ["requester_id"], name: "index_book_friendships_on_requester_id"
   end
 

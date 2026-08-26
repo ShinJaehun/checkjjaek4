@@ -12,6 +12,39 @@ RSpec.describe "BookFriendships", type: :request do
     }.to change(BookFriendship, :count).by(1)
   end
 
+  it "does not create a reverse request when a pending request exists" do
+    BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in other_user
+
+    expect {
+      post user_book_friendship_path(user)
+    }.not_to change(BookFriendship, :count)
+
+    expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.already_exists"))
+  end
+
+  it "does not create a reverse request when an accepted friendship exists" do
+    BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    sign_in other_user
+
+    expect {
+      post user_book_friendship_path(user)
+    }.not_to change(BookFriendship, :count)
+
+    expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.already_exists"))
+  end
+
+  it "does not create another request in the same direction" do
+    BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in user
+
+    expect {
+      post user_book_friendship_path(other_user)
+    }.not_to change(BookFriendship, :count)
+
+    expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.already_exists"))
+  end
+
   it "creates a notification for the addressee when requesting book friendship" do
     sign_in user
 
@@ -130,6 +163,23 @@ RSpec.describe "BookFriendships", type: :request do
 
     expect(response).to redirect_to(relationships_path)
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.removed"))
+  end
+
+  it "allows either user to request again after removing an accepted friendship" do
+    BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    sign_in user
+    delete user_book_friendship_path(other_user)
+
+    sign_out user
+    sign_in other_user
+
+    expect {
+      post user_book_friendship_path(user)
+    }.to change(BookFriendship, :count).by(1)
+
+    friendship = BookFriendship.last
+    expect(friendship.requester).to eq(other_user)
+    expect(friendship.addressee).to eq(user)
   end
 
   it "updates the book friends section when removing a book friendship from the relationship hub with Turbo" do

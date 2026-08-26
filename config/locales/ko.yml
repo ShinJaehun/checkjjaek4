@@ -190,6 +190,7 @@ ko:
       destroyed: "이 독자의 소식받기를 해제했습니다."
   book_friendships:
     alerts:
+      already_exists: "이미 책친구 관계 또는 요청이 있습니다."
       not_found: "책친구 관계를 찾을 수 없습니다."
     notices:
       accepted: "책친구 신청을 수락했습니다."

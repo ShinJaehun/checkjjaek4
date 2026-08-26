@@ -4,8 +4,8 @@ class BookFriendship < ApplicationRecord
   belongs_to :requester, class_name: "User", inverse_of: :requested_book_friendships
   belongs_to :addressee, class_name: "User", inverse_of: :received_book_friendships
 
-  validates :addressee_id, uniqueness: { scope: :requester_id }
   validate :not_self
+  validate :unique_pair, on: :create
 
   scope :accepted_only, -> { where(status: :accepted) }
 
@@ -27,6 +27,13 @@ class BookFriendship < ApplicationRecord
   end
 
   private
+
+  def unique_pair
+    return if requester_id.blank? || addressee_id.blank?
+    return unless self.class.between(requester, addressee)
+
+    errors.add(:addressee_id, :taken)
+  end
 
   def not_self
     return unless requester_id.present? && requester_id == addressee_id
