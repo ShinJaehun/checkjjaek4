@@ -7,6 +7,8 @@
 동아리는 일반 사용자가 함께 읽고 기록하고 토론하는 독서 공동체다.
 내부적으로 `Group` 모델과 `GroupMembership` 모델로 구현한다.
 현재 시스템 구조를 설명하는 architecture 문서가 아니라, 구현 전 기준이 되는 목표 spec이다.
+계정 탈퇴와 Group 승인·운영 lifecycle의 목표 정책은
+`docs/specs/account_group_lifecycle.md`를 canonical 기준으로 본다.
 
 ---
 
@@ -56,7 +58,7 @@ inactive member는 기존 자기 탈퇴 경로로 membership을 삭제하거나 
 - 동아리에서 글과 댓글을 작성하는 행위는 현재 동아리 멤버에게만 허용한다.
 - 게시 공간보다 넓은 곳으로 콘텐츠가 자동으로 확산되지 않는다.
 - 다른 공간으로 공유하면 원문은 참조하되 토론은 새 공간에서 새로 시작한다.
-- 동아리와 Classroom은 별개 도메인이다.
+- Classroom은 Group의 SNS·콘텐츠 접근 정책을 재사용할 수 있지만, Group lifecycle을 자동 적용하지 않는다.
 
 핵심 원칙을 한 문장으로 정리하면 다음과 같다.
 
@@ -101,7 +103,9 @@ inactive member는 기존 자기 탈퇴 경로로 membership을 삭제하거나 
 - 공개 동아리는 발견 가능하며 로그인 사용자가 즉시 가입할 수 있다.
 - 승인 동아리는 발견 가능하지만 가입 승인이 필요하다.
 - 비공개 동아리는 일반 발견 대상에서 제외하며 초대를 기본 진입점으로 삼는다.
-- 일반 로그인 사용자가 동아리를 생성할 수 있는 방향을 MVP 목표로 한다.
+- 현재는 일반 로그인 사용자가 동아리를 생성하면 즉시 운영할 수 있다.
+- 목표 정책에서는 일반 사용자의 생성을 운영 신청으로 보고, global admin 승인 전에는 정상 운영하지 않는다.
+- 이 승인·운영 lifecycle은 현재 미구현이며 상세 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.
 - 동아리 생성 횟수 제한, 계정 연령, 남용 방지 조건은 아직 결정하지 않는다.
 
 ---
@@ -228,9 +232,11 @@ MVP 목표 정책:
 
 ---
 
-## 탈퇴 후 콘텐츠
+## Group membership 탈퇴 후 콘텐츠
 
-탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
+이 절은 계정 탈퇴가 아니라 특정 Group membership 탈퇴를 다룬다.
+계정 탈퇴 시 콘텐츠와 관계 처리 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.
+membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 
 - 탈퇴 전에 작성한 댓글은 동아리에 남긴다.
 - 탈퇴 후 새 댓글을 작성할 수 없다.
@@ -266,15 +272,14 @@ MVP 목표 정책:
 
 ## Classroom과의 경계
 
-Classroom은 동아리 MVP 범위에 포함하지 않으며 동아리의 subtype도 아니다.
+Classroom은 동아리 MVP와 이번 Group lifecycle 설계 범위에 포함하지 않는다.
 
 - 동아리는 일반 사용자가 참여하는 독서 공동체다.
-- Classroom은 향후 승인된 교사와 등록 학생을 위한 별도 교육 도메인이다.
-- 학생 계정, PIN 로그인, 일괄 생성은 동아리와 별도로 다룬다.
-- Classroom 콘텐츠는 교실 구성원 범위를 넘는 외부 ReJjaek이나 공유를 허용하지 않는 방향으로 본다.
-- Classroom을 동아리의 특수 visibility 조합으로 축소해서 해석하지 않는다.
+- Classroom은 Group에서 확립된 SNS·콘텐츠 접근 정책을 재사용할 수 있다.
+- 다만 Classroom의 생성·승인·종료, 교사 역할과 학생 membership은 성격이 다를 수 있다.
+- Group 승인·운영 lifecycle을 Classroom에 자동으로 적용하지 않는다.
 
-이 문서에서는 Classroom의 구현 구조를 설계하지 않는다.
+Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다.
 
 ---
 
@@ -290,7 +295,7 @@ Classroom은 동아리 MVP 범위에 포함하지 않으며 동아리의 subtype
 - `book_friends`, `private_jjaek`의 동아리 공유
 - nested ReJjaek
 - 알림 정책 상세 설계
-- 동아리 삭제와 owner 양도
+- Group 승인·운영 lifecycle, owner 양도와 운영 종료 구현
 - moderator 역할과 ban/block/suspension
 - 동아리 콘텐츠 moderation
 
@@ -306,7 +311,8 @@ Classroom은 동아리 MVP 범위에 포함하지 않으며 동아리의 subtype
 - owner와 moderator의 역할 구분, 신고, 제재 이력, 정지 기간, moderation audit
 
 탈퇴 후 댓글의 보존·작성·수정·삭제 권한, 관리자·운영자의 moderation 책임,
-일반 로그인 사용자의 동아리 생성 가능 방향 자체는 미결정 사항이 아니다.
+일반 로그인 사용자가 Group을 신청할 수 있는 방향 자체는 미결정 사항이 아니다.
+승인·운영 lifecycle은 목표 정책으로 확정됐지만 현재 미구현이다.
 탈퇴 후 동아리 Jjaek은 보존하며 작성자는 수정할 수 없고 자기 글을 삭제할 수 있다.
 
 ---
@@ -324,5 +330,5 @@ Classroom은 동아리 MVP 범위에 포함하지 않으며 동아리의 subtype
 - 동아리의 글·댓글 작성이 현재 멤버에게만 허용되는가?
 - 탈퇴 후 확정된 댓글 권한을 지키는가?
 - moderation 최소 요구와 미결정 세부 체계를 구분했는가?
-- 동아리와 Classroom을 별도 도메인으로 유지했는가?
+- Group 정책을 Classroom에 자동 적용하지 않았는가?
 - 제품 정책의 개념적 축을 DB 구조로 성급히 확정하지 않았는가?

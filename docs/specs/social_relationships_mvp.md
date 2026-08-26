@@ -93,6 +93,12 @@ soft rejection 원칙:
 - 위 이벤트들은 action을 수행한 현재 사용자에게만 flash로 안내한다.
 - 책친구 요청 수락 알림은 후속 기능으로 검토할 수 있지만, 현재 MVP 필수 범위는 아니다.
 
+## 계정 탈퇴와 관계 `(목표 정책 · 현재 미구현)`
+
+계정 탈퇴 시 Follow 관계와 BookFriendship 및 pending 요청은 종료한다.
+계정 탈퇴는 콘텐츠 일괄 삭제와 같은 동작이 아니며, 상세 기준은
+`docs/specs/account_group_lifecycle.md`를 canonical source로 본다.
+
 ---
 
 ## Comment Visibility 정책 `(현재 구현)`
