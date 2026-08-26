@@ -42,7 +42,10 @@ class JjaekPolicy < ApplicationPolicy
 
     def visible_records
       friend_ids = BookFriendship.connected_ids_for(user)
-      active_group_ids = GroupMembership.active.where(user: user).select(:group_id)
+      readable_member_group_ids = GroupMembership.active
+        .joins(:group)
+        .where(user: user, groups: { lifecycle_status: %i[active inactive] })
+        .select(:group_id)
 
       personal_records = scope.where(group_id: nil)
         .where(user_id: user.id)
@@ -50,9 +53,9 @@ class JjaekPolicy < ApplicationPolicy
         .or(scope.where(group_id: nil, visibility: Jjaek.visibilities[:public_jjaek]))
         .or(scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
 
-      public_group_ids = Group.public_group.select(:id)
+      public_group_ids = Group.active.public_group.select(:id)
       group_records = scope.where(group_id: public_group_ids)
-        .or(scope.where(group_id: active_group_ids))
+        .or(scope.where(group_id: readable_member_group_ids))
 
       personal_records.or(group_records)
     end

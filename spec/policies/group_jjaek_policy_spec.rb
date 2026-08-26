@@ -8,7 +8,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   let(:book) { Book.create!(title: "Group Book", authors_text: "Author") }
 
   it "allows signed-in non-members to read public group jjaeks and book jjaeks" do
-    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     general = owner.jjaeks.create!(group:, content: "Public group jjaek")
     book_jjaek = owner.jjaeks.create!(group:, book:, content: "Public group book jjaek")
 
@@ -17,7 +17,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   end
 
   it "allows only active members to read approval group jjaeks" do
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     group.group_memberships.create!(user: member, status: :active)
     group.group_memberships.create!(user: pending_user, status: :pending)
     jjaek = owner.jjaeks.create!(group:, content: "Approval group jjaek")
@@ -28,7 +28,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   end
 
   it "allows only active members to read private group jjaeks" do
-    group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = owner.jjaeks.create!(group:, book:, content: "Private group book jjaek")
 
@@ -37,9 +37,9 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   end
 
   it "scopes group jjaeks by public or active membership access" do
-    public_group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
-    approval_group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
-    private_group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    public_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
+    private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
     public_jjaek = owner.jjaeks.create!(group: public_group, content: "Public")
     approval_jjaek = owner.jjaeks.create!(group: approval_group, content: "Approval")
     private_jjaek = owner.jjaeks.create!(group: private_group, content: "Private")
@@ -52,8 +52,25 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     expect(resolved).not_to include(approval_jjaek)
   end
 
+  it "hides pending and inactive public group jjaeks from nonmembers" do
+    pending = Group.create!(owner: owner, name: "Pending", group_type: :public_group, application_purpose: "Read together")
+    inactive = Group.create!(lifecycle_status: :active, owner: owner, name: "Inactive", group_type: :public_group)
+    inactive.group_memberships.create!(user: member, status: :active)
+    pending_jjaek = owner.jjaeks.create!(group: pending, content: "Pending")
+    inactive_jjaek = owner.jjaeks.create!(group: inactive, content: "Inactive")
+    inactive.update!(
+      lifecycle_status: :inactive,
+      closure_reason: "Test closure",
+      closed_at: Time.current
+    )
+    expect(described_class::Scope.new(non_member, Jjaek.all).resolve).not_to include(pending_jjaek, inactive_jjaek)
+    expect(described_class::Scope.new(member, Jjaek.all).resolve).to include(inactive_jjaek)
+    expect(described_class.new(member, inactive_jjaek).show?).to be(true)
+    expect(described_class.new(owner, pending_jjaek).show?).to be(false)
+  end
+
   it "allows only active members with the book in their shelf to create" do
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     group.group_memberships.create!(user: member, status: :active)
     group.group_memberships.create!(user: pending_user, status: :pending)
     member.bookshelf_entries.create!(book: book)
@@ -66,7 +83,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   end
 
   it "allows an active author to update and destroy a group jjaek" do
-    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = member.jjaeks.create!(group:, content: "Group jjaek")
     policy = described_class.new(member, jjaek)
@@ -77,7 +94,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   end
 
   it "allows an inactive or former author only to destroy their group jjaek" do
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     membership = group.group_memberships.create!(user: member, status: :inactive)
     jjaek = member.jjaeks.create!(group:, content: "Old group jjaek")
 
@@ -91,7 +108,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   end
 
   it "does not let another member or the group owner manage someone else's jjaek" do
-    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     group.group_memberships.create!(user: non_member, status: :active)
     jjaek = member.jjaeks.create!(group:, content: "Member jjaek")
@@ -122,7 +139,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   end
 
   it "excludes group jjaeks and book jjaeks from FeedScope" do
-    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     general = owner.jjaeks.create!(group:, content: "Group jjaek")
     book_jjaek = owner.jjaeks.create!(group:, book:, content: "Group book jjaek")
     non_member.active_follows.create!(followee: owner)

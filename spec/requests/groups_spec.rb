@@ -13,20 +13,46 @@ RSpec.describe "Groups", type: :request do
     sign_in user
 
     expect {
-      post groups_path, params: { group: { name: "Readers", description: "Read together", group_type: "public_group" } }
+      post groups_path, params: { group: { name: "Readers", description: "Read together", group_type: "public_group", application_purpose: "Build a reading community" } }
     }.to change(Group, :count).by(1).and change(GroupMembership, :count).by(1)
 
     group = Group.last
     expect(group.owner).to eq(user)
+    expect(group).to be_pending_approval
+    expect(group.application_purpose).to eq("Build a reading community")
     expect(group.group_memberships.find_by(user: user)).to be_active
     expect(response).to redirect_to(group_path(group))
+  end
+
+  it "renders 422 when an application purpose is missing" do
+    sign_in user
+
+    post groups_path, params: { group: { name: "Readers", group_type: "public_group", application_purpose: "" } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(Group.find_by(name: "Readers")).to be_nil
+  end
+
+  it "shows a pending group to its owner but not to another user" do
+    group = Group.create!(owner: user, name: "Pending application", group_type: :public_group, application_purpose: "Read more together")
+    other_user = User.create!(name: "Other", email: "pending-group-other@example.com", password: "password123!", password_confirmation: "password123!")
+
+    sign_in user
+    get groups_path
+    expect(response.body).to include(group.name, "승인 대기")
+
+    sign_in other_user
+    get groups_path
+    expect(response.body).not_to include(group.name)
+    get group_path(group)
+    expect(response).to have_http_status(:not_found)
   end
 
   it "allows private group creation with an owner membership" do
     sign_in user
 
     expect {
-      post groups_path, params: { group: { name: "Private", group_type: "private_group" } }
+      post groups_path, params: { group: { name: "Private", group_type: "private_group", application_purpose: "Private reading circle" } }
     }.to change(Group, :count).by(1).and change(GroupMembership, :count).by(1)
 
     expect(Group.last.group_memberships.find_by(user: user)).to be_active
@@ -37,8 +63,8 @@ RSpec.describe "Groups", type: :request do
   it "shows only the current user's invitations outside the discoverable list" do
     owner = User.create!(name: "Owner", email: "invitation-owner@example.com", password: "password123!", password_confirmation: "password123!")
     other = User.create!(name: "Other", email: "invitation-other@example.com", password: "password123!", password_confirmation: "password123!")
-    invited_group = Group.create!(owner: owner, name: "Invitation only", group_type: :private_group)
-    other_group = Group.create!(owner: owner, name: "Someone else's invitation", group_type: :private_group)
+    invited_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Invitation only", group_type: :private_group)
+    other_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Someone else's invitation", group_type: :private_group)
     invited_group.group_memberships.create!(user: user, status: :invited)
     other_group.group_memberships.create!(user: other, status: :invited)
     sign_in user
@@ -52,10 +78,10 @@ RSpec.describe "Groups", type: :request do
 
   it "lists public, approval, and joined private groups only" do
     other_owner = User.create!(name: "Owner", email: "groups-owner@example.com", password: "password123!", password_confirmation: "password123!")
-    public_group = Group.create!(owner: other_owner, name: "Public group", group_type: :public_group)
-    approval_group = Group.create!(owner: other_owner, name: "Approval group", group_type: :approval_group)
-    joined_private = Group.create!(owner: other_owner, name: "Joined private", group_type: :private_group)
-    hidden_private = Group.create!(owner: other_owner, name: "Hidden private", group_type: :private_group)
+    public_group = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Public group", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Approval group", group_type: :approval_group)
+    joined_private = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Joined private", group_type: :private_group)
+    hidden_private = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Hidden private", group_type: :private_group)
     joined_private.group_memberships.create!(user: user, status: :active)
     sign_in user
 
@@ -67,7 +93,7 @@ RSpec.describe "Groups", type: :request do
 
   it "does not expose a private group to a non-member by direct URL" do
     other_owner = User.create!(name: "Owner", email: "private-owner@example.com", password: "password123!", password_confirmation: "password123!")
-    private_group = Group.create!(owner: other_owner, name: "Hidden private", group_type: :private_group)
+    private_group = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Hidden private", group_type: :private_group)
     sign_in user
 
     get group_path(private_group)
@@ -75,10 +101,22 @@ RSpec.describe "Groups", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "does not expose application or closure details on general group screens" do
+    other_owner = User.create!(name: "Owner", email: "private-details-owner@example.com", password: "password123!", password_confirmation: "password123!")
+    group = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Public details", group_type: :public_group, application_purpose: "ADMIN PURPOSE", closure_reason: "OWNER CLOSURE")
+    sign_in user
+
+    get groups_path
+    expect(response.body).not_to include("ADMIN PURPOSE", "OWNER CLOSURE")
+
+    get group_path(group)
+    expect(response.body).not_to include("ADMIN PURPOSE", "OWNER CLOSURE")
+  end
+
 
   it "shows the invitation form only to a private group owner" do
     invitee = User.create!(name: "Invitee", email: "invite-form-user@example.com", password: "password123!", password_confirmation: "password123!")
-    group = Group.create!(owner: user, name: "Private invitations", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, owner: user, name: "Private invitations", group_type: :private_group)
     sign_in user
 
     get group_path(group)
@@ -92,7 +130,7 @@ RSpec.describe "Groups", type: :request do
 
 
   describe "owner management" do
-    let(:group) { Group.create!(owner: user, name: "Original", description: "Before", group_type: :approval_group) }
+    let(:group) { Group.create!(lifecycle_status: :active, owner: user, name: "Original", description: "Before", group_type: :approval_group) }
 
     it "lets the owner edit name and description without changing group type" do
       sign_in user
@@ -104,6 +142,21 @@ RSpec.describe "Groups", type: :request do
 
       expect(response).to redirect_to(group_path(group))
       expect(group.reload).to have_attributes(name: "Updated", description: "After", group_type: "approval_group")
+    end
+
+    it "lets a pending owner view and update the application purpose only in management" do
+      pending_group = Group.create!(owner: user, name: "Pending management", group_type: :public_group, application_purpose: "Initial purpose")
+      sign_in user
+
+      get group_path(pending_group)
+      expect(response.body).not_to include("Initial purpose")
+      expect(response.body).to include("동아리 관리")
+
+      get edit_group_path(pending_group)
+      expect(response.body).to include("승인 대기", "Initial purpose")
+
+      patch group_path(pending_group), params: { group: { name: pending_group.name, application_purpose: "Updated purpose" } }
+      expect(pending_group.reload.application_purpose).to eq("Updated purpose")
     end
 
     it "renders edit with 422 when validation fails" do
@@ -133,7 +186,8 @@ RSpec.describe "Groups", type: :request do
       sign_in user
 
       get group_path(group)
-      expect(response.body).to include("동아리 수정", "동아리 구성원", member.name, "활동 중지")
+      expect(response.body).to include("동아리 관리", "동아리 구성원", member.name, "활동 중지")
+      expect(response.body).not_to include("동아리 운영 종료", "재활성화 요청")
       expect(response.body).not_to include("내보내기")
 
       group.group_memberships.find_by!(user: member).update!(status: :inactive)
@@ -143,7 +197,58 @@ RSpec.describe "Groups", type: :request do
       sign_in member
       get group_path(group)
       expect(response.body).to include("활동 중지")
-      expect(response.body).not_to include("동아리 수정", "동아리 구성원", "다시 활성화", "내보내기")
+      expect(response.body).not_to include("동아리 관리", "동아리 구성원", "다시 활성화", "내보내기")
+    end
+
+    it "lets only the owner close an active group and request reactivation" do
+      member = User.create!(name: "Member", email: "lifecycle-member@example.com", password: "password123!", password_confirmation: "password123!")
+      group.group_memberships.create!(user: member, status: :active)
+      jjaek = user.jjaeks.create!(group: group, content: "Existing group content")
+      sign_in member
+
+      patch close_group_path(group)
+      expect(response).to redirect_to(root_path)
+      expect(group.reload).to be_active
+
+      sign_in user
+      get edit_group_path(group)
+      expect(response.body).to include("동아리 운영 종료", "운영 종료 사유", "data-turbo-confirm")
+
+      patch close_group_path(group), params: { group: { closure_reason: "" } }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(group.reload).to be_active
+      expect(group.closure_reason).to be_nil
+      expect(group.closed_at).to be_nil
+
+      invalid_reason = "a" * 501
+      patch close_group_path(group), params: { group: { closure_reason: invalid_reason } }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include(invalid_reason)
+      expect(group.reload).to be_active
+
+      expect {
+        patch close_group_path(group), params: { group: { closure_reason: "The reading program finished" } }
+      }.not_to change(Group, :count)
+      expect(group.reload).to be_inactive
+      expect(group.closure_reason).to eq("The reading program finished")
+      expect(group.closed_at).to be_present
+      expect(group.group_memberships.count).to eq(2)
+      expect(group.jjaeks).to contain_exactly(jjaek)
+
+      get edit_group_path(group)
+      expect(response.body).to include("운영 종료", "The reading program finished", "재활성화 요청")
+
+      closed_at = group.closed_at
+      patch request_reactivation_group_path(group)
+      expect(group.reload).to be_pending_approval
+      expect(group.closure_reason).to eq("The reading program finished")
+      expect(group.closed_at).to eq(closed_at)
+      expect(group.group_memberships.count).to eq(2)
+      expect(group.jjaeks).to contain_exactly(jjaek)
+
+      group.active!
+      get edit_group_path(group)
+      expect(response.body).not_to include("The reading program finished")
     end
   end
 end

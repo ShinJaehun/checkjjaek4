@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_094000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -125,12 +125,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_090000) do
   end
 
   create_table "groups", force: :cascade do |t|
+    t.text "application_purpose"
+    t.datetime "closed_at"
+    t.text "closure_reason"
     t.datetime "created_at", null: false
     t.text "description"
     t.integer "group_type", default: 0, null: false
+    t.integer "lifecycle_status", default: 0, null: false
     t.string "name", null: false
     t.bigint "owner_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["lifecycle_status"], name: "index_groups_on_lifecycle_status"
     t.index ["owner_id"], name: "index_groups_on_owner_id"
   end
 
@@ -199,6 +204,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_090000) do
     t.integer "default_avatar_index"
     t.string "email", null: false
     t.string "encrypted_password", default: "", null: false
+    t.boolean "global_admin", default: false, null: false
     t.string "name", null: false
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"

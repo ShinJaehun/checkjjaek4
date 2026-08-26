@@ -423,7 +423,7 @@ RSpec.describe "Comments", type: :request do
 
   describe "group Jjaek comments" do
     it "lets an active member create a comment and renders the group Turbo panel" do
-      group = Group.create!(owner: author, name: "Group comments", group_type: :private_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Group comments", group_type: :private_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Group source")
       sign_in user
@@ -439,8 +439,24 @@ RSpec.describe "Comments", type: :request do
       expect(response.body).to include("Group note")
     end
 
+    it "does not create a comment after the group is closed" do
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Closed comments", group_type: :public_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Existing source")
+      group.update!(
+        lifecycle_status: :inactive,
+        closure_reason: "Test closure",
+        closed_at: Time.current
+      )
+      sign_in user
+
+      expect {
+        post jjaek_comments_path(group_jjaek), params: { comment: { content: "Blocked" } }
+      }.not_to change(Comment, :count)
+    end
+
     it "lets a public nonmember read comments without showing or accepting the form" do
-      group = Group.create!(owner: author, name: "Public comments", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Public comments", group_type: :public_group)
       group_jjaek = author.jjaeks.create!(group:, content: "Public source")
       existing = group_jjaek.comments.create!(user: author, content: "Readable comment")
       sign_in user
@@ -458,7 +474,7 @@ RSpec.describe "Comments", type: :request do
 
     it "hides approval and private comment indexes from nonmembers" do
       %i[approval_group private_group].each do |group_type|
-        group = Group.create!(owner: author, name: group_type.to_s, group_type:)
+        group = Group.create!(lifecycle_status: :active, owner: author, name: group_type.to_s, group_type:)
         group_jjaek = author.jjaeks.create!(group:, content: "Hidden source")
         sign_in user
 
@@ -469,7 +485,7 @@ RSpec.describe "Comments", type: :request do
 
     it "hides approval and private comment creation from nonmembers" do
       %i[approval_group private_group].each do |group_type|
-        group = Group.create!(owner: author, name: "#{group_type} create", group_type:)
+        group = Group.create!(lifecycle_status: :active, owner: author, name: "#{group_type} create", group_type:)
         group_jjaek = author.jjaeks.create!(group:, content: "Hidden source")
         sign_in user
 
@@ -479,7 +495,7 @@ RSpec.describe "Comments", type: :request do
     end
 
     it "lets an inactive private member see the group but not its Jjaek or comments" do
-      group = Group.create!(owner: author, name: "Inactive private", group_type: :private_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Inactive private", group_type: :private_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Hidden while inactive")
       membership.update!(status: :inactive)
@@ -494,7 +510,7 @@ RSpec.describe "Comments", type: :request do
     end
 
     it "returns the group panel with 422 on validation failure" do
-      group = Group.create!(owner: author, name: "Invalid comment", group_type: :approval_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Invalid comment", group_type: :approval_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Group source")
       sign_in user
@@ -509,7 +525,7 @@ RSpec.describe "Comments", type: :request do
     end
 
     it "updates only the group panel and count when an active member deletes a comment" do
-      group = Group.create!(owner: author, name: "Delete comment", group_type: :approval_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Delete comment", group_type: :approval_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Group source")
       own_comment = group_jjaek.comments.create!(user:, content: "Delete me")
@@ -527,7 +543,7 @@ RSpec.describe "Comments", type: :request do
     end
 
     it "lets an inactive or former member delete only their own old comment safely" do
-      group = Group.create!(owner: author, name: "Old comments", group_type: :private_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Old comments", group_type: :private_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Private source")
       own_comment = group_jjaek.comments.create!(user:, content: "Old comment")
@@ -556,7 +572,7 @@ RSpec.describe "Comments", type: :request do
     end
 
     it "shows comments but not likes or requotes on a group Jjaek card" do
-      group = Group.create!(owner: author, name: "Group card", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Group card", group_type: :public_group)
       group_jjaek = author.jjaeks.create!(group:, content: "CARD_ACTIONS")
       sign_in user
 
@@ -568,7 +584,7 @@ RSpec.describe "Comments", type: :request do
 
 
     it "shows the form and only the current user's delete action to an active member" do
-      group = Group.create!(owner: author, name: "Comment controls", group_type: :approval_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Comment controls", group_type: :approval_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Controls")
       own_comment = group_jjaek.comments.create!(user:, content: "Mine")
@@ -595,7 +611,7 @@ RSpec.describe "Comments", type: :request do
 
 
     it "hides edit but keeps delete for an inactive member's public group comment" do
-      group = Group.create!(owner: author, name: "Inactive controls", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Inactive controls", group_type: :public_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Controls")
       own_comment = group_jjaek.comments.create!(user:, content: "Mine")
@@ -609,7 +625,7 @@ RSpec.describe "Comments", type: :request do
     end
 
     it "updates only the group comments panel through Turbo" do
-      group = Group.create!(owner: author, name: "Turbo update", group_type: :approval_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Turbo update", group_type: :approval_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "GROUP_CARD_BODY")
       own_comment = group_jjaek.comments.create!(user:, content: "Before update")
@@ -626,7 +642,7 @@ RSpec.describe "Comments", type: :request do
     end
 
     it "returns the group panel with 422 when a Turbo update is invalid" do
-      group = Group.create!(owner: author, name: "Invalid update", group_type: :approval_group)
+      group = Group.create!(lifecycle_status: :active, owner: author, name: "Invalid update", group_type: :approval_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "GROUP_UPDATE_FAILURE_BODY")
       own_comment = group_jjaek.comments.create!(user:, content: "Before update")

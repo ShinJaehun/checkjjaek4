@@ -42,6 +42,7 @@
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
 - `Group`: 일반 사용자 독서 동아리와 동아리 종류·owner
+- `Group`: global admin 승인 기반 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active/inactive 상태
 
 ---
@@ -203,6 +204,13 @@
 ### 5-1. 동아리 화면 (/groups)
 
 - 로그인 사용자가 공개·승인·비공개 동아리를 만들 수 있고 공개·승인 동아리를 발견할 수 있음
+- 새 동아리는 승인 대기로 생성되며 global admin 승인 후 active로 운영됨
+- 신규 신청은 일반 소개와 별도의 개설 목적을 제출하고 global admin 승인 목록에서 확인함
+- active owner는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
+- 운영 종료는 동아리 관리 화면에서 사유와 종료 시각을 기록하며, 재활성화 요청도 같은 화면에서 수행함
+- admin 승인 목록은 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 이전 종료 정보를 표시함
+- pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
+- inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
 - 동아리 소유권은 `Group.owner_id`를 기준으로 하며 owner도 active membership을 가짐
 - 공개 동아리는 즉시 가입, 승인 동아리는 pending 요청 후 owner 승인 방식
 - pending 요청은 요청자 본인이 취소할 수 있음
@@ -231,7 +239,7 @@
 - inactive·탈퇴 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
 - 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 inactive·탈퇴 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
 - 동아리 owner의 타인 댓글·Jjaek 삭제와 동아리 좋아요·다시짹/share는 구현되지 않음
-- 동아리 삭제·owner 양도·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
+- 동아리 hard delete·owner 양도·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
 
 관련 코드:
 - controller:

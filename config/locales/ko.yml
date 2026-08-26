@@ -59,26 +59,45 @@ ko:
       public_group: "공개 동아리"
       approval_group: "승인 동아리"
       private_group: "비공개 동아리"
+    lifecycle_statuses:
+      pending_approval: "승인 대기"
+      active: "운영 중"
+      inactive: "운영 종료"
+    lifecycle_messages:
+      pending_approval: "동아리 승인 대기 중입니다. 승인 전에는 가입과 동아리 활동을 시작할 수 없습니다."
+      inactive: "운영 종료된 동아리입니다. 기존 active 구성원만 과거 콘텐츠를 읽을 수 있습니다."
     index:
       title: "독서 동아리"
       description: "함께 읽고 이야기할 독서 공동체를 찾아보세요."
       empty: "아직 발견할 수 있는 동아리가 없습니다."
     new:
-      title: "새 동아리 만들기"
-      description: "동아리의 가입 방식을 정하고 독서 공동체를 시작합니다."
+      title: "동아리 개설 신청"
+      description: "동아리 정보와 개설 목적을 제출하면 관리자 승인 후 운영을 시작할 수 있습니다."
     edit:
-      title: "동아리 수정"
+      title: "동아리 관리"
     form:
       name: "동아리 이름"
       description: "동아리 소개"
       group_type: "동아리 종류"
+      application_purpose: "동아리 개설 목적"
+      application_purpose_hint: "동아리를 만들려는 이유를 관리자에게 설명해 주세요. 최대 500자"
+      closure_reason: "운영 종료 사유"
     actions:
-      new: "동아리 만들기"
-      create: "동아리 만들기"
-      edit: "동아리 수정"
+      new: "동아리 개설 신청"
+      create: "개설 신청"
+      edit: "동아리 관리"
       update: "수정하기"
       cancel: "취소"
       back: "동아리 목록으로"
+      close: "동아리 운영 종료"
+      request_reactivation: "재활성화 요청"
+    management:
+      close_title: "동아리 운영 종료"
+      close_description: "운영 종료 후에는 새 가입, 초대와 새 콘텐츠 작성을 할 수 없습니다."
+      close_confirmation: "동아리 운영을 종료할까요?\n운영을 종료하면 새 가입, 초대, 짹·책짹·댓글 작성이 중단됩니다.\n기존 구성원과 콘텐츠는 삭제되지 않습니다.\n다시 운영하려면 관리자 승인이 필요합니다."
+      inactive_title: "운영 종료 정보"
+      closed_at: "종료 시각: %{time}"
+      reactivation_description: "다시 운영하려면 관리자 승인이 필요합니다."
     pending:
       title: "가입 요청"
       empty: "대기 중인 가입 요청이 없습니다."
@@ -92,16 +111,36 @@ ko:
       empty_candidates: "초대할 수 있는 사용자가 없습니다."
       sent_title: "보낸 초대"
     notices:
-      created: "동아리를 만들었습니다."
+      created: "동아리 생성 신청이 접수되었습니다."
+      closed: "동아리 운영을 종료했습니다."
+      reactivation_requested: "동아리 재활성화 요청이 접수되었습니다."
       updated: "동아리를 수정했습니다."
     jjaeks:
       tabs:
         general: "짹"
         book: "책짹"
-      title: "동아리의 짹과 책짹"
+      title: "동아리 짹과 책짹"
       empty: "아직 이 동아리에 남긴 짹이나 책짹이 없습니다."
       general_description: "이 동아리에 짹을 남깁니다."
       book_search_context: "%{group_name} 동아리에 남길 책짹의 책을 찾습니다."
+  admin:
+    groups:
+      nav: "동아리 승인"
+      index:
+        title: "동아리 승인 관리"
+        description: "승인 대기 중인 동아리 신청을 확인합니다."
+        empty: "승인 대기 중인 동아리가 없습니다."
+      actions:
+        approve: "운영 승인"
+      request_types:
+        initial: "개설 신청"
+        reactivation: "재활성화 요청"
+      application_purpose_missing: "등록된 동아리 개설 목적이 없습니다."
+      previous_closure: "이전 운영 종료 정보"
+      closure_reason_missing: "등록된 운영 종료 사유가 없습니다."
+      request_updated_at: "신청 정보 갱신: %{time}"
+      notices:
+        approved: "동아리 운영을 승인했습니다."
   group_memberships:
     statuses:
       owner: "동아리 운영자"

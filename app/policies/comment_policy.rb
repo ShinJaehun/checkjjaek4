@@ -3,7 +3,7 @@ class CommentPolicy < ApplicationPolicy
     return false unless user.present? && !record.jjaek.deleted? && JjaekPolicy.new(user, record.jjaek).show?
     return true if record.jjaek.group_id.blank?
 
-    record.jjaek.group.active_member?(user)
+    record.jjaek.group.active? && record.jjaek.group.active_member?(user)
   end
 
   def update?

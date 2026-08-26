@@ -3,8 +3,8 @@
 ## 목적과 상태
 
 이 문서는 계정 탈퇴와 Group 승인·운영 lifecycle의 canonical 목표 정책이다.
-아래 정책은 아직 구현되지 않았으며, 현재 구현 사실은 `docs/architecture/current_system.md`와
-`docs/architecture/authorization.md`를 따른다.
+계정 탈퇴와 owner 양도는 아직 구현되지 않았다. Group 승인·운영 lifecycle은 구현되어 있으며,
+현재 구현 사실은 `docs/architecture/current_system.md`와 `docs/architecture/authorization.md`를 따른다.
 
 ---
 
@@ -43,8 +43,8 @@ Group lifecycle은 공간 자체가 운영 가능한지를 나타낸다. 사용�
 - 운영 중
 - 운영 종료
 
-개념적으로 `pending` / `active` / `inactive`로 설명할 수 있지만 실제 DB enum 이름은 확정하지 않는다.
-구현 시 `GroupMembership.pending`과 구별하기 위해 `pending_approval` 같은 내부 명칭을 검토할 수 있다.
+구현에서는 `pending_approval` / `active` / `inactive`를 사용해
+`GroupMembership.pending`과 Group 승인 대기를 구분한다.
 
 반면 기존 `GroupMembership`의 `pending` / `invited` / `active` / `inactive`는
 한 사용자가 특정 Group 안에서 어떤 상태인지를 나타낸다. 두 상태 축은 서로 독립적이다.
@@ -54,7 +54,7 @@ Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 �
 
 ---
 
-## Group 생성과 승인 `(목표 정책 · 현재 미구현)`
+## Group 생성과 승인 `(현재 구현)`
 
 일반 사용자는 Group을 신청할 수 있으며 흐름은 다음과 같다.
 
@@ -63,14 +63,17 @@ Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 �
 - 승인 대기 Group은 일반 발견 대상에서 제외한다.
 - 일반 회원 가입과 일반 Group Jjaek·Comment 활동을 허용하지 않는다.
 - owner는 자신의 신청 상태를 확인할 수 있어야 한다.
+- 신규 신청자는 일반 소개와 별도로 최대 500자의 동아리 개설 목적을 제출한다.
+- 개설 목적은 owner의 관리 화면과 global admin 승인 화면에서만 확인한다.
 - global admin만 Group을 승인해 운영 중으로 전환할 수 있다.
+- global admin은 동아리 개설 목적을 포함한 신청 정보를 확인해 승인한다.
 
 승인 거절 상태 또는 row 삭제 여부, 거절 사유, admin UI, 생성 횟수 제한,
 spam/abuse scoring은 후속 결정으로 남긴다.
 
 ---
 
-## active Group owner의 계정 탈퇴 `(목표 정책 · 현재 미구현)`
+## active Group owner의 계정 탈퇴 `(목표 정책 · 일부 미구현)`
 
 active Group owner는 Group을 그대로 둔 채 계정을 탈퇴할 수 없다.
 탈퇴 전에 owner 양도 또는 Group 운영 종료 중 하나를 완료해야 한다.
@@ -92,6 +95,8 @@ active Group owner는 Group을 그대로 둔 채 계정을 탈퇴할 수 없다.
 - 일반 발견·검색 대상에서 제외한다.
 - 기존 참여자는 자신이 참여했던 과거 공간과 콘텐츠를 읽을 수 있는 방향으로 둔다.
 - owner가 운영을 종료한 뒤에는 해당 Group 때문에 계정 탈퇴가 막히지 않는다.
+- owner가 운영을 종료할 때 최대 500자의 종료 사유와 서버 기준 종료 시각을 기록한다.
+- 운영 종료와 재활성화 요청은 동아리 상세이 아닌 동아리 관리 화면에서 수행한다.
 
 운영 종료 후 정확한 read scope는 구현 전에 추가로 결정한다.
 특히 과거 public Group이었다는 이유만으로 비회원 열람을 계속 허용한다고 전제하지 않는다.
@@ -99,13 +104,14 @@ Group hard delete는 이 lifecycle의 기본 동작이 아니다.
 
 ---
 
-## 재활성화 `(목표 정책 · 현재 미구현)`
+## 재활성화 `(현재 구현)`
 
 운영 종료된 Group은 다음 승인 흐름을 거쳐 다시 운영할 수 있는 방향으로 둔다.
 
 > 운영 종료 → 재활성화 요청 → 승인 대기 → global admin 승인 → 운영 중
 
 최소한 기존 owner가 재활성화를 요청할 수 있는 방향을 둔다.
+재활성화 요청은 기존 종료 사유·시각을 보존하며 global admin 승인 목록에서 신규 개설 신청과 구분한다.
 정확한 요청 UI, 요청 가능 사용자의 예외와 admin 거절 처리는 후속 결정으로 남긴다.
 
 ---

@@ -3,14 +3,71 @@ require "rails_helper"
 RSpec.describe Group, type: :model do
   let(:owner) { User.create!(name: "Owner", email: "group-owner@example.com", password: "password123!", password_confirmation: "password123!") }
 
+  it "is pending approval by default" do
+    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "Read together")
+
+    expect(group).to be_pending_approval
+  end
+
+  it "allows only the lifecycle transitions used for approval, closing, and reactivation" do
+    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "Read together")
+
+    expect(group.update(lifecycle_status: :active)).to be(true)
+    expect(
+      group.update(
+        lifecycle_status: :inactive,
+        closure_reason: "Reading activities finished",
+        closed_at: Time.current
+      )
+    ).to be(true)
+    expect(group.update(lifecycle_status: :pending_approval)).to be(true)
+    expect(group.update(lifecycle_status: :inactive)).to be(false)
+  end
+
+  it "allows regular attributes to be updated without a lifecycle transition" do
+    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "Read together")
+
+    expect(group.update(name: "Updated readers")).to be(true)
+  end
+
   it "requires a name" do
     group = described_class.new(owner: owner, name: "", group_type: :public_group)
 
     expect(group).not_to be_valid
   end
 
+  it "requires a purpose for a new pending application" do
+    group = described_class.new(owner: owner, name: "Readers", group_type: :public_group)
+
+    expect(group).not_to be_valid
+    expect(group.errors[:application_purpose]).to be_present
+  end
+
+  it "does not let an existing purpose be removed" do
+    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "Read together")
+
+    expect(group.update(application_purpose: "")).to be(false)
+  end
+
+  it "limits application and closure reasons to 500 characters" do
+    group = described_class.new(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "a" * 501)
+
+    expect(group).not_to be_valid
+
+    group.assign_attributes(lifecycle_status: :active, application_purpose: nil, closure_reason: "a" * 501)
+    expect(group).not_to be_valid
+  end
+
+  it "allows legacy active groups without a purpose to use lifecycle transitions" do
+    group = described_class.create!(owner: owner, name: "Legacy", group_type: :public_group, lifecycle_status: :active)
+
+    expect(group.update(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)).to be(true)
+    expect(group.update(lifecycle_status: :pending_approval)).to be(true)
+    expect(group.update(lifecycle_status: :active)).to be(true)
+  end
+
   it "creates an active membership for its owner" do
-    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group)
+    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, lifecycle_status: :active)
 
     expect(group.group_memberships.find_by(user: owner)).to be_active
   end
@@ -18,7 +75,7 @@ RSpec.describe Group, type: :model do
   it "includes only active memberships in members" do
     pending_user = User.create!(name: "Pending", email: "pending-group-member@example.com", password: "password123!", password_confirmation: "password123!")
     active_user = User.create!(name: "Active", email: "active-group-member@example.com", password: "password123!", password_confirmation: "password123!")
-    group = described_class.create!(owner: owner, name: "Readers", group_type: :approval_group)
+    group = described_class.create!(owner: owner, name: "Readers", group_type: :approval_group, lifecycle_status: :active)
     group.group_memberships.create!(user: pending_user, status: :pending)
     group.group_memberships.create!(user: active_user, status: :active)
 
@@ -28,8 +85,8 @@ RSpec.describe Group, type: :model do
 
   it "includes only active memberships in a user's joined groups" do
     user = User.create!(name: "Reader", email: "joined-groups-reader@example.com", password: "password123!", password_confirmation: "password123!")
-    pending_group = described_class.create!(owner: owner, name: "Pending", group_type: :approval_group)
-    active_group = described_class.create!(owner: owner, name: "Active", group_type: :public_group)
+    pending_group = described_class.create!(owner: owner, name: "Pending", group_type: :approval_group, lifecycle_status: :active)
+    active_group = described_class.create!(owner: owner, name: "Active", group_type: :public_group, lifecycle_status: :active)
     pending_group.group_memberships.create!(user: user, status: :pending)
     active_group.group_memberships.create!(user: user, status: :active)
 

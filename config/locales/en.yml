@@ -59,26 +59,45 @@ en:
       public_group: "Public club"
       approval_group: "Approval club"
       private_group: "Private club"
+    lifecycle_statuses:
+      pending_approval: "Pending approval"
+      active: "Active"
+      inactive: "Closed"
+    lifecycle_messages:
+      pending_approval: "This club is awaiting approval. Joining and club activity are unavailable until approval."
+      inactive: "This club is closed. Only existing active members can read its past content."
     index:
       title: "Reading clubs"
       description: "Find a reading community to read and talk with."
       empty: "No clubs are available to discover yet."
     new:
-      title: "Create a club"
-      description: "Choose how readers join and start a reading community."
+      title: "Apply to open a club"
+      description: "Submit the club details and purpose. Operations can begin after administrator approval."
     edit:
-      title: "Edit club"
+      title: "Manage club"
     form:
       name: "Club name"
       description: "Description"
       group_type: "Club type"
+      application_purpose: "Purpose for opening the club"
+      application_purpose_hint: "Explain to the administrator why you want to open this club. Maximum 500 characters."
+      closure_reason: "Reason for closing"
     actions:
-      new: "Create club"
-      create: "Create club"
-      edit: "Edit club"
+      new: "Apply to open a club"
+      create: "Submit application"
+      edit: "Manage club"
       update: "Update club"
       cancel: "Cancel"
       back: "Back to clubs"
+      close: "Close club"
+      request_reactivation: "Request reactivation"
+    management:
+      close_title: "Close club operations"
+      close_description: "After closing, new memberships, invitations, and new content will be unavailable."
+      close_confirmation: "Close this club?\nClosing stops new memberships, invitations, Jjaeks, Book Jjaeks, and comments.\nExisting members and content will not be deleted.\nAdministrator approval is required to operate again."
+      inactive_title: "Closure information"
+      closed_at: "Closed at: %{time}"
+      reactivation_description: "Administrator approval is required to operate again."
     pending:
       title: "Join requests"
       empty: "No join requests are pending."
@@ -92,8 +111,28 @@ en:
       empty_candidates: "No users are available to invite."
       sent_title: "Sent invitations"
     notices:
-      created: "Club created."
+      created: "Your club application was submitted."
+      closed: "The club was closed."
+      reactivation_requested: "The club reactivation request was submitted."
       updated: "Club updated."
+  admin:
+    groups:
+      nav: "Club approvals"
+      index:
+        title: "Club approval management"
+        description: "Review club applications awaiting approval."
+        empty: "No clubs are awaiting approval."
+      actions:
+        approve: "Approve"
+      request_types:
+        initial: "Opening application"
+        reactivation: "Reactivation request"
+      application_purpose_missing: "No opening purpose was recorded."
+      previous_closure: "Previous closure"
+      closure_reason_missing: "No closure reason was recorded."
+      request_updated_at: "Application updated: %{time}"
+      notices:
+        approved: "The club was approved."
     jjaeks:
       tabs:
         general: "Jjaek"

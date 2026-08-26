@@ -1,0 +1,41 @@
+<section class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+  <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+    <h1 class="text-3xl font-semibold tracking-tight text-stone-900"><%= t("admin.groups.index.title") %></h1>
+    <p class="mt-3 text-sm text-stone-500"><%= t("admin.groups.index.description") %></p>
+  </section>
+
+  <% if @groups.any? %>
+    <div class="space-y-4">
+      <% @groups.each do |group| %>
+        <article class="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p class="mb-2 text-xs font-semibold text-amber-700"><%= t(group.closed_at.present? ? "admin.groups.request_types.reactivation" : "admin.groups.request_types.initial") %></p>
+              <h2 class="text-xl font-semibold text-stone-900"><%= group.name %></h2>
+              <p class="mt-1 text-xs text-stone-500"><%= t("groups.types.#{group.group_type}") %></p>
+              <p class="mt-1 text-xs text-stone-500"><%= t("groups.owner", name: group.owner.name) %></p>
+              <p class="mt-1 text-xs text-stone-500"><%= t("admin.groups.request_updated_at", time: l(group.updated_at, format: :short)) %></p>
+            </div>
+            <%= button_to t("admin.groups.actions.approve"), approve_admin_group_path(group), method: :patch, class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+          </div>
+          <% if group.description.present? %>
+            <p class="mt-4 whitespace-pre-wrap text-sm leading-6 text-stone-600"><%= group.description %></p>
+          <% end %>
+          <div class="mt-4 rounded-2xl bg-amber-50 p-4">
+            <p class="text-xs font-semibold text-amber-800"><%= t("groups.form.application_purpose") %></p>
+            <p class="mt-2 whitespace-pre-wrap text-sm text-stone-700"><%= group.application_purpose.presence || t("admin.groups.application_purpose_missing") %></p>
+          </div>
+          <% if group.closed_at.present? %>
+            <div class="mt-4 rounded-2xl bg-stone-50 p-4">
+              <p class="text-xs font-semibold text-stone-600"><%= t("admin.groups.previous_closure") %></p>
+              <p class="mt-2 text-sm text-stone-600"><%= l(group.closed_at, format: :short) %></p>
+              <p class="mt-2 whitespace-pre-wrap text-sm text-stone-700"><%= group.closure_reason.presence || t("admin.groups.closure_reason_missing") %></p>
+            </div>
+          <% end %>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <section class="rounded-3xl border border-dashed border-stone-300 bg-white/70 p-8 text-center text-sm text-stone-500"><%= t("admin.groups.index.empty") %></section>
+  <% end %>
+</section>

@@ -1,6 +1,12 @@
 require "rails_helper"
 
 RSpec.describe User, type: :model do
+  it "is not a global admin by default" do
+    user = described_class.new
+
+    expect(user).not_to be_global_admin
+  end
+
   it "assigns a default avatar index when the user is created" do
     user = described_class.create!(
       name: "Avatar User",

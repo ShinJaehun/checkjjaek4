@@ -56,7 +56,7 @@ RSpec.describe LikePolicy do
     end
 
     it "does not allow likes on a group jjaek" do
-      group = Group.create!(owner: other_user, name: "Readers", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       like = group_jjaek.likes.build(user:)
 

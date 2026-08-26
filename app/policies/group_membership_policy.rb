@@ -1,5 +1,6 @@
 class GroupMembershipPolicy < ApplicationPolicy
   def create?
+    return false unless record.group.active?
     return false unless own_membership?
     return false if record.group.private_group?
 
@@ -7,7 +8,7 @@ class GroupMembershipPolicy < ApplicationPolicy
   end
 
   def approve?
-    user.present? && record.group.owner?(user) && record.pending?
+    record.group.active? && user.present? && record.group.owner?(user) && record.pending?
   end
 
   def reject?
@@ -15,12 +16,12 @@ class GroupMembershipPolicy < ApplicationPolicy
   end
 
   def invite?
-    user.present? && record.group.private_group? && record.group.owner?(user) &&
+    record.group.active? && user.present? && record.group.private_group? && record.group.owner?(user) &&
       record.invited? && record.user_id != user.id
   end
 
   def accept?
-    own_membership? && record.invited?
+    record.group.active? && own_membership? && record.invited?
   end
 
   def decline?
@@ -40,7 +41,7 @@ class GroupMembershipPolicy < ApplicationPolicy
   end
 
   def reactivate?
-    user.present? && record.group.owner?(user) && record.inactive? && record.user_id != user.id
+    record.group.active? && user.present? && record.group.owner?(user) && record.inactive? && record.user_id != user.id
   end
 
   def destroy?

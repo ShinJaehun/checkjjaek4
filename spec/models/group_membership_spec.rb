@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe GroupMembership, type: :model do
   let(:owner) { User.create!(name: "Owner", email: "membership-owner@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:member) { User.create!(name: "Member", email: "membership-member@example.com", password: "password123!", password_confirmation: "password123!") }
-  let(:group) { Group.create!(owner: owner, name: "Readers", group_type: :approval_group) }
+  let(:group) { Group.create!(lifecycle_status: :active, owner: owner, name: "Readers", group_type: :approval_group) }
 
   it "does not allow duplicate memberships" do
     described_class.create!(group: group, user: member, status: :pending)

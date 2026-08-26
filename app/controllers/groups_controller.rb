@@ -1,10 +1,14 @@
 class GroupsController < ApplicationController
-  before_action :set_group, only: %i[show edit update]
+  before_action :set_group, only: %i[show edit update close request_reactivation]
 
   def index
     authorize Group
     @groups = policy_scope(Group).includes(:owner, :group_memberships).order(created_at: :desc)
-    @invitations = current_user.group_memberships.invited.includes(group: :owner).order(created_at: :desc)
+    @invitations = current_user.group_memberships.invited
+      .joins(:group)
+      .merge(Group.active)
+      .includes(group: :owner)
+      .order(created_at: :desc)
   end
 
   def show
@@ -68,6 +72,29 @@ class GroupsController < ApplicationController
     end
   end
 
+  def close
+    authorize @group, :close?
+    @closure_reason_input = close_group_params[:closure_reason]
+
+    if @group.update(
+      lifecycle_status: :inactive,
+      closure_reason: @closure_reason_input,
+      closed_at: Time.current
+    )
+      redirect_to @group, notice: t("groups.notices.closed")
+    else
+      @group.restore_attributes(%w[lifecycle_status closed_at])
+      render :edit, status: :unprocessable_content
+    end
+  end
+
+  def request_reactivation
+    authorize @group, :request_reactivation?
+    @group.pending_approval!
+
+    redirect_to @group, notice: t("groups.notices.reactivation_requested")
+  end
+
   private
 
   def set_group
@@ -75,11 +102,17 @@ class GroupsController < ApplicationController
   end
 
   def create_group_params
-    params.fetch(:group, {}).permit(:name, :description, :group_type)
+    params.fetch(:group, {}).permit(:name, :description, :group_type, :application_purpose)
   end
 
   def update_group_params
-    params.fetch(:group, {}).permit(:name, :description)
+    permitted = %i[name description]
+    permitted << :application_purpose if @group.pending_approval?
+    params.fetch(:group, {}).permit(*permitted)
+  end
+
+  def close_group_params
+    params.fetch(:group, {}).permit(:closure_reason)
   end
 
   def prepare_jjaek_context

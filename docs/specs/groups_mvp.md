@@ -29,6 +29,9 @@
 - owner의 active 구성원 활동 중지·재활성화·최종 내보내기, 승인 요청 거절, 보낸 초대 취소
 - 동아리 안의 `짹`과 `책짹` 작성·조회
 - 권한 있는 사용자의 작성자 프로필에서 동아리의 `짹`과 `책짹` 조회
+- 일반 사용자의 동아리 신청과 global admin 승인
+- owner의 동아리 운영 종료와 재활성화 요청·재승인
+- 신규 신청의 개설 목적과 운영 종료 사유·시각 기록
 
 비공개 동아리는 사용자 생성 UI에서 제공하며, owner가 기존 사용자를 초대할 수 있다.
 초대는 `GroupMembership`의 `invited` 상태로 표현하고 수락하면 `active`, 거절하면 삭제한다.
@@ -103,9 +106,9 @@ inactive member는 기존 자기 탈퇴 경로로 membership을 삭제하거나 
 - 공개 동아리는 발견 가능하며 로그인 사용자가 즉시 가입할 수 있다.
 - 승인 동아리는 발견 가능하지만 가입 승인이 필요하다.
 - 비공개 동아리는 일반 발견 대상에서 제외하며 초대를 기본 진입점으로 삼는다.
-- 현재는 일반 로그인 사용자가 동아리를 생성하면 즉시 운영할 수 있다.
-- 목표 정책에서는 일반 사용자의 생성을 운영 신청으로 보고, global admin 승인 전에는 정상 운영하지 않는다.
-- 이 승인·운영 lifecycle은 현재 미구현이며 상세 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.
+- 일반 사용자의 생성을 운영 신청으로 보고, global admin 승인 전에는 정상 운영하지 않는다.
+- 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 owner와 global admin만 확인한다.
+- 승인·운영 lifecycle의 상세 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.
 - 동아리 생성 횟수 제한, 계정 연령, 남용 방지 조건은 아직 결정하지 않는다.
 
 ---
@@ -295,7 +298,7 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 - `book_friends`, `private_jjaek`의 동아리 공유
 - nested ReJjaek
 - 알림 정책 상세 설계
-- Group 승인·운영 lifecycle, owner 양도와 운영 종료 구현
+- owner 양도 구현
 - moderator 역할과 ban/block/suspension
 - 동아리 콘텐츠 moderation
 
@@ -312,7 +315,7 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 
 탈퇴 후 댓글의 보존·작성·수정·삭제 권한, 관리자·운영자의 moderation 책임,
 일반 로그인 사용자가 Group을 신청할 수 있는 방향 자체는 미결정 사항이 아니다.
-승인·운영 lifecycle은 목표 정책으로 확정됐지만 현재 미구현이다.
+승인·운영 lifecycle은 현재 구현되어 있다.
 탈퇴 후 동아리 Jjaek은 보존하며 작성자는 수정할 수 없고 자기 글을 삭제할 수 있다.
 
 ---

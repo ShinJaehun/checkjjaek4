@@ -4,13 +4,28 @@ RSpec.describe GroupMembershipPolicy do
   let(:owner) { User.create!(name: "Owner", email: "membership-policy-owner@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:member) { User.create!(name: "Member", email: "membership-policy-member@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:other_user) { User.create!(name: "Other", email: "membership-policy-other@example.com", password: "password123!", password_confirmation: "password123!") }
-  let(:group) { Group.create!(owner: owner, name: "Approval", group_type: :approval_group) }
+  let(:group) { Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group) }
 
   it "allows only the group owner to approve a pending membership" do
     membership = group.group_memberships.create!(user: member, status: :pending)
 
     expect(described_class.new(owner, membership).approve?).to be(true)
     expect(described_class.new(other_user, membership).approve?).to be(false)
+  end
+
+  it "blocks actions that create active participation unless the group is active" do
+    private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Lifecycle", group_type: :private_group)
+    invited = private_group.group_memberships.create!(user: member, status: :invited)
+    inactive_member = private_group.group_memberships.create!(user: other_user, status: :active)
+    inactive_member.update!(status: :inactive)
+    private_group.update!(
+      lifecycle_status: :inactive,
+      closure_reason: "Test closure",
+      closed_at: Time.current
+    )
+    expect(described_class.new(member, invited).accept?).to be(false)
+    expect(described_class.new(owner, inactive_member).reactivate?).to be(false)
+    expect(described_class.new(owner, private_group.group_memberships.build(user: User.new, status: :invited)).invite?).to be(false)
   end
 
   it "does not allow an active membership to be approved again" do
@@ -32,7 +47,7 @@ RSpec.describe GroupMembershipPolicy do
   end
 
   it "allows only a private group owner to invite another user" do
-    private_group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
     invitation = private_group.group_memberships.build(user: member, status: :invited)
 
     expect(described_class.new(owner, invitation).invite?).to be(true)
@@ -47,7 +62,7 @@ RSpec.describe GroupMembershipPolicy do
   end
 
   it "allows only the invitee to accept or decline an invitation" do
-    private_group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
     invitation = private_group.group_memberships.create!(user: member, status: :invited)
 
     expect(described_class.new(member, invitation).accept?).to be(true)
@@ -94,7 +109,7 @@ RSpec.describe GroupMembershipPolicy do
   end
 
   it "allows only a private group owner to revoke an invitation" do
-    private_group = Group.create!(owner: owner, name: "Private revoke", group_type: :private_group)
+    private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private revoke", group_type: :private_group)
     invitation = private_group.group_memberships.create!(user: member, status: :invited)
 
     expect(described_class.new(owner, invitation).revoke?).to be(true)
@@ -105,7 +120,7 @@ RSpec.describe GroupMembershipPolicy do
   end
 
   it "rejects and revokes only in the matching group type" do
-    pending = Group.create!(owner: owner, name: "Public pending", group_type: :public_group)
+    pending = Group.create!(lifecycle_status: :active, owner: owner, name: "Public pending", group_type: :public_group)
       .group_memberships.create!(user: member, status: :pending)
     invited = group.group_memberships.create!(user: other_user, status: :invited)
 

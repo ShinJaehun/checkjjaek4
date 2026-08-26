@@ -59,7 +59,7 @@ RSpec.describe CommentPolicy do
 
     it "allows active members to create and update their own group comments" do
       %i[public_group approval_group private_group].each do |group_type|
-        group = Group.create!(owner: other_user, name: group_type.to_s, group_type:)
+        group = Group.create!(lifecycle_status: :active, owner: other_user, name: group_type.to_s, group_type:)
         group.group_memberships.create!(user:, status: :active)
         group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
         comment = group_jjaek.comments.create!(user:, content: "Mine")
@@ -70,7 +70,7 @@ RSpec.describe CommentPolicy do
     end
 
     it "allows public group reading but not commenting for a nonmember" do
-      group = Group.create!(owner: other_user, name: "Public", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Public", group_type: :public_group)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       comment = group_jjaek.comments.build(user:, content: "Blocked")
 
@@ -79,7 +79,7 @@ RSpec.describe CommentPolicy do
     end
 
     it "blocks group comment creation and update when membership is inactive" do
-      group = Group.create!(owner: other_user, name: "Approval", group_type: :approval_group)
+      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Approval", group_type: :approval_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       comment = group_jjaek.comments.create!(user:, content: "Existing")

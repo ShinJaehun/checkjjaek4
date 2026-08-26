@@ -253,6 +253,14 @@ Library 안에서 볼 수 있는 책장:
 
 현재 구현된 동아리 기반은 `GroupPolicy`와 `GroupMembershipPolicy`를 사용한다.
 
+- 일반 사용자가 만든 동아리는 `pending_approval`이며 global admin만 `active`로 승인할 수 있다
+- 신규 신청의 개설 목적은 owner 관리 화면과 global admin 승인 화면에서만 노출한다
+- `active` 동아리만 기존 group type에 따른 일반 발견·가입·초대·작성 흐름을 제공한다
+- owner만 active 동아리를 `inactive`로 종료하고 inactive 동아리를 다시 승인 대기로 전환할 수 있다
+- 운영 종료는 owner가 사유를 입력해 lifecycle·종료 사유·종료 시각을 함께 저장하며, 재활성화 요청은 이 정보를 보존한다
+- pending 동아리는 owner만 기본 상태를 확인하며 내부 콘텐츠를 읽거나 작성할 수 없다
+- inactive 동아리는 active/inactive membership이 기본 정보를 볼 수 있고, active member만 기존 내부 콘텐츠를 읽을 수 있다
+- pending/inactive 동아리에서는 membership accept/approve/reactivate 등 active participation을 만드는 동작을 허용하지 않는다
 - 공개 동아리와 승인 동아리는 로그인 사용자가 발견하고 기본 정보를 조회할 수 있다
 - 비공개 동아리는 owner, active member와 inactive member가 목록과 기본 상세를 조회할 수 있다
 - 비공개 동아리의 inactive member는 자신의 활동 중지 상태만 확인하며 내부 콘텐츠 읽기·작성 권한은 갖지 않는다

@@ -16,6 +16,20 @@ RSpec.describe "Authentication", type: :request do
 
       expect(response).to redirect_to(root_path)
     end
+
+    it "does not permit global admin through registration params" do
+      post user_registration_path, params: {
+        user: {
+          name: "Regular Reader",
+          email: "regular-reader@example.com",
+          password: "password123!",
+          password_confirmation: "password123!",
+          global_admin: true
+        }
+      }
+
+      expect(User.find_by!(email: "regular-reader@example.com")).not_to be_global_admin
+    end
   end
 
   describe "POST /users/sign_in" do
@@ -35,6 +49,19 @@ RSpec.describe "Authentication", type: :request do
       }
 
       expect(response).to redirect_to(root_path)
+    end
+  end
+
+  describe "PATCH /users" do
+    it "does not permit global admin through account update params" do
+      user = User.create!(name: "Reader", email: "account-update-reader@example.com", password: "password123!", password_confirmation: "password123!")
+      sign_in user
+
+      patch user_registration_path, params: {
+        user: { name: "Updated Reader", global_admin: true, current_password: "password123!" }
+      }
+
+      expect(user.reload).not_to be_global_admin
     end
   end
 

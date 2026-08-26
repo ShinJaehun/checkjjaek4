@@ -5,7 +5,7 @@ RSpec.describe "Group memberships", type: :request do
   let!(:member) { User.create!(name: "Member", email: "group-memberships-member@example.com", password: "password123!", password_confirmation: "password123!") }
 
   it "joins a public group immediately" do
-    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     sign_in member
 
     expect {
@@ -16,7 +16,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   it "creates a pending request for an approval group" do
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     sign_in member
 
     post group_group_memberships_path(group)
@@ -25,7 +25,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   it "does not create duplicate memberships or requests" do
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     group.group_memberships.create!(user: member, status: :pending)
     sign_in member
 
@@ -35,7 +35,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   it "does not expose a private group through nested membership create" do
-    group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
     sign_in member
 
     expect {
@@ -47,7 +47,7 @@ RSpec.describe "Group memberships", type: :request do
 
   it "does not expose a private group through nested membership update" do
     private_member = User.create!(name: "Private member", email: "private-group-member@example.com", password: "password123!", password_confirmation: "password123!")
-    group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
     membership = group.group_memberships.create!(user: private_member, status: :pending)
     sign_in member
 
@@ -59,7 +59,7 @@ RSpec.describe "Group memberships", type: :request do
 
   it "does not expose a private group through nested membership destroy" do
     private_member = User.create!(name: "Private member", email: "private-group-member-destroy@example.com", password: "password123!", password_confirmation: "password123!")
-    group = Group.create!(owner: owner, name: "Private", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
     membership = group.group_memberships.create!(user: private_member, status: :active)
     sign_in member
 
@@ -71,7 +71,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   it "lets the owner approve a pending request" do
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     membership = group.group_memberships.create!(user: member, status: :pending)
     sign_in owner
 
@@ -82,8 +82,8 @@ RSpec.describe "Group memberships", type: :request do
 
   it "does not let another user approve a pending request" do
     other_user = User.create!(name: "Other", email: "membership-approver@example.com", password: "password123!", password_confirmation: "password123!")
-    Group.create!(owner: other_user, name: "Other group", group_type: :approval_group)
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    Group.create!(lifecycle_status: :active, owner: other_user, name: "Other group", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     membership = group.group_memberships.create!(user: member, status: :pending)
     sign_in other_user
 
@@ -94,7 +94,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   it "does not approve an active membership again" do
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     membership = group.group_memberships.create!(user: member, status: :active)
     sign_in owner
 
@@ -105,7 +105,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   it "lets a user cancel their own pending request" do
-    group = Group.create!(owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
     membership = group.group_memberships.create!(user: member, status: :pending)
     sign_in member
 
@@ -115,7 +115,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   it "lets a regular member leave" do
-    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user: member, status: :active)
     sign_in member
 
@@ -125,7 +125,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   it "does not let the owner leave" do
-    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     membership = group.group_memberships.find_by!(user: owner)
     sign_in owner
 
@@ -138,7 +138,7 @@ RSpec.describe "Group memberships", type: :request do
 
   it "does not let a user destroy another user's membership" do
     other_user = User.create!(name: "Other", email: "membership-other@example.com", password: "password123!", password_confirmation: "password123!")
-    group = Group.create!(owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user: member, status: :active)
     sign_in other_user
 
@@ -148,7 +148,7 @@ RSpec.describe "Group memberships", type: :request do
   end
 
   describe "private group invitations" do
-    let(:group) { Group.create!(owner: owner, name: "Private", group_type: :private_group) }
+    let(:group) { Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group) }
 
     it "lets the owner invite a user without granting group access" do
       group
@@ -187,7 +187,7 @@ RSpec.describe "Group memberships", type: :request do
 
       sign_in owner
       %i[public_group approval_group].each do |group_type|
-        discoverable_group = Group.create!(owner: owner, name: group_type.to_s, group_type: group_type)
+        discoverable_group = Group.create!(lifecycle_status: :active, owner: owner, name: group_type.to_s, group_type: group_type)
         expect {
           post invite_group_group_memberships_path(discoverable_group), params: { user_id: member.id }
         }.not_to change(GroupMembership, :count)
@@ -250,7 +250,7 @@ RSpec.describe "Group memberships", type: :request do
 
   describe "owner membership management" do
     it "deactivates an approval group member and revokes internal content access" do
-      group = Group.create!(owner: owner, name: "Remove approval", group_type: :approval_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Remove approval", group_type: :approval_group)
       membership = group.group_memberships.create!(user: member, status: :active)
       jjaek = owner.jjaeks.create!(group: group, content: "Members only")
       sign_in owner
@@ -270,7 +270,7 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "lets a deactivated private member see basic group status without management access" do
-      group = Group.create!(owner: owner, name: "Remove private", group_type: :private_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Remove private", group_type: :private_group)
       membership = group.group_memberships.create!(user: member, status: :active)
       sign_in owner
 
@@ -293,7 +293,7 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "deactivates a private group member and revokes Jjaek access" do
-      group = Group.create!(owner: owner, name: "Remove private", group_type: :private_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Remove private", group_type: :private_group)
       membership = group.group_memberships.create!(user: member, status: :active)
       jjaek = owner.jjaeks.create!(group: group, content: "Private members only")
       sign_in owner
@@ -314,7 +314,7 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "keeps public read access but removes public write access while inactive" do
-      group = Group.create!(owner: owner, name: "Public removal", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public removal", group_type: :public_group)
       membership = group.group_memberships.create!(user: member, status: :active)
       sign_in owner
       patch deactivate_group_group_membership_path(group, membership)
@@ -327,7 +327,7 @@ RSpec.describe "Group memberships", type: :request do
 
     it "blocks deactivation by non-owners and deactivation of the owner" do
       other = User.create!(name: "Other manager", email: "other-manager@example.com", password: "password123!", password_confirmation: "password123!")
-      group = Group.create!(owner: owner, name: "Removal guards", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Removal guards", group_type: :public_group)
       membership = group.group_memberships.create!(user: member, status: :active)
       owner_membership = group.group_memberships.find_by!(user: owner)
       sign_in other
@@ -341,7 +341,7 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "reactivates an inactive member and restores private group access" do
-      group = Group.create!(owner: owner, name: "Reactivate", group_type: :private_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Reactivate", group_type: :private_group)
       membership = group.group_memberships.create!(user: member, status: :active)
       membership.update!(status: :inactive)
       sign_in owner
@@ -355,7 +355,7 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "requires inactive status before final removal" do
-      group = Group.create!(owner: owner, name: "Two step removal", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Two step removal", group_type: :public_group)
       membership = group.group_memberships.create!(user: member, status: :active)
       sign_in owner
 
@@ -370,10 +370,10 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "does not let an inactive member bypass status through another membership flow" do
-      public_group = Group.create!(owner: owner, name: "Inactive public", group_type: :public_group)
-      approval_group = Group.create!(owner: owner, name: "Inactive approval", group_type: :approval_group)
-      private_group = Group.create!(owner: owner, name: "Inactive private", group_type: :private_group)
-      [public_group, approval_group, private_group].each do |group|
+      public_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Inactive public", group_type: :public_group)
+      approval_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Inactive approval", group_type: :approval_group)
+      private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Inactive private", group_type: :private_group)
+      [ public_group, approval_group, private_group ].each do |group|
         membership = group.group_memberships.create!(user: member, status: :active)
         membership.update!(status: :inactive)
       end
@@ -396,7 +396,7 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "rejects an approval request without preventing a later request" do
-      group = Group.create!(owner: owner, name: "Reject request", group_type: :approval_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Reject request", group_type: :approval_group)
       membership = group.group_memberships.create!(user: member, status: :pending)
       sign_in owner
 
@@ -415,7 +415,7 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "revokes a private invitation and removes it from the invitee's index" do
-      group = Group.create!(owner: owner, name: "Revoked invitation", group_type: :private_group)
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Revoked invitation", group_type: :private_group)
       invitation = group.group_memberships.create!(user: member, status: :invited)
       sign_in owner
 
@@ -429,9 +429,9 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "blocks reject and revoke for the wrong actor, state, or group type" do
-      approval = Group.create!(owner: owner, name: "Approval guards", group_type: :approval_group)
+      approval = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval guards", group_type: :approval_group)
       pending = approval.group_memberships.create!(user: member, status: :pending)
-      private_group = Group.create!(owner: owner, name: "Private guards", group_type: :private_group)
+      private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private guards", group_type: :private_group)
       invitation = private_group.group_memberships.create!(user: member, status: :invited)
       other = User.create!(name: "Other actions", email: "other-actions@example.com", password: "password123!", password_confirmation: "password123!")
       sign_in other
@@ -444,7 +444,7 @@ RSpec.describe "Group memberships", type: :request do
       sign_in owner
       pending.update!(status: :active)
       invitation.update!(status: :active)
-      wrong_reject_group = Group.create!(owner: owner, name: "Public reject", group_type: :public_group)
+      wrong_reject_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public reject", group_type: :public_group)
       wrong_reject = wrong_reject_group.group_memberships.create!(user: member, status: :pending)
       wrong_revoke = approval.group_memberships.create!(user: other, status: :invited)
       expect {
@@ -456,16 +456,38 @@ RSpec.describe "Group memberships", type: :request do
     end
 
     it "shows approval and invitation management actions to owners" do
-      approval = Group.create!(owner: owner, name: "Approval UI", group_type: :approval_group)
+      approval = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval UI", group_type: :approval_group)
       approval.group_memberships.create!(user: member, status: :pending)
       sign_in owner
       get group_path(approval)
       expect(response.body).to include("승인", "거절")
 
-      private_group = Group.create!(owner: owner, name: "Invitation UI", group_type: :private_group)
+      private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Invitation UI", group_type: :private_group)
       private_group.group_memberships.create!(user: member, status: :invited)
       get group_path(private_group)
       expect(response.body).to include("보낸 초대", "초대 취소")
+    end
+
+    it "blocks participation activation and hides invitations when the group is inactive" do
+      group = Group.create!(lifecycle_status: :active, owner: owner, name: "Closed private", group_type: :private_group)
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      inactive_member = User.create!(name: "Inactive", email: "closed-inactive-member@example.com", password: "password123!", password_confirmation: "password123!")
+      inactive_membership = group.group_memberships.create!(user: inactive_member, status: :active)
+      inactive_membership.update!(status: :inactive)
+      group.update!(
+        lifecycle_status: :inactive,
+        closure_reason: "Test closure",
+        closed_at: Time.current
+      )
+      sign_in member
+      get groups_path
+      expect(response.body).not_to include(group.name)
+      patch accept_group_group_membership_path(group, invitation)
+      expect(invitation.reload).to be_invited
+
+      sign_in owner
+      patch reactivate_group_group_membership_path(group, inactive_membership)
+      expect(inactive_membership.reload).to be_inactive
     end
   end
 end

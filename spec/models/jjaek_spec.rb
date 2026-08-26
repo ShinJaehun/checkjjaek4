@@ -34,7 +34,7 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "tombstones a jjaek with comments and preserves its context and edited timestamp" do
-    group = Group.create!(owner: user, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: user, name: "Readers", group_type: :public_group)
     jjaek = user.jjaeks.create!(group:, book:, content: "A")
     jjaek.update!(content: "B")
     edited_at = jjaek.content_edited_at
@@ -108,14 +108,14 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "allows a group jjaek with or without a book" do
-    group = Group.create!(owner: user, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: user, name: "Readers", group_type: :public_group)
 
     expect(described_class.new(user:, group:, content: "그룹 짹")).to be_valid
     expect(described_class.new(user:, group:, book:, content: "그룹 책짹")).to be_valid
   end
 
   it "does not mix group context with requote or profile context" do
-    group = Group.create!(owner: user, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: user, name: "Readers", group_type: :public_group)
     original = other_user.jjaeks.create!(content: "원문")
 
     expect(described_class.new(user:, group:, quoted_jjaek: original, content: "그룹 다시짹")).not_to be_valid
@@ -123,7 +123,7 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "does not allow a group jjaek to be requoted" do
-    group = Group.create!(owner: other_user, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
     group_jjaek = described_class.create!(user: other_user, group:, content: "그룹 원문")
 
     expect(described_class.new(user:, quoted_jjaek: group_jjaek, content: "다시짹")).not_to be_valid
