@@ -218,7 +218,7 @@ RSpec.describe "Groups", type: :request do
       expect(group.reload.name).to eq("Original")
     end
 
-    it "shows owner controls and member list only to the owner" do
+    it "shows group admin controls and member list only to the group admin" do
       member = User.create!(name: "Listed member", email: "listed-member@example.com", password: "password123!", password_confirmation: "password123!")
       group.group_memberships.create!(user: member, status: :active)
       sign_in user
@@ -236,7 +236,9 @@ RSpec.describe "Groups", type: :request do
       sign_in member
       get group_path(group)
       expect(response.body).to include("활동 중지")
-      expect(response.body).not_to include("동아리 관리", "동아리 구성원", "다시 활성화", "내보내기")
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css(%(a[href="#{edit_group_path(group)}"]))).to be_nil
+      expect(response.body).not_to include("동아리 구성원", "다시 활성화", "내보내기")
     end
 
     it "lets only the owner close an active group and request reactivation" do
@@ -322,6 +324,72 @@ RSpec.describe "Groups", type: :request do
       expect(group.closed_at).to be_nil
       expect(group.closure_reason).to be_nil
       expect(GroupLifecycleEvent.count).to eq(event_count)
+    end
+  end
+
+  describe "group admin transfer" do
+    let(:group) { Group.create!(lifecycle_status: :active, owner: user, name: "Admin transfer", group_type: :public_group) }
+    let(:new_admin) { User.create!(name: "New admin", email: "request-new-admin@example.com", password: "password123!", password_confirmation: "password123!") }
+
+    it "transfers to an active member and lets the former admin leave normally" do
+      new_admin_membership = group.group_memberships.create!(user: new_admin, status: :active)
+      former_admin_membership = group.group_memberships.find_by!(user: user)
+      jjaek = user.jjaeks.create!(group: group, content: "Existing content")
+      sign_in user
+
+      get edit_group_path(group)
+      expect(response.body).to include("동아리 관리자", "현재 관리자: #{user.name}", new_admin.name, "data-turbo-confirm")
+
+      patch transfer_admin_group_path(group), params: { new_admin_id: new_admin.id }
+
+      expect(response).to redirect_to(group_path(group))
+      expect(group.reload.owner).to eq(new_admin)
+      expect(former_admin_membership.reload).to be_active
+      expect(new_admin_membership.reload).to be_active
+
+      get edit_group_path(group)
+      expect(response).to redirect_to(root_path)
+
+      sign_in new_admin
+      get edit_group_path(group)
+      expect(response).to have_http_status(:ok)
+
+      sign_in user
+      expect {
+        delete group_group_membership_path(group, former_admin_membership)
+      }.to change(GroupMembership, :count).by(-1)
+      expect(group.reload.owner).to eq(new_admin)
+      expect(new_admin_membership.reload).to be_active
+      expect(group.jjaeks).to contain_exactly(jjaek)
+      expect(jjaek.reload.user).to eq(user)
+    end
+
+    it "blocks non-admin, non-active targets, and pending groups" do
+      active_member = new_admin
+      group.group_memberships.create!(user: active_member, status: :active)
+      inactive_member = User.create!(name: "Inactive", email: "request-inactive-admin@example.com", password: "password123!", password_confirmation: "password123!")
+      group.group_memberships.create!(user: inactive_member, status: :inactive)
+      outsider = User.create!(name: "Outsider", email: "request-outsider-admin@example.com", password: "password123!", password_confirmation: "password123!")
+
+      sign_in active_member
+      patch transfer_admin_group_path(group), params: { new_admin_id: active_member.id }
+      expect(response).to redirect_to(root_path)
+      expect(group.reload.owner).to eq(user)
+
+      sign_in user
+      [ inactive_member, outsider ].each do |target|
+        patch transfer_admin_group_path(group), params: { new_admin_id: target.id }
+        expect(response).to redirect_to(group_path(group))
+        expect(group.reload.owner).to eq(user)
+      end
+
+      pending_group = Group.create!(owner: user, name: "Pending transfer", group_type: :public_group, application_purpose: "Pending")
+      pending_group.group_memberships.create!(user: active_member, status: :active)
+      get edit_group_path(pending_group)
+      expect(response.body).not_to include("관리자 권한 이전")
+      patch transfer_admin_group_path(pending_group), params: { new_admin_id: active_member.id }
+      expect(response).to redirect_to(root_path)
+      expect(pending_group.reload.owner).to eq(user)
     end
   end
 end

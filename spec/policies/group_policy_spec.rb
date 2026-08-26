@@ -117,6 +117,23 @@ RSpec.describe GroupPolicy do
     end
   end
 
+  describe "#transfer_admin?" do
+    it "allows only the current admin of an active or inactive group" do
+      admin = User.create!(name: "Global admin", email: "transfer-policy-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true)
+      active = Group.create!(lifecycle_status: :active, owner: owner, name: "Active", group_type: :public_group)
+      inactive = Group.create!(lifecycle_status: :active, owner: owner, name: "Inactive", group_type: :public_group)
+      inactive.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+      pending = Group.create!(owner: owner, name: "Pending", group_type: :public_group, application_purpose: "Read together")
+      active.group_memberships.create!(user: viewer, status: :active)
+
+      expect(described_class.new(owner, active).transfer_admin?).to be(true)
+      expect(described_class.new(owner, inactive).transfer_admin?).to be(true)
+      expect(described_class.new(owner, pending).transfer_admin?).to be(false)
+      expect(described_class.new(viewer, active).transfer_admin?).to be(false)
+      expect(described_class.new(admin, active).transfer_admin?).to be(false)
+    end
+  end
+
   it "gives a global admin only the explicit admin metadata permission" do
     admin = User.create!(name: "Admin", email: "policy-global-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true)
     group = Group.create!(lifecycle_status: :active, owner: owner, name: "Owner managed", group_type: :private_group)

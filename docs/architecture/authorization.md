@@ -173,7 +173,7 @@ Library 안에서 볼 수 있는 책장:
 
 - 일반 Jjaek의 수정과 삭제는 작성자 본인만 가능하다
 - 동아리 Jjaek은 active 작성자만 수정할 수 있고, 작성자는 inactive 또는 탈퇴 후에도 자기 기존 글을 삭제할 수 있다
-- 동아리 owner에게 타인 Jjaek 수정·삭제 권한은 아직 없다
+- 동아리 관리자에게 타인 Jjaek 수정·삭제 권한은 아직 없다
 - 삭제된 Jjaek은 다시 수정하거나 삭제할 수 없으며 새 댓글·좋아요·ReJjaek도 만들 수 없다
 - 댓글이 없는 글은 hard delete하고, 댓글이 있는 글은 본문을 제거한 tombstone과 기존 댓글을 보존한다
 
@@ -239,7 +239,7 @@ Library 안에서 볼 수 있는 책장:
 - 동아리 댓글은 기존 `Comment` 모델을 사용하고 부모 동아리 Jjaek의 열람 범위를 상속한다
 - 공개 동아리 비회원은 댓글을 읽을 수 있지만 active member만 댓글을 작성하고 자기 댓글을 수정할 수 있다
 - inactive 또는 탈퇴한 사용자는 새 댓글 작성·수정은 불가하며 기존 자기 댓글은 삭제할 수 있다
-- 동아리 owner의 타인 댓글 삭제 권한은 아직 구현하지 않는다
+- 동아리 관리자의 타인 댓글 삭제 권한은 아직 구현하지 않는다
 
 관련 위치:
 
@@ -254,32 +254,34 @@ Library 안에서 볼 수 있는 책장:
 현재 구현된 동아리 기반은 `GroupPolicy`와 `GroupMembershipPolicy`를 사용한다.
 
 - 일반 사용자가 만든 동아리는 `pending_approval`이며 global admin만 `active`로 승인할 수 있다
-- 신규 신청의 개설 목적은 owner 관리 화면과 global admin 승인 화면에서만 노출한다
+- 신규 신청의 개설 목적은 동아리 관리자 관리 화면과 global admin 승인 화면에서만 노출한다
 - `active` 동아리만 기존 group type에 따른 일반 발견·가입·초대·작성 흐름을 제공한다
-- owner만 active 동아리를 `inactive`로 종료하고 inactive 동아리를 다시 승인 대기로 전환할 수 있다
-- 운영 종료는 owner가 사유를 입력해 lifecycle·종료 사유·종료 시각을 함께 저장하며, 재활성화 요청은 이 정보를 보존한다
-- owner는 자기 동아리 관리 화면에서 목적·사유를 제외한 시각 중심 누적 운영 이력을 열람한다
+- 동아리 관리자만 active 동아리를 `inactive`로 종료하고 inactive 동아리를 다시 승인 대기로 전환할 수 있다
+- 운영 종료는 동아리 관리자가 사유를 입력해 lifecycle·종료 사유·종료 시각을 함께 저장하며, 재활성화 요청은 이 정보를 보존한다
+- 동아리 관리자는 자기 동아리 관리 화면에서 목적·사유를 제외한 시각 중심 누적 운영 이력을 열람한다
 - global admin은 admin 상세 화면에서 모든 동아리의 목적·사유를 포함한 운영 metadata와 이력을 read-only로 열람하고 pending 동아리를 승인한다
 - global admin 권한은 일반 동아리 수정·종료·재활성화·membership 관리나 private/approval 내부 콘텐츠 우회 권한을 부여하지 않는다
-- pending 동아리는 owner만 기본 상태를 확인하며 내부 콘텐츠를 읽거나 작성할 수 없다
+- pending 동아리는 동아리 관리자만 기본 상태를 확인하며 내부 콘텐츠를 읽거나 작성할 수 없다
 - inactive 동아리는 active/inactive membership이 기본 정보를 볼 수 있고, active member만 기존 내부 콘텐츠를 읽을 수 있다
 - pending/inactive 동아리에서는 membership accept/approve/reactivate 등 active participation을 만드는 동작을 허용하지 않는다
 - 공개 동아리와 승인 동아리는 로그인 사용자가 발견하고 기본 정보를 조회할 수 있다
-- 비공개 동아리는 owner, active member와 inactive member가 목록과 기본 상세를 조회할 수 있다
+- 비공개 동아리는 동아리 관리자, active member와 inactive member가 목록과 기본 상세를 조회할 수 있다
 - 비공개 동아리의 inactive member는 자신의 활동 중지 상태만 확인하며 내부 콘텐츠 읽기·작성 권한은 갖지 않는다
 - 일반 사용자는 공개·승인·비공개 동아리를 생성할 수 있다
 - 공개 동아리는 즉시 active membership을 만들고, 승인 동아리는 pending 가입 요청을 만든다
-- owner만 자기 동아리의 pending membership을 active로 승인할 수 있다
-- 비공개 동아리 owner만 membership이 없는 사용자를 `invited` 상태로 초대할 수 있다
+- 동아리 관리자만 자기 동아리의 pending membership을 active로 승인할 수 있다
+- 비공개 동아리 관리자만 membership이 없는 사용자를 `invited` 상태로 초대할 수 있다
 - 초대받은 당사자만 초대를 수락해 `active`로 바꾸거나 거절해 삭제할 수 있다
 - `invited`는 비공개 동아리의 목록·상세·내부 Jjaek 접근 권한을 부여하지 않는다
 - 사용자는 자신의 pending 요청을 취소하거나 자신의 active 일반 membership에서 탈퇴할 수 있다
-- owner membership은 탈퇴·삭제할 수 없다
-- owner만 동아리 이름과 소개를 수정할 수 있고 동아리 종류는 수정할 수 없다
-- owner만 active 일반 member를 `inactive`로 활동 중지할 수 있고, inactive member를 다시 active로 복구할 수 있다
-- 최종 내보내기는 inactive 일반 member에게만 허용하며 owner membership은 대상이 될 수 없다
-- 승인 동아리 owner만 pending 요청을 거절할 수 있다
-- 비공개 동아리 owner만 아직 수락되지 않은 `invited` membership을 취소할 수 있다
+- 현재 동아리 관리자 membership은 탈퇴·삭제할 수 없다
+- 동아리 관리자는 active/inactive 상태에서 다른 active member에게 권한을 이전할 수 있고 pending 상태에서는 이전할 수 없다
+- 이전 관리자는 일반 active member로 남아 기존 자발적 탈퇴 경로를 사용할 수 있다
+- 동아리 관리자만 이름과 소개를 수정할 수 있고 동아리 종류는 수정할 수 없다
+- 동아리 관리자만 active 일반 member를 `inactive`로 활동 중지할 수 있고, inactive member를 다시 active로 복구할 수 있다
+- 최종 내보내기는 inactive 일반 member에게만 허용하며 관리자 membership은 대상이 될 수 없다
+- 승인 동아리 관리자만 pending 요청을 거절할 수 있다
+- 비공개 동아리 관리자만 아직 수락되지 않은 `invited` membership을 취소할 수 있다
 - inactive는 active membership 권한을 얻지 않으며 pending 가입 요청과 다른 상태다
 - inactive membership은 자기 탈퇴나 새 가입·초대 흐름으로 우회할 수 없다
 - 일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제한다
@@ -289,7 +291,7 @@ Library 안에서 볼 수 있는 책장:
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
 작성은 모든 동아리 종류에서 active member에게만 허용한다.
 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, inactive 또는 탈퇴한 작성자도 자기 기존 글은 삭제할 수 있다.
-동아리 owner의 타인 글 moderation과 동아리 좋아요, 다시짹/share는 아직 구현하지 않는다.
+동아리 관리자의 타인 글 moderation과 동아리 좋아요, 다시짹/share는 아직 구현하지 않는다.
 
 동아리 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
 

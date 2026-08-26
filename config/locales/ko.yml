@@ -14,10 +14,10 @@ ko:
         group_membership:
           attributes:
             status:
-              owner_must_be_active: "동아리 운영자는 참여 중 상태여야 합니다"
+              owner_must_be_active: "동아리 관리자는 참여 중 상태여야 합니다"
               invalid_transition: "허용되지 않는 참여 상태 변경입니다"
             base:
-              owner_membership_cannot_be_destroyed: "동아리 운영자는 탈퇴할 수 없습니다"
+              owner_membership_cannot_be_destroyed: "동아리 관리자는 탈퇴할 수 없습니다"
   auth:
     actions:
       sign_in: "로그인"
@@ -54,7 +54,7 @@ ko:
       my_shelf: "내 서재 보기"
   groups:
     nav: "동아리"
-    owner: "운영자: %{name}"
+    owner: "동아리 관리자: %{name}"
     types:
       public_group: "공개 동아리"
       approval_group: "승인 동아리"
@@ -117,6 +117,13 @@ ko:
       inactive_title: "운영 종료 정보"
       closed_at: "종료: %{time}"
       reactivation_description: "다시 운영하려면 관리자 승인이 필요합니다."
+    admin_transfer:
+      title: "동아리 관리자"
+      current: "현재 관리자: %{name}"
+      target: "관리자 권한을 이전할 구성원"
+      submit: "관리자 권한 이전"
+      confirmation: "관리자 권한을 이전하면 현재 관리자는 일반 구성원이 됩니다."
+      no_candidates: "관리자 권한을 이전하려면 다른 활성 구성원이 필요합니다."
     pending:
       title: "가입 요청"
       empty: "대기 중인 가입 요청이 없습니다."
@@ -134,6 +141,9 @@ ko:
       closed: "동아리 운영을 종료했습니다."
       reactivation_requested: "동아리 재활성화 요청이 접수되었습니다."
       updated: "동아리를 수정했습니다."
+      admin_transferred: "동아리 관리자 권한을 이전했습니다."
+    alerts:
+      admin_transfer_failed: "동아리 관리자 권한을 이전할 수 없습니다."
     jjaeks:
       tabs:
         general: "짹"
@@ -165,7 +175,7 @@ ko:
         approved: "동아리 운영을 승인했습니다."
   group_memberships:
     statuses:
-      owner: "동아리 운영자"
+      owner: "동아리 관리자"
       pending: "승인 대기"
       active: "참여 중"
       invited: "초대됨"

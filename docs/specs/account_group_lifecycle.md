@@ -3,7 +3,7 @@
 ## 목적과 상태
 
 이 문서는 계정 탈퇴와 Group 승인·운영 lifecycle의 canonical 목표 정책이다.
-계정 탈퇴와 owner 양도는 아직 구현되지 않았다. Group 승인·운영 lifecycle은 구현되어 있으며,
+계정 탈퇴는 아직 구현되지 않았다. Group 승인·운영 lifecycle과 단일 동아리 관리자 이전은 구현되어 있으며,
 현재 구현 사실은 `docs/architecture/current_system.md`와 `docs/architecture/authorization.md`를 따른다.
 
 ---
@@ -25,7 +25,7 @@
 - BookFriendship과 pending 요청을 종료한다.
 - Like 등 탈퇴 사용자의 개인 반응 관계를 제거한다.
 - GroupMembership에서 탈퇴 사용자가 더 이상 active member로 남지 않게 정리한다.
-- active Group owner는 아래 owner lifecycle을 먼저 해결하지 않으면 탈퇴할 수 없다.
+- active Group의 동아리 관리자는 아래 관리자 lifecycle을 먼저 해결하지 않으면 탈퇴할 수 없다.
 
 Notification 등 사회적 콘텐츠가 아닌 개인 운영 데이터는 구현 단계에서 정리 대상으로 본다.
 정확한 보존·삭제 방식은 이 문서에서 확정하지 않는다.
@@ -62,9 +62,9 @@ Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 �
 
 - 승인 대기 Group은 일반 발견 대상에서 제외한다.
 - 일반 회원 가입과 일반 Group Jjaek·Comment 활동을 허용하지 않는다.
-- owner는 자신의 신청 상태를 확인할 수 있어야 한다.
+- 동아리 관리자는 자신의 신청 상태를 확인할 수 있어야 한다.
 - 신규 신청자는 일반 소개와 별도로 최대 500자의 동아리 개설 목적을 제출한다.
-- 개설 목적은 owner의 관리 화면과 global admin 승인 화면에서만 확인한다.
+- 개설 목적은 동아리 관리자 관리 화면과 global admin 승인 화면에서만 확인한다.
 - global admin만 Group을 승인해 운영 중으로 전환할 수 있다.
 - global admin은 동아리 개설 목적을 포함한 신청 정보를 확인해 승인한다.
 - 개설 신청·최초 승인·운영 종료·재활성화 요청·재승인은 발생 시각과 함께 운영 이력에 누적한다.
@@ -75,19 +75,18 @@ spam/abuse scoring은 후속 결정으로 남긴다.
 
 ---
 
-## active Group owner의 계정 탈퇴 `(목표 정책 · 일부 미구현)`
+## active Group 관리자의 계정 탈퇴 `(목표 정책 · 일부 미구현)`
 
-active Group owner는 Group을 그대로 둔 채 계정을 탈퇴할 수 없다.
-탈퇴 전에 owner 양도 또는 Group 운영 종료 중 하나를 완료해야 한다.
+active Group 관리자는 Group을 그대로 둔 채 계정을 탈퇴할 수 없다.
+탈퇴 전에 관리자 권한 이전 또는 Group 운영 종료 중 하나를 완료해야 한다.
 
-### Owner 양도
+### 동아리 관리자 권한 이전 `(현재 구현)`
 
-- 현재 active member에게만 owner를 양도할 수 있다.
-- 새 owner는 active membership을 가져야 한다.
-- ownership과 owner membership 불변식은 원자적으로 유지해야 한다.
-- 양도 후 기존 owner는 일반 member로 남거나 정상 membership 탈퇴 또는 계정 탈퇴 절차를 밟을 수 있다.
-
-정확한 UI와 transaction 구현은 후속 구현 설계에서 결정한다.
+- Group에는 정확히 한 명의 동아리 관리자가 있으며 내부적으로 `Group.owner_id`가 이를 가리킨다.
+- active/inactive Group의 현재 관리자만 다른 active member에게 권한을 이전할 수 있다.
+- pending, invited, inactive member나 Group 밖 사용자는 대상이 될 수 없고 pending Group에서는 이전할 수 없다.
+- 이전은 Group row lock 안에서 현재 관리자와 대상 membership을 재검증한다.
+- 이전 후 새 관리자는 active membership을 유지하고 기존 관리자는 일반 active member로 남아 정상 탈퇴할 수 있다.
 
 ### Group 운영 종료
 
@@ -96,8 +95,8 @@ active Group owner는 Group을 그대로 둔 채 계정을 탈퇴할 수 없다.
 - 새 가입과 새 Jjaek·Comment 작성을 허용하지 않는다.
 - 일반 발견·검색 대상에서 제외한다.
 - 기존 참여자는 자신이 참여했던 과거 공간과 콘텐츠를 읽을 수 있는 방향으로 둔다.
-- owner가 운영을 종료한 뒤에는 해당 Group 때문에 계정 탈퇴가 막히지 않는다.
-- owner가 운영을 종료할 때 최대 500자의 종료 사유와 서버 기준 종료 시각을 기록한다.
+- 동아리 관리자가 운영을 종료한 뒤에는 해당 Group 때문에 계정 탈퇴가 막히지 않는다.
+- 동아리 관리자가 운영을 종료할 때 최대 500자의 종료 사유와 서버 기준 종료 시각을 기록한다.
 - 운영 종료와 재활성화 요청은 동아리 상세이 아닌 동아리 관리 화면에서 수행한다.
 
 운영 종료 후 정확한 read scope는 구현 전에 추가로 결정한다.
@@ -112,9 +111,9 @@ Group hard delete는 이 lifecycle의 기본 동작이 아니다.
 
 > 운영 종료 → 재활성화 요청 → 승인 대기 → global admin 승인 → 운영 중
 
-최소한 기존 owner가 재활성화를 요청할 수 있는 방향을 둔다.
+최소한 기존 동아리 관리자가 재활성화를 요청할 수 있는 방향을 둔다.
 재활성화 요청은 기존 종료 사유·시각을 보존하며 global admin 승인 목록에서 신규 개설 신청과 구분한다.
-owner는 자기 Group의 시각 중심 운영 이력을 관리 화면에서 열람한다. 개설 목적과 종료 사유 snapshot은
+동아리 관리자는 자기 Group의 시각 중심 운영 이력을 관리 화면에서 열람한다. 개설 목적과 종료 사유 snapshot은
 global admin의 운영 상세에서 확인하며 admin 목록에는 운영 이력을 직접 표시하지 않는다. global admin은 모든 Group의
 운영 metadata와 이력을 read-only로 열람하지만, 이 권한으로 일반 Group 관리나 내부 콘텐츠에 접근하지 않는다.
 정확한 요청 UI, 요청 가능 사용자의 예외와 admin 거절 처리는 후속 결정으로 남긴다.

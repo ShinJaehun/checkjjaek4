@@ -41,6 +41,10 @@ class GroupPolicy < ApplicationPolicy
     user.present? && record.inactive? && record.owner?(user)
   end
 
+  def transfer_admin?
+    user.present? && (record.active? || record.inactive?) && record.owner?(user)
+  end
+
   def manage_approvals?
     user.present? && user.global_admin?
   end

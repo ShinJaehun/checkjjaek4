@@ -39,6 +39,21 @@ class Group < ApplicationRecord
     user.present? && owner_id == user.id
   end
 
+  def transfer_admin_to!(new_admin, by:)
+    with_lock do
+      target_membership = new_admin && group_memberships.active.lock.find_by(user_id: new_admin.id)
+      valid_transfer = owner?(by) && (active? || inactive?) && new_admin.present? &&
+        new_admin.id != owner_id && target_membership.present?
+
+      unless valid_transfer
+        errors.add(:owner, :invalid_admin_transfer)
+        raise ActiveRecord::RecordInvalid.new(self)
+      end
+
+      update!(owner: new_admin)
+    end
+  end
+
   private
 
   def application_purpose_must_be_present_for_new_application

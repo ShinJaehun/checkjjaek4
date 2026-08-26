@@ -14,10 +14,10 @@ en:
         group_membership:
           attributes:
             status:
-              owner_must_be_active: "must remain active for the club owner"
+              owner_must_be_active: "must remain active for the club admin"
               invalid_transition: "is not an allowed membership status transition"
             base:
-              owner_membership_cannot_be_destroyed: "The club owner cannot leave the club"
+              owner_membership_cannot_be_destroyed: "The club admin cannot leave the club"
   auth:
     actions:
       sign_in: "Sign in"
@@ -54,7 +54,7 @@ en:
       my_shelf: "Open my shelf"
   groups:
     nav: "Clubs"
-    owner: "Owner: %{name}"
+    owner: "Club admin: %{name}"
     types:
       public_group: "Public club"
       approval_group: "Approval club"
@@ -117,6 +117,13 @@ en:
       inactive_title: "Closure information"
       closed_at: "Closed at: %{time}"
       reactivation_description: "Administrator approval is required to operate again."
+    admin_transfer:
+      title: "Club admin"
+      current: "Current admin: %{name}"
+      target: "Member to become admin"
+      submit: "Transfer admin rights"
+      confirmation: "After the transfer, the current admin becomes a regular member."
+      no_candidates: "Another active member is required to transfer admin rights."
     pending:
       title: "Join requests"
       empty: "No join requests are pending."
@@ -134,6 +141,9 @@ en:
       closed: "The club was closed."
       reactivation_requested: "The club reactivation request was submitted."
       updated: "Club updated."
+      admin_transferred: "Club admin rights were transferred."
+    alerts:
+      admin_transfer_failed: "Club admin rights could not be transferred."
   admin:
     groups:
       nav: "Club operations"
@@ -165,7 +175,7 @@ en:
       book_search_context: "Find a book for a Book Jjaek in %{group_name}."
   group_memberships:
     statuses:
-      owner: "Club owner"
+      owner: "Club admin"
       pending: "Pending approval"
       active: "Member"
       invited: "Invited"

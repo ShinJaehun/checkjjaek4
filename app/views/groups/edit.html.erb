@@ -8,6 +8,25 @@
     </div>
   </section>
 
+  <% if policy(@group).transfer_admin? %>
+    <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-semibold text-stone-900"><%= t("groups.admin_transfer.title") %></h2>
+      <p class="mt-2 text-sm text-stone-600"><%= t("groups.admin_transfer.current", name: @group.owner.name) %></p>
+
+      <% if @admin_transfer_candidates.any? %>
+        <%= form_with url: transfer_admin_group_path(@group), method: :patch, class: "mt-5 space-y-4", data: { turbo_confirm: t("groups.admin_transfer.confirmation") } do %>
+          <div>
+            <%= label_tag :new_admin_id, t("groups.admin_transfer.target"), class: "mb-2 block text-sm font-medium text-stone-700" %>
+            <%= select_tag :new_admin_id, options_from_collection_for_select(@admin_transfer_candidates, :id, :name), class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+          </div>
+          <%= submit_tag t("groups.admin_transfer.submit"), class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
+        <% end %>
+      <% else %>
+        <p class="mt-4 text-sm text-stone-500"><%= t("groups.admin_transfer.no_candidates") %></p>
+      <% end %>
+    </section>
+  <% end %>
+
   <% if @group.active? %>
     <section class="rounded-3xl border border-red-200 bg-red-50/60 p-6">
       <h2 class="text-xl font-semibold text-red-900"><%= t("groups.management.close_title") %></h2>

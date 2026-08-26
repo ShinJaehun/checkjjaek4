@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   resources :groups, only: %i[index show new create edit update] do
     patch :close, on: :member
     patch :request_reactivation, on: :member
+    patch :transfer_admin, on: :member
     resources :group_memberships, only: %i[create update destroy] do
       post :invite, on: :collection
       patch :accept, on: :member

@@ -1,5 +1,5 @@
 class GroupsController < ApplicationController
-  before_action :set_group, only: %i[show edit update close request_reactivation]
+  before_action :set_group, only: %i[show edit update close request_reactivation transfer_admin]
 
   def index
     authorize Group
@@ -72,7 +72,7 @@ class GroupsController < ApplicationController
 
   def edit
     authorize @group
-    prepare_lifecycle_history
+    prepare_management_context
   end
 
   def update
@@ -88,7 +88,7 @@ class GroupsController < ApplicationController
     if updated
       redirect_to @group, notice: t("groups.notices.updated")
     else
-      prepare_lifecycle_history
+      prepare_management_context
       render :edit, status: :unprocessable_content
     end
   end
@@ -117,7 +117,7 @@ class GroupsController < ApplicationController
       redirect_to @group, notice: t("groups.notices.closed")
     else
       @group.restore_attributes(%w[lifecycle_status closed_at])
-      prepare_lifecycle_history
+      prepare_management_context
       render :edit, status: :unprocessable_content
     end
   end
@@ -130,6 +130,16 @@ class GroupsController < ApplicationController
     end
 
     redirect_to @group, notice: t("groups.notices.reactivation_requested")
+  end
+
+  def transfer_admin
+    authorize @group, :transfer_admin?
+    new_admin = @group.group_memberships.active.includes(:user).find_by(user_id: params[:new_admin_id])&.user
+    @group.transfer_admin_to!(new_admin, by: current_user)
+
+    redirect_to @group, notice: t("groups.notices.admin_transferred")
+  rescue ActiveRecord::RecordInvalid
+    redirect_to @group, alert: t("groups.alerts.admin_transfer_failed")
   end
 
   private
@@ -165,6 +175,15 @@ class GroupsController < ApplicationController
 
   def prepare_lifecycle_history
     @lifecycle_events = @group.lifecycle_events.includes(:actor)
+  end
+
+  def prepare_management_context
+    prepare_lifecycle_history
+    @admin_transfer_candidates = @group.active_group_memberships
+      .where.not(user_id: @group.owner_id)
+      .includes(:user)
+      .map(&:user)
+      .sort_by(&:name)
   end
 
   def sync_opening_request_detail

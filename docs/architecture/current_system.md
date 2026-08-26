@@ -41,7 +41,7 @@
 - Like: Jjaek에 대한 좋아요
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
-- `Group`: 일반 사용자 독서 동아리와 동아리 종류·owner
+- `Group`: 일반 사용자 독서 동아리와 동아리 종류·단일 관리자(`owner_id`)
 - `Group`: global admin 승인 기반 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active/inactive 상태
 
@@ -206,28 +206,30 @@
 - 로그인 사용자가 공개·승인·비공개 동아리를 만들 수 있고 공개·승인 동아리를 발견할 수 있음
 - 새 동아리는 승인 대기로 생성되며 global admin 승인 후 active로 운영됨
 - 신규 신청은 일반 소개와 별도의 개설 목적을 제출하고 global admin 승인 목록에서 확인함
-- active owner는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
+- active 동아리 관리자는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
 - 운영 종료는 동아리 관리 화면에서 사유와 종료 시각을 기록하며, 재활성화 요청도 같은 화면에서 수행함
 - admin 승인 목록은 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 이전 종료 정보를 표시함
 - lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·종료·재활성화·재승인 순서로 누적되며 개설 목적과 종료 사유 snapshot을 보존함
-- owner는 동아리 관리에서 시각 중심 운영 이력을, global admin은 admin 전용 show에서 목적·사유를 포함한 read-only 운영 정보와 이력을 확인함
+- 동아리 관리자는 동아리 관리에서 시각 중심 운영 이력을, global admin은 admin 전용 show에서 목적·사유를 포함한 read-only 운영 정보와 이력을 확인함
 - admin index는 승인 queue와 전체 동아리 진입점만 제공하고 운영 이력은 상세 화면에서 표시함
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
 - inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
-- 동아리 소유권은 `Group.owner_id`를 기준으로 하며 owner도 active membership을 가짐
-- 공개 동아리는 즉시 가입, 승인 동아리는 pending 요청 후 owner 승인 방식
+- 단일 동아리 관리자는 내부적으로 `Group.owner_id`로 표현하며 항상 active membership을 가짐
+- active/inactive 동아리의 현재 관리자는 다른 active member에게 관리자 권한을 원자적으로 이전할 수 있음
+- 이전 관리자는 일반 active member로 남아 기존 탈퇴 경로를 사용할 수 있음
+- 공개 동아리는 즉시 가입, 승인 동아리는 pending 요청 후 동아리 관리자 승인 방식
 - pending 요청은 요청자 본인이 취소할 수 있음
-- active 일반 member는 탈퇴할 수 있고 owner는 탈퇴할 수 없음
-- 비공개 동아리는 owner/active/inactive member가 목록과 기본 상세에서 조회할 수 있음
+- active 일반 member는 탈퇴할 수 있고 현재 동아리 관리자는 탈퇴할 수 없음
+- 비공개 동아리는 동아리 관리자/active/inactive member가 목록과 기본 상세에서 조회할 수 있음
 - 비공개 동아리의 inactive member는 자신의 활동 중지 상태를 확인할 수 있지만 내부 콘텐츠 읽기·작성 권한은 없음
 - 일반 사용자가 비공개 동아리를 생성할 수 있음
-- 비공개 동아리 owner가 기존 사용자를 `invited` membership으로 초대할 수 있음
+- 비공개 동아리 관리자가 기존 사용자를 `invited` membership으로 초대할 수 있음
 - 초대받은 사용자는 동아리 목록의 별도 초대 영역에서 수락하거나 거절할 수 있음
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
-- owner가 동아리 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
-- owner 상세 화면에서 active 구성원을 활동 중지하고 inactive 구성원을 다시 활성화하거나 최종 내보낼 수 있음
-- 승인 동아리 owner는 pending 가입 요청을 거절할 수 있음
-- 비공개 동아리 owner는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
+- 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
+- 동아리 관리자 상세 화면에서 active 구성원을 활동 중지하고 inactive 구성원을 다시 활성화하거나 최종 내보낼 수 있음
+- 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
+- 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
 - inactive는 active 권한을 부여하지 않으며 pending 가입 요청과 별도 상태임
 - inactive membership은 자기 탈퇴나 새 가입·초대로 상태를 우회할 수 없음
 - 일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제함
@@ -241,8 +243,8 @@
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - inactive·탈퇴 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
 - 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 inactive·탈퇴 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
-- 동아리 owner의 타인 댓글·Jjaek 삭제와 동아리 좋아요·다시짹/share는 구현되지 않음
-- 동아리 hard delete·owner 양도·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
+- 동아리 관리자의 타인 댓글·Jjaek 삭제와 동아리 좋아요·다시짹/share는 구현되지 않음
+- 동아리 hard delete·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
 
 관련 코드:
 - controller:
