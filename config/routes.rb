@@ -5,7 +5,7 @@ Rails.application.routes.draw do
   get "/relationships", to: "relationships#index"
   resources :notifications, only: :index
   namespace :admin do
-    resources :groups, only: :index do
+    resources :groups, only: %i[index show] do
       patch :approve, on: :member
     end
   end

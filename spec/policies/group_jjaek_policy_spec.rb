@@ -36,6 +36,15 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     expect(described_class.new(non_member, jjaek).show?).to be(false)
   end
 
+  it "does not grant a global admin private group content access" do
+    admin = User.create!(name: "Admin", email: "group-jjaek-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
+    jjaek = owner.jjaeks.create!(group:, content: "Private content")
+
+    expect(described_class.new(admin, jjaek).show?).to be(false)
+    expect(described_class::Scope.new(admin, Jjaek.all).resolve).not_to include(jjaek)
+  end
+
   it "scopes group jjaeks by public or active membership access" do
     public_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
     approval_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)

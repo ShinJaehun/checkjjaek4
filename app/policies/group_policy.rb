@@ -49,6 +49,10 @@ class GroupPolicy < ApplicationPolicy
     manage_approvals? && record.pending_approval?
   end
 
+  def view_admin_details?
+    user.present? && user.global_admin?
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?

@@ -209,6 +209,9 @@
 - active owner는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
 - 운영 종료는 동아리 관리 화면에서 사유와 종료 시각을 기록하며, 재활성화 요청도 같은 화면에서 수행함
 - admin 승인 목록은 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 이전 종료 정보를 표시함
+- lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·종료·재활성화·재승인 순서로 누적되며 개설 목적과 종료 사유 snapshot을 보존함
+- owner는 동아리 관리에서 시각 중심 운영 이력을, global admin은 admin 전용 show에서 목적·사유를 포함한 read-only 운영 정보와 이력을 확인함
+- admin index는 승인 queue와 전체 동아리 진입점만 제공하고 운영 이력은 상세 화면에서 표시함
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
 - inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
 - 동아리 소유권은 `Group.owner_id`를 기준으로 하며 owner도 active membership을 가짐

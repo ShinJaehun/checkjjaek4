@@ -60,12 +60,31 @@ en:
       approval_group: "Approval club"
       private_group: "Private club"
     lifecycle_statuses:
-      pending_approval: "Pending approval"
       active: "Active"
       inactive: "Closed"
+      pending_approval: "Pending approval"
     lifecycle_messages:
       pending_approval: "This club is awaiting approval. Joining and club activity are unavailable until approval."
       inactive: "This club is closed. Only existing active members can read its past content."
+    lifecycle_history:
+      title: "Operations history"
+      empty: "No operations history has been recorded."
+      not_recorded: "Not recorded"
+      stages:
+        opening:
+          title: "Club opening"
+        closure:
+          title: "Club operations closed"
+        reactivation:
+          title: "Club reactivation"
+      labels:
+        application_purpose: "Opening purpose"
+        requested_at: "Requested"
+        approved_at: "Approved"
+        closure_reason: "Reason for closing"
+        closed_at: "Closed"
+        reactivation_requested_at: "Requested"
+        reactivation_approved_at: "Approved"
     index:
       title: "Reading clubs"
       description: "Find a reading community to read and talk with."
@@ -117,20 +136,23 @@ en:
       updated: "Club updated."
   admin:
     groups:
-      nav: "Club approvals"
+      nav: "Club operations"
       index:
-        title: "Club approval management"
-        description: "Review club applications awaiting approval."
+        title: "Club operations"
+        description: "Review pending applications and club operations information."
+        pending_title: "Pending approval"
+        all_title: "All clubs"
         empty: "No clubs are awaiting approval."
       actions:
         approve: "Approve"
+        show: "View operations"
+        back: "Back to club operations"
       request_types:
         initial: "Opening application"
         reactivation: "Reactivation request"
       application_purpose_missing: "No opening purpose was recorded."
       previous_closure: "Previous closure"
       closure_reason_missing: "No closure reason was recorded."
-      request_updated_at: "Application updated: %{time}"
       notices:
         approved: "The club was approved."
     jjaeks:

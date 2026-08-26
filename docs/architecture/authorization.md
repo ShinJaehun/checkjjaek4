@@ -258,6 +258,9 @@ Library 안에서 볼 수 있는 책장:
 - `active` 동아리만 기존 group type에 따른 일반 발견·가입·초대·작성 흐름을 제공한다
 - owner만 active 동아리를 `inactive`로 종료하고 inactive 동아리를 다시 승인 대기로 전환할 수 있다
 - 운영 종료는 owner가 사유를 입력해 lifecycle·종료 사유·종료 시각을 함께 저장하며, 재활성화 요청은 이 정보를 보존한다
+- owner는 자기 동아리 관리 화면에서 목적·사유를 제외한 시각 중심 누적 운영 이력을 열람한다
+- global admin은 admin 상세 화면에서 모든 동아리의 목적·사유를 포함한 운영 metadata와 이력을 read-only로 열람하고 pending 동아리를 승인한다
+- global admin 권한은 일반 동아리 수정·종료·재활성화·membership 관리나 private/approval 내부 콘텐츠 우회 권한을 부여하지 않는다
 - pending 동아리는 owner만 기본 상태를 확인하며 내부 콘텐츠를 읽거나 작성할 수 없다
 - inactive 동아리는 active/inactive membership이 기본 정보를 볼 수 있고, active member만 기존 내부 콘텐츠를 읽을 수 있다
 - pending/inactive 동아리에서는 membership accept/approve/reactivate 등 active participation을 만드는 동작을 허용하지 않는다

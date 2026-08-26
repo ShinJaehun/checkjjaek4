@@ -66,6 +66,25 @@ ko:
     lifecycle_messages:
       pending_approval: "동아리 승인 대기 중입니다. 승인 전에는 가입과 동아리 활동을 시작할 수 없습니다."
       inactive: "운영 종료된 동아리입니다. 기존 active 구성원만 과거 콘텐츠를 읽을 수 있습니다."
+    lifecycle_history:
+      title: "운영 이력"
+      empty: "기록된 운영 이력이 없습니다."
+      not_recorded: "기록 없음"
+      stages:
+        opening:
+          title: "동아리 개설"
+        closure:
+          title: "동아리 운영 종료"
+        reactivation:
+          title: "동아리 재운영"
+      labels:
+        application_purpose: "개설 목적"
+        requested_at: "신청"
+        approved_at: "승인"
+        closure_reason: "운영 종료 사유"
+        closed_at: "종료"
+        reactivation_requested_at: "신청"
+        reactivation_approved_at: "승인"
     index:
       title: "독서 동아리"
       description: "함께 읽고 이야기할 독서 공동체를 찾아보세요."
@@ -96,7 +115,7 @@ ko:
       close_description: "운영 종료 후에는 새 가입, 초대와 새 콘텐츠 작성을 할 수 없습니다."
       close_confirmation: "동아리 운영을 종료할까요?\n운영을 종료하면 새 가입, 초대, 짹·책짹·댓글 작성이 중단됩니다.\n기존 구성원과 콘텐츠는 삭제되지 않습니다.\n다시 운영하려면 관리자 승인이 필요합니다."
       inactive_title: "운영 종료 정보"
-      closed_at: "종료 시각: %{time}"
+      closed_at: "종료: %{time}"
       reactivation_description: "다시 운영하려면 관리자 승인이 필요합니다."
     pending:
       title: "가입 요청"
@@ -125,20 +144,23 @@ ko:
       book_search_context: "%{group_name} 동아리에 남길 책짹의 책을 찾습니다."
   admin:
     groups:
-      nav: "동아리 승인"
+      nav: "동아리 운영 관리"
       index:
-        title: "동아리 승인 관리"
-        description: "승인 대기 중인 동아리 신청을 확인합니다."
+        title: "동아리 운영 관리"
+        description: "승인 대기 신청과 동아리 운영 정보를 확인합니다."
+        pending_title: "승인 대기"
+        all_title: "전체 동아리"
         empty: "승인 대기 중인 동아리가 없습니다."
       actions:
         approve: "운영 승인"
+        show: "운영 정보 보기"
+        back: "동아리 운영 관리로"
       request_types:
         initial: "개설 신청"
         reactivation: "재활성화 요청"
       application_purpose_missing: "등록된 동아리 개설 목적이 없습니다."
       previous_closure: "이전 운영 종료 정보"
       closure_reason_missing: "등록된 운영 종료 사유가 없습니다."
-      request_updated_at: "신청 정보 갱신: %{time}"
       notices:
         approved: "동아리 운영을 승인했습니다."
   group_memberships:

@@ -67,6 +67,8 @@ Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 �
 - 개설 목적은 owner의 관리 화면과 global admin 승인 화면에서만 확인한다.
 - global admin만 Group을 승인해 운영 중으로 전환할 수 있다.
 - global admin은 동아리 개설 목적을 포함한 신청 정보를 확인해 승인한다.
+- 개설 신청·최초 승인·운영 종료·재활성화 요청·재승인은 발생 시각과 함께 운영 이력에 누적한다.
+- 개설 신청에는 당시 개설 목적, 운영 종료에는 당시 종료 사유를 snapshot으로 보존한다.
 
 승인 거절 상태 또는 row 삭제 여부, 거절 사유, admin UI, 생성 횟수 제한,
 spam/abuse scoring은 후속 결정으로 남긴다.
@@ -112,6 +114,9 @@ Group hard delete는 이 lifecycle의 기본 동작이 아니다.
 
 최소한 기존 owner가 재활성화를 요청할 수 있는 방향을 둔다.
 재활성화 요청은 기존 종료 사유·시각을 보존하며 global admin 승인 목록에서 신규 개설 신청과 구분한다.
+owner는 자기 Group의 시각 중심 운영 이력을 관리 화면에서 열람한다. 개설 목적과 종료 사유 snapshot은
+global admin의 운영 상세에서 확인하며 admin 목록에는 운영 이력을 직접 표시하지 않는다. global admin은 모든 Group의
+운영 metadata와 이력을 read-only로 열람하지만, 이 권한으로 일반 Group 관리나 내부 콘텐츠에 접근하지 않는다.
 정확한 요청 UI, 요청 가능 사용자의 예외와 admin 거절 처리는 후속 결정으로 남긴다.
 
 ---

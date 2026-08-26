@@ -15,6 +15,11 @@ class Group < ApplicationRecord
   has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
   has_many :members, through: :active_group_memberships, source: :user
   has_many :jjaeks, dependent: :restrict_with_error
+  has_many :lifecycle_events,
+           -> { order(:created_at, :id) },
+           class_name: "GroupLifecycleEvent",
+           dependent: :destroy,
+           inverse_of: :group
 
   validates :name, presence: true
   validates :application_purpose, length: { maximum: 500 }, allow_nil: true

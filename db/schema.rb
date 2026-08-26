@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_094000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_095000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -111,6 +111,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_094000) do
     t.index ["followee_id"], name: "index_follows_on_followee_id"
     t.index ["follower_id", "followee_id"], name: "index_follows_on_follower_id_and_followee_id", unique: true
     t.index ["follower_id"], name: "index_follows_on_follower_id"
+  end
+
+  create_table "group_lifecycle_events", force: :cascade do |t|
+    t.bigint "actor_id", null: false
+    t.datetime "created_at", null: false
+    t.text "detail"
+    t.integer "event_type", null: false
+    t.bigint "group_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_group_lifecycle_events_on_actor_id"
+    t.index ["group_id", "created_at", "id"], name: "index_group_lifecycle_events_on_group_and_time"
+    t.index ["group_id"], name: "index_group_lifecycle_events_on_group_id"
   end
 
   create_table "group_memberships", force: :cascade do |t|
@@ -229,6 +241,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_094000) do
   add_foreign_key "comments", "users"
   add_foreign_key "follows", "users", column: "followee_id"
   add_foreign_key "follows", "users", column: "follower_id"
+  add_foreign_key "group_lifecycle_events", "groups"
+  add_foreign_key "group_lifecycle_events", "users", column: "actor_id"
   add_foreign_key "group_memberships", "groups"
   add_foreign_key "group_memberships", "users"
   add_foreign_key "groups", "users", column: "owner_id"

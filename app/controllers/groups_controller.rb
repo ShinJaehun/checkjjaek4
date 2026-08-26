@@ -51,7 +51,19 @@ class GroupsController < ApplicationController
     @group = current_user.owned_groups.build(create_group_params)
     authorize @group
 
-    if @group.save
+    created = Group.transaction do
+      next false unless @group.save
+
+      GroupLifecycleEvent.create!(
+        group: @group,
+        actor: current_user,
+        event_type: :opening_requested,
+        detail: @group.application_purpose
+      )
+      true
+    end
+
+    if created
       redirect_to @group, notice: t("groups.notices.created")
     else
       render :new, status: :unprocessable_content
@@ -60,14 +72,23 @@ class GroupsController < ApplicationController
 
   def edit
     authorize @group
+    prepare_lifecycle_history
   end
 
   def update
     authorize @group
 
-    if @group.update(update_group_params)
+    updated = Group.transaction do
+      next false unless @group.update(update_group_params)
+
+      sync_opening_request_detail
+      true
+    end
+
+    if updated
       redirect_to @group, notice: t("groups.notices.updated")
     else
+      prepare_lifecycle_history
       render :edit, status: :unprocessable_content
     end
   end
@@ -76,21 +97,37 @@ class GroupsController < ApplicationController
     authorize @group, :close?
     @closure_reason_input = close_group_params[:closure_reason]
 
-    if @group.update(
-      lifecycle_status: :inactive,
-      closure_reason: @closure_reason_input,
-      closed_at: Time.current
-    )
+    closed = Group.transaction do
+      next false unless @group.update(
+        lifecycle_status: :inactive,
+        closure_reason: @closure_reason_input,
+        closed_at: Time.current
+      )
+
+      GroupLifecycleEvent.create!(
+        group: @group,
+        actor: current_user,
+        event_type: :operations_closed,
+        detail: @closure_reason_input
+      )
+      true
+    end
+
+    if closed
       redirect_to @group, notice: t("groups.notices.closed")
     else
       @group.restore_attributes(%w[lifecycle_status closed_at])
+      prepare_lifecycle_history
       render :edit, status: :unprocessable_content
     end
   end
 
   def request_reactivation
     authorize @group, :request_reactivation?
-    @group.pending_approval!
+    Group.transaction do
+      @group.pending_approval!
+      GroupLifecycleEvent.create!(group: @group, actor: current_user, event_type: :reactivation_requested)
+    end
 
     redirect_to @group, notice: t("groups.notices.reactivation_requested")
   end
@@ -124,5 +161,16 @@ class GroupsController < ApplicationController
       Jjaek.none
     end
     @jjaek = Jjaek.new(user: current_user, group: @group) if group_policy.create_jjaek?
+  end
+
+  def prepare_lifecycle_history
+    @lifecycle_events = @group.lifecycle_events.includes(:actor)
+  end
+
+  def sync_opening_request_detail
+    return unless @group.pending_approval? && @group.closed_at.nil?
+    return unless @group.saved_change_to_application_purpose?
+
+    @group.lifecycle_events.opening_requested.last&.update!(detail: @group.application_purpose)
   end
 end

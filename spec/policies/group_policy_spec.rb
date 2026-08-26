@@ -116,4 +116,18 @@ RSpec.describe GroupPolicy do
       expect(described_class.new(nonmember, group).edit?).to be(false)
     end
   end
+
+  it "gives a global admin only the explicit admin metadata permission" do
+    admin = User.create!(name: "Admin", email: "policy-global-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true)
+    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Owner managed", group_type: :private_group)
+    policy = described_class.new(admin, group)
+
+    expect(policy.view_admin_details?).to be(true)
+    expect(policy.edit?).to be(false)
+    expect(policy.update?).to be(false)
+    expect(policy.close?).to be(false)
+    expect(policy.request_reactivation?).to be(false)
+    expect(policy.show?).to be(false)
+    expect(policy.read_jjaeks?).to be(false)
+  end
 end

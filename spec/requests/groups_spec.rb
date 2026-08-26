@@ -21,6 +21,10 @@ RSpec.describe "Groups", type: :request do
     expect(group).to be_pending_approval
     expect(group.application_purpose).to eq("Build a reading community")
     expect(group.group_memberships.find_by(user: user)).to be_active
+    event = group.lifecycle_events.sole
+    expect(event).to be_opening_requested
+    expect(event.actor).to eq(user)
+    expect(event.detail).to eq("Build a reading community")
     expect(response).to redirect_to(group_path(group))
   end
 
@@ -31,6 +35,26 @@ RSpec.describe "Groups", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(Group.find_by(name: "Readers")).to be_nil
+  end
+
+  it "rolls back the group and owner membership when opening event creation fails" do
+    sign_in user
+    allow(GroupLifecycleEvent).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(GroupLifecycleEvent.new))
+    group_count = Group.count
+    membership_count = GroupMembership.count
+    event_count = GroupLifecycleEvent.count
+    post groups_path, params: {
+      group: {
+        name: "Atomic application",
+        group_type: "public_group",
+        application_purpose: "Test transactions"
+      }
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(Group.count).to eq(group_count)
+    expect(GroupMembership.count).to eq(membership_count)
+    expect(GroupLifecycleEvent.count).to eq(event_count)
   end
 
   it "shows a pending group to its owner but not to another user" do
@@ -146,6 +170,7 @@ RSpec.describe "Groups", type: :request do
 
     it "lets a pending owner view and update the application purpose only in management" do
       pending_group = Group.create!(owner: user, name: "Pending management", group_type: :public_group, application_purpose: "Initial purpose")
+      opening_event = pending_group.lifecycle_events.create!(actor: user, event_type: :opening_requested, detail: "Initial purpose")
       sign_in user
 
       get group_path(pending_group)
@@ -153,10 +178,23 @@ RSpec.describe "Groups", type: :request do
       expect(response.body).to include("동아리 관리")
 
       get edit_group_path(pending_group)
+      opening_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 개설") }
       expect(response.body).to include("승인 대기", "Initial purpose")
+      expect(opening_card.text).to include("신청", I18n.l(opening_event.created_at, format: :short))
+      expect(opening_card.text).not_to include("승인")
+      expect(response.body.scan("개설 목적").size).to eq(1)
 
       patch group_path(pending_group), params: { group: { name: pending_group.name, application_purpose: "Updated purpose" } }
       expect(pending_group.reload.application_purpose).to eq("Updated purpose")
+      expect(opening_event.reload.detail).to eq("Updated purpose")
+      expect(pending_group.lifecycle_events.count).to eq(1)
+
+      pending_group.active!
+      pending_group.lifecycle_events.create!(actor: user, event_type: :opening_approved)
+      get edit_group_path(pending_group)
+      opening_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 개설") }
+      expect(opening_card.text).to include("신청", "승인")
+      expect(response.body).not_to include("Updated purpose", "개설 목적")
     end
 
     it "renders edit with 422 when validation fails" do
@@ -188,6 +226,7 @@ RSpec.describe "Groups", type: :request do
       get group_path(group)
       expect(response.body).to include("동아리 관리", "동아리 구성원", member.name, "활동 중지")
       expect(response.body).not_to include("동아리 운영 종료", "재활성화 요청")
+      expect(response.body).not_to include("운영 이력")
       expect(response.body).not_to include("내보내기")
 
       group.group_memberships.find_by!(user: member).update!(status: :inactive)
@@ -234,9 +273,16 @@ RSpec.describe "Groups", type: :request do
       expect(group.closed_at).to be_present
       expect(group.group_memberships.count).to eq(2)
       expect(group.jjaeks).to contain_exactly(jjaek)
+      first_close = group.lifecycle_events.operations_closed.sole
+      expect(first_close.actor).to eq(user)
+      expect(first_close.detail).to eq("The reading program finished")
 
       get edit_group_path(group)
-      expect(response.body).to include("운영 종료", "The reading program finished", "재활성화 요청")
+      expect(response.body).to include("운영 종료", "종료", "재활성화 요청", "운영 이력")
+      expect(response.body).not_to include("The reading program finished", "운영 종료 사유")
+
+      get group_path(group)
+      expect(response.body).not_to include("운영 이력", "The reading program finished")
 
       closed_at = group.closed_at
       patch request_reactivation_group_path(group)
@@ -245,10 +291,37 @@ RSpec.describe "Groups", type: :request do
       expect(group.closed_at).to eq(closed_at)
       expect(group.group_memberships.count).to eq(2)
       expect(group.jjaeks).to contain_exactly(jjaek)
+      expect(group.lifecycle_events.reactivation_requested.sole.actor).to eq(user)
 
       group.active!
       get edit_group_path(group)
+      closure_reason_field =
+        Nokogiri::HTML(response.body).at_css('textarea[name="group[closure_reason]"]')
+
+      expect(closure_reason_field).to be_present
+      expect(closure_reason_field.text).to be_blank
       expect(response.body).not_to include("The reading program finished")
+      lifecycle_history =
+        Nokogiri::HTML(response.body).css("section").find do |section|
+          section.at_css("h2")&.text&.strip == "운영 이력"
+        end
+
+      expect(lifecycle_history).to be_present
+      expect(lifecycle_history.text).not_to include("운영 종료 사유")
+    end
+
+    it "rolls back a close when lifecycle event creation fails" do
+      sign_in user
+      allow(GroupLifecycleEvent).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(GroupLifecycleEvent.new))
+      event_count = GroupLifecycleEvent.count
+      patch close_group_path(group), params: {
+        group: { closure_reason: "Close atomically" }
+      }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(group.reload).to be_active
+      expect(group.closed_at).to be_nil
+      expect(group.closure_reason).to be_nil
+      expect(GroupLifecycleEvent.count).to eq(event_count)
     end
   end
 end

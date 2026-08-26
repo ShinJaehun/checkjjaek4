@@ -26,14 +26,10 @@
       <% if @group.closed_at.present? %>
         <p class="mt-3 text-sm text-stone-600"><%= t("groups.management.closed_at", time: l(@group.closed_at, format: :short)) %></p>
       <% end %>
-      <% if @group.closure_reason.present? %>
-        <div class="mt-4 rounded-2xl bg-white p-4">
-          <p class="text-xs font-semibold text-stone-500"><%= t("groups.form.closure_reason") %></p>
-          <p class="mt-2 whitespace-pre-wrap text-sm text-stone-700"><%= @group.closure_reason %></p>
-        </div>
-      <% end %>
       <p class="mt-4 text-sm text-stone-700"><%= t("groups.management.reactivation_description") %></p>
       <%= button_to t("groups.actions.request_reactivation"), request_reactivation_group_path(@group), method: :patch, class: "mt-4 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
     </section>
   <% end %>
+
+  <%= render "groups/lifecycle_history", lifecycle_events: @lifecycle_events, show_details: false %>
 </section>
