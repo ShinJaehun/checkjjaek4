@@ -244,7 +244,8 @@
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - inactive·탈퇴 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
 - 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 inactive·탈퇴 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
-- 동아리 관리자의 타인 댓글·Jjaek 삭제와 동아리 좋아요·다시짹/share는 구현되지 않음
+- 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있고, 조회 가능한 기존 자기 좋아요는 이후 동아리·membership 비활성화나 Jjaek 삭제 상태에서도 철회할 수 있음
+- 동아리 관리자의 타인 댓글·Jjaek 삭제와 동아리 다시짹/share는 구현되지 않음
 - 동아리 hard delete·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
 
 ### 5-2. 계정 탈퇴

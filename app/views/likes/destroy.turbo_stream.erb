@@ -1,7 +1,7 @@
-<% if @jjaek.deleted? %>
-  <%= turbo_stream.remove dom_id(@jjaek, :like_action) %>
-<% else %>
+<% if show_like_summary_action?(@jjaek) %>
   <%= turbo_stream.replace dom_id(@jjaek, :like_action) do %>
     <%= render "jjaeks/like_summary_action", jjaek: @jjaek %>
   <% end %>
+<% else %>
+  <%= turbo_stream.remove dom_id(@jjaek, :like_action) %>
 <% end %>

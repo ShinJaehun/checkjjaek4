@@ -10,6 +10,14 @@ module JjaeksHelper
     jjaek.likes.find { |like| like.user_id == current_user.id }
   end
 
+  def show_like_summary_action?(jjaek)
+    current_like = current_user_like_for(jjaek)
+
+    jjaek.likes_count.positive? ||
+      (current_like && policy(current_like).destroy?) ||
+      policy(Like.new(jjaek: jjaek, user: current_user)).create?
+  end
+
   def show_requote_book_link?(jjaek)
     jjaek.book.present? && jjaek.quoted_jjaek.present?
   end

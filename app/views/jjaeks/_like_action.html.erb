@@ -1,6 +1,6 @@
 <% current_like = current_user_like_for(jjaek) %>
-<% if current_like %>
+<% if current_like && policy(current_like).destroy? %>
   <%= button_to t("likes.actions.unlike"), jjaek_like_path(jjaek), method: :delete, class: "text-sm font-medium text-stone-700" %>
-<% elsif !jjaek.deleted? %>
+<% elsif policy(Like.new(jjaek: jjaek, user: current_user)).create? %>
   <%= button_to t("likes.actions.like"), jjaek_like_path(jjaek), class: "text-sm font-medium text-stone-700" %>
 <% end %>

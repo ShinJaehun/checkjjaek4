@@ -72,13 +72,87 @@ RSpec.describe LikePolicy do
       expect(described_class.new(other_user, like).destroy?).to be(false)
     end
 
-    it "does not allow likes on a group jjaek" do
+    it "lets an active member like and unlike group jjaeks and group book jjaeks" do
       group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+      group_book_jjaek = other_user.jjaeks.create!(group:, book:, content: "Group book jjaek")
+
+      [ group_jjaek, group_book_jjaek ].each do |jjaek|
+        like = jjaek.likes.build(user:)
+        expect(described_class.new(user, like).create?).to be(true)
+
+        like.save!
+        expect(described_class.new(user, like).destroy?).to be(true)
+      end
+    end
+
+    it "does not let a public group non-member create a like" do
+      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Public", group_type: :public_group)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+
+      expect(described_class.new(user, group_jjaek.likes.build(user:)).create?).to be(false)
+    end
+
+    it "uses the same active-member rule for approval and private groups" do
+      %i[approval_group private_group].each do |group_type|
+        group = Group.create!(lifecycle_status: :active, owner: other_user, name: group_type.to_s, group_type:)
+        group.group_memberships.create!(user:, status: :active)
+        group_jjaek = other_user.jjaeks.create!(group:, content: group_type.to_s)
+
+        expect(described_class.new(user, group_jjaek.likes.build(user:)).create?).to be(true)
+      end
+    end
+
+    it "does not let an inactive group or inactive membership create a like" do
+      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
+      membership = group.group_memberships.create!(user:, status: :active)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+
+      membership.update!(status: :inactive)
+      expect(described_class.new(user, group_jjaek.likes.build(user:)).create?).to be(false)
+
+      membership.update!(status: :active)
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      expect(described_class.new(user, group_jjaek.likes.build(user:)).create?).to be(false)
+    end
+
+    it "lets the owner remove a visible group like after the group or membership becomes inactive" do
+      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
+      membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       like = group_jjaek.likes.create!(user:)
 
-      expect(described_class.new(user, like).create?).to be(false)
+      membership.update!(status: :inactive)
+      expect(described_class.new(user, like).destroy?).to be(true)
+
+      membership.update!(status: :active)
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      expect(described_class.new(user, like).destroy?).to be(true)
+    end
+
+    it "does not let the owner remove a group like after membership ends and the jjaek is no longer visible" do
+      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Private", group_type: :private_group)
+      membership = group.group_memberships.create!(user:, status: :active)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+      like = group_jjaek.likes.create!(user:)
+
+      membership.destroy!
+
       expect(described_class.new(user, like).destroy?).to be(false)
+    end
+
+    it "blocks a new like but allows an existing own like on a tombstoned group jjaek to be removed" do
+      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+      like = group_jjaek.likes.create!(user:)
+      group_jjaek.comments.create!(user:, content: "Keeps shell")
+      group_jjaek.destroy_or_tombstone!
+
+      expect(described_class.new(user, group_jjaek.likes.build(user:)).create?).to be(false)
+      expect(described_class.new(user, like).destroy?).to be(true)
+      expect(described_class.new(other_user, like).destroy?).to be(false)
     end
   end
 end
