@@ -1,15 +1,18 @@
 module Admin
   class GroupsController < ApplicationController
     def index
-      authorize Group, :manage_approvals?
-      @pending_groups = Group.pending_approval.includes(:group_admin, lifecycle_events: :actor).order(updated_at: :asc)
-      @all_groups = Group.includes(:group_admin).order(updated_at: :desc)
+      authorize Group, :view_admin_inventory?
+      groups = policy_scope(Group, policy_scope_class: GroupPolicy::AdminInventoryScope)
+      scope = GroupInventoryQuery.new(groups, params).call.includes(:group_admin)
+      @inventory_page = InventoryPage.new(scope, page: params[:page])
+      @groups = @inventory_page.records
     end
 
     def show
       @group = Group.find(params[:id])
       authorize @group, :view_admin_details?
       @lifecycle_events = @group.lifecycle_events.includes(:actor)
+      @return_params = params.permit(:q, :group_type, :status, :from, :to, :sort, :page)
     end
 
     def approve

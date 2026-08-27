@@ -209,10 +209,12 @@
 - 신규 신청은 일반 소개와 별도의 개설 목적을 제출하고 global admin 승인 목록에서 확인함
 - active 동아리 관리자는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
 - 운영 종료는 동아리 관리 화면에서 사유와 종료 시각을 기록하며, 재활성화 요청도 같은 화면에서 수행함
-- admin 승인 목록은 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 이전 종료 정보를 표시함
+- global admin 운영 관리에는 User·Group 읽기 전용 monitoring inventory가 있으며, 고밀도 표에서 검색·현재 상태/기간 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음
+- User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
+- Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 기존 승인 동작으로 연결함
 - lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·종료·재활성화·재승인 순서로 누적되며 개설 목적과 종료 사유 snapshot을 보존함
 - 동아리 관리자는 동아리 관리에서 시각 중심 운영 이력을, global admin은 admin 전용 show에서 목적·사유를 포함한 read-only 운영 정보와 이력을 확인함
-- admin index는 승인 queue와 전체 동아리 진입점만 제공하고 운영 이력은 상세 화면에서 표시함
+- Group 상세는 목록 query parameter를 보존한 돌아가기 경로와 목적·사유를 포함한 운영 이력을 제공함
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
 - inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
 - 단일 동아리 관리자는 내부적으로 `Group.group_admin_id`로 표현하며 항상 active membership을 가짐

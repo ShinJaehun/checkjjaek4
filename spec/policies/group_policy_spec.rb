@@ -4,6 +4,14 @@ RSpec.describe GroupPolicy do
   let(:group_admin) { User.create!(name: "Group admin", email: "group-policy-group_admin@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:viewer) { User.create!(name: "Viewer", email: "group-policy-viewer@example.com", password: "password123!", password_confirmation: "password123!") }
 
+  it "limits admin inventory scope to global admins" do
+    admin = User.create!(name: "Admin", email: "inventory-policy-admin@example.com", password: "password123!", global_admin: true)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private inventory", group_type: :private_group)
+
+    expect(described_class::AdminInventoryScope.new(admin, Group.all).resolve).to include(group)
+    expect(described_class::AdminInventoryScope.new(viewer, Group.all).resolve).to be_empty
+  end
+
   describe "#show?" do
     it "allows signed-in users to view public and approval groups" do
       public_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
@@ -140,6 +148,7 @@ RSpec.describe GroupPolicy do
     policy = described_class.new(admin, group)
 
     expect(policy.view_admin_details?).to be(true)
+    expect(policy.view_admin_inventory?).to be(true)
     expect(policy.edit?).to be(false)
     expect(policy.update?).to be(false)
     expect(policy.close?).to be(false)

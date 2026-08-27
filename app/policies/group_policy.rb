@@ -1,4 +1,10 @@
 class GroupPolicy < ApplicationPolicy
+  class AdminInventoryScope < Scope
+    def resolve
+      user&.global_admin? ? scope.all : scope.none
+    end
+  end
+
   def index?
     user.present?
   end
@@ -56,6 +62,8 @@ class GroupPolicy < ApplicationPolicy
   def view_admin_details?
     user.present? && user.global_admin?
   end
+
+  alias_method :view_admin_inventory?, :view_admin_details?
 
   class Scope < ApplicationPolicy::Scope
     def resolve

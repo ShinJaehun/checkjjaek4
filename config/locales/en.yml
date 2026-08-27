@@ -167,14 +167,64 @@ en:
     alerts:
       admin_transfer_failed: "Club admin rights could not be transferred."
   admin:
+    navigation:
+      entry: "Operations"
+      label: "Operations navigation"
+    actions:
+      show: "Details"
+    filters:
+      all: "All"
+      apply: "Apply"
+      empty: "No matching results."
+      from: "Start date"
+      to: "End date"
+      no: "No"
+      reset: "Reset filters"
+      search: "Search by name or email"
+      yes: "Yes"
+    sorts:
+      recent: "Newest first"
+      oldest: "Oldest first"
+      updated: "Recently updated"
+      name: "Name"
+    pagination:
+      range: "%{first}–%{last} of %{total}"
+      previous: "Previous"
+      next: "Next"
+    users:
+      nav: "Users"
+      index:
+        title: "User monitoring"
+      statuses:
+        active: "Active"
+        withdrawn: "Withdrawn by user"
+      fields:
+        name: "Name"
+        email: "Email"
+        status: "Account status"
+        joined: "Joined"
+        updated: "Updated"
+        withdrawn: "Withdrawn"
+        groups: "Administered clubs"
+        memberships: "Club memberships"
     groups:
       nav: "Club operations"
       index:
         title: "Club operations"
-        description: "Review pending applications and club operations information."
+        description: "Search and review club lifecycle information and pending approvals."
         pending_title: "Pending approval"
         all_title: "All clubs"
         empty: "No clubs are awaiting approval."
+      filters:
+        search: "Search club, admin name or email"
+      fields:
+        name: "Club"
+        type: "Type"
+        status: "Lifecycle"
+        group_admin: "Club admin"
+        active_members: "Active members"
+        created: "Created"
+        updated: "Updated"
       actions:
         approve: "Approve"
         show: "View operations"

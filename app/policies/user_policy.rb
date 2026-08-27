@@ -1,4 +1,14 @@
 class UserPolicy < ApplicationPolicy
+  class AdminInventoryScope < Scope
+    def resolve
+      user&.global_admin? ? scope.all : scope.none
+    end
+  end
+
+  def view_admin_inventory?
+    user.present? && user.global_admin?
+  end
+
   def show?
     user.present?
   end

@@ -6,6 +6,15 @@ RSpec.describe "Admin group approvals", type: :request do
   let!(:admin) { User.create!(name: "Admin", email: "group-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true) }
   let!(:opening_event) { group.lifecycle_events.create!(actor: group_admin, event_type: :opening_requested, detail: group.application_purpose) }
 
+  def listed_group_ids
+    Nokogiri::HTML(response.body).css("tbody tr").filter_map { |row| row["id"]&.delete_prefix("group_")&.to_i }
+  end
+
+  it "requires authentication for the inventory" do
+    get admin_groups_path
+    expect(response).to redirect_to(new_user_session_path)
+  end
+
   it "blocks a non-admin from the approval list and approve action" do
     sign_in group_admin
 
@@ -109,6 +118,59 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(group.name, group.application_purpose, "운영 이력")
     expect(response.body).not_to include("동아리 운영 종료", "재활성화 요청", "수정하기")
+  end
+
+  it "searches by group or group admin and combines type and lifecycle filters" do
+    private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Hidden Reading Club", group_type: :private_group)
+    sign_in admin
+
+    get admin_groups_path, params: { q: group_admin.email, group_type: "private_group", status: "active" }
+    expect(listed_group_ids).to eq([ private_group.id ])
+
+    get admin_groups_path, params: { q: "Pending club", status: "pending_approval" }
+    expect(listed_group_ids).to eq([ group.id ])
+  end
+
+  it "filters creation dates, applies whitelisted sorts, and ignores invalid values" do
+    older = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Aged club", group_type: :approval_group, created_at: 5.days.ago)
+    sign_in admin
+
+    get admin_groups_path, params: { from: 6.days.ago.to_date.iso8601, to: 4.days.ago.to_date.iso8601 }
+    expect(listed_group_ids).to eq([ older.id ])
+
+    get admin_groups_path, params: { sort: "name" }
+    expect(listed_group_ids.first).to eq(older.id)
+    get admin_groups_path, params: { sort: "oldest" }
+    expect(listed_group_ids.first).to eq(older.id)
+    get admin_groups_path, params: { sort: "recent" }
+    expect(listed_group_ids.first).to eq(group.id)
+    older.update_column(:updated_at, 1.minute.from_now)
+    get admin_groups_path, params: { sort: "updated" }
+    expect(listed_group_ids.first).to eq(older.id)
+    get admin_groups_path, params: { sort: "invalid", group_type: "invalid", from: "invalid", page: "invalid" }
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "paginates the unified inventory and preserves query parameters" do
+    50.times { |index| Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Paged club #{index}", group_type: :public_group) }
+    sign_in admin
+
+    get admin_groups_path, params: { q: "club", page: 2 }
+    expect(listed_group_ids.size).to eq(1)
+    expect(response.body).to include("q=club", "page=1")
+  end
+
+  it "shows private metadata to global admins without changing ordinary private access" do
+    private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private metadata", group_type: :private_group)
+    ordinary_user = User.create!(name: "Ordinary", email: "ordinary-private@example.com", password: "password123!")
+
+    sign_in admin
+    get admin_groups_path, params: { q: "Private metadata" }
+    expect(listed_group_ids).to eq([ private_group.id ])
+
+    sign_in ordinary_user
+    get group_path(private_group)
+    expect(response).to have_http_status(:not_found)
   end
 
   it "does not grant group_admin lifecycle actions through global admin status" do

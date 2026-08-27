@@ -5,6 +5,15 @@ RSpec.describe UserPolicy do
   let(:other_user) { User.create!(name: "Other", email: "user-policy-other@example.com", password: "password123!", password_confirmation: "password123!") }
 
   describe "permissions" do
+    it "limits admin inventory access and scope to global admins" do
+      admin = User.create!(name: "Admin", email: "user-policy-admin@example.com", password: "password123!", global_admin: true)
+
+      expect(described_class.new(admin, other_user).view_admin_inventory?).to be(true)
+      expect(described_class.new(user, other_user).view_admin_inventory?).to be(false)
+      expect(described_class::AdminInventoryScope.new(admin, User.all).resolve).to include(other_user)
+      expect(described_class::AdminInventoryScope.new(user, User.all).resolve).to be_empty
+    end
+
     it "lets a signed-in user view another user's profile" do
       expect(described_class.new(user, other_user).show?).to be(true)
     end
