@@ -55,8 +55,8 @@ RSpec.describe Notification, type: :model do
   end
 
   it "notifies a group Jjaek author only while the source is visible" do
-    owner = User.create!(name: "Group owner", email: "notification-group-owner@example.com", password: "password123!", password_confirmation: "password123!")
-    group = Group.create!(lifecycle_status: :active, owner:, name: "Notifications", group_type: :private_group)
+    group_admin = User.create!(name: "Group admin", email: "notification-group-admin@example.com", password: "password123!", password_confirmation: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Notifications", group_type: :private_group)
     author_membership = group.group_memberships.create!(user: recipient, status: :active)
     group.group_memberships.create!(user: actor, status: :active)
     group_jjaek = recipient.jjaeks.create!(group:, content: "Group source")
@@ -74,7 +74,7 @@ RSpec.describe Notification, type: :model do
   end
 
   it "does not notify an author about their own group comment" do
-    group = Group.create!(lifecycle_status: :active, owner: recipient, name: "Own comments", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: recipient, name: "Own comments", group_type: :public_group)
     group_jjaek = recipient.jjaeks.create!(group:, content: "Own source")
     own_comment = group_jjaek.comments.create!(user: recipient, content: "Own")
 

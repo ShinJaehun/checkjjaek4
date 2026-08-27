@@ -112,7 +112,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "lets an active group member like and unlike general and book jjaeks" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Readers", group_type: :public_group)
     group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     group_book_jjaek = author.jjaeks.create!(group:, book:, content: "Group book jjaek")
@@ -125,7 +125,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "does not let a public group non-member create a like or see the like button" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public", group_type: :public_group)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     group_jjaek.likes.create!(user: author)
     sign_in user
@@ -139,7 +139,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "does not create a like for an inactive group or an inactive or ended membership" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     sign_in user
@@ -157,7 +157,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "lets a user remove a visible own like after group or membership deactivation" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     sign_in user
@@ -173,7 +173,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "blocks new likes and allows an existing own like to be removed from a tombstoned group jjaek" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Readers", group_type: :public_group)
     group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     group_jjaek.likes.create!(user:)
@@ -186,7 +186,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "does not remove another user's group like" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Readers", group_type: :public_group)
     group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     other_like = group_jjaek.likes.create!(user: author)
@@ -197,7 +197,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "does not remove an existing like after membership ends and group content access is lost" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Approval", group_type: :approval_group)
     membership = group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     like = group_jjaek.likes.create!(user:)
@@ -209,7 +209,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "removes the empty like wrapper after a turbo unlike when another like is not allowed" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     sign_in user
@@ -238,7 +238,7 @@ RSpec.describe "Likes", type: :request do
   end
 
   it "restores the like button after an active member turbo-unlikes a normal group jjaek" do
-    group = Group.create!(lifecycle_status: :active, owner: author, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Readers", group_type: :public_group)
     group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     group_jjaek.likes.create!(user:)

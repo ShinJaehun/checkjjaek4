@@ -2,8 +2,8 @@ module Admin
   class GroupsController < ApplicationController
     def index
       authorize Group, :manage_approvals?
-      @pending_groups = Group.pending_approval.includes(:owner, lifecycle_events: :actor).order(updated_at: :asc)
-      @all_groups = Group.includes(:owner).order(updated_at: :desc)
+      @pending_groups = Group.pending_approval.includes(:group_admin, lifecycle_events: :actor).order(updated_at: :asc)
+      @all_groups = Group.includes(:group_admin).order(updated_at: :desc)
     end
 
     def show

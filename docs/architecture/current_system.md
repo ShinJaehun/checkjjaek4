@@ -41,7 +41,7 @@
 - Like: Jjaek에 대한 좋아요
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
-- `Group`: 일반 사용자 독서 동아리와 동아리 종류·단일 관리자(`owner_id`)
+- `Group`: 일반 사용자 독서 동아리와 동아리 종류·단일 관리자(`group_admin_id`)
 - `User`: `withdrawn_at` 기반 terminal 탈퇴 상태와 익명 User row 보존
 - `Group`: global admin 승인 기반 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active/inactive 상태
@@ -215,7 +215,7 @@
 - admin index는 승인 queue와 전체 동아리 진입점만 제공하고 운영 이력은 상세 화면에서 표시함
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
 - inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
-- 단일 동아리 관리자는 내부적으로 `Group.owner_id`로 표현하며 항상 active membership을 가짐
+- 단일 동아리 관리자는 내부적으로 `Group.group_admin_id`로 표현하며 항상 active membership을 가짐
 - active/inactive 동아리의 현재 관리자는 다른 active member에게 관리자 권한을 원자적으로 이전할 수 있음
 - 이전 관리자는 일반 active member로 남아 기존 탈퇴 경로를 사용할 수 있음
 - 공개 동아리는 즉시 가입, 승인 동아리는 pending 요청 후 동아리 관리자 승인 방식

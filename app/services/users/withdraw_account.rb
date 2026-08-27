@@ -43,13 +43,13 @@ module Users
       raise InvalidPassword unless user.valid_password?(current_password)
       raise GlobalAdmin if user.global_admin?
 
-      @owned_groups = user.owned_groups.lock.to_a
-      active_groups = owned_groups.select(&:active?).map(&:name)
+      @administered_groups = user.administered_groups.lock.to_a
+      active_groups = administered_groups.select(&:active?).map(&:name)
       raise ActiveGroupAdmin.new(active_groups) if active_groups.any?
     end
 
     def cancel_pending_groups!
-      owned_groups.select(&:pending_approval?).each do |group|
+      administered_groups.select(&:pending_approval?).each do |group|
         if group.closed_at.present?
           group.cancel_reactivation_for_withdrawal!
         else
@@ -78,7 +78,7 @@ module Users
     end
 
     def clean_group_memberships!
-      historical_membership_ids = owned_groups.select(&:inactive?).filter_map do |group|
+      historical_membership_ids = administered_groups.select(&:inactive?).filter_map do |group|
         membership = group.group_memberships.find_by(user: user)
         membership&.update!(status: :inactive) if membership&.active?
         membership&.id
@@ -103,8 +103,8 @@ module Users
       user.bookshelves.delete_all
     end
 
-    def owned_groups
-      @owned_groups || []
+    def administered_groups
+      @administered_groups || []
     end
   end
 end

@@ -73,7 +73,7 @@ RSpec.describe LikePolicy do
     end
 
     it "lets an active member like and unlike group jjaeks and group book jjaeks" do
-      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       group_book_jjaek = other_user.jjaeks.create!(group:, book:, content: "Group book jjaek")
@@ -88,7 +88,7 @@ RSpec.describe LikePolicy do
     end
 
     it "does not let a public group non-member create a like" do
-      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Public", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Public", group_type: :public_group)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
 
       expect(described_class.new(user, group_jjaek.likes.build(user:)).create?).to be(false)
@@ -96,7 +96,7 @@ RSpec.describe LikePolicy do
 
     it "uses the same active-member rule for approval and private groups" do
       %i[approval_group private_group].each do |group_type|
-        group = Group.create!(lifecycle_status: :active, owner: other_user, name: group_type.to_s, group_type:)
+        group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: group_type.to_s, group_type:)
         group.group_memberships.create!(user:, status: :active)
         group_jjaek = other_user.jjaeks.create!(group:, content: group_type.to_s)
 
@@ -105,7 +105,7 @@ RSpec.describe LikePolicy do
     end
 
     it "does not let an inactive group or inactive membership create a like" do
-      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
 
@@ -118,7 +118,7 @@ RSpec.describe LikePolicy do
     end
 
     it "lets the owner remove a visible group like after the group or membership becomes inactive" do
-      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       like = group_jjaek.likes.create!(user:)
@@ -132,7 +132,7 @@ RSpec.describe LikePolicy do
     end
 
     it "does not let the owner remove a group like after membership ends and the jjaek is no longer visible" do
-      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Private", group_type: :private_group)
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Private", group_type: :private_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       like = group_jjaek.likes.create!(user:)
@@ -143,7 +143,7 @@ RSpec.describe LikePolicy do
     end
 
     it "blocks a new like but allows an existing own like on a tombstoned group jjaek to be removed" do
-      group = Group.create!(lifecycle_status: :active, owner: other_user, name: "Readers", group_type: :public_group)
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       like = group_jjaek.likes.create!(user:)

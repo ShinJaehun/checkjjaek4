@@ -1,13 +1,13 @@
 require "rails_helper"
 
 RSpec.describe "Admin group approvals", type: :request do
-  let!(:owner) { User.create!(name: "Owner", email: "admin-group-owner@example.com", password: "password123!", password_confirmation: "password123!") }
-  let!(:group) { Group.create!(owner: owner, name: "Pending club", group_type: :public_group, application_purpose: "Create a reading circle") }
+  let!(:group_admin) { User.create!(name: "Group admin", email: "admin-group-group_admin@example.com", password: "password123!", password_confirmation: "password123!") }
+  let!(:group) { Group.create!(group_admin: group_admin, name: "Pending club", group_type: :public_group, application_purpose: "Create a reading circle") }
   let!(:admin) { User.create!(name: "Admin", email: "group-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true) }
-  let!(:opening_event) { group.lifecycle_events.create!(actor: owner, event_type: :opening_requested, detail: group.application_purpose) }
+  let!(:opening_event) { group.lifecycle_events.create!(actor: group_admin, event_type: :opening_requested, detail: group.application_purpose) }
 
   it "blocks a non-admin from the approval list and approve action" do
-    sign_in owner
+    sign_in group_admin
 
     get admin_groups_path
     expect(response).to redirect_to(root_path)
@@ -25,7 +25,7 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get admin_groups_path
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include(group.name, owner.name, "개설 신청", "운영 승인", "운영 정보 보기")
+    expect(response.body).to include(group.name, group_admin.name, "개설 신청", "운영 승인", "운영 정보 보기")
     expect(response.body).not_to include("운영 이력", "Create a reading circle")
     expect(response.body).not_to include("신청 정보 갱신")
 
@@ -48,12 +48,12 @@ RSpec.describe "Admin group approvals", type: :request do
   end
 
   it "shows a reactivation request with previous closure details" do
-    legacy_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Returning club", group_type: :public_group)
+    legacy_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Returning club", group_type: :public_group)
     closed_at = Time.current
     legacy_group.update!(lifecycle_status: :inactive, closure_reason: "The first season ended", closed_at: closed_at)
     legacy_group.update!(lifecycle_status: :pending_approval)
-    legacy_group.lifecycle_events.create!(actor: owner, event_type: :operations_closed, detail: "The first season ended", created_at: closed_at)
-    legacy_group.lifecycle_events.create!(actor: owner, event_type: :reactivation_requested)
+    legacy_group.lifecycle_events.create!(actor: group_admin, event_type: :operations_closed, detail: "The first season ended", created_at: closed_at)
+    legacy_group.lifecycle_events.create!(actor: group_admin, event_type: :reactivation_requested)
     sign_in admin
 
     get admin_groups_path
@@ -79,7 +79,7 @@ RSpec.describe "Admin group approvals", type: :request do
   end
 
   it "falls back to the current purpose on admin details for a legacy pending group without events" do
-    legacy_group = Group.create!(owner: owner, name: "Legacy application", group_type: :public_group, application_purpose: "Legacy purpose")
+    legacy_group = Group.create!(group_admin: group_admin, name: "Legacy application", group_type: :public_group, application_purpose: "Legacy purpose")
     sign_in admin
 
     get admin_group_path(legacy_group)
@@ -88,7 +88,7 @@ RSpec.describe "Admin group approvals", type: :request do
   end
 
   it "shows an approval-only opening stage for a legacy pending group" do
-    legacy_group = Group.create!(owner: owner, name: "Legacy approval", group_type: :public_group, application_purpose: "Legacy purpose")
+    legacy_group = Group.create!(group_admin: group_admin, name: "Legacy approval", group_type: :public_group, application_purpose: "Legacy purpose")
     sign_in admin
 
     patch approve_admin_group_path(legacy_group)
@@ -99,7 +99,7 @@ RSpec.describe "Admin group approvals", type: :request do
   end
 
   it "shows read-only operations details for every group" do
-    active_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Active club", group_type: :private_group)
+    active_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Active club", group_type: :private_group)
     sign_in admin
 
     get admin_groups_path
@@ -111,9 +111,9 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response.body).not_to include("동아리 운영 종료", "재활성화 요청", "수정하기")
   end
 
-  it "does not grant owner lifecycle actions through global admin status" do
-    active_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Owner only", group_type: :public_group)
-    inactive_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Closed owner only", group_type: :public_group)
+  it "does not grant group_admin lifecycle actions through global admin status" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Group admin only", group_type: :public_group)
+    inactive_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Closed group_admin only", group_type: :public_group)
     inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
     sign_in admin
 
@@ -126,7 +126,7 @@ RSpec.describe "Admin group approvals", type: :request do
     patch request_reactivation_group_path(inactive_group)
     expect(response).to have_http_status(:not_found)
 
-    expect(active_group.reload.name).to eq("Owner only")
+    expect(active_group.reload.name).to eq("Group admin only")
     expect(active_group).to be_active
     expect(inactive_group.reload).to be_inactive
   end
@@ -135,14 +135,14 @@ RSpec.describe "Admin group approvals", type: :request do
     sign_in admin
     patch approve_admin_group_path(group)
 
-    sign_in owner
+    sign_in group_admin
     patch close_group_path(group), params: { group: { closure_reason: "First season ended" } }
     patch request_reactivation_group_path(group)
 
     sign_in admin
     patch approve_admin_group_path(group)
 
-    sign_in owner
+    sign_in group_admin
     patch close_group_path(group), params: { group: { closure_reason: "Second season ended" } }
     patch request_reactivation_group_path(group)
 

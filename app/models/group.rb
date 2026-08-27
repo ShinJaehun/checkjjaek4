@@ -10,7 +10,7 @@ class Group < ApplicationRecord
        default: :pending_approval,
        validate: true
 
-  belongs_to :owner, class_name: "User", inverse_of: :owned_groups
+  belongs_to :group_admin, class_name: "User", inverse_of: :administered_groups
   has_many :group_memberships, dependent: :destroy
   has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
   has_many :members, through: :active_group_memberships, source: :user
@@ -29,34 +29,34 @@ class Group < ApplicationRecord
   validate :closure_reason_must_be_present_when_closing
   validate :lifecycle_status_transition_must_be_valid
 
-  after_create :create_owner_membership!
+  after_create :create_group_admin_membership!
 
   def active_member?(user)
     user.present? && group_memberships.active.exists?(user: user)
   end
 
-  def owner?(user)
-    user.present? && owner_id == user.id
+  def group_admin?(user)
+    user.present? && group_admin_id == user.id
   end
 
   def transfer_admin_to!(new_admin, by:)
     with_lock do
       target_membership = new_admin && group_memberships.active.lock.find_by(user_id: new_admin.id)
-      valid_transfer = owner?(by) && (active? || inactive?) && new_admin.present? &&
-        new_admin.id != owner_id && target_membership.present?
+      valid_transfer = group_admin?(by) && (active? || inactive?) && new_admin.present? &&
+        new_admin.id != group_admin_id && target_membership.present?
 
       unless valid_transfer
-        errors.add(:owner, :invalid_admin_transfer)
+        errors.add(:group_admin, :invalid_admin_transfer)
         raise ActiveRecord::RecordInvalid.new(self)
       end
 
-      update!(owner: new_admin)
+      update!(group_admin: new_admin)
     end
   end
 
   def cancel_pending_application_for_withdrawal!
-    safe_memberships = group_memberships.where.not(user_id: owner_id).none? &&
-      group_memberships.active.where(user_id: owner_id).exists?
+    safe_memberships = group_memberships.where.not(user_id: group_admin_id).none? &&
+      group_memberships.active.where(user_id: group_admin_id).exists?
     safe_events = lifecycle_events.where.not(event_type: :opening_requested).none? &&
       lifecycle_events.opening_requested.count <= 1
 
@@ -114,8 +114,8 @@ class Group < ApplicationRecord
     errors.add(:lifecycle_status, :invalid_transition)
   end
 
-  def create_owner_membership!
-    group_memberships.create!(user: owner, status: :active)
+  def create_group_admin_membership!
+    group_memberships.create!(user: group_admin, status: :active)
   end
 
   def cancelling_reactivation_for_withdrawal?

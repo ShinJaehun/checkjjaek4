@@ -33,10 +33,10 @@ class User < ApplicationRecord
            inverse_of: :actor,
            dependent: :destroy
 
-  has_many :owned_groups,
+  has_many :administered_groups,
            class_name: "Group",
-           foreign_key: :owner_id,
-           inverse_of: :owner,
+           foreign_key: :group_admin_id,
+           inverse_of: :group_admin,
            dependent: :restrict_with_error
   has_many :group_memberships, dependent: :destroy
   has_many :group_lifecycle_events,

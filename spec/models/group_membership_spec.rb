@@ -1,9 +1,9 @@
 require "rails_helper"
 
 RSpec.describe GroupMembership, type: :model do
-  let(:owner) { User.create!(name: "Owner", email: "membership-owner@example.com", password: "password123!", password_confirmation: "password123!") }
+  let(:group_admin) { User.create!(name: "Group admin", email: "membership-group_admin@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:member) { User.create!(name: "Member", email: "membership-member@example.com", password: "password123!", password_confirmation: "password123!") }
-  let(:group) { Group.create!(lifecycle_status: :active, owner: owner, name: "Readers", group_type: :approval_group) }
+  let(:group) { Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Readers", group_type: :approval_group) }
 
   it "does not allow duplicate memberships" do
     described_class.create!(group: group, user: member, status: :pending)
@@ -12,8 +12,8 @@ RSpec.describe GroupMembership, type: :model do
     expect(duplicate).not_to be_valid
   end
 
-  it "requires the owner membership to be active" do
-    membership = group.group_memberships.find_by!(user: owner)
+  it "requires the group_admin membership to be active" do
+    membership = group.group_memberships.find_by!(user: group_admin)
 
     expect(membership.update(status: :pending)).to be(false)
   end
@@ -52,14 +52,14 @@ RSpec.describe GroupMembership, type: :model do
     expect(membership.update(status: :invited)).to be(false)
   end
 
-  it "does not allow the owner membership to become inactive" do
-    membership = group.group_memberships.find_by!(user: owner)
+  it "does not allow the group_admin membership to become inactive" do
+    membership = group.group_memberships.find_by!(user: group_admin)
 
     expect(membership.update(status: :inactive)).to be(false)
   end
 
-  it "does not allow the owner membership to be destroyed" do
-    membership = group.group_memberships.find_by!(user: owner)
+  it "does not allow the group_admin membership to be destroyed" do
+    membership = group.group_memberships.find_by!(user: group_admin)
 
     expect {
       membership.destroy

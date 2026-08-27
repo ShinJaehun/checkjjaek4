@@ -36,10 +36,10 @@ ko:
         group_membership:
           attributes:
             status:
-              owner_must_be_active: "동아리 관리자는 참여 중 상태여야 합니다"
+              group_admin_must_be_active: "동아리 관리자는 참여 중 상태여야 합니다"
               invalid_transition: "허용되지 않는 참여 상태 변경입니다"
             base:
-              owner_membership_cannot_be_destroyed: "동아리 관리자는 탈퇴할 수 없습니다"
+              group_admin_membership_cannot_be_destroyed: "동아리 관리자는 탈퇴할 수 없습니다"
   auth:
     actions:
       sign_in: "로그인"
@@ -76,7 +76,7 @@ ko:
       my_shelf: "내 서재 보기"
   groups:
     nav: "동아리"
-    owner: "동아리 관리자: %{name}"
+    group_admin: "동아리 관리자: %{name}"
     types:
       public_group: "공개 동아리"
       approval_group: "승인 동아리"
@@ -197,7 +197,7 @@ ko:
         approved: "동아리 운영을 승인했습니다."
   group_memberships:
     statuses:
-      owner: "동아리 관리자"
+      group_admin: "동아리 관리자"
       pending: "승인 대기"
       active: "참여 중"
       invited: "초대됨"

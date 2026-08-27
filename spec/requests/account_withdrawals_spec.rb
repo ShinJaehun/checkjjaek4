@@ -100,7 +100,7 @@ RSpec.describe "Account withdrawals", type: :request do
   it "blocks new interactions with a withdrawn user" do
     Users::WithdrawAccount.new(user, current_password: password).call!
     actor = User.create!(name: "Actor", email: "withdrawal-actor@example.com", password: password, password_confirmation: password)
-    private_group = Group.create!(lifecycle_status: :active, owner: actor, name: "Private", group_type: :private_group)
+    private_group = Group.create!(lifecycle_status: :active, group_admin: actor, name: "Private", group_type: :private_group)
     sign_in actor
 
     expect { post user_follow_path(user) }.not_to change(Follow, :count)

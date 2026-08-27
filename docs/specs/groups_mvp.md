@@ -109,7 +109,7 @@ inactive member는 기존 자기 탈퇴 경로로 membership을 삭제하거나 
 - 승인 동아리는 발견 가능하지만 가입 승인이 필요하다.
 - 비공개 동아리는 일반 발견 대상에서 제외하며 초대를 기본 진입점으로 삼는다.
 - 일반 사용자의 생성을 운영 신청으로 보고, global admin 승인 전에는 정상 운영하지 않는다.
-- 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 owner와 global admin만 확인한다.
+- 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 group admin과 global admin만 확인한다.
 - 승인·운영 lifecycle의 상세 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.
 - 동아리 생성 횟수 제한, 계정 연령, 남용 방지 조건은 아직 결정하지 않는다.
 

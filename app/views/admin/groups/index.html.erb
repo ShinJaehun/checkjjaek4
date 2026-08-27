@@ -14,7 +14,7 @@
               <p class="mb-2 text-xs font-semibold text-amber-700"><%= t(group.closed_at.present? ? "admin.groups.request_types.reactivation" : "admin.groups.request_types.initial") %></p>
               <h3 class="text-xl font-semibold text-stone-900"><%= group.name %></h3>
               <p class="mt-1 text-xs text-stone-500"><%= t("groups.types.#{group.group_type}") %></p>
-              <p class="mt-1 text-xs text-stone-500"><%= t("groups.owner", name: group.owner.name) %></p>
+              <p class="mt-1 text-xs text-stone-500"><%= t("groups.group_admin", name: group.group_admin.name) %></p>
             </div>
             <div class="flex gap-2">
               <%= link_to t("admin.groups.actions.show"), admin_group_path(group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
@@ -38,7 +38,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4 last:border-b-0">
           <div>
             <p class="font-medium text-stone-900"><%= group.name %></p>
-            <p class="mt-1 text-xs text-stone-500"><%= t("groups.types.#{group.group_type}") %> · <%= t("groups.owner", name: group.owner.name) %> · <%= t("groups.lifecycle_statuses.#{group.lifecycle_status}") %></p>
+            <p class="mt-1 text-xs text-stone-500"><%= t("groups.types.#{group.group_type}") %> · <%= t("groups.group_admin", name: group.group_admin.name) %> · <%= t("groups.lifecycle_statuses.#{group.lifecycle_status}") %></p>
           </div>
           <%= link_to t("admin.groups.actions.show"), admin_group_path(group), class: "text-sm font-medium text-stone-700 underline" %>
         </div>

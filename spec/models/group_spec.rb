@@ -1,16 +1,16 @@
 require "rails_helper"
 
 RSpec.describe Group, type: :model do
-  let(:owner) { User.create!(name: "Owner", email: "group-owner@example.com", password: "password123!", password_confirmation: "password123!") }
+  let(:group_admin) { User.create!(name: "Group admin", email: "group-group_admin@example.com", password: "password123!", password_confirmation: "password123!") }
 
   it "is pending approval by default" do
-    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "Read together")
+    group = described_class.create!(group_admin: group_admin, name: "Readers", group_type: :public_group, application_purpose: "Read together")
 
     expect(group).to be_pending_approval
   end
 
   it "allows only the lifecycle transitions used for approval, closing, and reactivation" do
-    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "Read together")
+    group = described_class.create!(group_admin: group_admin, name: "Readers", group_type: :public_group, application_purpose: "Read together")
 
     expect(group.update(lifecycle_status: :active)).to be(true)
     expect(
@@ -25,32 +25,32 @@ RSpec.describe Group, type: :model do
   end
 
   it "allows regular attributes to be updated without a lifecycle transition" do
-    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "Read together")
+    group = described_class.create!(group_admin: group_admin, name: "Readers", group_type: :public_group, application_purpose: "Read together")
 
     expect(group.update(name: "Updated readers")).to be(true)
   end
 
   it "requires a name" do
-    group = described_class.new(owner: owner, name: "", group_type: :public_group)
+    group = described_class.new(group_admin: group_admin, name: "", group_type: :public_group)
 
     expect(group).not_to be_valid
   end
 
   it "requires a purpose for a new pending application" do
-    group = described_class.new(owner: owner, name: "Readers", group_type: :public_group)
+    group = described_class.new(group_admin: group_admin, name: "Readers", group_type: :public_group)
 
     expect(group).not_to be_valid
     expect(group.errors[:application_purpose]).to be_present
   end
 
   it "does not let an existing purpose be removed" do
-    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "Read together")
+    group = described_class.create!(group_admin: group_admin, name: "Readers", group_type: :public_group, application_purpose: "Read together")
 
     expect(group.update(application_purpose: "")).to be(false)
   end
 
   it "limits application and closure reasons to 500 characters" do
-    group = described_class.new(owner: owner, name: "Readers", group_type: :public_group, application_purpose: "a" * 501)
+    group = described_class.new(group_admin: group_admin, name: "Readers", group_type: :public_group, application_purpose: "a" * 501)
 
     expect(group).not_to be_valid
 
@@ -59,7 +59,7 @@ RSpec.describe Group, type: :model do
   end
 
   it "allows legacy active groups without a purpose to use lifecycle transitions" do
-    group = described_class.create!(owner: owner, name: "Legacy", group_type: :public_group, lifecycle_status: :active)
+    group = described_class.create!(group_admin: group_admin, name: "Legacy", group_type: :public_group, lifecycle_status: :active)
 
     expect(group.update(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)).to be(true)
     expect(group.update(lifecycle_status: :pending_approval)).to be(true)
@@ -69,7 +69,7 @@ RSpec.describe Group, type: :model do
   describe "#cancel_reactivation_for_withdrawal!" do
     it "cancels only a reactivation request without allowing the transition generally" do
       group = described_class.create!(
-        owner: owner,
+        group_admin: group_admin,
         name: "Reactivation",
         group_type: :public_group,
         lifecycle_status: :active
@@ -95,7 +95,7 @@ RSpec.describe Group, type: :model do
 
     it "rejects an initial pending application" do
       group = described_class.create!(
-        owner: owner,
+        group_admin: group_admin,
         name: "Initial application",
         group_type: :public_group,
         application_purpose: "Read together"
@@ -111,27 +111,27 @@ RSpec.describe Group, type: :model do
   end
 
 
-  it "creates an active membership for its owner" do
-    group = described_class.create!(owner: owner, name: "Readers", group_type: :public_group, lifecycle_status: :active)
+  it "creates an active membership for its group_admin" do
+    group = described_class.create!(group_admin: group_admin, name: "Readers", group_type: :public_group, lifecycle_status: :active)
 
-    expect(group.group_memberships.find_by(user: owner)).to be_active
+    expect(group.group_memberships.find_by(user: group_admin)).to be_active
   end
 
   it "includes only active memberships in members" do
     pending_user = User.create!(name: "Pending", email: "pending-group-member@example.com", password: "password123!", password_confirmation: "password123!")
     active_user = User.create!(name: "Active", email: "active-group-member@example.com", password: "password123!", password_confirmation: "password123!")
-    group = described_class.create!(owner: owner, name: "Readers", group_type: :approval_group, lifecycle_status: :active)
+    group = described_class.create!(group_admin: group_admin, name: "Readers", group_type: :approval_group, lifecycle_status: :active)
     group.group_memberships.create!(user: pending_user, status: :pending)
     group.group_memberships.create!(user: active_user, status: :active)
 
-    expect(group.members).to include(owner, active_user)
+    expect(group.members).to include(group_admin, active_user)
     expect(group.members).not_to include(pending_user)
   end
 
   it "includes only active memberships in a user's joined groups" do
     user = User.create!(name: "Reader", email: "joined-groups-reader@example.com", password: "password123!", password_confirmation: "password123!")
-    pending_group = described_class.create!(owner: owner, name: "Pending", group_type: :approval_group, lifecycle_status: :active)
-    active_group = described_class.create!(owner: owner, name: "Active", group_type: :public_group, lifecycle_status: :active)
+    pending_group = described_class.create!(group_admin: group_admin, name: "Pending", group_type: :approval_group, lifecycle_status: :active)
+    active_group = described_class.create!(group_admin: group_admin, name: "Active", group_type: :public_group, lifecycle_status: :active)
     pending_group.group_memberships.create!(user: user, status: :pending)
     active_group.group_memberships.create!(user: user, status: :active)
 
@@ -140,16 +140,16 @@ RSpec.describe Group, type: :model do
   end
 
   describe "#transfer_admin_to!" do
-    let(:group) { described_class.create!(owner: owner, name: "Readers", group_type: :public_group, lifecycle_status: :active) }
+    let(:group) { described_class.create!(group_admin: group_admin, name: "Readers", group_type: :public_group, lifecycle_status: :active) }
     let(:new_admin) { User.create!(name: "New admin", email: "new-group-admin@example.com", password: "password123!", password_confirmation: "password123!") }
 
     it "transfers to an active member while keeping both memberships active" do
       group.group_memberships.create!(user: new_admin, status: :active)
 
-      group.transfer_admin_to!(new_admin, by: owner)
+      group.transfer_admin_to!(new_admin, by: group_admin)
 
-      expect(group.reload.owner).to eq(new_admin)
-      expect(group.group_memberships.find_by!(user: owner)).to be_active
+      expect(group.reload.group_admin).to eq(new_admin)
+      expect(group.group_memberships.find_by!(user: group_admin)).to be_active
       expect(group.group_memberships.find_by!(user: new_admin)).to be_active
     end
 
@@ -162,9 +162,9 @@ RSpec.describe Group, type: :model do
       group.group_memberships.create!(user: invited, status: :invited)
       group.group_memberships.create!(user: inactive, status: :inactive)
 
-      [ nonmember, pending, invited, inactive, owner ].each do |target|
-        expect { group.transfer_admin_to!(target, by: owner) }.to raise_error(ActiveRecord::RecordInvalid)
-        expect(group.reload.owner).to eq(owner)
+      [ nonmember, pending, invited, inactive, group_admin ].each do |target|
+        expect { group.transfer_admin_to!(target, by: group_admin) }.to raise_error(ActiveRecord::RecordInvalid)
+        expect(group.reload.group_admin).to eq(group_admin)
       end
     end
 
@@ -173,18 +173,18 @@ RSpec.describe Group, type: :model do
       third_member = User.create!(name: "Third", email: "transfer-third@example.com", password: "password123!", password_confirmation: "password123!")
       group.group_memberships.create!(user: next_admin, status: :active)
       group.group_memberships.create!(user: third_member, status: :active)
-      group.transfer_admin_to!(next_admin, by: owner)
+      group.transfer_admin_to!(next_admin, by: group_admin)
 
-      expect { group.transfer_admin_to!(third_member, by: owner) }.to raise_error(ActiveRecord::RecordInvalid)
-      expect(group.reload.owner).to eq(next_admin)
+      expect { group.transfer_admin_to!(third_member, by: group_admin) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect(group.reload.group_admin).to eq(next_admin)
     end
 
     it "rejects transfer while pending approval" do
-      pending_group = described_class.create!(owner: owner, name: "Pending", group_type: :public_group, application_purpose: "Read together")
+      pending_group = described_class.create!(group_admin: group_admin, name: "Pending", group_type: :public_group, application_purpose: "Read together")
       pending_group.group_memberships.create!(user: new_admin, status: :active)
 
-      expect { pending_group.transfer_admin_to!(new_admin, by: owner) }.to raise_error(ActiveRecord::RecordInvalid)
-      expect(pending_group.reload.owner).to eq(owner)
+      expect { pending_group.transfer_admin_to!(new_admin, by: group_admin) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect(pending_group.reload.group_admin).to eq(group_admin)
     end
   end
 end

@@ -4,7 +4,7 @@
       <div>
         <p class="text-sm font-medium text-amber-700"><%= t("groups.lifecycle_statuses.#{@group.lifecycle_status}") %></p>
         <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= @group.name %></h1>
-        <p class="mt-2 text-sm text-stone-500"><%= t("groups.types.#{@group.group_type}") %> · <%= t("groups.owner", name: @group.owner.name) %></p>
+        <p class="mt-2 text-sm text-stone-500"><%= t("groups.types.#{@group.group_type}") %> · <%= t("groups.group_admin", name: @group.group_admin.name) %></p>
       </div>
       <% if policy(@group).approve? %>
         <%= button_to t("admin.groups.actions.approve"), approve_admin_group_path(@group), method: :patch, class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>

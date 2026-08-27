@@ -9,7 +9,7 @@ RSpec.describe "Groups", type: :request do
     expect(response).to redirect_to(new_user_session_path)
   end
 
-  it "lets a signed-in user create a public group with an owner membership" do
+  it "lets a signed-in user create a public group with an group_admin membership" do
     sign_in user
 
     expect {
@@ -17,7 +17,7 @@ RSpec.describe "Groups", type: :request do
     }.to change(Group, :count).by(1).and change(GroupMembership, :count).by(1)
 
     group = Group.last
-    expect(group.owner).to eq(user)
+    expect(group.group_admin).to eq(user)
     expect(group).to be_pending_approval
     expect(group.application_purpose).to eq("Build a reading community")
     expect(group.group_memberships.find_by(user: user)).to be_active
@@ -37,7 +37,7 @@ RSpec.describe "Groups", type: :request do
     expect(Group.find_by(name: "Readers")).to be_nil
   end
 
-  it "rolls back the group and owner membership when opening event creation fails" do
+  it "rolls back the group and group_admin membership when opening event creation fails" do
     sign_in user
     allow(GroupLifecycleEvent).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(GroupLifecycleEvent.new))
     group_count = Group.count
@@ -57,8 +57,8 @@ RSpec.describe "Groups", type: :request do
     expect(GroupLifecycleEvent.count).to eq(event_count)
   end
 
-  it "shows a pending group to its owner but not to another user" do
-    group = Group.create!(owner: user, name: "Pending application", group_type: :public_group, application_purpose: "Read more together")
+  it "shows a pending group to its group_admin but not to another user" do
+    group = Group.create!(group_admin: user, name: "Pending application", group_type: :public_group, application_purpose: "Read more together")
     other_user = User.create!(name: "Other", email: "pending-group-other@example.com", password: "password123!", password_confirmation: "password123!")
 
     sign_in user
@@ -72,7 +72,7 @@ RSpec.describe "Groups", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
-  it "allows private group creation with an owner membership" do
+  it "allows private group creation with an group_admin membership" do
     sign_in user
 
     expect {
@@ -85,10 +85,10 @@ RSpec.describe "Groups", type: :request do
 
 
   it "shows only the current user's invitations outside the discoverable list" do
-    owner = User.create!(name: "Owner", email: "invitation-owner@example.com", password: "password123!", password_confirmation: "password123!")
+    group_admin = User.create!(name: "Group admin", email: "invitation-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
     other = User.create!(name: "Other", email: "invitation-other@example.com", password: "password123!", password_confirmation: "password123!")
-    invited_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Invitation only", group_type: :private_group)
-    other_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Someone else's invitation", group_type: :private_group)
+    invited_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Invitation only", group_type: :private_group)
+    other_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Someone else's invitation", group_type: :private_group)
     invited_group.group_memberships.create!(user: user, status: :invited)
     other_group.group_memberships.create!(user: other, status: :invited)
     sign_in user
@@ -101,11 +101,11 @@ RSpec.describe "Groups", type: :request do
   end
 
   it "lists public, approval, and joined private groups only" do
-    other_owner = User.create!(name: "Owner", email: "groups-owner@example.com", password: "password123!", password_confirmation: "password123!")
-    public_group = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Public group", group_type: :public_group)
-    approval_group = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Approval group", group_type: :approval_group)
-    joined_private = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Joined private", group_type: :private_group)
-    hidden_private = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Hidden private", group_type: :private_group)
+    other_group_admin = User.create!(name: "Group admin", email: "groups-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
+    public_group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Public group", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Approval group", group_type: :approval_group)
+    joined_private = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Joined private", group_type: :private_group)
+    hidden_private = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Hidden private", group_type: :private_group)
     joined_private.group_memberships.create!(user: user, status: :active)
     sign_in user
 
@@ -116,8 +116,8 @@ RSpec.describe "Groups", type: :request do
   end
 
   it "does not expose a private group to a non-member by direct URL" do
-    other_owner = User.create!(name: "Owner", email: "private-owner@example.com", password: "password123!", password_confirmation: "password123!")
-    private_group = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Hidden private", group_type: :private_group)
+    other_group_admin = User.create!(name: "Group admin", email: "private-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
+    private_group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Hidden private", group_type: :private_group)
     sign_in user
 
     get group_path(private_group)
@@ -126,21 +126,21 @@ RSpec.describe "Groups", type: :request do
   end
 
   it "does not expose application or closure details on general group screens" do
-    other_owner = User.create!(name: "Owner", email: "private-details-owner@example.com", password: "password123!", password_confirmation: "password123!")
-    group = Group.create!(lifecycle_status: :active, owner: other_owner, name: "Public details", group_type: :public_group, application_purpose: "ADMIN PURPOSE", closure_reason: "OWNER CLOSURE")
+    other_group_admin = User.create!(name: "Group admin", email: "private-details-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Public details", group_type: :public_group, application_purpose: "ADMIN PURPOSE", closure_reason: "GROUP ADMIN CLOSURE")
     sign_in user
 
     get groups_path
-    expect(response.body).not_to include("ADMIN PURPOSE", "OWNER CLOSURE")
+    expect(response.body).not_to include("ADMIN PURPOSE", "GROUP ADMIN CLOSURE")
 
     get group_path(group)
-    expect(response.body).not_to include("ADMIN PURPOSE", "OWNER CLOSURE")
+    expect(response.body).not_to include("ADMIN PURPOSE", "GROUP ADMIN CLOSURE")
   end
 
 
-  it "shows the invitation form only to a private group owner" do
+  it "shows the invitation form only to a private group group_admin" do
     invitee = User.create!(name: "Invitee", email: "invite-form-user@example.com", password: "password123!", password_confirmation: "password123!")
-    group = Group.create!(lifecycle_status: :active, owner: user, name: "Private invitations", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Private invitations", group_type: :private_group)
     sign_in user
 
     get group_path(group)
@@ -153,10 +153,10 @@ RSpec.describe "Groups", type: :request do
   end
 
 
-  describe "owner management" do
-    let(:group) { Group.create!(lifecycle_status: :active, owner: user, name: "Original", description: "Before", group_type: :approval_group) }
+  describe "group_admin management" do
+    let(:group) { Group.create!(lifecycle_status: :active, group_admin: user, name: "Original", description: "Before", group_type: :approval_group) }
 
-    it "lets the owner edit name and description without changing group type" do
+    it "lets the group_admin edit name and description without changing group type" do
       sign_in user
 
       get edit_group_path(group)
@@ -168,8 +168,8 @@ RSpec.describe "Groups", type: :request do
       expect(group.reload).to have_attributes(name: "Updated", description: "After", group_type: "approval_group")
     end
 
-    it "lets a pending owner view and update the application purpose only in management" do
-      pending_group = Group.create!(owner: user, name: "Pending management", group_type: :public_group, application_purpose: "Initial purpose")
+    it "lets a pending group_admin view and update the application purpose only in management" do
+      pending_group = Group.create!(group_admin: user, name: "Pending management", group_type: :public_group, application_purpose: "Initial purpose")
       opening_event = pending_group.lifecycle_events.create!(actor: user, event_type: :opening_requested, detail: "Initial purpose")
       sign_in user
 
@@ -206,7 +206,7 @@ RSpec.describe "Groups", type: :request do
       expect(response.body).not_to include("동아리 종류")
     end
 
-    it "blocks a non-owner from edit and update" do
+    it "blocks a non-group_admin from edit and update" do
       group.group_memberships.create!(user: other_user = User.create!(name: "Member", email: "group-edit-member@example.com", password: "password123!", password_confirmation: "password123!"), status: :active)
       sign_in other_user
 
@@ -241,7 +241,7 @@ RSpec.describe "Groups", type: :request do
       expect(response.body).not_to include("동아리 구성원", "다시 활성화", "내보내기")
     end
 
-    it "lets only the owner close an active group and request reactivation" do
+    it "lets only the group_admin close an active group and request reactivation" do
       member = User.create!(name: "Member", email: "lifecycle-member@example.com", password: "password123!", password_confirmation: "password123!")
       group.group_memberships.create!(user: member, status: :active)
       jjaek = user.jjaeks.create!(group: group, content: "Existing group content")
@@ -328,7 +328,7 @@ RSpec.describe "Groups", type: :request do
   end
 
   describe "group admin transfer" do
-    let(:group) { Group.create!(lifecycle_status: :active, owner: user, name: "Admin transfer", group_type: :public_group) }
+    let(:group) { Group.create!(lifecycle_status: :active, group_admin: user, name: "Admin transfer", group_type: :public_group) }
     let(:new_admin) { User.create!(name: "New admin", email: "request-new-admin@example.com", password: "password123!", password_confirmation: "password123!") }
 
     it "transfers to an active member and lets the former admin leave normally" do
@@ -343,7 +343,7 @@ RSpec.describe "Groups", type: :request do
       patch transfer_admin_group_path(group), params: { new_admin_id: new_admin.id }
 
       expect(response).to redirect_to(group_path(group))
-      expect(group.reload.owner).to eq(new_admin)
+      expect(group.reload.group_admin).to eq(new_admin)
       expect(former_admin_membership.reload).to be_active
       expect(new_admin_membership.reload).to be_active
 
@@ -358,7 +358,7 @@ RSpec.describe "Groups", type: :request do
       expect {
         delete group_group_membership_path(group, former_admin_membership)
       }.to change(GroupMembership, :count).by(-1)
-      expect(group.reload.owner).to eq(new_admin)
+      expect(group.reload.group_admin).to eq(new_admin)
       expect(new_admin_membership.reload).to be_active
       expect(group.jjaeks).to contain_exactly(jjaek)
       expect(jjaek.reload.user).to eq(user)
@@ -374,22 +374,22 @@ RSpec.describe "Groups", type: :request do
       sign_in active_member
       patch transfer_admin_group_path(group), params: { new_admin_id: active_member.id }
       expect(response).to redirect_to(root_path)
-      expect(group.reload.owner).to eq(user)
+      expect(group.reload.group_admin).to eq(user)
 
       sign_in user
       [ inactive_member, outsider ].each do |target|
         patch transfer_admin_group_path(group), params: { new_admin_id: target.id }
         expect(response).to redirect_to(group_path(group))
-        expect(group.reload.owner).to eq(user)
+        expect(group.reload.group_admin).to eq(user)
       end
 
-      pending_group = Group.create!(owner: user, name: "Pending transfer", group_type: :public_group, application_purpose: "Pending")
+      pending_group = Group.create!(group_admin: user, name: "Pending transfer", group_type: :public_group, application_purpose: "Pending")
       pending_group.group_memberships.create!(user: active_member, status: :active)
       get edit_group_path(pending_group)
       expect(response.body).not_to include("관리자 권한 이전")
       patch transfer_admin_group_path(pending_group), params: { new_admin_id: active_member.id }
       expect(response).to redirect_to(root_path)
-      expect(pending_group.reload.owner).to eq(user)
+      expect(pending_group.reload.group_admin).to eq(user)
     end
   end
 end

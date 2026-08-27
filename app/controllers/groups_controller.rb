@@ -3,38 +3,38 @@ class GroupsController < ApplicationController
 
   def index
     authorize Group
-    @groups = policy_scope(Group).includes(:owner, :group_memberships).order(created_at: :desc)
+    @groups = policy_scope(Group).includes(:group_admin, :group_memberships).order(created_at: :desc)
     @invitations = current_user.group_memberships.invited
       .joins(:group)
       .merge(Group.active)
-      .includes(group: :owner)
+      .includes(group: :group_admin)
       .order(created_at: :desc)
   end
 
   def show
     authorize @group
     @membership = @group.group_memberships.find_by(user: current_user)
-    @pending_memberships = if @group.owner?(current_user)
+    @pending_memberships = if @group.group_admin?(current_user)
       @group.group_memberships.pending.includes(:user).order(:created_at)
     else
       GroupMembership.none
     end
-    @active_memberships = if @group.owner?(current_user)
+    @active_memberships = if @group.group_admin?(current_user)
       @group.group_memberships.active.includes(:user).order(:created_at)
     else
       GroupMembership.none
     end
-    @inactive_memberships = if @group.owner?(current_user)
+    @inactive_memberships = if @group.group_admin?(current_user)
       @group.group_memberships.inactive.includes(:user).order(:created_at)
     else
       GroupMembership.none
     end
-    @sent_invitations = if @group.private_group? && @group.owner?(current_user)
+    @sent_invitations = if @group.private_group? && @group.group_admin?(current_user)
       @group.group_memberships.invited.includes(:user).order(:created_at)
     else
       GroupMembership.none
     end
-    @invite_candidates = if @group.private_group? && @group.owner?(current_user)
+    @invite_candidates = if @group.private_group? && @group.group_admin?(current_user)
       User.active_accounts.where.not(id: @group.group_memberships.select(:user_id)).order(:name)
     else
       User.none
@@ -43,12 +43,12 @@ class GroupsController < ApplicationController
   end
 
   def new
-    @group = current_user.owned_groups.build
+    @group = current_user.administered_groups.build
     authorize @group
   end
 
   def create
-    @group = current_user.owned_groups.build(create_group_params)
+    @group = current_user.administered_groups.build(create_group_params)
     authorize @group
 
     created = Group.transaction do
@@ -180,7 +180,7 @@ class GroupsController < ApplicationController
   def prepare_management_context
     prepare_lifecycle_history
     @admin_transfer_candidates = @group.active_group_memberships
-      .where.not(user_id: @group.owner_id)
+      .where.not(user_id: @group.group_admin_id)
       .includes(:user)
       .map(&:user)
       .sort_by(&:name)

@@ -36,10 +36,10 @@ en:
         group_membership:
           attributes:
             status:
-              owner_must_be_active: "must remain active for the club admin"
+              group_admin_must_be_active: "must remain active for the club admin"
               invalid_transition: "is not an allowed membership status transition"
             base:
-              owner_membership_cannot_be_destroyed: "The club admin cannot leave the club"
+              group_admin_membership_cannot_be_destroyed: "The club admin cannot leave the club"
   auth:
     actions:
       sign_in: "Sign in"
@@ -76,7 +76,7 @@ en:
       my_shelf: "Open my shelf"
   groups:
     nav: "Clubs"
-    owner: "Club admin: %{name}"
+    group_admin: "Club admin: %{name}"
     types:
       public_group: "Public club"
       approval_group: "Approval club"
@@ -197,7 +197,7 @@ en:
       book_search_context: "Find a book for a Book Jjaek in %{group_name}."
   group_memberships:
     statuses:
-      owner: "Club admin"
+      group_admin: "Club admin"
       pending: "Pending approval"
       active: "Member"
       invited: "Invited"

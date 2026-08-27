@@ -157,7 +157,7 @@ class JjaeksController < ApplicationController
 
   def render_group_create_failure
     @membership = @group.group_memberships.find_by(user: current_user)
-    @pending_memberships = @group.owner?(current_user) ? @group.group_memberships.pending.includes(:user).order(:created_at) : GroupMembership.none
+    @pending_memberships = @group.group_admin?(current_user) ? @group.group_memberships.pending.includes(:user).order(:created_at) : GroupMembership.none
     @can_read_group_jjaeks = true
     @jjaeks = policy_scope(@group.jjaeks).includes(:user, :book, :group).recent
     render "groups/show", status: :unprocessable_content

@@ -120,7 +120,7 @@ RSpec.describe "Notifications", type: :request do
   end
 
   it "shows the club name for a group comment notification" do
-    group = Group.create!(lifecycle_status: :active, owner: recipient, name: "함께 읽기", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: recipient, name: "함께 읽기", group_type: :private_group)
     group.group_memberships.create!(user: actor, status: :active)
     jjaek = recipient.jjaeks.create!(group:, content: "GROUP_COMMENTED_JJAEK")
     comment = jjaek.comments.create!(user: actor, content: "GROUP_COMMENT_NOTIFICATION")

@@ -1,14 +1,14 @@
 require "rails_helper"
 
 RSpec.describe "Group Jjaeks", type: :request do
-  let!(:owner) { User.create!(name: "Owner", email: "group-jjaeks-owner@example.com", password: "password123!", password_confirmation: "password123!") }
+  let!(:group_admin) { User.create!(name: "Group admin", email: "group-jjaeks-group_admin@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:member) { User.create!(name: "Member", email: "group-jjaeks-member@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:pending_user) { User.create!(name: "Pending", email: "group-jjaeks-pending@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:non_member) { User.create!(name: "Non-member", email: "group-jjaeks-non-member@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "Group Book", authors_text: "Author") }
 
   it "lets an active member create a group jjaek without a book" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     sign_in member
 
@@ -21,8 +21,8 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "does not create a Jjaek while the group is pending or inactive" do
-    group = Group.create!(owner: owner, name: "Lifecycle", group_type: :public_group, application_purpose: "Read together")
-    sign_in owner
+    group = Group.create!(group_admin: group_admin, name: "Lifecycle", group_type: :public_group, application_purpose: "Read together")
+    sign_in group_admin
 
     expect {
       post group_jjaeks_path(group), params: { jjaek: { content: "Pending" } }
@@ -40,7 +40,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "lets an active member create a group book jjaek for a shelved book" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     member.bookshelf_entries.create!(book: book)
     sign_in member
@@ -53,7 +53,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "does not create a group book jjaek for a book outside the member's shelf" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     sign_in member
 
@@ -65,7 +65,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "does not let a non-member create either kind of group jjaek" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     non_member.bookshelf_entries.create!(book: book)
     sign_in non_member
 
@@ -76,7 +76,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "does not let a pending user create either kind of group jjaek" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     group.group_memberships.create!(user: pending_user, status: :pending)
     pending_user.bookshelf_entries.create!(book: book)
     sign_in pending_user
@@ -88,9 +88,9 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "uses the nested route group instead of a body group_id" do
-    route_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Route group", group_type: :public_group)
-    other_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Other group", group_type: :public_group)
-    sign_in owner
+    route_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Route group", group_type: :public_group)
+    other_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Other group", group_type: :public_group)
+    sign_in group_admin
 
     post group_jjaeks_path(route_group), params: { jjaek: { group_id: other_group.id, content: "Scoped" } }
 
@@ -98,8 +98,8 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "does not treat a group_id on the regular endpoint as group context" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Group", group_type: :public_group)
-    sign_in owner
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Group", group_type: :public_group)
+    sign_in group_admin
 
     post jjaeks_path, params: { group_id: group.id, jjaek: { content: "Regular endpoint" } }
 
@@ -107,9 +107,9 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "allows a non-member to view both kinds in a public group" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
-    general = owner.jjaeks.create!(group:, content: "Public general")
-    book_jjaek = owner.jjaeks.create!(group:, book:, content: "Public book")
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
+    general = group_admin.jjaeks.create!(group:, content: "Public general")
+    book_jjaek = group_admin.jjaeks.create!(group:, book:, content: "Public book")
     sign_in non_member
 
     get jjaek_path(general)
@@ -119,8 +119,8 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "denies direct access to a group jjaek for an approval group non-member" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
-    general = owner.jjaeks.create!(group:, content: "Approval general")
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
+    general = group_admin.jjaeks.create!(group:, content: "Approval general")
     sign_in non_member
 
     get jjaek_path(general)
@@ -128,8 +128,8 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "denies direct access to a group book jjaek for an approval group non-member" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
-    book_jjaek = owner.jjaeks.create!(group:, book:, content: "Approval book")
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
+    book_jjaek = group_admin.jjaeks.create!(group:, book:, content: "Approval book")
     sign_in non_member
 
     get jjaek_path(book_jjaek)
@@ -138,8 +138,8 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "denies direct access to a group jjaek for a private group non-member" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
-    general = owner.jjaeks.create!(group:, content: "Private general")
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
+    general = group_admin.jjaeks.create!(group:, content: "Private general")
     sign_in non_member
 
     get jjaek_path(general)
@@ -148,8 +148,8 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "denies direct access to a group book jjaek for a private group non-member" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
-    book_jjaek = owner.jjaeks.create!(group:, book:, content: "Private book")
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
+    book_jjaek = group_admin.jjaeks.create!(group:, book:, content: "Private book")
     sign_in non_member
 
     get jjaek_path(book_jjaek)
@@ -158,12 +158,12 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "allows active members to access approval and private group jjaeks directly" do
-    approval_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
-    private_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
+    approval_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
+    private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
     approval_group.group_memberships.create!(user: member, status: :active)
     private_group.group_memberships.create!(user: member, status: :active)
-    approval_jjaek = owner.jjaeks.create!(group: approval_group, content: "Approval member content")
-    private_jjaek = owner.jjaeks.create!(group: private_group, content: "Private member content")
+    approval_jjaek = group_admin.jjaeks.create!(group: approval_group, content: "Approval member content")
+    private_jjaek = group_admin.jjaeks.create!(group: private_group, content: "Private member content")
     sign_in member
 
     get jjaek_path(approval_jjaek)
@@ -173,7 +173,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "shows edit and delete actions to an active author in the existing header action area" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = member.jjaeks.create!(group:, content: "Group jjaek")
     sign_in member
@@ -186,10 +186,10 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "does not show edit or delete actions for another user's group jjaek" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = member.jjaeks.create!(group:, content: "Member jjaek")
-    sign_in owner
+    sign_in group_admin
 
     get group_path(group)
 
@@ -198,11 +198,11 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "edits only the content of a group jjaek without showing visibility" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
-    other_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Other", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
+    other_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Other", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = member.jjaeks.create!(group:, content: "Before", visibility: :public_jjaek)
-    quoted_jjaek = owner.jjaeks.create!(content: "Quoted")
+    quoted_jjaek = group_admin.jjaeks.create!(content: "Quoted")
     sign_in member
 
     get edit_jjaek_path(jjaek)
@@ -231,7 +231,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
   it "keeps the book association while editing a group book jjaek" do
     other_book = Book.create!(title: "Other Book", authors_text: "Other Author")
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = member.jjaeks.create!(group:, book:, content: "Before")
     sign_in member
@@ -243,7 +243,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "rerenders an invalid group edit with the entered content and no visibility field" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = member.jjaeks.create!(group:, content: "Before")
     sign_in member
@@ -257,7 +257,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "returns not found when an inactive author tries to update" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     group.group_memberships.create!(user: member, status: :inactive)
     jjaek = member.jjaeks.create!(group:, content: "Before")
     sign_in member
@@ -269,7 +269,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "returns not found when a former author tries to update" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     jjaek = member.jjaeks.create!(group:, content: "Before")
     sign_in member
 
@@ -280,7 +280,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "lets an inactive author delete an old private-group jjaek and redirects to the group" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
     group.group_memberships.create!(user: member, status: :inactive)
     jjaek = member.jjaeks.create!(group:, content: "Inactive secret")
     sign_in member
@@ -291,7 +291,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "lets a former author delete an inaccessible old private-group jjaek and redirects safely" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Private", group_type: :private_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
     jjaek = member.jjaeks.create!(group:, content: "Former secret")
     sign_in member
 
@@ -301,10 +301,10 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "tombstones a group book jjaek with comments and preserves its book and conversation" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = member.jjaeks.create!(group:, book:, content: "Group discussion")
-    comment = jjaek.comments.create!(user: owner, content: "Existing comment")
+    comment = jjaek.comments.create!(user: group_admin, content: "Existing comment")
     sign_in member
 
     expect { delete jjaek_path(jjaek) }.not_to change(Jjaek, :count)
@@ -315,18 +315,18 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to redirect_to(group_path(group))
   end
 
-  it "does not let the owner delete another member's group jjaek" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+  it "does not let the group_admin delete another member's group jjaek" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     jjaek = member.jjaeks.create!(group:, content: "Member jjaek")
-    sign_in owner
+    sign_in group_admin
 
     expect { delete jjaek_path(jjaek) }.not_to change(Jjaek, :count)
   end
 
   it "keeps group book jjaeks out of the general book timeline" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
-    group_book_jjaek = owner.jjaeks.create!(group:, book:, content: "Group-only book jjaek")
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
+    group_book_jjaek = group_admin.jjaeks.create!(group:, book:, content: "Group-only book jjaek")
     sign_in non_member
 
     get book_path(book)
@@ -335,27 +335,27 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "shows group jjaeks on the author profile only when the viewer can read the group" do
-    public_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
-    approval_group = Group.create!(lifecycle_status: :active, owner: owner, name: "Approval", group_type: :approval_group)
-    public_jjaek = owner.jjaeks.create!(group: public_group, content: "Profile public group jjaek")
-    approval_jjaek = owner.jjaeks.create!(group: approval_group, book:, content: "Profile approval group book jjaek")
+    public_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
+    public_jjaek = group_admin.jjaeks.create!(group: public_group, content: "Profile public group jjaek")
+    approval_jjaek = group_admin.jjaeks.create!(group: approval_group, book:, content: "Profile approval group book jjaek")
     sign_in non_member
 
-    get user_path(owner)
+    get user_path(group_admin)
 
     expect(response.body).to include(public_jjaek.content)
     expect(response.body).not_to include(approval_jjaek.content)
 
     approval_group.group_memberships.create!(user: non_member, status: :active)
-    get user_path(owner)
+    get user_path(group_admin)
 
     expect(response.body).to include(public_jjaek.content, approval_jjaek.content)
   end
 
   it "renders comments and likes but not unsupported requotes for group jjaeks" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
-    jjaek = owner.jjaeks.create!(group:, content: "Read only group jjaek")
-    sign_in owner
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
+    jjaek = group_admin.jjaeks.create!(group:, content: "Read only group jjaek")
+    sign_in group_admin
 
     get group_path(group)
 
@@ -368,7 +368,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "shows the book search context only to an active member" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
 
     sign_in member
@@ -382,7 +382,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "shows the group book jjaek form without a visibility selector for a shelved book" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     member.bookshelf_entries.create!(book: book)
     sign_in member
@@ -396,7 +396,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "keeps group context while adding a searched book to the shelf" do
-    group = Group.create!(lifecycle_status: :active, owner: owner, name: "Public", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     sign_in member
 

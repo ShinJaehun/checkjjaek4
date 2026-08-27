@@ -21,7 +21,7 @@ RSpec.describe Users::WithdrawAccount do
     Notification.create!(recipient: other, actor: user, action: :profile_jjaek_created, notifiable: jjaek)
     entry = user.bookshelf_entries.create!(book: book, bookshelf: user.default_bookshelf, position: 1)
     user.book_activities.create!(book: book, bookshelf_entry: entry, action: :added_to_shelf)
-    group = Group.create!(lifecycle_status: :active, owner: other, name: "Joined", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: other, name: "Joined", group_type: :public_group)
     group.group_memberships.create!(user: user, status: :active)
 
     described_class.new(user, current_password: password).call!
@@ -58,7 +58,7 @@ RSpec.describe Users::WithdrawAccount do
   end
 
   it "blocks an active group admin and succeeds after admin transfer" do
-    group = Group.create!(lifecycle_status: :active, owner: user, name: "Managed", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Managed", group_type: :public_group)
     group.group_memberships.create!(user: other, status: :active)
     jjaek = user.jjaeks.create!(group: group, content: "Group history")
 
@@ -68,14 +68,14 @@ RSpec.describe Users::WithdrawAccount do
     group.transfer_admin_to!(other, by: user)
     described_class.new(user, current_password: password).call!
 
-    expect(group.reload.owner).to eq(other)
+    expect(group.reload.group_admin).to eq(other)
     expect(group.group_memberships.find_by(user: user)).to be_nil
     expect(group.group_memberships.find_by!(user: other)).to be_active
     expect(jjaek.reload.user).to eq(user)
   end
 
   it "preserves an inactive group, lifecycle history, and historical admin membership" do
-    group = Group.create!(lifecycle_status: :active, owner: user, name: "Closed", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Closed", group_type: :public_group)
     group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
     event = group.lifecycle_events.create!(actor: user, event_type: :operations_closed, detail: "Finished")
     jjaek = user.jjaeks.create!(group: group, content: "Preserved group content")
@@ -84,7 +84,7 @@ RSpec.describe Users::WithdrawAccount do
     described_class.new(user, current_password: password).call!
 
     expect(group.reload).to be_inactive
-    expect(group.owner).to eq(user.reload)
+    expect(group.group_admin).to eq(user.reload)
     expect(group.group_memberships.find_by!(user: user)).to be_inactive
     expect(group.lifecycle_events).to contain_exactly(event)
     expect(jjaek.reload.user).to eq(user)
@@ -92,15 +92,15 @@ RSpec.describe Users::WithdrawAccount do
   end
 
   it "removes only a safe initial pending application" do
-    empty_group = Group.create!(owner: user, name: "Empty pending", group_type: :public_group, application_purpose: "Apply")
+    empty_group = Group.create!(group_admin: user, name: "Empty pending", group_type: :public_group, application_purpose: "Apply")
     empty_group.lifecycle_events.create!(actor: user, event_type: :opening_requested, detail: "Apply")
     described_class.new(user, current_password: password).call!
     expect(Group.exists?(empty_group.id)).to be(false)
   end
 
   it "rolls back an initial pending application with unexpected content or membership" do
-    content_user = User.create!(name: "Content owner", email: "withdrawal-content@example.com", password: password, password_confirmation: password)
-    content_group = Group.create!(owner: content_user, name: "Pending content", group_type: :public_group, application_purpose: "Apply")
+    content_user = User.create!(name: "Content group_admin", email: "withdrawal-content@example.com", password: password, password_confirmation: password)
+    content_group = Group.create!(group_admin: content_user, name: "Pending content", group_type: :public_group, application_purpose: "Apply")
     content_jjaek = content_user.jjaeks.create!(group: content_group, content: "Unexpected")
 
     expect { described_class.new(content_user, current_password: password).call! }.to raise_error(described_class::PendingGroupHasContent)
@@ -108,9 +108,9 @@ RSpec.describe Users::WithdrawAccount do
     expect(content_group.reload).to be_persisted
     expect(content_jjaek.reload).to be_persisted
 
-    membership_user = User.create!(name: "Membership owner", email: "withdrawal-membership-owner@example.com", password: password, password_confirmation: password)
+    membership_user = User.create!(name: "Membership group_admin", email: "withdrawal-membership-group_admin@example.com", password: password, password_confirmation: password)
     extra_member = User.create!(name: "Extra", email: "withdrawal-extra-member@example.com", password: password, password_confirmation: password)
-    membership_group = Group.create!(owner: membership_user, name: "Pending membership", group_type: :public_group, application_purpose: "Apply")
+    membership_group = Group.create!(group_admin: membership_user, name: "Pending membership", group_type: :public_group, application_purpose: "Apply")
     membership_group.group_memberships.create!(user: extra_member, status: :active)
 
     expect { described_class.new(membership_user, current_password: password).call! }.to raise_error(described_class::PendingGroupHasContent)
@@ -119,7 +119,7 @@ RSpec.describe Users::WithdrawAccount do
   end
 
   it "cancels a reactivation request while preserving its group, content, history, and historical admin" do
-    group = Group.create!(lifecycle_status: :active, owner: user, name: "Reactivation", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Reactivation", group_type: :public_group)
     jjaek = user.jjaeks.create!(group: group, content: "Past operations")
     comment = other.comments.create!(jjaek: jjaek, content: "Past discussion")
     group.update!(lifecycle_status: :inactive, closure_reason: "Season ended", closed_at: Time.current)
@@ -130,7 +130,7 @@ RSpec.describe Users::WithdrawAccount do
     described_class.new(user, current_password: password).call!
 
     expect(group.reload).to be_inactive
-    expect(group.owner).to eq(user.reload)
+    expect(group.group_admin).to eq(user.reload)
     expect(group.group_memberships.find_by!(user: user)).to be_inactive
     expect(group.jjaeks).to contain_exactly(jjaek)
     expect(comment.reload.jjaek).to eq(jjaek)
@@ -140,7 +140,7 @@ RSpec.describe Users::WithdrawAccount do
   end
 
   it "preserves a content-free reactivation request as an inactive historical group" do
-    group = Group.create!(lifecycle_status: :active, owner: user, name: "Empty reactivation", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Empty reactivation", group_type: :public_group)
     group.update!(lifecycle_status: :inactive, closure_reason: "Paused", closed_at: Time.current)
     history = group.lifecycle_events.create!(actor: user, event_type: :operations_closed, detail: "Paused")
     group.update!(lifecycle_status: :pending_approval)

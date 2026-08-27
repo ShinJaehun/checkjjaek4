@@ -8,15 +8,15 @@ class GroupMembershipPolicy < ApplicationPolicy
   end
 
   def approve?
-    record.group.active? && user.present? && record.group.owner?(user) && record.pending?
+    record.group.active? && user.present? && record.group.group_admin?(user) && record.pending?
   end
 
   def reject?
-    user.present? && record.group.approval_group? && record.group.owner?(user) && record.pending?
+    user.present? && record.group.approval_group? && record.group.group_admin?(user) && record.pending?
   end
 
   def invite?
-    record.group.active? && user.present? && record.group.private_group? && record.group.owner?(user) &&
+    record.group.active? && user.present? && record.group.private_group? && record.group.group_admin?(user) &&
       record.invited? && record.user&.active_account? && record.user_id != user.id
   end
 
@@ -29,23 +29,23 @@ class GroupMembershipPolicy < ApplicationPolicy
   end
 
   def revoke?
-    user.present? && record.group.private_group? && record.group.owner?(user) && record.invited?
+    user.present? && record.group.private_group? && record.group.group_admin?(user) && record.invited?
   end
 
   def remove?
-    user.present? && record.group.owner?(user) && record.inactive? && record.user_id != user.id
+    user.present? && record.group.group_admin?(user) && record.inactive? && record.user_id != user.id
   end
 
   def deactivate?
-    user.present? && record.group.owner?(user) && record.active? && record.user_id != user.id
+    user.present? && record.group.group_admin?(user) && record.active? && record.user_id != user.id
   end
 
   def reactivate?
-    record.group.active? && user.present? && record.group.owner?(user) && record.inactive? && record.user_id != user.id
+    record.group.active? && user.present? && record.group.group_admin?(user) && record.inactive? && record.user_id != user.id
   end
 
   def destroy?
-    own_membership? && !record.group.owner?(user) && (record.pending? || record.active?)
+    own_membership? && !record.group.group_admin?(user) && (record.pending? || record.active?)
   end
 
   private

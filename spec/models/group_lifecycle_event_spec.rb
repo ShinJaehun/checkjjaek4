@@ -16,10 +16,10 @@ RSpec.describe GroupLifecycleEvent, type: :model do
   end
 
   it "allows only the pending opening snapshot exception to append-only updates" do
-    owner = User.create!(name: "Owner", email: "event-owner@example.com", password: "password123!", password_confirmation: "password123!")
-    group = Group.create!(owner: owner, name: "Pending", group_type: :public_group, application_purpose: "Initial")
-    opening = group.lifecycle_events.create!(actor: owner, event_type: :opening_requested, detail: "Initial")
-    closure = group.lifecycle_events.create!(actor: owner, event_type: :operations_closed, detail: "Old reason")
+    group_admin = User.create!(name: "Group admin", email: "event-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
+    group = Group.create!(group_admin: group_admin, name: "Pending", group_type: :public_group, application_purpose: "Initial")
+    opening = group.lifecycle_events.create!(actor: group_admin, event_type: :opening_requested, detail: "Initial")
+    closure = group.lifecycle_events.create!(actor: group_admin, event_type: :operations_closed, detail: "Old reason")
 
     expect(opening.update(detail: "Updated")).to be(true)
     expect(closure.update(detail: "Replacement")).to be(false)
