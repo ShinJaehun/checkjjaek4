@@ -266,21 +266,11 @@ membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 
 ---
 
-## moderation 최소 정책
+## moderation 정책
 
-동아리 관리자는 동아리 내부의 부적절한 게시물과 댓글을 관리할 수 있어야 한다.
-이는 동아리 MVP의 제품 요구다.
-
-다만 다음 세부 체계는 이 문서에서 설계하지 않는다.
-
-- 단일 동아리 관리자와 복수 지정 가능한 후속 moderator의 권한 matrix
-- 신고 시스템
-- 정지 기간과 제재 단계
-- 제재 이력
-- moderation audit
-
-필요한 세부 정책은 후속 moderation spec에서 다룬다.
-moderator는 여러 명을 지정할 수 있는 후속 역할로 검토하되 lifecycle과 관리자 이전 같은 최고 관리 권한은 갖지 않는 방향이다.
+동아리 관리자는 자기 Group의 Jjaek·책짹·Comment를 사유와 함께 숨김·복구할 수 있어야 한다.
+원문 수정·hard delete나 서비스 전체 User 정지는 허용하지 않으며 현재 Group당 group admin 1명 구조를 유지한다.
+상태 분리, 감사 기록, 역할 경계와 제외 범위의 canonical 기준은 `docs/specs/moderation_mvp.md`를 따른다.
 
 ---
 
@@ -303,24 +293,22 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 - `Space`, `Context` 같은 공통 추상 모델 도입
 - polymorphic association 설계 확정
 - 동아리 문맥의 DB column, enum, association 확정
-- 신고·제재·감사 등 moderation 세부 시스템 설계
+- 신고 queue와 `platform_moderator` 실제 구현
 - 댓글을 공유 공간 사이에 복사하거나 합쳐 보여주는 기능
 - 승인 동아리·비공개 동아리 원문의 외부 ReJjaek
 - `book_friends`, `private_jjaek`의 동아리 공유
 - nested ReJjaek
 - 알림 정책 상세 설계
-- moderator 역할과 ban/block/suspension
-- 동아리 콘텐츠 moderation
+- 여러 group admin과 Group moderator 역할
 
 ---
 
 ## 미결정 사항
 
-- 가입·승인·초대·공유·moderation 관련 알림 정책
+- 가입·승인·초대·공유와 moderation 관련 Notification inbox 정책
 - 동아리 생성 횟수 제한, 계정 연령과 남용 방지 조건
 - 탈퇴 후 댓글 삭제를 제공하는 정확한 UI, 메시지와 동선
 - 승인 동아리 또는 비공개 동아리 탈퇴 후 원문 조회 권한을 잃은 상태에서 자기 콘텐츠 관리 진입을 제공하는 방식
-- 동아리 관리자와 moderator의 세부 권한, 신고, 제재 이력, 정지 기간, moderation audit
 
 탈퇴 후 댓글의 보존·작성·수정·삭제 권한과 동아리 관리자의 moderation 책임,
 일반 로그인 사용자가 Group을 신청할 수 있는 방향 자체는 미결정 사항이 아니다.

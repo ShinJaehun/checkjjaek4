@@ -296,6 +296,8 @@ Library 안에서 볼 수 있는 책장:
 동아리 관리자의 타인 글 moderation과 동아리 다시짹/share는 아직 구현하지 않는다.
 
 동아리 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
+현재 policy에는 global admin의 일반 비공개 콘텐츠 조사 우회나 group admin의 타인 콘텐츠 moderation 권한이 없다.
+향후 moderation 역할과 목표 권한은 현재 구현 권한과 구분하여 `docs/specs/moderation_mvp.md`를 따른다.
 
 ## 계정 탈퇴 권한과 보존
 

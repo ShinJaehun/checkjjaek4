@@ -247,6 +247,7 @@
 - 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있고, 조회 가능한 기존 자기 좋아요는 이후 동아리·membership 비활성화나 Jjaek 삭제 상태에서도 철회할 수 있음
 - 동아리 관리자의 타인 댓글·Jjaek 삭제와 동아리 다시짹/share는 구현되지 않음
 - 동아리 hard delete·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
+- User 운영 정지, 콘텐츠 숨김·복구, moderation 감사 기록과 rate limit은 아직 구현되지 않았으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴
 
