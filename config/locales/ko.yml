@@ -184,16 +184,11 @@ ko:
       all: "전체"
       apply: "필터 적용"
       empty: "조건에 맞는 결과가 없습니다."
-      from: "시작일"
-      to: "종료일"
-      no: "아니요"
       reset: "필터 초기화"
       search: "이름 또는 이메일 검색"
-      yes: "예"
     sorts:
       recent: "최근 생성순"
       oldest: "오래된 생성순"
-      updated: "최근 수정순"
       name: "이름순"
     pagination:
       range: "전체 %{total}건 중 %{first}–%{last}"
@@ -206,10 +201,16 @@ ko:
       statuses:
         active: "정상"
         withdrawn: "본인 탈퇴"
+      roles:
+        global_admin: "Global admin"
+        group_admin: "동아리 관리자"
+        regular: "일반 사용자"
       fields:
+        avatar: "사용자 이미지"
         name: "이름"
         email: "이메일"
         status: "계정 상태"
+        role: "권한"
         joined: "가입 시각"
         updated: "수정 시각"
         withdrawn: "탈퇴 시각"
@@ -217,6 +218,14 @@ ko:
         memberships: "동아리 참여 상태"
     groups:
       nav: "동아리 운영 관리"
+      types:
+        public_group: "공개"
+        approval_group: "승인"
+        private_group: "비공개"
+      lifecycle_statuses:
+        pending_approval: "승인 대기"
+        active: "운영"
+        inactive: "중지"
       index:
         title: "동아리 운영 관리"
         description: "동아리 운영 상태를 검색하고 승인 대기 신청을 확인합니다."
@@ -232,7 +241,7 @@ ko:
         group_admin: "동아리 관리자"
         active_members: "활동 구성원"
         created: "생성 시각"
-        updated: "수정 시각"
+        actions: "작업"
       actions:
         approve: "운영 승인"
         show: "운영 정보 보기"

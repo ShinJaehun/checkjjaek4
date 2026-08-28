@@ -41,6 +41,7 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_group_path(group)
     opening_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 개설") }
     expect(response.body).to include("승인 대기", "운영 이력")
+    expect(Nokogiri::HTML(response.body).css("nav[aria-label='#{I18n.t('admin.navigation.label')}']")).to be_empty
     expect(opening_card.text).to include("개설 목적", "Create a reading circle", "신청", I18n.l(opening_event.created_at, format: :short))
     expect(opening_card.text).not_to include("승인")
 
@@ -126,17 +127,15 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get admin_groups_path, params: { q: group_admin.email, group_type: "private_group", status: "active" }
     expect(listed_group_ids).to eq([ private_group.id ])
+    expect(Nokogiri::HTML(response.body).at_css("#group_#{private_group.id}").text).to include("비공개", "운영")
 
     get admin_groups_path, params: { q: "Pending club", status: "pending_approval" }
     expect(listed_group_ids).to eq([ group.id ])
   end
 
-  it "filters creation dates, applies whitelisted sorts, and ignores invalid values" do
+  it "applies whitelisted sorts and ignores invalid values" do
     older = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Aged club", group_type: :approval_group, created_at: 5.days.ago)
     sign_in admin
-
-    get admin_groups_path, params: { from: 6.days.ago.to_date.iso8601, to: 4.days.ago.to_date.iso8601 }
-    expect(listed_group_ids).to eq([ older.id ])
 
     get admin_groups_path, params: { sort: "name" }
     expect(listed_group_ids.first).to eq(older.id)
@@ -144,10 +143,9 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(listed_group_ids.first).to eq(older.id)
     get admin_groups_path, params: { sort: "recent" }
     expect(listed_group_ids.first).to eq(group.id)
-    older.update_column(:updated_at, 1.minute.from_now)
     get admin_groups_path, params: { sort: "updated" }
-    expect(listed_group_ids.first).to eq(older.id)
-    get admin_groups_path, params: { sort: "invalid", group_type: "invalid", from: "invalid", page: "invalid" }
+    expect(listed_group_ids.first).to eq(group.id)
+    get admin_groups_path, params: { sort: "invalid", group_type: "invalid", from: "ignored", to: "ignored", page: "invalid" }
     expect(response).to have_http_status(:ok)
   end
 

@@ -176,16 +176,11 @@ en:
       all: "All"
       apply: "Apply"
       empty: "No matching results."
-      from: "Start date"
-      to: "End date"
-      no: "No"
       reset: "Reset filters"
       search: "Search by name or email"
-      yes: "Yes"
     sorts:
       recent: "Newest first"
       oldest: "Oldest first"
-      updated: "Recently updated"
       name: "Name"
     pagination:
       range: "%{first}–%{last} of %{total}"
@@ -198,10 +193,16 @@ en:
       statuses:
         active: "Active"
         withdrawn: "Withdrawn by user"
+      roles:
+        global_admin: "Global admin"
+        group_admin: "Club admin"
+        regular: "Regular user"
       fields:
+        avatar: "User avatar"
         name: "Name"
         email: "Email"
         status: "Account status"
+        role: "Role"
         joined: "Joined"
         updated: "Updated"
         withdrawn: "Withdrawn"
@@ -209,6 +210,14 @@ en:
         memberships: "Club memberships"
     groups:
       nav: "Club operations"
+      types:
+        public_group: "Public"
+        approval_group: "Approval"
+        private_group: "Private"
+      lifecycle_statuses:
+        pending_approval: "Pending approval"
+        active: "Operating"
+        inactive: "Stopped"
       index:
         title: "Club operations"
         description: "Search and review club lifecycle information and pending approvals."
@@ -224,7 +233,7 @@ en:
         group_admin: "Club admin"
         active_members: "Active members"
         created: "Created"
-        updated: "Updated"
+        actions: "Actions"
       actions:
         approve: "Approve"
         show: "View operations"

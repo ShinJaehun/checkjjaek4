@@ -11,7 +11,7 @@ module Admin
     def show
       @user = User.find(params[:id])
       authorize @user, :view_admin_inventory?
-      @administered_groups = @user.administered_groups.order(created_at: :desc)
+      @administered_groups = @user.administered_groups.order(created_at: :desc).load
       @membership_counts = @user.group_memberships.group(:status).count
     end
   end

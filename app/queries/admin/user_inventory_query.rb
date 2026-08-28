@@ -1,6 +1,7 @@
 module Admin
   class UserInventoryQuery
     SORTS = { "recent" => { created_at: :desc }, "oldest" => { created_at: :asc }, "name" => { name: :asc, id: :asc } }.freeze
+    ROLES = %w[global_admin group_admin regular].freeze
 
     def initialize(scope, params)
       @scope, @params = scope, params
@@ -12,19 +13,24 @@ module Admin
       result = result.where("users.name ILIKE :term OR users.email ILIKE :term", term: "%#{ActiveRecord::Base.sanitize_sql_like(term)}%") if term.present?
       result = result.where(withdrawn_at: nil) if @params[:status] == "active"
       result = result.where.not(withdrawn_at: nil) if @params[:status] == "withdrawn"
-      result = result.where(global_admin: true) if @params[:global_admin] == "yes"
-      result = result.where(global_admin: false) if @params[:global_admin] == "no"
-      result = result.where(created_at: parsed_date(@params[:from])..) if parsed_date(@params[:from])
-      result = result.where(created_at: ..parsed_date(@params[:to]).end_of_day) if parsed_date(@params[:to])
+      result = apply_role(result)
       result.order(SORTS.fetch(@params[:sort].to_s, SORTS["recent"]))
     end
 
     private
 
-    def parsed_date(value)
-      Date.iso8601(value.to_s)
-    rescue Date::Error
-      nil
+    def apply_role(result)
+      return result unless ROLES.include?(@params[:role])
+
+      case @params[:role]
+      when "global_admin"
+        result.where(global_admin: true)
+      when "group_admin"
+        result.where("EXISTS (SELECT 1 FROM groups WHERE groups.group_admin_id = users.id)")
+      when "regular"
+        result.where(global_admin: false).where("NOT EXISTS (SELECT 1 FROM groups WHERE groups.group_admin_id = users.id)")
+      end
     end
+
   end
 end

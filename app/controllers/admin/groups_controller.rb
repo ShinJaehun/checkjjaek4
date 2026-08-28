@@ -12,7 +12,7 @@ module Admin
       @group = Group.find(params[:id])
       authorize @group, :view_admin_details?
       @lifecycle_events = @group.lifecycle_events.includes(:actor)
-      @return_params = params.permit(:q, :group_type, :status, :from, :to, :sort, :page)
+      @return_params = params.permit(:q, :group_type, :status, :sort, :page)
     end
 
     def approve
