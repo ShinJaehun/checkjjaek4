@@ -175,9 +175,6 @@ ko:
       general_description: "이 동아리에 짹을 남깁니다."
       book_search_context: "%{group_name} 동아리에 남길 책짹의 책을 찾습니다."
   admin:
-    navigation:
-      entry: "운영 관리"
-      label: "운영 관리 탐색"
     actions:
       show: "상세 보기"
     filters:
@@ -212,6 +209,7 @@ ko:
         status: "계정 상태"
         role: "권한"
         joined: "가입 시각"
+        actions: "작업"
         updated: "수정 시각"
         withdrawn: "탈퇴 시각"
         groups: "관리 중인 동아리"

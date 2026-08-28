@@ -9,7 +9,8 @@
         <%= link_to t("relationships.nav"), relationships_path, class: "font-medium" %>
         <%= link_to t("groups.nav"), groups_path, class: "font-medium" %>
         <% if current_user.global_admin? %>
-          <%= link_to t("admin.navigation.entry"), admin_users_path, class: "font-medium" %>
+          <%= link_to t("admin.users.nav"), admin_users_path, class: "font-medium" %>
+          <%= link_to t("admin.groups.nav"), admin_groups_path, class: "font-medium" %>
         <% end %>
         <%= link_to notifications_path, class: "font-medium" do %>
           <span><%= t("notifications.nav") %></span>

@@ -167,9 +167,6 @@ en:
     alerts:
       admin_transfer_failed: "Club admin rights could not be transferred."
   admin:
-    navigation:
-      entry: "Operations"
-      label: "Operations navigation"
     actions:
       show: "Details"
     filters:
@@ -204,6 +201,7 @@ en:
         status: "Account status"
         role: "Role"
         joined: "Joined"
+        actions: "Actions"
         updated: "Updated"
         withdrawn: "Withdrawn"
         groups: "Administered clubs"

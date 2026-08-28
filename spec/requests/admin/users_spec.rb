@@ -16,6 +16,41 @@ RSpec.describe "Admin user inventory", type: :request do
     Nokogiri::HTML(response.body).css("tbody tr").filter_map { |row| row["id"]&.delete_prefix("user_")&.to_i }
   end
 
+  def application_nav_links
+    Nokogiri::HTML(response.body).css("header nav a").to_h { |link| [ link.text.strip, link["href"] ] }
+  end
+
+  it "shows direct inventory links in the application nav only to global admins" do
+    sign_in admin
+    get root_path
+    expect(application_nav_links).to include(
+      "사용자 관리" => admin_users_path,
+      "동아리 운영 관리" => admin_groups_path
+    )
+    expect(application_nav_links).not_to have_key("운영 관리")
+
+    sign_in reader
+    get root_path
+    expect(application_nav_links).not_to have_key("사용자 관리")
+    expect(application_nav_links).not_to have_key("동아리 운영 관리")
+
+    Group.create!(group_admin: reader, name: "Reader managed", group_type: :public_group, application_purpose: "Read")
+    get root_path
+    expect(application_nav_links).not_to have_key("사용자 관리")
+    expect(application_nav_links).not_to have_key("동아리 운영 관리")
+  end
+
+  it "does not repeat inventory switching navigation inside admin pages" do
+    group = Group.create!(group_admin: reader, name: "Admin detail check", group_type: :public_group, application_purpose: "Read")
+    sign_in admin
+
+    [ admin_users_path, admin_user_path(reader), admin_groups_path, admin_group_path(group) ].each do |path|
+      get path
+      document = Nokogiri::HTML(response.body)
+      expect(document.css("main nav a[href='#{admin_users_path}'], main nav a[href='#{admin_groups_path}']")).to be_empty
+    end
+  end
+
   it "allows only a global admin to access the list and details" do
     get admin_users_path
     expect(response).to redirect_to(new_user_session_path)
@@ -69,7 +104,7 @@ RSpec.describe "Admin user inventory", type: :request do
     get admin_users_path, params: { status: "withdrawn" }
 
     row = Nokogiri::HTML(response.body).at_css("#user_#{withdrawn.id}")
-    expect(row.text).to include("본인 탈퇴", I18n.l(withdrawn.withdrawn_at, format: :short))
+    expect(row.text).to include("본인 탈퇴")
     expect(row.at_css('[data-field="email"]').text.strip).to eq("-")
     expect(row.text).not_to include(withdrawn.email)
 

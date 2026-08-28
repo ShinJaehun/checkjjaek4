@@ -1,5 +1,4 @@
 <section class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2 space-y-5">
-  <%= render "admin/shared/navigation" %>
   <div><h1 class="text-3xl font-semibold"><%= t("admin.groups.index.title") %></h1><p class="mt-2 text-sm text-stone-500"><%= t("admin.groups.index.description") %></p></div>
   <%= form_with url: admin_groups_path, method: :get, class: "flex flex-col gap-3 rounded-2xl border bg-white p-4 lg:flex-row lg:items-center" do |f| %>
     <%= f.search_field :q, value: params[:q], placeholder: t("admin.groups.filters.search"), class: "min-w-0 rounded border p-2 lg:flex-1" %>

@@ -41,7 +41,6 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_group_path(group)
     opening_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 개설") }
     expect(response.body).to include("승인 대기", "운영 이력")
-    expect(Nokogiri::HTML(response.body).css("nav[aria-label='#{I18n.t('admin.navigation.label')}']")).to be_empty
     expect(opening_card.text).to include("개설 목적", "Create a reading circle", "신청", I18n.l(opening_event.created_at, format: :short))
     expect(opening_card.text).not_to include("승인")
 
