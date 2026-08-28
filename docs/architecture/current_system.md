@@ -249,6 +249,10 @@
 - 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있고, 조회 가능한 기존 자기 좋아요는 이후 동아리·membership 비활성화나 Jjaek 삭제 상태에서도 철회할 수 있음
 - 동아리 관리자의 타인 댓글·Jjaek 삭제와 동아리 다시짹/share는 구현되지 않음
 - 동아리 hard delete·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
+- global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를, Group 운영 상세의 같은 형태 inventory에서 해당 동아리의 Jjaek·책짹·Comment를 직접 조사할 수 있음
+- 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
+- 일반 feed·profile scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
+- group admin의 자기 동아리 콘텐츠 monitoring은 아직 구현되지 않음
 - User 운영 정지, 콘텐츠 숨김·복구, moderation 감사 기록과 rate limit은 아직 구현되지 않았으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴

@@ -1,4 +1,14 @@
 class CommentPolicy < ApplicationPolicy
+  class AdminInventoryScope < Scope
+    def resolve
+      user&.global_admin? ? scope.all : scope.none
+    end
+  end
+
+  def view_admin_inventory?
+    user.present? && user.global_admin?
+  end
+
   def create?
     return false unless user.present? && !record.jjaek.deleted? && JjaekPolicy.new(user, record.jjaek).show?
     return true if record.jjaek.group_id.blank?

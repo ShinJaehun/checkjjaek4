@@ -41,6 +41,7 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_group_path(group)
     opening_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 개설") }
     expect(response.body).to include("승인 대기", "운영 이력")
+    expect(response.body).to include("콘텐츠")
     expect(opening_card.text).to include("개설 목적", "Create a reading circle", "신청", I18n.l(opening_event.created_at, format: :short))
     expect(opening_card.text).not_to include("승인")
 
@@ -188,6 +189,224 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(active_group.reload.name).to eq("Group admin only")
     expect(active_group).to be_active
     expect(inactive_group.reload).to be_inactive
+  end
+
+  it "shows only the Group's Jjaeks and comments with authors and direct links" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Content group", group_type: :private_group)
+    other_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Other content group", group_type: :public_group)
+    member = User.create!(name: "Content member", email: "group-content-member@example.com", password: "password123!")
+    book = Book.create!(title: "Group content book", authors_text: "Author")
+    general = group_admin.jjaeks.create!(group: active_group, content: "GROUP_GENERAL_CONTENT")
+    book_jjaek = member.jjaeks.create!(group: active_group, book:, content: "GROUP_BOOK_CONTENT")
+    comment = general.comments.create!(user: member, content: "GROUP_COMMENT_CONTENT")
+    deleted = member.jjaeks.create!(group: active_group, content: "GROUP_DELETED_CONTENT")
+    deleted_comment = deleted.comments.create!(user: group_admin, content: "COMMENT_ON_DELETED_GROUP_CONTENT")
+    deleted.destroy_or_tombstone!
+    other_jjaek = group_admin.jjaeks.create!(group: other_group, content: "OTHER_GROUP_CONTENT")
+    sign_in admin
+
+    get admin_group_path(active_group)
+
+    document = Nokogiri::HTML(response.body)
+    timeline = document.at_css("#admin_group_content_timeline")
+    expect(timeline.css("th").map { |header| header.text.strip }).to eq(
+      [ "종류", "작성자", "본문", "참고", "상태", "작성 시각", "작업" ]
+    )
+
+    general_row = timeline.at_css("#group_timeline_jjaek_#{general.id}")
+    book_row = timeline.at_css("#group_timeline_jjaek_#{book_jjaek.id}")
+    comment_row = timeline.at_css("#group_timeline_comment_#{comment.id}")
+    deleted_row = timeline.at_css("#group_timeline_jjaek_#{deleted.id}")
+    deleted_comment_row = timeline.at_css("#group_timeline_comment_#{deleted_comment.id}")
+    expect(general_row.at_css("[data-field='reference']").text.strip).to eq("-")
+    expect(general_row.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
+    expect(book_row.at_css("[data-field='reference']").text).to include("책", book.title)
+    expect(book_row.at_css("a[href='#{book_path(book)}']")).to be_present
+    expect(book_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
+    expect(comment_row.at_css("[data-field='reference']").text).to include("원문", group_admin.name, general.content)
+    expect(comment_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
+    expect(deleted_row.at_css("[data-field='body']").text.strip).to eq("-")
+    expect(deleted_row.at_css("[data-field='status']").text.strip).to eq("삭제")
+    expect(deleted_comment_row.at_css("[data-field='reference']").text).to include(member.name, "-")
+    expect(timeline.text).not_to include(other_jjaek.content)
+    expect(book_row.at_css("a[href='#{jjaek_path(book_jjaek)}']")).to be_present
+    comment_anchor = ActionView::RecordIdentifier.dom_id(comment)
+    expect(comment_row.at_css("a[href='#{jjaek_path(general, anchor: comment_anchor)}']")).to be_present
+
+    navigation = document.at_css("nav[aria-label='동아리 콘텐츠 종류']")
+    expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "짹", "책짹", "댓글" ])
+    expect(navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
+    expect(navigation.text).not_to include("다시짹")
+
+    lifecycle_position = response.body.index("운영 이력")
+    back_position = response.body.index("동아리 운영 관리로")
+    content_position = response.body.index("id=\"admin_group_content\"")
+    expect(content_position).to be > lifecycle_position
+    expect(content_position).to be > back_position
+  end
+
+  it "filters Group content and preserves filters across navigation" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Filtered content group", group_type: :public_group)
+    member = User.create!(name: "Filter member", email: "filter-member@example.com", password: "password123!")
+    book = Book.create!(title: "Filtered content book", authors_text: "Author")
+    general = group_admin.jjaeks.create!(group: active_group, content: "FILTER_GROUP_GENERAL")
+    book_jjaek = member.jjaeks.create!(group: active_group, book:, content: "FILTER_GROUP_BOOK")
+    comment = general.comments.create!(user: member, content: "FILTER_GROUP_COMMENT")
+    deleted = member.jjaeks.create!(group: active_group, content: "FILTER_GROUP_DELETED")
+    preservation_comment = deleted.comments.create!(user: group_admin, content: "PRESERVE_FILTER_GROUP_DELETED")
+    deleted.destroy_or_tombstone!
+    sign_in admin
+
+    get admin_group_path(active_group)
+    filter_document = Nokogiri::HTML(response.body)
+    expect(filter_document.at_css("input[name='content_q']")).to be_present
+    expect(filter_document.at_css("select[name='content_status']")).to be_present
+    expect(filter_document.at_css("select[name='content_sort']")).to be_present
+    expect(filter_document.at_css("select[name='kind'], select[name='location']")).to be_nil
+
+    {
+      { content_q: "filter-member@example.com" } => [ book_jjaek, comment, deleted ],
+      { content: "general" } => [ general, deleted ],
+      { content: "book" } => [ book_jjaek ],
+      { content: "comments" } => [ comment, preservation_comment ],
+      { content_status: "deleted" } => [ deleted ],
+      { content_q: "group_book", content: "book", content_status: "active" } => [ book_jjaek ]
+    }.each do |filters, expected_records|
+      get admin_group_path(active_group), params: filters
+      document = Nokogiri::HTML(response.body)
+      rows = document.css("#admin_group_content_timeline tbody tr")
+      expected_ids = expected_records.map do |record|
+        record_type = record.is_a?(Comment) ? "comment" : "jjaek"
+        "group_timeline_#{record_type}_#{record.id}"
+      end
+      expect(rows.map { |row| row["id"] }).to match_array(expected_ids)
+      expect(document.css("#admin_group_content_timeline th").map { |header| header.text.strip }).to eq(
+        [ "종류", "작성자", "본문", "참고", "상태", "작성 시각", "작업" ]
+      )
+      active_content = filters.fetch(:content, "all")
+      expect(document.at_css("nav a[aria-current='page']")["href"]).to include("content=#{active_content}")
+    end
+
+    get admin_group_path(active_group), params: {
+      content: "invalid",
+      content_status: "invalid",
+      content_sort: "invalid",
+      q: "INDEX_ONLY_QUERY",
+      group_type: "private_group",
+      status: "active",
+      sort: "name",
+      page: 2
+    }
+    invalid_document = Nokogiri::HTML(response.body)
+    expect(invalid_document.css("#admin_group_content_timeline tbody tr").size).to eq(5)
+    expect(invalid_document.at_css("nav a[aria-current='page']").text.strip).to eq("전체")
+    expect(invalid_document.at_css("input[name='content_q']")["value"]).to be_blank
+
+    get admin_group_path(active_group), params: {
+      content: "comments",
+      content_q: "FILTER",
+      content_status: "active",
+      content_sort: "oldest",
+      q: "Filtered content group",
+      group_type: "public_group",
+      status: "active",
+      sort: "name",
+      page: 2,
+      all_page: 2
+    }
+    filtered_document = Nokogiri::HTML(response.body)
+    expect(filtered_document.at_css("input[name='content']")["value"]).to eq("comments")
+    reset_link = filtered_document.css("a").find { |link| link.text.strip == "필터 초기화" }
+    expect(reset_link["href"]).to eq(
+      admin_group_path(
+        active_group,
+        q: "Filtered content group",
+        group_type: "public_group",
+        status: "active",
+        sort: "name",
+        page: 2,
+        content: "comments"
+      )
+    )
+    book_link = filtered_document.css("nav a").find { |link| link.text.strip == "책짹" }
+    expect(book_link["href"]).to include(
+      "content=book",
+      "content_q=FILTER",
+      "content_status=active",
+      "content_sort=oldest"
+    )
+    expect(book_link["href"]).not_to include("all_page")
+
+    back_link = filtered_document.css("a").find { |link| link.text.include?("동아리 운영 관리로") }
+    expect(back_link["href"]).to eq(
+      admin_groups_path(
+        q: "Filtered content group",
+        group_type: "public_group",
+        status: "active",
+        sort: "name",
+        page: 2
+      )
+    )
+    expect(back_link["href"]).not_to include("content=", "content_", "all_page")
+  end
+
+  it "paginates mixed Group content chronologically at the database boundary" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Paged content group", group_type: :public_group)
+    base_time = Time.current
+    source = group_admin.jjaeks.create!(
+      group: active_group,
+      content: "PAGED_GROUP_JJAEK_0",
+      created_at: base_time
+    )
+    25.times do |index|
+      group_admin.jjaeks.create!(
+        group: active_group,
+        content: "PAGED_GROUP_JJAEK_#{index + 1}",
+        created_at: base_time - ((index + 1) * 2).minutes
+      )
+      source.comments.create!(
+        user: group_admin,
+        content: "PAGED_GROUP_COMMENT_#{index}",
+        created_at: base_time - (index * 2 + 1).minutes
+      )
+    end
+    sign_in admin
+
+    get admin_group_path(active_group), params: {
+      content: "all",
+      content_q: "PAGED_GROUP",
+      content_status: "active",
+      content_sort: "recent"
+    }
+
+    first_page = Nokogiri::HTML(response.body)
+    first_page_rows = first_page.css("#admin_group_content_timeline tbody tr")
+    expect(first_page_rows.size).to eq(50)
+    expect(first_page_rows.first(4).map(&:text).join).to match(
+      /PAGED_GROUP_JJAEK_0.*PAGED_GROUP_COMMENT_0.*PAGED_GROUP_JJAEK_1.*PAGED_GROUP_COMMENT_1/m
+    )
+    expect(response.body).to include(
+      "content=all",
+      "content_q=PAGED_GROUP",
+      "content_status=active",
+      "content_sort=recent",
+      "all_page=2"
+    )
+
+    get admin_group_path(active_group), params: {
+      content: "all",
+      content_q: "PAGED_GROUP",
+      content_status: "active",
+      content_sort: "recent",
+      all_page: 2
+    }
+    second_page = Nokogiri::HTML(response.body)
+    expect(second_page.css("#admin_group_content_timeline tbody tr").size).to eq(1)
+    expect(second_page.css("#admin_group_content_timeline tbody tr").first.text).to include("PAGED_GROUP_JJAEK_25")
+
+    get admin_group_path(active_group), params: { content_q: "PAGED_GROUP", content_sort: "oldest" }
+    oldest_first = Nokogiri::HTML(response.body).css("#admin_group_content_timeline tbody tr").first
+    expect(oldest_first.text).to include("PAGED_GROUP_JJAEK_25")
   end
 
   it "preserves every close event across repeated operations cycles" do

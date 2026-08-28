@@ -12,6 +12,23 @@ module Admin
       @group = Group.find(params[:id])
       authorize @group, :view_admin_details?
       @lifecycle_events = @group.lifecycle_events.includes(:actor)
+      @content_section = permitted_content_section
+      @content_filter_params = params.permit(:content_q, :content_status, :content_sort)
+
+      jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope)
+        .where(group: @group)
+
+      comments = policy_scope(Comment, policy_scope_class: CommentPolicy::AdminInventoryScope)
+        .joins(:jjaek)
+        .where(jjaeks: { group_id: @group.id })
+
+      @timeline_page = GroupContentTimelineQuery.new(
+        jjaek_scope: jjaeks,
+        comment_scope: comments,
+        content_section: @content_section,
+        params:
+      ).call
+      @timeline_items = @timeline_page.records
       @return_params = params.permit(:q, :group_type, :status, :sort, :page)
     end
 
@@ -26,6 +43,13 @@ module Admin
       end
 
       redirect_to admin_groups_path, notice: t("admin.groups.notices.approved")
+    end
+
+    private
+
+    def permitted_content_section
+      section = params[:content].to_s
+      %w[general book comments].include?(section) ? section : "all"
     end
   end
 end

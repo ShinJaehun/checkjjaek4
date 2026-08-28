@@ -1,0 +1,158 @@
+<section id="admin_user_content_timeline" class="space-y-5">
+  <%= form_with url: admin_user_path(user),
+                method: :get,
+                class: "flex flex-col gap-3 rounded-2xl border bg-white p-4 lg:flex-row lg:items-center" do |f| %>
+    <%= f.hidden_field :content, value: content_section %>
+    <%= f.search_field :q,
+                       value: params[:q],
+                       placeholder: t("admin.user_content.filters.search"),
+                       class: "min-w-0 rounded border p-2 lg:flex-1" %>
+    <%= f.select :location,
+                 options_for_select(
+                   [
+                     [t("admin.user_content.filters.all"), ""],
+                     [t("admin.user_content.locations.personal"), "personal"],
+                     [t("admin.user_content.locations.group"), "group"]
+                   ],
+                   params[:location]
+                 ),
+                 {},
+                 class: "rounded border p-2",
+                 aria: { label: t("admin.user_content.fields.location") } %>
+    <%= f.select :status,
+                 options_for_select(
+                   [
+                     [t("admin.user_content.filters.all"), ""],
+                     [t("admin.user_content.statuses.active"), "active"],
+                     [t("admin.user_content.statuses.deleted"), "deleted"]
+                   ],
+                   params[:status]
+                 ),
+                 {},
+                 class: "rounded border p-2",
+                 aria: { label: t("admin.user_content.fields.status") } %>
+    <%= f.select :sort,
+                 options_for_select(
+                   [
+                     [t("admin.user_content.sorts.recent"), "recent"],
+                     [t("admin.user_content.sorts.oldest"), "oldest"]
+                   ],
+                   params[:sort]
+                 ),
+                 {},
+                 class: "rounded border p-2" %>
+    <%= f.submit t("admin.user_content.filters.apply"),
+                 class: "whitespace-nowrap rounded bg-stone-900 p-2 text-white" %>
+    <%= link_to t("admin.user_content.filters.reset"),
+                admin_user_path(user, content: content_section),
+                class: "whitespace-nowrap p-2 underline" %>
+  <% end %>
+
+  <div class="overflow-x-auto rounded-2xl border bg-white">
+    <table class="min-w-full text-sm">
+      <thead>
+        <tr class="border-b text-left">
+          <th class="p-3 whitespace-nowrap"><%= t("admin.user_content.fields.kind") %></th>
+          <th class="min-w-44 p-3 whitespace-nowrap"><%= t("admin.user_content.fields.location") %></th>
+          <th class="min-w-80 p-3"><%= t("admin.user_content.fields.body") %></th>
+          <th class="min-w-80 p-3"><%= t("admin.user_content.fields.reference") %></th>
+          <th class="p-3 whitespace-nowrap"><%= t("admin.user_content.fields.status") %></th>
+          <th class="p-3 whitespace-nowrap"><%= t("admin.user_content.fields.created") %></th>
+          <th class="p-3 whitespace-nowrap"><%= t("admin.user_content.fields.actions") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% timeline_items.each do |item| %>
+          <% record = item.record %>
+          <% source_jjaek = item.kind == "comments" ? record.jjaek : record.quoted_jjaek %>
+          <% group = item.kind == "comments" ? record.jjaek.group : record.group %>
+          <%
+            body = if item.record_type == "Jjaek" && record.deleted?
+              "-"
+            else
+              truncate(record.content.to_s, length: 220).presence || "-"
+            end
+          %>
+          <tr id="timeline_<%= item.record_type.downcase %>_<%= record.id %>"
+              class="border-b align-middle"
+              data-content-kind="<%= item.kind %>">
+            <td class="p-3 align-middle whitespace-nowrap">
+              <span class="whitespace-nowrap rounded-full bg-stone-100 px-2 py-1 text-xs text-stone-700">
+                <%= t("admin.user_content.kinds.#{item.kind}") %>
+              </span>
+            </td>
+            <td class="p-3 align-middle" data-field="location">
+              <% if group %>
+                <%= t("admin.user_content.locations.group") %> ·
+                <%= link_to group.name, admin_group_path(group), class: "text-stone-700 underline" %>
+              <% else %>
+                <%= t("admin.user_content.locations.personal") %>
+              <% end %>
+            </td>
+            <td class="p-3 align-middle leading-6" data-field="body"><%= body %></td>
+            <td class="p-3 align-middle leading-6" data-field="reference">
+              <% if item.kind == "general" %>
+                <% if !record.deleted? && record.target_user.present? && record.target_user_id != record.user_id %>
+                  <span class="text-stone-500"><%= t("admin.user_content.references.target") %> ·</span>
+                  <%= link_to record.target_user.name,
+                              admin_user_path(record.target_user),
+                              class: "text-stone-700 underline" %>
+                <% else %>
+                  -
+                <% end %>
+              <% elsif item.kind == "book" %>
+                <% if !record.deleted? && record.book %>
+                  <span class="text-stone-500"><%= t("admin.user_content.references.book") %> ·</span>
+                  <%= link_to record.book.title,
+                              book_path(record.book),
+                              class: "text-stone-700 underline" %>
+                <% else %>
+                  -
+                <% end %>
+              <% elsif source_jjaek %>
+                <p>
+                  <span class="text-stone-500"><%= t("admin.user_content.references.source") %> ·</span>
+                  <%= link_to source_jjaek.user.name,
+                              admin_user_path(source_jjaek.user),
+                              class: "text-stone-700 underline" %>
+                </p>
+                <p class="mt-1 text-stone-500">
+                  <%= truncate(source_jjaek.content.to_s, length: 220).presence || "-" %>
+                </p>
+              <% else %>
+                -
+              <% end %>
+            </td>
+            <td class="p-3 align-middle whitespace-nowrap" data-field="status">
+              <% if item.record_type == "Jjaek" && record.deleted? %>
+                <span class="rounded-full bg-stone-200 px-2 py-1 text-xs text-stone-700">
+                  <%= t("admin.user_content.statuses.deleted") %>
+                </span>
+              <% else %>
+                -
+              <% end %>
+            </td>
+            <td class="p-3 align-middle whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
+            <td class="p-3 align-middle whitespace-nowrap" data-field="actions">
+              <% if item.record_type == "Comment" %>
+                <%= link_to t("admin.user_content.actions.direct"),
+                            jjaek_path(record.jjaek, anchor: dom_id(record)),
+                            class: "text-stone-700 underline" %>
+              <% else %>
+                <%= link_to t("admin.user_content.actions.direct"),
+                            jjaek_path(record),
+                            class: "text-stone-700 underline" %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if timeline_items.empty? %>
+      <p class="p-6 text-center"><%= t("admin.user_content.empty") %></p>
+    <% end %>
+  </div>
+
+  <%= render "admin/shared/pagination", page: page, page_param: :all_page %>
+</section>

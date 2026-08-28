@@ -177,6 +177,56 @@ ko:
   admin:
     actions:
       show: "상세 보기"
+    user_content:
+      title: "콘텐츠"
+      navigation_label: "작성 콘텐츠 종류"
+      navigation:
+        all: "전체"
+        general: "짹"
+        book: "책짹"
+        requote: "다시짹"
+        comments: "댓글"
+      kinds:
+        general: "짹"
+        book: "책짹"
+        requote: "다시짹"
+        comments: "댓글"
+      locations:
+        personal: "일반"
+        group: "동아리"
+      fields:
+        kind: "종류"
+        location: "위치"
+        body: "본문"
+        reference: "참고"
+        status: "상태"
+        created: "작성 시각"
+        actions: "작업"
+      references:
+        target: "대상"
+        book: "책"
+        source: "원문"
+      statuses:
+        active: "정상"
+        deleted: "삭제"
+      filters:
+        all: "전체"
+        search: "본문 검색"
+        apply: "필터 적용"
+        reset: "필터 초기화"
+      sorts:
+        recent: "최근 작성순"
+        oldest: "오래된 작성순"
+      actions:
+        direct: "바로가기"
+      empty: "작성한 콘텐츠가 없습니다."
+    group_content:
+      navigation_label: "동아리 콘텐츠 종류"
+      fields:
+        author: "작성자"
+      filters:
+        search: "본문 또는 작성자 검색"
+      empty: "조건에 맞는 동아리 콘텐츠가 없습니다."
     filters:
       all: "전체"
       apply: "필터 적용"

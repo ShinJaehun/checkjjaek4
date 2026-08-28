@@ -7,6 +7,16 @@ RSpec.describe CommentPolicy do
   let(:friendship) { BookFriendship.create!(requester: user, addressee: other_user, status: :accepted) }
   let(:jjaek_record) { other_user.jjaeks.create!(book:, content: "Jjaek") }
 
+  it "limits admin inventory permission and scope to global admins" do
+    admin = User.create!(name: "Admin", email: "comment-inventory-admin@example.com", password: "password123!", global_admin: true)
+    comment = jjaek_record.comments.create!(user:, content: "Inventory comment")
+
+    expect(described_class.new(admin, comment).view_admin_inventory?).to be(true)
+    expect(described_class.new(user, comment).view_admin_inventory?).to be(false)
+    expect(described_class::AdminInventoryScope.new(admin, Comment.all).resolve).to include(comment)
+    expect(described_class::AdminInventoryScope.new(user, Comment.all).resolve).to be_empty
+  end
+
   describe "permissions" do
     it "lets a signed-in user create a comment on an accessible jjaek" do
       comment = jjaek_record.comments.build(user:, content: "Nice")
@@ -40,6 +50,15 @@ RSpec.describe CommentPolicy do
       comment = jjaek_record.comments.create!(user: other_user, content: "Theirs")
 
       expect(described_class.new(user, comment).update?).to be(false)
+    end
+
+    it "does not grant global admins author mutation permissions" do
+      admin = User.create!(name: "Admin", email: "comment-mutation-admin@example.com", password: "password123!", global_admin: true)
+      comment = jjaek_record.comments.create!(user:, content: "Author only")
+      policy = described_class.new(admin, comment)
+
+      expect(policy.update?).to be(false)
+      expect(policy.destroy?).to be(false)
     end
 
     it "does not let a guest create a comment" do

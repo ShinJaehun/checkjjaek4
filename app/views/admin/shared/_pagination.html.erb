@@ -1,7 +1,13 @@
+<% page_param = local_assigns.fetch(:page_param, :page) %>
+
 <nav class="flex items-center justify-between text-sm">
   <span><%= t("admin.pagination.range", first: page.first_item, last: page.last_item, total: page.total_count) %></span>
   <div class="flex gap-3">
-    <%= link_to t("admin.pagination.previous"), url_for(request.query_parameters.merge(page: page.previous_page)), class: "underline" if page.previous_page %>
-    <%= link_to t("admin.pagination.next"), url_for(request.query_parameters.merge(page: page.next_page)), class: "underline" if page.next_page %>
+    <%= link_to t("admin.pagination.previous"),
+                url_for(request.query_parameters.merge(page_param.to_s => page.previous_page)),
+                class: "underline" if page.previous_page %>
+    <%= link_to t("admin.pagination.next"),
+                url_for(request.query_parameters.merge(page_param.to_s => page.next_page)),
+                class: "underline" if page.next_page %>
   </div>
 </nav>

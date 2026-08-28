@@ -169,6 +169,56 @@ en:
   admin:
     actions:
       show: "Details"
+    user_content:
+      title: "Content"
+      navigation_label: "Authored content type"
+      navigation:
+        all: "All"
+        general: "Jjaeks"
+        book: "Book Jjaeks"
+        requote: "ReJjaeks"
+        comments: "Comments"
+      kinds:
+        general: "Jjaeks"
+        book: "Book Jjaeks"
+        requote: "ReJjaeks"
+        comments: "Comments"
+      locations:
+        personal: "Personal"
+        group: "Club"
+      fields:
+        kind: "Kind"
+        location: "Location"
+        body: "Body"
+        reference: "Reference"
+        status: "Status"
+        created: "Created"
+        actions: "Actions"
+      references:
+        target: "Target"
+        book: "Book"
+        source: "Source"
+      statuses:
+        active: "Active"
+        deleted: "Deleted"
+      filters:
+        all: "All"
+        search: "Search body"
+        apply: "Apply filters"
+        reset: "Reset filters"
+      sorts:
+        recent: "Newest first"
+        oldest: "Oldest first"
+      actions:
+        direct: "Open"
+      empty: "No authored content."
+    group_content:
+      navigation_label: "Club content type"
+      fields:
+        author: "Author"
+      filters:
+        search: "Search body or author"
+      empty: "No matching club content."
     filters:
       all: "All"
       apply: "Apply"

@@ -267,6 +267,23 @@ RSpec.describe "Jjaeks", type: :request do
   end
 
   describe "GET /jjaeks/:id" do
+    it "lets a global admin directly inspect private personal and inactive private Group Jjaeks" do
+      admin = User.create!(name: "Admin", email: "direct-show-admin@example.com", password: "password123!", global_admin: true)
+      private_jjaek = original_author.jjaeks.create!(content: "ADMIN_PRIVATE_DIRECT_SHOW", visibility: :private_jjaek)
+      private_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Admin private group", group_type: :private_group)
+      group_jjaek = original_author.jjaeks.create!(group: private_group, content: "ADMIN_GROUP_DIRECT_SHOW")
+      private_group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      sign_in admin
+
+      get jjaek_path(private_jjaek)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(private_jjaek.content)
+
+      get jjaek_path(group_jjaek)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(group_jjaek.content)
+    end
+
     it "renders the edit page for a general jjaek without requiring a book" do
       general_jjaek = viewer.jjaeks.create!(content: "GENERAL_EDIT_BODY", visibility: :public_jjaek)
       sign_in viewer

@@ -1,5 +1,17 @@
 class JjaekPolicy < ApplicationPolicy
+  class AdminInventoryScope < Scope
+    def resolve
+      user&.global_admin? ? scope.all : scope.none
+    end
+  end
+
+  def view_admin_inventory?
+    user.present? && user.global_admin?
+  end
+
   def show?
+    return true if user&.global_admin?
+
     user.present? && context_visible_to_user? && quoted_jjaek_visible_to_user?
   end
 

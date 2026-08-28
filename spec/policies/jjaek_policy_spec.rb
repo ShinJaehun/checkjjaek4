@@ -16,7 +16,26 @@ RSpec.describe JjaekPolicy do
     friendship
   end
 
+  it "limits admin inventory permission and scope to global admins" do
+    admin = User.create!(name: "Admin", email: "jjaek-inventory-admin@example.com", password: "password123!", global_admin: true)
+
+    expect(described_class.new(admin, original).view_admin_inventory?).to be(true)
+    expect(described_class.new(viewer, original).view_admin_inventory?).to be(false)
+    expect(described_class::AdminInventoryScope.new(admin, Jjaek.all).resolve).to include(original)
+    expect(described_class::AdminInventoryScope.new(viewer, Jjaek.all).resolve).to be_empty
+  end
+
   describe "#show?" do
+    it "allows global admin inspection without granting author mutations" do
+      admin = User.create!(name: "Admin", email: "jjaek-show-admin@example.com", password: "password123!", global_admin: true)
+      private_jjaek = original_author.jjaeks.create!(content: "ADMIN_PRIVATE_POLICY", visibility: :private_jjaek)
+      policy = described_class.new(admin, private_jjaek)
+
+      expect(policy.show?).to be(true)
+      expect(policy.update?).to be(false)
+      expect(policy.destroy?).to be(false)
+    end
+
     it "hides a user's own requote when the original is no longer visible to them" do
       friendship.destroy!
 
