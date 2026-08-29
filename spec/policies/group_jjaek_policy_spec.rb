@@ -47,6 +47,18 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     expect(policy.update?).to be(false)
     expect(policy.destroy?).to be(false)
     expect(described_class::Scope.new(admin, Jjaek.all).resolve).not_to include(jjaek)
+    expect(described_class::GroupContentScope.new(admin, group.jjaeks).resolve).to include(jjaek)
+    expect(described_class.new(admin, admin.jjaeks.build(group:, content: "Blocked")).create?).to be(false)
+
+    group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+    expect(described_class::GroupContentScope.new(admin, group.jjaeks).resolve).to include(jjaek)
+  end
+
+  it "uses ordinary visibility rules in the group content scope for non-admins" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
+    jjaek = group_admin.jjaeks.create!(group:, content: "Private content")
+
+    expect(described_class::GroupContentScope.new(non_member, group.jjaeks).resolve).not_to include(jjaek)
   end
 
   it "scopes group jjaeks by public or active membership access" do

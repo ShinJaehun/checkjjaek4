@@ -55,6 +55,64 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
+    it "shows every profile jjaek to a global admin without exposing other users' content" do
+      global_admin = User.create!(name: "Global admin", email: "profile-global-admin@example.com", password: "password123!", global_admin: true)
+      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "ADMIN_BOOK_FRIENDS_SHELF",
+        visibility: :book_friends,
+        book_title: "ADMIN_BOOK_FRIENDS_BOOK",
+        status: :reading
+      )
+      create_profile_bookshelf_entry(
+        user: profile_user,
+        bookshelf_name: "ADMIN_PRIVATE_SHELF",
+        visibility: :private,
+        book_title: "ADMIN_PRIVATE_BOOK",
+        status: :finished
+      )
+      sign_in global_admin
+
+      get user_path(profile_user)
+
+      expect(response.body).to include("Profile Jjaek", "Book friend profile Jjaek", "Private profile Jjaek")
+      expect(response.body).not_to include("Other private")
+      expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
+      expect(response.body).to include("프로필 서재 전용 책", "ADMIN_BOOK_FRIENDS_BOOK", "ADMIN_PRIVATE_BOOK")
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"), I18n.t("bookshelf_entries.statuses.finished"))
+      expect(response.body).not_to include(I18n.t("users.profile.view_library"))
+      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
+    end
+
+    it "applies group access to group jjaeks on an author's profile" do
+      public_group = Group.create!(lifecycle_status: :active, group_admin: profile_user, name: "Profile public", group_type: :public_group)
+      approval_group = Group.create!(lifecycle_status: :active, group_admin: profile_user, name: "Profile approval", group_type: :approval_group)
+      private_group = Group.create!(lifecycle_status: :active, group_admin: profile_user, name: "Profile private", group_type: :private_group)
+      public_jjaek = profile_user.jjaeks.create!(group: public_group, content: "PROFILE_PUBLIC_GROUP_REQUEST")
+      approval_jjaek = profile_user.jjaeks.create!(group: approval_group, content: "PROFILE_APPROVAL_GROUP_REQUEST")
+      private_jjaek = profile_user.jjaeks.create!(group: private_group, content: "PROFILE_PRIVATE_GROUP_REQUEST")
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      viewer.active_follows.create!(followee: profile_user)
+      sign_in viewer
+
+      get user_path(profile_user)
+      expect(response.body).to include(public_jjaek.content)
+      expect(response.body).not_to include(approval_jjaek.content)
+      expect(response.body).not_to include(private_jjaek.content)
+
+      approval_group.group_memberships.create!(user: viewer, status: :active)
+      private_group.group_memberships.create!(user: viewer, status: :active)
+      get user_path(profile_user)
+      expect(response.body).to include(public_jjaek.content, approval_jjaek.content, private_jjaek.content)
+
+      sign_out viewer
+      global_admin = User.create!(name: "Global admin", email: "profile-group-global-admin@example.com", password: "password123!", global_admin: true)
+      sign_in global_admin
+      get user_path(profile_user)
+      expect(response.body).to include(public_jjaek.content, approval_jjaek.content, private_jjaek.content)
+    end
+
     it "shows public books summary and only public jjaeks to follow-only users" do
       viewer.active_follows.create!(followee: profile_user)
       sign_in viewer

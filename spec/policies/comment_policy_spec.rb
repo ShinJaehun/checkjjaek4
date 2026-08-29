@@ -61,6 +61,13 @@ RSpec.describe CommentPolicy do
       expect(policy.destroy?).to be(false)
     end
 
+    it "does not turn operational access into permission to comment" do
+      admin = User.create!(name: "Admin", email: "comment-create-admin@example.com", password: "password123!", global_admin: true)
+      private_jjaek = other_user.jjaeks.create!(content: "Private", visibility: :private_jjaek)
+
+      expect(described_class.new(admin, private_jjaek.comments.build(user: admin, content: "Blocked")).create?).to be(false)
+    end
+
     it "does not let a guest create a comment" do
       comment = jjaek_record.comments.build(user:, content: "Nice")
 

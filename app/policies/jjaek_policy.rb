@@ -12,6 +12,10 @@ class JjaekPolicy < ApplicationPolicy
   def show?
     return true if user&.global_admin?
 
+    visible_for_interaction?
+  end
+
+  def visible_for_interaction?
     user.present? && context_visible_to_user? && quoted_jjaek_visible_to_user?
   end
 
@@ -25,7 +29,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def requote?
-    show? && !record.deleted? && record.group_id.blank? && !record.private_jjaek? && !record.requote?
+    visible_for_interaction? && !record.deleted? && record.group_id.blank? && !record.private_jjaek? && !record.requote?
   end
 
   def create_requote?
@@ -43,7 +47,18 @@ class JjaekPolicy < ApplicationPolicy
     user.present? && record.user_id == user.id && !record.deleted?
   end
 
-  class Scope < ApplicationPolicy::Scope
+  class MembershipAwareScope < ApplicationPolicy::Scope
+    private
+
+    def readable_member_group_ids
+      GroupMembership.active
+        .joins(:group)
+        .where(user: user, groups: { lifecycle_status: %i[active inactive] })
+        .select(:group_id)
+    end
+  end
+
+  class Scope < MembershipAwareScope
     def resolve
       return scope.none unless user.present?
 
@@ -54,11 +69,6 @@ class JjaekPolicy < ApplicationPolicy
 
     def visible_records
       friend_ids = BookFriendship.connected_ids_for(user)
-      readable_member_group_ids = GroupMembership.active
-        .joins(:group)
-        .where(user: user, groups: { lifecycle_status: %i[active inactive] })
-        .select(:group_id)
-
       personal_records = scope.where(group_id: nil)
         .where(user_id: user.id)
         .or(scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
@@ -83,7 +93,26 @@ class JjaekPolicy < ApplicationPolicy
     end
   end
 
-  class FeedScope < ApplicationPolicy::Scope
+  class GroupContentScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+      return scope.all if user.global_admin?
+
+      JjaekPolicy::Scope.new(user, scope).resolve
+    end
+  end
+
+  class ProfileScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+      return scope.all if user.global_admin?
+
+      visible_jjaek_ids = JjaekPolicy::Scope.new(user, Jjaek.all).resolve.select(:id)
+      scope.where(id: visible_jjaek_ids)
+    end
+  end
+
+  class FeedScope < MembershipAwareScope
     def resolve
       return scope.none unless user.present?
 
@@ -96,11 +125,13 @@ class JjaekPolicy < ApplicationPolicy
       followee_ids = user.followee_ids
       friend_ids = BookFriendship.connected_ids_for(user)
 
-      scope
+      personal_records = scope
         .where(group_id: nil, user_id: user.id)
         .or(scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
         .or(scope.where(group_id: nil, user_id: followee_ids, visibility: Jjaek.visibilities[:public_jjaek]))
         .or(scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
+
+      personal_records.or(scope.where(group_id: readable_member_group_ids))
     end
 
     def with_visible_quoted_jjaeks(records)
@@ -162,7 +193,7 @@ class JjaekPolicy < ApplicationPolicy
     return record.user_id == user.id if record.quoted_source_deleted?
     return true unless record.quoted_jjaek
 
-    self.class.new(user, record.quoted_jjaek).show?
+    self.class.new(user, record.quoted_jjaek).visible_for_interaction?
   end
 
   def already_requoted?

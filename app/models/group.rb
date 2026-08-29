@@ -42,7 +42,7 @@ class Group < ApplicationRecord
   def transfer_admin_to!(new_admin, by:)
     with_lock do
       target_membership = new_admin && group_memberships.active.lock.find_by(user_id: new_admin.id)
-      valid_transfer = group_admin?(by) && (active? || inactive?) && new_admin.present? &&
+      valid_transfer = admin_transfer_actor?(by) && (active? || inactive?) && new_admin.present? &&
         new_admin.id != group_admin_id && target_membership.present?
 
       unless valid_transfer
@@ -81,6 +81,10 @@ class Group < ApplicationRecord
   end
 
   private
+
+  def admin_transfer_actor?(actor)
+    group_admin?(actor) || actor&.global_admin?
+  end
 
   def application_purpose_must_be_present_for_new_application
     return unless new_record? && pending_approval? && application_purpose.blank?

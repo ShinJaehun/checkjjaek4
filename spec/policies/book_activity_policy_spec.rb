@@ -31,4 +31,15 @@ RSpec.describe BookActivityPolicy do
     expect(described_class.new(viewer, activity).show?).to be(false)
     expect(Pundit.policy_scope!(viewer, BookActivity)).not_to include(activity)
   end
+
+  it "includes the investigated user's activity in profile scope for a global admin" do
+    global_admin = User.create!(name: "Global admin", email: "book-activity-global-admin@example.com", password: "password123!", global_admin: true)
+
+    expect(described_class::ProfileScope.new(global_admin, profile_user.book_activities).resolve).to include(activity)
+    expect(described_class::Scope.new(global_admin, BookActivity.all).resolve).not_to include(activity)
+  end
+
+  it "keeps a stranger's profile activity hidden from an unrelated user" do
+    expect(described_class::ProfileScope.new(viewer, profile_user.book_activities).resolve).not_to include(activity)
+  end
 end

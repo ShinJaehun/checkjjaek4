@@ -126,7 +126,7 @@ RSpec.describe GroupPolicy do
   end
 
   describe "#transfer_admin?" do
-    it "allows only the current admin of an active or inactive group" do
+    it "allows the current admin and global admin for active or inactive groups" do
       admin = User.create!(name: "Global admin", email: "transfer-policy-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true)
       active = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Active", group_type: :public_group)
       inactive = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Inactive", group_type: :public_group)
@@ -138,11 +138,13 @@ RSpec.describe GroupPolicy do
       expect(described_class.new(group_admin, inactive).transfer_admin?).to be(true)
       expect(described_class.new(group_admin, pending).transfer_admin?).to be(false)
       expect(described_class.new(viewer, active).transfer_admin?).to be(false)
-      expect(described_class.new(admin, active).transfer_admin?).to be(false)
+      expect(described_class.new(admin, active).transfer_admin?).to be(true)
+      expect(described_class.new(admin, inactive).transfer_admin?).to be(true)
+      expect(described_class.new(admin, pending).transfer_admin?).to be(false)
     end
   end
 
-  it "gives a global admin only the explicit admin metadata permission" do
+  it "gives a global admin operational investigation without general group lifecycle actions" do
     admin = User.create!(name: "Admin", email: "policy-global-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true)
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Group admin managed", group_type: :private_group)
     policy = described_class.new(admin, group)
@@ -153,7 +155,21 @@ RSpec.describe GroupPolicy do
     expect(policy.update?).to be(false)
     expect(policy.close?).to be(false)
     expect(policy.request_reactivation?).to be(false)
-    expect(policy.show?).to be(false)
-    expect(policy.read_jjaeks?).to be(false)
+    expect(policy.show?).to be(true)
+    expect(policy.read_jjaeks?).to be(true)
+    expect(policy.create_jjaek?).to be(false)
+  end
+
+  it "includes every group in the general scope for a global admin" do
+    admin = User.create!(name: "Admin", email: "policy-scope-admin@example.com", password: "password123!", global_admin: true)
+    public_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
+    private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
+    pending_group = Group.create!(group_admin: group_admin, name: "Pending", group_type: :approval_group, application_purpose: "Read together")
+    inactive_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Inactive", group_type: :private_group)
+    inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+
+    resolved = described_class::Scope.new(admin, Group.all).resolve
+
+    expect(resolved).to include(public_group, private_group, pending_group, inactive_group)
   end
 end

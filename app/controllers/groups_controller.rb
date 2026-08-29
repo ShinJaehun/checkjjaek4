@@ -137,15 +137,19 @@ class GroupsController < ApplicationController
     new_admin = @group.group_memberships.active.includes(:user).find_by(user_id: params[:new_admin_id])&.user
     @group.transfer_admin_to!(new_admin, by: current_user)
 
-    redirect_to @group, notice: t("groups.notices.admin_transferred")
+    redirect_to group_transfer_redirect_path, notice: t("groups.notices.admin_transferred")
   rescue ActiveRecord::RecordInvalid
-    redirect_to @group, alert: t("groups.alerts.admin_transfer_failed")
+    redirect_to group_transfer_redirect_path, alert: t("groups.alerts.admin_transfer_failed")
   end
 
   private
 
   def set_group
     @group = policy_scope(Group).find(params[:id])
+  end
+
+  def group_transfer_redirect_path
+    policy(@group).view_admin_details? ? admin_group_path(@group) : group_path(@group)
   end
 
   def create_group_params
@@ -166,7 +170,10 @@ class GroupsController < ApplicationController
     group_policy = policy(@group)
     @can_read_group_jjaeks = group_policy.read_jjaeks?
     @jjaeks = if @can_read_group_jjaeks
-      policy_scope(@group.jjaeks).includes(:user, :book, :group).recent
+      policy_scope(
+        @group.jjaeks,
+        policy_scope_class: JjaekPolicy::GroupContentScope
+      ).includes(:user, :book, :group).recent
     else
       Jjaek.none
     end

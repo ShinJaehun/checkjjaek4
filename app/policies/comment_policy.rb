@@ -10,7 +10,7 @@ class CommentPolicy < ApplicationPolicy
   end
 
   def create?
-    return false unless user.present? && !record.jjaek.deleted? && JjaekPolicy.new(user, record.jjaek).show?
+    return false unless user.present? && !record.jjaek.deleted? && jjaek_policy.visible_for_interaction?
     return true if record.jjaek.group_id.blank?
 
     record.jjaek.group.active? && record.jjaek.group.active_member?(user)
@@ -20,10 +20,16 @@ class CommentPolicy < ApplicationPolicy
     return false unless user.present? && record.user_id == user.id
     return true if record.jjaek.group_id.blank?
 
-    JjaekPolicy.new(user, record.jjaek).show? && record.jjaek.group.active_member?(user)
+    jjaek_policy.visible_for_interaction? && record.jjaek.group.active_member?(user)
   end
 
   def destroy?
     user.present? && record.user_id == user.id
+  end
+
+  private
+
+  def jjaek_policy
+    @jjaek_policy ||= JjaekPolicy.new(user, record.jjaek)
   end
 end

@@ -13,4 +13,13 @@ class BookActivityPolicy < ApplicationPolicy
       scope.where(user_id: visible_user_ids)
     end
   end
+
+  class ProfileScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+      return scope.all if user.global_admin?
+
+      BookActivityPolicy::Scope.new(user, scope).resolve
+    end
+  end
 end

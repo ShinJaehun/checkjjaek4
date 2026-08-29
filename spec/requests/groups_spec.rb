@@ -125,6 +125,19 @@ RSpec.describe "Groups", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "lets a global admin inspect jjaeks in a private group without membership" do
+    global_admin = User.create!(name: "Global admin", email: "private-group-global-admin@example.com", password: "password123!", global_admin: true)
+    group_admin = User.create!(name: "Group admin", email: "private-content-group-admin@example.com", password: "password123!")
+    private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Private investigation", group_type: :private_group)
+    jjaek = group_admin.jjaeks.create!(group: private_group, content: "PRIVATE GROUP INVESTIGATION CONTENT")
+    sign_in global_admin
+
+    get group_path(private_group)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(jjaek.content)
+  end
+
   it "does not expose application or closure details on general group screens" do
     other_group_admin = User.create!(name: "Group admin", email: "private-details-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
     group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Public details", group_type: :public_group, application_purpose: "ADMIN PURPOSE", closure_reason: "GROUP ADMIN CLOSURE")
@@ -362,6 +375,19 @@ RSpec.describe "Groups", type: :request do
       expect(new_admin_membership.reload).to be_active
       expect(group.jjaeks).to contain_exactly(jjaek)
       expect(jjaek.reload.user).to eq(user)
+    end
+
+    it "lets a global admin transfer a private inactive group through general scope" do
+      global_admin = User.create!(name: "Global admin", email: "request-transfer-global-admin@example.com", password: "password123!", global_admin: true)
+      group.update!(group_type: :private_group)
+      group.group_memberships.create!(user: new_admin, status: :active)
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      sign_in global_admin
+
+      patch transfer_admin_group_path(group), params: { new_admin_id: new_admin.id }
+
+      expect(response).to redirect_to(admin_group_path(group))
+      expect(group.reload.group_admin).to eq(new_admin)
     end
 
     it "blocks non-admin, non-active targets, and pending groups" do

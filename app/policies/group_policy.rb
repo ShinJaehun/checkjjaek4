@@ -11,6 +11,7 @@ class GroupPolicy < ApplicationPolicy
 
   def show?
     return false unless user.present?
+    return true if operational_investigator?
     return record.group_admin?(user) if record.pending_approval?
     return member_with_basic_access? if record.inactive?
     return true unless record.private_group?
@@ -30,6 +31,7 @@ class GroupPolicy < ApplicationPolicy
 
   def read_jjaeks?
     return false unless user.present?
+    return true if operational_investigator?
     return record.active_member?(user) if record.inactive?
 
     record.active? && (record.public_group? || record.active_member?(user))
@@ -48,7 +50,8 @@ class GroupPolicy < ApplicationPolicy
   end
 
   def transfer_admin?
-    user.present? && (record.active? || record.inactive?) && record.group_admin?(user)
+    user.present? && (record.active? || record.inactive?) &&
+      (record.group_admin?(user) || operational_investigator?)
   end
 
   def manage_approvals?
@@ -68,6 +71,7 @@ class GroupPolicy < ApplicationPolicy
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?
+      return scope.all if user.global_admin?
 
       accessible_group_ids = GroupMembership.where(user: user, status: %i[active inactive]).select(:group_id)
       active_discoverable = scope.active.where(group_type: %i[public_group approval_group])
@@ -82,6 +86,10 @@ class GroupPolicy < ApplicationPolicy
   end
 
   private
+
+  def operational_investigator?
+    user.global_admin?
+  end
 
   def member_with_basic_access?
     record.group_memberships.where(user: user, status: %i[active inactive]).exists?

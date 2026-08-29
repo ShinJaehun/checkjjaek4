@@ -1,6 +1,6 @@
 class LikePolicy < ApplicationPolicy
   def create?
-    return false unless user.present? && !record.jjaek.deleted? && JjaekPolicy.new(user, record.jjaek).show?
+    return false unless user.present? && !record.jjaek.deleted? && jjaek_policy.visible_for_interaction?
     return true if record.jjaek.group_id.blank?
 
     record.jjaek.group.active? && record.jjaek.group.active_member?(user)
@@ -9,6 +9,12 @@ class LikePolicy < ApplicationPolicy
   def destroy?
     user.present? &&
       record.user_id == user.id &&
-      JjaekPolicy.new(user, record.jjaek).show?
+      jjaek_policy.visible_for_interaction?
+  end
+
+  private
+
+  def jjaek_policy
+    @jjaek_policy ||= JjaekPolicy.new(user, record.jjaek)
   end
 end

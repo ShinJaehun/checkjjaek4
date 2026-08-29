@@ -191,7 +191,7 @@ class JjaeksController < ApplicationController
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
     @profile_public_bookshelf_entries =
       if @show_bookshelf
-        profile_summary_bookshelf_entries(visible_entries, profile_policy)
+        profile_summary_bookshelf_entries(visible_entries)
       else
         BookshelfEntry.none
       end
@@ -201,7 +201,7 @@ class JjaeksController < ApplicationController
     @show_jjaeks = profile_policy.show_profile_jjaeks?
     @jjaeks =
       if @show_jjaeks
-        resolve_profile_jjaeks(profile_policy.profile_access_level)
+        resolve_profile_jjaeks
       else
         Jjaek.none
       end
@@ -209,16 +209,16 @@ class JjaeksController < ApplicationController
   end
 
   def prepare_profile_book_activities
-    @book_activities = policy_scope(BookActivity)
-      .where(user: @user)
+    @book_activities = policy_scope(
+      @user.book_activities,
+      policy_scope_class: BookActivityPolicy::ProfileScope
+    )
       .includes(:user, :book)
       .recent
   end
 
-  def profile_summary_bookshelf_entries(visible_entries, profile_policy)
-    summary_entries = visible_entries.joins(:bookshelf)
-    summary_entries = summary_entries.where(bookshelves: { visibility: "public" }) unless %i[self book_friend].include?(profile_policy.profile_access_level)
-    summary_entries.profile_sorted("recent")
+  def profile_summary_bookshelf_entries(visible_entries)
+    visible_entries.joins(:bookshelf).profile_sorted("recent")
   end
 
   def prepare_profile_activity_items
@@ -232,16 +232,11 @@ class JjaeksController < ApplicationController
     options
   end
 
-  def resolve_profile_jjaeks(access_level)
-    scope = policy_scope(@user.jjaeks).includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
-
-    case access_level
-    when :none, :following
-      # stranger와 follow는 public_jjaek만
-      scope.where(visibility: Jjaek.visibilities[:public_jjaek]).recent
-    else
-      scope.recent
-    end
+  def resolve_profile_jjaeks
+    policy_scope(
+      @user.jjaeks,
+      policy_scope_class: JjaekPolicy::ProfileScope
+    ).includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]).recent
   end
 
   def jjaek_book_id

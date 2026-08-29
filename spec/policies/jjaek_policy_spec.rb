@@ -32,8 +32,11 @@ RSpec.describe JjaekPolicy do
       policy = described_class.new(admin, private_jjaek)
 
       expect(policy.show?).to be(true)
+      expect(policy.requote?).to be(false)
       expect(policy.update?).to be(false)
       expect(policy.destroy?).to be(false)
+      expect(CommentPolicy.new(admin, private_jjaek.comments.build(user: admin, content: "Blocked")).create?).to be(false)
+      expect(LikePolicy.new(admin, private_jjaek.likes.build(user: admin)).create?).to be(false)
     end
 
     it "hides a user's own requote when the original is no longer visible to them" do
@@ -60,6 +63,64 @@ RSpec.describe JjaekPolicy do
 
     it "shows a requote when the original is still visible to the viewer" do
       expect(described_class.new(viewer, requote).show?).to be(true)
+    end
+  end
+
+  describe JjaekPolicy::ProfileScope do
+    it "includes every jjaek from the investigated user's profile for a global admin" do
+      admin = User.create!(name: "Admin", email: "jjaek-profile-admin@example.com", password: "password123!", global_admin: true)
+      private_jjaek = original_author.jjaeks.create!(content: "ADMIN_PROFILE_PRIVATE", visibility: :private_jjaek)
+
+      resolved = described_class.new(admin, original_author.jjaeks).resolve
+
+      expect(resolved).to include(original, private_jjaek)
+    end
+
+    it "keeps private profile jjaeks hidden from an unrelated user" do
+      friendship.destroy!
+      private_jjaek = original_author.jjaeks.create!(content: "STRANGER_PROFILE_PRIVATE", visibility: :private_jjaek)
+
+      resolved = described_class.new(viewer, original_author.jjaeks).resolve
+
+      expect(resolved).not_to include(private_jjaek)
+    end
+
+    it "uses group access rather than profile relationships for group jjaeks" do
+      public_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Profile public", group_type: :public_group)
+      approval_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Profile approval", group_type: :approval_group)
+      private_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Profile private", group_type: :private_group)
+      public_jjaek = original_author.jjaeks.create!(group: public_group, content: "PROFILE_PUBLIC_GROUP")
+      approval_jjaek = original_author.jjaeks.create!(group: approval_group, content: "PROFILE_APPROVAL_GROUP")
+      private_jjaek = original_author.jjaeks.create!(group: private_group, content: "PROFILE_PRIVATE_GROUP")
+
+      book_friend_scope = described_class.new(viewer, original_author.jjaeks).resolve
+      expect(book_friend_scope).to include(public_jjaek)
+      expect(book_friend_scope).not_to include(approval_jjaek)
+      expect(book_friend_scope).not_to include(private_jjaek)
+
+      friendship.destroy!
+      viewer.active_follows.create!(followee: original_author)
+      following_scope = described_class.new(viewer, original_author.jjaeks).resolve
+      expect(following_scope).to include(public_jjaek)
+      expect(following_scope).not_to include(approval_jjaek)
+      expect(following_scope).not_to include(private_jjaek)
+
+      approval_group.group_memberships.create!(user: viewer, status: :active)
+      private_group.group_memberships.create!(user: viewer, status: :active)
+      member_scope = described_class.new(viewer, original_author.jjaeks).resolve
+      expect(member_scope).to include(public_jjaek, approval_jjaek, private_jjaek)
+    end
+
+    it "includes every group jjaek for a global admin without membership" do
+      admin = User.create!(name: "Admin", email: "jjaek-profile-group-admin@example.com", password: "password123!", global_admin: true)
+      group_jjaeks = %i[public_group approval_group private_group].map do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Admin profile #{group_type}", group_type:)
+        original_author.jjaeks.create!(group:, content: "ADMIN_PROFILE_#{group_type}")
+      end
+
+      resolved = described_class.new(admin, original_author.jjaeks).resolve
+
+      expect(resolved).to include(*group_jjaeks)
     end
   end
 
@@ -230,12 +291,66 @@ RSpec.describe JjaekPolicy do
   end
 
   describe described_class::FeedScope do
+    it "does not include another user's private jjaek for a global admin" do
+      admin = User.create!(name: "Admin", email: "jjaek-feed-admin@example.com", password: "password123!", global_admin: true)
+      private_jjaek = original_author.jjaeks.create!(content: "ADMIN_FEED_PRIVATE", visibility: :private_jjaek)
+
+      resolved = JjaekPolicy::FeedScope.new(admin, Jjaek.all).resolve
+
+      expect(resolved).not_to include(private_jjaek)
+    end
+
     it "includes the viewer's own jjaeks in the home feed" do
       own_jjaek = viewer.jjaeks.create!(content: "VIEWER_OWN_FEED_JJAEK", visibility: :private_jjaek)
 
       resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
 
       expect(resolved).to include(own_jjaek)
+    end
+
+    it "includes group jjaeks from every active membership, including inactive groups" do
+      group_jjaeks = %i[public_group approval_group private_group].flat_map do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: unrelated_author, name: "Feed #{group_type}", group_type:)
+        group.group_memberships.create!(user: viewer, status: :active)
+
+        [
+          viewer.jjaeks.create!(group:, content: "Own #{group_type}"),
+          unrelated_author.jjaeks.create!(group:, book:, content: "Member #{group_type}")
+        ]
+      end
+      inactive_group = group_jjaeks.first.group
+      inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).to include(*group_jjaeks)
+    end
+
+    it "excludes group jjaeks without an active membership" do
+      group_jjaeks = %i[public_group approval_group private_group].map do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: unrelated_author, name: "Hidden #{group_type}", group_type:)
+        unrelated_author.jjaeks.create!(group:, content: "Hidden #{group_type}")
+      end
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      group_jjaeks.each do |group_jjaek|
+        expect(resolved).not_to include(group_jjaek)
+      end
+    end
+
+    it "uses active membership rather than operational authority for a global admin" do
+      admin = User.create!(name: "Admin", email: "jjaek-group-feed-admin@example.com", password: "password123!", global_admin: true)
+      joined_group = Group.create!(lifecycle_status: :active, group_admin: unrelated_author, name: "Admin joined group", group_type: :private_group)
+      joined_group.group_memberships.create!(user: admin, status: :active)
+      joined_group_jjaek = unrelated_author.jjaeks.create!(group: joined_group, content: "ADMIN_JOINED_GROUP_FEED")
+      hidden_group = Group.create!(lifecycle_status: :active, group_admin: unrelated_author, name: "Admin hidden group", group_type: :public_group)
+      hidden_group_jjaek = unrelated_author.jjaeks.create!(group: hidden_group, content: "ADMIN_HIDDEN_GROUP_FEED")
+
+      resolved = JjaekPolicy::FeedScope.new(admin, Jjaek.all).resolve
+
+      expect(resolved).to include(joined_group_jjaek)
+      expect(resolved).not_to include(hidden_group_jjaek)
     end
 
     it "includes public jjaeks from followed users in the home feed" do

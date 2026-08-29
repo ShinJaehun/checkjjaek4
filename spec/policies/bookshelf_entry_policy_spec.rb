@@ -32,7 +32,7 @@ RSpec.describe BookshelfEntryPolicy do
     end
   end
 
-  describe described_class::ProfileScope do
+  describe BookshelfEntryPolicy::ProfileScope do
     let(:profile_user) { User.create!(name: "Profile", email: "profile-bookshelf-policy@example.com", password: "password123!", password_confirmation: "password123!") }
     let(:public_book) { Book.create!(title: "Public Profile Book", authors_text: "Author") }
     let(:book_friends_book) { Book.create!(title: "Book Friends Profile Book", authors_text: "Author") }
@@ -70,6 +70,21 @@ RSpec.describe BookshelfEntryPolicy do
       expect(resolved).to include(public_entry)
       expect(resolved).not_to include(book_friends_entry)
       expect(resolved).not_to include(private_entry)
+    end
+
+    it "includes every bookshelf visibility for a global admin without granting mutations" do
+      global_admin = User.create!(name: "Global admin", email: "bookshelf-profile-global-admin@example.com", password: "password123!", global_admin: true)
+      public_entry = profile_user.bookshelf_entries.create!(book: public_book)
+      book_friends_entry = create_profile_entry(profile_user, book_friends_book, "book_friends")
+      private_entry = create_profile_entry(profile_user, private_book, "private")
+
+      resolved = described_class.new(global_admin, profile_user.bookshelf_entries).resolve
+      mutation_policy = BookshelfEntryPolicy.new(global_admin, private_entry)
+
+      expect(resolved).to include(public_entry, book_friends_entry, private_entry)
+      expect(mutation_policy.create?).to be(false)
+      expect(mutation_policy.move?).to be(false)
+      expect(mutation_policy.destroy?).to be(false)
     end
 
     def create_profile_entry(user, book, visibility)

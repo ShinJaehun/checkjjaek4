@@ -153,6 +153,15 @@ RSpec.describe Group, type: :model do
       expect(group.group_memberships.find_by!(user: new_admin)).to be_active
     end
 
+    it "allows a global admin to perform the transfer" do
+      global_admin = User.create!(name: "Global admin", email: "global-admin-transfer@example.com", password: "password123!", global_admin: true)
+      group.group_memberships.create!(user: new_admin, status: :active)
+
+      group.transfer_admin_to!(new_admin, by: global_admin)
+
+      expect(group.reload.group_admin).to eq(new_admin)
+    end
+
     it "rejects non-active members, nonmembers, and self transfer without changing admin" do
       nonmember = new_admin
       pending = User.create!(name: "Pending", email: "transfer-pending@example.com", password: "password123!", password_confirmation: "password123!")

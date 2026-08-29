@@ -42,6 +42,7 @@ class BookshelfEntryPolicy < ApplicationPolicy
   class ProfileScope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?
+      return scope.all if user.global_admin?
 
       book_friend_ids = BookFriendship.connected_ids_for(user)
       scoped_entries =

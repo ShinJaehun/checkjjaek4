@@ -184,7 +184,7 @@ RSpec.describe "Admin group approvals", type: :request do
     patch close_group_path(active_group), params: { group: { closure_reason: "Admin close" } }
     expect(response).to redirect_to(root_path)
     patch request_reactivation_group_path(inactive_group)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(root_path)
 
     expect(active_group.reload.name).to eq("Group admin only")
     expect(active_group).to be_active

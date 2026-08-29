@@ -42,6 +42,15 @@ RSpec.describe LikePolicy do
       expect(described_class.new(user, like).destroy?).to be(false)
     end
 
+    it "does not grant global admins another user's reaction actions" do
+      global_admin = User.create!(name: "Global admin", email: "like-global-admin@example.com", password: "password123!", global_admin: true)
+      like = jjaek_record.likes.create!(user: other_user)
+      private_jjaek = other_user.jjaeks.create!(content: "Private", visibility: :private_jjaek)
+
+      expect(described_class.new(global_admin, private_jjaek.likes.build(user: global_admin)).create?).to be(false)
+      expect(described_class.new(global_admin, like).destroy?).to be(false)
+    end
+
     it "does not let a guest like a jjaek" do
       like = jjaek_record.likes.build(user:)
 

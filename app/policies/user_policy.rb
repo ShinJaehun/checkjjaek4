@@ -43,7 +43,7 @@ class UserPolicy < ApplicationPolicy
   end
 
   def show_profile_bookshelf_status?
-    %i[self book_friend].include?(profile_access_level)
+    operational_profile_read? || %i[self book_friend].include?(profile_access_level)
   end
 
   def show_profile_jjaeks?
@@ -53,5 +53,11 @@ class UserPolicy < ApplicationPolicy
 
   def write_profile_jjaek?
     record.active_account? && %i[self book_friend].include?(profile_access_level)
+  end
+
+  private
+
+  def operational_profile_read?
+    user&.global_admin?
   end
 end

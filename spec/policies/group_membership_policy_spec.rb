@@ -13,6 +13,19 @@ RSpec.describe GroupMembershipPolicy do
     expect(described_class.new(other_user, membership).approve?).to be(false)
   end
 
+  it "does not grant general membership management to a global admin" do
+    global_admin = User.create!(name: "Global admin", email: "membership-global-admin@example.com", password: "password123!", global_admin: true)
+    membership = group.group_memberships.create!(user: member, status: :pending)
+
+    policy = described_class.new(global_admin, membership)
+
+    expect(policy.approve?).to be(false)
+    expect(policy.reject?).to be(false)
+    expect(policy.deactivate?).to be(false)
+    expect(policy.reactivate?).to be(false)
+    expect(policy.remove?).to be(false)
+  end
+
   it "blocks actions that create active participation unless the group is active" do
     private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Lifecycle", group_type: :private_group)
     invited = private_group.group_memberships.create!(user: member, status: :invited)
