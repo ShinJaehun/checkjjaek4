@@ -43,7 +43,7 @@
 - Notification: 직접 상호작용 알림 inbox와 읽음 상태
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
 - `Group`: 일반 사용자 독서 동아리와 동아리 종류·단일 관리자(`group_admin_id`)
-- `User`: `withdrawn_at` 기반 terminal 탈퇴 상태와 익명 User row 보존
+- `User`: `withdrawn_at` 기반 terminal 탈퇴와 별도 `suspended_at` 기반 가역적 운영 정지 상태
 - `Group`: global admin 승인 기반 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active/inactive 상태
 
@@ -262,7 +262,13 @@
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
 - group admin의 자기 동아리 콘텐츠 monitoring은 아직 구현되지 않음
 - append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
-- 감사 모델만 구현되어 있고 실제 User·Group 정지/복구, Jjaek·Comment 숨김/복구, authorization, action UI와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
+- global admin은 다른 active User를 정지하고 suspended User를 복구할 수 있으며 자기 자신 정지는 허용하지 않음
+- User 정지·복구는 User row lock 안에서 `suspended_at` 변경과 suspend/restore 감사 row 생성을 한 transaction으로 처리함
+- admin User 상세의 계정 운영 이력은 가입 시각, 전체 suspend/restore 감사 row와 탈퇴 시각을 오래된 순으로 표시함
+- 정지 시 기존 콘텐츠·관계·서재·Group membership과 관리자 연결을 보존하고 콘텐츠 visibility나 Group lifecycle을 변경하지 않음
+- 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
+- GroupMembership 대상의 moderation 동아리 활동 정지/복구는 미구현이며 현재 active/inactive 구성원 lifecycle을 User 계정 정지로 사용하지 않음
+- Jjaek·Comment 숨김/복구, Group moderation 운영 정지/복구, 해당 action UI와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴
 

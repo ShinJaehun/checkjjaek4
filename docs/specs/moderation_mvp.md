@@ -36,14 +36,28 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 
 ### 운영자 정지
 
-- 탈퇴와 별개의 가역적 moderation 상태다.
+- `suspended_at`으로 표현하며 `withdrawn_at` 탈퇴와 별개의 가역적 moderation 상태다.
 - 정지 중에는 로그인과 모든 신규 mutation을 차단한다.
+- 새 로그인은 차단하고, 이미 로그인된 session도 다음 일반 요청에서 종료한다.
+- 올바른 비밀번호를 확인한 정지 사용자에게만 일반 인증 실패와 구분되는 상태와 현재 공개 사유를 안내한다.
 - 기존 콘텐츠·관계·Group membership·Group 관리자 연결은 보존한다.
 - 정지를 해제하면 기존 계정 상태로 돌아갈 수 있다.
 - 정지만으로 기존 콘텐츠를 자동 숨김 처리하지 않는다.
 - 정지된 사용자가 group admin이어도 Group을 자동 정지하거나 관리자 권한을 자동 이전하지 않는다.
 - Group 정지나 관리자 이전은 global admin이 별도 조치로 판단한다.
 - `withdrawn_at`을 정지 구현에 재사용하지 않는다.
+- global admin의 정지·복구는 User row lock 안에서 상태 변경과 append-only `ModerationAction` 생성을 한 transaction으로 처리한다.
+- 복구 감사 row는 현재 미복구 suspend row를 `reversal_of`로 참조한다.
+- admin User 상세의 계정 운영 이력은 가입, 모든 정지·복구 감사 row와 탈퇴를 오래된 순으로 보존해 보여준다.
+
+### moderation 범위와 용어
+
+- **계정 정지 / 계정 복구**는 global admin이 `User` 전체의 서비스 로그인과 신규 mutation을 제한·복구하는 현재 구현 기능이다.
+- **동아리 활동 정지 / 동아리 활동 복구**는 group admin 또는 global admin이 향후 특정 `GroupMembership` 범위에서만 회원 활동을 제한·복구하는 개념이다. 개인 프로필·개인 콘텐츠·다른 Group·서재·로그인에는 영향을 주지 않으며 `User#suspended_at`을 재사용하지 않는다.
+- **동아리 운영 정지 / 동아리 운영 복구**는 global admin이 향후 `Group` 자체의 서비스 운영 상태를 제한·복구하는 개념이다. group admin의 기존 자발적 운영 종료 lifecycle과 별도 상태로 구현한다.
+
+동아리 활동 정지와 동아리 운영 정지는 아직 moderation 기능으로 구현하지 않았다. 현재 GroupMembership의 active/inactive 구성원 관리와 Group의 자발적 운영 종료 lifecycle을 이 미래 moderation 상태로 해석하지 않는다.
+계정 정지, 동아리 활동 정지와 동아리 운영 정지는 서로 자동 전파되지 않는다.
 
 ---
 
@@ -118,8 +132,8 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 이미 저장된 감사 row는 수정·삭제할 수 없고 대상이 hard delete되더라도 target type/ID와 감사 정보는 보존한다.
 운영자는 콘텐츠 원문을 수정하지 않는다.
 
-현재는 감사 schema와 데이터 무결성만 구현되어 있다. 실제 User·Group 정지/복구, Jjaek·Comment 숨김/복구,
-대상 상태 전이, authorization, action endpoint와 UI는 아직 구현되지 않았다.
+User 정지/복구는 이 감사 기반에 연결되어 있다. Jjaek·Comment 숨김/복구, Group 운영 정지/복구와
+그에 대응하는 authorization, action endpoint와 UI는 아직 구현되지 않았다.
 
 ---
 
