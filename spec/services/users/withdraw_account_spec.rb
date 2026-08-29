@@ -57,6 +57,13 @@ RSpec.describe Users::WithdrawAccount do
     expect(admin.reload).not_to be_withdrawn
   end
 
+  it "rejects withdrawal for a suspended user" do
+    user.update!(suspended_at: Time.current)
+
+    expect { described_class.new(user, current_password: password).call! }.to raise_error(described_class::Suspended)
+    expect(user.reload).not_to be_withdrawn
+  end
+
   it "blocks an active group admin and succeeds after admin transfer" do
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Managed", group_type: :public_group)
     group.group_memberships.create!(user: other, status: :active)

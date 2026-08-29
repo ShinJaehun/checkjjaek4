@@ -1,12 +1,15 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   root "homes#show"
-  devise_for :users, controllers: { registrations: "users/registrations" }
+  devise_for :users, controllers: { registrations: "users/registrations", sessions: "users/sessions" }
   resource :account_withdrawal, only: %i[show destroy]
   get "/relationships", to: "relationships#index"
   resources :notifications, only: :index
   namespace :admin do
-    resources :users, only: %i[index show]
+    resources :users, only: %i[index show] do
+      patch :suspend, on: :member
+      patch :restore, on: :member
+    end
     resources :groups, only: %i[index show] do
       patch :approve, on: :member
     end

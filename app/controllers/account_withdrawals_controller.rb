@@ -23,6 +23,9 @@ class AccountWithdrawalsController < ApplicationController
   rescue Users::WithdrawAccount::AlreadyWithdrawn
     sign_out current_user
     redirect_to root_path, notice: t("account_withdrawals.notices.completed"), status: :see_other
+  rescue Users::WithdrawAccount::Suspended
+    sign_out current_user
+    redirect_to new_user_session_path, alert: t("auth.alerts.suspended_fallback"), status: :see_other
   end
 
   private

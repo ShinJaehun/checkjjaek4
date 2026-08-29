@@ -14,6 +14,28 @@ RSpec.describe UserPolicy do
       expect(described_class::AdminInventoryScope.new(user, User.all).resolve).to be_empty
     end
 
+    it "allows a global admin to suspend another active user but not themselves" do
+      admin = User.create!(name: "Admin", email: "user-policy-suspend-admin@example.com", password: "password123!", global_admin: true)
+      Group.create!(lifecycle_status: :active, group_admin: user, name: "Policy group", group_type: :public_group)
+
+      expect(described_class.new(admin, other_user).suspend?).to be(true)
+      expect(described_class.new(admin, admin).suspend?).to be(false)
+      expect(described_class.new(user, other_user).suspend?).to be(false)
+    end
+
+    it "allows only a global admin to restore a suspended non-withdrawn user" do
+      admin = User.create!(name: "Admin", email: "user-policy-restore-admin@example.com", password: "password123!", global_admin: true)
+      other_user.update!(suspended_at: Time.current)
+
+      expect(described_class.new(admin, other_user).suspend?).to be(false)
+      expect(described_class.new(admin, other_user).restore?).to be(true)
+      expect(described_class.new(user, other_user).restore?).to be(false)
+
+      other_user.update_columns(withdrawn_at: Time.current)
+      expect(described_class.new(admin, other_user).suspend?).to be(false)
+      expect(described_class.new(admin, other_user).restore?).to be(false)
+    end
+
     it "lets a signed-in user view another user's profile" do
       expect(described_class.new(user, other_user).show?).to be(true)
     end

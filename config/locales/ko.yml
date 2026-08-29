@@ -20,6 +20,7 @@ ko:
       global_admin: "global admin 계정은 이 화면에서 탈퇴할 수 없습니다."
       active_group_admin: "먼저 다음 동아리의 관리자 권한을 이전하거나 운영을 종료해 주세요: %{groups}"
       pending_group_content: "예상하지 못한 콘텐츠가 있는 승인 대기 동아리 때문에 탈퇴할 수 없습니다."
+      suspended: "정지된 계정은 탈퇴할 수 없습니다."
       use_confirmation: "계정 탈퇴 확인 화면에서 현재 비밀번호를 입력해 주세요."
   activerecord:
     errors:
@@ -49,6 +50,8 @@ ko:
       invalid_credentials: "이메일 또는 비밀번호가 올바르지 않습니다."
       not_authorized: "이 작업을 수행할 수 없습니다."
       sign_in_required: "계속하려면 로그인해 주세요."
+      suspended: "계정이 정지되었습니다. 사유: %{reason}"
+      suspended_fallback: "운영 정책에 따라 계정이 정지되었습니다."
     form:
       email: "이메일"
       name: "이름"
@@ -247,6 +250,7 @@ ko:
         title: "사용자 모니터링"
       statuses:
         active: "정상"
+        suspended: "운영 정지"
         withdrawn: "본인 탈퇴"
       roles:
         global_admin: "Global admin"
@@ -262,8 +266,50 @@ ko:
         actions: "작업"
         updated: "수정 시각"
         withdrawn: "탈퇴 시각"
+        suspended: "정지 시각"
         groups: "관리 중인 동아리"
         memberships: "동아리 참여 상태"
+      actions:
+        suspend: "계정 정지"
+        restore: "계정 복구"
+      moderation:
+        title: "운영 조치"
+        current_suspension: "현재 정지 정보"
+        public_reason: "공개 사유"
+        internal_note: "내부 운영 메모"
+        internal_note_hint: "선택 입력 · 사용자에게 표시되지 않습니다."
+        performed_by: "%{actor} · %{time}"
+        forms:
+          suspend:
+            public_reason: "정지 사유"
+            public_reason_hint: "정지된 사용자에게 표시됩니다."
+          restore:
+            public_reason: "복구 사유"
+            public_reason_hint: "계정 운영 이력에 기록됩니다."
+      account_history:
+        title: "계정 운영 이력"
+        actor: "처리자"
+        events:
+          joined:
+            title: "계정 가입"
+            occurred_at: "가입"
+          suspended:
+            title: "계정 정지"
+            occurred_at: "처리 시각"
+            reason: "정지 사유"
+          restored:
+            title: "계정 복구"
+            occurred_at: "처리 시각"
+            reason: "복구 사유"
+          withdrawn:
+            title: "계정 탈퇴"
+            occurred_at: "탈퇴"
+      notices:
+        suspended: "사용자 계정을 정지했습니다."
+        restored: "사용자 계정을 복구했습니다."
+      alerts:
+        suspend_failed: "사용자 계정을 정지할 수 없습니다."
+        restore_failed: "사용자 계정을 복구할 수 없습니다."
     groups:
       nav: "동아리 운영 관리"
       types:

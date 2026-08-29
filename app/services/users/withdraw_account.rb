@@ -3,6 +3,7 @@ module Users
     class Error < StandardError; end
     class InvalidPassword < Error; end
     class AlreadyWithdrawn < Error; end
+    class Suspended < Error; end
     class GlobalAdmin < Error; end
     class ActiveGroupAdmin < Error
       attr_reader :group_names
@@ -40,6 +41,7 @@ module Users
 
     def validate_withdrawal!
       raise AlreadyWithdrawn if user.withdrawn?
+      raise Suspended if user.suspended?
       raise InvalidPassword unless user.valid_password?(current_password)
       raise GlobalAdmin if user.global_admin?
 

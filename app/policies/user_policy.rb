@@ -13,6 +13,14 @@ class UserPolicy < ApplicationPolicy
     user.present?
   end
 
+  def suspend?
+    user&.global_admin? && record != user && !record.withdrawn? && !record.suspended?
+  end
+
+  def restore?
+    user&.global_admin? && !record.withdrawn? && record.suspended?
+  end
+
   def show_library?
     %i[self book_friend].include?(profile_access_level)
   end

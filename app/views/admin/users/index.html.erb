@@ -3,7 +3,7 @@
 
   <%= form_with url: admin_users_path, method: :get, class: "flex flex-col gap-3 rounded-2xl border bg-white p-4 lg:flex-row lg:items-center" do |f| %>
     <%= f.search_field :q, value: params[:q], placeholder: t("admin.filters.search"), class: "min-w-0 rounded border p-2 lg:flex-1" %>
-    <%= f.select :status, options_for_select([[t("admin.filters.all"), ""], [t("admin.users.statuses.active"), "active"], [t("admin.users.statuses.withdrawn"), "withdrawn"]], params[:status]), {}, class: "rounded border p-2" %>
+    <%= f.select :status, options_for_select([[t("admin.filters.all"), ""], [t("admin.users.statuses.active"), "active"], [t("admin.users.statuses.suspended"), "suspended"], [t("admin.users.statuses.withdrawn"), "withdrawn"]], params[:status]), {}, class: "rounded border p-2" %>
     <%= f.select :role, options_for_select([[t("admin.filters.all"), ""], [t("admin.users.roles.global_admin"), "global_admin"], [t("admin.users.roles.group_admin"), "group_admin"], [t("admin.users.roles.regular"), "regular"]], params[:role]), {}, class: "rounded border p-2", aria: { label: t("admin.users.fields.role") } %>
     <%= f.select :sort, options_for_select([[t("admin.sorts.recent"), "recent"], [t("admin.sorts.oldest"), "oldest"], [t("admin.sorts.name"), "name"]], params[:sort]), {}, class: "rounded border p-2" %>
     <%= f.submit t("admin.filters.apply"), class: "whitespace-nowrap rounded bg-stone-900 p-2 text-white" %>
@@ -25,7 +25,8 @@
       </thead>
       <tbody>
         <% @users.each do |user| %>
-          <tr id="<%= dom_id(user) %>" class="border-b <%= user.withdrawn? ? 'bg-stone-50 text-stone-400' : nil %>">
+          <% account_status = user.moderation_status %>
+          <tr id="<%= dom_id(user) %>" class="border-b <%= account_status == :active ? nil : 'bg-stone-50 text-stone-500' %>">
             <td class="p-3">
               <%= user_avatar_image(user, size: 128, alt: user.name, class: "h-9 w-9 shrink-0 rounded-full object-cover") %>
             </td>
@@ -33,7 +34,7 @@
             <td class="p-3" data-field="email"><%= user.withdrawn? ? "-" : user.email %></td>
             <td class="p-3 whitespace-nowrap">
               <span class="rounded-full px-2 py-1 <%= user.withdrawn? ? 'bg-stone-200 text-stone-700' : 'bg-stone-100' %>">
-                <%= t("admin.users.statuses.#{user.withdrawn? ? 'withdrawn' : 'active'}") %>
+                <%= t("admin.users.statuses.#{account_status}") %>
               </span>
             </td>
             <td class="p-3">

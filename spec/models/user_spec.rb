@@ -7,6 +7,24 @@ RSpec.describe User, type: :model do
     expect(user).not_to be_global_admin
   end
 
+  it "keeps suspension separate from withdrawal authentication state" do
+    user = described_class.create!(
+      name: "Suspended User",
+      email: "suspended-user-model@example.com",
+      password: "password123!",
+      password_confirmation: "password123!",
+      suspended_at: Time.current
+    )
+
+    expect(user).to be_suspended
+    expect(user).not_to be_withdrawn
+    expect(user.active_account?).to be(true)
+    expect(user.active_for_authentication?).to be(true)
+
+    user.update_columns(withdrawn_at: Time.current)
+    expect(user.reload.inactive_message).to eq(:withdrawn)
+  end
+
   it "assigns a default avatar index when the user is created" do
     user = described_class.create!(
       name: "Avatar User",

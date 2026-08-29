@@ -7,6 +7,7 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
+  before_action :reject_suspended_session!
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :configure_permitted_parameters, if: :devise_controller?
 
@@ -28,6 +29,15 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  def reject_suspended_session!
+    return unless current_user&.suspended?
+
+    reason = current_user.current_suspension_action&.public_reason
+    message = reason.present? ? t("auth.alerts.suspended", reason:) : t("auth.alerts.suspended_fallback")
+    sign_out current_user
+    redirect_to new_user_session_path, alert: message, status: :see_other
+  end
 
   def prepare_visible_requote_counts_for(jjaeks)
     records = Array(jjaeks)

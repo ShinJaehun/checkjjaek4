@@ -20,6 +20,15 @@ class ModerationAction < ApplicationRecord
   validate :action_type_must_match_target
   validate :reversal_must_match_action
 
+  def self.current_suspension_for(user)
+    restored_action_ids = where(action_type: :restore).where.not(reversal_of_id: nil).select(:reversal_of_id)
+
+    where(target: user, action_type: :suspend)
+      .where.not(id: restored_action_ids)
+      .order(created_at: :desc, id: :desc)
+      .first
+  end
+
   def readonly?
     persisted? || super
   end
@@ -57,5 +66,4 @@ class ModerationAction < ApplicationRecord
 
     errors.add(:reversal_of, :invalid) unless same_target && reversal_of.action_type == expected_action_type
   end
-
 end

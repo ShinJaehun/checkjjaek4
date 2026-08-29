@@ -20,6 +20,7 @@ en:
       global_admin: "A global admin account cannot be withdrawn here."
       active_group_admin: "Transfer admin rights or close these clubs first: %{groups}"
       pending_group_content: "Withdrawal is blocked because a pending club contains unexpected content."
+      suspended: "A suspended account cannot be withdrawn."
       use_confirmation: "Enter your current password on the account withdrawal confirmation page."
   activerecord:
     errors:
@@ -49,6 +50,8 @@ en:
       invalid_credentials: "Email or password is incorrect."
       not_authorized: "You cannot perform that action."
       sign_in_required: "Sign in to continue."
+      suspended: "Your account is suspended. Reason: %{reason}"
+      suspended_fallback: "Your account has been suspended under the service policy."
     form:
       email: "Email"
       name: "Name"
@@ -239,6 +242,7 @@ en:
         title: "User monitoring"
       statuses:
         active: "Active"
+        suspended: "Suspended"
         withdrawn: "Withdrawn by user"
       roles:
         global_admin: "Global admin"
@@ -254,8 +258,50 @@ en:
         actions: "Actions"
         updated: "Updated"
         withdrawn: "Withdrawn"
+        suspended: "Suspended"
         groups: "Administered clubs"
         memberships: "Club memberships"
+      actions:
+        suspend: "Suspend account"
+        restore: "Restore account"
+      moderation:
+        title: "Moderation action"
+        current_suspension: "Current suspension"
+        public_reason: "Public reason"
+        internal_note: "Internal note"
+        internal_note_hint: "Optional · Not shown to the user."
+        performed_by: "%{actor} · %{time}"
+        forms:
+          suspend:
+            public_reason: "Suspension reason"
+            public_reason_hint: "Shown to the suspended user."
+          restore:
+            public_reason: "Restoration reason"
+            public_reason_hint: "Recorded in the account operations history."
+      account_history:
+        title: "Account operations history"
+        actor: "Actor"
+        events:
+          joined:
+            title: "Account joined"
+            occurred_at: "Joined"
+          suspended:
+            title: "Account suspended"
+            occurred_at: "Performed"
+            reason: "Suspension reason"
+          restored:
+            title: "Account restored"
+            occurred_at: "Performed"
+            reason: "Restoration reason"
+          withdrawn:
+            title: "Account withdrawn"
+            occurred_at: "Withdrawn"
+      notices:
+        suspended: "The user account was suspended."
+        restored: "The user account was restored."
+      alerts:
+        suspend_failed: "The user account could not be suspended."
+        restore_failed: "The user account could not be restored."
     groups:
       nav: "Club operations"
       types:

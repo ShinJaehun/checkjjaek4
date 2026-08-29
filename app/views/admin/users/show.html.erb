@@ -7,10 +7,11 @@
         {
           "ID" => @user.id,
           t("admin.users.fields.email") => (@user.withdrawn? ? "-" : @user.email),
-          t("admin.users.fields.status") => t("admin.users.statuses.#{@user.withdrawn? ? 'withdrawn' : 'active'}"),
+          t("admin.users.fields.status") => t("admin.users.statuses.#{@account_status}"),
           t("admin.users.fields.joined") => l(@user.created_at, format: :short),
           t("admin.users.fields.updated") => l(@user.updated_at, format: :short),
-          t("admin.users.fields.withdrawn") => (@user.withdrawn_at && l(@user.withdrawn_at, format: :short))
+          t("admin.users.fields.withdrawn") => (@user.withdrawn_at && l(@user.withdrawn_at, format: :short)),
+          t("admin.users.fields.suspended") => (@user.suspended_at && l(@user.suspended_at, format: :short))
         }.each do |label, value|
       %>
         <div>
@@ -34,6 +35,60 @@
         </dd>
       </div>
     </dl>
+
+    <% if @current_suspension_action %>
+      <section class="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <h2 class="text-xl font-semibold"><%= t("admin.users.moderation.current_suspension") %></h2>
+        <p><%= @current_suspension_action.public_reason %></p>
+        <% if @current_suspension_action.internal_note.present? %>
+          <p class="text-sm text-stone-600">
+            <%= t("admin.users.moderation.internal_note") %>: <%= @current_suspension_action.internal_note %>
+          </p>
+        <% end %>
+        <p class="text-sm text-stone-600">
+          <%= t("admin.users.moderation.performed_by",
+                actor: @current_suspension_action.actor.name,
+                time: l(@current_suspension_action.created_at, format: :short)) %>
+        </p>
+      </section>
+    <% end %>
+
+    <% if @can_suspend || @can_restore %>
+      <section class="space-y-4 rounded-2xl border bg-white p-5">
+        <h2 class="text-xl font-semibold"><%= t("admin.users.moderation.title") %></h2>
+        <% moderation_action = @can_suspend ? :suspend : :restore %>
+        <% action_path = @can_suspend ? suspend_admin_user_path(@user) : restore_admin_user_path(@user) %>
+        <% submit_label = @can_suspend ? t("admin.users.actions.suspend") : t("admin.users.actions.restore") %>
+        <%= form_with scope: :moderation_action, url: action_path, method: :patch, class: "space-y-4" do |form| %>
+          <div class="space-y-2">
+            <%= form.label :public_reason,
+                           t("admin.users.moderation.forms.#{moderation_action}.public_reason"),
+                           class: "text-sm font-medium" %>
+            <%= form.text_area :public_reason,
+                               required: true,
+                               rows: 3,
+                               aria: { describedby: "moderation_public_reason_hint" },
+                               class: "w-full rounded border p-3" %>
+            <p id="moderation_public_reason_hint" class="text-sm text-stone-500">
+              <%= t("admin.users.moderation.forms.#{moderation_action}.public_reason_hint") %>
+            </p>
+          </div>
+          <div class="space-y-2">
+            <%= form.label :internal_note, t("admin.users.moderation.internal_note"), class: "text-sm font-medium" %>
+            <%= form.text_area :internal_note,
+                               rows: 3,
+                               aria: { describedby: "moderation_internal_note_hint" },
+                               class: "w-full rounded border p-3" %>
+            <p id="moderation_internal_note_hint" class="text-sm text-stone-500">
+              <%= t("admin.users.moderation.internal_note_hint") %>
+            </p>
+          </div>
+          <%= form.submit submit_label, class: "rounded bg-stone-900 px-4 py-2 text-white" %>
+        <% end %>
+      </section>
+    <% end %>
+
+    <%= render "admin/users/account_history", entries: @account_history_entries %>
 
     <h2 class="text-xl font-semibold"><%= t("admin.users.fields.groups") %></h2>
     <ul>

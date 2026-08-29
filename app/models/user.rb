@@ -84,6 +84,10 @@ class User < ApplicationRecord
     withdrawn_at.present?
   end
 
+  def suspended?
+    suspended_at.present?
+  end
+
   def active_account?
     !withdrawn?
   end
@@ -94,6 +98,17 @@ class User < ApplicationRecord
 
   def inactive_message
     withdrawn? ? :withdrawn : super
+  end
+
+  def moderation_status
+    return :withdrawn if withdrawn?
+    return :suspended if suspended?
+
+    :active
+  end
+
+  def current_suspension_action
+    ModerationAction.current_suspension_for(self)
   end
 
   def follows?(other_user)

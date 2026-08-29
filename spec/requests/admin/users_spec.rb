@@ -8,7 +8,7 @@ RSpec.describe "Admin user inventory", type: :request do
   before do
     withdrawn.update_columns(
       email: "withdrawn-#{withdrawn.id}-replacement@users.invalid",
-      withdrawn_at: 1.day.ago
+      withdrawn_at: Time.current
     )
   end
 
@@ -81,6 +81,93 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(listed_ids).to eq([ admin.id ])
   end
 
+  it "filters suspended users separately from active and withdrawn users" do
+    reader.update!(suspended_at: Time.current)
+    sign_in admin
+
+    get admin_users_path, params: { status: "suspended" }
+    expect(listed_ids).to eq([ reader.id ])
+
+    get admin_users_path, params: { status: "active" }
+    expect(listed_ids).to contain_exactly(admin.id)
+  end
+
+  it "suspends and restores a user with linked audit actions from the admin detail" do
+    sign_in admin
+    get admin_user_path(reader)
+    expect(response.body).to include(
+      I18n.t("admin.users.actions.suspend"),
+      I18n.t("admin.users.moderation.forms.suspend.public_reason"),
+      I18n.t("admin.users.moderation.forms.suspend.public_reason_hint"),
+      I18n.t("admin.users.moderation.internal_note"),
+      I18n.t("admin.users.moderation.internal_note_hint"),
+      I18n.t("admin.users.account_history.title"),
+      I18n.t("admin.users.account_history.events.joined.title")
+    )
+
+    expect {
+      patch suspend_admin_user_path(reader), params: {
+        moderation_action: { public_reason: "ADMIN_PUBLIC_REASON", internal_note: "ADMIN_INTERNAL_NOTE" }
+      }
+    }.to change(ModerationAction, :count).by(1)
+
+    suspension = ModerationAction.last
+    expect(reader.reload).to be_suspended
+    expect(suspension).to be_action_type_suspend
+    expect(suspension.actor).to eq(admin)
+    expect(response).to redirect_to(admin_user_path(reader))
+
+    get admin_user_path(reader)
+    expect(response.body).to include(
+      I18n.t("admin.users.statuses.suspended"),
+      "ADMIN_PUBLIC_REASON",
+      "ADMIN_INTERNAL_NOTE",
+      I18n.t("admin.users.actions.restore"),
+      I18n.t("admin.users.moderation.forms.restore.public_reason"),
+      I18n.t("admin.users.moderation.forms.restore.public_reason_hint"),
+      I18n.t("admin.users.moderation.internal_note_hint"),
+      admin.name
+    )
+
+    expect {
+      patch restore_admin_user_path(reader), params: {
+        moderation_action: { public_reason: "ADMIN_RESTORE_REASON", internal_note: "RESTORE_NOTE" }
+      }
+    }.to change(ModerationAction, :count).by(1)
+
+    restore = ModerationAction.last
+    expect(reader.reload).not_to be_suspended
+    expect(restore).to be_action_type_restore
+    expect(restore.reversal_of).to eq(suspension)
+
+    get admin_user_path(reader)
+    history = Nokogiri::HTML(response.body).at_css("#account_history")
+    expect(history.text).to include(
+      I18n.t("admin.users.account_history.events.suspended.title"),
+      "ADMIN_PUBLIC_REASON",
+      "ADMIN_INTERNAL_NOTE",
+      I18n.t("admin.users.account_history.events.restored.title"),
+      "ADMIN_RESTORE_REASON",
+      "RESTORE_NOTE",
+      admin.name
+    )
+    expect(history.css("[data-account-event]").map { |entry| entry["data-account-event"] }).to eq(
+      %w[joined suspended restored]
+    )
+  end
+
+  it "blocks non-admin moderation endpoints and hides self-suspension UI" do
+    sign_in reader
+    expect {
+      patch suspend_admin_user_path(admin), params: { moderation_action: { public_reason: "Blocked" } }
+    }.not_to change(ModerationAction, :count)
+    expect(response).to redirect_to(root_path)
+
+    sign_in admin
+    get admin_user_path(admin)
+    expect(response.body).not_to include(suspend_admin_user_path(admin))
+  end
+
   it "filters non-exclusive global admin and group admin roles and regular users" do
     Group.create!(group_admin: admin, name: "Admin club", group_type: :public_group, application_purpose: "Read")
     Group.create!(group_admin: reader, name: "Reader club", group_type: :public_group, application_purpose: "Read")
@@ -114,6 +201,9 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(response.body).to include("본인 탈퇴", I18n.l(withdrawn.withdrawn_at, format: :short))
     expect(email_label.next_element.text.strip).to eq("-")
     expect(response.body).not_to include(withdrawn.email)
+    expect(detail.css("#account_history [data-account-event]").map { |entry| entry["data-account-event"] }).to eq(
+      %w[joined withdrawn]
+    )
 
     get admin_users_path, params: { q: reader.email }
     expect(Nokogiri::HTML(response.body).at_css("#user_#{reader.id} [data-field='email']").text.strip).to eq(reader.email)

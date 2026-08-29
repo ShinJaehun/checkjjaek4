@@ -1,0 +1,42 @@
+<section id="account_history" class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+  <h2 class="text-xl font-semibold text-stone-900"><%= t("admin.users.account_history.title") %></h2>
+
+  <div class="mt-4 space-y-3">
+    <% entries.each do |entry| %>
+      <article class="rounded-2xl bg-stone-50 p-4" data-account-event="<%= entry.event_type %>">
+        <p class="font-medium text-stone-900">
+          <%= t("admin.users.account_history.events.#{entry.event_type}.title") %>
+        </p>
+        <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <div class="flex gap-2">
+            <span class="font-medium text-stone-500">
+              <%= t("admin.users.account_history.events.#{entry.event_type}.occurred_at") %>
+            </span>
+            <span class="text-stone-700"><%= l(entry.occurred_at, format: :short) %></span>
+          </div>
+          <% if entry.action %>
+            <div class="flex gap-2">
+              <span class="font-medium text-stone-500"><%= t("admin.users.account_history.actor") %></span>
+              <span class="text-stone-700"><%= entry.action.actor.name %></span>
+            </div>
+          <% end %>
+        </div>
+
+        <% if entry.action %>
+          <div class="mt-3 text-sm">
+            <p class="font-medium text-stone-500">
+              <%= t("admin.users.account_history.events.#{entry.event_type}.reason") %>
+            </p>
+            <p class="mt-1 whitespace-pre-wrap text-stone-700"><%= entry.action.public_reason %></p>
+          </div>
+          <% if entry.action.internal_note.present? %>
+            <div class="mt-3 text-sm">
+              <p class="font-medium text-stone-500"><%= t("admin.users.moderation.internal_note") %></p>
+              <p class="mt-1 whitespace-pre-wrap text-stone-700"><%= entry.action.internal_note %></p>
+            </div>
+          <% end %>
+        <% end %>
+      </article>
+    <% end %>
+  </div>
+</section>
