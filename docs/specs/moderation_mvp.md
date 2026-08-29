@@ -105,18 +105,21 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 
 ## Moderation 조치 기록
 
-모든 정지·숨김·복구에는 감사 가능한 기록이 필요하다. 개념적으로 다음 정보를 보존한다.
+공통 감사 기반인 `ModerationAction`은 append-only action log로 구현되어 다음 정보를 보존한다.
 
 - 대상 종류와 대상 ID
-- 조치 종류와 조치 대상 상태
+- 조치 종류(`suspend`, `hide`, `restore`)
 - 공개 가능한 사유
 - 필요한 경우 공개 사유와 분리된 내부 운영 메모
-- 처리자와 처리 시각
-- 복구 처리자와 복구 시각
-- 원래 조치와 복구 조치의 연결
+- 처리자와 `created_at` 조치 시각
+- 복구는 원 조치 row를 변경하지 않고 별도 row로 추가하며 `reversal_of`로 원 조치와 연결
 
-운영자는 콘텐츠 원문을 수정하지 않는다. moderation 기록은 대상이 복구되거나 삭제되더라도 감사 목적으로 보존한다.
-이번 문서에서는 실제 테이블·column·enum 이름이나 migration을 확정하지 않는다.
+정지·숨김 row는 복구 연결을 갖지 않으며 같은 원 조치를 두 번 복구할 수 없다.
+이미 저장된 감사 row는 수정·삭제할 수 없고 대상이 hard delete되더라도 target type/ID와 감사 정보는 보존한다.
+운영자는 콘텐츠 원문을 수정하지 않는다.
+
+현재는 감사 schema와 데이터 무결성만 구현되어 있다. 실제 User·Group 정지/복구, Jjaek·Comment 숨김/복구,
+대상 상태 전이, authorization, action endpoint와 UI는 아직 구현되지 않았다.
 
 ---
 

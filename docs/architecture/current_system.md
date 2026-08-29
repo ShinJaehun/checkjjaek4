@@ -28,6 +28,7 @@
 - BookActivity
 - `Group`
 - `GroupMembership`
+- `ModerationAction`
 
 역할 요약:
 
@@ -260,7 +261,8 @@
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
 - group admin의 자기 동아리 콘텐츠 monitoring은 아직 구현되지 않음
-- User 운영 정지, 콘텐츠 숨김·복구, moderation 감사 기록과 rate limit은 아직 구현되지 않았으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
+- append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
+- 감사 모델만 구현되어 있고 실제 User·Group 정지/복구, Jjaek·Comment 숨김/복구, authorization, action UI와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴
 
