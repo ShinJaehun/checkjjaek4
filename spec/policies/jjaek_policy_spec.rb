@@ -142,6 +142,55 @@ RSpec.describe JjaekPolicy do
     it "does not allow requoting another requote" do
       expect(described_class.new(viewer, requote).requote?).to be(false)
     end
+
+    it "does not allow nested requoting even when a requote has public group context" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Nested public source", group_type: :public_group)
+      group_context_requote = original_author.jjaeks.build(group:, quoted_jjaek: original, content: "INVALID_GROUP_REQUOTE")
+
+      expect(described_class.new(viewer, group_context_requote).requote?).to be(false)
+    end
+
+    it "allows a non-member to requote an active public group original" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Public source", group_type: :public_group)
+      group_jjaek = original_author.jjaeks.create!(group:, content: "PUBLIC_GROUP_SOURCE")
+
+      expect(described_class.new(viewer, group_jjaek).requote?).to be(true)
+    end
+
+    it "does not allow active members to requote approval or private group originals" do
+      %i[approval_group private_group].each do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: group_type.to_s, group_type:)
+        group.group_memberships.create!(user: viewer, status: :active)
+        group_jjaek = original_author.jjaeks.create!(group:, content: "RESTRICTED_GROUP_SOURCE")
+
+        expect(described_class.new(viewer, group_jjaek).requote?).to be(false)
+      end
+    end
+
+    it "does not allow an active member to newly requote an inactive public group original" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Inactive source", group_type: :public_group)
+      group.group_memberships.create!(user: viewer, status: :active)
+      group_jjaek = original_author.jjaeks.create!(group:, content: "INACTIVE_PUBLIC_SOURCE")
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+
+      expect(described_class.new(viewer, group_jjaek).requote?).to be(false)
+    end
+
+    it "does not allow requoting a pending public group original" do
+      group = Group.create!(group_admin: original_author, name: "Pending source", group_type: :public_group, application_purpose: "Review")
+      group_jjaek = original_author.jjaeks.create!(group:, content: "PENDING_PUBLIC_SOURCE")
+
+      expect(described_class.new(original_author, group_jjaek).requote?).to be(false)
+    end
+
+    it "does not let global admin operational access enable restricted group requotes" do
+      admin = User.create!(name: "Admin", email: "requote-policy-admin@example.com", password: "password123!", global_admin: true)
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Admin restricted source", group_type: :private_group)
+      group_jjaek = original_author.jjaeks.create!(group:, content: "ADMIN_RESTRICTED_SOURCE")
+
+      expect(described_class.new(admin, group_jjaek).show?).to be(true)
+      expect(described_class.new(admin, group_jjaek).requote?).to be(false)
+    end
   end
 
   describe "#create_requote?" do

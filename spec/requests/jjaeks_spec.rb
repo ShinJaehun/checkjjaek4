@@ -125,6 +125,52 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
+    it "creates a personal requote from an active public group original for a non-member" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Public requote source", group_type: :public_group)
+      group_jjaek = original_author.jjaeks.create!(group:, book:, content: "PUBLIC_GROUP_REQUOTE_SOURCE")
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: {
+            quoted_jjaek_id: group_jjaek.id,
+            content: "PUBLIC_GROUP_PERSONAL_REQUOTE",
+            visibility: :public_jjaek
+          }
+        }
+      }.to change(Jjaek, :count).by(1)
+
+      created_jjaek = Jjaek.last
+      expect(created_jjaek.group_id).to be_nil
+      expect(created_jjaek.quoted_jjaek_id).to eq(group_jjaek.id)
+    end
+
+    it "rejects direct requote creation from approval and private group originals" do
+      sign_in viewer
+
+      %i[approval_group private_group].each do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Blocked #{group_type}", group_type:)
+        group.group_memberships.create!(user: viewer, status: :active)
+        group_jjaek = original_author.jjaeks.create!(group:, content: "BLOCKED_GROUP_REQUOTE_SOURCE")
+
+        expect {
+          post jjaeks_path, params: { jjaek: { quoted_jjaek_id: group_jjaek.id, content: "BLOCKED_REQUOTE" } }
+        }.not_to change(Jjaek, :count)
+      end
+    end
+
+    it "rejects direct requote creation from an inactive public group original" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Inactive public source", group_type: :public_group)
+      group.group_memberships.create!(user: viewer, status: :active)
+      group_jjaek = original_author.jjaeks.create!(group:, content: "INACTIVE_GROUP_REQUOTE_SOURCE")
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: { jjaek: { quoted_jjaek_id: group_jjaek.id, content: "BLOCKED_INACTIVE_REQUOTE" } }
+      }.not_to change(Jjaek, :count)
+    end
+
     it "does not create a duplicate requote for the same user and original" do
       sign_in viewer
       requote
@@ -267,6 +313,52 @@ RSpec.describe "Jjaeks", type: :request do
   end
 
   describe "GET /jjaeks/:id" do
+    it "shows the requote action on an active public group original for a non-member" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Public detail source", group_type: :public_group)
+      group_jjaek = original_author.jjaeks.create!(group:, content: "PUBLIC_GROUP_DETAIL_SOURCE")
+      sign_in viewer
+
+      get jjaek_path(group_jjaek)
+
+      expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: group_jjaek.id))
+    end
+
+    it "does not show the requote action on approval, private, or inactive group originals" do
+      sign_in viewer
+
+      %i[approval_group private_group].each do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Hidden #{group_type}", group_type:)
+        group.group_memberships.create!(user: viewer, status: :active)
+        group_jjaek = original_author.jjaeks.create!(group:, content: "HIDDEN_GROUP_REQUOTE_ACTION")
+
+        get jjaek_path(group_jjaek)
+        expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: group_jjaek.id))
+      end
+
+      inactive_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Hidden inactive", group_type: :public_group)
+      inactive_group.group_memberships.create!(user: viewer, status: :active)
+      inactive_jjaek = original_author.jjaeks.create!(group: inactive_group, content: "HIDDEN_INACTIVE_REQUOTE_ACTION")
+      viewer.jjaeks.create!(quoted_jjaek: inactive_jjaek, content: "EXISTING_INACTIVE_SOURCE_REQUOTE")
+      inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+
+      get jjaek_path(inactive_jjaek)
+      expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: inactive_jjaek.id))
+      expect(response.body).not_to include(jjaek_requotes_path(inactive_jjaek))
+    end
+
+    it "hides a public group requote after a non-member loses source access" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Source access loss", group_type: :public_group)
+      group_jjaek = original_author.jjaeks.create!(group:, content: "GROUP_SOURCE_BEFORE_INACTIVE")
+      group_requote = viewer.jjaeks.create!(quoted_jjaek: group_jjaek, content: "GROUP_REQUOTE_AFTER_INACTIVE")
+      observer = User.create!(name: "Observer", email: "group-requote-observer@example.com", password: "password123!", password_confirmation: "password123!")
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      sign_in observer
+
+      get jjaek_path(group_requote)
+
+      expect(response).to redirect_to(root_path)
+    end
+
     it "lets a global admin directly inspect private personal and inactive private Group Jjaeks" do
       admin = User.create!(name: "Admin", email: "direct-show-admin@example.com", password: "password123!", global_admin: true)
       private_jjaek = original_author.jjaeks.create!(content: "ADMIN_PRIVATE_DIRECT_SHOW", visibility: :private_jjaek)

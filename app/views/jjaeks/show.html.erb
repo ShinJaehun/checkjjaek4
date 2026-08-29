@@ -1,7 +1,7 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
   <%= render "jjaeks/jjaek", jjaek: @jjaek %>
 
-  <% if @jjaek.group_id.blank? && policy(@jjaek).create_requote? %>
+  <% if policy(@jjaek).create_requote? %>
     <div>
       <%= link_to t("jjaeks.actions.requote"),
                   new_jjaek_path(quoted_jjaek_id: @jjaek.id),
@@ -10,7 +10,7 @@
   <% end %>
 
   <% visible_requote_count = visible_requote_count_for(@jjaek) %>
-  <% if @jjaek.group_id.blank? && visible_requote_count.positive? %>
+  <% if policy(@jjaek).requote? && visible_requote_count.positive? %>
     <div>
       <%= link_to t("requotes.actions.view_panel"),
                   jjaek_requotes_path(@jjaek),

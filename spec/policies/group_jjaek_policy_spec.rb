@@ -113,7 +113,6 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     jjaek = member.jjaeks.create!(group:, content: "Group jjaek")
     policy = described_class.new(member, jjaek)
 
-    expect(policy.requote?).to be(false)
     expect(policy.update?).to be(true)
     expect(policy.destroy?).to be(true)
   end

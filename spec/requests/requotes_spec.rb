@@ -13,6 +13,18 @@ RSpec.describe "Requotes", type: :request do
   end
 
   describe "GET /jjaeks/:jjaek_id/requotes" do
+    it "shows the visible requote list for an active public group original" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Public requote list", group_type: :public_group)
+      group_jjaek = original_author.jjaeks.create!(group:, content: "PUBLIC_GROUP_REQUOTE_LIST_SOURCE")
+      group_requote = original_author.jjaeks.create!(quoted_jjaek: group_jjaek, content: "PUBLIC_GROUP_REQUOTE_LIST_ITEM")
+      sign_in viewer
+
+      get jjaek_requotes_path(group_jjaek)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(group_jjaek.content, group_requote.content)
+    end
+
     it "shows only requotes visible to the viewer" do
       visible_book_friends_requote = original_author.jjaeks.create!(
         content: "VISIBLE_BOOK_FRIENDS_REQUOTE",

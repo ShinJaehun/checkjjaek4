@@ -13,8 +13,6 @@
   <% if inline_comments_context.present? %>
     <%= link_to t("comments.actions.view_inline"), jjaek_comments_path(jjaek, inline_comments_params), data: { turbo_stream: true }, class: "font-medium text-stone-700" %>
   <% end %>
-  <% if jjaek.group_id.blank? && !jjaek.deleted? %>
-    <%= render "jjaeks/requote_link", jjaek: jjaek %>
-  <% end %>
+  <%= render "jjaeks/requote_link", jjaek: jjaek %>
   <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>
 </div>

@@ -21,7 +21,7 @@ class Jjaek < ApplicationRecord
             allow_nil: true
   validate :quoted_jjaek_must_be_requotable
   validate :quoted_jjaek_must_not_be_requote
-  validate :quoted_jjaek_must_not_be_group_context
+  validate :quoted_group_jjaek_must_be_public
   validate :quoted_jjaek_visibility_must_not_expand
   validate :target_user_visibility_must_not_be_private
   validate :group_context_must_not_be_requote
@@ -104,8 +104,9 @@ class Jjaek < ApplicationRecord
     errors.add(:quoted_jjaek, :invalid)
   end
 
-  def quoted_jjaek_must_not_be_group_context
+  def quoted_group_jjaek_must_be_public
     return unless quoted_jjaek&.group_id.present?
+    return if quoted_jjaek.group.public_group?
 
     errors.add(:quoted_jjaek, :invalid)
   end

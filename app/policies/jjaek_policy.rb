@@ -29,7 +29,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def requote?
-    visible_for_interaction? && !record.deleted? && record.group_id.blank? && !record.private_jjaek? && !record.requote?
+    visible_for_interaction? && !record.deleted? && requote_source_context_allowed? && !record.private_jjaek? && !record.requote?
   end
 
   def create_requote?
@@ -146,6 +146,12 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   private
+
+  def requote_source_context_allowed?
+    return true if record.group_id.blank?
+
+    record.group.active? && record.group.public_group?
+  end
 
   def book_context_allowed?
     return true if record.book_id.blank?

@@ -122,11 +122,33 @@ RSpec.describe Jjaek, type: :model do
     expect(described_class.new(user:, group:, target_user: other_user, content: "그룹 프로필 짹")).not_to be_valid
   end
 
-  it "does not allow a group jjaek to be requoted" do
+  it "allows public group jjaeks and book jjaeks to be personal requote sources" do
     group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
     group_jjaek = described_class.create!(user: other_user, group:, content: "그룹 원문")
+    group_book_jjaek = described_class.create!(user: other_user, group:, book:, content: "그룹 책짹 원문")
 
-    expect(described_class.new(user:, quoted_jjaek: group_jjaek, content: "다시짹")).not_to be_valid
+    expect(described_class.new(user:, quoted_jjaek: group_jjaek, content: "다시짹")).to be_valid
+    expect(described_class.new(user:, quoted_jjaek: group_book_jjaek, content: "책 다시짹")).to be_valid
+  end
+
+  it "does not allow approval or private group jjaeks to be requote sources" do
+    %i[approval_group private_group].each do |group_type|
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: group_type.to_s, group_type:)
+      group_jjaek = described_class.create!(user: other_user, group:, content: "그룹 원문")
+
+      expect(described_class.new(user:, quoted_jjaek: group_jjaek, content: "다시짹")).not_to be_valid
+    end
+  end
+
+  it "keeps an existing public group requote valid after the source group becomes inactive" do
+    group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Lifecycle Readers", group_type: :public_group)
+    group_jjaek = described_class.create!(user: other_user, group:, content: "그룹 원문")
+    requote = described_class.create!(user:, quoted_jjaek: group_jjaek, content: "다시짹")
+
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+
+    expect(requote.reload).to be_valid
+    expect(requote.update(content: "수정된 다시짹")).to be(true)
   end
 
   it "keeps requotes private and marked when the original is destroyed" do
