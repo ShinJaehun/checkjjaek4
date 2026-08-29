@@ -67,6 +67,7 @@
   - 원본이 viewer에게 보여야 한다.
   - 원본이 `private_jjaek`이면 안 된다.
   - 원본 자체가 ReJjaek이면 안 된다.
+  - 동아리 원본은 active 공개 동아리 Jjaek 또는 책짹만 허용한다.
   - 같은 사용자가 같은 원문을 이미 ReJjaek했다면 새 ReJjaek을 만들지 않는다.
 
 - `JjaekPolicy::Scope`

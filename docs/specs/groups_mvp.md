@@ -46,7 +46,7 @@ inactive member는 기존 자기 탈퇴 경로로 membership을 삭제하거나 
 비공개 동아리의 inactive member는 동아리 기본 상세와 자신의 활동 중지 상태는 확인할 수 있지만 내부 콘텐츠 읽기·작성 권한은 갖지 않는다.
 일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제한다.
 내보내기·가입 요청 거절·초대 취소는 이후 가입이나 재초대를 영구 차단하지 않는다.
-동아리 다시짹/share, 홈 피드 편입,
+개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성,
 초대 알림, 이메일·링크 초대와 moderation 상세는 미구현이며,
 이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
 
@@ -164,11 +164,12 @@ inactive member는 기존 자기 탈퇴 경로로 membership을 삭제하거나 
 동아리 글은 작성자의 일반 팔로워 피드로 자동 확산되지 않는다.
 사용자가 개인 영역으로 가져가려면 명시적으로 ReJjaek 또는 공유해야 한다.
 
-MVP 목표 정책:
+현재 구현 정책:
 
-- 공개 동아리 원문은 동아리 밖 개인 영역으로 ReJjaek할 수 있다.
+- active 공개 동아리 원문은 로그인 사용자가 membership 없이도 동아리 밖 개인 영역으로 ReJjaek할 수 있다.
 - 승인 동아리 원문은 동아리 밖으로 ReJjaek할 수 없다.
 - 비공개 동아리 원문은 동아리 밖으로 ReJjaek할 수 없다.
+- inactive 또는 pending 동아리 원문에서는 새 ReJjaek을 만들 수 없다.
 
 기존 ReJjaek의 핵심 제약도 유지한다.
 
@@ -177,7 +178,10 @@ MVP 목표 정책:
 - 원문 접근 권한을 잃으면 이를 참조하는 ReJjaek도 원문 권한을 우회할 수 없다.
 - nested ReJjaek은 허용하지 않는다.
 
-기존 ReJjaek의 현재 구현 기준은 `docs/specs/requotes_mvp.md`와 관련 architecture 문서를 함께 본다. 실제 동아리 문맥 표현 방식은 후속 구현 설계에서 결정한다.
+생성된 ReJjaek은 `group_id`가 없는 개인 Jjaek이며 원문 댓글을 복사하지 않는다.
+원본 동아리가 inactive가 되는 등 원문 접근 권한을 잃으면 기존 ReJjaek도 조회 시점 권한에 따라 비노출한다.
+ReJjaek row를 자동 삭제하거나 visibility를 변경하지 않는다.
+기존 ReJjaek의 현재 구현 기준은 `docs/specs/requotes_mvp.md`와 관련 architecture 문서를 함께 본다.
 
 ---
 

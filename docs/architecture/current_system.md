@@ -252,8 +252,10 @@
 - inactive·탈퇴 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
 - 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 inactive·탈퇴 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
 - 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있고, 조회 가능한 기존 자기 좋아요는 이후 동아리·membership 비활성화나 Jjaek 삭제 상태에서도 철회할 수 있음
-- 동아리 관리자의 타인 댓글·Jjaek 삭제와 동아리 다시짹/share는 구현되지 않음
-- 동아리 hard delete·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
+- active 공개 동아리의 Jjaek·책짹은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
+- 승인·비공개·inactive·pending 동아리 원문의 외부 ReJjaek과 개인 Jjaek의 동아리 공유·동아리 안에서의 ReJjaek 작성은 허용하지 않음
+- 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
+- 동아리 hard delete·ban, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를, Group 운영 상세의 같은 형태 inventory에서 해당 동아리의 Jjaek·책짹·Comment를 직접 조사할 수 있음
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음

@@ -188,6 +188,8 @@ Library 안에서 볼 수 있는 책장:
 - 현재 사용자가 원문 Jjaek을 볼 수 있어야 한다
 - 원문이 `private_jjaek`이면 ReJjaek할 수 없다
 - 원문 자체가 ReJjaek이면 다시 인용할 수 없다
+- active 공개 동아리의 Jjaek·책짹은 membership 없이 개인 영역으로 ReJjaek할 수 있다
+- 승인·비공개·inactive·pending 동아리 원문은 개인 영역으로 ReJjaek할 수 없다
 - 같은 사용자가 같은 원문을 이미 ReJjaek했다면 새 ReJjaek 버튼을 보여주지 않는다
 - MVP에서는 버튼 숨김만으로 충분하다
 
@@ -301,7 +303,8 @@ Library 안에서 볼 수 있는 책장:
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
 작성은 모든 동아리 종류에서 active member에게만 허용한다.
 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, inactive 또는 탈퇴한 작성자도 자기 기존 글은 삭제할 수 있다.
-동아리 관리자의 타인 글 moderation과 동아리 다시짹/share는 아직 구현하지 않는다.
+동아리 관리자의 타인 글 moderation, 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성은 아직 구현하지 않는다.
+active 공개 동아리의 Jjaek·책짹을 개인 영역으로 ReJjaek하는 기능은 제공한다.
 홈 `FeedScope`에는 현재 사용자가 active member인 active/inactive 동아리의 Jjaek만 포함하며,
 public 동아리나 follow 관계만으로 가입하지 않은 동아리 콘텐츠를 포함하지 않는다.
 
