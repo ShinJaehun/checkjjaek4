@@ -14,31 +14,6 @@ class GroupsController < ApplicationController
   def show
     authorize @group
     @membership = @group.group_memberships.find_by(user: current_user)
-    @pending_memberships = if @group.group_admin?(current_user)
-      @group.group_memberships.pending.includes(:user).order(:created_at)
-    else
-      GroupMembership.none
-    end
-    @active_memberships = if @group.group_admin?(current_user)
-      @group.group_memberships.active.includes(:user).order(:created_at)
-    else
-      GroupMembership.none
-    end
-    @inactive_memberships = if @group.group_admin?(current_user)
-      @group.group_memberships.inactive.includes(:user).order(:created_at)
-    else
-      GroupMembership.none
-    end
-    @sent_invitations = if @group.private_group? && @group.group_admin?(current_user)
-      @group.group_memberships.invited.includes(:user).order(:created_at)
-    else
-      GroupMembership.none
-    end
-    @invite_candidates = if @group.private_group? && @group.group_admin?(current_user)
-      User.active_accounts.where.not(id: @group.group_memberships.select(:user_id)).order(:name)
-    else
-      User.none
-    end
     prepare_jjaek_context
   end
 
@@ -72,7 +47,7 @@ class GroupsController < ApplicationController
 
   def edit
     authorize @group
-    prepare_management_context
+    prepare_lifecycle_history
   end
 
   def update
@@ -88,7 +63,7 @@ class GroupsController < ApplicationController
     if updated
       redirect_to @group, notice: t("groups.notices.updated")
     else
-      prepare_management_context
+      prepare_lifecycle_history
       render :edit, status: :unprocessable_content
     end
   end
@@ -117,7 +92,7 @@ class GroupsController < ApplicationController
       redirect_to @group, notice: t("groups.notices.closed")
     else
       @group.restore_attributes(%w[lifecycle_status closed_at])
-      prepare_management_context
+      prepare_lifecycle_history
       render :edit, status: :unprocessable_content
     end
   end
@@ -182,15 +157,6 @@ class GroupsController < ApplicationController
 
   def prepare_lifecycle_history
     @lifecycle_events = @group.lifecycle_events.includes(:actor)
-  end
-
-  def prepare_management_context
-    prepare_lifecycle_history
-    @admin_transfer_candidates = @group.active_group_memberships
-      .where.not(user_id: @group.group_admin_id)
-      .includes(:user)
-      .map(&:user)
-      .sort_by(&:name)
   end
 
   def sync_opening_request_detail

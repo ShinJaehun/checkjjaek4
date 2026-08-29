@@ -23,7 +23,7 @@ class GroupMembershipsController < ApplicationController
     authorize @membership, :approve?
     @membership.active!
 
-    redirect_to @group, notice: t("group_memberships.notices.approved")
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.approved")
   end
 
   def invite
@@ -31,9 +31,9 @@ class GroupMembershipsController < ApplicationController
     authorize @membership, :invite?
 
     if @membership.save
-      redirect_to @group, notice: t("group_memberships.notices.invited")
+      redirect_to group_members_path(@group), notice: t("group_memberships.notices.invited")
     else
-      redirect_to @group, alert: @membership.errors.full_messages.to_sentence
+      redirect_to group_members_path(@group), alert: @membership.errors.full_messages.to_sentence
     end
   end
 
@@ -55,35 +55,35 @@ class GroupMembershipsController < ApplicationController
     authorize @membership, :reject?
     @membership.destroy!
 
-    redirect_to @group, notice: t("group_memberships.notices.rejected"), status: :see_other
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.rejected"), status: :see_other
   end
 
   def revoke
     authorize @membership, :revoke?
     @membership.destroy!
 
-    redirect_to @group, notice: t("group_memberships.notices.revoked"), status: :see_other
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.revoked"), status: :see_other
   end
 
   def remove
     authorize @membership, :remove?
     @membership.destroy!
 
-    redirect_to @group, notice: t("group_memberships.notices.removed"), status: :see_other
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.removed"), status: :see_other
   end
 
   def deactivate
     authorize @membership, :deactivate?
     @membership.inactive!
 
-    redirect_to @group, notice: t("group_memberships.notices.deactivated")
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.deactivated")
   end
 
   def reactivate
     authorize @membership, :reactivate?
     @membership.active!
 
-    redirect_to @group, notice: t("group_memberships.notices.reactivated")
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.reactivated")
   end
 
   def destroy

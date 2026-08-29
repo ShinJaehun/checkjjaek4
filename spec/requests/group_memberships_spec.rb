@@ -78,6 +78,7 @@ RSpec.describe "Group memberships", type: :request do
     patch group_group_membership_path(group, membership)
 
     expect(membership.reload).to be_active
+    expect(response).to redirect_to(group_members_path(group))
   end
 
   it "does not let another user approve a pending request" do
@@ -160,6 +161,7 @@ RSpec.describe "Group memberships", type: :request do
 
       invitation = group.group_memberships.find_by!(user: member)
       expect(invitation).to be_invited
+      expect(response).to redirect_to(group_members_path(group))
 
       sign_in member
       get group_path(group)
@@ -259,6 +261,7 @@ RSpec.describe "Group memberships", type: :request do
         patch deactivate_group_group_membership_path(group, membership)
       }.not_to change(GroupMembership, :count)
       expect(membership.reload).to be_inactive
+      expect(response).to redirect_to(group_members_path(group))
 
       sign_in member
 
@@ -288,8 +291,8 @@ RSpec.describe "Group memberships", type: :request do
 
       get group_path(group)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("활동 중지")
-      expect(response.body).not_to include("동아리 구성원", "다시 활성화", "내보내기")
+      expect(response.body).to include("비활성 회원")
+      expect(response.body).not_to include("회원 관리", "회원 활성화", "내보내기")
     end
 
     it "deactivates a private group member and revokes Jjaek access" do
@@ -325,6 +328,38 @@ RSpec.describe "Group memberships", type: :request do
       expect(GroupPolicy.new(member, group).create_jjaek?).to be(false)
     end
 
+    it "applies the group content read matrix to inactive memberships" do
+      groups = %i[public_group approval_group private_group].index_with do |group_type|
+        group = Group.create!(
+          lifecycle_status: :active,
+          group_admin: group_admin,
+          name: "Inactive #{group_type}",
+          group_type:
+        )
+        membership = group.group_memberships.create!(user: member, status: :active)
+        jjaek = group_admin.jjaeks.create!(group:, content: "INACTIVE_#{group_type.to_s.upcase}_CONTENT")
+        membership.update!(status: :inactive)
+        [ group, jjaek ]
+      end
+      sign_in member
+
+      groups.each do |group_type, group_data|
+        group, jjaek = group_data
+        get group_path(group)
+
+        page = Nokogiri::HTML(response.body)
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(group.name)
+        expect(page.at_css(%(form[action="#{group_jjaeks_path(group)}"]))).to be_nil
+
+        if group_type == :public_group
+          expect(response.body).to include(jjaek.content)
+        else
+          expect(response.body).not_to include(jjaek.content)
+        end
+      end
+    end
+
     it "blocks deactivation by non-group_admins and deactivation of the group_admin" do
       other = User.create!(name: "Other manager", email: "other-manager@example.com", password: "password123!", password_confirmation: "password123!")
       group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Removal guards", group_type: :public_group)
@@ -349,6 +384,7 @@ RSpec.describe "Group memberships", type: :request do
       patch reactivate_group_group_membership_path(group, membership)
 
       expect(membership.reload).to be_active
+      expect(response).to redirect_to(group_members_path(group))
       sign_in member
       get group_path(group)
       expect(response).to have_http_status(:ok)
@@ -367,6 +403,7 @@ RSpec.describe "Group memberships", type: :request do
       expect {
         delete remove_group_group_membership_path(group, membership)
       }.to change(GroupMembership, :count).by(-1)
+      expect(response).to redirect_to(group_members_path(group))
     end
 
     it "does not let an inactive member bypass status through another membership flow" do
@@ -403,6 +440,7 @@ RSpec.describe "Group memberships", type: :request do
       expect {
         delete reject_group_group_membership_path(group, membership)
       }.to change(GroupMembership, :count).by(-1)
+      expect(response).to redirect_to(group_members_path(group))
 
       delete reject_group_group_membership_path(group, membership)
       expect(response).to have_http_status(:not_found)
@@ -422,6 +460,7 @@ RSpec.describe "Group memberships", type: :request do
       expect {
         delete revoke_group_group_membership_path(group, invitation)
       }.to change(GroupMembership, :count).by(-1)
+      expect(response).to redirect_to(group_members_path(group))
 
       sign_in member
       get groups_path
@@ -459,13 +498,34 @@ RSpec.describe "Group memberships", type: :request do
       approval = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval UI", group_type: :approval_group)
       approval.group_memberships.create!(user: member, status: :pending)
       sign_in group_admin
-      get group_path(approval)
+      get group_members_path(approval)
       expect(response.body).to include("승인", "거절")
 
       private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Invitation UI", group_type: :private_group)
       private_group.group_memberships.create!(user: member, status: :invited)
-      get group_path(private_group)
+      get group_members_path(private_group)
       expect(response.body).to include("보낸 초대", "초대 취소")
+    end
+
+    it "keeps invitations read-only when a private group is inactive" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Inactive invitations", group_type: :private_group)
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+
+      sign_in group_admin
+      get group_members_path(group)
+      page = Nokogiri::HTML(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(member.name, "보낸 초대")
+      expect(page.at_css(%(form[action="#{revoke_group_group_membership_path(group, invitation)}"]))).to be_nil
+
+      global_admin = User.create!(name: "Global admin", email: "inactive-invitation-admin@example.com", password: "password123!", global_admin: true)
+      sign_in global_admin
+      get group_members_path(group)
+      page = Nokogiri::HTML(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(member.name, "보낸 초대")
+      expect(page.at_css(%(form[action="#{revoke_group_group_membership_path(group, invitation)}"]))).to be_nil
     end
 
     it "blocks participation activation and hides invitations when the group is inactive" do

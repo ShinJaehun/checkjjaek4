@@ -166,6 +166,9 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_groups_path, params: { q: "Private metadata" }
     expect(listed_group_ids).to eq([ private_group.id ])
 
+    get admin_group_path(private_group)
+    expect(response.body).to include(group_members_path(private_group), "회원 관리")
+
     sign_in ordinary_user
     get group_path(private_group)
     expect(response).to have_http_status(:not_found)

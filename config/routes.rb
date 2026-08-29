@@ -15,6 +15,7 @@ Rails.application.routes.draw do
     end
   end
   resources :groups, only: %i[index show new create edit update] do
+    resources :members, only: :index, controller: "group_members"
     patch :close, on: :member
     patch :request_reactivation, on: :member
     patch :transfer_admin, on: :member

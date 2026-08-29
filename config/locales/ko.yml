@@ -90,7 +90,7 @@ ko:
       inactive: "운영 종료"
     lifecycle_messages:
       pending_approval: "동아리 승인 대기 중입니다. 승인 전에는 가입과 동아리 활동을 시작할 수 없습니다."
-      inactive: "운영 종료된 동아리입니다. 기존 active 구성원만 과거 콘텐츠를 읽을 수 있습니다."
+      inactive: "운영 종료된 동아리입니다. 기존 active 회원만 과거 콘텐츠를 읽을 수 있습니다."
     lifecycle_history:
       title: "운영 이력"
       empty: "기록된 운영 이력이 없습니다."
@@ -138,23 +138,25 @@ ko:
     management:
       close_title: "동아리 운영 종료"
       close_description: "운영 종료 후에는 새 가입, 초대와 새 콘텐츠 작성을 할 수 없습니다."
-      close_confirmation: "동아리 운영을 종료할까요?\n운영을 종료하면 새 가입, 초대, 짹·책짹·댓글 작성이 중단됩니다.\n기존 구성원과 콘텐츠는 삭제되지 않습니다.\n다시 운영하려면 관리자 승인이 필요합니다."
+      close_confirmation: "동아리 운영을 종료할까요?\n운영을 종료하면 새 가입, 초대, 짹·책짹·댓글 작성이 중단됩니다.\n기존 회원과 콘텐츠는 삭제되지 않습니다.\n다시 운영하려면 관리자 승인이 필요합니다."
       inactive_title: "운영 종료 정보"
       closed_at: "종료: %{time}"
       reactivation_description: "다시 운영하려면 관리자 승인이 필요합니다."
     admin_transfer:
       title: "동아리 관리자"
       current: "현재 관리자: %{name}"
-      target: "관리자 권한을 이전할 구성원"
+      target: "관리자 권한을 이전할 회원"
       submit: "관리자 권한 이전"
-      confirmation: "관리자 권한을 이전하면 현재 관리자는 일반 구성원이 됩니다."
-      no_candidates: "관리자 권한을 이전하려면 다른 활성 구성원이 필요합니다."
+      confirmation: "관리자 권한을 이전하면 현재 관리자는 일반 회원이 됩니다."
+      no_candidates: "관리자 권한을 이전하려면 다른 활동 회원이 필요합니다."
     pending:
-      title: "가입 요청"
+      title: "가입 승인 대기"
       empty: "대기 중인 가입 요청이 없습니다."
     members:
-      title: "동아리 구성원"
-      inactive_title: "활동 중지된 구성원"
+      management_title: "회원 관리"
+      active_title: "활동 회원"
+      inactive_title: "비활성 회원"
+      back: "동아리로 돌아가기"
     invitations:
       title: "받은 동아리 초대"
       invite_title: "동아리 초대"
@@ -333,7 +335,7 @@ ko:
         type: "종류"
         status: "운영 상태"
         group_admin: "동아리 관리자"
-        active_members: "활동 구성원"
+        active_members: "활동 회원"
         created: "생성 시각"
         actions: "작업"
       actions:
@@ -354,7 +356,7 @@ ko:
       pending: "승인 대기"
       active: "참여 중"
       invited: "초대됨"
-      inactive: "활동 중지"
+      inactive: "비활성 회원"
     actions:
       join: "가입하기"
       request: "가입 요청"
@@ -367,8 +369,8 @@ ko:
       reject: "거절"
       revoke: "초대 취소"
       remove: "내보내기"
-      deactivate: "활동 중지"
-      reactivate: "다시 활성화"
+      deactivate: "회원 비활성화"
+      reactivate: "회원 활성화"
     notices:
       joined: "동아리에 가입했습니다."
       requested: "가입을 요청했습니다."
@@ -381,8 +383,8 @@ ko:
       rejected: "가입 요청을 거절했습니다."
       revoked: "동아리 초대를 취소했습니다."
       removed: "동아리에서 내보냈습니다."
-      deactivated: "구성원의 활동을 중지했습니다."
-      reactivated: "구성원을 다시 활성화했습니다."
+      deactivated: "회원을 비활성화했습니다."
+      reactivated: "회원을 활성화했습니다."
   comments:
     actions:
       close_inline: "닫기"

@@ -150,11 +150,13 @@ en:
       confirmation: "After the transfer, the current admin becomes a regular member."
       no_candidates: "Another active member is required to transfer admin rights."
     pending:
-      title: "Join requests"
+      title: "Pending approvals"
       empty: "No join requests are pending."
     members:
-      title: "Club members"
+      management_title: "Member management"
+      active_title: "Active members"
       inactive_title: "Inactive members"
+      back: "Back to club"
     invitations:
       title: "Club invitations"
       invite_title: "Invite to club"
@@ -367,8 +369,8 @@ en:
       reject: "Reject"
       revoke: "Cancel invitation"
       remove: "Remove"
-      deactivate: "Deactivate"
-      reactivate: "Reactivate"
+      deactivate: "Deactivate member"
+      reactivate: "Reactivate member"
     notices:
       joined: "You joined the club."
       requested: "Join request sent."

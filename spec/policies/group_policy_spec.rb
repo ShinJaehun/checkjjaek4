@@ -125,6 +125,17 @@ RSpec.describe GroupPolicy do
     end
   end
 
+  describe "#view_members?" do
+    it "allows only the group admin and global admin" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Members", group_type: :public_group)
+      admin = User.create!(name: "Global admin", email: "member-policy-admin@example.com", password: "password123!", global_admin: true)
+
+      expect(described_class.new(group_admin, group).view_members?).to be(true)
+      expect(described_class.new(admin, group).view_members?).to be(true)
+      expect(described_class.new(viewer, group).view_members?).to be(false)
+    end
+  end
+
   describe "#transfer_admin?" do
     it "allows the current admin and global admin for active or inactive groups" do
       admin = User.create!(name: "Global admin", email: "transfer-policy-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true)

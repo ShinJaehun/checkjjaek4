@@ -41,6 +41,10 @@ class GroupPolicy < ApplicationPolicy
     user.present? && record.active? && record.active_member?(user)
   end
 
+  def view_members?
+    user.present? && (record.group_admin?(user) || operational_investigator?)
+  end
+
   def close?
     user.present? && record.active? && record.group_admin?(user)
   end

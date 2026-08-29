@@ -210,6 +210,8 @@
 - 신규 신청은 일반 소개와 별도의 개설 목적을 제출하고 global admin 승인 목록에서 확인함
 - active 동아리 관리자는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
 - 운영 종료는 동아리 관리 화면에서 사유와 종료 시각을 기록하며, 재활성화 요청도 같은 화면에서 수행함
+- Group 상세는 콘텐츠와 사용자의 참여 상태에 집중하고, `/groups/:id/members`는 동아리 관리자의 회원 관리 및 global admin의 회원 조사 화면으로 사용함
+- `/groups/:id/edit`는 기본 설정과 운영 lifecycle·이력에 집중하며 관리자 이전은 회원 관리 화면에서 수행함
 - global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·현재 상태/기간 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음
 - User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
 - Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 기존 승인 동작으로 연결함
@@ -229,19 +231,20 @@
 - pending 요청은 요청자 본인이 취소할 수 있음
 - active 일반 member는 탈퇴할 수 있고 현재 동아리 관리자는 탈퇴할 수 없음
 - 비공개 동아리는 동아리 관리자/active/inactive member가 목록과 기본 상세에서 조회할 수 있음
-- 비공개 동아리의 inactive member는 자신의 활동 중지 상태를 확인할 수 있지만 내부 콘텐츠 읽기·작성 권한은 없음
+- 비공개 동아리의 inactive member는 자신의 비활성 상태를 확인할 수 있지만 내부 콘텐츠 읽기·작성 권한은 없음
 - 일반 사용자가 비공개 동아리를 생성할 수 있음
 - 비공개 동아리 관리자가 기존 사용자를 `invited` membership으로 초대할 수 있음
 - 초대받은 사용자는 동아리 목록의 별도 초대 영역에서 수락하거나 거절할 수 있음
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
 - 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
-- 동아리 관리자 상세 화면에서 active 구성원을 활동 중지하고 inactive 구성원을 다시 활성화하거나 최종 내보낼 수 있음
+- 동아리 관리자는 회원 관리 화면에서 active 회원을 비활성화하고 inactive 회원을 다시 활성화하거나 최종 내보낼 수 있음
+- 이 기존 membership lifecycle은 향후 moderation의 동아리 활동 정지와 별개이며 GroupMembership moderation은 아직 구현하지 않음
 - 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
 - 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
 - inactive는 active 권한을 부여하지 않으며 pending 가입 요청과 별도 상태임
 - inactive membership은 자기 탈퇴나 새 가입·초대로 상태를 우회할 수 없음
 - 일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제함
-- 활동 중지·내보내기·거절·초대 취소는 ban이 아니며 재가입 또는 재초대를 영구 차단하지 않음
+- 회원 비활성화·내보내기·거절·초대 취소는 ban이 아니며 재가입 또는 재초대를 영구 차단하지 않음
 - active member는 동아리 안에서 `짹`과 `책짹`을 작성할 수 있음
 - 두 형태 모두 `Jjaek`의 optional `group_id` / `book_id` 조합으로 표현함
 - 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
