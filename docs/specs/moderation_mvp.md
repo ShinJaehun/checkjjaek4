@@ -69,6 +69,19 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 
 ## 책임과 권한 범위
 
+### global admin의 master operational authority
+
+global admin은 서비스 전체에 대한 최종 운영 책임과 운영 개입 권한을 가진다. 이는 전체 User·Group·Jjaek·Comment와
+일반 사용자가 볼 수 없는 비공개 콘텐츠를 조사하고, 현재 또는 향후 마련되는 명시적인 운영 조치를 수행할 근거다.
+현재 Group 기능에서는 승인과 운영 정보 조사뿐 아니라 운영상 필요한 active/inactive Group 관리자 이전을 포함한다.
+
+이 권한은 모든 사용자 action을 대신 수행하는 superuser 권한이 아니다. 타인 이름의 Jjaek·Comment 작성, 타인의 원문
+수정이나 작성자 삭제를 가장한 hard delete, 타인을 대신한 Like, 개인 Library·Bookshelf 관리 대행은 허용하지 않는다.
+`ApplicationPolicy`에 모든 action을 허용하는 global admin bypass를 두지 않고 action별 운영 목적을 명시한다.
+Group 자체를 탐색하는 일반 Group scope와 특정 User를 조사하는 profile scope는 global admin에게 해당 문맥 전체를 제공한다.
+반면 일반 Jjaek scope와 홈 feed scope는 UI 의미를 보존하기 위해 넓히지 않으며 전체 사용자 콘텐츠 조사의 기본 진입점은
+admin inventory, 특정 User·Group 상세와 거기서 발견한 Jjaek 단건 상세다.
+
 | 역할 | 책임 범위 | 허용되는 목표 권한 | 허용하지 않는 범위 |
 | --- | --- | --- | --- |
 | global admin | 서비스 전체 | 전체 User·Group·Jjaek·Comment 조회, 운영 목적의 비공개 Group 및 향후 Classroom 콘텐츠 확인, User 정지·복구, Jjaek·Comment 숨김·복구, Group 운영 정지·복구와 관리자 이전 판단, moderation 이력 확인 | 운영자가 작성자 대신 원문을 수정하거나 작성자 삭제로 처리하는 행위 |
@@ -77,6 +90,7 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 | platform moderator | 향후 위임받을 공개 SNS 운영 범위 | User·Group·Jjaek·Comment 조사와 정해진 moderation 조치를 위임받을 수 있다는 원칙만 확정 | global admin 지정·해제, 서비스 핵심 설정, 소유권·교사 권한 관리 |
 
 global admin의 비공개 콘텐츠 접근은 일반 사용자 열람 권한이 아니라 조사·안전·복구를 위한 운영 권한이다.
+`private_jjaek`의 나만 보기와 `book_friends` visibility를 포함한 사용자 공개 설정은 이 운영 조사를 차단하지 않는다.
 group admin은 현재와 같이 Group당 정확히 한 명이며 이번 MVP에서 cardinality를 변경하지 않는다.
 
 teacher/Classroom policy는 Classroom 도메인이 만들어질 때 연결한다. 교사와 학생이 실제 사용하기 전에는

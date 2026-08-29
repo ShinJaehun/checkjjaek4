@@ -209,16 +209,20 @@
 - 신규 신청은 일반 소개와 별도의 개설 목적을 제출하고 global admin 승인 목록에서 확인함
 - active 동아리 관리자는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
 - 운영 종료는 동아리 관리 화면에서 사유와 종료 시각을 기록하며, 재활성화 요청도 같은 화면에서 수행함
-- global admin 운영 관리에는 User·Group 읽기 전용 monitoring inventory가 있으며, 고밀도 표에서 검색·현재 상태/기간 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음
+- global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·현재 상태/기간 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음
 - User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
 - Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 기존 승인 동작으로 연결함
 - lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·종료·재활성화·재승인 순서로 누적되며 개설 목적과 종료 사유 snapshot을 보존함
-- 동아리 관리자는 동아리 관리에서 시각 중심 운영 이력을, global admin은 admin 전용 show에서 목적·사유를 포함한 read-only 운영 정보와 이력을 확인함
+- 동아리 관리자는 동아리 관리에서 시각 중심 운영 이력을, global admin은 admin 전용 show에서 목적·사유를 포함한 운영 정보·이력·내부 콘텐츠를 조사함
 - Group 상세는 목록 query parameter를 보존한 돌아가기 경로와 목적·사유를 포함한 운영 이력을 제공함
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
 - inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
 - 단일 동아리 관리자는 내부적으로 `Group.group_admin_id`로 표현하며 항상 active membership을 가짐
-- active/inactive 동아리의 현재 관리자는 다른 active member에게 관리자 권한을 원자적으로 이전할 수 있음
+- active/inactive 동아리의 현재 관리자와 global admin은 다른 active member에게 관리자 권한을 원자적으로 이전할 수 있음
+- global admin의 일반 Group 목록에는 종류와 lifecycle 상태에 관계없이 모든 Group이 포함됨
+- global admin은 public/book_friends/private Jjaek과 접근 관계가 없는 Group Jjaek·Comment도 admin inventory와 단건 상세에서 운영 목적으로 조사할 수 있음
+- 특정 User 프로필에서는 global admin에게 해당 작성자의 모든 visibility Jjaek을 표시하지만 일반 Jjaek scope와 홈 feed scope는 넓히지 않음
+- 이 운영 조사 권한은 일반 작성·반응 권한을 부여하지 않음
 - 이전 관리자는 일반 active member로 남아 기존 탈퇴 경로를 사용할 수 있음
 - 공개 동아리는 즉시 가입, 승인 동아리는 pending 요청 후 동아리 관리자 승인 방식
 - pending 요청은 요청자 본인이 취소할 수 있음
@@ -241,7 +245,8 @@
 - 두 형태 모두 `Jjaek`의 optional `group_id` / `book_id` 조합으로 표현함
 - 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
 - 공개 동아리의 Jjaek은 로그인 사용자가, 승인/비공개 동아리의 Jjaek은 active member만 조회할 수 있음
-- 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에만 표시하며 홈 피드와 전역 책 상세에서는 제외함
+- 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에 표시하며, 현재 사용자가 active member인 active/inactive 동아리 콘텐츠는 홈 피드에도 포함함
+- 가입하지 않은 public/approval/private 동아리 Jjaek은 홈 피드에 포함하지 않으며 전역 책 상세에서도 제외함
 - 동아리 Jjaek은 기존 `Comment` 모델과 Turbo panel을 사용함
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - inactive·탈퇴 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
@@ -251,7 +256,7 @@
 - 동아리 hard delete·ban, 공유, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를, Group 운영 상세의 같은 형태 inventory에서 해당 동아리의 Jjaek·책짹·Comment를 직접 조사할 수 있음
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
-- 일반 feed·profile scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
+- 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
 - group admin의 자기 동아리 콘텐츠 monitoring은 아직 구현되지 않음
 - User 운영 정지, 콘텐츠 숨김·복구, moderation 감사 기록과 rate limit은 아직 구현되지 않았으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 

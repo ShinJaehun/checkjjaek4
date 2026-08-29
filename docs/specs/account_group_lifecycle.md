@@ -69,7 +69,7 @@ Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 �
 
 > Group 생성 → 승인 대기 → global admin 승인 → 운영 중
 
-- 승인 대기 Group은 일반 발견 대상에서 제외한다.
+- 승인 대기 Group은 일반 사용자 발견 대상에서 제외하지만 global admin의 Group 목록과 admin inventory에는 포함한다.
 - 일반 회원 가입과 일반 Group Jjaek·Comment 활동을 허용하지 않는다.
 - 동아리 관리자는 자신의 신청 상태를 확인할 수 있어야 한다.
 - 신규 신청자는 일반 소개와 별도로 최대 500자의 동아리 개설 목적을 제출한다.
@@ -92,7 +92,7 @@ active Group 관리자는 Group을 그대로 둔 채 계정을 탈퇴할 수 없
 ### 동아리 관리자 권한 이전 `(현재 구현)`
 
 - Group에는 정확히 한 명의 동아리 관리자(`group_admin`)가 있으며 내부적으로 `Group.group_admin_id`가 이를 가리킨다.
-- active/inactive Group의 현재 관리자만 다른 active member에게 권한을 이전할 수 있다.
+- active/inactive Group의 현재 관리자 또는 global admin은 다른 active member에게 권한을 이전할 수 있다.
 - pending, invited, inactive member나 Group 밖 사용자는 대상이 될 수 없고 pending Group에서는 이전할 수 없다.
 - 이전은 Group row lock 안에서 현재 관리자와 대상 membership을 재검증한다.
 - 이전 후 새 관리자는 active membership을 유지하고 기존 관리자는 일반 active member로 남아 정상 탈퇴할 수 있다.
@@ -129,7 +129,8 @@ Group은 삭제하지 않고 재운영 신청만 취소해 inactive로 되돌린
 재활성화 요청은 기존 종료 사유·시각을 보존하며 global admin 승인 목록에서 신규 개설 신청과 구분한다.
 동아리 관리자는 자기 Group의 시각 중심 운영 이력을 관리 화면에서 열람한다. 개설 목적과 종료 사유 snapshot은
 global admin의 운영 상세에서 확인하며 admin 목록에는 운영 이력을 직접 표시하지 않는다. global admin은 모든 Group의
-운영 metadata와 이력을 read-only로 열람하지만, 이 권한으로 일반 Group 관리나 내부 콘텐츠에 접근하지 않는다.
+운영 metadata·이력·내부 콘텐츠를 운영 목적으로 조사하고 필요한 관리자 이전을 수행할 수 있다. 이 권한은 일반 Group
+수정·종료·재활성화 요청·membership 관리 권한을 자동으로 부여하지 않는다.
 정확한 요청 UI, 요청 가능 사용자의 예외와 admin 거절 처리는 후속 결정으로 남긴다.
 
 ---

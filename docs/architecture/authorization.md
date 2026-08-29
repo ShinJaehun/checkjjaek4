@@ -261,13 +261,16 @@ Library 안에서 볼 수 있는 책장:
 - 동아리 관리자만 active 동아리를 `inactive`로 종료하고 inactive 동아리를 다시 승인 대기로 전환할 수 있다
 - 운영 종료는 동아리 관리자가 사유를 입력해 lifecycle·종료 사유·종료 시각을 함께 저장하며, 재활성화 요청은 이 정보를 보존한다
 - 동아리 관리자는 자기 동아리 관리 화면에서 목적·사유를 제외한 시각 중심 누적 운영 이력을 열람한다
-- global admin은 전용 policy query와 admin inventory scope를 통해 전체 User와 public/private Group metadata를 검색·필터·정렬·페이지네이션하여 조회한다
-- global admin은 admin 상세 화면에서 모든 동아리의 목적·사유를 포함한 운영 metadata와 이력을 read-only로 열람하고 pending 동아리를 승인한다
+- global admin은 전용 policy query와 admin inventory scope를 통해 전체 User와 모든 Group metadata를 검색·필터·정렬·페이지네이션하여 조회한다
+- global admin은 admin 상세 화면에서 모든 동아리의 목적·사유를 포함한 운영 metadata·이력·내부 콘텐츠를 조사하고 pending 동아리를 승인한다
 - global admin은 `JjaekPolicy::AdminInventoryScope`와 `CommentPolicy::AdminInventoryScope`를 통해 admin User·Group 운영 상세 안에서 private visibility, private Group, inactive Group과 작성자 삭제 tombstone을 포함한 관련 콘텐츠를 read-only로 조사한다
 - User admin 상세는 작성자 기준의, Group 운영 상세는 Group 문맥 기준의 필터 가능한 chronological content inventory를 제공한다
-- 일반 User와 group admin은 admin User·Group 상세 URL에 접근할 수 없으며, 이 운영 조회 권한은 일반 feed·profile policy scope를 넓히지 않는다
+- 일반 User와 group admin은 admin User·Group 상세 URL에 접근할 수 없으며, 이 운영 조회 권한은 일반 홈 feed scope를 넓히지 않는다
 - `JjaekPolicy#show?`는 global admin이 admin 상세에서 발견한 특정 private·Group Jjaek을 직접 조사할 수 있게 하지만 타인의 update/destroy 권한은 부여하지 않으며 Comment의 author mutation 원칙도 유지한다
-- global admin 권한은 일반 동아리 수정·종료·재활성화·membership 관리 권한이나 일반 화면의 private/approval 콘텐츠 우회 권한을 부여하지 않는다
+- global admin은 운영상 필요한 경우 active/inactive 동아리의 관리자를 다른 active member에게 이전할 수 있다
+- global admin의 `GroupPolicy::Scope`는 public/approval/private 및 pending/active/inactive 상태와 관계없이 모든 동아리를 포함한다
+- global admin의 `show?`와 `read_jjaeks?`는 이 전체 Group을 운영 목적으로 조사하기 위한 권한이다
+- global admin 권한은 일반 동아리 수정·종료·재활성화·작성·membership 관리 권한을 부여하지 않는다
 - pending 동아리는 동아리 관리자만 기본 상태를 확인하며 내부 콘텐츠를 읽거나 작성할 수 없다
 - inactive 동아리는 active/inactive membership이 기본 정보를 볼 수 있고, active member만 기존 내부 콘텐츠를 읽을 수 있다
 - pending/inactive 동아리에서는 membership accept/approve/reactivate 등 active participation을 만드는 동작을 허용하지 않는다
@@ -282,7 +285,7 @@ Library 안에서 볼 수 있는 책장:
 - `invited`는 비공개 동아리의 목록·상세·내부 Jjaek 접근 권한을 부여하지 않는다
 - 사용자는 자신의 pending 요청을 취소하거나 자신의 active 일반 membership에서 탈퇴할 수 있다
 - 현재 동아리 관리자 membership은 탈퇴·삭제할 수 없다
-- 동아리 관리자는 active/inactive 상태에서 다른 active member에게 권한을 이전할 수 있고 pending 상태에서는 이전할 수 없다
+- 동아리 관리자와 global admin은 active/inactive 상태에서 다른 active member에게 권한을 이전할 수 있고 pending 상태에서는 이전할 수 없다
 - 이전 관리자는 일반 active member로 남아 기존 자발적 탈퇴 경로를 사용할 수 있다
 - 동아리 관리자만 이름과 소개를 수정할 수 있고 동아리 종류는 수정할 수 없다
 - 동아리 관리자만 active 일반 member를 `inactive`로 활동 중지할 수 있고, inactive member를 다시 active로 복구할 수 있다
@@ -299,10 +302,18 @@ Library 안에서 볼 수 있는 책장:
 작성은 모든 동아리 종류에서 active member에게만 허용한다.
 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, inactive 또는 탈퇴한 작성자도 자기 기존 글은 삭제할 수 있다.
 동아리 관리자의 타인 글 moderation과 동아리 다시짹/share는 아직 구현하지 않는다.
+홈 `FeedScope`에는 현재 사용자가 active member인 active/inactive 동아리의 Jjaek만 포함하며,
+public 동아리나 follow 관계만으로 가입하지 않은 동아리 콘텐츠를 포함하지 않는다.
 
 동아리 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
-global admin의 비공개 콘텐츠 발견 범위는 admin User·Group 상세의 전용 scope로 제한하고, 단건 Jjaek 운영 조사만 `show?`에서 허용한다.
-일반 feed·profile scope에는 global admin 우회를 추가하지 않는다.
+global admin은 일반 Group 목록과 admin inventory에서 모든 Group을 볼 수 있고 각 `show?`로 단건 운영 조사를 수행한다.
+Jjaek·Comment는 admin User·Group 상세의 전용 inventory scope에서 visibility와 Group 접근 관계없이 발견할 수 있다.
+`private_jjaek`의 나만 보기와 `book_friends` visibility도 일반 사용자 사이의 공개 범위이며 global admin의 운영 조사를 차단하지 않는다.
+global admin은 특정 User 프로필에서는 `ProfileScope`를 통해 그 작성자의 모든 visibility Jjaek을 조사한다.
+BookshelfEntry와 BookActivity도 profile 전용 scope를 통해 대상 사용자가 자기 프로필에서 보는 범위를 운영 목적으로 조사한다.
+이 권한은 full Library 접근이나 Bookshelf·BookshelfEntry mutation 권한을 부여하지 않는다.
+일반 Jjaek scope와 홈 `FeedScope`에는 global admin 우회를 추가하지 않는다.
+운영 조사 권한은 Comment·Like·ReJjaek 등 일반 사용자 상호작용 권한으로 이어지지 않는다.
 group admin의 타인 콘텐츠 monitoring·moderation 권한은 아직 구현하지 않는다.
 향후 moderation 역할과 목표 권한은 현재 구현 권한과 구분하여 `docs/specs/moderation_mvp.md`를 따른다.
 
