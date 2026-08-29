@@ -455,6 +455,37 @@ RSpec.describe "Comments", type: :request do
       }.not_to change(Comment, :count)
     end
 
+    it "keeps group comments readable but blocks creation while activity-suspended" do
+      group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Suspended comments", group_type: :approval_group)
+      group.group_memberships.create!(user:, status: :active, moderation_status: :activity_suspended)
+      group_jjaek = author.jjaeks.create!(group:, content: "Readable source")
+      existing = group_jjaek.comments.create!(user: author, content: "Readable comment")
+      sign_in user
+
+      get jjaek_comments_path(group_jjaek, comments_context: "group"),
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(existing.content)
+      expect(response.body).not_to include(%(name="comment[content]"))
+
+      expect {
+        post jjaek_comments_path(group_jjaek), params: { comment: { content: "Blocked" } }
+      }.not_to change(Comment, :count)
+    end
+
+    it "blocks update but allows deletion of an activity-suspended member's comment" do
+      group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Suspended edits", group_type: :private_group)
+      group.group_memberships.create!(user:, status: :active, moderation_status: :activity_suspended)
+      group_jjaek = author.jjaeks.create!(group:, content: "Group source")
+      own_comment = group_jjaek.comments.create!(user:, content: "Before")
+      sign_in user
+
+      patch jjaek_comment_path(group_jjaek, own_comment), params: { comment: { content: "Blocked update" } }
+      expect(own_comment.reload.content).to eq("Before")
+
+      expect { delete jjaek_comment_path(group_jjaek, own_comment) }.to change(Comment, :count).by(-1)
+    end
+
     it "lets a public nonmember read comments without showing or accepting the form" do
       group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public comments", group_type: :public_group)
       group_jjaek = author.jjaeks.create!(group:, content: "Public source")

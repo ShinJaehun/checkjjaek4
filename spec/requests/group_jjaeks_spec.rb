@@ -52,6 +52,35 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(group.jjaeks.last.book).to eq(book)
   end
 
+  it "does not let an activity-suspended member create either kind of group jjaek" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Moderated", group_type: :private_group)
+    membership = group.group_memberships.create!(user: member, status: :active, moderation_status: :activity_suspended)
+    existing = group_admin.jjaeks.create!(group:, content: "Still readable")
+    member.bookshelf_entries.create!(book: book)
+    sign_in member
+
+    get group_path(group)
+    expect(response.body).to include(existing.content)
+    expect(membership).to be_active
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { content: "Blocked" } }
+      post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "Blocked book" } }
+    }.not_to change(Jjaek, :count)
+  end
+
+  it "blocks update but allows deletion of an activity-suspended member's group jjaek" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Moderated edits", group_type: :private_group)
+    group.group_memberships.create!(user: member, status: :active, moderation_status: :activity_suspended)
+    jjaek = member.jjaeks.create!(group:, content: "Before")
+    sign_in member
+
+    patch jjaek_path(jjaek), params: { jjaek: { content: "Blocked update" } }
+    expect(jjaek.reload.content).to eq("Before")
+
+    expect { delete jjaek_path(jjaek) }.to change(Jjaek, :count).by(-1)
+  end
+
   it "does not create a group book jjaek for a book outside the member's shelf" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)

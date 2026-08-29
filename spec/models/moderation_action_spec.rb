@@ -15,6 +15,7 @@ RSpec.describe ModerationAction, type: :model do
   end
   let(:jjaek) { user.jjaeks.create!(content: "Moderation target") }
   let(:comment) { jjaek.comments.create!(user: other_user, content: "Moderation comment") }
+  let(:membership) { group.group_memberships.create!(user: other_user, status: :active) }
 
   def action_for(target:, action_type:, reversal_of: nil)
     described_class.new(
@@ -32,6 +33,16 @@ RSpec.describe ModerationAction, type: :model do
     expect(action_for(target: group, action_type: :suspend)).to be_valid
     expect(action_for(target: jjaek, action_type: :hide)).to be_valid
     expect(action_for(target: comment, action_type: :hide)).to be_valid
+    expect(action_for(target: membership, action_type: :suspend_activity)).to be_valid
+  end
+
+  it "restores a membership activity suspension with a separate matching action" do
+    suspension = action_for(target: membership, action_type: :suspend_activity).tap(&:save!)
+    restore = action_for(target: membership, action_type: :restore_activity, reversal_of: suspension)
+
+    expect(restore).to be_valid
+    expect(action_for(target: membership, action_type: :restore)).not_to be_valid
+    expect(action_for(target: membership, action_type: :restore_activity)).not_to be_valid
   end
 
   it "requires a public reason and actor" do
@@ -106,5 +117,15 @@ RSpec.describe ModerationAction, type: :model do
     expect(action.target_id).to eq(target_id)
     expect(action.actor).to eq(actor)
     expect(action.public_reason).to eq("Public reason")
+  end
+
+  it "preserves the audit row after a target membership is deleted" do
+    target_id = membership.id
+    action = action_for(target: membership, action_type: :suspend_activity).tap(&:save!)
+
+    membership.destroy!
+
+    action.reload
+    expect(action).to have_attributes(target_type: "GroupMembership", target_id:, actor:, public_reason: "Public reason")
   end
 end

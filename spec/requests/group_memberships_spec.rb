@@ -251,6 +251,47 @@ RSpec.describe "Group memberships", type: :request do
 
 
   describe "group_admin membership management" do
+    it "lets group and global admins suspend and restore member activity with audit history" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Activity moderation", group_type: :private_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      sign_in group_admin
+
+      patch suspend_activity_group_group_membership_path(group, membership), params: {
+        moderation_action: { public_reason: "Community rule", internal_note: "Case 10" }
+      }
+
+      suspension = membership.current_activity_suspension_action
+      expect(membership.reload).to be_activity_suspended
+      expect(response).to redirect_to(group_members_path(group))
+
+      get group_members_path(group)
+      expect(response.body).to include("동아리 활동 정지", "Community rule", "Case 10", group_admin.name)
+
+      global_admin = User.create!(name: "Global admin", email: "activity-request-global@example.com", password: "password123!", global_admin: true)
+      sign_in global_admin
+      patch restore_activity_group_group_membership_path(group, membership), params: {
+        moderation_action: { public_reason: "Restored", internal_note: "Reviewed" }
+      }
+
+      restore = ModerationAction.order(:id).last
+      expect(membership.reload).to be_moderation_status_normal
+      expect(restore).to have_attributes(action_type: "restore_activity", reversal_of: suspension)
+    end
+
+    it "blocks activity moderation by a non-admin" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Activity guards", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      other = User.create!(name: "Other", email: "activity-request-other@example.com", password: "password123!")
+      sign_in other
+
+      expect {
+        patch suspend_activity_group_group_membership_path(group, membership), params: {
+          moderation_action: { public_reason: "Blocked" }
+        }
+      }.not_to change(ModerationAction, :count)
+      expect(membership.reload).to be_moderation_status_normal
+    end
+
     it "deactivates an approval group member and revokes internal content access" do
       group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Remove approval", group_type: :approval_group)
       membership = group.group_memberships.create!(user: member, status: :active)

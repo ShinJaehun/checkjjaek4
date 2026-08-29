@@ -2,12 +2,13 @@ class ModerationAction < ApplicationRecord
   TARGET_ACTIONS = {
     "User" => %w[suspend restore],
     "Group" => %w[suspend restore],
+    "GroupMembership" => %w[suspend_activity restore_activity],
     "Jjaek" => %w[hide restore],
     "Comment" => %w[hide restore]
   }.freeze
 
   enum :action_type,
-       { suspend: 0, hide: 1, restore: 2 },
+       { suspend: 0, hide: 1, restore: 2, suspend_activity: 3, restore_activity: 4 },
        prefix: true,
        validate: true
 
@@ -24,6 +25,15 @@ class ModerationAction < ApplicationRecord
     restored_action_ids = where(action_type: :restore).where.not(reversal_of_id: nil).select(:reversal_of_id)
 
     where(target: user, action_type: :suspend)
+      .where.not(id: restored_action_ids)
+      .order(created_at: :desc, id: :desc)
+      .first
+  end
+
+  def self.current_activity_suspension_for(membership)
+    restored_action_ids = where(action_type: :restore_activity).where.not(reversal_of_id: nil).select(:reversal_of_id)
+
+    where(target: membership, action_type: :suspend_activity)
       .where.not(id: restored_action_ids)
       .order(created_at: :desc, id: :desc)
       .first
@@ -48,7 +58,7 @@ class ModerationAction < ApplicationRecord
   end
 
   def reversal_must_match_action
-    if action_type_restore?
+    if reversal_action?
       validate_restore_source
     elsif reversal_of.present?
       errors.add(:reversal_of, :invalid)
@@ -61,9 +71,19 @@ class ModerationAction < ApplicationRecord
       return
     end
 
-    expected_action_type = %w[User Group].include?(target_type) ? "suspend" : "hide"
+    expected_action_type = if action_type_restore_activity?
+      "suspend_activity"
+    elsif %w[User Group].include?(target_type)
+      "suspend"
+    else
+      "hide"
+    end
     same_target = reversal_of.target_type == target_type && reversal_of.target_id == target_id
 
     errors.add(:reversal_of, :invalid) unless same_target && reversal_of.action_type == expected_action_type
+  end
+
+  def reversal_action?
+    action_type_restore? || action_type_restore_activity?
   end
 end

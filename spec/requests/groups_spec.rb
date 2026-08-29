@@ -138,6 +138,33 @@ RSpec.describe "Groups", type: :request do
     expect(response.body).to include(jjaek.content)
   end
 
+  it "shows only the current activity suspension public reason to the affected member" do
+    group_admin = User.create!(name: "Group admin", email: "activity-reason-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Activity reason", group_type: :private_group)
+    membership = group.group_memberships.create!(user:, status: :active, moderation_status: :activity_suspended)
+    ModerationAction.create!(
+      target: membership,
+      actor: group_admin,
+      action_type: :suspend_activity,
+      public_reason: "MEMBER_VISIBLE_REASON",
+      internal_note: "OPERATIONS_ONLY_NOTE"
+    )
+    sign_in user
+
+    get group_path(group)
+
+    expect(response.body).to include("동아리 활동 정지", "공개 사유: MEMBER_VISIBLE_REASON")
+    expect(response.body).not_to include("OPERATIONS_ONLY_NOTE")
+
+    GroupMemberships::RestoreActivity.new(
+      membership,
+      actor: group_admin,
+      public_reason: "Resolved"
+    ).call!
+    get group_path(group)
+    expect(response.body).not_to include("동아리 활동 정지", "MEMBER_VISIBLE_REASON", "OPERATIONS_ONLY_NOTE")
+  end
+
   it "does not expose application or closure details on general group screens" do
     other_group_admin = User.create!(name: "Group admin", email: "private-details-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
     group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Public details", group_type: :public_group, application_purpose: "ADMIN PURPOSE", closure_reason: "GROUP ADMIN CLOSURE")

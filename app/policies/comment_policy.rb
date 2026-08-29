@@ -13,14 +13,14 @@ class CommentPolicy < ApplicationPolicy
     return false unless user.present? && !record.jjaek.deleted? && jjaek_policy.visible_for_interaction?
     return true if record.jjaek.group_id.blank?
 
-    record.jjaek.group.active? && record.jjaek.group.active_member?(user)
+    record.jjaek.group.active? && record.jjaek.group.activity_allowed_for?(user)
   end
 
   def update?
     return false unless user.present? && record.user_id == user.id
     return true if record.jjaek.group_id.blank?
 
-    jjaek_policy.visible_for_interaction? && record.jjaek.group.active_member?(user)
+    jjaek_policy.visible_for_interaction? && record.jjaek.group.activity_allowed_for?(user)
   end
 
   def destroy?

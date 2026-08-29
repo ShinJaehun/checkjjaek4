@@ -40,7 +40,7 @@ class JjaekPolicy < ApplicationPolicy
     return false unless user.present? && record.user_id == user.id && !record.deleted?
     return true if record.group_id.blank?
 
-    record.group.active_member?(user)
+    record.group.activity_allowed_for?(user)
   end
 
   def destroy?

@@ -272,6 +272,9 @@ membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 
 ## moderation 정책
 
+group admin과 global admin은 일반 active 회원의 동아리 활동을 정지·복구할 수 있다. membership과 내부 콘텐츠 읽기 권한은 유지하며 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. 이는 기존 회원 비활성화 lifecycle 및 User 계정 정지와 별도이고 서로 자동 전파되지 않는다.
+활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴로 membership이 삭제되면 현재 정지도 종료되고 새 membership에 자동 승계하지 않으며, 재가입 차단은 아직 구현하지 않은 동아리 이용 제한의 책임이다. 기존 감사 row는 membership 삭제 후에도 보존한다.
+
 동아리 관리자는 자기 Group의 Jjaek·책짹·Comment를 사유와 함께 숨김·복구할 수 있어야 한다.
 원문 수정·hard delete나 서비스 전체 User 정지는 허용하지 않으며 현재 Group당 group admin 1명 구조를 유지한다.
 상태 분리, 감사 기록, 역할 경계와 제외 범위의 canonical 기준은 `docs/specs/moderation_mvp.md`를 따른다.

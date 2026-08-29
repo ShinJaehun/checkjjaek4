@@ -156,6 +156,18 @@ RSpec.describe "Likes", type: :request do
     expect { post jjaek_like_path(group_jjaek) }.not_to change(Like, :count)
   end
 
+  it "blocks new likes but allows withdrawing an existing like while activity-suspended" do
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Moderated likes", group_type: :private_group)
+    membership = group.group_memberships.create!(user:, status: :active)
+    group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
+    group_jjaek.likes.create!(user:)
+    membership.update!(moderation_status: :activity_suspended)
+    sign_in user
+
+    expect { post jjaek_like_path(group_jjaek) }.not_to change(Like, :count)
+    expect { delete jjaek_like_path(group_jjaek) }.to change(Like, :count).by(-1)
+  end
+
   it "lets a user remove a visible own like after group or membership deactivation" do
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user:, status: :active)

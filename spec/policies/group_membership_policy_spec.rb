@@ -26,6 +26,38 @@ RSpec.describe GroupMembershipPolicy do
     expect(policy.remove?).to be(false)
   end
 
+  it "allows group and global admins to moderate an ordinary active member" do
+    global_admin = User.create!(name: "Global moderator", email: "membership-moderator@example.com", password: "password123!", global_admin: true)
+    peer = User.create!(name: "Peer", email: "membership-peer@example.com", password: "password123!")
+    membership = group.group_memberships.create!(user: member, status: :active)
+    group.group_memberships.create!(user: peer, status: :active)
+
+    expect(described_class.new(group_admin, membership).suspend_activity?).to be(true)
+    expect(described_class.new(global_admin, membership).suspend_activity?).to be(true)
+    expect(described_class.new(peer, membership).suspend_activity?).to be(false)
+    expect(described_class.new(other_user, membership).suspend_activity?).to be(false)
+
+    membership.update!(moderation_status: :activity_suspended)
+    expect(described_class.new(group_admin, membership).suspend_activity?).to be(false)
+    expect(described_class.new(group_admin, membership).restore_activity?).to be(true)
+    expect(described_class.new(global_admin, membership).restore_activity?).to be(true)
+  end
+
+  it "does not moderate the group admin or non-active memberships" do
+    group_admin_membership = group.group_memberships.find_by!(user: group_admin)
+
+    expect(described_class.new(group_admin, group_admin_membership).suspend_activity?).to be(false)
+
+    %i[pending invited inactive].each_with_index do |status, index|
+      target = User.create!(name: status.to_s, email: "membership-state-#{index}@example.com", password: "password123!")
+      membership = group.group_memberships.create!(user: target, status: status == :inactive ? :active : status)
+      membership.update!(status: :inactive) if status == :inactive
+
+      expect(described_class.new(group_admin, membership).suspend_activity?).to be(false)
+      expect(described_class.new(group_admin, membership).restore_activity?).to be(false)
+    end
+  end
+
   it "blocks actions that create active participation unless the group is active" do
     private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Lifecycle", group_type: :private_group)
     invited = private_group.group_memberships.create!(user: member, status: :invited)

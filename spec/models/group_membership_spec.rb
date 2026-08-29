@@ -44,6 +44,18 @@ RSpec.describe GroupMembership, type: :model do
     expect(membership.update(status: :active)).to be(true)
   end
 
+  it "keeps activity moderation separate from membership lifecycle" do
+    membership = described_class.create!(group: group, user: member, status: :active)
+
+    expect(membership).to be_moderation_status_normal
+    membership.update!(moderation_status: :activity_suspended)
+    expect(membership).to be_active
+
+    membership.update!(status: :inactive)
+    membership.update!(status: :active)
+    expect(membership).to be_activity_suspended
+  end
+
   it "does not allow inactive membership to become pending or invited" do
     membership = described_class.create!(group: group, user: member, status: :active)
     membership.update!(status: :inactive)

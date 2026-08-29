@@ -1,7 +1,7 @@
 class GroupMembershipsController < ApplicationController
   before_action :set_group, except: %i[accept decline]
-  before_action :authorize_group_access, only: %i[update destroy reject revoke remove deactivate reactivate]
-  before_action :set_membership, only: %i[update destroy reject revoke remove deactivate reactivate]
+  before_action :authorize_group_access, only: %i[update destroy reject revoke remove deactivate reactivate suspend_activity restore_activity]
+  before_action :set_membership, only: %i[update destroy reject revoke remove deactivate reactivate suspend_activity restore_activity]
   before_action :set_own_invitation, only: %i[accept decline]
 
   def create
@@ -86,6 +86,32 @@ class GroupMembershipsController < ApplicationController
     redirect_to group_members_path(@group), notice: t("group_memberships.notices.reactivated")
   end
 
+  def suspend_activity
+    authorize @membership, :suspend_activity?
+    GroupMemberships::SuspendActivity.new(
+      @membership,
+      actor: current_user,
+      **moderation_action_params
+    ).call!
+
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.activity_suspended")
+  rescue GroupMemberships::SuspendActivity::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+    redirect_to group_members_path(@group), alert: t("group_memberships.alerts.suspend_activity_failed")
+  end
+
+  def restore_activity
+    authorize @membership, :restore_activity?
+    GroupMemberships::RestoreActivity.new(
+      @membership,
+      actor: current_user,
+      **moderation_action_params
+    ).call!
+
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.activity_restored")
+  rescue GroupMemberships::RestoreActivity::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+    redirect_to group_members_path(@group), alert: t("group_memberships.alerts.restore_activity_failed")
+  end
+
   def destroy
     authorize @membership
     pending = @membership.pending?
@@ -112,5 +138,9 @@ class GroupMembershipsController < ApplicationController
 
   def authorize_group_access
     authorize @group, :show?
+  end
+
+  def moderation_action_params
+    params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
   end
 end

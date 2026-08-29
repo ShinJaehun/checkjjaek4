@@ -385,6 +385,29 @@ ko:
       removed: "동아리에서 내보냈습니다."
       deactivated: "회원을 비활성화했습니다."
       reactivated: "회원을 활성화했습니다."
+      activity_suspended: "동아리 활동을 정지했습니다."
+      activity_restored: "동아리 활동을 복구했습니다."
+    alerts:
+      suspend_activity_failed: "동아리 활동을 정지할 수 없습니다."
+      restore_activity_failed: "동아리 활동을 복구할 수 없습니다."
+    moderation:
+      statuses:
+        activity_suspended: "동아리 활동 정지"
+      public_reason: "공개 사유"
+      internal_note: "내부 운영 메모"
+      internal_note_hint: "선택 입력 · 회원에게 표시되지 않습니다."
+      suspend:
+        title: "동아리 활동 정지"
+        submit: "동아리 활동 정지"
+      restore:
+        title: "동아리 활동 복구"
+        submit: "활동 복구"
+      history:
+        title: "회원 운영 이력"
+        reversal: "%{time}의 활동 정지를 복구함"
+        actions:
+          suspend_activity: "동아리 활동 정지"
+          restore_activity: "동아리 활동 복구"
   comments:
     actions:
       close_inline: "닫기"

@@ -35,6 +35,10 @@ class Group < ApplicationRecord
     user.present? && group_memberships.active.exists?(user: user)
   end
 
+  def activity_allowed_for?(user)
+    user.present? && group_memberships.active.where(user:).moderation_status_normal.exists?
+  end
+
   def group_admin?(user)
     user.present? && group_admin_id == user.id
   end
@@ -43,7 +47,7 @@ class Group < ApplicationRecord
     with_lock do
       target_membership = new_admin && group_memberships.active.lock.find_by(user_id: new_admin.id)
       valid_transfer = admin_transfer_actor?(by) && (active? || inactive?) && new_admin.present? &&
-        new_admin.id != group_admin_id && target_membership.present?
+        new_admin.id != group_admin_id && target_membership&.moderation_status_normal?
 
       unless valid_transfer
         errors.add(:group_admin, :invalid_admin_transfer)

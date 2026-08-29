@@ -38,7 +38,7 @@ class GroupPolicy < ApplicationPolicy
   end
 
   def create_jjaek?
-    user.present? && record.active? && record.active_member?(user)
+    user.present? && record.active? && record.activity_allowed_for?(user)
   end
 
   def view_members?

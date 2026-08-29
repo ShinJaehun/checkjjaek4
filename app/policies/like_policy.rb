@@ -3,7 +3,7 @@ class LikePolicy < ApplicationPolicy
     return false unless user.present? && !record.jjaek.deleted? && jjaek_policy.visible_for_interaction?
     return true if record.jjaek.group_id.blank?
 
-    record.jjaek.group.active? && record.jjaek.group.active_member?(user)
+    record.jjaek.group.active? && record.jjaek.group.activity_allowed_for?(user)
   end
 
   def destroy?

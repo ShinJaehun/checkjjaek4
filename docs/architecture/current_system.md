@@ -238,7 +238,10 @@
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
 - 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
 - 동아리 관리자는 회원 관리 화면에서 active 회원을 비활성화하고 inactive 회원을 다시 활성화하거나 최종 내보낼 수 있음
-- 이 기존 membership lifecycle은 향후 moderation의 동아리 활동 정지와 별개이며 GroupMembership moderation은 아직 구현하지 않음
+- 이 기존 membership lifecycle은 moderation의 동아리 활동 정지와 별개임
+- group admin과 global admin은 일반 active 회원을 별도 `moderation_status`로 동아리 활동 정지·복구할 수 있음
+- 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
+- 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함. 재가입 차단은 후속 동아리 이용 제한 범위임
 - 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
 - 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
 - inactive는 active 권한을 부여하지 않으며 pending 가입 요청과 별도 상태임
@@ -270,7 +273,7 @@
 - admin User 상세의 계정 운영 이력은 가입 시각, 전체 suspend/restore 감사 row와 탈퇴 시각을 오래된 순으로 표시함
 - 정지 시 기존 콘텐츠·관계·서재·Group membership과 관리자 연결을 보존하고 콘텐츠 visibility나 Group lifecycle을 변경하지 않음
 - 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
-- GroupMembership 대상의 moderation 동아리 활동 정지/복구는 미구현이며 현재 active/inactive 구성원 lifecycle을 User 계정 정지로 사용하지 않음
+- GroupMembership 대상 동아리 활동 정지/복구는 별도 상태와 append-only 감사 기록으로 구현되어 있으며 현재 active/inactive 구성원 lifecycle이나 User 계정 정지를 재사용하지 않음
 - Jjaek·Comment 숨김/복구, Group moderation 운영 정지/복구, 해당 action UI와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴

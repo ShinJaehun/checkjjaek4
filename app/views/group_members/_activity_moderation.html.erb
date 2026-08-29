@@ -1,0 +1,50 @@
+<% membership_policy = policy(membership) %>
+
+<% if membership_policy.suspend_activity? %>
+  <%= form_with url: suspend_activity_group_group_membership_path(@group, membership),
+                method: :patch,
+                scope: :moderation_action,
+                class: "mt-4 space-y-3 rounded-2xl bg-stone-50 p-4" do |form| %>
+    <h3 class="text-sm font-semibold text-stone-900"><%= t("group_memberships.moderation.suspend.title") %></h3>
+    <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
+    <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+    <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
+    <%= form.text_area :internal_note, rows: 2, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+    <p class="text-xs text-stone-500"><%= t("group_memberships.moderation.internal_note_hint") %></p>
+    <%= form.submit t("group_memberships.moderation.suspend.submit"), class: "rounded-full bg-red-700 px-4 py-2 text-sm font-medium text-white" %>
+  <% end %>
+<% elsif membership_policy.restore_activity? %>
+  <%= form_with url: restore_activity_group_group_membership_path(@group, membership),
+                method: :patch,
+                scope: :moderation_action,
+                class: "mt-4 space-y-3 rounded-2xl bg-stone-50 p-4" do |form| %>
+    <h3 class="text-sm font-semibold text-stone-900"><%= t("group_memberships.moderation.restore.title") %></h3>
+    <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
+    <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+    <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
+    <%= form.text_area :internal_note, rows: 2, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+    <p class="text-xs text-stone-500"><%= t("group_memberships.moderation.internal_note_hint") %></p>
+    <%= form.submit t("group_memberships.moderation.restore.submit"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+  <% end %>
+<% end %>
+
+<% if actions.any? %>
+  <details class="mt-4 rounded-2xl border border-stone-200 p-4">
+    <summary class="cursor-pointer text-sm font-semibold text-stone-800"><%= t("group_memberships.moderation.history.title") %></summary>
+    <div class="mt-3 space-y-3">
+      <% actions.each do |action| %>
+        <article class="border-l-2 border-stone-200 pl-3 text-sm text-stone-600">
+          <p class="font-medium text-stone-900"><%= t("group_memberships.moderation.history.actions.#{action.action_type}") %></p>
+          <p><%= l(action.created_at, format: :short) %> · <%= action.actor.name %></p>
+          <p class="mt-1 whitespace-pre-wrap"><%= action.public_reason %></p>
+          <% if action.internal_note.present? %>
+            <p class="mt-1 whitespace-pre-wrap text-stone-500"><%= t("group_memberships.moderation.internal_note") %>: <%= action.internal_note %></p>
+          <% end %>
+          <% if action.reversal_of.present? %>
+            <p class="mt-1 text-xs text-stone-500"><%= t("group_memberships.moderation.history.reversal", time: l(action.reversal_of.created_at, format: :short)) %></p>
+          <% end %>
+        </article>
+      <% end %>
+    </div>
+  </details>
+<% end %>

@@ -1,5 +1,10 @@
 class GroupMembership < ApplicationRecord
   enum :status, { pending: 0, active: 1, invited: 2, inactive: 3 }, default: :pending, validate: true
+  enum :moderation_status,
+       { normal: 0, activity_suspended: 1 },
+       default: :normal,
+       prefix: true,
+       validate: true
 
   belongs_to :group
   belongs_to :user
@@ -10,6 +15,18 @@ class GroupMembership < ApplicationRecord
   validate :status_transition_must_be_valid
 
   before_destroy :prevent_group_admin_membership_destroy
+
+  def activity_suspended?
+    moderation_status_activity_suspended?
+  end
+
+  def activity_allowed?
+    active? && moderation_status_normal?
+  end
+
+  def current_activity_suspension_action
+    ModerationAction.current_activity_suspension_for(self)
+  end
 
   private
 

@@ -53,6 +53,13 @@
     </section>
   <% end %>
 
+  <% if @current_activity_suspension.present? %>
+    <section class="rounded-3xl border border-red-200 bg-red-50/60 p-5 text-sm text-red-900">
+      <p class="font-semibold"><%= t("group_memberships.moderation.statuses.activity_suspended") %></p>
+      <p class="mt-2 whitespace-pre-wrap"><%= t("group_memberships.moderation.public_reason") %>: <%= @current_activity_suspension.public_reason %></p>
+    </section>
+  <% end %>
+
   <% if @jjaek.present? %>
     <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
       <div class="flex items-center gap-2">

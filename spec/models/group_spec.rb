@@ -162,6 +162,18 @@ RSpec.describe Group, type: :model do
       expect(group.reload.group_admin).to eq(new_admin)
     end
 
+    it "rejects an activity-suspended member until activity is restored" do
+      membership = group.group_memberships.create!(user: new_admin, status: :active)
+      GroupMemberships::SuspendActivity.new(membership, actor: group_admin, public_reason: "Review").call!
+
+      expect { group.transfer_admin_to!(new_admin, by: group_admin) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect(group.reload.group_admin).to eq(group_admin)
+
+      GroupMemberships::RestoreActivity.new(membership, actor: group_admin, public_reason: "Resolved").call!
+      group.transfer_admin_to!(new_admin, by: group_admin)
+      expect(group.reload.group_admin).to eq(new_admin)
+    end
+
     it "rejects non-active members, nonmembers, and self transfer without changing admin" do
       nonmember = new_admin
       pending = User.create!(name: "Pending", email: "transfer-pending@example.com", password: "password123!", password_confirmation: "password123!")

@@ -28,6 +28,8 @@ Rails.application.routes.draw do
       delete :remove, on: :member
       patch :deactivate, on: :member
       patch :reactivate, on: :member
+      patch :suspend_activity, on: :member
+      patch :restore_activity, on: :member
     end
     resources :jjaeks, only: :create
   end

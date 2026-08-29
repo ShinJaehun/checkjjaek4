@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_29_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_29_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -128,11 +128,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_29_100000) do
   create_table "group_memberships", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "group_id", null: false
+    t.integer "moderation_status", default: 0, null: false
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["group_id", "user_id"], name: "index_group_memberships_on_group_id_and_user_id", unique: true
     t.index ["group_id"], name: "index_group_memberships_on_group_id"
+    t.index ["moderation_status"], name: "index_group_memberships_on_moderation_status"
     t.index ["user_id"], name: "index_group_memberships_on_user_id"
   end
 

@@ -14,6 +14,7 @@ class GroupsController < ApplicationController
   def show
     authorize @group
     @membership = @group.group_memberships.find_by(user: current_user)
+    @current_activity_suspension = @membership&.current_activity_suspension_action if @membership&.activity_suspended?
     prepare_jjaek_context
   end
 

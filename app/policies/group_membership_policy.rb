@@ -44,6 +44,14 @@ class GroupMembershipPolicy < ApplicationPolicy
     record.group.active? && user.present? && record.group.group_admin?(user) && record.inactive? && record.user_id != user.id
   end
 
+  def suspend_activity?
+    moderation_actor? && record.active? && record.moderation_status_normal? && !group_admin_membership?
+  end
+
+  def restore_activity?
+    moderation_actor? && record.activity_suspended? && !group_admin_membership?
+  end
+
   def destroy?
     own_membership? && !record.group.group_admin?(user) && (record.pending? || record.active?)
   end
@@ -52,5 +60,13 @@ class GroupMembershipPolicy < ApplicationPolicy
 
   def own_membership?
     user.present? && record.user_id == user.id
+  end
+
+  def moderation_actor?
+    user.present? && (record.group.group_admin?(user) || user.global_admin?)
+  end
+
+  def group_admin_membership?
+    record.user_id == record.group.group_admin_id
   end
 end
