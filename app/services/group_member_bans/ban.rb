@@ -13,7 +13,7 @@ module GroupMemberBans
     def call!
       group.with_lock do
         membership.lock!
-        raise InvalidState unless group.active? && group.group_admin?(actor)
+        raise InvalidState unless group.active? && group.operation_active? && group.group_admin?(actor)
         raise InvalidState if membership.user_id == group.group_admin_id
         raise InvalidState unless membership.pending? || membership.invited? || membership.active?
 

@@ -16,6 +16,7 @@ class GroupsController < ApplicationController
     @membership = @group.group_memberships.find_by(user: current_user)
     @group_member_ban = @group.group_member_bans.find_by(user: current_user)
     @current_group_ban_action = @group_member_ban&.current_ban_action
+    @current_operation_suspension = @group.current_operation_suspension_action
     @current_activity_suspension = @membership&.current_activity_suspension_action if @membership&.activity_suspended?
     prepare_jjaek_context
   end
@@ -56,7 +57,8 @@ class GroupsController < ApplicationController
   def update
     authorize @group
 
-    updated = Group.transaction do
+    updated = @group.with_lock do
+      authorize @group
       next false unless @group.update(update_group_params)
 
       sync_opening_request_detail
@@ -75,7 +77,8 @@ class GroupsController < ApplicationController
     authorize @group, :close?
     @closure_reason_input = close_group_params[:closure_reason]
 
-    closed = Group.transaction do
+    closed = @group.with_lock do
+      authorize @group, :close?
       next false unless @group.update(
         lifecycle_status: :inactive,
         closure_reason: @closure_reason_input,

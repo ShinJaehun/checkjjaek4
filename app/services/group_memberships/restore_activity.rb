@@ -14,7 +14,8 @@ module GroupMemberships
       membership.group.with_lock do
         membership.with_lock do
           suspension = membership.current_activity_suspension_action
-          raise InvalidState unless membership.activity_suspended? && suspension.present? && membership.group.group_admin?(actor)
+          raise InvalidState unless membership.group.operation_active? && membership.activity_suspended? &&
+                                    suspension.present? && membership.group.group_admin?(actor)
 
           membership.update!(moderation_status: :normal)
           ModerationAction.create!(

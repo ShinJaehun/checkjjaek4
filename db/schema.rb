@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_30_104000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_30_113000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -183,6 +183,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_104000) do
     t.integer "group_type", default: 0, null: false
     t.integer "lifecycle_status", default: 0, null: false
     t.string "name", null: false
+    t.datetime "operation_suspended_at"
     t.datetime "updated_at", null: false
     t.index ["group_admin_id"], name: "index_groups_on_group_admin_id"
     t.index ["lifecycle_status"], name: "index_groups_on_lifecycle_status"

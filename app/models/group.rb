@@ -39,7 +39,19 @@ class Group < ApplicationRecord
   end
 
   def activity_allowed_for?(user)
-    user.present? && group_memberships.active.where(user:).moderation_status_normal.exists?
+    operation_active? && user.present? && group_memberships.active.where(user:).moderation_status_normal.exists?
+  end
+
+  def operation_suspended?
+    operation_suspended_at.present?
+  end
+
+  def operation_active?
+    !operation_suspended?
+  end
+
+  def current_operation_suspension_action
+    ModerationAction.current_group_operation_suspension_for(self)
   end
 
   def group_admin?(user)
@@ -53,7 +65,7 @@ class Group < ApplicationRecord
   def transfer_admin_to!(new_admin, by:)
     with_lock do
       target_membership = new_admin && group_memberships.active.lock.find_by(user_id: new_admin.id)
-      valid_transfer = admin_transfer_actor?(by) && (active? || inactive?) && new_admin.present? &&
+      valid_transfer = operation_active? && admin_transfer_actor?(by) && (active? || inactive?) && new_admin.present? &&
         new_admin.id != group_admin_id && target_membership&.moderation_status_normal?
 
       unless valid_transfer

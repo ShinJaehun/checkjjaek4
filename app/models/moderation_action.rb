@@ -1,7 +1,7 @@
 class ModerationAction < ApplicationRecord
   TARGET_ACTIONS = {
     "User" => %w[suspend restore],
-    "Group" => %w[suspend restore],
+    "Group" => %w[suspend_group_operation restore_group_operation],
     "GroupMembership" => %w[suspend_activity restore_activity],
     "GroupMemberBan" => %w[ban_from_group unban_from_group],
     "Jjaek" => %w[hide restore],
@@ -16,7 +16,9 @@ class ModerationAction < ApplicationRecord
          suspend_activity: 3,
          restore_activity: 4,
          ban_from_group: 5,
-         unban_from_group: 6
+         unban_from_group: 6,
+         suspend_group_operation: 7,
+         restore_group_operation: 8
        },
        prefix: true,
        validate: true
@@ -51,6 +53,15 @@ class ModerationAction < ApplicationRecord
     restored_action_ids = where(action_type: :restore_activity).where.not(reversal_of_id: nil).select(:reversal_of_id)
 
     where(target: membership, action_type: :suspend_activity)
+      .where.not(id: restored_action_ids)
+      .order(created_at: :desc, id: :desc)
+      .first
+  end
+
+  def self.current_group_operation_suspension_for(group)
+    restored_action_ids = where(action_type: :restore_group_operation).where.not(reversal_of_id: nil).select(:reversal_of_id)
+
+    where(target: group, action_type: :suspend_group_operation)
       .where.not(id: restored_action_ids)
       .order(created_at: :desc, id: :desc)
       .first
@@ -112,7 +123,9 @@ class ModerationAction < ApplicationRecord
       "suspend_activity"
     elsif action_type_unban_from_group?
       "ban_from_group"
-    elsif %w[User Group].include?(target_type)
+    elsif action_type_restore_group_operation?
+      "suspend_group_operation"
+    elsif target_type == "User"
       "suspend"
     else
       "hide"
@@ -123,7 +136,8 @@ class ModerationAction < ApplicationRecord
   end
 
   def reversal_action?
-    action_type_restore? || action_type_restore_activity? || action_type_unban_from_group?
+    action_type_restore? || action_type_restore_activity? || action_type_unban_from_group? ||
+      action_type_restore_group_operation?
   end
 
   def group_member_moderation_target?

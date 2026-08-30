@@ -241,6 +241,7 @@
 - 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
 - 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함
 - `GroupMemberBan`은 현재 Group/User 이용 제한 상태로 membership을 종료하고 가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음
+- global admin의 Group 운영 정지는 `operation_suspended_at`과 Group 대상 `ModerationAction`으로 lifecycle `inactive`와 분리되며, 기존 visibility 읽기와 cleanup은 유지하고 새 콘텐츠·membership·회원 moderation·Group 운영 mutation을 복구 전까지 차단함
 - 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
 - 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
 - 일반 member의 자발적 탈퇴와 관리자의 내보내기는 membership을 즉시 삭제함
@@ -272,6 +273,7 @@
 - 회원 관리 화면은 `GroupMembershipEvent`와 GroupMembership 대상 `ModerationAction`을 Group 단위 최신순 회원 운영 이력으로 통합 표시함
 - 이용 제한·해제는 `GroupMemberBan` 대상 append-only 감사 row로 같은 운영 이력에 표시하며 일반 `removed` lifecycle event로 기록하지 않음
 - global admin은 다른 active User를 정지하고 suspended User를 복구할 수 있으며 자기 자신 정지는 허용하지 않음
+- Group 운영 정지·복구는 User 계정 정지 및 GroupMemberBan과 서로 자동 전파되지 않음
 - User 정지·복구는 User row lock 안에서 `suspended_at` 변경과 suspend/restore 감사 row 생성을 한 transaction으로 처리함
 - admin User 상세의 계정 운영 이력은 가입 시각, 전체 suspend/restore 감사 row와 탈퇴 시각을 오래된 순으로 표시함
 - 정지 시 기존 콘텐츠·관계·서재·Group membership과 관리자 연결을 보존하고 콘텐츠 visibility나 Group lifecycle을 변경하지 않음

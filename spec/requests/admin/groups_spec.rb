@@ -121,6 +121,44 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response.body).not_to include("동아리 운영 종료", "재활성화 요청", "수정하기")
   end
 
+  it "lets only a global admin suspend and restore active group operation with audited reasons" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Moderated club", group_type: :public_group)
+    sign_in group_admin
+    patch suspend_operation_admin_group_path(active_group), params: { moderation_action: { public_reason: "No", internal_note: "Hidden" } }
+    expect(active_group.reload).to be_operation_active
+
+    sign_in admin
+    patch suspend_operation_admin_group_path(active_group), params: {
+      moderation_action: { public_reason: "Public safety reason", internal_note: "Internal review" }
+    }
+    suspension = active_group.current_operation_suspension_action
+    expect(active_group.reload).to be_operation_suspended
+
+    get admin_group_path(active_group)
+    expect(response.body).to include("Public safety reason", "Internal review", "동아리 운영 복구")
+
+    patch restore_operation_admin_group_path(active_group), params: {
+      moderation_action: { public_reason: "Resolved", internal_note: "Verified" }
+    }
+    restore = ModerationAction.find_by!(reversal_of: suspension)
+    expect(active_group.reload).to be_operation_active
+    expect(restore).to have_attributes(action_type: "restore_group_operation", public_reason: "Resolved", internal_note: "Verified")
+
+    returning_member = User.create!(name: "Returning", email: "operation-returning@example.com", password: "password123!")
+    sign_in returning_member
+    expect { post group_group_memberships_path(active_group) }.to change(GroupMembership, :count).by(1)
+  end
+
+  it "rolls back an invalid operation suspension audit" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Audit rollback", group_type: :public_group)
+    sign_in admin
+
+    patch suspend_operation_admin_group_path(active_group), params: { moderation_action: { public_reason: "" } }
+
+    expect(active_group.reload).to be_operation_active
+    expect(ModerationAction.where(target: active_group, action_type: :suspend_group_operation)).to be_empty
+  end
+
   it "searches by group or group admin and combines type and lifecycle filters" do
     private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Hidden Reading Club", group_type: :private_group)
     sign_in admin

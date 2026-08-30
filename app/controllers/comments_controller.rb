@@ -20,7 +20,16 @@ class CommentsController < ApplicationController
     @comment = Comment.new(comment_params.merge(jjaek: @jjaek, user: current_user))
     authorize @comment
 
-    if @comment.save
+    saved = if @jjaek.group
+      @jjaek.group.with_lock do
+        authorize @comment
+        @comment.save
+      end
+    else
+      @comment.save
+    end
+
+    if saved
       Notification.notify_comment_created(@comment)
       @jjaek.reload
       prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
@@ -44,7 +53,16 @@ class CommentsController < ApplicationController
   def update
     authorize @comment
 
-    if @comment.update(comment_params)
+    updated = if @jjaek.group
+      @jjaek.group.with_lock do
+        authorize @comment
+        @comment.update(comment_params)
+      end
+    else
+      @comment.update(comment_params)
+    end
+
+    if updated
       prepare_comments_panel(comment: Comment.new(jjaek: @jjaek))
       respond_to do |format|
         format.turbo_stream { flash.now[:notice] = t("comments.notices.updated") }

@@ -123,6 +123,24 @@ RSpec.describe GroupPolicy do
     end
   end
 
+  describe "operation suspension" do
+    it "allows only global admins and blocks group mutations while suspended" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Moderated", group_type: :public_group)
+      admin = User.create!(name: "Admin", email: "operation-policy-admin@example.com", password: "password123!", global_admin: true)
+
+      expect(described_class.new(admin, group).suspend_operation?).to be(true)
+      expect(described_class.new(group_admin, group).suspend_operation?).to be(false)
+      group.update!(operation_suspended_at: Time.current)
+
+      owner_policy = described_class.new(group_admin, group)
+      expect(owner_policy).not_to be_update
+      expect(owner_policy).not_to be_close
+      expect(owner_policy).not_to be_transfer_admin
+      expect(described_class.new(admin, group).restore_operation?).to be(true)
+      expect(described_class.new(group_admin, group).restore_operation?).to be(false)
+    end
+  end
+
   describe "#view_members?" do
     it "allows only the group admin and global admin" do
       group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Members", group_type: :public_group)

@@ -96,6 +96,17 @@ RSpec.describe LikePolicy do
       end
     end
 
+    it "blocks new group likes during operation suspension but allows withdrawal" do
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Suspended", group_type: :public_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+      like = group_jjaek.likes.create!(user:)
+      group.update!(operation_suspended_at: Time.current)
+
+      expect(described_class.new(other_user, group_jjaek.likes.build(user: other_user)).create?).to be(false)
+      expect(described_class.new(user, like).destroy?).to be(true)
+    end
+
     it "does not let a public group non-member create a like" do
       group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Public", group_type: :public_group)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")

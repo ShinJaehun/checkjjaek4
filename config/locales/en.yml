@@ -80,6 +80,8 @@ en:
   groups:
     nav: "Clubs"
     group_admin: "Club admin: %{name}"
+    operation_suspension:
+      status: "This club's operation is currently suspended."
     types:
       public_group: "Public club"
       approval_group: "Approval club"
@@ -350,6 +352,8 @@ en:
         created: "Created"
         actions: "Actions"
       actions:
+        suspend_operation: "Suspend club operation"
+        restore_operation: "Restore club operation"
         approve: "Approve"
         show: "View operations"
         back: "Back to club operations"
@@ -360,6 +364,11 @@ en:
       previous_closure: "Previous closure"
       closure_reason_missing: "No closure reason was recorded."
       notices:
+        operation_suspended: "Club operation was suspended."
+        operation_restored: "Club operation was restored."
+      alerts:
+        operation_suspend_failed: "Club operation could not be suspended."
+        operation_restore_failed: "Club operation could not be restored."
         approved: "The club was approved."
     jjaeks:
       tabs:

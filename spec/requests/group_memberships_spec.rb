@@ -24,6 +24,52 @@ RSpec.describe "Group memberships", type: :request do
     expect(group.group_memberships.find_by(user: member)).to be_pending
   end
 
+  it "blocks participation and group-admin membership mutations during group operation suspension" do
+    admin = User.create!(name: "Global admin", email: "membership-operation-admin@example.com", password: "password123!", global_admin: true)
+    public_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Public suspended", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Approval suspended", group_type: :approval_group)
+    private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Private suspended", group_type: :private_group)
+    pending = approval_group.group_memberships.create!(user: member, status: :pending)
+    invitee = User.create!(name: "Invitee", email: "membership-operation-invitee@example.com", password: "password123!")
+    invitation = private_group.group_memberships.create!(user: invitee, status: :invited)
+    [ public_group, approval_group, private_group ].each do |group|
+      Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call!
+    end
+
+    sign_in member
+    expect { post group_group_memberships_path(public_group) }.not_to change(GroupMembership, :count)
+    sign_in invitee
+    patch accept_group_group_membership_path(private_group, invitation)
+    expect(invitation.reload).to be_invited
+
+    sign_in group_admin
+    patch group_group_membership_path(approval_group, pending)
+    expect(pending.reload).to be_pending
+    expect {
+      post invite_group_group_memberships_path(private_group), params: { user_id: member.id }
+    }.not_to change(GroupMembership, :count)
+  end
+
+  it "allows leave, join-request cancellation, and invitation decline during operation suspension" do
+    admin = User.create!(name: "Global admin", email: "membership-operation-cleanup-admin@example.com", password: "password123!", global_admin: true)
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Leave suspended", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Cancel suspended", group_type: :approval_group)
+    private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Decline suspended", group_type: :private_group)
+    active_membership = active_group.group_memberships.create!(user: member, status: :active)
+    pending_membership = approval_group.group_memberships.create!(user: member, status: :pending)
+    invitation = private_group.group_memberships.create!(user: member, status: :invited)
+    [ active_group, approval_group, private_group ].each do |group|
+      Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call!
+    end
+    sign_in member
+
+    delete group_group_membership_path(active_group, active_membership)
+    delete group_group_membership_path(approval_group, pending_membership)
+    delete decline_group_group_membership_path(private_group, invitation)
+
+    expect(GroupMembership.where(id: [ active_membership.id, pending_membership.id, invitation.id ])).to be_empty
+  end
+
   it "does not create duplicate memberships or requests" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     group.group_memberships.create!(user: member, status: :pending)

@@ -19,7 +19,16 @@ class JjaeksController < ApplicationController
 
     @jjaek.assign_attributes(jjaek_params)
 
-    if @jjaek.save
+    saved = if @group
+      @group.with_lock do
+        authorize @jjaek
+        @jjaek.save
+      end
+    else
+      @jjaek.save
+    end
+
+    if saved
       notify_jjaek_created
       redirect_to create_success_path, notice: t("jjaeks.notices.created")
     else
@@ -28,7 +37,16 @@ class JjaeksController < ApplicationController
   end
 
   def update
-    if @jjaek.update(update_jjaek_params)
+    updated = if @jjaek.group
+      @jjaek.group.with_lock do
+        authorize @jjaek
+        @jjaek.update(update_jjaek_params)
+      end
+    else
+      @jjaek.update(update_jjaek_params)
+    end
+
+    if updated
       redirect_to jjaek_path(@jjaek), notice: t("jjaeks.notices.updated")
     else
       render :edit, status: :unprocessable_content

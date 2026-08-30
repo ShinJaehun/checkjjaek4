@@ -14,7 +14,7 @@ module GroupMemberBans
       ban.group.with_lock do
         ban.lock!
         original_action = ban.current_ban_action
-        raise InvalidState unless ban.group.active? &&
+        raise InvalidState unless ban.group.active? && ban.group.operation_active? &&
                                   ban.group.group_admin?(actor) &&
                                   original_action
 

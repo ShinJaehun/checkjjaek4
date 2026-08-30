@@ -326,7 +326,7 @@ global admin은 다른 active User를 명시적인 `suspend?` action으로 정�
 정지·복구 권한은 타인을 대신한 일반 작성·수정·삭제·reaction 권한으로 이어지지 않는다.
 이 User 권한의 UI 용어는 **계정 정지 / 계정 복구**이며 서비스 전체 로그인과 신규 mutation에 적용된다.
 group admin은 일반 active 회원의 `GroupMembership`에만 적용되는 **동아리 활동 정지 / 동아리 활동 복구**와 현재 membership을 종료하고 재참여를 막는 **동아리 이용 제한 / 해제** 권한을 가진다. global admin은 모든 Group의 회원·제한·감사 이력을 조사하지만 Group membership moderation을 실행하지 않는다. service-wide 제재는 별도 User 계정 정지·복구를 사용한다.
-global admin의 향후 Group 제재는 회원 제한과도 기존 자발적 운영 종료와도 다른 **동아리 운영 정지 / 동아리 운영 복구**이며 아직 구현하지 않았다.
+global admin은 active Group을 **동아리 운영 정지 / 동아리 운영 복구**할 수 있다. 이는 회원 제한 및 group admin의 자발적 `inactive` 운영 종료와 별도이며, 읽기와 기존 데이터는 유지하고 새 콘텐츠·membership·회원 moderation·Group lifecycle mutation만 차단한다.
 세 상태는 서로 자동 전파되지 않는다.
 
 ## 계정 탈퇴 권한과 보존

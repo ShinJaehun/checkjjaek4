@@ -25,6 +25,18 @@ RSpec.describe JjaekPolicy do
     expect(described_class::AdminInventoryScope.new(viewer, Jjaek.all).resolve).to be_empty
   end
 
+  it "keeps suspended group content readable but blocks creation and editing while allowing deletion" do
+    group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Suspended", group_type: :public_group)
+    group.group_memberships.create!(user: viewer, status: :active)
+    existing = viewer.jjaeks.create!(group:, content: "Existing")
+    group.update!(operation_suspended_at: Time.current)
+
+    expect(described_class.new(viewer, existing)).to be_show
+    expect(described_class.new(viewer, group.jjaeks.build(user: viewer, content: "New"))).not_to be_create
+    expect(described_class.new(viewer, existing)).not_to be_update
+    expect(described_class.new(viewer, existing)).to be_destroy
+  end
+
   describe "#show?" do
     it "allows global admin inspection without granting author mutations" do
       admin = User.create!(name: "Admin", email: "jjaek-show-admin@example.com", password: "password123!", global_admin: true)

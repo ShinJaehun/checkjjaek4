@@ -44,6 +44,7 @@
 일반 member의 자발적 탈퇴와 동아리 관리자의 내보내기는 membership을 즉시 삭제한다.
 내보내기는 ban이 아니며 이후 기존 Group 유형에 따라 재가입·재신청·재초대할 수 있다.
 동아리 이용 제한은 `GroupMemberBan`으로 현재 Group/User 제한 상태를 보존하고 membership을 종료해 가입·신청·승인·초대·수락을 차단한다.
+global admin의 동아리 운영 정지는 nullable `operation_suspended_at`으로 현재 상태를 보존하며 group admin의 자발적 `inactive` 운영 종료와 구분한다. 정지 중 기존 visibility 읽기와 자기 콘텐츠 삭제·Like 철회는 유지하고 새 콘텐츠·membership·회원 moderation·Group 운영 mutation은 차단하며, 복구는 lifecycle·membership·User suspension·GroupMemberBan을 변경하지 않는다.
 해제는 ban marker만 제거하며 membership을 자동 복구하지 않는다.
 
 `GroupMembership`은 현재 membership 상태, `GroupMembershipRemoval`은 관리자 내보내기 후 private Group stale URL UX를

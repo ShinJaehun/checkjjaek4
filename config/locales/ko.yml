@@ -80,6 +80,8 @@ ko:
   groups:
     nav: "동아리"
     group_admin: "동아리 관리자: %{name}"
+    operation_suspension:
+      status: "이 동아리는 현재 운영이 정지되었습니다."
     types:
       public_group: "공개 동아리"
       approval_group: "승인 동아리"
@@ -358,6 +360,8 @@ ko:
         created: "생성 시각"
         actions: "작업"
       actions:
+        suspend_operation: "동아리 운영 정지"
+        restore_operation: "동아리 운영 복구"
         approve: "운영 승인"
         show: "운영 정보 보기"
         back: "동아리 운영 관리로"
@@ -368,6 +372,11 @@ ko:
       previous_closure: "이전 운영 종료 정보"
       closure_reason_missing: "등록된 운영 종료 사유가 없습니다."
       notices:
+        operation_suspended: "동아리 운영을 정지했습니다."
+        operation_restored: "동아리 운영을 복구했습니다."
+      alerts:
+        operation_suspend_failed: "동아리 운영을 정지할 수 없습니다."
+        operation_restore_failed: "동아리 운영을 복구할 수 없습니다."
         approved: "동아리 운영을 승인했습니다."
   group_memberships:
     statuses:

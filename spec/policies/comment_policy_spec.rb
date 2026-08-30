@@ -95,6 +95,18 @@ RSpec.describe CommentPolicy do
       end
     end
 
+    it "blocks group comment creation and update during operation suspension but allows deletion" do
+      group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Suspended", group_type: :public_group)
+      group.group_memberships.create!(user:, status: :active)
+      group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
+      comment = group_jjaek.comments.create!(user:, content: "Existing")
+      group.update!(operation_suspended_at: Time.current)
+
+      expect(described_class.new(user, group_jjaek.comments.build(user:, content: "New")).create?).to be(false)
+      expect(described_class.new(user, comment).update?).to be(false)
+      expect(described_class.new(user, comment).destroy?).to be(true)
+    end
+
     it "allows public group reading but not commenting for a nonmember" do
       group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Public", group_type: :public_group)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")

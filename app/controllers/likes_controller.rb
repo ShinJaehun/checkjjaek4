@@ -5,7 +5,18 @@ class LikesController < ApplicationController
     @like = @jjaek.likes.find_or_initialize_by(user: current_user)
     authorize @like
 
-    if @like.persisted? || @like.save
+    saved = if @like.persisted?
+      true
+    elsif @jjaek.group
+      @jjaek.group.with_lock do
+        authorize @like
+        @like.save
+      end
+    else
+      @like.save
+    end
+
+    if saved
       @jjaek.reload
       respond_to do |format|
         format.turbo_stream

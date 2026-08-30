@@ -191,6 +191,46 @@ RSpec.describe "Groups", type: :request do
     end
   end
 
+  it "shows an operation suspension reason without internal notes while preserving existing visibility" do
+    admin = User.create!(name: "Global admin", email: "group-operation-global@example.com", password: "password123!", global_admin: true)
+    group_admin = User.create!(name: "Group admin", email: "group-operation-owner@example.com", password: "password123!")
+    groups = %i[public_group approval_group private_group].map do |group_type|
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Suspended #{group_type}", group_type:)
+      group.group_memberships.create!(user:, status: :active)
+      Groups::SuspendOperation.new(group, actor: admin, public_reason: "VISIBLE OPERATION REASON", internal_note: "HIDDEN OPERATION NOTE").call!
+      group
+    end
+    sign_in user
+
+    groups.each do |group|
+      get group_path(group)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("VISIBLE OPERATION REASON")
+      expect(response.body).not_to include("HIDDEN OPERATION NOTE")
+      expect(response.body).not_to include("수정하기")
+    end
+
+    sign_in admin
+    get group_path(groups.last)
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "blocks group settings, lifecycle closure, and admin transfer while operation is suspended" do
+    admin = User.create!(name: "Global admin", email: "group-operation-mutation-admin@example.com", password: "password123!", global_admin: true)
+    group_admin = User.create!(name: "Group admin", email: "group-operation-mutation-owner@example.com", password: "password123!")
+    replacement = User.create!(name: "Replacement", email: "group-operation-replacement@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Original name", group_type: :public_group)
+    group.group_memberships.create!(user: replacement, status: :active)
+    Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call!
+    sign_in group_admin
+
+    patch group_path(group), params: { group: { name: "Changed" } }
+    patch close_group_path(group), params: { group: { closure_reason: "Closed" } }
+    patch transfer_admin_group_path(group), params: { new_admin_id: replacement.id }
+
+    expect(group.reload).to have_attributes(name: "Original name", lifecycle_status: "active", group_admin: group_admin)
+  end
+
   it "does not expose a private group stale URL after the member leaves" do
     group_admin = User.create!(name: "Group admin", email: "left-private-group-admin@example.com", password: "password123!")
     private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Left private", group_type: :private_group)

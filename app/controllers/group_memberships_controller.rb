@@ -12,6 +12,7 @@ class GroupMembershipsController < ApplicationController
     authorize @membership
 
     saved = @group.with_lock do
+      authorize @membership
       next false unless @membership.save
 
       record_membership_event!(@membership.active? ? :joined : :requested_to_join)
@@ -29,6 +30,7 @@ class GroupMembershipsController < ApplicationController
   def update
     authorize @membership, :approve?
     @group.with_lock do
+      authorize @membership, :approve?
       @membership.active!
       record_membership_event!(:approved)
     end
@@ -41,6 +43,7 @@ class GroupMembershipsController < ApplicationController
     authorize @membership, :invite?
 
     saved = @group.with_lock do
+      authorize @membership, :invite?
       next false unless @membership.save
 
       record_membership_event!(:invited)
@@ -57,6 +60,7 @@ class GroupMembershipsController < ApplicationController
   def accept
     authorize @membership, :accept?
     @membership.group.with_lock do
+      authorize @membership, :accept?
       @membership.active!
       record_membership_event!(:invitation_accepted)
     end
@@ -77,6 +81,7 @@ class GroupMembershipsController < ApplicationController
   def reject
     authorize @membership, :reject?
     @group.with_lock do
+      authorize @membership, :reject?
       record_membership_event!(:request_rejected)
       @membership.destroy!
     end
@@ -87,6 +92,7 @@ class GroupMembershipsController < ApplicationController
   def revoke
     authorize @membership, :revoke?
     @group.with_lock do
+      authorize @membership, :revoke?
       record_membership_event!(:invitation_revoked)
       @membership.destroy!
     end
@@ -97,6 +103,7 @@ class GroupMembershipsController < ApplicationController
   def remove
     authorize @membership, :remove?
     @group.with_lock do
+      authorize @membership, :remove?
       record_membership_event!(:removed)
       removal = GroupMembershipRemoval.find_or_initialize_by(group: @group, user: @membership.user)
       removal.removed_by = current_user

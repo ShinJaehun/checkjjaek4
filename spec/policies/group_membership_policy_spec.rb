@@ -156,4 +156,17 @@ RSpec.describe GroupMembershipPolicy do
     expect(described_class.new(group_admin, pending).reject?).to be(false)
     expect(described_class.new(group_admin, invited).revoke?).to be(false)
   end
+
+  it "blocks participation and group-admin membership mutations while group operation is suspended" do
+    membership = group.group_memberships.create!(user: member, status: :pending)
+    group.update!(operation_suspended_at: Time.current)
+
+    policy = described_class.new(group_admin, membership)
+    expect(described_class.new(member, membership)).not_to be_create
+    expect(policy).not_to be_approve
+    expect(policy).not_to be_reject
+    expect(policy).not_to be_remove
+    expect(policy).not_to be_suspend_activity
+    expect(policy).not_to be_ban_from_group
+  end
 end

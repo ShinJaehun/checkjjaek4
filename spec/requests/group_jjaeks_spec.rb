@@ -81,6 +81,26 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect { delete jjaek_path(jjaek) }.to change(Jjaek, :count).by(-1)
   end
 
+  it "blocks both kinds of new Jjaek and editing during group operation suspension but preserves read and deletion" do
+    admin = User.create!(name: "Global admin", email: "group-operation-jjaek-admin@example.com", password: "password123!", global_admin: true)
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Operation suspended", group_type: :private_group)
+    group.group_memberships.create!(user: member, status: :active)
+    member.bookshelf_entries.create!(book:)
+    existing = member.jjaeks.create!(group:, content: "Preserved")
+    Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call!
+    sign_in member
+
+    get jjaek_path(existing)
+    expect(response).to have_http_status(:ok)
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { content: "Blocked" } }
+      post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "Blocked book" } }
+    }.not_to change(Jjaek, :count)
+    patch jjaek_path(existing), params: { jjaek: { content: "Blocked edit" } }
+    expect(existing.reload.content).to eq("Preserved")
+    expect { delete jjaek_path(existing) }.to change(Jjaek, :count).by(-1)
+  end
+
   it "does not create a group book jjaek for a book outside the member's shelf" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)

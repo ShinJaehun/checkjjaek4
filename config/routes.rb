@@ -12,6 +12,8 @@ Rails.application.routes.draw do
     end
     resources :groups, only: %i[index show] do
       patch :approve, on: :member
+      patch :suspend_operation, on: :member
+      patch :restore_operation, on: :member
     end
   end
   resources :groups, only: %i[index show new create edit update] do

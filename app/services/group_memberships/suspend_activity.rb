@@ -13,7 +13,7 @@ module GroupMemberships
     def call!
       membership.group.with_lock do
         membership.with_lock do
-          raise InvalidState unless membership.active? && membership.moderation_status_normal?
+          raise InvalidState unless membership.group.operation_active? && membership.active? && membership.moderation_status_normal?
           raise InvalidState unless membership.group.group_admin?(actor)
           raise InvalidState if membership.user_id == membership.group.group_admin_id
 

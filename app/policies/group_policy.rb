@@ -24,7 +24,7 @@ class GroupPolicy < ApplicationPolicy
   end
 
   def update?
-    user.present? && record.group_admin?(user)
+    user.present? && record.operation_active? && record.group_admin?(user)
   end
 
   alias_method :edit?, :update?
@@ -46,16 +46,24 @@ class GroupPolicy < ApplicationPolicy
   end
 
   def close?
-    user.present? && record.active? && record.group_admin?(user)
+    user.present? && record.operation_active? && record.active? && record.group_admin?(user)
   end
 
   def request_reactivation?
-    user.present? && record.inactive? && record.group_admin?(user)
+    user.present? && record.operation_active? && record.inactive? && record.group_admin?(user)
   end
 
   def transfer_admin?
-    user.present? && (record.active? || record.inactive?) &&
+    user.present? && record.operation_active? && (record.active? || record.inactive?) &&
       (record.group_admin?(user) || operational_investigator?)
+  end
+
+  def suspend_operation?
+    user.present? && user.global_admin? && record.active? && record.operation_active?
+  end
+
+  def restore_operation?
+    user.present? && user.global_admin? && record.operation_suspended?
   end
 
   def manage_approvals?

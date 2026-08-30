@@ -38,6 +38,34 @@
           <p class="mt-2 whitespace-pre-wrap text-sm text-stone-700"><%= @group.closure_reason.presence || t("admin.groups.closure_reason_missing") %></p>
         </div>
       <% end %>
+
+      <% if @current_operation_suspension.present? %>
+        <div class="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          <p class="font-semibold"><%= t("groups.operation_suspension.status") %></p>
+          <p class="mt-2 whitespace-pre-wrap"><%= t("group_memberships.moderation.public_reason") %>: <%= @current_operation_suspension.public_reason %></p>
+          <% if @current_operation_suspension.internal_note.present? %>
+            <p class="mt-2 whitespace-pre-wrap"><%= t("group_memberships.moderation.internal_note") %>: <%= @current_operation_suspension.internal_note %></p>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% if policy(@group).suspend_operation? %>
+        <%= form_with url: suspend_operation_admin_group_path(@group), method: :patch, scope: :moderation_action, class: "mt-5 space-y-3 rounded-2xl bg-stone-50 p-4" do |form| %>
+          <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
+          <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+          <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
+          <%= form.text_area :internal_note, rows: 2, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+          <%= form.submit t("admin.groups.actions.suspend_operation"), class: "rounded-full bg-red-700 px-4 py-2 text-sm font-medium text-white" %>
+        <% end %>
+      <% elsif policy(@group).restore_operation? %>
+        <%= form_with url: restore_operation_admin_group_path(@group), method: :patch, scope: :moderation_action, class: "mt-5 space-y-3 rounded-2xl bg-stone-50 p-4" do |form| %>
+          <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
+          <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+          <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
+          <%= form.text_area :internal_note, rows: 2, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+          <%= form.submit t("admin.groups.actions.restore_operation"), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+        <% end %>
+      <% end %>
     </section>
 
     <%= render "groups/lifecycle_history", lifecycle_events: @lifecycle_events, show_details: true %>
