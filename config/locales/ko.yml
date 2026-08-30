@@ -156,6 +156,24 @@ ko:
       management_title: "회원 관리"
       active_title: "활동 회원"
       back: "동아리로 돌아가기"
+      history:
+        title: "회원 운영 이력"
+        empty: "아직 회원 운영 이력이 없습니다."
+        lifecycle:
+          joined: "%{user}님이 동아리에 가입했습니다."
+          requested_to_join: "%{user}님이 가입을 신청했습니다."
+          join_request_cancelled: "%{user}님이 가입 신청을 취소했습니다."
+          approved: "%{actor}님이 %{user}님의 가입을 승인했습니다."
+          request_rejected: "%{actor}님이 %{user}님의 가입 신청을 거절했습니다."
+          invited: "%{actor}님이 %{user}님을 동아리에 초대했습니다."
+          invitation_accepted: "%{user}님이 동아리 초대를 수락했습니다."
+          invitation_declined: "%{user}님이 동아리 초대를 거절했습니다."
+          invitation_revoked: "%{actor}님이 %{user}님에게 보낸 초대를 취소했습니다."
+          left: "%{user}님이 동아리에서 탈퇴했습니다."
+          removed: "%{actor}님이 %{user}님을 동아리에서 내보냈습니다."
+        moderation:
+          suspend_activity: "%{actor}님이 %{user}님의 동아리 활동을 정지했습니다."
+          restore_activity: "%{actor}님이 %{user}님의 동아리 활동 정지를 해제했습니다."
     invitations:
       title: "받은 동아리 초대"
       invite_title: "동아리 초대"

@@ -269,7 +269,7 @@ RSpec.describe "Groups", type: :request do
       sign_in global_admin
       get group_members_path(group)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(member.name, pending_user.name)
+      expect(response.body).to include(member.name, pending_user.name, "회원 운영 이력")
       page = Nokogiri::HTML(response.body)
       expect(page.at_css(%(form[action="#{remove_group_group_membership_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_nil
       expect(page.at_css(%(form[action="#{group_group_membership_path(group, pending_membership)}"]))).to be_nil

@@ -156,6 +156,24 @@ en:
       management_title: "Member management"
       active_title: "Active members"
       back: "Back to club"
+      history:
+        title: "Member operations history"
+        empty: "No member operations have been recorded yet."
+        lifecycle:
+          joined: "%{user} joined the club."
+          requested_to_join: "%{user} requested to join."
+          join_request_cancelled: "%{user} cancelled the join request."
+          approved: "%{actor} approved %{user}'s join request."
+          request_rejected: "%{actor} rejected %{user}'s join request."
+          invited: "%{actor} invited %{user} to the club."
+          invitation_accepted: "%{user} accepted the club invitation."
+          invitation_declined: "%{user} declined the club invitation."
+          invitation_revoked: "%{actor} cancelled the invitation sent to %{user}."
+          left: "%{user} left the club."
+          removed: "%{actor} removed %{user} from the club."
+        moderation:
+          suspend_activity: "%{actor} suspended %{user}'s club activity."
+          restore_activity: "%{actor} restored %{user}'s club activity."
     invitations:
       title: "Club invitations"
       invite_title: "Invite to club"

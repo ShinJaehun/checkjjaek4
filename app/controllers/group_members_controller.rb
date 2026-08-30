@@ -17,7 +17,8 @@ class GroupMembersController < ApplicationController
     @can_invite = policy(@group.group_memberships.build(user: User.new, status: :invited)).invite?
     @invite_candidates = invite_candidates
     @admin_transfer_candidates = admin_transfer_candidates
-    @activity_moderation_actions_by_membership_id = activity_moderation_actions_by_membership_id
+    @current_activity_suspensions_by_membership_id = current_activity_suspensions_by_membership_id
+    @membership_history = membership_history
   end
 
   private
@@ -39,12 +40,40 @@ class GroupMembersController < ApplicationController
       .sort_by(&:name)
   end
 
-  def activity_moderation_actions_by_membership_id
-    membership_ids = @active_memberships.ids
+  def current_activity_suspensions_by_membership_id
+    membership_ids = @active_memberships.select(&:activity_suspended?).map(&:id)
+    return {} if membership_ids.empty?
+
+    restored_action_ids = ModerationAction
+      .where(target_type: "GroupMembership", target_id: membership_ids, action_type: :restore_activity)
+      .where.not(reversal_of_id: nil)
+      .select(:reversal_of_id)
 
     ModerationAction.where(target_type: "GroupMembership", target_id: membership_ids)
-      .includes(:actor, :reversal_of)
-      .order(:created_at, :id)
+      .where(action_type: :suspend_activity)
+      .where.not(id: restored_action_ids)
+      .order(created_at: :desc, id: :desc)
       .group_by(&:target_id)
+      .transform_values(&:first)
+  end
+
+  def membership_history
+    lifecycle_events = @group.group_membership_events.includes(:user, :actor).to_a
+    moderation_actions = ModerationAction.for_membership_group(@group)
+      .where(action_type: %i[suspend_activity restore_activity])
+      .includes(:actor)
+      .to_a
+    users_by_id = User.where(id: moderation_actions.map(&:membership_user_id).compact.uniq).index_by(&:id)
+
+    entries = lifecycle_events.map { |event| { source: :lifecycle, record: event, user: event.user } }
+    entries.concat(
+      moderation_actions.filter_map do |action|
+        user = users_by_id[action.membership_user_id]
+        { source: :moderation, record: action, user: } if user
+      end
+    )
+
+    source_order = { lifecycle: 0, moderation: 1 }
+    entries.sort_by { |entry| [entry[:record].created_at, source_order.fetch(entry[:source]), entry[:record].id] }.reverse
   end
 end

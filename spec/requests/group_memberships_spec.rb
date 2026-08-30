@@ -649,4 +649,106 @@ RSpec.describe "Group memberships", type: :request do
       expect(GroupMembershipEvent.count).to eq(event_count)
     end
   end
+
+  describe "member management history UI" do
+    it "combines lifecycle and moderation history after memberships are deleted" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Combined history", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      suspension = GroupMemberships::SuspendActivity.new(
+        membership,
+        actor: group_admin,
+        public_reason: "Public suspension reason",
+        internal_note: "Operations note"
+      ).call!.current_activity_suspension_action
+      GroupMemberships::RestoreActivity.new(
+        membership,
+        actor: group_admin,
+        public_reason: "Public restore reason",
+        internal_note: "Restore note"
+      ).call!
+      sign_in group_admin
+      delete remove_group_group_membership_path(group, membership)
+
+      leaving_user = User.create!(name: "Leaving member", email: "history-ui-leaving@example.com", password: "password123!", password_confirmation: "password123!")
+      leaving_membership = group.group_memberships.create!(user: leaving_user, status: :active)
+      sign_in leaving_user
+      delete group_group_membership_path(group, leaving_membership)
+
+      sign_in group_admin
+      get group_members_path(group)
+      history = Nokogiri::HTML(response.body).at_css("#membership-operations-history")
+
+      expect(history.text).to include(
+        "#{group_admin.name}님이 #{member.name}님을 동아리에서 내보냈습니다.",
+        "#{group_admin.name}님이 #{member.name}님의 동아리 활동을 정지했습니다.",
+        "#{group_admin.name}님이 #{member.name}님의 동아리 활동 정지를 해제했습니다.",
+        "#{leaving_user.name}님이 동아리에서 탈퇴했습니다.",
+        "Public suspension reason",
+        "Public restore reason",
+        "Operations note",
+        "Restore note"
+      )
+      expect(history.text).not_to include("suspend_activity", "restore_activity", "removed", "left")
+      expect(ModerationAction.for_membership_group(group)).to include(suspension)
+    end
+
+    it "orders both sources newest first and deterministically when timestamps match" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Ordered history", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      timestamp = Time.zone.parse("2026-08-30 15:22:00")
+      lifecycle = group.group_membership_events.create!(
+        user: member,
+        actor: member,
+        event_type: :joined,
+        created_at: timestamp
+      )
+      moderation = ModerationAction.create!(
+        target: membership,
+        actor: group_admin,
+        action_type: :suspend_activity,
+        public_reason: "Same timestamp",
+        created_at: timestamp
+      )
+      newer = group.group_membership_events.create!(
+        user: member,
+        actor: member,
+        event_type: :left,
+        created_at: timestamp + 1.second
+      )
+      sign_in group_admin
+
+      get group_members_path(group)
+      history_text = Nokogiri::HTML(response.body).at_css("#membership-operations-history").text
+      newer_position = history_text.index("#{member.name}님이 동아리에서 탈퇴했습니다")
+      moderation_position = history_text.index("#{group_admin.name}님이 #{member.name}님의 동아리 활동을 정지했습니다")
+      lifecycle_position = history_text.index("#{member.name}님이 동아리에 가입했습니다")
+
+      expect(newer).to be_present
+      expect(moderation).to be_present
+      expect(lifecycle).to be_present
+      expect(newer_position).to be < moderation_position
+      expect(moderation_position).to be < lifecycle_position
+    end
+
+    it "keeps current suspension state and reason without inline history details" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Current suspension", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      GroupMemberships::SuspendActivity.new(
+        membership,
+        actor: group_admin,
+        public_reason: "Current public reason",
+        internal_note: "Current internal note"
+      ).call!
+      sign_in group_admin
+
+      get group_members_path(group)
+      page = Nokogiri::HTML(response.body)
+      current_members = page.at_css("#current-members")
+      history = page.at_css("#membership-operations-history")
+
+      expect(current_members.text).to include(member.name, "동아리 활동 정지", "Current public reason", "활동 복구")
+      expect(current_members.css("details")).to be_empty
+      expect(history.text).to include("Current public reason", "Current internal note")
+    end
+  end
 end
