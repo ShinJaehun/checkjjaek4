@@ -16,10 +16,18 @@ class ModerationAction < ApplicationRecord
   belongs_to :actor, class_name: "User"
   belongs_to :reversal_of, class_name: "ModerationAction", optional: true
 
+  before_validation :set_membership_attribution, on: :create
+
   validates :public_reason, presence: true
   validates :reversal_of_id, uniqueness: true, allow_nil: true
   validate :action_type_must_match_target
+  validate :membership_attribution_must_match_target, on: :create
   validate :reversal_must_match_action
+
+  scope :for_membership_group, ->(group) {
+    where(target_type: "GroupMembership", membership_group_id: group.id)
+      .order(created_at: :desc, id: :desc)
+  }
 
   def self.current_suspension_for(user)
     restored_action_ids = where(action_type: :restore).where.not(reversal_of_id: nil).select(:reversal_of_id)
@@ -50,6 +58,26 @@ class ModerationAction < ApplicationRecord
   end
 
   private
+
+  def set_membership_attribution
+    return unless target_type == "GroupMembership" && target.present?
+
+    self.membership_group_id ||= target.group_id
+    self.membership_user_id ||= target.user_id
+  end
+
+  def membership_attribution_must_match_target
+    if target_type == "GroupMembership"
+      errors.add(:membership_group_id, :blank) if membership_group_id.blank?
+      errors.add(:membership_user_id, :blank) if membership_user_id.blank?
+      return unless target.present?
+
+      errors.add(:membership_group_id, :invalid) unless membership_group_id == target.group_id
+      errors.add(:membership_user_id, :invalid) unless membership_user_id == target.user_id
+    elsif membership_group_id.present? || membership_user_id.present?
+      errors.add(:base, :invalid)
+    end
+  end
 
   def action_type_must_match_target
     return if TARGET_ACTIONS.fetch(target_type, []).include?(action_type)

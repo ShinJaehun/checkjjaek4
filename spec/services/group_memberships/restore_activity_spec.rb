@@ -16,7 +16,17 @@ RSpec.describe GroupMemberships::RestoreActivity do
     expect(membership.reload).to be_moderation_status_normal
     expect(membership).to be_active
     expect(member.reload).not_to be_suspended
-    expect(restore).to have_attributes(action_type: "restore_activity", reversal_of: suspension, public_reason: "Resolved", internal_note: "Reviewed")
+    expect(restore).to have_attributes(
+      action_type: "restore_activity",
+      reversal_of: suspension,
+      public_reason: "Resolved",
+      internal_note: "Reviewed",
+      membership_group_id: group.id,
+      membership_user_id: member.id
+    )
+    expect(restore.attributes.values_at("membership_group_id", "membership_user_id")).to eq(
+      suspension.attributes.values_at("membership_group_id", "membership_user_id")
+    )
   end
 
   it "rejects duplicate restore and rolls back an invalid audit action" do

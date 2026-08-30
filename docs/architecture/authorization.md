@@ -297,6 +297,7 @@ Library 안에서 볼 수 있는 책장:
 - `GroupMembershipEvent`는 membership lifecycle 사건을 Group 단위 append-only history로 보존하며 membership 삭제 여부와 독립적이다
 - `GroupMembershipRemoval`은 내보내기 후 stale private Group 접근 안내를 위한 현재 표식이며 history나 ban으로 사용하지 않는다
 - 활동 정지·해제 감사는 `ModerationAction`에만 기록하고 membership lifecycle history에 복제하지 않는다
+- GroupMembership 대상 moderation row의 `membership_group_id`/`membership_user_id`는 현재 membership이나 FK가 아니라 target hard delete 후에도 남는 역사적 attribution이다
 
 동아리에서는 같은 `Jjaek` 모델과 optional `group` / `book` association으로 `짹`과 `책짹`을 제공한다.
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,

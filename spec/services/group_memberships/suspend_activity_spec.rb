@@ -18,7 +18,9 @@ RSpec.describe GroupMemberships::SuspendActivity do
       actor: group_admin,
       action_type: "suspend_activity",
       public_reason: "Group rule",
-      internal_note: "Case 1"
+      internal_note: "Case 1",
+      membership_group_id: group.id,
+      membership_user_id: member.id
     )
   end
 

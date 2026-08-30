@@ -267,6 +267,7 @@
 - group admin의 자기 동아리 콘텐츠 monitoring은 아직 구현되지 않음
 - append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
 - 동아리 활동 정지·해제는 `ModerationAction`에만 기록하며 `GroupMembershipEvent`에 중복 저장하지 않음
+- GroupMembership 대상 `ModerationAction`은 membership hard delete 뒤에도 Group/User attribution을 잃지 않도록 FK 없는 `membership_group_id`/`membership_user_id` snapshot을 보존함
 - global admin은 다른 active User를 정지하고 suspended User를 복구할 수 있으며 자기 자신 정지는 허용하지 않음
 - User 정지·복구는 User row lock 안에서 `suspended_at` 변경과 suspend/restore 감사 row 생성을 한 transaction으로 처리함
 - admin User 상세의 계정 운영 이력은 가입 시각, 전체 suspend/restore 감사 row와 탈퇴 시각을 오래된 순으로 표시함

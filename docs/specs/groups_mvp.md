@@ -49,6 +49,9 @@
 구별하는 현재 표식, `GroupMembershipEvent`는 membership lifecycle의 append-only history다. 활동 정지·해제는
 `ModerationAction`에만 기록한다. membership이 탈퇴·내보내기로 삭제되거나 removal 표식이 재가입으로 삭제되어도
 과거 lifecycle event와 moderation audit는 보존한다.
+GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 어느 Group의 어느 User에 대한 조치인지
+식별할 수 있도록 `membership_group_id`와 `membership_user_id`를 historical attribution snapshot으로 보존한다.
+이 값은 현재 membership 관계나 FK가 아니다.
 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성,
 초대 알림, 이메일·링크 초대와 moderation 상세는 미구현이며,
 이 문서의 해당 내용은 계속 목표 정책으로 읽는다.

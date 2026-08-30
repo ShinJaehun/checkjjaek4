@@ -36,6 +36,20 @@ RSpec.describe ModerationAction, type: :model do
     expect(action_for(target: membership, action_type: :suspend_activity)).to be_valid
   end
 
+  it "does not set membership attribution for other target types" do
+    action = action_for(target: user, action_type: :suspend).tap(&:save!)
+
+    expect(action).to have_attributes(membership_group_id: nil, membership_user_id: nil)
+  end
+
+  it "rejects membership attribution that does not match the target" do
+    action = action_for(target: membership, action_type: :suspend_activity)
+    action.membership_user_id = actor.id
+
+    expect(action).not_to be_valid
+    expect(action.errors[:membership_user_id]).to be_present
+  end
+
   it "restores a membership activity suspension with a separate matching action" do
     suspension = action_for(target: membership, action_type: :suspend_activity).tap(&:save!)
     restore = action_for(target: membership, action_type: :restore_activity, reversal_of: suspension)
@@ -120,12 +134,42 @@ RSpec.describe ModerationAction, type: :model do
   end
 
   it "preserves the audit row after a target membership is deleted" do
-    target_id = membership.id
-    action = action_for(target: membership, action_type: :suspend_activity).tap(&:save!)
+    suspension = action_for(target: membership, action_type: :suspend_activity).tap(&:save!)
+    restore = action_for(target: membership, action_type: :restore_activity, reversal_of: suspension).tap(&:save!)
 
     membership.destroy!
 
-    action.reload
-    expect(action).to have_attributes(target_type: "GroupMembership", target_id:, actor:, public_reason: "Public reason")
+    suspension.reload
+    restore.reload
+    expect(suspension).to have_attributes(
+      target_type: "GroupMembership",
+      target_id: membership.id,
+      membership_group_id: group.id,
+      membership_user_id: other_user.id,
+      actor:,
+      public_reason: "Public reason",
+      internal_note: "Internal note"
+    )
+    expect(restore).to have_attributes(
+      membership_group_id: group.id,
+      membership_user_id: other_user.id,
+      reversal_of: suspension
+    )
+    expect(described_class.for_membership_group(group)).to include(suspension, restore)
+  end
+
+  it "allows legacy membership audit rows without recoverable attribution to be read" do
+    described_class.insert!({
+      target_type: "GroupMembership",
+      target_id: -1,
+      actor_id: actor.id,
+      action_type: described_class.action_types.fetch("suspend_activity"),
+      public_reason: "Legacy",
+      created_at: Time.current,
+      updated_at: Time.current
+    })
+
+    action = described_class.find_by!(public_reason: "Legacy")
+    expect(action).to have_attributes(membership_group_id: nil, membership_user_id: nil)
   end
 end

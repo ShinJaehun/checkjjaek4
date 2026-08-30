@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_30_102000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_30_103000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -218,6 +218,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_102000) do
     t.bigint "actor_id", null: false
     t.datetime "created_at", null: false
     t.text "internal_note"
+    t.bigint "membership_group_id"
+    t.bigint "membership_user_id"
     t.text "public_reason", null: false
     t.bigint "reversal_of_id"
     t.bigint "target_id", null: false
@@ -225,6 +227,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_102000) do
     t.datetime "updated_at", null: false
     t.index ["action_type"], name: "index_moderation_actions_on_action_type"
     t.index ["actor_id"], name: "index_moderation_actions_on_actor_id"
+    t.index ["membership_group_id", "created_at", "id"], name: "index_moderation_actions_on_membership_group_and_time"
     t.index ["reversal_of_id"], name: "index_moderation_actions_on_unique_reversal", unique: true, where: "(reversal_of_id IS NOT NULL)"
     t.index ["target_type", "target_id", "created_at"], name: "index_moderation_actions_on_target_and_created_at"
   end
