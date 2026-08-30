@@ -13,6 +13,7 @@ class Group < ApplicationRecord
   belongs_to :group_admin, class_name: "User", inverse_of: :administered_groups
   has_many :group_memberships, dependent: :destroy
   has_many :group_membership_removals, dependent: :destroy
+  has_many :group_membership_events, dependent: :delete_all
   has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
   has_many :members, through: :active_group_memberships, source: :user
   has_many :jjaeks, dependent: :restrict_with_error
@@ -125,6 +126,7 @@ class Group < ApplicationRecord
 
   def create_group_admin_membership!
     group_memberships.create!(user: group_admin, status: :active)
+    group_membership_events.create!(user: group_admin, actor: group_admin, event_type: :joined)
   end
 
   def cancelling_reactivation_for_withdrawal?

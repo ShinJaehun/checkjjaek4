@@ -527,4 +527,126 @@ RSpec.describe "Group memberships", type: :request do
       expect(invitation.reload).to be_invited
     end
   end
+
+  describe "membership lifecycle history" do
+    it "records public join, approval request, approval, cancellation, and rejection with the correct actors" do
+      public_group = Group.create!(lifecycle_status: :active, group_admin:, name: "History public", group_type: :public_group)
+      approval_group = Group.create!(lifecycle_status: :active, group_admin:, name: "History approval", group_type: :approval_group)
+      sign_in member
+
+      post group_group_memberships_path(public_group)
+      post group_group_memberships_path(approval_group)
+      request = approval_group.group_memberships.find_by!(user: member)
+
+      expect(public_group.group_membership_events.recent.first).to have_attributes(event_type: "joined", user: member, actor: member)
+      expect(approval_group.group_membership_events.recent.first).to have_attributes(event_type: "requested_to_join", user: member, actor: member)
+
+      delete group_group_membership_path(approval_group, request)
+      expect(approval_group.group_membership_events.recent.first).to have_attributes(event_type: "join_request_cancelled", user: member, actor: member)
+
+      post group_group_memberships_path(approval_group)
+      request = approval_group.group_memberships.find_by!(user: member)
+      sign_in group_admin
+      patch group_group_membership_path(approval_group, request)
+      expect(approval_group.group_membership_events.recent.first).to have_attributes(event_type: "approved", user: member, actor: group_admin)
+
+      other = User.create!(name: "Rejected", email: "membership-event-rejected@example.com", password: "password123!", password_confirmation: "password123!")
+      sign_in other
+      post group_group_memberships_path(approval_group)
+      rejected_request = approval_group.group_memberships.find_by!(user: other)
+      sign_in group_admin
+      delete reject_group_group_membership_path(approval_group, rejected_request)
+      expect(approval_group.group_membership_events.recent.first).to have_attributes(event_type: "request_rejected", user: other, actor: group_admin)
+    end
+
+    it "records private invitation, acceptance, decline, and revocation with the correct actors" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "History private", group_type: :private_group)
+      declined_user = User.create!(name: "Declined", email: "membership-event-declined@example.com", password: "password123!", password_confirmation: "password123!")
+      revoked_user = User.create!(name: "Revoked", email: "membership-event-revoked@example.com", password: "password123!", password_confirmation: "password123!")
+      sign_in group_admin
+
+      post invite_group_group_memberships_path(group), params: { user_id: member.id }
+      invitation = group.group_memberships.find_by!(user: member)
+      expect(group.group_membership_events.recent.first).to have_attributes(event_type: "invited", user: member, actor: group_admin)
+
+      sign_in member
+      patch accept_group_group_membership_path(group, invitation)
+      expect(group.group_membership_events.recent.first).to have_attributes(event_type: "invitation_accepted", user: member, actor: member)
+
+      sign_in group_admin
+      post invite_group_group_memberships_path(group), params: { user_id: declined_user.id }
+      declined_invitation = group.group_memberships.find_by!(user: declined_user)
+      sign_in declined_user
+      delete decline_group_group_membership_path(group, declined_invitation)
+      expect(group.group_membership_events.recent.first).to have_attributes(event_type: "invitation_declined", user: declined_user, actor: declined_user)
+
+      sign_in group_admin
+      post invite_group_group_memberships_path(group), params: { user_id: revoked_user.id }
+      revoked_invitation = group.group_memberships.find_by!(user: revoked_user)
+      delete revoke_group_group_membership_path(group, revoked_invitation)
+      expect(group.group_membership_events.recent.first).to have_attributes(event_type: "invitation_revoked", user: revoked_user, actor: group_admin)
+    end
+
+    it "preserves left and removed events after membership deletion and keeps removal markers separate" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "History endings", group_type: :public_group)
+      leaving_member = group.group_memberships.create!(user: member, status: :active)
+      sign_in member
+
+      delete group_group_membership_path(group, leaving_member)
+      expect(group.group_membership_events.recent.first).to have_attributes(event_type: "left", user: member, actor: member)
+      expect(GroupMembershipRemoval.exists?(group:, user: member)).to be(false)
+
+      sign_in member
+      post group_group_memberships_path(group)
+      rejoined_membership = group.group_memberships.find_by!(user: member)
+      sign_in group_admin
+      delete remove_group_group_membership_path(group, rejoined_membership)
+
+      removed_event = group.group_membership_events.recent.first
+      expect(removed_event).to have_attributes(event_type: "removed", user: member, actor: group_admin)
+      expect(GroupMembershipRemoval.exists?(group:, user: member)).to be(true)
+
+      sign_in member
+      post group_group_memberships_path(group)
+      expect(GroupMembershipRemoval.exists?(group:, user: member)).to be(false)
+      expect(GroupMembershipEvent.exists?(removed_event.id)).to be(true)
+    end
+
+    it "does not duplicate activity moderation in membership history" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "History moderation", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      sign_in group_admin
+      event_count = GroupMembershipEvent.count
+
+      expect {
+        patch suspend_activity_group_group_membership_path(group, membership), params: {
+          moderation_action: { public_reason: "Community rule" }
+        }
+      }.to change(ModerationAction, :count).by(1)
+      expect(GroupMembershipEvent.count).to eq(event_count)
+
+      expect {
+        patch restore_activity_group_group_membership_path(group, membership), params: {
+          moderation_action: { public_reason: "Restored" }
+        }
+      }.to change(ModerationAction, :count).by(1)
+      expect(GroupMembershipEvent.count).to eq(event_count)
+    end
+
+    it "rolls back removal marker and membership deletion when event creation fails" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "History atomicity", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      sign_in group_admin
+      allow(GroupMembershipEvent).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(GroupMembershipEvent.new))
+
+      event_count = GroupMembershipEvent.count
+
+      delete remove_group_group_membership_path(group, membership)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(GroupMembership.exists?(membership.id)).to be(true)
+      expect(GroupMembershipRemoval.exists?(group:, user: member)).to be(false)
+      expect(GroupMembershipEvent.count).to eq(event_count)
+    end
+  end
 end

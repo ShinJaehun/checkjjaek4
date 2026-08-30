@@ -45,6 +45,11 @@ class User < ApplicationRecord
            foreign_key: :removed_by_id,
            inverse_of: :removed_by,
            dependent: :restrict_with_error
+  has_many :group_membership_events, inverse_of: :user
+  has_many :performed_group_membership_events,
+           class_name: "GroupMembershipEvent",
+           foreign_key: :actor_id,
+           inverse_of: :actor
   has_many :group_lifecycle_events,
            foreign_key: :actor_id,
            inverse_of: :actor

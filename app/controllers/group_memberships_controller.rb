@@ -11,7 +11,14 @@ class GroupMembershipsController < ApplicationController
     )
     authorize @membership
 
-    if @membership.save
+    saved = GroupMembership.transaction do
+      next false unless @membership.save
+
+      record_membership_event!(@membership.active? ? :joined : :requested_to_join)
+      true
+    end
+
+    if saved
       notice = @membership.active? ? t("group_memberships.notices.joined") : t("group_memberships.notices.requested")
       redirect_to @group, notice: notice
     else
@@ -21,7 +28,10 @@ class GroupMembershipsController < ApplicationController
 
   def update
     authorize @membership, :approve?
-    @membership.active!
+    GroupMembership.transaction do
+      @membership.active!
+      record_membership_event!(:approved)
+    end
 
     redirect_to group_members_path(@group), notice: t("group_memberships.notices.approved")
   end
@@ -30,7 +40,14 @@ class GroupMembershipsController < ApplicationController
     @membership = @group.group_memberships.build(user_id: params[:user_id], status: :invited)
     authorize @membership, :invite?
 
-    if @membership.save
+    saved = GroupMembership.transaction do
+      next false unless @membership.save
+
+      record_membership_event!(:invited)
+      true
+    end
+
+    if saved
       redirect_to group_members_path(@group), notice: t("group_memberships.notices.invited")
     else
       redirect_to group_members_path(@group), alert: @membership.errors.full_messages.to_sentence
@@ -39,28 +56,40 @@ class GroupMembershipsController < ApplicationController
 
   def accept
     authorize @membership, :accept?
-    @membership.active!
+    GroupMembership.transaction do
+      @membership.active!
+      record_membership_event!(:invitation_accepted)
+    end
 
     redirect_to @membership.group, notice: t("group_memberships.notices.accepted")
   end
 
   def decline
     authorize @membership, :decline?
-    @membership.destroy!
+    GroupMembership.transaction do
+      record_membership_event!(:invitation_declined)
+      @membership.destroy!
+    end
 
     redirect_to groups_path, notice: t("group_memberships.notices.declined"), status: :see_other
   end
 
   def reject
     authorize @membership, :reject?
-    @membership.destroy!
+    GroupMembership.transaction do
+      record_membership_event!(:request_rejected)
+      @membership.destroy!
+    end
 
     redirect_to group_members_path(@group), notice: t("group_memberships.notices.rejected"), status: :see_other
   end
 
   def revoke
     authorize @membership, :revoke?
-    @membership.destroy!
+    GroupMembership.transaction do
+      record_membership_event!(:invitation_revoked)
+      @membership.destroy!
+    end
 
     redirect_to group_members_path(@group), notice: t("group_memberships.notices.revoked"), status: :see_other
   end
@@ -68,6 +97,7 @@ class GroupMembershipsController < ApplicationController
   def remove
     authorize @membership, :remove?
     GroupMembership.transaction do
+      record_membership_event!(:removed)
       removal = GroupMembershipRemoval.find_or_initialize_by(group: @group, user: @membership.user)
       removal.removed_by = current_user
       removal.save!
@@ -106,7 +136,10 @@ class GroupMembershipsController < ApplicationController
   def destroy
     authorize @membership
     pending = @membership.pending?
-    @membership.destroy!
+    GroupMembership.transaction do
+      record_membership_event!(pending ? :join_request_cancelled : :left)
+      @membership.destroy!
+    end
 
     redirect_to groups_path,
                 notice: t(pending ? "group_memberships.notices.cancelled" : "group_memberships.notices.left"),
@@ -133,5 +166,14 @@ class GroupMembershipsController < ApplicationController
 
   def moderation_action_params
     params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
+  end
+
+  def record_membership_event!(event_type)
+    GroupMembershipEvent.create!(
+      group: @membership.group,
+      user: @membership.user,
+      actor: current_user,
+      event_type:
+    )
   end
 end
