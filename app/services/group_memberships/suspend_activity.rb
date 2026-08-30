@@ -11,9 +11,10 @@ module GroupMemberships
     end
 
     def call!
-      GroupMembership.transaction do
+      membership.group.with_lock do
         membership.with_lock do
           raise InvalidState unless membership.active? && membership.moderation_status_normal?
+          raise InvalidState unless membership.group.group_admin?(actor)
           raise InvalidState if membership.user_id == membership.group.group_admin_id
 
           membership.update!(moderation_status: :activity_suspended)

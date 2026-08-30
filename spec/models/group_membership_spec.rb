@@ -16,6 +16,12 @@ RSpec.describe GroupMembership, type: :model do
     expect(duplicate).not_to be_valid
   end
 
+  it "does not allow a banned user to obtain membership" do
+    GroupMemberBan.create!(group:, user: member)
+
+    expect(described_class.new(group:, user: member, status: :active)).not_to be_valid
+  end
+
   it "requires the group_admin membership to be active" do
     membership = group.group_memberships.find_by!(user: group_admin)
 

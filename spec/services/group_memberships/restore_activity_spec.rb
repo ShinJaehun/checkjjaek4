@@ -39,4 +39,13 @@ RSpec.describe GroupMemberships::RestoreActivity do
     expect { described_class.new(membership, actor: group_admin, public_reason: "Again").call! }.to raise_error(described_class::InvalidState)
   end
 
+  it "does not let a global admin restore group membership activity directly" do
+    global_admin = User.create!(name: "Global actor", email: "restore-global-actor@example.com", password: "password123!", global_admin: true)
+
+    expect {
+      described_class.new(membership, actor: global_admin, public_reason: "Blocked").call!
+    }.to raise_error(described_class::InvalidState)
+    expect(membership.reload).to be_activity_suspended
+  end
+
 end

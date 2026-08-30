@@ -53,11 +53,11 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 ### moderation 범위와 용어
 
 - **계정 정지 / 계정 복구**는 global admin이 `User` 전체의 서비스 로그인과 신규 mutation을 제한·복구하는 현재 구현 기능이다.
-- **동아리 활동 정지 / 동아리 활동 복구**는 group admin 또는 global admin이 특정 `GroupMembership` 범위에서만 회원 활동을 제한·복구하는 구현 기능이다. active membership과 읽기 권한은 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. 개인 프로필·개인 콘텐츠·다른 Group·서재·로그인에는 영향을 주지 않으며 `User#suspended_at`을 재사용하지 않는다.
+- **동아리 활동 정지 / 동아리 활동 복구**는 group admin이 특정 `GroupMembership` 범위에서만 회원 활동을 제한·복구하는 구현 기능이다. active membership과 읽기 권한은 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. 개인 프로필·개인 콘텐츠·다른 Group·서재·로그인에는 영향을 주지 않으며 `User#suspended_at`을 재사용하지 않는다.
 - **동아리 운영 정지 / 동아리 운영 복구**는 global admin이 향후 `Group` 자체의 서비스 운영 상태를 제한·복구하는 개념이다. group admin의 기존 자발적 운영 종료 lifecycle과 별도 상태로 구현한다.
 
-동아리 활동 정지·복구는 별도 `moderation_status`와 `GroupMembership` 대상 append-only 감사 row로 구현했다. restore row는 원 suspension을 참조한다. 동아리 이용 제한과 동아리 운영 정지는 아직 구현하지 않았다. 일반 membership의 탈퇴·내보내기와 Group의 자발적 운영 종료 lifecycle을 moderation 상태로 해석하지 않는다.
-활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴나 내보내기로 membership이 삭제되면 현재 정지 상태도 종료되며, 감사 row는 보존하지만 재가입·재신청이나 새 membership에 자동 승계하지 않는다. 재가입 차단은 후속 동아리 이용 제한의 책임이다.
+동아리 활동 정지·복구는 별도 `moderation_status`와 `GroupMembership` 대상 append-only 감사 row로 구현했다. 동아리 이용 제한은 `GroupMemberBan` 현재 marker와 ban/unban 감사 row로 구현하며 membership을 종료하고 재참여를 차단한다. 해제는 membership을 복구하지 않는다. 일반 membership의 탈퇴·내보내기와 Group의 자발적 운영 종료 lifecycle을 moderation 상태로 해석하지 않는다.
+활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 현재 정지 상태도 종료되며 감사 row는 보존한다. global admin은 Group membership moderation을 실행하지 않고 전체 이력을 조사하며 service-wide 제재는 User 계정 정지·복구로 수행한다.
 계정 정지, 동아리 활동 정지와 동아리 운영 정지는 서로 자동 전파되지 않는다.
 
 ---

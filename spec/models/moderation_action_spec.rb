@@ -34,6 +34,18 @@ RSpec.describe ModerationAction, type: :model do
     expect(action_for(target: jjaek, action_type: :hide)).to be_valid
     expect(action_for(target: comment, action_type: :hide)).to be_valid
     expect(action_for(target: membership, action_type: :suspend_activity)).to be_valid
+    ban = GroupMemberBan.create!(group:, user: other_user)
+    expect(action_for(target: ban, action_type: :ban_from_group)).to be_valid
+  end
+
+  it "stores group-member attribution and validates a matching unban reversal" do
+    ban = GroupMemberBan.create!(group:, user: other_user)
+    original = action_for(target: ban, action_type: :ban_from_group).tap(&:save!)
+    reversal = action_for(target: ban, action_type: :unban_from_group, reversal_of: original)
+
+    expect(original).to have_attributes(membership_group_id: group.id, membership_user_id: other_user.id)
+    expect(reversal).to be_valid
+    expect(action_for(target: ban, action_type: :unban_from_group)).not_to be_valid
   end
 
   it "does not set membership attribution for other target types" do

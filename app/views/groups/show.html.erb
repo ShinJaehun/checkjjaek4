@@ -15,6 +15,8 @@
             <%= link_to t("groups.actions.edit"), edit_group_path(@group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
             <span class="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white"><%= t("group_memberships.statuses.group_admin") %></span>
           </div>
+        <% elsif @group_member_ban.present? %>
+          <span class="rounded-full bg-red-50 px-4 py-2 text-sm font-medium text-red-700"><%= t("group_member_bans.status") %></span>
         <% elsif @membership&.active? %>
           <%= button_to t("group_memberships.actions.leave"),
                         group_group_membership_path(@group, @membership),
@@ -48,6 +50,13 @@
   <% unless @group.active? %>
     <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-900">
       <%= t("groups.lifecycle_messages.#{@group.lifecycle_status}") %>
+    </section>
+  <% end %>
+
+  <% if @current_group_ban_action.present? %>
+    <section class="rounded-3xl border border-red-200 bg-red-50/60 p-5 text-sm text-red-900">
+      <p class="font-semibold"><%= t("group_member_bans.status") %></p>
+      <p class="mt-2 whitespace-pre-wrap"><%= t("group_memberships.moderation.public_reason") %>: <%= @current_group_ban_action.public_reason %></p>
     </section>
   <% end %>
 

@@ -3,12 +3,21 @@ class ModerationAction < ApplicationRecord
     "User" => %w[suspend restore],
     "Group" => %w[suspend restore],
     "GroupMembership" => %w[suspend_activity restore_activity],
+    "GroupMemberBan" => %w[ban_from_group unban_from_group],
     "Jjaek" => %w[hide restore],
     "Comment" => %w[hide restore]
   }.freeze
 
   enum :action_type,
-       { suspend: 0, hide: 1, restore: 2, suspend_activity: 3, restore_activity: 4 },
+       {
+         suspend: 0,
+         hide: 1,
+         restore: 2,
+         suspend_activity: 3,
+         restore_activity: 4,
+         ban_from_group: 5,
+         unban_from_group: 6
+       },
        prefix: true,
        validate: true
 
@@ -16,16 +25,16 @@ class ModerationAction < ApplicationRecord
   belongs_to :actor, class_name: "User"
   belongs_to :reversal_of, class_name: "ModerationAction", optional: true
 
-  before_validation :set_membership_attribution, on: :create
+  before_validation :set_group_member_attribution, on: :create
 
   validates :public_reason, presence: true
   validates :reversal_of_id, uniqueness: true, allow_nil: true
   validate :action_type_must_match_target
-  validate :membership_attribution_must_match_target, on: :create
+  validate :group_member_attribution_must_match_target, on: :create
   validate :reversal_must_match_action
 
   scope :for_membership_group, ->(group) {
-    where(target_type: "GroupMembership", membership_group_id: group.id)
+    where(membership_group_id: group.id)
       .order(created_at: :desc, id: :desc)
   }
 
@@ -59,15 +68,15 @@ class ModerationAction < ApplicationRecord
 
   private
 
-  def set_membership_attribution
-    return unless target_type == "GroupMembership" && target.present?
+  def set_group_member_attribution
+    return unless group_member_moderation_target? && target.present?
 
     self.membership_group_id ||= target.group_id
     self.membership_user_id ||= target.user_id
   end
 
-  def membership_attribution_must_match_target
-    if target_type == "GroupMembership"
+  def group_member_attribution_must_match_target
+    if group_member_moderation_target?
       errors.add(:membership_group_id, :blank) if membership_group_id.blank?
       errors.add(:membership_user_id, :blank) if membership_user_id.blank?
       return unless target.present?
@@ -101,6 +110,8 @@ class ModerationAction < ApplicationRecord
 
     expected_action_type = if action_type_restore_activity?
       "suspend_activity"
+    elsif action_type_unban_from_group?
+      "ban_from_group"
     elsif %w[User Group].include?(target_type)
       "suspend"
     else
@@ -112,6 +123,10 @@ class ModerationAction < ApplicationRecord
   end
 
   def reversal_action?
-    action_type_restore? || action_type_restore_activity?
+    action_type_restore? || action_type_restore_activity? || action_type_unban_from_group?
+  end
+
+  def group_member_moderation_target?
+    target_type.in?(%w[GroupMembership GroupMemberBan])
   end
 end

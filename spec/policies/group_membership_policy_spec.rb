@@ -22,23 +22,28 @@ RSpec.describe GroupMembershipPolicy do
     expect(policy.approve?).to be(false)
     expect(policy.reject?).to be(false)
     expect(policy.remove?).to be(false)
+    expect(policy.suspend_activity?).to be(false)
+    expect(policy.restore_activity?).to be(false)
+    expect(policy.ban_from_group?).to be(false)
   end
 
-  it "allows group and global admins to moderate an ordinary active member" do
+  it "allows only the group admin to moderate an ordinary active member" do
     global_admin = User.create!(name: "Global moderator", email: "membership-moderator@example.com", password: "password123!", global_admin: true)
     peer = User.create!(name: "Peer", email: "membership-peer@example.com", password: "password123!")
     membership = group.group_memberships.create!(user: member, status: :active)
     group.group_memberships.create!(user: peer, status: :active)
 
     expect(described_class.new(group_admin, membership).suspend_activity?).to be(true)
-    expect(described_class.new(global_admin, membership).suspend_activity?).to be(true)
+    expect(described_class.new(global_admin, membership).suspend_activity?).to be(false)
     expect(described_class.new(peer, membership).suspend_activity?).to be(false)
     expect(described_class.new(other_user, membership).suspend_activity?).to be(false)
 
     membership.update!(moderation_status: :activity_suspended)
     expect(described_class.new(group_admin, membership).suspend_activity?).to be(false)
     expect(described_class.new(group_admin, membership).restore_activity?).to be(true)
-    expect(described_class.new(global_admin, membership).restore_activity?).to be(true)
+    expect(described_class.new(global_admin, membership).restore_activity?).to be(false)
+    expect(described_class.new(group_admin, membership).ban_from_group?).to be(true)
+    expect(described_class.new(global_admin, membership).ban_from_group?).to be(false)
   end
 
   it "does not moderate the group admin or non-active memberships" do

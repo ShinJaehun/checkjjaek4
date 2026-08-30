@@ -14,6 +14,8 @@ class GroupsController < ApplicationController
   def show
     authorize @group
     @membership = @group.group_memberships.find_by(user: current_user)
+    @group_member_ban = @group.group_member_bans.find_by(user: current_user)
+    @current_group_ban_action = @group_member_ban&.current_ban_action
     @current_activity_suspension = @membership&.current_activity_suspension_action if @membership&.activity_suspended?
     prepare_jjaek_context
   end
@@ -123,7 +125,16 @@ class GroupsController < ApplicationController
   def set_group
     @group = policy_scope(Group).find(params[:id])
   rescue ActiveRecord::RecordNotFound
-    raise unless action_name == "show" && GroupMembershipRemoval.exists?(group_id: params[:id], user: current_user)
+    raise unless action_name == "show"
+
+    ban = GroupMemberBan.find_by(group_id: params[:id], user: current_user)
+    if ban
+      reason = ban.current_ban_action&.public_reason
+      redirect_to groups_path, alert: t("group_member_bans.alerts.access_restricted", reason:)
+      return
+    end
+
+    raise unless GroupMembershipRemoval.exists?(group_id: params[:id], user: current_user)
 
     redirect_to groups_path, alert: t("group_memberships.alerts.removed")
   end

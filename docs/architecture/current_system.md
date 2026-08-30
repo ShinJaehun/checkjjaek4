@@ -237,9 +237,10 @@
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
 - 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
 - 동아리 관리자는 회원 관리 화면에서 active 일반 회원을 직접 내보낼 수 있음
-- group admin과 global admin은 일반 active 회원을 별도 `moderation_status`로 동아리 활동 정지·복구할 수 있음
+- group admin은 일반 active 회원을 별도 `moderation_status`로 동아리 활동 정지·복구할 수 있음
 - 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
-- 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함. 재가입 차단은 후속 동아리 이용 제한 범위임
+- 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함
+- `GroupMemberBan`은 현재 Group/User 이용 제한 상태로 membership을 종료하고 가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음
 - 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
 - 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
 - 일반 member의 자발적 탈퇴와 관리자의 내보내기는 membership을 즉시 삭제함
@@ -260,7 +261,7 @@
 - active 공개 동아리의 Jjaek·책짹은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
 - 승인·비공개·inactive·pending 동아리 원문의 외부 ReJjaek과 개인 Jjaek의 동아리 공유·동아리 안에서의 ReJjaek 작성은 허용하지 않음
 - 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
-- 동아리 hard delete·ban, 초대 알림, 이메일·링크 초대, moderator와 moderation 상세는 구현되지 않음
+- 동아리 hard delete, 초대 알림, 이메일·링크 초대, moderator와 별도 moderation dashboard는 구현되지 않음
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를, Group 운영 상세의 같은 형태 inventory에서 해당 동아리의 Jjaek·책짹·Comment를 직접 조사할 수 있음
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
@@ -269,12 +270,13 @@
 - 동아리 활동 정지·해제는 `ModerationAction`에만 기록하며 `GroupMembershipEvent`에 중복 저장하지 않음
 - GroupMembership 대상 `ModerationAction`은 membership hard delete 뒤에도 Group/User attribution을 잃지 않도록 FK 없는 `membership_group_id`/`membership_user_id` snapshot을 보존함
 - 회원 관리 화면은 `GroupMembershipEvent`와 GroupMembership 대상 `ModerationAction`을 Group 단위 최신순 회원 운영 이력으로 통합 표시함
+- 이용 제한·해제는 `GroupMemberBan` 대상 append-only 감사 row로 같은 운영 이력에 표시하며 일반 `removed` lifecycle event로 기록하지 않음
 - global admin은 다른 active User를 정지하고 suspended User를 복구할 수 있으며 자기 자신 정지는 허용하지 않음
 - User 정지·복구는 User row lock 안에서 `suspended_at` 변경과 suspend/restore 감사 row 생성을 한 transaction으로 처리함
 - admin User 상세의 계정 운영 이력은 가입 시각, 전체 suspend/restore 감사 row와 탈퇴 시각을 오래된 순으로 표시함
 - 정지 시 기존 콘텐츠·관계·서재·Group membership과 관리자 연결을 보존하고 콘텐츠 visibility나 Group lifecycle을 변경하지 않음
 - 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
-- GroupMembership 대상 동아리 활동 정지/복구는 별도 상태와 append-only 감사 기록으로 구현되어 있으며 일반 membership lifecycle이나 User 계정 정지를 재사용하지 않음
+- Group membership 활동 정지·이용 제한은 group admin만 실행하며 global admin은 현재 회원·제한·감사 이력을 조사하고 service-wide 제재에는 User 계정 정지·복구를 사용함
 - Jjaek·Comment 숨김/복구, Group moderation 운영 정지/복구, 해당 action UI와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴

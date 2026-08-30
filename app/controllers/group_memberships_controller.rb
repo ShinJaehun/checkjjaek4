@@ -11,7 +11,7 @@ class GroupMembershipsController < ApplicationController
     )
     authorize @membership
 
-    saved = GroupMembership.transaction do
+    saved = @group.with_lock do
       next false unless @membership.save
 
       record_membership_event!(@membership.active? ? :joined : :requested_to_join)
@@ -28,7 +28,7 @@ class GroupMembershipsController < ApplicationController
 
   def update
     authorize @membership, :approve?
-    GroupMembership.transaction do
+    @group.with_lock do
       @membership.active!
       record_membership_event!(:approved)
     end
@@ -40,7 +40,7 @@ class GroupMembershipsController < ApplicationController
     @membership = @group.group_memberships.build(user_id: params[:user_id], status: :invited)
     authorize @membership, :invite?
 
-    saved = GroupMembership.transaction do
+    saved = @group.with_lock do
       next false unless @membership.save
 
       record_membership_event!(:invited)
@@ -56,7 +56,7 @@ class GroupMembershipsController < ApplicationController
 
   def accept
     authorize @membership, :accept?
-    GroupMembership.transaction do
+    @membership.group.with_lock do
       @membership.active!
       record_membership_event!(:invitation_accepted)
     end
@@ -66,7 +66,7 @@ class GroupMembershipsController < ApplicationController
 
   def decline
     authorize @membership, :decline?
-    GroupMembership.transaction do
+    @membership.group.with_lock do
       record_membership_event!(:invitation_declined)
       @membership.destroy!
     end
@@ -76,7 +76,7 @@ class GroupMembershipsController < ApplicationController
 
   def reject
     authorize @membership, :reject?
-    GroupMembership.transaction do
+    @group.with_lock do
       record_membership_event!(:request_rejected)
       @membership.destroy!
     end
@@ -86,7 +86,7 @@ class GroupMembershipsController < ApplicationController
 
   def revoke
     authorize @membership, :revoke?
-    GroupMembership.transaction do
+    @group.with_lock do
       record_membership_event!(:invitation_revoked)
       @membership.destroy!
     end
@@ -96,7 +96,7 @@ class GroupMembershipsController < ApplicationController
 
   def remove
     authorize @membership, :remove?
-    GroupMembership.transaction do
+    @group.with_lock do
       record_membership_event!(:removed)
       removal = GroupMembershipRemoval.find_or_initialize_by(group: @group, user: @membership.user)
       removal.removed_by = current_user
@@ -136,7 +136,7 @@ class GroupMembershipsController < ApplicationController
   def destroy
     authorize @membership
     pending = @membership.pending?
-    GroupMembership.transaction do
+    @group.with_lock do
       record_membership_event!(pending ? :join_request_cancelled : :left)
       @membership.destroy!
     end

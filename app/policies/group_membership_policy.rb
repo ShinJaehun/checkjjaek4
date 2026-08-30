@@ -3,12 +3,14 @@ class GroupMembershipPolicy < ApplicationPolicy
     return false unless record.group.active?
     return false unless own_membership?
     return false if record.group.private_group?
+    return false if record.group.member_banned?(record.user)
 
     record.group.public_group? ? record.active? : record.pending?
   end
 
   def approve?
-    record.group.active? && user.present? && record.group.group_admin?(user) && record.pending?
+    record.group.active? && user.present? && record.group.group_admin?(user) && record.pending? &&
+      !record.group.member_banned?(record.user)
   end
 
   def reject?
@@ -17,11 +19,13 @@ class GroupMembershipPolicy < ApplicationPolicy
 
   def invite?
     record.group.active? && user.present? && record.group.private_group? && record.group.group_admin?(user) &&
-      record.invited? && record.user&.active_account? && record.user_id != user.id
+      record.invited? && record.user&.active_account? && record.user_id != user.id &&
+      !record.group.member_banned?(record.user)
   end
 
   def accept?
-    record.group.active? && record.user.active_account? && own_membership? && record.invited?
+    record.group.active? && record.user.active_account? && own_membership? && record.invited? &&
+      !record.group.member_banned?(record.user)
   end
 
   def decline?
@@ -44,6 +48,11 @@ class GroupMembershipPolicy < ApplicationPolicy
     moderation_actor? && record.activity_suspended? && !group_admin_membership?
   end
 
+  def ban_from_group?
+    record.group.active? && record.group.group_admin?(user) && record.user_id != user.id &&
+      (record.pending? || record.invited? || record.active?)
+  end
+
   def destroy?
     own_membership? && !record.group.group_admin?(user) && (record.pending? || record.active?)
   end
@@ -55,7 +64,7 @@ class GroupMembershipPolicy < ApplicationPolicy
   end
 
   def moderation_actor?
-    user.present? && (record.group.group_admin?(user) || user.global_admin?)
+    user.present? && record.group.group_admin?(user)
   end
 
   def group_admin_membership?

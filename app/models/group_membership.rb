@@ -11,6 +11,7 @@ class GroupMembership < ApplicationRecord
 
   validates :user_id, uniqueness: { scope: :group_id }
   validate :user_must_have_active_account, on: :create
+  validate :user_must_not_be_banned
   validate :group_admin_must_be_active
   validate :status_transition_must_be_valid
 
@@ -40,6 +41,12 @@ class GroupMembership < ApplicationRecord
 
   def user_must_have_active_account
     errors.add(:user, :invalid) unless user&.active_account?
+  end
+
+  def user_must_not_be_banned
+    return unless group_id && user_id
+
+    errors.add(:user, :invalid) if GroupMemberBan.exists?(group_id:, user_id:)
   end
 
   def status_transition_must_be_valid

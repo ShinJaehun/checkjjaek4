@@ -43,7 +43,8 @@
 일반 membership 상태는 `pending` / `invited` / `active`만 사용한다.
 일반 member의 자발적 탈퇴와 동아리 관리자의 내보내기는 membership을 즉시 삭제한다.
 내보내기는 ban이 아니며 이후 기존 Group 유형에 따라 재가입·재신청·재초대할 수 있다.
-재가입 차단은 후속 동아리 이용 제한의 책임이다.
+동아리 이용 제한은 `GroupMemberBan`으로 현재 Group/User 제한 상태를 보존하고 membership을 종료해 가입·신청·승인·초대·수락을 차단한다.
+해제는 ban marker만 제거하며 membership을 자동 복구하지 않는다.
 
 `GroupMembership`은 현재 membership 상태, `GroupMembershipRemoval`은 관리자 내보내기 후 private Group stale URL UX를
 구별하는 현재 표식, `GroupMembershipEvent`는 membership lifecycle의 append-only history다. 활동 정지·해제는
@@ -52,6 +53,9 @@
 GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 어느 Group의 어느 User에 대한 조치인지
 식별할 수 있도록 `membership_group_id`와 `membership_user_id`를 historical attribution snapshot으로 보존한다.
 이 값은 현재 membership 관계나 FK가 아니다.
+동아리 이용 제한·해제는 `GroupMemberBan` 대상 `ModerationAction`으로 사유·처리자와 Group/User historical attribution을 보존하며
+일반 내보내기 `removed` lifecycle event로 중복 기록하지 않는다. group admin만 해당 Group의 활동 정지·해제와 이용 제한·해제를
+실행하고 global admin은 회원·제한·감사 이력을 운영 조사 목적으로만 조회한다.
 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성,
 초대 알림, 이메일·링크 초대와 moderation 상세는 미구현이며,
 이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
@@ -278,8 +282,8 @@ membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 
 ## moderation 정책
 
-group admin과 global admin은 일반 active 회원의 동아리 활동을 정지·복구할 수 있다. membership과 내부 콘텐츠 읽기 권한은 유지하며 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. 이는 일반 membership lifecycle 및 User 계정 정지와 별도이고 서로 자동 전파되지 않는다.
-활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴나 내보내기로 membership이 삭제되면 현재 정지도 종료되고 새 membership에 자동 승계하지 않으며, 재가입 차단은 아직 구현하지 않은 동아리 이용 제한의 책임이다. 기존 감사 row는 membership 삭제 후에도 보존한다.
+group admin은 일반 active 회원의 동아리 활동을 정지·복구할 수 있다. membership과 내부 콘텐츠 읽기 권한은 유지하며 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. global admin은 이 상태와 감사 이력을 조사하지만 Group membership moderation을 실행하지 않는다. 이는 일반 membership lifecycle 및 User 계정 정지와 별도이고 서로 자동 전파되지 않는다.
+활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 현재 정지도 종료되고 새 membership에 자동 승계하지 않으며 기존 감사 row는 보존한다.
 
 동아리 관리자는 자기 Group의 Jjaek·책짹·Comment를 사유와 함께 숨김·복구할 수 있어야 한다.
 원문 수정·hard delete나 서비스 전체 User 정지는 허용하지 않으며 현재 Group당 group admin 1명 구조를 유지한다.

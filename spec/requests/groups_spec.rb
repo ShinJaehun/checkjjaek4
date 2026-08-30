@@ -144,6 +144,53 @@ RSpec.describe "Groups", type: :request do
     expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.removed"))
   end
 
+  it "prioritizes a current private group ban over removal UX and shows only the public reason" do
+    group_admin = User.create!(name: "Group admin", email: "banned-private-group-admin@example.com", password: "password123!")
+    private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Banned private", group_type: :private_group)
+    membership = private_group.group_memberships.create!(user:, status: :active)
+    GroupMembershipRemoval.create!(group: private_group, user:, removed_by: group_admin)
+    GroupMemberBans::Ban.new(
+      membership,
+      actor: group_admin,
+      public_reason: "MEMBER BAN REASON",
+      internal_note: "PRIVATE OPERATIONS NOTE"
+    ).call!
+    sign_in user
+
+    get group_path(private_group)
+
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("group_member_bans.alerts.access_restricted", reason: "MEMBER BAN REASON"))
+    expect(flash[:alert]).not_to include("PRIVATE OPERATIONS NOTE")
+    expect(GroupMembershipRemoval.exists?(group: private_group, user:)).to be(false)
+  end
+
+  it "keeps public and approval details visible to banned users without participation actions" do
+    group_admin = User.create!(name: "Group admin", email: "banned-visible-group-admin@example.com", password: "password123!")
+    public_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Banned public", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Banned approval", group_type: :approval_group)
+
+    [ public_group, approval_group ].each do |group|
+      membership = group.group_memberships.create!(user:, status: :active)
+      GroupMemberBans::Ban.new(
+        membership,
+        actor: group_admin,
+        public_reason: "VISIBLE BAN REASON",
+        internal_note: "HIDDEN BAN NOTE"
+      ).call!
+    end
+    sign_in user
+
+    [ public_group, approval_group ].each do |group|
+      get group_path(group)
+      page = Nokogiri::HTML(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("동아리 이용 제한", "VISIBLE BAN REASON")
+      expect(response.body).not_to include("HIDDEN BAN NOTE")
+      expect(page.at_css(%(form[action="#{group_group_memberships_path(group)}"]))).to be_nil
+    end
+  end
+
   it "does not expose a private group stale URL after the member leaves" do
     group_admin = User.create!(name: "Group admin", email: "left-private-group-admin@example.com", password: "password123!")
     private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Left private", group_type: :private_group)

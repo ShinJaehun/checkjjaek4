@@ -147,6 +147,82 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  it "keeps public content readable after a ban without changing existing content" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Banned public", group_type: :public_group)
+    membership = group.group_memberships.create!(user: non_member, status: :active)
+    general = non_member.jjaeks.create!(group:, content: "Preserved public content")
+    comment = general.comments.create!(user: non_member, content: "Preserved comment")
+    like = general.likes.create!(user: non_member)
+
+    GroupMemberBans::Ban.new(membership, actor: group_admin, public_reason: "Rule").call!
+    sign_in non_member
+    get jjaek_path(general)
+
+    expect(response).to have_http_status(:ok)
+    expect(Jjaek.exists?(general.id)).to be(true)
+    expect(Comment.exists?(comment.id)).to be(true)
+    expect(Like.exists?(like.id)).to be(true)
+  end
+
+  it "removes approval content access after a ban" do
+    approval_group = Group.create!(
+    lifecycle_status: :active,
+    group_admin: group_admin,
+    name: "Banned approval",
+    group_type: :approval_group
+    )
+    approval_membership = approval_group.group_memberships.create!(
+    user: member,
+    status: :active
+    )
+    approval_jjaek = group_admin.jjaeks.create!(
+    group: approval_group,
+    content: "Approval restricted"
+    )
+
+    GroupMemberBans::Ban.new(
+    approval_membership,
+    actor: group_admin,
+    public_reason: "Rule"
+    ).call!
+
+    sign_in member
+
+    get jjaek_path(approval_jjaek)
+
+    expect(response).to have_http_status(:not_found)
+    end
+
+  it "removes private content access after a ban" do
+    private_group = Group.create!(
+    lifecycle_status: :active,
+    group_admin: group_admin,
+    name: "Banned private",
+    group_type: :private_group
+    )
+    private_membership = private_group.group_memberships.create!(
+    user: member,
+    status: :active
+    )
+    private_jjaek = group_admin.jjaeks.create!(
+    group: private_group,
+    content: "Private restricted"
+    )
+
+    GroupMemberBans::Ban.new(
+    private_membership,
+    actor: group_admin,
+    public_reason: "Rule"
+    ).call!
+
+    sign_in member
+
+    get jjaek_path(private_jjaek)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+
   it "denies direct access to a group jjaek for an approval group non-member" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     general = group_admin.jjaeks.create!(group:, content: "Approval general")

@@ -298,6 +298,7 @@ Library 안에서 볼 수 있는 책장:
 - `GroupMembershipRemoval`은 내보내기 후 stale private Group 접근 안내를 위한 현재 표식이며 history나 ban으로 사용하지 않는다
 - 활동 정지·해제 감사는 `ModerationAction`에만 기록하고 membership lifecycle history에 복제하지 않는다
 - GroupMembership 대상 moderation row의 `membership_group_id`/`membership_user_id`는 현재 membership이나 FK가 아니라 target hard delete 후에도 남는 역사적 attribution이다
+- `GroupMemberBan`은 현재 Group/User 이용 제한 상태이며 membership 생성·승인·초대·수락을 차단한다. ban/unban 사유와 이력은 같은 Group/User attribution을 가진 `ModerationAction`으로 보존한다
 
 동아리에서는 같은 `Jjaek` 모델과 optional `group` / `book` association으로 `짹`과 `책짹`을 제공한다.
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
@@ -324,7 +325,7 @@ global admin은 다른 active User를 명시적인 `suspend?` action으로 정�
 자기 자신 정지와 withdrawn User의 정지·복구는 허용하지 않으며 일반 User와 group admin에게 이 권한을 부여하지 않는다.
 정지·복구 권한은 타인을 대신한 일반 작성·수정·삭제·reaction 권한으로 이어지지 않는다.
 이 User 권한의 UI 용어는 **계정 정지 / 계정 복구**이며 서비스 전체 로그인과 신규 mutation에 적용된다.
-group admin과 global admin은 일반 active 회원의 `GroupMembership`에만 적용되는 **동아리 활동 정지 / 동아리 활동 복구** 권한을 가진다. membership과 읽기 권한은 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. 기존 회원 lifecycle 권한이나 User 계정 정지 권한으로 확대되지 않으며 조치는 `GroupMembership` 대상 감사 row로 기록한다.
+group admin은 일반 active 회원의 `GroupMembership`에만 적용되는 **동아리 활동 정지 / 동아리 활동 복구**와 현재 membership을 종료하고 재참여를 막는 **동아리 이용 제한 / 해제** 권한을 가진다. global admin은 모든 Group의 회원·제한·감사 이력을 조사하지만 Group membership moderation을 실행하지 않는다. service-wide 제재는 별도 User 계정 정지·복구를 사용한다.
 global admin의 향후 Group 제재는 회원 제한과도 기존 자발적 운영 종료와도 다른 **동아리 운영 정지 / 동아리 운영 복구**이며 아직 구현하지 않았다.
 세 상태는 서로 자동 전파되지 않는다.
 

@@ -11,10 +11,10 @@ module GroupMemberships
     end
 
     def call!
-      GroupMembership.transaction do
+      membership.group.with_lock do
         membership.with_lock do
           suspension = membership.current_activity_suspension_action
-          raise InvalidState unless membership.activity_suspended? && suspension.present?
+          raise InvalidState unless membership.activity_suspended? && suspension.present? && membership.group.group_admin?(actor)
 
           membership.update!(moderation_status: :normal)
           ModerationAction.create!(

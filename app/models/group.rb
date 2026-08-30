@@ -14,6 +14,7 @@ class Group < ApplicationRecord
   has_many :group_memberships, dependent: :destroy
   has_many :group_membership_removals, dependent: :destroy
   has_many :group_membership_events, dependent: :delete_all
+  has_many :group_member_bans, dependent: :destroy
   has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
   has_many :members, through: :active_group_memberships, source: :user
   has_many :jjaeks, dependent: :restrict_with_error
@@ -43,6 +44,10 @@ class Group < ApplicationRecord
 
   def group_admin?(user)
     user.present? && group_admin_id == user.id
+  end
+
+  def member_banned?(user)
+    user.present? && group_member_bans.exists?(user:)
   end
 
   def transfer_admin_to!(new_admin, by:)

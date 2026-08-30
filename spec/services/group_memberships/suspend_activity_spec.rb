@@ -48,4 +48,13 @@ RSpec.describe GroupMemberships::SuspendActivity do
 
     expect(membership.reload).to be_moderation_status_normal
   end
+
+  it "does not let a global admin perform group membership moderation directly" do
+    global_admin = User.create!(name: "Global actor", email: "activity-global-actor@example.com", password: "password123!", global_admin: true)
+
+    expect {
+      described_class.new(membership, actor: global_admin, public_reason: "Blocked").call!
+    }.to raise_error(described_class::InvalidState)
+    expect(membership.reload).to be_moderation_status_normal
+  end
 end
