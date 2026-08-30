@@ -22,11 +22,11 @@
 - 공개 동아리 즉시 가입
 - 승인 동아리 가입 요청·요청 취소·동아리 관리자 승인
 - 일반 active member 탈퇴와 현재 관리자 membership 삭제 방지
-- 비공개 동아리의 관리자/active member 및 기본 상태 확인을 위한 inactive member 상세 조회 기반
+- 비공개 동아리의 관리자/active member 조회 권한 기반
 - 비공개 동아리 생성과 관리자의 기존 사용자 초대
 - 받은 초대의 수락·거절
 - 동아리 관리자의 이름·소개 수정과 다른 active member로의 관리자 권한 이전
-- 동아리 관리자의 active 구성원 활동 중지·재활성화·최종 내보내기, 승인 요청 거절, 보낸 초대 취소
+- 동아리 관리자의 active 구성원 내보내기, 승인 요청 거절, 보낸 초대 취소
 - 동아리 안의 `짹`과 `책짹` 작성·조회
 - 권한 있는 사용자의 작성자 프로필에서 동아리의 `짹`과 `책짹` 조회
 - 일반 사용자의 동아리 신청과 global admin 승인
@@ -39,13 +39,10 @@
 초대는 `GroupMembership`의 `invited` 상태로 표현하고 수락하면 `active`, 거절하면 삭제한다.
 초대 상태만으로 동아리나 내부 콘텐츠 조회 권한을 얻지는 않는다.
 동아리 종류는 생성 후 변경하지 않는다.
-`pending`은 승인 동아리 가입 승인 대기이며, `inactive`와 혼용하지 않는다.
-동아리 관리자의 구성원 관리는 active → inactive 활동 중지 → 최종 내보내기 순서다.
-활동 중지는 ban이 아니며 관리자가 다시 활성화할 수 있다. 최종 내보내기는 inactive 상태에서만 가능하다.
-inactive member는 기존 자기 탈퇴 경로로 membership을 삭제하거나 새 가입·초대로 상태를 우회할 수 없다.
-비공개 동아리의 inactive member는 동아리 기본 상세와 자신의 활동 중지 상태는 확인할 수 있지만 내부 콘텐츠 읽기·작성 권한은 갖지 않는다.
-일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제한다.
-내보내기·가입 요청 거절·초대 취소는 이후 가입이나 재초대를 영구 차단하지 않는다.
+일반 membership 상태는 `pending` / `invited` / `active`만 사용한다.
+일반 member의 자발적 탈퇴와 동아리 관리자의 내보내기는 membership을 즉시 삭제한다.
+내보내기는 ban이 아니며 이후 기존 Group 유형에 따라 재가입·재신청·재초대할 수 있다.
+재가입 차단은 후속 동아리 이용 제한의 책임이다.
 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성,
 초대 알림, 이메일·링크 초대와 moderation 상세는 미구현이며,
 이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
@@ -236,7 +233,7 @@ ReJjaek row를 자동 삭제하거나 visibility를 변경하지 않는다.
   - 게시물·댓글 읽기와 댓글 작성 모두 현재 멤버만 가능하다.
 
 동아리 Jjaek도 기존 `Comment` 모델을 사용하며 댓글 visibility는 부모 Jjaek을 상속한다.
-댓글 작성과 자기 댓글 수정은 active member만 가능하다. inactive 또는 탈퇴한 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능하다.
+댓글 작성과 자기 댓글 수정은 active member만 가능하다. 탈퇴하거나 내보내진 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능하다.
 동아리 관리자의 타인 댓글 삭제와 moderation은 아직 구현하지 않는다.
 
 ---
@@ -252,7 +249,7 @@ membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 - 탈퇴 후 기존 댓글을 수정할 수 없다.
 - 본인이 작성한 기존 댓글은 탈퇴 후에도 삭제할 수 있다.
 - active 작성자는 자기 기존 동아리 Jjaek을 수정·삭제할 수 있다.
-- inactive 또는 탈퇴한 작성자는 자기 기존 동아리 Jjaek을 수정할 수 없지만 삭제할 수 있다.
+- 탈퇴하거나 내보내진 작성자는 자기 기존 동아리 Jjaek을 수정할 수 없지만 삭제할 수 있다.
 - 댓글이 없는 Jjaek은 hard delete하고, 댓글이 있으면 본문을 제거한 tombstone과 기존 댓글을 보존한다.
 - 삭제된 Jjaek에는 새 댓글·좋아요·ReJjaek을 허용하지 않는다.
 - 동아리 관리자의 타인 Jjaek 수정·삭제 moderation은 아직 구현하지 않는다.
@@ -264,7 +261,7 @@ membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 
 - 조회 가능한 active 동아리의 active member만 새 좋아요를 만들 수 있다.
 - 공개 동아리 비회원은 콘텐츠를 읽을 수 있어도 좋아요를 만들 수 없다.
-- 동아리·membership이 inactive가 되거나 Jjaek이 삭제된 뒤에도, 현재 원문을 볼 수 있다면 기존 자기 좋아요는 철회할 수 있다.
+- 동아리가 inactive가 되거나 membership이 종료되거나 Jjaek이 삭제된 뒤에도, 현재 원문을 볼 수 있다면 기존 자기 좋아요는 철회할 수 있다.
 - 원문 조회 권한을 잃은 경우에는 기존 좋아요 철회를 위해 접근 정책을 우회하지 않는다.
 - 타인의 좋아요는 철회할 수 없다.
 
@@ -272,8 +269,8 @@ membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 
 ## moderation 정책
 
-group admin과 global admin은 일반 active 회원의 동아리 활동을 정지·복구할 수 있다. membership과 내부 콘텐츠 읽기 권한은 유지하며 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. 이는 기존 회원 비활성화 lifecycle 및 User 계정 정지와 별도이고 서로 자동 전파되지 않는다.
-활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴로 membership이 삭제되면 현재 정지도 종료되고 새 membership에 자동 승계하지 않으며, 재가입 차단은 아직 구현하지 않은 동아리 이용 제한의 책임이다. 기존 감사 row는 membership 삭제 후에도 보존한다.
+group admin과 global admin은 일반 active 회원의 동아리 활동을 정지·복구할 수 있다. membership과 내부 콘텐츠 읽기 권한은 유지하며 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. 이는 일반 membership lifecycle 및 User 계정 정지와 별도이고 서로 자동 전파되지 않는다.
+활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴나 내보내기로 membership이 삭제되면 현재 정지도 종료되고 새 membership에 자동 승계하지 않으며, 재가입 차단은 아직 구현하지 않은 동아리 이용 제한의 책임이다. 기존 감사 row는 membership 삭제 후에도 보존한다.
 
 동아리 관리자는 자기 Group의 Jjaek·책짹·Comment를 사유와 함께 숨김·복구할 수 있어야 한다.
 원문 수정·hard delete나 서비스 전체 User 정지는 허용하지 않으며 현재 Group당 group admin 1명 구조를 유지한다.

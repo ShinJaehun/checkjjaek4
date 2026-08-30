@@ -138,16 +138,12 @@ RSpec.describe "Likes", type: :request do
     expect(document.at_css(%(form[action="#{jjaek_like_path(group_jjaek)}"] button))).to be_nil
   end
 
-  it "does not create a like for an inactive group or an inactive or ended membership" do
+  it "does not create a like for an inactive group or ended membership" do
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     sign_in user
 
-    membership.update!(status: :inactive)
-    expect { post jjaek_like_path(group_jjaek) }.not_to change(Like, :count)
-
-    membership.update!(status: :active)
     membership.destroy!
     expect { post jjaek_like_path(group_jjaek) }.not_to change(Like, :count)
 
@@ -168,17 +164,12 @@ RSpec.describe "Likes", type: :request do
     expect { delete jjaek_like_path(group_jjaek) }.to change(Like, :count).by(-1)
   end
 
-  it "lets a user remove a visible own like after group or membership deactivation" do
+  it "lets a user remove a visible own like after group closure" do
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
     sign_in user
 
-    group_jjaek.likes.create!(user:)
-    membership.update!(status: :inactive)
-    expect { delete jjaek_like_path(group_jjaek) }.to change(Like, :count).by(-1)
-
-    membership.update!(status: :active)
     group_jjaek.likes.create!(user:)
     group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
     expect { delete jjaek_like_path(group_jjaek) }.to change(Like, :count).by(-1)
@@ -228,14 +219,14 @@ RSpec.describe "Likes", type: :request do
 
     [
       -> { group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current) },
-      -> { membership.update!(status: :inactive) },
+      -> { membership.destroy! },
       -> {
         group_jjaek.comments.create!(user: author, content: "Keeps shell")
         group_jjaek.destroy_or_tombstone!
       }
     ].each do |make_like_unavailable|
       group.update_columns(lifecycle_status: Group.lifecycle_statuses[:active], closure_reason: nil, closed_at: nil)
-      membership.update_column(:status, GroupMembership.statuses[:active])
+      membership = group.group_memberships.find_or_create_by!(user:) { |record| record.status = :active }
       group_jjaek.update_columns(deleted_at: nil, content: "Group jjaek")
       group_jjaek.likes.create!(user:)
       make_like_unavailable.call

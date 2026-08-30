@@ -29,10 +29,4 @@ RSpec.describe GroupMemberships::RestoreActivity do
     expect { described_class.new(membership, actor: group_admin, public_reason: "Again").call! }.to raise_error(described_class::InvalidState)
   end
 
-  it "retains suspension across ordinary deactivate and reactivate transitions" do
-    membership.update!(status: :inactive)
-    membership.update!(status: :active)
-
-    expect(membership.reload).to be_activity_suspended
-  end
 end

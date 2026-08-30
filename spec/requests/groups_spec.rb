@@ -125,6 +125,62 @@ RSpec.describe "Groups", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "redirects a removed private group member's stale URL with an explanation" do
+    group_admin = User.create!(name: "Group admin", email: "removed-private-group-admin@example.com", password: "password123!")
+    private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Removed private", group_type: :private_group)
+    membership = private_group.group_memberships.create!(user:, status: :active)
+
+    sign_in group_admin
+    delete remove_group_group_membership_path(private_group, membership)
+
+    sign_in user
+    get group_path(private_group)
+
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.removed"))
+
+    get group_path(private_group)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.removed"))
+  end
+
+  it "does not expose a private group stale URL after the member leaves" do
+    group_admin = User.create!(name: "Group admin", email: "left-private-group-admin@example.com", password: "password123!")
+    private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Left private", group_type: :private_group)
+    membership = private_group.group_memberships.create!(user:, status: :active)
+
+    sign_in user
+    delete group_group_membership_path(private_group, membership)
+    expect(GroupMembershipRemoval.where(group: private_group, user:)).to be_empty
+    get group_path(private_group)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "keeps a nonexistent group indistinguishable from an unauthorized group" do
+    sign_in user
+
+    get group_path(Group.maximum(:id).to_i + 1)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "keeps public and approval group details visible after membership ends" do
+    group_admin = User.create!(name: "Group admin", email: "visible-former-group-admin@example.com", password: "password123!")
+    public_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Former public", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Former approval", group_type: :approval_group)
+    public_membership = public_group.group_memberships.create!(user:, status: :active)
+    approval_membership = approval_group.group_memberships.create!(user:, status: :active)
+    public_membership.destroy!
+    approval_membership.destroy!
+    sign_in user
+
+    get group_path(public_group)
+    expect(response).to have_http_status(:ok)
+    get group_path(approval_group)
+    expect(response).to have_http_status(:ok)
+  end
+
   it "lets a global admin inspect jjaeks in a private group without membership" do
     global_admin = User.create!(name: "Global admin", email: "private-group-global-admin@example.com", password: "password123!", global_admin: true)
     group_admin = User.create!(name: "Group admin", email: "private-content-group-admin@example.com", password: "password123!")
@@ -201,23 +257,21 @@ RSpec.describe "Groups", type: :request do
     end
 
     it "allows the group admin and global admin but blocks members and non-members" do
-      inactive_user = User.create!(name: "Inactive member", email: "managed-inactive@example.com", password: "password123!")
       pending_user = User.create!(name: "Pending member", email: "managed-pending@example.com", password: "password123!")
-      inactive_membership = group.group_memberships.create!(user: inactive_user, status: :inactive)
       pending_membership = group.group_memberships.create!(user: pending_user, status: :pending)
       sign_in user
       get group_members_path(group)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("회원 관리", member.name, inactive_user.name, pending_user.name, "활동 회원", "동아리 관리자")
+      expect(response.body).to include("회원 관리", member.name, pending_user.name, "활동 회원", "동아리 관리자")
+      expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{remove_group_group_membership_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
 
       global_admin = User.create!(name: "Global admin", email: "members-global-admin@example.com", password: "password123!", global_admin: true)
       sign_in global_admin
       get group_members_path(group)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(member.name, inactive_user.name, pending_user.name)
+      expect(response.body).to include(member.name, pending_user.name)
       page = Nokogiri::HTML(response.body)
-      expect(page.at_css(%(form[action="#{deactivate_group_group_membership_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_nil
-      expect(page.at_css(%(form[action="#{reactivate_group_group_membership_path(group, inactive_membership)}"]))).to be_nil
+      expect(page.at_css(%(form[action="#{remove_group_group_membership_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_nil
       expect(page.at_css(%(form[action="#{group_group_membership_path(group, pending_membership)}"]))).to be_nil
 
       private_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Private members", group_type: :private_group)
@@ -323,21 +377,16 @@ RSpec.describe "Groups", type: :request do
 
       get group_path(group)
       expect(response.body).to include("회원 관리", "동아리 관리")
-      expect(response.body).not_to include(member.name, "활동 회원", "비활성 회원")
+      expect(response.body).not_to include(member.name, "활동 회원")
       expect(response.body).not_to include("동아리 운영 종료", "재활성화 요청")
       expect(response.body).not_to include("운영 이력")
       expect(response.body).not_to include("내보내기")
 
-      group.group_memberships.find_by!(user: member).update!(status: :inactive)
-      get group_members_path(group)
-      expect(response.body).to include("비활성 회원", "회원 활성화", "내보내기")
-
       sign_in member
       get group_path(group)
-      expect(response.body).to include("비활성 회원")
       page = Nokogiri::HTML(response.body)
       expect(page.at_css(%(a[href="#{edit_group_path(group)}"]))).to be_nil
-      expect(response.body).not_to include("회원 관리", "회원 활성화", "내보내기")
+      expect(response.body).not_to include("회원 관리", "내보내기")
     end
 
     it "lets only the group_admin close an active group and request reactivation" do
@@ -482,8 +531,6 @@ RSpec.describe "Groups", type: :request do
     it "blocks non-admin, non-active targets, and pending groups" do
       active_member = new_admin
       group.group_memberships.create!(user: active_member, status: :active)
-      inactive_member = User.create!(name: "Inactive", email: "request-inactive-admin@example.com", password: "password123!", password_confirmation: "password123!")
-      group.group_memberships.create!(user: inactive_member, status: :inactive)
       outsider = User.create!(name: "Outsider", email: "request-outsider-admin@example.com", password: "password123!", password_confirmation: "password123!")
 
       sign_in active_member
@@ -492,7 +539,7 @@ RSpec.describe "Groups", type: :request do
       expect(group.reload.group_admin).to eq(user)
 
       sign_in user
-      [ inactive_member, outsider ].each do |target|
+      [ outsider ].each do |target|
         patch transfer_admin_group_path(group), params: { new_admin_id: target.id }
         expect(response).to redirect_to(group_path(group))
         expect(group.reload.group_admin).to eq(user)

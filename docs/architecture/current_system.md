@@ -45,7 +45,7 @@
 - `Group`: 일반 사용자 독서 동아리와 동아리 종류·단일 관리자(`group_admin_id`)
 - `User`: `withdrawn_at` 기반 terminal 탈퇴와 별도 `suspended_at` 기반 가역적 운영 정지 상태
 - `Group`: global admin 승인 기반 pending_approval/active/inactive 운영 상태
-- `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active/inactive 상태
+- `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active 상태와 별도 활동 moderation 상태
 
 ---
 
@@ -230,24 +230,20 @@
 - 공개 동아리는 즉시 가입, 승인 동아리는 pending 요청 후 동아리 관리자 승인 방식
 - pending 요청은 요청자 본인이 취소할 수 있음
 - active 일반 member는 탈퇴할 수 있고 현재 동아리 관리자는 탈퇴할 수 없음
-- 비공개 동아리는 동아리 관리자/active/inactive member가 목록과 기본 상세에서 조회할 수 있음
-- 비공개 동아리의 inactive member는 자신의 비활성 상태를 확인할 수 있지만 내부 콘텐츠 읽기·작성 권한은 없음
+- 비공개 동아리는 동아리 관리자와 active member가 목록과 기본 상세에서 조회할 수 있음
 - 일반 사용자가 비공개 동아리를 생성할 수 있음
 - 비공개 동아리 관리자가 기존 사용자를 `invited` membership으로 초대할 수 있음
 - 초대받은 사용자는 동아리 목록의 별도 초대 영역에서 수락하거나 거절할 수 있음
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
 - 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
-- 동아리 관리자는 회원 관리 화면에서 active 회원을 비활성화하고 inactive 회원을 다시 활성화하거나 최종 내보낼 수 있음
-- 이 기존 membership lifecycle은 moderation의 동아리 활동 정지와 별개임
+- 동아리 관리자는 회원 관리 화면에서 active 일반 회원을 직접 내보낼 수 있음
 - group admin과 global admin은 일반 active 회원을 별도 `moderation_status`로 동아리 활동 정지·복구할 수 있음
 - 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
 - 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함. 재가입 차단은 후속 동아리 이용 제한 범위임
 - 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
 - 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
-- inactive는 active 권한을 부여하지 않으며 pending 가입 요청과 별도 상태임
-- inactive membership은 자기 탈퇴나 새 가입·초대로 상태를 우회할 수 없음
-- 일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제함
-- 회원 비활성화·내보내기·거절·초대 취소는 ban이 아니며 재가입 또는 재초대를 영구 차단하지 않음
+- 일반 member의 자발적 탈퇴와 관리자의 내보내기는 membership을 즉시 삭제함
+- 내보내기·거절·초대 취소는 ban이 아니며 재가입 또는 재초대를 영구 차단하지 않음
 - active member는 동아리 안에서 `짹`과 `책짹`을 작성할 수 있음
 - 두 형태 모두 `Jjaek`의 optional `group_id` / `book_id` 조합으로 표현함
 - 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
@@ -256,9 +252,9 @@
 - 가입하지 않은 public/approval/private 동아리 Jjaek은 홈 피드에 포함하지 않으며 전역 책 상세에서도 제외함
 - 동아리 Jjaek은 기존 `Comment` 모델과 Turbo panel을 사용함
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
-- inactive·탈퇴 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
-- 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 inactive·탈퇴 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
-- 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있고, 조회 가능한 기존 자기 좋아요는 이후 동아리·membership 비활성화나 Jjaek 삭제 상태에서도 철회할 수 있음
+- 탈퇴하거나 내보내진 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
+- 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 탈퇴하거나 내보내진 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
+- 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있고, 조회 가능한 기존 자기 좋아요는 이후 동아리 운영 종료·membership 종료·Jjaek 삭제 상태에서도 철회할 수 있음
 - active 공개 동아리의 Jjaek·책짹은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
 - 승인·비공개·inactive·pending 동아리 원문의 외부 ReJjaek과 개인 Jjaek의 동아리 공유·동아리 안에서의 ReJjaek 작성은 허용하지 않음
 - 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
@@ -273,7 +269,7 @@
 - admin User 상세의 계정 운영 이력은 가입 시각, 전체 suspend/restore 감사 row와 탈퇴 시각을 오래된 순으로 표시함
 - 정지 시 기존 콘텐츠·관계·서재·Group membership과 관리자 연결을 보존하고 콘텐츠 visibility나 Group lifecycle을 변경하지 않음
 - 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
-- GroupMembership 대상 동아리 활동 정지/복구는 별도 상태와 append-only 감사 기록으로 구현되어 있으며 현재 active/inactive 구성원 lifecycle이나 User 계정 정지를 재사용하지 않음
+- GroupMembership 대상 동아리 활동 정지/복구는 별도 상태와 append-only 감사 기록으로 구현되어 있으며 일반 membership lifecycle이나 User 계정 정지를 재사용하지 않음
 - Jjaek·Comment 숨김/복구, Group moderation 운영 정지/복구, 해당 action UI와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴
@@ -283,7 +279,7 @@
 - Follow, BookFriendship, Like, Notification, 일반 GroupMembership과 개인 서재·BookActivity를 정리함
 - active Group 관리자는 이전 또는 운영 종료 전 탈퇴할 수 없음
 - 최초 개설 pending 신청은 관리자 외 membership·콘텐츠·예상 밖 event가 없을 때만 정리하며 아니면 탈퇴를 rollback함
-- 재운영 pending Group은 삭제하지 않고 inactive로 복귀시켜 역사적 관리자 reference·inactive membership·콘텐츠·lifecycle history를 보존함
+- 재운영 pending Group은 삭제하지 않고 inactive로 복귀시키며 `group_admin_id`와 withdrawn User, 콘텐츠, lifecycle history로 역사적 관리자 attribution을 보존함
 - withdrawn user 대상 Follow, 책친구, Group 초대와 profile-context Jjaek 생성을 차단함
 
 관련 코드:

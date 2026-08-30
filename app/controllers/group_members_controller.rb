@@ -4,7 +4,6 @@ class GroupMembersController < ApplicationController
     authorize @group, :view_members?
 
     @active_memberships = @group.group_memberships.active.includes(:user).order(:created_at)
-    @inactive_memberships = @group.group_memberships.inactive.includes(:user).order(:created_at)
     @pending_memberships = if @group.approval_group?
       @group.group_memberships.pending.includes(:user).order(:created_at)
     else
@@ -41,7 +40,7 @@ class GroupMembersController < ApplicationController
   end
 
   def activity_moderation_actions_by_membership_id
-    membership_ids = @active_memberships.ids + @inactive_memberships.ids
+    membership_ids = @active_memberships.ids
 
     ModerationAction.where(target_type: "GroupMembership", target_id: membership_ids)
       .includes(:actor, :reversal_of)

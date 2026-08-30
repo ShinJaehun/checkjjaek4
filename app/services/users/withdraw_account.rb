@@ -80,13 +80,7 @@ module Users
     end
 
     def clean_group_memberships!
-      historical_membership_ids = administered_groups.select(&:inactive?).filter_map do |group|
-        membership = group.group_memberships.find_by(user: user)
-        membership&.update!(status: :inactive) if membership&.active?
-        membership&.id
-      end
-
-      user.group_memberships.where.not(id: historical_membership_ids).find_each(&:destroy!)
+      user.group_memberships.find_each(&:destroy!)
     end
 
     def clean_social_data!

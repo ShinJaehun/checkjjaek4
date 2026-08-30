@@ -21,8 +21,6 @@ RSpec.describe GroupMembershipPolicy do
 
     expect(policy.approve?).to be(false)
     expect(policy.reject?).to be(false)
-    expect(policy.deactivate?).to be(false)
-    expect(policy.reactivate?).to be(false)
     expect(policy.remove?).to be(false)
   end
 
@@ -48,10 +46,9 @@ RSpec.describe GroupMembershipPolicy do
 
     expect(described_class.new(group_admin, group_admin_membership).suspend_activity?).to be(false)
 
-    %i[pending invited inactive].each_with_index do |status, index|
+    %i[pending invited].each_with_index do |status, index|
       target = User.create!(name: status.to_s, email: "membership-state-#{index}@example.com", password: "password123!")
-      membership = group.group_memberships.create!(user: target, status: status == :inactive ? :active : status)
-      membership.update!(status: :inactive) if status == :inactive
+      membership = group.group_memberships.create!(user: target, status:)
 
       expect(described_class.new(group_admin, membership).suspend_activity?).to be(false)
       expect(described_class.new(group_admin, membership).restore_activity?).to be(false)
@@ -61,15 +58,12 @@ RSpec.describe GroupMembershipPolicy do
   it "blocks actions that create active participation unless the group is active" do
     private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Lifecycle", group_type: :private_group)
     invited = private_group.group_memberships.create!(user: member, status: :invited)
-    inactive_member = private_group.group_memberships.create!(user: other_user, status: :active)
-    inactive_member.update!(status: :inactive)
     private_group.update!(
       lifecycle_status: :inactive,
       closure_reason: "Test closure",
       closed_at: Time.current
     )
     expect(described_class.new(member, invited).accept?).to be(false)
-    expect(described_class.new(group_admin, inactive_member).reactivate?).to be(false)
     expect(described_class.new(group_admin, private_group.group_memberships.build(user: User.new, status: :invited)).invite?).to be(false)
   end
 
@@ -87,8 +81,6 @@ RSpec.describe GroupMembershipPolicy do
     expect(described_class.new(other_user, membership).destroy?).to be(false)
     expect(described_class.new(group_admin, group_admin_membership).destroy?).to be(false)
 
-    membership.update_column(:status, GroupMembership.statuses[:inactive])
-    expect(described_class.new(member, membership.reload).destroy?).to be(false)
   end
 
   it "allows only a private group group_admin to invite another user" do
@@ -116,30 +108,17 @@ RSpec.describe GroupMembershipPolicy do
     expect(described_class.new(group_admin, invitation).decline?).to be(false)
   end
 
-  it "allows only the group_admin to deactivate an active non-group_admin member" do
+  it "allows only the group_admin to remove an active non-group_admin member" do
     membership = group.group_memberships.create!(user: member, status: :active)
     group_admin_membership = group.group_memberships.find_by!(user: group_admin)
 
-    expect(described_class.new(group_admin, membership).deactivate?).to be(true)
-    expect(described_class.new(other_user, membership).deactivate?).to be(false)
-    expect(described_class.new(group_admin, group_admin_membership).deactivate?).to be(false)
+    expect(described_class.new(group_admin, membership).remove?).to be(true)
+    expect(described_class.new(other_user, membership).remove?).to be(false)
+    expect(described_class.new(group_admin, group_admin_membership).remove?).to be(false)
 
     membership.update_column(:status, GroupMembership.statuses[:pending])
-    expect(described_class.new(group_admin, membership.reload).deactivate?).to be(false)
+    expect(described_class.new(group_admin, membership.reload).remove?).to be(false)
     membership.update_column(:status, GroupMembership.statuses[:invited])
-    expect(described_class.new(group_admin, membership.reload).deactivate?).to be(false)
-  end
-
-  it "allows only the group_admin to reactivate or remove an inactive non-group_admin member" do
-    membership = group.group_memberships.create!(user: member, status: :active)
-    membership.update!(status: :inactive)
-
-    expect(described_class.new(group_admin, membership).reactivate?).to be(true)
-    expect(described_class.new(group_admin, membership).remove?).to be(true)
-    expect(described_class.new(other_user, membership).reactivate?).to be(false)
-    expect(described_class.new(other_user, membership).remove?).to be(false)
-
-    membership.update!(status: :active)
     expect(described_class.new(group_admin, membership).remove?).to be(false)
   end
 

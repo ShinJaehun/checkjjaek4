@@ -26,8 +26,6 @@ Rails.application.routes.draw do
       delete :reject, on: :member
       delete :revoke, on: :member
       delete :remove, on: :member
-      patch :deactivate, on: :member
-      patch :reactivate, on: :member
       patch :suspend_activity, on: :member
       patch :restore_activity, on: :member
     end

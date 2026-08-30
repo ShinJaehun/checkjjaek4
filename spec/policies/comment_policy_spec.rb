@@ -104,21 +104,18 @@ RSpec.describe CommentPolicy do
       expect(described_class.new(user, comment).create?).to be(false)
     end
 
-    it "blocks group comment creation and update when membership is inactive" do
+    it "blocks group comment creation and update after membership ends" do
       group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Approval", group_type: :approval_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       comment = group_jjaek.comments.create!(user:, content: "Existing")
-      membership.update!(status: :inactive)
+      membership.destroy!
 
       expect(described_class.new(user, group_jjaek.comments.build(user:, content: "Blocked")).create?).to be(false)
       expect(described_class.new(user, comment).update?).to be(false)
       expect(described_class.new(user, comment).destroy?).to be(true)
       expect(described_class.new(other_user, comment).destroy?).to be(false)
 
-      membership.destroy!
-      expect(described_class.new(user, comment).update?).to be(false)
-      expect(described_class.new(user, comment).destroy?).to be(true)
     end
   end
 end

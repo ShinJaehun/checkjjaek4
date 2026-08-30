@@ -39,6 +39,12 @@ class User < ApplicationRecord
            inverse_of: :group_admin,
            dependent: :restrict_with_error
   has_many :group_memberships, dependent: :destroy
+  has_many :group_membership_removals, dependent: :destroy
+  has_many :performed_group_membership_removals,
+           class_name: "GroupMembershipRemoval",
+           foreign_key: :removed_by_id,
+           inverse_of: :removed_by,
+           dependent: :restrict_with_error
   has_many :group_lifecycle_events,
            foreign_key: :actor_id,
            inverse_of: :actor

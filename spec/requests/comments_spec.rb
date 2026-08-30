@@ -525,21 +525,6 @@ RSpec.describe "Comments", type: :request do
       end
     end
 
-    it "lets an inactive private member see the group but not its Jjaek or comments" do
-      group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Inactive private", group_type: :private_group)
-      membership = group.group_memberships.create!(user:, status: :active)
-      group_jjaek = author.jjaeks.create!(group:, content: "Hidden while inactive")
-      membership.update!(status: :inactive)
-      sign_in user
-
-      get group_path(group)
-      expect(response).to have_http_status(:ok)
-      get jjaek_path(group_jjaek)
-      expect(response).to have_http_status(:not_found)
-      get jjaek_comments_path(group_jjaek)
-      expect(response).to have_http_status(:not_found)
-    end
-
     it "returns the group panel with 422 on validation failure" do
       group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Invalid comment", group_type: :approval_group)
       group.group_memberships.create!(user:, status: :active)
@@ -573,13 +558,13 @@ RSpec.describe "Comments", type: :request do
       expect(response.body).not_to include("Delete me")
     end
 
-    it "lets an inactive or former member delete only their own old comment safely" do
+    it "lets a former member delete only their own old comment safely" do
       group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Old comments", group_type: :private_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Private source")
       own_comment = group_jjaek.comments.create!(user:, content: "Old comment")
       other_comment = group_jjaek.comments.create!(user: author, content: "Other comment")
-      membership.update!(status: :inactive)
+      membership.destroy!
       sign_in user
 
       expect {
@@ -593,8 +578,6 @@ RSpec.describe "Comments", type: :request do
         delete jjaek_comment_path(group_jjaek, other_comment)
       }.not_to change(Comment, :count)
 
-      membership.update!(status: :active)
-      membership.destroy!
       former_comment = group_jjaek.comments.create!(user:, content: "Former comment")
       expect {
         delete jjaek_comment_path(group_jjaek, former_comment)
@@ -641,12 +624,12 @@ RSpec.describe "Comments", type: :request do
     end
 
 
-    it "hides edit but keeps delete for an inactive member's public group comment" do
-      group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Inactive controls", group_type: :public_group)
+    it "hides edit but keeps delete for a former member's public group comment" do
+      group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Former controls", group_type: :public_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = author.jjaeks.create!(group:, content: "Controls")
       own_comment = group_jjaek.comments.create!(user:, content: "Mine")
-      membership.update!(status: :inactive)
+      membership.destroy!
       sign_in user
 
       get jjaek_path(group_jjaek)

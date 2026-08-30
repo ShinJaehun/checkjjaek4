@@ -113,29 +113,25 @@ RSpec.describe LikePolicy do
       end
     end
 
-    it "does not let an inactive group or inactive membership create a like" do
+    it "does not let an inactive group or ended membership create a like" do
       group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
 
-      membership.update!(status: :inactive)
+      membership.destroy!
       expect(described_class.new(user, group_jjaek.likes.build(user:)).create?).to be(false)
 
-      membership.update!(status: :active)
+      group.group_memberships.create!(user:, status: :active)
       group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
       expect(described_class.new(user, group_jjaek.likes.build(user:)).create?).to be(false)
     end
 
-    it "lets the owner remove a visible group like after the group or membership becomes inactive" do
+    it "lets the owner remove a visible group like after the group becomes inactive" do
       group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
       membership = group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
       like = group_jjaek.likes.create!(user:)
 
-      membership.update!(status: :inactive)
-      expect(described_class.new(user, like).destroy?).to be(true)
-
-      membership.update!(status: :active)
       group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
       expect(described_class.new(user, like).destroy?).to be(true)
     end

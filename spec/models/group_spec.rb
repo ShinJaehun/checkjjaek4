@@ -178,12 +178,10 @@ RSpec.describe Group, type: :model do
       nonmember = new_admin
       pending = User.create!(name: "Pending", email: "transfer-pending@example.com", password: "password123!", password_confirmation: "password123!")
       invited = User.create!(name: "Invited", email: "transfer-invited@example.com", password: "password123!", password_confirmation: "password123!")
-      inactive = User.create!(name: "Inactive", email: "transfer-inactive@example.com", password: "password123!", password_confirmation: "password123!")
       group.group_memberships.create!(user: pending, status: :pending)
       group.group_memberships.create!(user: invited, status: :invited)
-      group.group_memberships.create!(user: inactive, status: :inactive)
 
-      [ nonmember, pending, invited, inactive, group_admin ].each do |target|
+      [ nonmember, pending, invited, group_admin ].each do |target|
         expect { group.transfer_admin_to!(target, by: group_admin) }.to raise_error(ActiveRecord::RecordInvalid)
         expect(group.reload.group_admin).to eq(group_admin)
       end

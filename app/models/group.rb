@@ -12,6 +12,7 @@ class Group < ApplicationRecord
 
   belongs_to :group_admin, class_name: "User", inverse_of: :administered_groups
   has_many :group_memberships, dependent: :destroy
+  has_many :group_membership_removals, dependent: :destroy
   has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
   has_many :members, through: :active_group_memberships, source: :user
   has_many :jjaeks, dependent: :restrict_with_error

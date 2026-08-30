@@ -155,7 +155,6 @@ en:
     members:
       management_title: "Member management"
       active_title: "Active members"
-      inactive_title: "Inactive members"
       back: "Back to club"
     invitations:
       title: "Club invitations"
@@ -356,7 +355,6 @@ en:
       pending: "Pending approval"
       active: "Member"
       invited: "Invited"
-      inactive: "Inactive"
     actions:
       join: "Join"
       request: "Request to join"
@@ -369,8 +367,6 @@ en:
       reject: "Reject"
       revoke: "Cancel invitation"
       remove: "Remove"
-      deactivate: "Deactivate member"
-      reactivate: "Reactivate member"
     notices:
       joined: "You joined the club."
       requested: "Join request sent."
@@ -383,11 +379,10 @@ en:
       rejected: "Join request rejected."
       revoked: "Club invitation cancelled."
       removed: "Member removed from the club."
-      deactivated: "Member deactivated."
-      reactivated: "Member reactivated."
       activity_suspended: "Club activity was suspended."
       activity_restored: "Club activity was restored."
     alerts:
+      removed: "You were removed from the club."
       suspend_activity_failed: "Club activity could not be suspended."
       restore_activity_failed: "Club activity could not be restored."
     moderation:

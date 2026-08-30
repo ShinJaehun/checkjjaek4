@@ -55,7 +55,7 @@ Group lifecycle은 공간 자체가 운영 가능한지를 나타낸다. 사용�
 구현에서는 `pending_approval` / `active` / `inactive`를 사용해
 `GroupMembership.pending`과 Group 승인 대기를 구분한다.
 
-반면 기존 `GroupMembership`의 `pending` / `invited` / `active` / `inactive`는
+반면 `GroupMembership`의 `pending` / `invited` / `active`는
 한 사용자가 특정 Group 안에서 어떤 상태인지를 나타낸다. 두 상태 축은 서로 독립적이다.
 
 기존 Group의 public / approval / private도 접근·가입 방식이며 Group lifecycle과 독립적이다.
@@ -93,7 +93,7 @@ active Group 관리자는 Group을 그대로 둔 채 계정을 탈퇴할 수 없
 
 - Group에는 정확히 한 명의 동아리 관리자(`group_admin`)가 있으며 내부적으로 `Group.group_admin_id`가 이를 가리킨다.
 - active/inactive Group의 현재 관리자 또는 global admin은 다른 active member에게 권한을 이전할 수 있다.
-- pending, invited, inactive member나 Group 밖 사용자는 대상이 될 수 없고 pending Group에서는 이전할 수 없다.
+- pending, invited member나 Group 밖 사용자는 대상이 될 수 없고 pending Group에서는 이전할 수 없다.
 - 이전은 Group row lock 안에서 현재 관리자와 대상 membership을 재검증한다.
 - 이전 후 새 관리자는 active membership을 유지하고 기존 관리자는 일반 active member로 남아 정상 탈퇴할 수 있다.
 
@@ -115,7 +115,7 @@ Group hard delete는 이 lifecycle의 기본 동작이 아니다.
 계정 탈퇴 시 `closed_at`이 없는 최초 개설 승인 대기 Group은 관리자 외 membership, 운영 콘텐츠 또는 예상 밖 lifecycle
 event가 없는 정상 신청만 정리하며, 예상 밖 데이터가 있으면 전체 탈퇴를 중단한다. `closed_at`이 있는 재운영 승인 대기
 Group은 삭제하지 않고 재운영 신청만 취소해 inactive로 되돌린다. 이때 `group_admin_id`, 기존 콘텐츠, 종료 metadata,
-`reactivation_requested`를 포함한 lifecycle history와 익명화된 역사적 관리자 membership을 inactive 상태로 보존한다.
+`reactivation_requested`를 포함한 lifecycle history와 `group_admin_id`가 가리키는 익명화된 역사적 관리자를 보존한다.
 
 ---
 

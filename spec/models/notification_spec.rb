@@ -66,7 +66,7 @@ RSpec.describe Notification, type: :model do
       described_class.notify_comment_created(visible_comment)
     }.to change(described_class, :count).by(1)
 
-    author_membership.update!(status: :inactive)
+    author_membership.destroy!
     hidden_comment = group_jjaek.comments.create!(user: actor, content: "Hidden")
     expect {
       described_class.notify_comment_created(hidden_comment)

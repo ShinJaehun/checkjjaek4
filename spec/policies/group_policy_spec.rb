@@ -21,7 +21,7 @@ RSpec.describe GroupPolicy do
       expect(described_class.new(viewer, approval_group).show?).to be(true)
     end
 
-    it "allows active and inactive members to view a private group" do
+    it "allows only active members to view a private group" do
       private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
 
       expect(described_class.new(viewer, private_group).show?).to be(false)
@@ -32,9 +32,9 @@ RSpec.describe GroupPolicy do
       expect(active_policy.read_jjaeks?).to be(true)
       expect(active_policy.create_jjaek?).to be(true)
 
-      private_group.group_memberships.find_by!(user: viewer).update!(status: :inactive)
+      private_group.group_memberships.find_by!(user: viewer).destroy!
       policy = described_class.new(viewer, private_group)
-      expect(policy.show?).to be(true)
+      expect(policy.show?).to be(false)
       expect(policy.read_jjaeks?).to be(false)
       expect(policy.create_jjaek?).to be(false)
     end
@@ -76,20 +76,18 @@ RSpec.describe GroupPolicy do
   end
 
   describe described_class::Scope do
-    it "includes discoverable groups and active or inactive private groups" do
+    it "includes discoverable groups and active private group memberships" do
       public_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
       approval_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
       joined_private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Joined private", group_type: :private_group)
       hidden_private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Hidden private", group_type: :private_group)
-      inactive_private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Inactive private", group_type: :private_group)
       invited_private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Invited private", group_type: :private_group)
       joined_private_group.group_memberships.create!(user: viewer, status: :active)
-      inactive_private_group.group_memberships.create!(user: viewer, status: :inactive)
       invited_private_group.group_memberships.create!(user: viewer, status: :invited)
 
       resolved = described_class.new(viewer, Group.all).resolve
 
-      expect(resolved).to include(public_group, approval_group, joined_private_group, inactive_private_group)
+      expect(resolved).to include(public_group, approval_group, joined_private_group)
       expect(resolved).not_to include(hidden_private_group, invited_private_group)
     end
 

@@ -155,7 +155,6 @@ ko:
     members:
       management_title: "회원 관리"
       active_title: "활동 회원"
-      inactive_title: "비활성 회원"
       back: "동아리로 돌아가기"
     invitations:
       title: "받은 동아리 초대"
@@ -356,7 +355,6 @@ ko:
       pending: "승인 대기"
       active: "참여 중"
       invited: "초대됨"
-      inactive: "비활성 회원"
     actions:
       join: "가입하기"
       request: "가입 요청"
@@ -369,8 +367,6 @@ ko:
       reject: "거절"
       revoke: "초대 취소"
       remove: "내보내기"
-      deactivate: "회원 비활성화"
-      reactivate: "회원 활성화"
     notices:
       joined: "동아리에 가입했습니다."
       requested: "가입을 요청했습니다."
@@ -383,11 +379,10 @@ ko:
       rejected: "가입 요청을 거절했습니다."
       revoked: "동아리 초대를 취소했습니다."
       removed: "동아리에서 내보냈습니다."
-      deactivated: "회원을 비활성화했습니다."
-      reactivated: "회원을 활성화했습니다."
       activity_suspended: "동아리 활동을 정지했습니다."
       activity_restored: "동아리 활동을 복구했습니다."
     alerts:
+      removed: "동아리에서 내보내졌습니다."
       suspend_activity_failed: "동아리 활동을 정지할 수 없습니다."
       restore_activity_failed: "동아리 활동을 복구할 수 없습니다."
     moderation:

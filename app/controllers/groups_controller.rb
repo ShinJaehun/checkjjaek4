@@ -122,6 +122,10 @@ class GroupsController < ApplicationController
 
   def set_group
     @group = policy_scope(Group).find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    raise unless action_name == "show" && GroupMembershipRemoval.exists?(group_id: params[:id], user: current_user)
+
+    redirect_to groups_path, alert: t("group_memberships.alerts.removed")
   end
 
   def group_transfer_redirect_path

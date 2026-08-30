@@ -22,13 +22,9 @@ RSpec.describe GroupMemberships::SuspendActivity do
     )
   end
 
-  it "rejects duplicate, non-active, and group-admin membership suspension" do
+  it "rejects duplicate and group-admin membership suspension" do
     described_class.new(membership, actor: group_admin, public_reason: "First").call!
     expect { described_class.new(membership, actor: group_admin, public_reason: "Again").call! }.to raise_error(described_class::InvalidState)
-
-    inactive = group.group_memberships.create!(user: User.create!(name: "Inactive", email: "activity-inactive@example.com", password: "password123!"), status: :active)
-    inactive.update!(status: :inactive)
-    expect { described_class.new(inactive, actor: group_admin, public_reason: "Blocked").call! }.to raise_error(described_class::InvalidState)
 
     admin_membership = group.group_memberships.find_by!(user: group_admin)
     expect { described_class.new(admin_membership, actor: group_admin, public_reason: "Blocked").call! }.to raise_error(described_class::InvalidState)

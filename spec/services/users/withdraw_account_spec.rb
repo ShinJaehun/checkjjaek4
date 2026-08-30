@@ -81,7 +81,7 @@ RSpec.describe Users::WithdrawAccount do
     expect(jjaek.reload.user).to eq(user)
   end
 
-  it "preserves an inactive group, lifecycle history, and historical admin membership" do
+  it "preserves an inactive group, lifecycle history, and historical admin attribution" do
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Closed", group_type: :public_group)
     group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
     event = group.lifecycle_events.create!(actor: user, event_type: :operations_closed, detail: "Finished")
@@ -92,7 +92,7 @@ RSpec.describe Users::WithdrawAccount do
 
     expect(group.reload).to be_inactive
     expect(group.group_admin).to eq(user.reload)
-    expect(group.group_memberships.find_by!(user: user)).to be_inactive
+    expect(group.group_memberships.find_by(user: user)).to be_nil
     expect(group.lifecycle_events).to contain_exactly(event)
     expect(jjaek.reload.user).to eq(user)
     expect(comment.reload.jjaek).to eq(jjaek)
@@ -138,7 +138,7 @@ RSpec.describe Users::WithdrawAccount do
 
     expect(group.reload).to be_inactive
     expect(group.group_admin).to eq(user.reload)
-    expect(group.group_memberships.find_by!(user: user)).to be_inactive
+    expect(group.group_memberships.find_by(user: user)).to be_nil
     expect(group.jjaeks).to contain_exactly(jjaek)
     expect(comment.reload.jjaek).to eq(jjaek)
     expect(group.lifecycle_events).to contain_exactly(close_event, request_event)
@@ -156,7 +156,7 @@ RSpec.describe Users::WithdrawAccount do
     described_class.new(user, current_password: password).call!
 
     expect(group.reload).to be_inactive
-    expect(group.group_memberships.find_by!(user: user)).to be_inactive
+    expect(group.group_memberships.find_by(user: user)).to be_nil
     expect(group.lifecycle_events).to contain_exactly(history, request_event)
   end
 end

@@ -77,7 +77,7 @@ class GroupPolicy < ApplicationPolicy
       return scope.none unless user.present?
       return scope.all if user.global_admin?
 
-      accessible_group_ids = GroupMembership.where(user: user, status: %i[active inactive]).select(:group_id)
+      accessible_group_ids = GroupMembership.active.where(user: user).select(:group_id)
       active_discoverable = scope.active.where(group_type: %i[public_group approval_group])
       active_or_inactive_memberships = scope.where(lifecycle_status: %i[active inactive], id: accessible_group_ids)
       administered_pending = scope.pending_approval.where(group_admin: user)
@@ -96,6 +96,6 @@ class GroupPolicy < ApplicationPolicy
   end
 
   def member_with_basic_access?
-    record.group_memberships.where(user: user, status: %i[active inactive]).exists?
+    record.active_member?(user)
   end
 end

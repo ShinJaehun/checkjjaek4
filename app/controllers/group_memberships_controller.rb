@@ -1,7 +1,7 @@
 class GroupMembershipsController < ApplicationController
   before_action :set_group, except: %i[accept decline]
-  before_action :authorize_group_access, only: %i[update destroy reject revoke remove deactivate reactivate suspend_activity restore_activity]
-  before_action :set_membership, only: %i[update destroy reject revoke remove deactivate reactivate suspend_activity restore_activity]
+  before_action :authorize_group_access, only: %i[update destroy reject revoke remove suspend_activity restore_activity]
+  before_action :set_membership, only: %i[update destroy reject revoke remove suspend_activity restore_activity]
   before_action :set_own_invitation, only: %i[accept decline]
 
   def create
@@ -67,23 +67,14 @@ class GroupMembershipsController < ApplicationController
 
   def remove
     authorize @membership, :remove?
-    @membership.destroy!
+    GroupMembership.transaction do
+      removal = GroupMembershipRemoval.find_or_initialize_by(group: @group, user: @membership.user)
+      removal.removed_by = current_user
+      removal.save!
+      @membership.destroy!
+    end
 
     redirect_to group_members_path(@group), notice: t("group_memberships.notices.removed"), status: :see_other
-  end
-
-  def deactivate
-    authorize @membership, :deactivate?
-    @membership.inactive!
-
-    redirect_to group_members_path(@group), notice: t("group_memberships.notices.deactivated")
-  end
-
-  def reactivate
-    authorize @membership, :reactivate?
-    @membership.active!
-
-    redirect_to group_members_path(@group), notice: t("group_memberships.notices.reactivated")
   end
 
   def suspend_activity

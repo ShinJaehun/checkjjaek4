@@ -5,6 +5,10 @@ RSpec.describe GroupMembership, type: :model do
   let(:member) { User.create!(name: "Member", email: "membership-member@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:group) { Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Readers", group_type: :approval_group) }
 
+  it "uses only pre-membership and active lifecycle states" do
+    expect(described_class.statuses.keys).to contain_exactly("pending", "active", "invited")
+  end
+
   it "does not allow duplicate memberships" do
     described_class.create!(group: group, user: member, status: :pending)
     duplicate = described_class.new(group: group, user: member, status: :active)
@@ -37,13 +41,6 @@ RSpec.describe GroupMembership, type: :model do
     expect(membership.update(status: :pending)).to be(false)
   end
 
-  it "allows active and inactive membership transitions" do
-    membership = described_class.create!(group: group, user: member, status: :active)
-
-    expect(membership.update(status: :inactive)).to be(true)
-    expect(membership.update(status: :active)).to be(true)
-  end
-
   it "keeps activity moderation separate from membership lifecycle" do
     membership = described_class.create!(group: group, user: member, status: :active)
 
@@ -51,23 +48,7 @@ RSpec.describe GroupMembership, type: :model do
     membership.update!(moderation_status: :activity_suspended)
     expect(membership).to be_active
 
-    membership.update!(status: :inactive)
-    membership.update!(status: :active)
     expect(membership).to be_activity_suspended
-  end
-
-  it "does not allow inactive membership to become pending or invited" do
-    membership = described_class.create!(group: group, user: member, status: :active)
-    membership.update!(status: :inactive)
-
-    expect(membership.update(status: :pending)).to be(false)
-    expect(membership.update(status: :invited)).to be(false)
-  end
-
-  it "does not allow the group_admin membership to become inactive" do
-    membership = group.group_memberships.find_by!(user: group_admin)
-
-    expect(membership.update(status: :inactive)).to be(false)
   end
 
   it "does not allow the group_admin membership to be destroyed" do
@@ -78,5 +59,15 @@ RSpec.describe GroupMembership, type: :model do
     }.not_to change(described_class, :count)
 
     expect(membership).not_to be_destroyed
+  end
+
+  it "allows an inactive group's historical admin membership to be destroyed" do
+    membership = group.group_memberships.find_by!(user: group_admin)
+    group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+
+    expect {
+      membership.destroy!
+    }.to change(described_class, :count).by(-1)
+    expect(group.reload.group_admin).to eq(group_admin)
   end
 end

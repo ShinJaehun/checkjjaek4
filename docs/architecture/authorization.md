@@ -172,7 +172,7 @@ Library 안에서 볼 수 있는 책장:
 현재 구현 기준:
 
 - 일반 Jjaek의 수정과 삭제는 작성자 본인만 가능하다
-- 동아리 Jjaek은 active 작성자만 수정할 수 있고, 작성자는 inactive 또는 탈퇴 후에도 자기 기존 글을 삭제할 수 있다
+- 동아리 Jjaek은 active 작성자만 수정할 수 있고, 작성자는 탈퇴 또는 내보내기 후에도 자기 기존 글을 삭제할 수 있다
 - 동아리 관리자에게 타인 Jjaek 수정·삭제 권한은 아직 없다
 - 삭제된 Jjaek은 다시 수정하거나 삭제할 수 없으며 새 댓글·좋아요·ReJjaek도 만들 수 없다
 - 댓글이 없는 글은 hard delete하고, 댓글이 있는 글은 본문을 제거한 tombstone과 기존 댓글을 보존한다
@@ -240,9 +240,9 @@ Library 안에서 볼 수 있는 책장:
 - 별도 관계 자체보다 부모 Jjaek 접근 가능 여부를 기준으로 판단한다
 - 동아리 댓글은 기존 `Comment` 모델을 사용하고 부모 동아리 Jjaek의 열람 범위를 상속한다
 - 공개 동아리 비회원은 댓글을 읽을 수 있지만 active member만 댓글을 작성하고 자기 댓글을 수정할 수 있다
-- inactive 또는 탈퇴한 사용자는 새 댓글 작성·수정은 불가하며 기존 자기 댓글은 삭제할 수 있다
+- 탈퇴하거나 내보내진 사용자는 새 댓글 작성·수정은 불가하며 기존 자기 댓글은 삭제할 수 있다
 - 동아리 좋아요는 active 동아리의 active member만 새로 만들 수 있다
-- 기존 자기 좋아요는 현재 부모 Jjaek을 볼 수 있다면 동아리·membership 비활성화나 Jjaek 삭제 후에도 철회할 수 있다
+- 기존 자기 좋아요는 현재 부모 Jjaek을 볼 수 있다면 동아리 운영 종료·membership 종료·Jjaek 삭제 후에도 철회할 수 있다
 - 동아리 관리자의 타인 댓글 삭제 권한은 아직 구현하지 않는다
 
 관련 위치:
@@ -274,11 +274,10 @@ Library 안에서 볼 수 있는 책장:
 - global admin의 `show?`와 `read_jjaeks?`는 이 전체 Group을 운영 목적으로 조사하기 위한 권한이다
 - global admin 권한은 일반 동아리 수정·종료·재활성화·작성·membership 관리 권한을 부여하지 않는다
 - pending 동아리는 동아리 관리자만 기본 상태를 확인하며 내부 콘텐츠를 읽거나 작성할 수 없다
-- inactive 동아리는 active/inactive membership이 기본 정보를 볼 수 있고, active member만 기존 내부 콘텐츠를 읽을 수 있다
-- pending/inactive 동아리에서는 membership accept/approve/reactivate 등 active participation을 만드는 동작을 허용하지 않는다
+- inactive 동아리는 active membership이 기본 정보와 기존 내부 콘텐츠를 읽을 수 있다
+- pending/inactive 동아리에서는 membership accept/approve 등 active participation을 만드는 동작을 허용하지 않는다
 - 공개 동아리와 승인 동아리는 로그인 사용자가 발견하고 기본 정보를 조회할 수 있다
-- 비공개 동아리는 동아리 관리자, active member와 inactive member가 목록과 기본 상세를 조회할 수 있다
-- 비공개 동아리의 inactive member는 자신의 활동 중지 상태만 확인하며 내부 콘텐츠 읽기·작성 권한은 갖지 않는다
+- 비공개 동아리는 동아리 관리자와 active member가 목록과 기본 상세를 조회할 수 있다
 - 일반 사용자는 공개·승인·비공개 동아리를 생성할 수 있다
 - 공개 동아리는 즉시 active membership을 만들고, 승인 동아리는 pending 가입 요청을 만든다
 - 동아리 관리자만 자기 동아리의 pending membership을 active로 승인할 수 있다
@@ -290,19 +289,16 @@ Library 안에서 볼 수 있는 책장:
 - 동아리 관리자와 global admin은 active/inactive 상태에서 다른 active member에게 권한을 이전할 수 있고 pending 상태에서는 이전할 수 없다
 - 이전 관리자는 일반 active member로 남아 기존 자발적 탈퇴 경로를 사용할 수 있다
 - 동아리 관리자만 이름과 소개를 수정할 수 있고 동아리 종류는 수정할 수 없다
-- 동아리 관리자만 active 일반 member를 `inactive`로 활동 중지할 수 있고, inactive member를 다시 active로 복구할 수 있다
-- 최종 내보내기는 inactive 일반 member에게만 허용하며 관리자 membership은 대상이 될 수 없다
+- 동아리 관리자만 active 일반 member를 직접 내보낼 수 있으며 관리자 membership은 대상이 될 수 없다
 - 승인 동아리 관리자만 pending 요청을 거절할 수 있다
 - 비공개 동아리 관리자만 아직 수락되지 않은 `invited` membership을 취소할 수 있다
-- inactive는 active membership 권한을 얻지 않으며 pending 가입 요청과 다른 상태다
-- inactive membership은 자기 탈퇴나 새 가입·초대 흐름으로 우회할 수 없다
-- 일반 member의 자발적 탈퇴는 inactive를 거치지 않고 membership을 즉시 삭제한다
-- 활동 중지·내보내기·거절·초대 취소는 ban이 아니므로 이후 가입 또는 재초대를 영구 차단하지 않는다
+- 일반 member의 자발적 탈퇴와 관리자의 내보내기는 membership을 즉시 삭제한다
+- 내보내기·거절·초대 취소는 ban이 아니므로 이후 가입 또는 재초대를 영구 차단하지 않는다
 
 동아리에서는 같은 `Jjaek` 모델과 optional `group` / `book` association으로 `짹`과 `책짹`을 제공한다.
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
 작성은 모든 동아리 종류에서 active member에게만 허용한다.
-동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, inactive 또는 탈퇴한 작성자도 자기 기존 글은 삭제할 수 있다.
+동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, 탈퇴하거나 내보내진 작성자도 자기 기존 글은 삭제할 수 있다.
 동아리 관리자의 타인 글 moderation, 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성은 아직 구현하지 않는다.
 active 공개 동아리의 Jjaek·책짹을 개인 영역으로 ReJjaek하는 기능은 제공한다.
 홈 `FeedScope`에는 현재 사용자가 active member인 active/inactive 동아리의 Jjaek만 포함하며,
@@ -334,7 +330,7 @@ global admin의 향후 Group 제재는 회원 제한과도 기존 자발적 운�
 - global admin과 active Group 관리자는 직접 탈퇴할 수 없다
 - 탈퇴는 hard delete가 아니라 `withdrawn_at` 설정과 User 익명화이며 Jjaek·Comment 작성자 연결을 보존한다
 - `closed_at`이 없는 최초 pending Group은 관리자 외 membership·콘텐츠·예상 밖 event가 없을 때만 신청을 정리한다
-- `closed_at`이 있는 재운영 pending Group은 삭제하지 않고 inactive로 복귀시키며 역사적 관리자 reference·inactive membership·콘텐츠·lifecycle history를 보존한다
+- `closed_at`이 있는 재운영 pending Group은 삭제하지 않고 inactive로 복귀시키며 `group_admin_id`와 withdrawn User, 콘텐츠, lifecycle history로 역사적 관리자 attribution을 보존한다
 - 탈퇴 사용자의 일반 membership과 사회적 관계·개인 독서 운영 데이터는 제거한다
 - withdrawn user를 대상으로 Follow, BookFriendship, Group 초대와 profile-context Jjaek을 만들 수 없다
 

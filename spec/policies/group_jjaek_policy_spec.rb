@@ -117,18 +117,13 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     expect(policy.destroy?).to be(true)
   end
 
-  it "allows an inactive or former author only to destroy their group jjaek" do
+  it "allows a former author only to destroy their group jjaek" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
-    membership = group.group_memberships.create!(user: member, status: :inactive)
     jjaek = member.jjaeks.create!(group:, content: "Old group jjaek")
 
     expect(described_class.new(member, jjaek).update?).to be(false)
     expect(described_class.new(member, jjaek).destroy?).to be(true)
 
-    membership.destroy!
-
-    expect(described_class.new(member, jjaek).update?).to be(false)
-    expect(described_class.new(member, jjaek).destroy?).to be(true)
   end
 
   it "does not let another member or the group group_admin manage someone else's jjaek" do

@@ -285,18 +285,6 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(jjaek.reload.content).to eq("Before")
   end
 
-  it "returns not found when an inactive author tries to update" do
-    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
-    group.group_memberships.create!(user: member, status: :inactive)
-    jjaek = member.jjaeks.create!(group:, content: "Before")
-    sign_in member
-
-    patch jjaek_path(jjaek), params: { jjaek: { content: "Inactive change" } }
-
-    expect(response).to have_http_status(:not_found)
-    expect(jjaek.reload.content).to eq("Before")
-  end
-
   it "returns not found when a former author tries to update" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     jjaek = member.jjaeks.create!(group:, content: "Before")
@@ -306,17 +294,6 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     expect(response).to have_http_status(:not_found)
     expect(jjaek.reload.content).to eq("Before")
-  end
-
-  it "lets an inactive author delete an old private-group jjaek and redirects to the group" do
-    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
-    group.group_memberships.create!(user: member, status: :inactive)
-    jjaek = member.jjaeks.create!(group:, content: "Inactive secret")
-    sign_in member
-
-    expect { delete jjaek_path(jjaek) }.to change(Jjaek, :count).by(-1)
-    expect(response).to redirect_to(group_path(group))
-    expect(response.body).not_to include("Inactive secret")
   end
 
   it "lets a former author delete an inaccessible old private-group jjaek and redirects safely" do

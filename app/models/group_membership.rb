@@ -1,5 +1,5 @@
 class GroupMembership < ApplicationRecord
-  enum :status, { pending: 0, active: 1, invited: 2, inactive: 3 }, default: :pending, validate: true
+  enum :status, { pending: 0, active: 1, invited: 2 }, default: :pending, validate: true
   enum :moderation_status,
        { normal: 0, activity_suspended: 1 },
        default: :normal,
@@ -15,6 +15,7 @@ class GroupMembership < ApplicationRecord
   validate :status_transition_must_be_valid
 
   before_destroy :prevent_group_admin_membership_destroy
+  after_save :clear_removal_marker, if: -> { active? && saved_change_to_status? }
 
   def activity_suspended?
     moderation_status_activity_suspended?
@@ -33,7 +34,6 @@ class GroupMembership < ApplicationRecord
   def group_admin_must_be_active
     return unless group&.group_admin_id == user_id
     return if active?
-    return if group.inactive? && user&.withdrawn? && inactive?
 
     errors.add(:status, :group_admin_must_be_active)
   end
@@ -46,9 +46,7 @@ class GroupMembership < ApplicationRecord
     return unless persisted? && status_changed?
     return if [status_was, status].in?([
       %w[pending active],
-      %w[invited active],
-      %w[active inactive],
-      %w[inactive active]
+      %w[invited active]
     ])
 
     errors.add(:status, :invalid_transition)
@@ -56,9 +54,13 @@ class GroupMembership < ApplicationRecord
 
   def prevent_group_admin_membership_destroy
     return if destroyed_by_association.present?
-    return unless group.group_admin_id == user_id
+    return unless group.active? && group.group_admin_id == user_id
 
     errors.add(:base, :group_admin_membership_cannot_be_destroyed)
     throw :abort
+  end
+
+  def clear_removal_marker
+    GroupMembershipRemoval.where(group_id:, user_id:).delete_all
   end
 end

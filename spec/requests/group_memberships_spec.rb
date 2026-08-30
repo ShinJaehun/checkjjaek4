@@ -125,6 +125,67 @@ RSpec.describe "Group memberships", type: :request do
     }.to change(GroupMembership, :count).by(-1)
   end
 
+  it "lets an activity-suspended member leave and preserves moderation history" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Suspended leave", group_type: :public_group)
+    membership = group.group_memberships.create!(user: member, status: :active)
+    GroupMemberships::SuspendActivity.new(membership, actor: group_admin, public_reason: "Community rule").call!
+    suspension = membership.current_activity_suspension_action
+    sign_in member
+
+    expect {
+      delete group_group_membership_path(group, membership)
+    }.to change(GroupMembership, :count).by(-1)
+    expect(ModerationAction.find(suspension.id)).to have_attributes(
+      target_type: "GroupMembership",
+      target_id: membership.id
+    )
+  end
+
+  it "allows membership flows again after an ordinary membership ends" do
+    public_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Rejoin public", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Reapply approval", group_type: :approval_group)
+    private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Reinvite private", group_type: :private_group)
+
+    public_membership = public_group.group_memberships.create!(user: member, status: :active)
+    approval_membership = approval_group.group_memberships.create!(user: member, status: :active)
+    private_membership = private_group.group_memberships.create!(user: member, status: :active)
+
+    sign_in group_admin
+    delete remove_group_group_membership_path(public_group, public_membership)
+    delete remove_group_group_membership_path(approval_group, approval_membership)
+    delete remove_group_group_membership_path(private_group, private_membership)
+    expect(GroupMembershipRemoval.where(user: member).count).to eq(3)
+
+    sign_in member
+    post group_group_memberships_path(public_group)
+    post group_group_memberships_path(approval_group)
+    expect(public_group.group_memberships.find_by!(user: member)).to be_active
+    expect(approval_group.group_memberships.find_by!(user: member)).to be_pending
+    expect(GroupMembershipRemoval.exists?(group: public_group, user: member)).to be(false)
+    expect(GroupMembershipRemoval.exists?(group: approval_group, user: member)).to be(true)
+
+    sign_in group_admin
+    patch group_group_membership_path(approval_group, approval_group.group_memberships.find_by!(user: member))
+    expect(GroupMembershipRemoval.exists?(group: approval_group, user: member)).to be(false)
+
+    expect {
+      post invite_group_group_memberships_path(private_group), params: { user_id: member.id }
+    }.to change(GroupMembership, :count).by(1)
+    invitation = private_group.group_memberships.find_by!(user: member)
+    expect(invitation).to be_invited
+    expect(GroupMembershipRemoval.exists?(group: private_group, user: member)).to be(true)
+
+    sign_in member
+    patch accept_group_group_membership_path(private_group, invitation)
+    expect(invitation.reload).to be_active
+    expect(GroupMembershipRemoval.exists?(group: private_group, user: member)).to be(false)
+
+    delete group_group_membership_path(private_group, invitation)
+    expect(GroupMembershipRemoval.exists?(group: private_group, user: member)).to be(false)
+    get group_path(private_group)
+    expect(response).to have_http_status(:not_found)
+  end
+
   it "does not let the group_admin leave" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     membership = group.group_memberships.find_by!(user: group_admin)
@@ -292,184 +353,66 @@ RSpec.describe "Group memberships", type: :request do
       expect(membership.reload).to be_moderation_status_normal
     end
 
-    it "deactivates an approval group member and revokes internal content access" do
-      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Remove approval", group_type: :approval_group)
+    it "lets the group_admin remove an active ordinary member directly" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Direct removal", group_type: :public_group)
       membership = group.group_memberships.create!(user: member, status: :active)
-      jjaek = group_admin.jjaeks.create!(group: group, content: "Members only")
       sign_in group_admin
 
       expect {
-        patch deactivate_group_group_membership_path(group, membership)
-      }.not_to change(GroupMembership, :count)
-      expect(membership.reload).to be_inactive
+        delete remove_group_group_membership_path(group, membership)
+      }.to change(GroupMembership, :count).by(-1)
+        .and change(GroupMembershipRemoval, :count).by(1)
+      removal = GroupMembershipRemoval.find_by!(group:, user: member)
+      expect(removal).to have_attributes(group:, user: member, removed_by: group_admin)
       expect(response).to redirect_to(group_members_path(group))
-
-      sign_in member
-
-      get group_path(group)
-      expect(response).to have_http_status(:ok)
-
-      get jjaek_path(jjaek)
-      expect(response).to have_http_status(:not_found)
     end
 
-    it "lets a deactivated private member see basic group status without management access" do
-      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Remove private", group_type: :private_group)
+    it "lets the group_admin remove an activity-suspended member and preserves moderation history" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Suspended removal", group_type: :public_group)
       membership = group.group_memberships.create!(user: member, status: :active)
+      GroupMemberships::SuspendActivity.new(
+        membership,
+        actor: group_admin,
+        public_reason: "Community rule"
+      ).call!
+      suspension = membership.current_activity_suspension_action
       sign_in group_admin
 
       expect {
-        patch deactivate_group_group_membership_path(group, membership)
-      }.not_to change(GroupMembership, :count)
-      expect(membership.reload).to be_inactive
-
-      sign_out group_admin
-      sign_in member
-
-      expect(group.reload.active_member?(member)).to be(false)
-      expect(GroupPolicy.new(member, group).read_jjaeks?).to be(false)
-      expect(GroupPolicy.new(member, group).create_jjaek?).to be(false)
-
-      get group_path(group)
-      expect(response).to have_http_status(:ok)
-      expect(response.body).to include("비활성 회원")
-      expect(response.body).not_to include("회원 관리", "회원 활성화", "내보내기")
-    end
-
-    it "deactivates a private group member and revokes Jjaek access" do
-      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Remove private", group_type: :private_group)
-      membership = group.group_memberships.create!(user: member, status: :active)
-      jjaek = group_admin.jjaeks.create!(group: group, content: "Private members only")
-      sign_in group_admin
-
-      expect {
-        patch deactivate_group_group_membership_path(group, membership)
-      }.not_to change(GroupMembership, :count)
-      expect(membership.reload).to be_inactive
-
-      sign_out group_admin
-      sign_in member
-
-      expect(group.reload.active_member?(member)).to be(false)
-      expect(JjaekPolicy.new(member, jjaek.reload).show?).to be(false)
-
-      get jjaek_path(jjaek)
-      expect(response).to have_http_status(:not_found)
-    end
-
-    it "keeps public read access but removes public write access while inactive" do
-      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public removal", group_type: :public_group)
-      membership = group.group_memberships.create!(user: member, status: :active)
-      sign_in group_admin
-      patch deactivate_group_group_membership_path(group, membership)
+        delete remove_group_group_membership_path(group, membership)
+      }.to change(GroupMembership, :count).by(-1)
+        .and change(GroupMembershipRemoval, :count).by(1)
+      expect(ModerationAction.find(suspension.id)).to have_attributes(
+        target_type: "GroupMembership",
+        target_id: membership.id
+      )
 
       sign_in member
-      get group_path(group)
-      expect(response).to have_http_status(:ok)
-      expect(GroupPolicy.new(member, group).create_jjaek?).to be(false)
+      post group_group_memberships_path(group)
+      expect(group.group_memberships.find_by!(user: member)).to be_moderation_status_normal
+      expect(GroupMembershipRemoval.exists?(group:, user: member)).to be(false)
     end
 
-    it "applies the group content read matrix to inactive memberships" do
-      groups = %i[public_group approval_group private_group].index_with do |group_type|
-        group = Group.create!(
-          lifecycle_status: :active,
-          group_admin: group_admin,
-          name: "Inactive #{group_type}",
-          group_type:
-        )
-        membership = group.group_memberships.create!(user: member, status: :active)
-        jjaek = group_admin.jjaeks.create!(group:, content: "INACTIVE_#{group_type.to_s.upcase}_CONTENT")
-        membership.update!(status: :inactive)
-        [ group, jjaek ]
-      end
-      sign_in member
-
-      groups.each do |group_type, group_data|
-        group, jjaek = group_data
-        get group_path(group)
-
-        page = Nokogiri::HTML(response.body)
-        expect(response).to have_http_status(:ok)
-        expect(response.body).to include(group.name)
-        expect(page.at_css(%(form[action="#{group_jjaeks_path(group)}"]))).to be_nil
-
-        if group_type == :public_group
-          expect(response.body).to include(jjaek.content)
-        else
-          expect(response.body).not_to include(jjaek.content)
-        end
-      end
-    end
-
-    it "blocks deactivation by non-group_admins and deactivation of the group_admin" do
+    it "blocks removal by ordinary members and global admins and removal of the group_admin" do
       other = User.create!(name: "Other manager", email: "other-manager@example.com", password: "password123!", password_confirmation: "password123!")
+      global_admin = User.create!(name: "Global admin", email: "remove-global-admin@example.com", password: "password123!", global_admin: true)
       group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Removal guards", group_type: :public_group)
       membership = group.group_memberships.create!(user: member, status: :active)
       group_admin_membership = group.group_memberships.find_by!(user: group_admin)
       sign_in other
 
-      patch deactivate_group_group_membership_path(group, membership)
-      expect(membership.reload).to be_active
-
-      sign_in group_admin
-      patch deactivate_group_group_membership_path(group, group_admin_membership)
-      expect(group_admin_membership.reload).to be_active
-    end
-
-    it "reactivates an inactive member and restores private group access" do
-      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Reactivate", group_type: :private_group)
-      membership = group.group_memberships.create!(user: member, status: :active)
-      membership.update!(status: :inactive)
-      sign_in group_admin
-
-      patch reactivate_group_group_membership_path(group, membership)
-
-      expect(membership.reload).to be_active
-      expect(response).to redirect_to(group_members_path(group))
-      sign_in member
-      get group_path(group)
-      expect(response).to have_http_status(:ok)
-    end
-
-    it "requires inactive status before final removal" do
-      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Two step removal", group_type: :public_group)
-      membership = group.group_memberships.create!(user: member, status: :active)
-      sign_in group_admin
-
       expect {
         delete remove_group_group_membership_path(group, membership)
       }.not_to change(GroupMembership, :count)
 
-      membership.update!(status: :inactive)
+      sign_in global_admin
       expect {
         delete remove_group_group_membership_path(group, membership)
-      }.to change(GroupMembership, :count).by(-1)
-      expect(response).to redirect_to(group_members_path(group))
-    end
-
-    it "does not let an inactive member bypass status through another membership flow" do
-      public_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Inactive public", group_type: :public_group)
-      approval_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Inactive approval", group_type: :approval_group)
-      private_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Inactive private", group_type: :private_group)
-      [ public_group, approval_group, private_group ].each do |group|
-        membership = group.group_memberships.create!(user: member, status: :active)
-        membership.update!(status: :inactive)
-      end
-      sign_in member
-
-      expect {
-        post group_group_memberships_path(public_group)
-        post group_group_memberships_path(approval_group)
-      }.not_to change(GroupMembership, :count)
-
-      inactive_membership = public_group.group_memberships.find_by!(user: member)
-      expect {
-        delete group_group_membership_path(public_group, inactive_membership)
       }.not_to change(GroupMembership, :count)
 
       sign_in group_admin
       expect {
-        post invite_group_group_memberships_path(private_group), params: { user_id: member.id }
+        delete remove_group_group_membership_path(group, group_admin_membership)
       }.not_to change(GroupMembership, :count)
     end
 
@@ -569,12 +512,9 @@ RSpec.describe "Group memberships", type: :request do
       expect(page.at_css(%(form[action="#{revoke_group_group_membership_path(group, invitation)}"]))).to be_nil
     end
 
-    it "blocks participation activation and hides invitations when the group is inactive" do
+    it "blocks invitation acceptance when the group is inactive" do
       group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Closed private", group_type: :private_group)
       invitation = group.group_memberships.create!(user: member, status: :invited)
-      inactive_member = User.create!(name: "Inactive", email: "closed-inactive-member@example.com", password: "password123!", password_confirmation: "password123!")
-      inactive_membership = group.group_memberships.create!(user: inactive_member, status: :active)
-      inactive_membership.update!(status: :inactive)
       group.update!(
         lifecycle_status: :inactive,
         closure_reason: "Test closure",
@@ -585,10 +525,6 @@ RSpec.describe "Group memberships", type: :request do
       expect(response.body).not_to include(group.name)
       patch accept_group_group_membership_path(group, invitation)
       expect(invitation.reload).to be_invited
-
-      sign_in group_admin
-      patch reactivate_group_group_membership_path(group, inactive_membership)
-      expect(inactive_membership.reload).to be_inactive
     end
   end
 end

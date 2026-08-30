@@ -33,15 +33,7 @@ class GroupMembershipPolicy < ApplicationPolicy
   end
 
   def remove?
-    user.present? && record.group.group_admin?(user) && record.inactive? && record.user_id != user.id
-  end
-
-  def deactivate?
     user.present? && record.group.group_admin?(user) && record.active? && record.user_id != user.id
-  end
-
-  def reactivate?
-    record.group.active? && user.present? && record.group.group_admin?(user) && record.inactive? && record.user_id != user.id
   end
 
   def suspend_activity?
