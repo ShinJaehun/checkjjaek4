@@ -88,15 +88,27 @@ RSpec.describe "Groups", type: :request do
     group_admin = User.create!(name: "Group admin", email: "invitation-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
     other = User.create!(name: "Other", email: "invitation-other@example.com", password: "password123!", password_confirmation: "password123!")
     invited_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Invitation only", group_type: :private_group)
+    active_invited_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Active invitation", group_type: :private_group)
     other_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Someone else's invitation", group_type: :private_group)
-    invited_group.group_memberships.create!(user: user, status: :invited)
+    suspended_invitation = invited_group.group_memberships.create!(user: user, status: :invited)
+    active_invitation = active_invited_group.group_memberships.create!(user: user, status: :invited)
     other_group.group_memberships.create!(user: other, status: :invited)
+    invited_group.update!(operation_suspended_at: Time.current)
     sign_in user
 
     get groups_path
 
-    expect(response.body).to include("받은 동아리 초대", invited_group.name)
+    page = Nokogiri::HTML(response.body)
+    suspended_card = page.css("article").find { |node| node.text.include?(invited_group.name) }
+    active_card = page.css("article").find { |node| node.text.include?(active_invited_group.name) }
+    expect(response.body).to include("받은 동아리 초대", invited_group.name, active_invited_group.name)
     expect(response.body).not_to include(other_group.name)
+    expect(suspended_card.text).to include("운영 정지", "운영 정지 중에는 초대를 수락할 수 없습니다.")
+    expect(suspended_card.at_css(%(form[action="#{accept_group_group_membership_path(invited_group, suspended_invitation)}"]))).to be_nil
+    expect(suspended_card.at_css(%(form[action="#{decline_group_group_membership_path(invited_group, suspended_invitation)}"]))).to be_present
+    expect(active_card.text).to include("운영 중")
+    expect(active_card.at_css(%(form[action="#{accept_group_group_membership_path(active_invited_group, active_invitation)}"]))).to be_present
+    expect(active_card.at_css(%(form[action="#{decline_group_group_membership_path(active_invited_group, active_invitation)}"]))).to be_present
     expect(GroupPolicy::Scope.new(user, Group.all).resolve).not_to include(invited_group)
   end
 
@@ -205,14 +217,50 @@ RSpec.describe "Groups", type: :request do
     groups.each do |group|
       get group_path(group)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("VISIBLE OPERATION REASON")
+      expect(response.body).to include("운영 정지", "이 동아리는 현재 운영이 정지되었습니다.", "VISIBLE OPERATION REASON")
       expect(response.body).not_to include("HIDDEN OPERATION NOTE")
       expect(response.body).not_to include("수정하기")
+    end
+
+    get groups_path
+    groups.each do |group|
+      card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?(group.name) }
+      expect(card.text).to include("운영 정지")
     end
 
     sign_in admin
     get group_path(groups.last)
     expect(response).to have_http_status(:ok)
+  end
+
+  it "hides new participation while suspended and preserves cleanup actions" do
+    group_admin = User.create!(name: "Group admin", email: "suspended-actions-admin@example.com", password: "password123!")
+    public_group = Group.create!(lifecycle_status: :active, operation_suspended_at: Time.current, group_admin:, name: "Suspended public", group_type: :public_group)
+    approval_group = Group.create!(lifecycle_status: :active, operation_suspended_at: Time.current, group_admin:, name: "Suspended approval", group_type: :approval_group)
+    normal_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Operating public", group_type: :public_group)
+    sign_in user
+
+    [ public_group, approval_group ].each do |group|
+      get group_path(group)
+      expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{group_group_memberships_path(group)}"]))).to be_nil
+    end
+
+    get group_path(normal_group)
+    expect(response.body).to include("운영 중")
+    expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{group_group_memberships_path(normal_group)}"]))).to be_present
+
+    get groups_path
+    normal_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?(normal_group.name) }
+    expect(normal_card.text).to include("운영 중")
+
+    active_membership = public_group.group_memberships.create!(user:, status: :active)
+    get group_path(public_group)
+    expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{group_group_membership_path(public_group, active_membership)}"]))).to be_present
+
+    active_membership.destroy!
+    pending_membership = approval_group.group_memberships.create!(user:, status: :pending)
+    get group_path(approval_group)
+    expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{group_group_membership_path(approval_group, pending_membership)}"]))).to be_present
   end
 
   it "blocks group settings, lifecycle closure, and admin transfer while operation is suspended" do

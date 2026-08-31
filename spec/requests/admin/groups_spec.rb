@@ -135,7 +135,11 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(active_group.reload).to be_operation_suspended
 
     get admin_group_path(active_group)
-    expect(response.body).to include("Public safety reason", "Internal review", "동아리 운영 복구")
+    page = Nokogiri::HTML(response.body)
+    expect(response.body).to include("운영 정지", "Public safety reason", "Internal review", "동아리 운영 복구")
+    expect(page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))).to be_present
+    expect(page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"] label[for="moderation_action_public_reason"])).text).to eq("사유")
+    expect(page.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_nil
 
     patch restore_operation_admin_group_path(active_group), params: {
       moderation_action: { public_reason: "Resolved", internal_note: "Verified" }

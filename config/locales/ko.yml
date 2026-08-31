@@ -81,6 +81,8 @@ ko:
     nav: "동아리"
     group_admin: "동아리 관리자: %{name}"
     operation_suspension:
+      invitation_accept_unavailable: "운영 정지 중에는 초대를 수락할 수 없습니다."
+      label: "운영 정지"
       status: "이 동아리는 현재 운영이 정지되었습니다."
     types:
       public_group: "공개 동아리"
@@ -343,6 +345,8 @@ ko:
         pending_approval: "승인 대기"
         active: "운영"
         inactive: "중지"
+      operation_moderation:
+        reason: "사유"
       index:
         title: "동아리 운영 관리"
         description: "동아리 운영 상태를 검색하고 승인 대기 신청을 확인합니다."

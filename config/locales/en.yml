@@ -81,6 +81,8 @@ en:
     nav: "Clubs"
     group_admin: "Club admin: %{name}"
     operation_suspension:
+      invitation_accept_unavailable: "Invitations cannot be accepted while club operation is suspended."
+      label: "Operation suspended"
       status: "This club's operation is currently suspended."
     types:
       public_group: "Public club"
@@ -335,6 +337,8 @@ en:
         pending_approval: "Pending approval"
         active: "Operating"
         inactive: "Stopped"
+      operation_moderation:
+        reason: "Reason"
       index:
         title: "Club operations"
         description: "Search and review club lifecycle information and pending approvals."

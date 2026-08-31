@@ -5,7 +5,9 @@
         <p class="text-xs font-semibold uppercase tracking-wider text-amber-700"><%= t("groups.types.#{@group.group_type}") %></p>
         <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= @group.name %></h1>
         <p class="mt-2 text-sm text-stone-500"><%= t("groups.group_admin", name: @group.group_admin.name) %></p>
-        <p class="mt-2 text-sm font-medium text-amber-700"><%= t("groups.lifecycle_statuses.#{@group.lifecycle_status}") %></p>
+        <p class="mt-2 text-sm font-medium text-amber-700">
+          <%= @group.active? && @group.operation_suspended? ? t("groups.operation_suspension.label") : t("groups.lifecycle_statuses.#{@group.lifecycle_status}") %>
+        </p>
       </div>
 
       <div>
@@ -32,11 +34,11 @@
                           method: :delete,
                           class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
           </div>
-        <% elsif @group.active? && @group.public_group? %>
+        <% elsif @group.active? && @group.operation_active? && @group.public_group? %>
           <%= button_to t("group_memberships.actions.join"),
                         group_group_memberships_path(@group),
                         class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
-        <% elsif @group.active? && @group.approval_group? %>
+        <% elsif @group.active? && @group.operation_active? && @group.approval_group? %>
           <%= button_to t("group_memberships.actions.request"),
                         group_group_memberships_path(@group),
                         class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
