@@ -80,6 +80,59 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 - Jjaek의 `deleted_at`을 moderation 숨김에 재사용하지 않는다.
 - Comment hard delete와 moderation 숨김을 같은 상태로 기록하지 않는다.
 
+### Jjaek 운영자 숨김 1차 구현 단위 `(현재 구현)`
+
+이번 구현 단위는 기존 Jjaek 숨김·복구 목표 중 **global admin의 Jjaek 숨김**만 먼저 제공한다.
+대상은 일반짹, 책짹, Group Jjaek 등 현재 Jjaek으로 표현되는 모든 게시물이다.
+
+#### 정책과 불변 조건
+
+- global admin만 Jjaek을 운영상 숨길 수 있다.
+- 숨김은 작성자 삭제와 독립된 상태이며 `deleted_at`이나 기존 hard delete/tombstone 상태를 재사용하지 않는다.
+- 숨김 시 원문과 기존 Comment·Like·ReJjaek 관계를 삭제하거나 변경하지 않는다.
+- global admin은 자유 텍스트 공개 사유를 입력하는 대신 아래의 미리 정의된 숨김 사유 중 하나를 반드시 선택한다. 정의되지 않은 값은 허용하지 않는다.
+  - 부적절한 내용
+  - 스팸·광고
+  - 개인정보 노출
+  - 서비스 운영 방해
+  - 기타
+- `기타`를 선택해도 별도의 자유 텍스트 공개 사유를 요구하지 않는다. 내부 운영 메모는 필요할 때만 선택적으로 작성하며 작성자와 일반 사용자에게 노출하지 않는다.
+- 숨김 상태 변경과 append-only `ModerationAction` hide 기록은 하나의 원자적 조치다. 어느 한쪽이 실패하면 둘 다 반영하지 않는다.
+- 이미 숨겨진 Jjaek에는 hide를 중복 적용하지 않는다.
+- 숨겨진 Jjaek은 작성자 외 일반 사용자의 feed, profile, book, Group 목록과 direct 조회에서 완전히 제외한다.
+- 작성자 본인의 profile과 자기 콘텐츠 목록 등 일반적인 자기 영역에서는 숨겨진 Jjaek의 자리를 유지하되 원문 대신 운영 숨김 placeholder를 표시한다.
+- 작성자 placeholder에는 운영에 의해 숨김 처리된 상태, 선택된 숨김 사유와 다른 사용자에게 표시되지 않는다는 안내를 보여준다. 원문 본문·책 정보 등 숨겨진 원문 내용과 내부 운영 메모는 보여주지 않는다.
+- 숨겨진 Jjaek에는 새 Comment·Like·ReJjaek을 만들 수 없다. 화면 비노출뿐 아니라 서버 권한에서도 차단한다.
+- 기존 ReJjaek이나 다른 조회 문맥을 통해 숨겨진 원문의 본문·책 정보 등 원문 내용이 우회 노출되지 않아야 한다.
+- 작성자는 자기 영역과 단건 확인에서 운영 숨김 placeholder와 선택된 숨김 사유를 확인할 수 있고, 숨김 중에는 수정하거나 새 interaction을 만들 수 없지만 기존 작성자 삭제는 계속 수행할 수 있다.
+- global admin은 운영 조사 문맥에서 숨겨진 원문, 선택된 숨김 사유, 내부 운영 메모와 hide 감사 기록을 계속 확인할 수 있다.
+- global admin의 조사·숨김 권한은 원문 수정, 작성자 삭제 대행이나 일반 사용자 interaction 권한을 부여하지 않는다.
+
+#### Acceptance criteria
+
+1. global admin이 숨겨지지 않은 일반짹·책짹·Group Jjaek에 대해 `부적절한 내용`, `스팸·광고`, `개인정보 노출`, `서비스 운영 방해`, `기타` 중 하나를 선택하고 선택적 내부 운영 메모와 함께 숨길 수 있다. 정의되지 않은 숨김 사유 값은 허용하지 않으며 `기타`에도 별도 자유 텍스트 공개 사유를 요구하지 않는다.
+2. hide 성공 시 Jjaek의 숨김 상태와 대상·처리자·선택된 숨김 사유·선택적으로 작성된 내부 운영 메모·시각을 가진 append-only 감사 기록이 함께 남는다.
+3. 상태 변경 또는 감사 기록 중 하나가 실패하면 Jjaek과 감사 기록 모두 작업 전 상태를 유지한다.
+4. 일반 사용자와 작성자는 Jjaek hide를 실행할 수 없고, global admin도 이미 숨겨진 Jjaek에 hide를 중복 실행할 수 없다.
+5. 숨겨진 Jjaek은 작성자 외 일반 사용자의 feed, profile, 관련 book, 관련 Group 목록과 direct 조회에 나타나지 않는다. 작성자 본인의 profile과 자기 콘텐츠 목록에는 해당 게시물의 자리가 운영 숨김 placeholder로 유지된다.
+6. 숨겨진 원문을 인용한 기존 ReJjaek이 있더라도 일반 사용자는 그 경로에서 숨겨진 원문 내용을 확인할 수 없다.
+7. 숨겨진 Jjaek을 대상으로 새 Comment·Like·ReJjaek 생성 요청을 보내면 서버가 거부하며 관련 데이터가 생성되지 않는다.
+8. 작성자용 placeholder와 단건 확인에는 운영상 숨겨진 상태, 선택된 숨김 사유와 다른 사용자에게 표시되지 않는다는 안내가 나타난다. 원문 본문·책 정보 등 원문 내용과 내부 운영 메모는 작성자에게 노출되지 않는다.
+9. 작성자는 숨겨진 자기 Jjaek을 수정할 수 없지만 삭제할 수 있으며, 삭제 후에도 hide 감사 기록은 보존된다.
+10. global admin의 기존 User·Group 콘텐츠 inventory는 숨겨진 Jjaek을 조사 목록에 유지하고 `운영 숨김` 상태를 식별할 수 있게 하되, 선택된 숨김 사유·내부 운영 메모·전체 감사 상세를 표에 반복 노출하지 않는다. Jjaek 단건 조사 화면에서는 숨겨진 원문, 선택된 숨김 사유, 내부 운영 메모, 처리자와 조치 시각을 확인할 수 있으며 내부 운영 메모는 일반 사용자와 작성자에게 노출하지 않는다.
+11. global admin에게 타인의 Jjaek 수정·작성자 삭제 대행·Comment·Like·ReJjaek 생성 권한이 추가되지 않는다.
+12. 숨김과 관계없는 일반 Jjaek visibility, Group 접근, 작성자 삭제 및 기존 Comment·Like·ReJjaek 데이터는 회귀하지 않는다.
+
+#### 후속 범위
+
+- Jjaek 숨김 복구와 복구 감사 연결
+- Comment 숨김·복구
+- group admin의 자기 Group 콘텐츠 moderation
+- teacher/Classroom moderation
+- 신고 queue, notification, rate limit
+
+이 구현 단위는 실제 schema, endpoint, controller, service 이름을 확정하지 않는다.
+
 ---
 
 ## 책임과 권한 범위
@@ -133,8 +186,8 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 이미 저장된 감사 row는 수정·삭제할 수 없고 대상이 hard delete되더라도 target type/ID와 감사 정보는 보존한다.
 운영자는 콘텐츠 원문을 수정하지 않는다.
 
-User 정지/복구는 이 감사 기반에 연결되어 있다. Jjaek·Comment 숨김/복구, Group 운영 정지/복구와
-그에 대응하는 authorization, action endpoint와 UI는 아직 구현되지 않았다.
+User 정지/복구와 Jjaek 숨김은 이 감사 기반에 연결되어 있다. Jjaek 복구·Comment 숨김/복구,
+Group 운영 정지/복구와 그에 대응하는 authorization, action endpoint와 UI는 아직 구현되지 않았다.
 
 ---
 
