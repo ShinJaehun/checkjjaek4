@@ -13,6 +13,17 @@ RSpec.describe Jjaek, type: :model do
     expect(jjaek.content_edited_at).to be_nil
   end
 
+  it "tracks moderation hiding separately from author deletion" do
+    jjaek = user.jjaeks.create!(content: "Moderated")
+    action = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "inappropriate_content")
+    jjaek.update!(hidden_at: Time.current)
+
+    expect(jjaek).to be_hidden
+    expect(jjaek).not_to be_deleted
+    expect(jjaek.current_hide_action).to eq(action)
+    expect(described_class.visible).not_to include(jjaek)
+  end
+
   it "records only successful content edits" do
     jjaek = user.jjaeks.create!(content: "A")
 

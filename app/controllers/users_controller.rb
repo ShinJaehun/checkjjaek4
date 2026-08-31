@@ -78,7 +78,7 @@ class UsersController < ApplicationController
     policy_scope(
       @user.jjaeks,
       policy_scope_class: JjaekPolicy::ProfileScope
-    ).includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]).recent
+    ).includes(:user, :book, :group, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book ]).recent
   end
 
   def prepare_profile_activity_items

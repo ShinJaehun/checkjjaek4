@@ -167,7 +167,7 @@ class GroupsController < ApplicationController
       policy_scope(
         @group.jjaeks,
         policy_scope_class: JjaekPolicy::GroupContentScope
-      ).includes(:user, :book, :group).recent
+      ).includes(:user, :book, :group, :moderation_actions).recent
     else
       Jjaek.none
     end

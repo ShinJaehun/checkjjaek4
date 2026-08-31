@@ -247,6 +247,8 @@ RSpec.describe "Admin group approvals", type: :request do
     deleted = member.jjaeks.create!(group: active_group, content: "GROUP_DELETED_CONTENT")
     deleted_comment = deleted.comments.create!(user: group_admin, content: "COMMENT_ON_DELETED_GROUP_CONTENT")
     deleted.destroy_or_tombstone!
+    hidden = member.jjaeks.create!(group: active_group, content: "GROUP_HIDDEN_CONTENT")
+    Jjaeks::Hide.new(hidden, actor: admin, public_reason: "other").call!
     other_jjaek = group_admin.jjaeks.create!(group: other_group, content: "OTHER_GROUP_CONTENT")
     sign_in admin
 
@@ -272,6 +274,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(comment_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
     expect(deleted_row.at_css("[data-field='body']").text.strip).to eq("-")
     expect(deleted_row.at_css("[data-field='status']").text.strip).to eq("삭제")
+    expect(timeline.at_css("#group_timeline_jjaek_#{hidden.id} [data-field='status']").text.strip).to eq("운영 숨김")
     expect(deleted_comment_row.at_css("[data-field='reference']").text).to include(member.name, "-")
     expect(timeline.text).not_to include(other_jjaek.content)
     expect(book_row.at_css("a[href='#{jjaek_path(book_jjaek)}']")).to be_present

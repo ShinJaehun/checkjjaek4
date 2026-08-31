@@ -25,6 +25,55 @@ RSpec.describe JjaekPolicy do
     expect(described_class::AdminInventoryScope.new(viewer, Jjaek.all).resolve).to be_empty
   end
 
+  it "separates hidden jjaek inspection, author cleanup, and ordinary interaction" do
+    admin = User.create!(name: "Admin", email: "jjaek-hide-policy-admin@example.com", password: "password123!", global_admin: true)
+    hidden_jjaek = original_author.jjaeks.create!(content: "HIDDEN_POLICY_SOURCE", hidden_at: Time.current)
+
+    admin_policy = described_class.new(admin, hidden_jjaek)
+    expect(admin_policy).not_to be_hide
+    expect(admin_policy).to be_show
+    expect(admin_policy).not_to be_update
+    expect(admin_policy).not_to be_destroy
+
+    author_policy = described_class.new(original_author, hidden_jjaek)
+    expect(author_policy).to be_show
+    expect(author_policy).not_to be_visible_for_interaction
+    expect(author_policy).not_to be_update
+    expect(author_policy).to be_destroy
+
+    expect(described_class.new(viewer, hidden_jjaek)).not_to be_show
+    expect(described_class.new(viewer, hidden_jjaek)).not_to be_hide
+  end
+
+  it "excludes hidden sources and their requotes from ordinary scopes but keeps admin investigation" do
+    admin = User.create!(name: "Admin", email: "jjaek-hide-scope-admin@example.com", password: "password123!", global_admin: true)
+    source = original_author.jjaeks.create!(content: "HIDDEN_SCOPE_SOURCE")
+    existing_requote = viewer.jjaeks.create!(content: "HIDDEN_SCOPE_REQUOTE", quoted_jjaek: source, visibility: :private_jjaek)
+    source.update!(hidden_at: Time.current)
+
+    expect(described_class::Scope.new(viewer, Jjaek.all).resolve).not_to include(source, existing_requote)
+    expect(described_class::FeedScope.new(viewer, Jjaek.all).resolve).not_to include(source, existing_requote)
+    expect(described_class::ProfileScope.new(viewer, original_author.jjaeks).resolve).not_to include(source)
+    expect(described_class::ProfileScope.new(original_author, original_author.jjaeks).resolve).to include(source)
+    expect(described_class::FeedScope.new(original_author, Jjaek.all).resolve).to include(source)
+    expect(described_class::AdminInventoryScope.new(admin, Jjaek.all).resolve).to include(source, existing_requote)
+    expect(described_class::ProfileScope.new(admin, original_author.jjaeks).resolve).to include(source)
+  end
+
+  it "keeps hidden group jjaeks only for their author while group read access remains valid" do
+    group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Hidden group scope", group_type: :private_group)
+    author_membership = group.group_memberships.create!(user: viewer, status: :active)
+    other_member = User.create!(name: "Other member", email: "hidden-group-other@example.com", password: "password123!")
+    group.group_memberships.create!(user: other_member, status: :active)
+    hidden_jjaek = viewer.jjaeks.create!(group:, content: "HIDDEN_GROUP_SCOPE", hidden_at: Time.current)
+
+    expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).to include(hidden_jjaek)
+    expect(described_class::GroupContentScope.new(other_member, group.jjaeks).resolve).not_to include(hidden_jjaek)
+
+    author_membership.destroy!
+    expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).not_to include(hidden_jjaek)
+  end
+
   it "keeps suspended group content readable but blocks creation and editing while allowing deletion" do
     group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Suspended", group_type: :public_group)
     group.group_memberships.create!(user: viewer, status: :active)

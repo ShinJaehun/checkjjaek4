@@ -6,6 +6,9 @@ Rails.application.routes.draw do
   get "/relationships", to: "relationships#index"
   resources :notifications, only: :index
   namespace :admin do
+    resources :jjaeks, only: [] do
+      patch :hide, on: :member
+    end
     resources :users, only: %i[index show] do
       patch :suspend, on: :member
       patch :restore, on: :member

@@ -18,14 +18,29 @@ RSpec.describe ModerationAction, type: :model do
   let(:membership) { group.group_memberships.create!(user: other_user, status: :active) }
 
   def action_for(target:, action_type:, reversal_of: nil)
+    public_reason = target.is_a?(Jjaek) && action_type.to_sym == :hide ? "inappropriate_content" : "Public reason"
+
     described_class.new(
       target:,
       actor:,
       action_type:,
-      public_reason: "Public reason",
+      public_reason:,
       internal_note: "Internal note",
       reversal_of:
     )
+  end
+
+  it "accepts only defined reasons for jjaek hides" do
+    Jjaek::MODERATION_HIDE_REASONS.each do |reason|
+      action = action_for(target: jjaek, action_type: :hide)
+      action.public_reason = reason
+
+      expect(action).to be_valid
+    end
+
+    action = action_for(target: jjaek, action_type: :hide)
+    action.public_reason = "undefined_reason"
+    expect(action).not_to be_valid
   end
 
   it "allows supported original moderation actions" do
@@ -150,7 +165,7 @@ RSpec.describe ModerationAction, type: :model do
     expect(action.target_type).to eq("Jjaek")
     expect(action.target_id).to eq(target_id)
     expect(action.actor).to eq(actor)
-    expect(action.public_reason).to eq("Public reason")
+    expect(action.public_reason).to eq("inappropriate_content")
   end
 
   it "preserves the audit row after a target membership is deleted" do

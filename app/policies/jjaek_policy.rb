@@ -11,12 +11,13 @@ class JjaekPolicy < ApplicationPolicy
 
   def show?
     return true if user&.global_admin?
+    return user.present? && record.user_id == user.id if record.hidden?
 
     visible_for_interaction?
   end
 
   def visible_for_interaction?
-    user.present? && context_visible_to_user? && quoted_jjaek_visible_to_user?
+    user.present? && !record.hidden? && context_visible_to_user? && quoted_jjaek_visible_to_user?
   end
 
   def create?
@@ -37,7 +38,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def update?
-    return false unless user.present? && record.user_id == user.id && !record.deleted?
+    return false unless user.present? && record.user_id == user.id && !record.deleted? && !record.hidden?
     return true if record.group_id.blank?
 
     record.group.activity_allowed_for?(user)
@@ -45,6 +46,10 @@ class JjaekPolicy < ApplicationPolicy
 
   def destroy?
     user.present? && record.user_id == user.id && !record.deleted?
+  end
+
+  def hide?
+    user&.global_admin? && !record.hidden?
   end
 
   class MembershipAwareScope < ApplicationPolicy::Scope
@@ -62,28 +67,29 @@ class JjaekPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
-      with_visible_quoted_jjaeks(visible_records)
+      visible_scope = scope.visible
+      with_visible_quoted_jjaeks(visible_records(visible_scope), visible_scope)
     end
 
     private
 
-    def visible_records
+    def visible_records(visible_scope)
       friend_ids = BookFriendship.connected_ids_for(user)
-      personal_records = scope.where(group_id: nil)
+      personal_records = visible_scope.where(group_id: nil)
         .where(user_id: user.id)
-        .or(scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
-        .or(scope.where(group_id: nil, visibility: Jjaek.visibilities[:public_jjaek]))
-        .or(scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
+        .or(visible_scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
+        .or(visible_scope.where(group_id: nil, visibility: Jjaek.visibilities[:public_jjaek]))
+        .or(visible_scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
 
       public_group_ids = Group.active.public_group.select(:id)
-      group_records = scope.where(group_id: public_group_ids)
-        .or(scope.where(group_id: readable_member_group_ids))
+      group_records = visible_scope.where(group_id: public_group_ids)
+        .or(visible_scope.where(group_id: readable_member_group_ids))
 
       personal_records.or(group_records)
     end
 
-    def with_visible_quoted_jjaeks(records)
-      visible_quoted_jjaek_ids = visible_records.select(:id)
+    def with_visible_quoted_jjaeks(records, visible_scope)
+      visible_quoted_jjaek_ids = visible_records(visible_scope).select(:id)
       deleted_source_requotes = records.where(user_id: user.id).where.not(quoted_source_deleted_at: nil)
 
       records
@@ -93,22 +99,42 @@ class JjaekPolicy < ApplicationPolicy
     end
   end
 
-  class GroupContentScope < ApplicationPolicy::Scope
+  class GroupContentScope < MembershipAwareScope
     def resolve
       return scope.none unless user.present?
       return scope.all if user.global_admin?
 
-      JjaekPolicy::Scope.new(user, scope).resolve
+      visible_records = JjaekPolicy::Scope.new(user, scope).resolve
+      hidden_scope = scope.where(user_id: user.id).where.not(hidden_at: nil)
+      public_group_ids = Group.active.public_group.select(:id)
+      hidden_own_records = hidden_scope.where(group_id: public_group_ids)
+        .or(hidden_scope.where(group_id: readable_member_group_ids))
+
+      visible_records.or(hidden_own_records)
     end
   end
 
-  class ProfileScope < ApplicationPolicy::Scope
+  class ProfileScope < MembershipAwareScope
     def resolve
       return scope.none unless user.present?
       return scope.all if user.global_admin?
 
       visible_jjaek_ids = JjaekPolicy::Scope.new(user, Jjaek.all).resolve.select(:id)
-      scope.where(id: visible_jjaek_ids)
+      visible_records = scope.where(id: visible_jjaek_ids)
+      hidden_own_records = hidden_own_records_for_profile
+
+      visible_records.or(hidden_own_records)
+    end
+
+    private
+
+    def hidden_own_records_for_profile
+      hidden_scope = scope.where(user_id: user.id).where.not(hidden_at: nil)
+      public_group_ids = Group.active.public_group.select(:id)
+
+      hidden_scope.where(group_id: nil)
+        .or(hidden_scope.where(group_id: public_group_ids))
+        .or(hidden_scope.where(group_id: readable_member_group_ids))
     end
   end
 
@@ -116,26 +142,32 @@ class JjaekPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
-      with_visible_quoted_jjaeks(feed_records)
+      visible_scope = scope.visible
+      visible_records = with_visible_quoted_jjaeks(feed_records(visible_scope), visible_scope)
+      hidden_scope = scope.where(user_id: user.id).where.not(hidden_at: nil)
+      hidden_own_records = hidden_scope.where(group_id: nil)
+        .or(hidden_scope.where(group_id: readable_member_group_ids))
+
+      visible_records.or(hidden_own_records)
     end
 
     private
 
-    def feed_records
+    def feed_records(visible_scope)
       followee_ids = user.followee_ids
       friend_ids = BookFriendship.connected_ids_for(user)
 
-      personal_records = scope
+      personal_records = visible_scope
         .where(group_id: nil, user_id: user.id)
-        .or(scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
-        .or(scope.where(group_id: nil, user_id: followee_ids, visibility: Jjaek.visibilities[:public_jjaek]))
-        .or(scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
+        .or(visible_scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
+        .or(visible_scope.where(group_id: nil, user_id: followee_ids, visibility: Jjaek.visibilities[:public_jjaek]))
+        .or(visible_scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
 
-      personal_records.or(scope.where(group_id: readable_member_group_ids))
+      personal_records.or(visible_scope.where(group_id: readable_member_group_ids))
     end
 
-    def with_visible_quoted_jjaeks(records)
-      visible_quoted_jjaek_ids = Scope.new(user, scope).resolve.select(:id)
+    def with_visible_quoted_jjaeks(records, visible_scope)
+      visible_quoted_jjaek_ids = Scope.new(user, visible_scope).resolve.select(:id)
       deleted_source_requotes = records.where(user_id: user.id).where.not(quoted_source_deleted_at: nil)
 
       records

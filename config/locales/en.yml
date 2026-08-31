@@ -197,6 +197,20 @@ en:
   admin:
     actions:
       show: "Details"
+    jjaeks:
+      actions:
+        hide: "Hide"
+      moderation:
+        title: "Moderation"
+        hidden: "Hidden by moderation"
+        reason: "Hide reason"
+        reason_prompt: "Select a reason"
+        internal_note: "Internal note"
+        performed_by: "%{actor} · %{time}"
+      notices:
+        hidden: "The post was hidden."
+      alerts:
+        hide_failed: "The post could not be hidden."
     user_content:
       title: "Content"
       navigation_label: "Authored content type"
@@ -228,6 +242,7 @@ en:
         source: "Source"
       statuses:
         active: "Active"
+        hidden: "Moderation hidden"
         deleted: "Deleted"
       filters:
         all: "All"
@@ -747,6 +762,16 @@ en:
       requotes:
         one: "1 ReJjaek"
         other: "%{count} ReJjaeks"
+    moderation:
+      hidden_title: "This post was hidden by moderation."
+      hidden_description: "This post is not shown to other users and cannot be edited while hidden."
+      reason: "Hide reason"
+      reasons:
+        inappropriate_content: "Inappropriate content"
+        spam_advertising: "Spam or advertising"
+        personal_information: "Personal information exposure"
+        service_disruption: "Service disruption"
+        other: "Other"
     notices:
       created: "Jjaek published."
       destroyed: "Jjaek deleted."

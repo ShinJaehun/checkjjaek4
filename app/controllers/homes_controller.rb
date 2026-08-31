@@ -4,7 +4,7 @@ class HomesController < ApplicationController
     @jjaek = Jjaek.new(user: current_user)
 
     @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
-      .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek)
+      .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek, :moderation_actions)
       .recent
     @feed_book_activities = policy_scope(BookActivity)
       .includes(:user, :book)

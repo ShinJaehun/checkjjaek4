@@ -128,8 +128,16 @@
                 <span class="rounded-full bg-stone-200 px-2 py-1 text-xs text-stone-700">
                   <%= t("admin.user_content.statuses.deleted") %>
                 </span>
+              <% end %>
+
+              <% if item.record_type == "Jjaek" && record.hidden? %>
+                <span class="rounded-full bg-red-100 px-2 py-1 text-xs text-red-800">
+                  <%= t("admin.user_content.statuses.hidden") %>
+                </span>
               <% else %>
-                -
+                <% unless item.record_type == "Jjaek" && record.deleted? %>
+                  -
+                <% end %>
               <% end %>
             </td>
             <td class="p-3 align-middle whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>

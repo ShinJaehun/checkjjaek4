@@ -205,6 +205,20 @@ ko:
   admin:
     actions:
       show: "상세 보기"
+    jjaeks:
+      actions:
+        hide: "숨김"
+      moderation:
+        title: "운영 조치"
+        hidden: "운영상 숨김"
+        reason: "숨김 사유"
+        reason_prompt: "사유를 선택하세요"
+        internal_note: "내부 운영 메모"
+        performed_by: "%{actor} · %{time}"
+      notices:
+        hidden: "글을 운영상 숨겼습니다."
+      alerts:
+        hide_failed: "글을 숨길 수 없습니다."
     user_content:
       title: "콘텐츠"
       navigation_label: "작성 콘텐츠 종류"
@@ -236,6 +250,7 @@ ko:
         source: "원문"
       statuses:
         active: "정상"
+        hidden: "운영 숨김"
         deleted: "삭제"
       filters:
         all: "전체"
@@ -747,6 +762,16 @@ ko:
       requotes:
         one: "다시짹 1개"
         other: "다시짹 %{count}개"
+    moderation:
+      hidden_title: "운영에 의해 숨김 처리된 글입니다."
+      hidden_description: "이 글은 다른 사용자에게 표시되지 않으며 숨김 중에는 수정할 수 없습니다."
+      reason: "숨김 사유"
+      reasons:
+        inappropriate_content: "부적절한 내용"
+        spam_advertising: "스팸·광고"
+        personal_information: "개인정보 노출"
+        service_disruption: "서비스 운영 방해"
+        other: "기타"
     notices:
       created: "Jjaek을 게시했습니다."
       destroyed: "Jjaek을 삭제했습니다."

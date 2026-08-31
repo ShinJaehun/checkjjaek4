@@ -49,6 +49,8 @@ class LikesController < ApplicationController
 
   def set_jjaek
     @jjaek = Jjaek.find(params[:jjaek_id])
+    return if action_name == "destroy" && @jjaek.hidden?
+
     authorize @jjaek, :show?
   end
 end

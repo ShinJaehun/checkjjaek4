@@ -266,6 +266,8 @@
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를, Group 운영 상세의 같은 형태 inventory에서 해당 동아리의 Jjaek·책짹·Comment를 직접 조사할 수 있음
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
+- global admin은 모든 현재 Jjaek 유형을 정의된 숨김 사유 선택과 선택적 내부 메모로 운영상 숨길 수 있으며, 숨김 상태와 append-only 감사 기록을 원자적으로 남김
+- 숨겨진 Jjaek과 이를 원문으로 참조하는 ReJjaek은 다른 사용자의 일반 목록·단건 조회와 새 Comment·Like·ReJjaek에서 제외됨. 작성자의 자기 profile·feed·단건에는 원문 대신 상태와 선택 사유를 담은 placeholder를 유지하고 자기 삭제만 허용하며, global admin은 원문·내부 메모를 포함한 조사를 계속 수행함
 - group admin의 자기 동아리 콘텐츠 monitoring은 아직 구현되지 않음
 - append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
 - 동아리 활동 정지·해제는 `ModerationAction`에만 기록하며 `GroupMembershipEvent`에 중복 저장하지 않음
@@ -279,7 +281,7 @@
 - 정지 시 기존 콘텐츠·관계·서재·Group membership과 관리자 연결을 보존하고 콘텐츠 visibility나 Group lifecycle을 변경하지 않음
 - 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
 - Group membership 활동 정지·이용 제한은 group admin만 실행하며 global admin은 현재 회원·제한·감사 이력을 조사하고 service-wide 제재에는 User 계정 정지·복구를 사용함
-- Jjaek·Comment 숨김/복구, Group moderation 운영 정지/복구, 해당 action UI와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
+- Jjaek 복구, Comment 숨김/복구와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴
 

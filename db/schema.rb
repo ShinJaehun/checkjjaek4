@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_30_113000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_31_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -196,6 +196,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_113000) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.bigint "group_id"
+    t.datetime "hidden_at"
     t.bigint "quoted_jjaek_id"
     t.string "quoted_source_author_name"
     t.datetime "quoted_source_deleted_at"
@@ -207,6 +208,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_113000) do
     t.index ["book_id"], name: "index_jjaeks_on_book_id"
     t.index ["created_at"], name: "index_jjaeks_on_created_at"
     t.index ["group_id"], name: "index_jjaeks_on_group_id"
+    t.index ["hidden_at"], name: "index_jjaeks_on_hidden_at"
     t.index ["quoted_jjaek_id"], name: "index_jjaeks_on_quoted_jjaek_id"
     t.index ["quoted_source_deleted_at"], name: "index_jjaeks_on_quoted_source_deleted_at"
     t.index ["target_user_id"], name: "index_jjaeks_on_target_user_id"

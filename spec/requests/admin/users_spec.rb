@@ -257,6 +257,8 @@ RSpec.describe "Admin user inventory", type: :request do
     deleted_jjaek = reader.jjaeks.create!(content: "USER_DELETED_CONTENT")
     deleted_jjaek.comments.create!(user: group_admin, content: "PRESERVE_DELETED_JJAEK")
     deleted_jjaek.destroy_or_tombstone!
+    hidden_jjaek = reader.jjaeks.create!(content: "USER_HIDDEN_CONTENT")
+    Jjaeks::Hide.new(hidden_jjaek, actor: admin, public_reason: "other").call!
     comment = source.comments.create!(user: reader, content: "USER_COMMENT_CONTENT")
     deleted_comment_source = group_admin.jjaeks.create!(content: "DELETED_COMMENT_SOURCE")
     deleted_source_comment = deleted_comment_source.comments.create!(user: reader, content: "COMMENT_ON_DELETED_SOURCE")
@@ -298,6 +300,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(comment_row.at_css("[data-field='reference']").text).not_to include("짹 ·", "책짹 ·", "다시짹 ·")
     expect(deleted_comment_source_row.at_css("[data-field='reference']").text).to include(group_admin.name, "-")
     expect(timeline.at_css("#timeline_jjaek_#{deleted_jjaek.id} [data-field='status']").text.strip).to eq("삭제")
+    expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status']").text.strip).to eq("운영 숨김")
     expect(personal_row.at_css("[data-field='status']").text.strip).to eq("-")
     expect(personal_row.at_css("[data-field='actions'] a").text.strip).to eq("바로가기")
     expect(personal_row.at_css("a[href='#{jjaek_path(personal_jjaek)}']")).to be_present

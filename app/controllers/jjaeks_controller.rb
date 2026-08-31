@@ -7,6 +7,9 @@ class JjaeksController < ApplicationController
   end
 
   def show
+    @current_hide_action = @jjaek.current_hide_action if @jjaek.hidden?
+    return render :hidden if @jjaek.hidden? && !policy(@jjaek).view_admin_inventory?
+
     prepare_comments
     prepare_visible_requote_counts_for([ @jjaek ])
   end
@@ -181,7 +184,7 @@ class JjaeksController < ApplicationController
       policy_scope(
         @group.jjaeks,
         policy_scope_class: JjaekPolicy::GroupContentScope
-      ).includes(:user, :book, :group).recent
+      ).includes(:user, :book, :group, :moderation_actions).recent
     else
       Jjaek.none
     end
@@ -199,7 +202,7 @@ class JjaeksController < ApplicationController
 
   def render_home_create_failure
     @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
-      .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek)
+      .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek, :moderation_actions)
       .recent
     @feed_book_activities = policy_scope(BookActivity)
       .includes(:user, :book)
@@ -261,7 +264,7 @@ class JjaeksController < ApplicationController
     policy_scope(
       @user.jjaeks,
       policy_scope_class: JjaekPolicy::ProfileScope
-    ).includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]).recent
+    ).includes(:user, :book, :group, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book ]).recent
   end
 
   def jjaek_book_id

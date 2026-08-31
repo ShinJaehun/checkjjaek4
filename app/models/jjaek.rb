@@ -1,4 +1,12 @@
 class Jjaek < ApplicationRecord
+  MODERATION_HIDE_REASONS = %w[
+    inappropriate_content
+    spam_advertising
+    personal_information
+    service_disruption
+    other
+  ].freeze
+
   enum :visibility, { public_jjaek: 0, book_friends: 1, private_jjaek: 2 },
        default: :public_jjaek,
        validate: true
@@ -12,6 +20,7 @@ class Jjaek < ApplicationRecord
   has_many :requotes, class_name: "Jjaek", foreign_key: :quoted_jjaek_id, inverse_of: :quoted_jjaek
   has_many :comments, dependent: :destroy
   has_many :likes, dependent: :destroy
+  has_many :moderation_actions, as: :target
 
   before_destroy :mark_requotes_as_deleted_source
 
@@ -31,6 +40,7 @@ class Jjaek < ApplicationRecord
   before_update :record_content_edited_at
 
   scope :recent, -> { order(created_at: :desc) }
+  scope :visible, -> { where(hidden_at: nil) }
 
   def requote?
     quoted_jjaek_id.present? || quoted_source_deleted?
@@ -42,6 +52,18 @@ class Jjaek < ApplicationRecord
 
   def deleted?
     deleted_at.present?
+  end
+
+  def hidden?
+    hidden_at.present?
+  end
+
+  def current_hide_action
+    if association(:moderation_actions).loaded?
+      moderation_actions.select(&:action_type_hide?).max_by { |action| [ action.created_at, action.id ] }
+    else
+      ModerationAction.current_hide_for(self)
+    end
   end
 
   def destroy_or_tombstone!

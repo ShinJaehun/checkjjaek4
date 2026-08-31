@@ -32,6 +32,7 @@ class ModerationAction < ApplicationRecord
   validates :public_reason, presence: true
   validates :reversal_of_id, uniqueness: true, allow_nil: true
   validate :action_type_must_match_target
+  validate :jjaek_hide_reason_must_be_allowed
   validate :group_member_attribution_must_match_target, on: :create
   validate :reversal_must_match_action
 
@@ -67,6 +68,12 @@ class ModerationAction < ApplicationRecord
       .first
   end
 
+  def self.current_hide_for(jjaek)
+    where(target: jjaek, action_type: :hide)
+      .order(created_at: :desc, id: :desc)
+      .first
+  end
+
   def readonly?
     persisted? || super
   end
@@ -78,6 +85,13 @@ class ModerationAction < ApplicationRecord
   end
 
   private
+
+  def jjaek_hide_reason_must_be_allowed
+    return unless target_type == "Jjaek" && action_type_hide?
+    return if public_reason.in?(Jjaek::MODERATION_HIDE_REASONS)
+
+    errors.add(:public_reason, :inclusion)
+  end
 
   def set_group_member_attribution
     return unless group_member_moderation_target? && target.present?

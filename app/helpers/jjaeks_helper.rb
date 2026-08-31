@@ -1,4 +1,14 @@
 module JjaeksHelper
+  def jjaek_hide_reason_options
+    Jjaek::MODERATION_HIDE_REASONS.map do |reason|
+      [ jjaek_hide_reason_label(reason), reason ]
+    end
+  end
+
+  def jjaek_hide_reason_label(reason)
+    t("jjaeks.moderation.reasons.#{reason}")
+  end
+
   def jjaek_context_label(jjaek)
     translation_key = jjaek_context_translation_key(jjaek)
     return if translation_key.blank?
