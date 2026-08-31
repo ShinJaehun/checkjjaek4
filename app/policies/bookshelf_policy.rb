@@ -1,6 +1,7 @@
 class BookshelfPolicy < ApplicationPolicy
   def show?
     return false unless user.present?
+    return true if user.global_admin?
     return true if record.user_id == user.id
     return true if record.visibility_public?
 
@@ -30,6 +31,7 @@ class BookshelfPolicy < ApplicationPolicy
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?
+      return scope.all if user.global_admin?
 
       book_friend_ids = BookFriendship.connected_ids_for(user)
 

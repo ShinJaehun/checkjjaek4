@@ -24,6 +24,19 @@ RSpec.describe BookshelfPolicy do
 
       expect(described_class.new(viewer, bookshelf).show?).to be(false)
     end
+
+    it "allows a global admin to read a private bookshelf without granting mutations" do
+      global_admin = User.create!(name: "Global admin", email: "bookshelf-global-admin@example.com", password: "password123!", global_admin: true)
+      bookshelf = profile_user.bookshelves.create!(name: "Private", visibility: :private)
+      policy = described_class.new(global_admin, bookshelf)
+
+      expect(policy.show?).to be(true)
+      expect(policy.create?).to be(false)
+      expect(policy.update?).to be(false)
+      expect(policy.destroy?).to be(false)
+      expect(policy.move_up?).to be(false)
+      expect(policy.move_down?).to be(false)
+    end
   end
 
   describe described_class::Scope do
@@ -58,6 +71,17 @@ RSpec.describe BookshelfPolicy do
       expect(resolved).to include(public_bookshelf)
       expect(resolved).not_to include(book_friends_bookshelf)
       expect(resolved).not_to include(private_bookshelf)
+    end
+
+    it "includes every bookshelf visibility for a global admin" do
+      global_admin = User.create!(name: "Global admin", email: "bookshelf-scope-global-admin@example.com", password: "password123!", global_admin: true)
+      public_bookshelf = profile_user.default_bookshelf
+      book_friends_bookshelf = profile_user.bookshelves.create!(name: "Friends", visibility: :book_friends)
+      private_bookshelf = profile_user.bookshelves.create!(name: "Private", visibility: :private)
+
+      resolved = described_class.new(global_admin, profile_user.bookshelves).resolve
+
+      expect(resolved).to include(public_bookshelf, book_friends_bookshelf, private_bookshelf)
     end
   end
 end

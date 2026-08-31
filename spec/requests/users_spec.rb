@@ -81,7 +81,7 @@ RSpec.describe "Users", type: :request do
       expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
       expect(response.body).to include("프로필 서재 전용 책", "ADMIN_BOOK_FRIENDS_BOOK", "ADMIN_PRIVATE_BOOK")
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"), I18n.t("bookshelf_entries.statuses.finished"))
-      expect(response.body).not_to include(I18n.t("users.profile.view_library"))
+      expect(response.body).to include(I18n.t("users.profile.view_library"))
       expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
     end
 
