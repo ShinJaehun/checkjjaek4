@@ -15,7 +15,7 @@ module GroupMemberBans
         membership.lock!
         raise InvalidState unless group.active? && group.operation_active? && group.group_admin?(actor)
         raise InvalidState if membership.user_id == group.group_admin_id
-        raise InvalidState unless membership.pending? || membership.invited? || membership.active?
+        raise InvalidState unless membership.active?
 
         ban = group.group_member_bans.create!(user: membership.user)
         ModerationAction.create!(

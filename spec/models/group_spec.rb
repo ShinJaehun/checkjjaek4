@@ -146,11 +146,28 @@ RSpec.describe Group, type: :model do
     it "transfers to an active member while keeping both memberships active" do
       group.group_memberships.create!(user: new_admin, status: :active)
 
-      group.transfer_admin_to!(new_admin, by: group_admin)
+      expect {
+        group.transfer_admin_to!(new_admin, by: group_admin)
+      }.to change(GroupMembershipEvent, :count).by(2)
 
       expect(group.reload.group_admin).to eq(new_admin)
       expect(group.group_memberships.find_by!(user: group_admin)).to be_active
       expect(group.group_memberships.find_by!(user: new_admin)).to be_active
+      expect(group.group_membership_events.admin_role_revoked.sole).to have_attributes(user: group_admin, actor: group_admin)
+      expect(group.group_membership_events.admin_role_granted.sole).to have_attributes(user: new_admin, actor: group_admin)
+    end
+
+    it "rolls back the admin change when an audit event fails" do
+      group.group_memberships.create!(user: new_admin, status: :active)
+      membership_events = group.group_membership_events
+      allow(group).to receive(:group_membership_events).and_return(membership_events)
+      allow(membership_events).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(GroupMembershipEvent.new))
+      event_count = GroupMembershipEvent.count
+
+      expect { group.transfer_admin_to!(new_admin, by: group_admin) }.to raise_error(ActiveRecord::RecordInvalid)
+
+      expect(group.reload.group_admin).to eq(group_admin)
+      expect(GroupMembershipEvent.count).to eq(event_count)
     end
 
     it "allows a global admin to perform the transfer" do

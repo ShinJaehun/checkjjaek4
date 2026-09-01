@@ -28,6 +28,7 @@ class GroupsController < ApplicationController
 
   def create
     @group = current_user.administered_groups.build(create_group_params)
+    @group.lifecycle_status = :active if current_user.global_admin?
     authorize @group
 
     created = Group.transaction do
@@ -36,7 +37,7 @@ class GroupsController < ApplicationController
       GroupLifecycleEvent.create!(
         group: @group,
         actor: current_user,
-        event_type: :opening_requested,
+        event_type: current_user.global_admin? ? :opening_approved : :opening_requested,
         detail: @group.application_purpose
       )
       true

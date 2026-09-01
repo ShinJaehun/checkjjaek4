@@ -28,6 +28,18 @@ RSpec.describe "Groups", type: :request do
     expect(response).to redirect_to(group_path(group))
   end
 
+  it "creates a global admin's group as active without an approval request" do
+    global_admin = User.create!(name: "Global admin", email: "group-creator-global-admin@example.com", password: "password123!", global_admin: true)
+    sign_in global_admin
+
+    post groups_path, params: { group: { name: "Admin readers", group_type: "public_group", application_purpose: "Operate directly" } }
+
+    group = Group.find_by!(name: "Admin readers")
+    expect(group).to be_active
+    expect(group.group_memberships.find_by!(user: global_admin)).to be_active
+    expect(group.lifecycle_events.sole).to have_attributes(event_type: "opening_approved", actor: global_admin)
+  end
+
   it "renders 422 when an application purpose is missing" do
     sign_in user
 
@@ -633,6 +645,14 @@ RSpec.describe "Groups", type: :request do
       expect(former_admin_membership.reload).to be_active
       expect(new_admin_membership.reload).to be_active
 
+      sign_in new_admin
+      get group_members_path(group)
+      expect(response.body).to include(
+        "#{user.name}님의 관리자 권한을 해제했습니다",
+        "#{new_admin.name}님에게 관리자 권한을 부여했습니다"
+      )
+
+      sign_in user
       get edit_group_path(group)
       expect(response).to redirect_to(root_path)
 

@@ -64,6 +64,7 @@ class Group < ApplicationRecord
 
   def transfer_admin_to!(new_admin, by:)
     with_lock do
+      previous_admin = group_admin
       target_membership = new_admin && group_memberships.active.lock.find_by(user_id: new_admin.id)
       valid_transfer = operation_active? && admin_transfer_actor?(by) && (active? || inactive?) && new_admin.present? &&
         new_admin.id != group_admin_id && target_membership&.moderation_status_normal?
@@ -74,6 +75,8 @@ class Group < ApplicationRecord
       end
 
       update!(group_admin: new_admin)
+      group_membership_events.create!(user: previous_admin, actor: by, event_type: :admin_role_revoked)
+      group_membership_events.create!(user: new_admin, actor: by, event_type: :admin_role_granted)
     end
   end
 

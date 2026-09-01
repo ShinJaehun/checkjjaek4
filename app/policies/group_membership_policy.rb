@@ -50,7 +50,7 @@ class GroupMembershipPolicy < ApplicationPolicy
 
   def ban_from_group?
     record.group.active? && record.group.operation_active? && record.group.group_admin?(user) && record.user_id != user.id &&
-      (record.pending? || record.invited? || record.active?)
+    record.active?
   end
 
   def destroy?

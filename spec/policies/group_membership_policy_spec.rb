@@ -57,6 +57,7 @@ RSpec.describe GroupMembershipPolicy do
 
       expect(described_class.new(group_admin, membership).suspend_activity?).to be(false)
       expect(described_class.new(group_admin, membership).restore_activity?).to be(false)
+      expect(described_class.new(group_admin, membership).ban_from_group?).to be(false)
     end
   end
 

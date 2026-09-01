@@ -829,6 +829,27 @@ RSpec.describe "Group memberships", type: :request do
       group.group_member_bans.find_by!(user: membership.user)
     end
 
+    it "shows only approval actions for a pending request and rejects a direct ban" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Pending review", group_type: :approval_group)
+      membership = group.group_memberships.create!(user: member, status: :pending)
+      sign_in group_admin
+
+      get group_members_path(group)
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css(%(form[action="#{group_group_membership_path(group, membership)}"]))).to be_present
+      expect(page.at_css(%(form[action="#{reject_group_group_membership_path(group, membership)}"]))).to be_present
+      expect(page.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))).to be_nil
+
+      expect {
+        post group_group_member_bans_path(group), params: {
+          membership_id: membership.id,
+          moderation_action: { public_reason: "Not active" }
+        }
+      }.not_to change(GroupMemberBan, :count)
+      expect(response).to redirect_to(root_path)
+      expect(membership.reload).to be_pending
+    end
+
     it "blocks public joins, approval requests and approvals, and private invitations and acceptance" do
       public_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Ban public", group_type: :public_group)
       approval_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Ban approval", group_type: :approval_group)
@@ -881,7 +902,7 @@ RSpec.describe "Group memberships", type: :request do
         email: "ban-candidate-eligible@example.com",
         password: "password123!"
       )
-      ban_membership(group, group.group_memberships.create!(user: member, status: :invited))
+      ban_membership(group, group.group_memberships.create!(user: member, status: :active))
 
       get group_members_path(group)
       invite_form = Nokogiri::HTML(response.body).at_css(%(form[action="#{invite_group_group_memberships_path(group)}"]))

@@ -175,6 +175,8 @@ ko:
           invitation_revoked: "%{actor}님이 %{user}님에게 보낸 초대를 취소했습니다."
           left: "%{user}님이 동아리에서 탈퇴했습니다."
           removed: "%{actor}님이 %{user}님을 동아리에서 내보냈습니다."
+          admin_role_revoked: "%{actor}님이 %{user}님의 관리자 권한을 해제했습니다."
+          admin_role_granted: "%{actor}님이 %{user}님에게 관리자 권한을 부여했습니다."
         moderation:
           suspend_activity: "%{actor}님이 %{user}님의 동아리 활동을 정지했습니다."
           restore_activity: "%{actor}님이 %{user}님의 동아리 활동 정지를 해제했습니다."

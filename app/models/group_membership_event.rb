@@ -11,7 +11,9 @@ class GroupMembershipEvent < ApplicationRecord
          invitation_declined: 7,
          invitation_revoked: 8,
          left: 9,
-         removed: 10
+         removed: 10,
+         admin_role_revoked: 11,
+         admin_role_granted: 12
        },
        validate: true
 

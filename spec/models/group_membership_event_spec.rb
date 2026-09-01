@@ -17,7 +17,9 @@ RSpec.describe GroupMembershipEvent, type: :model do
       "invitation_declined" => 7,
       "invitation_revoked" => 8,
       "left" => 9,
-      "removed" => 10
+      "removed" => 10,
+      "admin_role_revoked" => 11,
+      "admin_role_granted" => 12
     )
 
     group = Group.create!(lifecycle_status: :active, group_admin:, name: "Ordered", group_type: :public_group)
