@@ -8,6 +8,7 @@ class JjaeksController < ApplicationController
 
   def show
     @current_hide_action = @jjaek.current_hide_action if @jjaek.hidden?
+    @moderation_actions = @jjaek.moderation_actions.includes(:actor).order(created_at: :asc, id: :asc) if policy(@jjaek).view_admin_inventory?
     return render :hidden if @jjaek.hidden? && !policy(@jjaek).view_admin_inventory?
 
     prepare_comments

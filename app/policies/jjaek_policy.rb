@@ -6,12 +6,20 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def view_admin_inventory?
-    user.present? && user.global_admin?
+    user.present? && user.global_admin? && record.user_id != user.id
+  end
+
+  def view_hidden_content?
+    return false unless user.present? && record.hidden?
+    return true if record.user_id == user.id
+    return true if view_admin_inventory?
+
+    group_admin_can_read_hidden_content?
   end
 
   def show?
+    return view_hidden_content? if record.hidden?
     return true if user&.global_admin?
-    return user.present? && record.user_id == user.id if record.hidden?
 
     visible_for_interaction?
   end
@@ -49,7 +57,11 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def hide?
-    user&.global_admin? && !record.hidden?
+    user&.global_admin? && record.user_id != user.id && !record.hidden?
+  end
+
+  def restore?
+    user&.global_admin? && record.user_id != user.id && record.hidden? && record.current_hide_action.present?
   end
 
   class MembershipAwareScope < ApplicationPolicy::Scope
@@ -60,6 +72,10 @@ class JjaekPolicy < ApplicationPolicy
         .joins(:group)
         .where(user: user, groups: { lifecycle_status: %i[active inactive] })
         .select(:group_id)
+    end
+
+    def readable_administered_group_ids
+      Group.where(group_admin: user, lifecycle_status: %i[active inactive]).select(:id)
     end
   end
 
@@ -110,7 +126,9 @@ class JjaekPolicy < ApplicationPolicy
       hidden_own_records = hidden_scope.where(group_id: public_group_ids)
         .or(hidden_scope.where(group_id: readable_member_group_ids))
 
-      visible_records.or(hidden_own_records)
+      hidden_administered_records = scope.where(group_id: readable_administered_group_ids).where.not(hidden_at: nil)
+
+      visible_records.or(hidden_own_records).or(hidden_administered_records)
     end
   end
 
@@ -178,6 +196,12 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   private
+
+  def group_admin_can_read_hidden_content?
+    record.group.present? &&
+      record.group.group_admin_id == user.id &&
+      GroupPolicy.new(user, record.group).read_jjaeks?
+  end
 
   def requote_source_context_allowed?
     return true if record.group_id.blank?

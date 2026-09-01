@@ -1,21 +1,37 @@
-<% if jjaek.hidden? && !policy(jjaek).view_admin_inventory? %>
-  <%= render "jjaeks/hidden_placeholder", jjaek: jjaek %>
-<% else %>
-  <% inline_comments_context = local_assigns[:inline_comments_context] %>
-  <% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
-  <% inline_comments_book = local_assigns[:inline_comments_book] %>
+<% jjaek_policy = policy(jjaek) %>
+<% hidden_content_visible = jjaek.hidden? && jjaek_policy.view_hidden_content? %>
+<% content_visible = !jjaek.hidden? || hidden_content_visible %>
+<% inline_comments_context = local_assigns[:inline_comments_context] %>
+<% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
+<% inline_comments_book = local_assigns[:inline_comments_book] %>
 
-  <article class="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-    <%= render "jjaeks/jjaek_header", jjaek: jjaek %>
-    <%= render "jjaeks/jjaek_body", jjaek: jjaek %>
-    <%= render "jjaeks/jjaek_actions",
-               jjaek: jjaek,
-               inline_comments_context: inline_comments_context,
-               inline_comments_profile_user: inline_comments_profile_user,
-               inline_comments_book: inline_comments_book %>
+<% wrapper_class = if jjaek.hidden?
+  "rounded-3xl border border-red-200 bg-red-50/60 p-5 text-red-900 shadow-sm"
+else
+  "rounded-3xl border border-stone-200 bg-white p-5 shadow-sm"
+end %>
 
-    <% if inline_comments_context.present? %>
-      <div id="<%= comments_panel_dom_id(jjaek, context: inline_comments_context, profile_user: inline_comments_profile_user, book: inline_comments_book) %>"></div>
-    <% end %>
-  </article>
-<% end %>
+<article id="<%= dom_id(jjaek) %>" class="<%= wrapper_class.squish %>">
+  <% if jjaek.hidden? %>
+    <%= render "jjaeks/hidden_placeholder", jjaek: jjaek %>
+  <% end %>
+
+  <% if content_visible %>
+    <div class="<%= "mt-4 rounded-2xl border border-red-100 bg-white p-5 text-stone-900" if jjaek.hidden? %>">
+      <%= render "jjaeks/jjaek_header", jjaek: jjaek %>
+      <%= render "jjaeks/jjaek_body", jjaek: jjaek %>
+
+      <% unless jjaek.hidden? %>
+        <%= render "jjaeks/jjaek_actions",
+                   jjaek: jjaek,
+                   inline_comments_context: inline_comments_context,
+                   inline_comments_profile_user: inline_comments_profile_user,
+                   inline_comments_book: inline_comments_book %>
+      <% end %>
+
+      <% if inline_comments_context.present? %>
+        <div id="<%= comments_panel_dom_id(jjaek, context: inline_comments_context, profile_user: inline_comments_profile_user, book: inline_comments_book) %>"></div>
+      <% end %>
+    </div>
+  <% end %>
+</article>

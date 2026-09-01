@@ -764,7 +764,6 @@ en:
         other: "%{count} ReJjaeks"
     moderation:
       hidden_title: "This post was hidden by moderation."
-      hidden_description: "This post is not shown to other users and cannot be edited while hidden."
       reason: "Hide reason"
       reasons:
         inappropriate_content: "Inappropriate content"

@@ -42,6 +42,62 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     }.not_to change(ModerationAction, :count)
   end
 
+  it "does not let a global admin hide or restore their own jjaek" do
+    own_jjaek = admin.jjaeks.create!(content: "ADMIN OWN MODERATION TARGET")
+    sign_in admin
+
+    get jjaek_path(own_jjaek)
+    expect(response.body).not_to include(%(action="#{hide_admin_jjaek_path(own_jjaek)}"))
+
+    expect {
+      patch hide_admin_jjaek_path(own_jjaek), params: { moderation_action: { public_reason: "other" } }
+    }.not_to change(ModerationAction, :count)
+
+    other_admin = User.create!(name: "Other admin", email: "other-admin-hide@example.com", password: "password123!", global_admin: true)
+    Jjaeks::Hide.new(own_jjaek, actor: other_admin, public_reason: "other", internal_note: "ADMIN ONLY").call!
+
+    get jjaek_path(own_jjaek)
+    expect(response.body).to include("ADMIN OWN MODERATION TARGET", "시스템 관리자에 의해 숨겨진 짹입니다.", "기타")
+    expect(response.body).not_to include("ADMIN ONLY", "운영 이력", %(action="#{restore_admin_jjaek_path(own_jjaek)}"))
+
+    expect {
+      patch restore_admin_jjaek_path(own_jjaek), params: { moderation_action: { public_reason: "Self restore" } }
+    }.not_to change(ModerationAction, :count)
+    expect(own_jjaek.reload).to be_hidden
+  end
+
+  it "restores another user's hidden jjaek with a separate reason and audit history" do
+    jjaek = author.jjaeks.create!(content: "RESTORE_REQUEST_TARGET", visibility: :book_friends)
+    hide = Jjaeks::Hide.new(
+      jjaek,
+      actor: admin,
+      public_reason: "personal_information",
+      internal_note: "HIDE INTERNAL"
+    ).call!.current_hide_action
+    sign_in admin
+
+    get jjaek_path(jjaek)
+    expect(response.body).to include(%(action="#{restore_admin_jjaek_path(jjaek)}"), "공개 복구 사유", "HIDE INTERNAL")
+
+    expect {
+      patch restore_admin_jjaek_path(jjaek), params: { moderation_action: { public_reason: "" } }
+    }.not_to change(ModerationAction, :count)
+    expect(jjaek.reload).to be_hidden
+
+    patch restore_admin_jjaek_path(jjaek), params: {
+      moderation_action: { public_reason: "검토 결과 공개 가능", internal_note: "RESTORE INTERNAL" }
+    }
+
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(jjaek.reload).to have_attributes(hidden_at: nil, visibility: "book_friends")
+    restore = jjaek.moderation_actions.action_type_restore.sole
+    expect(restore).to have_attributes(reversal_of: hide, public_reason: "검토 결과 공개 가능", internal_note: "RESTORE INTERNAL")
+    expect(hide.reload).to have_attributes(public_reason: "personal_information", internal_note: "HIDE INTERNAL")
+
+    get jjaek_path(jjaek)
+    expect(response.body).to include("운영 이력", "숨김 해제", "개인정보 노출", "검토 결과 공개 가능", "HIDE INTERNAL", "RESTORE INTERNAL")
+  end
+
   it "removes hidden jjaeks from ordinary feed, profile, book, group, and direct reads" do
     book = Book.create!(title: "HIDDEN_CONTEXT_BOOK", authors_text: "Author")
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Hidden context group", group_type: :public_group)
@@ -66,7 +122,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(response.body).not_to include(general.content)
   end
 
-  it "shows the author a content-free placeholder in profile and direct reads while preserving delete" do
+  it "shows the author the hidden source and public reason while preserving delete" do
     book = Book.create!(title: "AUTHOR_HIDDEN_BOOK", authors_text: "Hidden author")
     jjaek = author.jjaeks.create!(book:, content: "AUTHOR_HIDDEN_BODY")
     Jjaeks::Hide.new(jjaek, actor: admin, public_reason: "spam_advertising", internal_note: "ADMIN ONLY NOTE").call!
@@ -74,18 +130,55 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     sign_in author
 
     get user_path(author)
-    expect(response.body).to include("운영에 의해 숨김 처리된 글입니다.", "스팸·광고", "다른 사용자에게 표시되지 않으며", %(action="#{jjaek_path(jjaek)}"))
-    expect(response.body).not_to include("AUTHOR_HIDDEN_BODY", "AUTHOR_HIDDEN_BOOK", "ADMIN ONLY NOTE")
+    expect(response.body).to include("시스템 관리자에 의해 숨겨진 책짹입니다.", "스팸·광고", "AUTHOR_HIDDEN_BODY", "AUTHOR_HIDDEN_BOOK")
+    expect(response.body).not_to include("ADMIN ONLY NOTE")
+    expect(response.body.scan(%(id="jjaek_#{jjaek.id}")).size).to eq(1)
+    expect(response.body.scan("AUTHOR_HIDDEN_BODY").size).to eq(1)
 
     get jjaek_path(jjaek)
-    expect(response.body).to include("운영에 의해 숨김 처리된 글입니다.", "스팸·광고", "삭제")
-    expect(response.body).not_to include("AUTHOR_HIDDEN_BODY", "AUTHOR_HIDDEN_BOOK", "ADMIN ONLY NOTE")
+    expect(response.body).to include("시스템 관리자에 의해 숨겨진 책짹입니다.", "스팸·광고", "AUTHOR_HIDDEN_BODY", "AUTHOR_HIDDEN_BOOK", "삭제")
+    expect(response.body).not_to include("ADMIN ONLY NOTE")
     expect(response.body).not_to include(%(href="#{edit_jjaek_path(jjaek)}"))
     patch jjaek_path(jjaek), params: { jjaek: { content: "CHANGED" } }
     expect(jjaek.reload.content).to eq("AUTHOR_HIDDEN_BODY")
 
     expect { delete jjaek_path(jjaek) }.to change(Jjaek, :count).by(-1)
     expect(ModerationAction.find(action.id)).to have_attributes(target_type: "Jjaek", target_id: jjaek.id, public_reason: "spam_advertising")
+  end
+
+  it "wraps a hidden group jjaek with its source for global admin lists" do
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Admin hidden list", group_type: :public_group)
+    jjaek = author.jjaeks.create!(group:, content: "ADMIN GROUP HIDDEN SOURCE")
+    Jjaeks::Hide.new(jjaek, actor: admin, public_reason: "other").call!
+    sign_in admin
+
+    get group_path(group)
+
+    document = Nokogiri::HTML(response.body)
+    wrapper = document.at_css("#jjaek_#{jjaek.id}")
+    expect(wrapper.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "기타", "ADMIN GROUP HIDDEN SOURCE")
+    expect(response.body.scan(%(id="jjaek_#{jjaek.id}")).size).to eq(1)
+    expect(response.body.scan("ADMIN GROUP HIDDEN SOURCE").size).to eq(1)
+    expect(wrapper.at_css(%(a[href="#{jjaek_comments_path(jjaek)}"]))).to be_nil
+    expect(wrapper.at_css(%(a[href="#{new_jjaek_path(quoted_jjaek_id: jjaek.id)}"]))).to be_nil
+  end
+
+
+  it "shows a group admin hidden content in their readable group without internal notes" do
+    group_admin = User.create!(name: "Group admin", email: "hidden-group-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Moderated group", group_type: :private_group)
+    group.group_memberships.create!(user: author, status: :active)
+    jjaek = author.jjaeks.create!(group:, content: "GROUP ADMIN HIDDEN SOURCE")
+    Jjaeks::Hide.new(jjaek, actor: admin, public_reason: "service_disruption", internal_note: "GLOBAL ADMIN INTERNAL").call!
+    sign_in group_admin
+
+    get group_path(group)
+    expect(response.body).to include("GROUP ADMIN HIDDEN SOURCE", "시스템 관리자에 의해 숨겨진 짹입니다.", "서비스 운영 방해")
+    expect(response.body).not_to include("GLOBAL ADMIN INTERNAL")
+
+    get jjaek_path(jjaek)
+    expect(response.body).to include("GROUP ADMIN HIDDEN SOURCE", "서비스 운영 방해")
+    expect(response.body).not_to include("GLOBAL ADMIN INTERNAL", %(action="#{restore_admin_jjaek_path(jjaek)}"))
   end
 
   it "blocks new interactions and hidden-source disclosure without changing existing rows" do

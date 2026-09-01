@@ -10,6 +10,16 @@ module Admin
       redirect_to jjaek_path(jjaek), alert: t("admin.jjaeks.alerts.hide_failed")
     end
 
+    def restore
+      jjaek = Jjaek.find(params[:id])
+      authorize jjaek, :restore?
+      Jjaeks::Restore.new(jjaek, actor: current_user, **moderation_action_params).call!
+
+      redirect_to jjaek_path(jjaek), notice: t("admin.jjaeks.notices.restored")
+    rescue Jjaeks::Restore::Error, ActiveRecord::RecordInvalid
+      redirect_to jjaek_path(jjaek), alert: t("admin.jjaeks.alerts.restore_failed")
+    end
+
     private
 
     def moderation_action_params

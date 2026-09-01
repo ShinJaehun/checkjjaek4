@@ -12,7 +12,7 @@ module Jjaeks
 
     def call!
       jjaek.with_lock do
-        raise InvalidState unless actor&.global_admin? && !jjaek.hidden?
+        raise InvalidState unless actor&.global_admin? && actor != jjaek.user && !jjaek.hidden?
 
         jjaek.update!(hidden_at: Time.current)
         ModerationAction.create!(target: jjaek, actor:, action_type: :hide, public_reason:, internal_note:)

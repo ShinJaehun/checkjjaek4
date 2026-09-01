@@ -59,11 +59,7 @@ class Jjaek < ApplicationRecord
   end
 
   def current_hide_action
-    if association(:moderation_actions).loaded?
-      moderation_actions.select(&:action_type_hide?).max_by { |action| [ action.created_at, action.id ] }
-    else
-      ModerationAction.current_hide_for(self)
-    end
+    ModerationAction.current_hide_for(self)
   end
 
   def destroy_or_tombstone!

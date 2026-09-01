@@ -69,7 +69,10 @@ class ModerationAction < ApplicationRecord
   end
 
   def self.current_hide_for(jjaek)
+    restored_action_ids = where(action_type: :restore).where.not(reversal_of_id: nil).select(:reversal_of_id)
+
     where(target: jjaek, action_type: :hide)
+      .where.not(id: restored_action_ids)
       .order(created_at: :desc, id: :desc)
       .first
   end

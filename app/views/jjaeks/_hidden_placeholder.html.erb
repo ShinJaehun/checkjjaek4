@@ -1,18 +1,7 @@
-<article id="<%= dom_id(jjaek) %>" class="rounded-3xl border border-red-200 bg-red-50/60 p-5 text-red-900 shadow-sm">
-  <h2 class="font-semibold"><%= t("jjaeks.moderation.hidden_title") %></h2>
-  <p class="mt-2 text-sm"><%= t("jjaeks.moderation.hidden_description") %></p>
+<div>
+  <h2 class="font-semibold"><%= jjaek_hidden_title(jjaek) %></h2>
   <p class="mt-2 text-sm">
     <%= t("jjaeks.moderation.reason") %>:
     <%= jjaek_hide_reason_label(jjaek.current_hide_action.public_reason) %>
   </p>
-
-  <% if policy(jjaek).destroy? %>
-    <div class="mt-4">
-      <%= button_to t("jjaeks.actions.delete"),
-                    jjaek_path(jjaek),
-                    method: :delete,
-                    form: { data: { turbo_confirm: t("jjaeks.confirmations.destroy") } },
-                    class: "text-sm font-medium text-red-700" %>
-    </div>
-  <% end %>
-</article>
+</div>

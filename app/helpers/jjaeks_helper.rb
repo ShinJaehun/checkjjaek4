@@ -9,6 +9,20 @@ module JjaeksHelper
     t("jjaeks.moderation.reasons.#{reason}")
   end
 
+  def jjaek_hidden_title(jjaek)
+    action = jjaek.current_hide_action
+    return t("jjaeks.moderation.hidden_by_group_admin") unless action&.actor&.global_admin?
+
+    key = jjaek.book.present? ? "hidden_book_by_system_admin" : "hidden_by_system_admin"
+    t("jjaeks.moderation.#{key}")
+  end
+
+  def moderation_action_reason_label(action)
+    return jjaek_hide_reason_label(action.public_reason) if action.action_type_hide?
+
+    action.public_reason
+  end
+
   def jjaek_context_label(jjaek)
     translation_key = jjaek_context_translation_key(jjaek)
     return if translation_key.blank?

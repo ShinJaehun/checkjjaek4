@@ -58,6 +58,17 @@ RSpec.describe Jjaeks::Hide do
     expect(ModerationAction.where(target: jjaek, action_type: :hide).count).to eq(1)
   end
 
+  it "rejects a global admin hiding their own jjaek" do
+    own_jjaek = admin.jjaeks.create!(content: "Admin authored")
+
+    expect {
+      described_class.new(own_jjaek, actor: admin, public_reason: "other").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(own_jjaek.reload).not_to be_hidden
+    expect(own_jjaek.moderation_actions).to be_empty
+  end
+
   it "rolls back the hidden state when audit creation fails" do
     jjaek = author.jjaeks.create!(content: "Atomic target")
     allow(ModerationAction).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(ModerationAction.new))

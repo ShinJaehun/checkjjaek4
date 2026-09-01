@@ -210,17 +210,25 @@ ko:
     jjaeks:
       actions:
         hide: "숨김"
+        restore: "숨김 해제"
       moderation:
         title: "운영 조치"
         hidden: "운영상 숨김"
-        reason: "숨김 사유"
+        reason: "공개 사유"
         reason_prompt: "사유를 선택하세요"
+        restore_reason: "공개 복구 사유"
         internal_note: "내부 운영 메모"
         performed_by: "%{actor} · %{time}"
+        history: "운영 이력"
+        actions:
+          hide: "숨김"
+          restore: "숨김 해제"
       notices:
         hidden: "글을 운영상 숨겼습니다."
+        restored: "글의 숨김을 해제했습니다."
       alerts:
         hide_failed: "글을 숨길 수 없습니다."
+        restore_failed: "글의 숨김을 해제할 수 없습니다."
     user_content:
       title: "콘텐츠"
       navigation_label: "작성 콘텐츠 종류"
@@ -765,8 +773,9 @@ ko:
         one: "다시짹 1개"
         other: "다시짹 %{count}개"
     moderation:
-      hidden_title: "운영에 의해 숨김 처리된 글입니다."
-      hidden_description: "이 글은 다른 사용자에게 표시되지 않으며 숨김 중에는 수정할 수 없습니다."
+      hidden_by_system_admin: "시스템 관리자에 의해 숨겨진 짹입니다."
+      hidden_book_by_system_admin: "시스템 관리자에 의해 숨겨진 책짹입니다."
+      hidden_by_group_admin: "동아리 관리자에 의해 숨겨진 짹입니다."
       reason: "숨김 사유"
       reasons:
         inappropriate_content: "부적절한 내용"

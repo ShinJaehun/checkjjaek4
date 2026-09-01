@@ -269,7 +269,7 @@ Library 안에서 볼 수 있는 책장:
 - User admin 상세는 작성자 기준의, Group 운영 상세는 Group 문맥 기준의 필터 가능한 chronological content inventory를 제공한다
 - 일반 User와 group admin은 admin User·Group 상세 URL에 접근할 수 없으며, 이 운영 조회 권한은 일반 홈 feed scope를 넓히지 않는다
 - `JjaekPolicy#show?`는 global admin이 admin 상세에서 발견한 특정 private·Group Jjaek을 직접 조사할 수 있게 하지만 타인의 update/destroy 권한은 부여하지 않으며 Comment의 author mutation 원칙도 유지한다
-- global admin만 정의된 사유를 선택해 Jjaek을 운영상 숨길 수 있고 일반 scope는 숨겨진 Jjaek과 숨겨진 원문을 참조하는 ReJjaek을 제외한다. 작성자의 자기 profile·feed scope에는 원문 대신 숨김 상태·선택 사유 placeholder를 유지하며, 작성자는 자기 삭제만 허용되고 수정과 새 interaction은 차단된다
+- global admin은 다른 사용자의 Jjaek만 정의된 사유로 숨기고 별도 공개 복구 사유로 복구할 수 있다. 일반 scope는 숨겨진 Jjaek과 숨겨진 원문을 참조하는 ReJjaek을 제외한다. 작성자와 기존 Group read 경계 안의 해당 group admin은 숨겨진 원문·숨김 주체·공개 사유를 볼 수 있지만 내부 메모는 볼 수 없고, 작성자는 수정과 새 interaction 없이 자기 삭제만 할 수 있다. 대상 작성자인 global admin에게도 작성자 권한이 우선한다
 - global admin은 운영상 필요한 경우 active/inactive 동아리의 관리자를 다른 active member에게 이전할 수 있다
 - global admin의 `GroupPolicy::Scope`는 public/approval/private 및 pending/active/inactive 상태와 관계없이 모든 동아리를 포함한다
 - global admin의 `show?`와 `read_jjaeks?`는 이 전체 Group을 운영 목적으로 조사하기 위한 권한이다

@@ -28,21 +28,39 @@ RSpec.describe JjaekPolicy do
   it "separates hidden jjaek inspection, author cleanup, and ordinary interaction" do
     admin = User.create!(name: "Admin", email: "jjaek-hide-policy-admin@example.com", password: "password123!", global_admin: true)
     hidden_jjaek = original_author.jjaeks.create!(content: "HIDDEN_POLICY_SOURCE", hidden_at: Time.current)
+    ModerationAction.create!(target: hidden_jjaek, actor: admin, action_type: :hide, public_reason: "other")
 
     admin_policy = described_class.new(admin, hidden_jjaek)
     expect(admin_policy).not_to be_hide
+    expect(admin_policy).to be_restore
     expect(admin_policy).to be_show
     expect(admin_policy).not_to be_update
     expect(admin_policy).not_to be_destroy
 
     author_policy = described_class.new(original_author, hidden_jjaek)
     expect(author_policy).to be_show
+    expect(author_policy).not_to be_view_admin_inventory
+    expect(author_policy).not_to be_restore
     expect(author_policy).not_to be_visible_for_interaction
     expect(author_policy).not_to be_update
     expect(author_policy).to be_destroy
 
     expect(described_class.new(viewer, hidden_jjaek)).not_to be_show
     expect(described_class.new(viewer, hidden_jjaek)).not_to be_hide
+  end
+
+  it "uses author permissions when a global admin views their own hidden jjaek" do
+    admin_author = User.create!(name: "Admin author", email: "jjaek-admin-author@example.com", password: "password123!", global_admin: true)
+    hidden_jjaek = admin_author.jjaeks.create!(content: "ADMIN AUTHORED", hidden_at: Time.current)
+    policy = described_class.new(admin_author, hidden_jjaek)
+
+    expect(policy).to be_show
+    expect(policy).to be_view_hidden_content
+    expect(policy).not_to be_view_admin_inventory
+    expect(policy).not_to be_hide
+    expect(policy).not_to be_restore
+    expect(policy).not_to be_update
+    expect(policy).to be_destroy
   end
 
   it "excludes hidden sources and their requotes from ordinary scopes but keeps admin investigation" do
@@ -60,7 +78,7 @@ RSpec.describe JjaekPolicy do
     expect(described_class::ProfileScope.new(admin, original_author.jjaeks).resolve).to include(source)
   end
 
-  it "keeps hidden group jjaeks only for their author while group read access remains valid" do
+  it "keeps hidden group jjaeks for their author and group admin while group read access remains valid" do
     group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Hidden group scope", group_type: :private_group)
     author_membership = group.group_memberships.create!(user: viewer, status: :active)
     other_member = User.create!(name: "Other member", email: "hidden-group-other@example.com", password: "password123!")
@@ -68,6 +86,9 @@ RSpec.describe JjaekPolicy do
     hidden_jjaek = viewer.jjaeks.create!(group:, content: "HIDDEN_GROUP_SCOPE", hidden_at: Time.current)
 
     expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).to include(hidden_jjaek)
+    expect(described_class::GroupContentScope.new(original_author, group.jjaeks).resolve).to include(hidden_jjaek)
+    expect(described_class.new(original_author, hidden_jjaek)).to be_show
+    expect(described_class.new(original_author, hidden_jjaek)).not_to be_restore
     expect(described_class::GroupContentScope.new(other_member, group.jjaeks).resolve).not_to include(hidden_jjaek)
 
     author_membership.destroy!

@@ -24,6 +24,18 @@ RSpec.describe Jjaek, type: :model do
     expect(described_class.visible).not_to include(jjaek)
   end
 
+  it "finds the same unrestored current hide with or without a preloaded association" do
+    jjaek = user.jjaeks.create!(content: "Repeated moderation")
+    hide_a = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "other")
+    ModerationAction.create!(target: jjaek, actor: other_user, action_type: :restore, public_reason: "Restore A", reversal_of: hide_a)
+    hide_b = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "spam_advertising")
+
+    expect(jjaek.current_hide_action).to eq(hide_b)
+
+    jjaek.moderation_actions.load
+    expect(jjaek.current_hide_action).to eq(hide_b)
+  end
+
   it "records only successful content edits" do
     jjaek = user.jjaeks.create!(content: "A")
 

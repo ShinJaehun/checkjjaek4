@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   namespace :admin do
     resources :jjaeks, only: [] do
       patch :hide, on: :member
+      patch :restore, on: :member
     end
     resources :users, only: %i[index show] do
       patch :suspend, on: :member
