@@ -120,6 +120,7 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 - 승인 동아리는 발견 가능하지만 가입 승인이 필요하다.
 - 비공개 동아리는 일반 발견 대상에서 제외하며 초대를 기본 진입점으로 삼는다.
 - 일반 사용자의 생성을 운영 신청으로 보고, global admin 승인 전에는 정상 운영하지 않는다.
+- global admin이 직접 생성한 동아리는 승인 대기를 거치지 않고 즉시 `active`로 시작한다. 이는 다른 사용자가 만든 pending 동아리의 자동 승인을 뜻하지 않는다.
 - 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 group admin과 global admin만 확인한다.
 - 승인·운영 lifecycle의 상세 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.
 - 동아리 생성 횟수 제한, 계정 연령, 남용 방지 조건은 아직 결정하지 않는다.
@@ -289,6 +290,27 @@ group admin은 일반 active 회원의 동아리 활동을 정지·복구할 수
 동아리 관리자는 자기 Group의 Jjaek·책짹·Comment를 사유와 함께 숨김·복구할 수 있어야 한다.
 원문 수정·hard delete나 서비스 전체 User 정지는 허용하지 않으며 현재 Group당 group admin 1명 구조를 유지한다.
 상태 분리, 감사 기록, 역할 경계와 제외 범위의 canonical 기준은 `docs/specs/moderation_mvp.md`를 따른다.
+
+---
+
+## 관리자 권한 이전 감사 이력
+
+- 기존 관리자에서 다른 active 회원으로 관리자 권한이 실제 이전되면 기존 `GroupMembershipEvent`를 재사용해 관리자 권한 해제 사건과 관리자 권한 부여 사건을 각각 append-only로 남긴다.
+- 두 사건의 대상 `user`, 실행 `actor`, `created_at`으로 이전 관리자, 새 관리자, 조치자와 조치 시각을 추적할 수 있어야 한다.
+- 관리자 권한 변경과 두 사건 생성은 하나의 transaction으로 처리한다. 실패하거나 rollback되면 권한과 감사 이력 모두 이전 상태를 유지한다.
+- 두 사건은 기존 동아리 회원 운영 이력에서 자연스럽게 확인할 수 있어야 한다.
+- 새 감사 모델을 만들지 않으며 기존 관리자 이전 권한 정책도 확대하지 않는다.
+
+---
+
+## Acceptance Criteria
+
+- global admin이 직접 생성한 Group은 즉시 `active`가 된다.
+- 일반 사용자가 생성한 승인 대상 Group은 기존처럼 `pending_approval`로 시작한다.
+- 관리자 이전 성공 시 이전 관리자의 권한 해제와 새 관리자의 권한 부여가 append-only 회원 운영 이력으로 생성된다.
+- 각 이력에서 대상 사용자, 조치자와 시각을 확인하여 이전 관리자와 새 관리자를 추적할 수 있다.
+- 관리자 이전 실패 시 관리자 권한과 감사 이력 모두 이전 상태를 유지한다.
+- 기존 Group lifecycle, membership, ban, suspension 정책에 회귀가 없다.
 
 ---
 
