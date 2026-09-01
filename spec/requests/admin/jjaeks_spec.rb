@@ -16,7 +16,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     get jjaek_path(jjaek)
     document = Nokogiri::HTML(response.body)
     reason_select = document.at_css("select[name='moderation_action[public_reason]']")
-    expect(response.body).to include("운영 조치", "숨김")
+    expect(response.body).to include("숨김")
     expect(reason_select.css("option").map { |option| option["value"] }).to include(*Jjaek::MODERATION_HIDE_REASONS)
     expect(document.at_css("textarea[name='moderation_action[public_reason]']")).to be_nil
 
@@ -34,7 +34,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(jjaek.current_hide_action).to have_attributes(actor: admin, public_reason: "personal_information", internal_note: "INTERNAL HIDE NOTE")
 
     get jjaek_path(jjaek)
-    expect(response.body).to include("운영상 숨김", "ADMIN_HIDE_TARGET", "개인정보 노출", "INTERNAL HIDE NOTE", admin.name)
+    expect(response.body).to include("숨김", "ADMIN_HIDE_TARGET", "개인정보 노출", "INTERNAL HIDE NOTE", admin.name)
     expect(response.body).not_to include(%(action="#{hide_admin_jjaek_path(jjaek)}"))
 
     expect {
@@ -58,7 +58,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
 
     get jjaek_path(own_jjaek)
     expect(response.body).to include("ADMIN OWN MODERATION TARGET", "시스템 관리자에 의해 숨겨진 짹입니다.", "기타")
-    expect(response.body).not_to include("ADMIN ONLY", "운영 이력", %(action="#{restore_admin_jjaek_path(own_jjaek)}"))
+    expect(response.body).not_to include("ADMIN ONLY", "숨김 이력", %(action="#{restore_admin_jjaek_path(own_jjaek)}"))
 
     expect {
       patch restore_admin_jjaek_path(own_jjaek), params: { moderation_action: { public_reason: "Self restore" } }
@@ -77,7 +77,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     sign_in admin
 
     get jjaek_path(jjaek)
-    expect(response.body).to include(%(action="#{restore_admin_jjaek_path(jjaek)}"), "공개 복구 사유", "HIDE INTERNAL")
+    expect(response.body).to include(%(action="#{restore_admin_jjaek_path(jjaek)}"), "복구 사유", "HIDE INTERNAL")
 
     expect {
       patch restore_admin_jjaek_path(jjaek), params: { moderation_action: { public_reason: "" } }
@@ -95,7 +95,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(hide.reload).to have_attributes(public_reason: "personal_information", internal_note: "HIDE INTERNAL")
 
     get jjaek_path(jjaek)
-    expect(response.body).to include("운영 이력", "숨김 해제", "개인정보 노출", "검토 결과 공개 가능", "HIDE INTERNAL", "RESTORE INTERNAL")
+    expect(response.body).to include("숨김 이력", "숨김 해제", "개인정보 노출", "검토 결과 공개 가능", "HIDE INTERNAL", "RESTORE INTERNAL")
   end
 
   it "removes hidden jjaeks from ordinary feed, profile, book, group, and direct reads" do
