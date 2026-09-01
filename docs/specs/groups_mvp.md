@@ -286,6 +286,7 @@ membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 
 group admin은 일반 active 회원의 동아리 활동을 정지·복구할 수 있다. membership과 내부 콘텐츠 읽기 권한은 유지하며 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. global admin은 이 상태와 감사 이력을 조사하지만 Group membership moderation을 실행하지 않는다. 이는 일반 membership lifecycle 및 User 계정 정지와 별도이고 서로 자동 전파되지 않는다.
 활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 현재 정지도 종료되고 새 membership에 자동 승계하지 않으며 기존 감사 row는 보존한다.
+승인 동아리의 pending 가입 신청은 승인·거절 심사 대상으로만 다루며 동아리 이용 제한 대상이 아니다. 동아리 이용 제한은 active membership에만 적용한다.
 
 동아리 관리자는 자기 Group의 Jjaek·책짹·Comment를 사유와 함께 숨김·복구할 수 있어야 한다.
 원문 수정·hard delete나 서비스 전체 User 정지는 허용하지 않으며 현재 Group당 group admin 1명 구조를 유지한다.
@@ -307,6 +308,8 @@ group admin은 일반 active 회원의 동아리 활동을 정지·복구할 수
 
 - global admin이 직접 생성한 Group은 즉시 `active`가 된다.
 - 일반 사용자가 생성한 승인 대상 Group은 기존처럼 `pending_approval`로 시작한다.
+- 승인 동아리의 pending 가입 신청에는 승인·거절만 제공하며 동아리 이용 제한 UI와 직접 요청을 허용하지 않는다.
+- active membership은 기존 동아리 이용 제한 정책을 유지한다.
 - 관리자 이전 성공 시 이전 관리자의 권한 해제와 새 관리자의 권한 부여가 append-only 회원 운영 이력으로 생성된다.
 - 각 이력에서 대상 사용자, 조치자와 시각을 확인하여 이전 관리자와 새 관리자를 추적할 수 있다.
 - 관리자 이전 실패 시 관리자 권한과 감사 이력 모두 이전 상태를 유지한다.

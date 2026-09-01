@@ -44,7 +44,7 @@
 - BookActivity: 책 관련 사용자 행동을 피드 이벤트로 기록하기 위한 기반 모델
 - `Group`: 일반 사용자 독서 동아리와 동아리 종류·단일 관리자(`group_admin_id`)
 - `User`: `withdrawn_at` 기반 terminal 탈퇴와 별도 `suspended_at` 기반 가역적 운영 정지 상태
-- `Group`: global admin 승인 기반 pending_approval/active/inactive 운영 상태
+- `Group`: 일반 사용자 생성은 global admin 승인 기반, global admin 직접 생성은 즉시 active인 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active 상태와 별도 활동 moderation 상태
 
 ---
@@ -221,7 +221,7 @@
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
 - inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
 - 단일 동아리 관리자는 내부적으로 `Group.group_admin_id`로 표현하며 항상 active membership을 가짐
-- active/inactive 동아리의 현재 관리자와 global admin은 다른 active member에게 관리자 권한을 원자적으로 이전할 수 있음
+- active/inactive 동아리의 현재 관리자와 global admin은 다른 active member에게 관리자 권한을 원자적으로 이전하며, 권한 해제·부여를 `GroupMembershipEvent`로 함께 기록함
 - global admin의 일반 Group 목록에는 종류와 lifecycle 상태에 관계없이 모든 Group이 포함됨
 - global admin은 public/book_friends/private Jjaek과 접근 관계가 없는 Group Jjaek·Comment도 admin inventory와 단건 상세에서 운영 목적으로 조사할 수 있음
 - 특정 User 프로필에서는 global admin에게 해당 작성자의 모든 visibility Jjaek을 표시하지만 일반 Jjaek scope와 홈 feed scope는 넓히지 않음
@@ -240,13 +240,13 @@
 - group admin은 일반 active 회원을 별도 `moderation_status`로 동아리 활동 정지·복구할 수 있음
 - 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
 - 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함
-- `GroupMemberBan`은 현재 Group/User 이용 제한 상태로 membership을 종료하고 가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음
+- `GroupMemberBan`은 active membership에 적용하는 현재 Group/User 이용 제한 상태로 membership을 종료하고 재가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음. pending 가입 신청은 승인·거절 심사만 제공함
 - global admin의 Group 운영 정지는 `operation_suspended_at`과 Group 대상 `ModerationAction`으로 lifecycle `inactive`와 분리되며, 기존 visibility 읽기와 cleanup은 유지하고 새 콘텐츠·membership·회원 moderation·Group 운영 mutation을 복구 전까지 차단함
 - 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
 - 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
 - 일반 member의 자발적 탈퇴와 관리자의 내보내기는 membership을 즉시 삭제함
 - 내보내기·거절·초대 취소는 ban이 아니며 재가입 또는 재초대를 영구 차단하지 않음
-- append-only `GroupMembershipEvent`는 Group 단위로 가입·신청·승인·거절·초대·수락·거절·취소·탈퇴·내보내기와 대상·처리자를 기록하며 membership 삭제 후에도 보존함
+- append-only `GroupMembershipEvent`는 Group 단위로 가입·신청·승인·거절·초대·수락·거절·취소·탈퇴·내보내기·관리자 권한 해제·부여와 대상·처리자를 기록하며 membership 삭제 후에도 보존함
 - `GroupMembershipRemoval`은 내보내진 사용자의 private Group stale URL 안내를 위한 현재 표식으로, 재가입 시 삭제되지만 과거 `removed` event는 유지됨
 - active member는 동아리 안에서 `짹`과 `책짹`을 작성할 수 있음
 - 두 형태 모두 `Jjaek`의 optional `group_id` / `book_id` 조합으로 표현함
