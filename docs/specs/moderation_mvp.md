@@ -73,8 +73,8 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 
 - 작성자가 아닌 운영자가 콘텐츠 내용을 수정하거나 작성자 대신 삭제하지 않는다.
 - 원문을 보존한 별도의 가역적 moderation 상태로 처리한다.
-- platform-origin hide는 일반 사용자 조회와 댓글·Like·ReJjaek 등 후속 상호작용을 차단한다.
-  group-origin hide의 조회 정책은 Group 목록·상세에서 원문 대신 placeholder와 기존 읽기 맥락을 보존하되 새 mutation 권한은 추가하지 않는다.
+- Jjaek hide는 글의 존재를 삭제하지 않고 본문을 가리는 조치다. platform-origin과 group-origin 모두
+  기존 read boundary 안에서는 원문 대신 authority별 placeholder와 기존 읽기 맥락을 보존하되 새 mutation 권한은 추가하지 않는다.
 - global admin은 조사와 복구를 위해 확인할 수 있다.
 - 작성자는 자신의 콘텐츠가 제한됐다는 사실과 공개 가능한 조치 사유를 확인할 수 있다.
 - 숨김을 해제해도 작성자가 이미 삭제했다면 작성자 삭제 상태가 유지된다.
@@ -109,7 +109,8 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 - `기타`를 선택해도 별도의 자유 텍스트 공개 사유를 요구하지 않는다. 내부 운영 메모는 필요할 때만 선택적으로 작성하며 작성자와 일반 사용자에게 노출하지 않는다.
 - 숨김 상태 변경과 append-only `ModerationAction` hide 기록은 하나의 원자적 조치다. 어느 한쪽이 실패하면 둘 다 반영하지 않는다.
 - 이미 숨겨진 Jjaek에는 hide를 중복 적용하지 않는다.
-- 숨겨진 Jjaek은 일반 사용자의 feed, profile, book, Group 목록과 direct 조회에서 완전히 제외한다.
+- platform-origin hidden Jjaek은 기존 read boundary 안의 feed, profile, Book, Group 목록과 direct 조회에서
+  원문 대신 시스템 관리자 placeholder와 공개 사유를 표시한다.
 - 작성자는 자신이 작성한 숨겨진 Jjaek의 원문, 숨김 상태, 숨김 주체와 현재 hide의 공개 사유를 볼 수 있다.
   내부 운영 메모는 볼 수 없으며 수정과 새 Comment·Like·ReJjaek은 금지하고 기존 작성자 삭제만 허용한다.
 - 해당 Group의 group admin은 기존 Group read 권한과 lifecycle 경계 안에서 자기 Group의 숨겨진
@@ -264,7 +265,7 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
   내부 메모와 Group moderation history는 HTML에 포함하지 않는다.
 - 이 placeholder/detail 허용은 Group 자체의 read boundary를 넓히지 않는다. 다른 Group 사용자와 접근할 수 없는
   private Group 비회원 등 기존 비권한 사용자에게는 hidden post의 존재를 노출하지 않는다.
-- platform-origin hidden Jjaek의 일반 사용자 목록·상세 정책은 변경하지 않는다.
+- platform-origin hidden Jjaek의 일반 사용자 목록·상세 정책은 아래 global admin history/visibility 구현 단위를 따른다.
 - 작성자는 자기 hidden 원문, 현재 hidden 상태, 숨김 authority와 현재 hide의 공개 사유를 확인하고 자기 삭제만 수행할 수 있다.
 - 현재 Group admin은 기존 Group read 권한과 lifecycle 경계 안에서 자기 Group의 hidden 원문,
   현재 hidden 상태, 숨김 authority와 현재 hide의 공개 사유를 조사할 수 있다.
@@ -330,10 +331,62 @@ Acceptance criteria:
 6. platform-origin moderation history를 Group admin에게 노출하지 않는다.
 7. 별도 dashboard, route 또는 history page를 만들지 않는다.
 
+#### global admin Jjaek moderation history와 platform-origin hidden visibility 구현 단위
+
+이 단위는 현재 구현되어 있다. 기존 `ModerationAction`, immutable
+`moderation_authority`, hidden placeholder와 comments Turbo/read actions를 재사용하고 새 model, migration,
+별도 history route·dashboard는 만들지 않는다.
+
+##### global admin moderation history
+
+- 대상 작성자가 아닌 global admin은 일반 Jjaek, Book Jjaek, Group Jjaek과 Group Book Jjaek 상세에서
+  해당 Jjaek의 hide/restore 전체 이력을 조사할 수 있다.
+- master operational authority에 따라 `moderation_authority == "platform"`인 action뿐 아니라
+  `moderation_authority == "group"`인 action도 함께 표시한다. 각 action에는 사용자-facing 표현으로
+  `시스템 관리자` 또는 `동아리 관리자` authority source를 구분해 표시하고 내부 enum 값은 노출하지 않는다.
+- 각 항목은 조치 종류(숨김/복구), 실제 actor, `public_reason`, 조치 시각과 present인 `internal_note`를 표시한다.
+  `created_at ASC, id ASC` 순서로 모든 반복 hide/restore cycle을 누적 표시하며 `reversal_of` ID는 UI에 노출하지 않는다.
+- 대상 작성자인 global admin에게는 author-first 경계를 적용해 자기 글의 내부 메모, moderation history와
+  hide/restore control을 운영자 권한으로 우회 제공하지 않는다.
+- 현재 Group admin의 이력 영역은 기존대로 자기 Group의 group-origin 이력만 표시한다.
+  platform-origin history/internal note와 다른 Group 이력은 노출하지 않는다.
+- 작성자, 일반 사용자, 이전 Group admin과 관련 없는 Group admin에게 moderation history와 internal note를 노출하지 않는다.
+
+##### platform-origin hidden visibility와 읽기 맥락
+
+- platform-origin hide도 글의 존재를 삭제하지 않고 본문을 가린다. 기존 read boundary 안의 사용자는
+  feed, profile, Book과 Group 문맥에서 원래 볼 수 있었던 Jjaek의 hidden 카드를 계속 볼 수 있다.
+- 일반 짹에는 `시스템 관리자에 의해 숨겨진 짹입니다.`, 책짹에는
+  `시스템 관리자에 의해 숨겨진 책짹입니다.` placeholder와 현재 hide의 공개 사유를 표시한다.
+  원문 body는 목록 HTML에 포함하지 않는다.
+- hidden 카드에는 좋아요 수/요약, 댓글 수, 댓글 보기와 글 보기를 유지한다. 기존 댓글은 보존하고 읽을 수 있지만
+  새 Like·Comment·ReJjaek과 기타 hidden mutation 권한은 추가하지 않는다.
+- 기존 read boundary 안의 사용자는 글 보기로 hidden 상세에 진입할 수 있다. 상세에서도 원문 body 대신
+  placeholder와 공개 사유를 표시하고 기존 댓글 읽기를 유지하되 internal note, moderation history와 admin control은 노출하지 않는다.
+- private Group 비회원, 원래 visibility 밖 사용자와 그 밖의 기존 비권한 사용자에게 hidden post 존재를 새로 노출하지 않는다.
+- 작성자는 자기 hidden 원문, 숨김 주체와 공개 사유를 확인하고 기존 삭제 lifecycle을 사용할 수 있지만
+  edit와 새 interaction은 계속 제한된다. 현재 Group admin의 조사·복구·이력 권한은 확대하지 않는다.
+- hide authority는 actor의 현재 role이 아니라 action 시점의 immutable `moderation_authority` snapshot으로 판단한다.
+
+Acceptance criteria:
+
+1. 대상 작성자가 아닌 global admin은 Jjaek 상세에서 platform-origin과 group-origin hide/restore 전체 이력을 본다.
+2. history의 각 action은 authority source, action type, 실제 actor, public reason, optional internal note와 시각을 표시한다.
+3. history는 `created_at ASC, id ASC`로 정렬하고 반복 hide/restore cycle 전체를 보존한다.
+4. 기존 read boundary 안의 일반 사용자는 platform-origin hidden 카드를 보지만 목록과 상세 HTML에서 원문 body를 볼 수 없다.
+5. 시스템 관리자 placeholder와 공개 사유, 좋아요 요약, 댓글 수, 댓글 보기와 글 보기를 유지한다.
+6. hidden 상세 접근과 기존 댓글 읽기는 허용하되 새 Like·Comment·ReJjaek 등 mutation 권한은 확대하지 않는다.
+7. 일반 사용자에게 internal note, moderation history와 admin control을 노출하지 않는다.
+8. 작성자의 기존 hidden lifecycle과 author-first 경계를 유지한다.
+9. 현재 Group admin의 group-origin history/internal note 범위와 platform-origin restore 금지를 변경하지 않는다.
+10. 기존 visibility와 Group read boundary 밖 사용자에게 hidden post 존재를 새로 노출하지 않는다.
+11. authority source는 immutable `moderation_authority` snapshot으로 판단한다.
+12. Comment moderation은 이 구현 단위에 포함하지 않는다.
+
 #### 후속 범위
 
-- 별도 후속 브랜치의 global admin platform-origin hide/restore history와 platform-origin hidden post의 일반 사용자 placeholder/detail 동작
-- Comment 숨김·복구
+- 별도 후속 브랜치의 Comment 숨김·복구, authority/history/placeholder, hidden parent Jjaek의 Comment UI와
+  댓글이 없고 작성할 수도 없을 때 빈 comments panel을 표시하지 않는 정책
 - teacher/Classroom moderation
 - 신고 queue, notification, rate limit
 
@@ -396,7 +449,7 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 운영자는 콘텐츠 원문을 수정하지 않는다.
 
 User 정지/복구, Jjaek 숨김·복구와 Group 운영 정지/복구는 이 감사 기반에 연결되어 있다.
-Group admin의 Jjaek 숨김·복구와 Comment 숨김·복구는 아직 구현되지 않았다.
+Group admin의 Jjaek 숨김·복구는 구현되어 있고 Comment 숨김·복구는 아직 구현되지 않았다.
 
 ---
 
