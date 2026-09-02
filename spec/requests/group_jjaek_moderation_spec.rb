@@ -91,7 +91,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     Jjaeks::Hide.new(target, actor: group_admin, public_reason: "other", internal_note: "PRIVATE GROUP NOTE").call!
     comments_panel_id = "comments_panel_group_jjaek_#{target.id}"
 
-    [group_admin, global_admin].each do |moderator|
+    [ group_admin, global_admin ].each do |moderator|
       sign_in moderator
       get group_path(group)
       moderator_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{target.id}")
@@ -157,9 +157,14 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     sign_in member
     get group_path(group)
     expect(response.body).to include(%(id="jjaek_#{group_hidden.id}"))
-    expect(response.body).not_to include(%(id="jjaek_#{platform_hidden.id}"))
+    expect(response.body).to include(%(id="jjaek_#{platform_hidden.id}"))
+    expect(response.body).to include("시스템 관리자에 의해 숨겨진 짹입니다.")
+    expect(response.body).not_to include("PLATFORM HIDDEN BODY")
+
     get jjaek_path(platform_hidden)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("시스템 관리자에 의해 숨겨진 짹입니다.")
+    expect(response.body).not_to include("PLATFORM HIDDEN BODY")
   end
 
   it "allows inactive group moderation but rejects ineligible hide targets" do

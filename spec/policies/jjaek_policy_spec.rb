@@ -27,26 +27,32 @@ RSpec.describe JjaekPolicy do
 
   it "separates hidden jjaek inspection, author cleanup, and ordinary interaction" do
     admin = User.create!(name: "Admin", email: "jjaek-hide-policy-admin@example.com", password: "password123!", global_admin: true)
-    hidden_jjaek = original_author.jjaeks.create!(content: "HIDDEN_POLICY_SOURCE", hidden_at: Time.current)
+    hidden_jjaek = original_author.jjaeks.create!(content: "HIDDEN_POLICY_SOURCE")
+    Jjaeks::Hide.new(hidden_jjaek, actor: admin, public_reason: "other").call!
     ModerationAction.create!(target: hidden_jjaek, actor: admin, action_type: :hide, public_reason: "other", moderation_authority: "platform")
 
     admin_policy = described_class.new(admin, hidden_jjaek)
     expect(admin_policy).not_to be_hide
     expect(admin_policy).to be_restore
     expect(admin_policy).to be_show
+    expect(admin_policy).to be_view_hidden_read_actions
     expect(admin_policy).not_to be_update
     expect(admin_policy).not_to be_destroy
 
     author_policy = described_class.new(original_author, hidden_jjaek)
     expect(author_policy).to be_show
+    expect(author_policy).to be_view_hidden_read_actions
     expect(author_policy).not_to be_view_admin_inventory
     expect(author_policy).not_to be_restore
     expect(author_policy).not_to be_visible_for_interaction
     expect(author_policy).not_to be_update
     expect(author_policy).to be_destroy
 
-    expect(described_class.new(viewer, hidden_jjaek)).not_to be_show
-    expect(described_class.new(viewer, hidden_jjaek)).not_to be_hide
+    viewer_policy = described_class.new(viewer, hidden_jjaek)
+    expect(viewer_policy).to be_show
+    expect(viewer_policy).to be_view_hidden_read_actions
+    expect(viewer_policy).not_to be_visible_for_interaction
+    expect(viewer_policy).not_to be_hide
   end
 
   it "uses author permissions when a global admin views their own hidden jjaek" do

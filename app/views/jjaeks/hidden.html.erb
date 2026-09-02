@@ -1,7 +1,12 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
   <%= render "jjaeks/group_moderation", jjaek: @jjaek, moderation_actions: @group_moderation_actions %>
   <%= render "jjaeks/jjaek", jjaek: @jjaek %>
-  <% if policy(@jjaek).view_group_hidden_placeholder? %>
+  <% if policy(@jjaek).view_hidden_read_actions? %>
+    <%= render "jjaeks/hidden_read_actions", jjaek: @jjaek, inline_comments_context: :detail %>
+  <% end %>
+  <% if policy(@jjaek).view_hidden_placeholder? %>
     <%= render "comments/comments_panel", jjaek: @jjaek, comments: @comments, comment: @comment %>
+  <% elsif policy(@jjaek).view_hidden_read_actions? %>
+    <div id="<%= comments_panel_dom_id(@jjaek) %>"></div>
   <% end %>
 </section>

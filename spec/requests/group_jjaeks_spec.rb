@@ -101,7 +101,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect { delete jjaek_path(existing) }.to change(Jjaek, :count).by(-1)
   end
 
-  it "shows an author's hidden group jjaek with its moderation state only to that author, including during operation suspension" do
+  it "shows platform-hidden group jjaeks to readable members while exposing the original only to the author" do
     admin = User.create!(name: "Global admin", email: "hidden-group-jjaek-admin@example.com", password: "password123!", global_admin: true)
     other_member = User.create!(name: "Other member", email: "hidden-group-jjaek-other@example.com", password: "password123!")
     groups = [ false, true ].map do |suspended|
@@ -127,10 +127,11 @@ RSpec.describe "Group Jjaeks", type: :request do
     sign_in other_member
     groups.each do |group, jjaek|
       get group_path(group)
-      expect(response.body).not_to include(
+      expect(response.body).to include(
         "시스템 관리자에 의해 숨겨진 짹입니다.",
-        jjaek.content
+        "기타"
       )
+      expect(response.body).not_to include(jjaek.content)
     end
   end
 

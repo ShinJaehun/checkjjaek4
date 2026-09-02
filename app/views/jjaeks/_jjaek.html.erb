@@ -1,6 +1,5 @@
 <% jjaek_policy = policy(jjaek) %>
-<% hidden_content_visible = jjaek.hidden? && jjaek_policy.view_hidden_content? %>
-<% content_visible = !jjaek.hidden? || hidden_content_visible %>
+<% content_visible = jjaek_policy.view_original_content? %>
 <% inline_comments_context = local_assigns[:inline_comments_context] %>
 <% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
 <% inline_comments_book = local_assigns[:inline_comments_book] %>
@@ -35,10 +34,14 @@ end %>
     </div>
   <% end %>
 
-  <% if jjaek_policy.view_group_hidden_read_actions? && inline_comments_context == :group %>
-    <%= render "jjaeks/hidden_read_actions", jjaek: jjaek, inline_comments_context: inline_comments_context %>
+  <% if jjaek_policy.view_hidden_read_actions? && inline_comments_context.present? %>
+    <%= render "jjaeks/hidden_read_actions",
+               jjaek: jjaek,
+               inline_comments_context: inline_comments_context,
+               inline_comments_profile_user: inline_comments_profile_user,
+               inline_comments_book: inline_comments_book %>
     <% unless content_visible %>
-      <div id="<%= comments_panel_dom_id(jjaek, context: inline_comments_context) %>"></div>
+      <div id="<%= comments_panel_dom_id(jjaek, context: inline_comments_context, profile_user: inline_comments_profile_user, book: inline_comments_book) %>"></div>
     <% end %>
   <% elsif jjaek.hidden? && inline_comments_context == :group && jjaek_policy.show? %>
     <div class="mt-4 text-xs">

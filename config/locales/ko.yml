@@ -212,17 +212,23 @@ ko:
         hide: "숨김"
         restore: "숨김 해제"
       moderation:
-        title: "숨김"
+        title: "콘텐츠 관리"
+        status: "현재 상태"
         hidden: "숨김"
+        visible: "공개"
         reason: "사유"
         reason_prompt: "사유를 선택하세요"
         restore_reason: "복구 사유"
         internal_note: "내부 운영 메모"
         performed_by: "%{actor} · %{time}"
         history: "숨김 이력"
+        authority: "조치 주체"
+        authorities:
+          platform: "시스템 관리자"
+          group: "동아리 관리자"
         actions:
           hide: "숨김"
-          restore: "숨김 해제"
+          restore: "복구"
       notices:
         hidden: "글을 운영상 숨겼습니다."
         restored: "글의 숨김을 해제했습니다."

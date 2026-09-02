@@ -17,6 +17,10 @@ class JjaekPolicy < ApplicationPolicy
     group_admin_can_read_hidden_content?
   end
 
+  def view_original_content?
+    !record.hidden? || view_hidden_content?
+  end
+
   def view_group_hidden_placeholder?
     return false unless user.present? && record.hidden?
     return false if view_hidden_content?
@@ -26,11 +30,19 @@ class JjaekPolicy < ApplicationPolicy
     GroupPolicy.new(user, record.group).read_jjaeks?
   end
 
-  def view_group_hidden_read_actions?
-    return false unless user.present? && record.hidden? && record.group.present?
-    return true if view_group_hidden_placeholder?
+  def view_hidden_placeholder?
+    return false unless user.present? && record.hidden?
+    return false if view_hidden_content?
+    return view_group_hidden_placeholder? if record.current_hide_action&.group_authority?
+    return false unless record.current_hide_action&.platform_authority?
 
-    user.global_admin? || record.group.group_admin?(user)
+    context_visible_to_user? && quoted_jjaek_visible_to_user?
+  end
+
+  def view_hidden_read_actions?
+    return false unless user.present? && record.hidden?
+
+    view_hidden_content? || view_hidden_placeholder?
   end
 
   def view_moderation_internal_note?(moderation_action)
@@ -50,7 +62,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def show?
-    return view_hidden_content? || view_group_hidden_placeholder? if record.hidden?
+    return view_hidden_content? || view_hidden_placeholder? if record.hidden?
     return true if user&.global_admin?
 
     visible_for_interaction?
@@ -112,6 +124,19 @@ class JjaekPolicy < ApplicationPolicy
   class MembershipAwareScope < ApplicationPolicy::Scope
     private
 
+    def current_hidden_records(authority:)
+      scope.where.not(hidden_at: nil).where(id: current_hidden_target_ids(authority:))
+    end
+
+    def current_hidden_target_ids(authority:)
+      restored_hide_ids = ModerationAction.action_type_restore.where.not(reversal_of_id: nil).select(:reversal_of_id)
+
+      ModerationAction.action_type_hide
+        .where(target_type: "Jjaek", moderation_authority: authority)
+        .where.not(id: restored_hide_ids)
+        .select(:target_id)
+    end
+
     def readable_member_group_ids
       GroupMembership.active
         .joins(:group)
@@ -128,8 +153,14 @@ class JjaekPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
-      visible_scope = scope.visible
-      with_visible_quoted_jjaeks(visible_records(visible_scope), visible_scope)
+      eligible_records = visible_records(scope)
+      visible_records = eligible_records.where(hidden_at: nil)
+      platform_hidden_records = eligible_records
+        .where.not(hidden_at: nil)
+        .where(id: current_hidden_target_ids(authority: "platform"))
+      records = visible_records.or(platform_hidden_records)
+
+      with_visible_quoted_jjaeks(records, scope.visible)
     end
 
     private
@@ -180,12 +211,7 @@ class JjaekPolicy < ApplicationPolicy
     private
 
     def readable_group_hidden_records
-      restored_hide_ids = ModerationAction.action_type_restore.where.not(reversal_of_id: nil).select(:reversal_of_id)
-      group_hidden_jjaek_ids = ModerationAction.action_type_hide
-        .where(target_type: "Jjaek", moderation_authority: "group")
-        .where.not(id: restored_hide_ids)
-        .select(:target_id)
-      hidden_records = scope.where.not(hidden_at: nil).where(id: group_hidden_jjaek_ids)
+      hidden_records = current_hidden_records(authority: "group")
 
       public_group_ids = Group.active.public_group.select(:id)
       hidden_records.where(group_id: public_group_ids)
@@ -221,8 +247,13 @@ class JjaekPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
-      visible_scope = scope.visible
-      visible_records = with_visible_quoted_jjaeks(feed_records(visible_scope), visible_scope)
+      eligible_records = feed_records(scope)
+      visible_feed_records = eligible_records.where(hidden_at: nil)
+      platform_hidden_records = eligible_records
+        .where.not(hidden_at: nil)
+        .where(id: current_hidden_target_ids(authority: "platform"))
+      readable_records = visible_feed_records.or(platform_hidden_records)
+      visible_records = with_visible_quoted_jjaeks(readable_records, scope.visible)
       hidden_scope = scope.where(user_id: user.id).where.not(hidden_at: nil)
       hidden_own_records = hidden_scope.where(group_id: nil)
         .or(hidden_scope.where(group_id: readable_member_group_ids))

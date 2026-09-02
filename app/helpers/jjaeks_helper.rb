@@ -34,6 +34,10 @@ module JjaeksHelper
     )
   end
 
+  def moderation_authority_label(action)
+    t("admin.jjaeks.moderation.authorities.#{action.moderation_authority}")
+  end
+
   def jjaek_context_label(jjaek)
     translation_key = jjaek_context_translation_key(jjaek)
     return if translation_key.blank?

@@ -1,17 +1,10 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
   <% if policy(@jjaek).view_admin_inventory? %>
-    <section class="rounded-3xl border border-red-200 bg-red-50/60 p-5 text-sm text-red-900">
+    <section id="admin_moderation_state" class="rounded-3xl border border-red-200 bg-red-50/60 p-5 text-sm text-red-900">
       <h2 class="font-semibold"><%= t("admin.jjaeks.moderation.title") %></h2>
 
       <% if @current_hide_action.present? %>
-        <p class="mt-3 font-medium"><%= t("admin.jjaeks.moderation.hidden") %></p>
-        <p class="mt-2"><%= t("admin.jjaeks.moderation.reason") %>: <%= jjaek_hide_reason_label(@current_hide_action.public_reason) %></p>
-        <% if @current_hide_action.internal_note.present? %>
-          <p class="mt-2 whitespace-pre-wrap"><%= t("admin.jjaeks.moderation.internal_note") %>: <%= @current_hide_action.internal_note %></p>
-        <% end %>
-        <p class="mt-2 text-xs">
-          <%= t("admin.jjaeks.moderation.performed_by", actor: @current_hide_action.actor.name, time: l(@current_hide_action.created_at, format: :short)) %>
-        </p>
+        <p class="mt-3 font-medium"><%= t("admin.jjaeks.moderation.status") %>: <%= t("admin.jjaeks.moderation.hidden") %></p>
 
         <% if policy(@jjaek).restore? %>
           <%= form_with url: restore_admin_jjaek_path(@jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
@@ -23,6 +16,7 @@
           <% end %>
         <% end %>
       <% elsif policy(@jjaek).hide? %>
+        <p class="mt-3 font-medium"><%= t("admin.jjaeks.moderation.status") %>: <%= t("admin.jjaeks.moderation.visible") %></p>
         <%= form_with url: hide_admin_jjaek_path(@jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
           <%= form.label :public_reason, t("admin.jjaeks.moderation.reason"), class: "block font-medium" %>
           <%= form.select :public_reason,
@@ -35,28 +29,38 @@
           <%= form.submit t("admin.jjaeks.actions.hide"), class: "rounded-full bg-red-700 px-4 py-2 font-medium text-white" %>
         <% end %>
       <% end %>
+    </section>
 
       <% if @moderation_actions.present? %>
-        <h3 class="mt-5 font-semibold"><%= t("admin.jjaeks.moderation.history") %></h3>
-        <ol class="mt-3 space-y-3">
+      <section id="admin_moderation_history_section" class="rounded-3xl border border-red-200 bg-red-50/60 p-5 text-sm text-red-900">
+        <h3 class="font-semibold"><%= t("admin.jjaeks.moderation.history") %></h3>
+        <ol id="admin_moderation_history" class="mt-3">
           <% @moderation_actions.each do |action| %>
-            <li class="rounded-xl border border-red-200 bg-white p-3">
+            <li data-moderation-action-id="<%= action.id %>" class="border-t border-red-200 py-3 first:border-t-0 first:pt-0 last:pb-0">
               <p class="font-medium"><%= t("admin.jjaeks.moderation.actions.#{action.action_type}") %></p>
+              <p class="mt-1"><%= t("admin.jjaeks.moderation.authority") %>: <%= moderation_authority_label(action) %></p>
               <p class="mt-1"><%= t("admin.jjaeks.moderation.reason") %>: <%= moderation_action_reason_label(action) %></p>
               <% if action.internal_note.present? %>
-                <p class="mt-1 whitespace-pre-wrap"><%= t("admin.jjaeks.moderation.internal_note") %>: <%= action.internal_note %></p>
+                <p data-role="internal-note" class="mt-2 whitespace-pre-wrap rounded-lg bg-red-100/70 px-2 py-1.5">
+                  <span class="mr-1 inline-flex rounded-full bg-red-200 px-2 py-0.5 text-xs font-medium"><%= t("admin.jjaeks.moderation.internal_note") %></span>
+                  <%= action.internal_note %>
+                </p>
               <% end %>
               <p class="mt-1 text-xs"><%= t("admin.jjaeks.moderation.performed_by", actor: action.actor.name, time: l(action.created_at, format: :short)) %></p>
             </li>
           <% end %>
         </ol>
-      <% end %>
-    </section>
+      </section>
+    <% end %>
   <% end %>
 
   <%= render "jjaeks/group_moderation", jjaek: @jjaek, moderation_actions: @group_moderation_actions %>
 
   <%= render "jjaeks/jjaek", jjaek: @jjaek %>
+
+  <% if policy(@jjaek).view_hidden_read_actions? %>
+    <%= render "jjaeks/hidden_read_actions", jjaek: @jjaek, inline_comments_context: :detail %>
+  <% end %>
 
   <% if policy(@jjaek).create_requote? %>
     <div>
