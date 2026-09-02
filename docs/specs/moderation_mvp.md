@@ -80,14 +80,14 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 - Jjaek의 `deleted_at`을 moderation 숨김에 재사용하지 않는다.
 - Comment hard delete와 moderation 숨김을 같은 상태로 기록하지 않는다.
 
-### Jjaek 운영자 숨김·복구 구현 단위
+### global admin Jjaek 운영자 숨김·복구 구현 단위
 
-이번 구현 단위는 현재 global admin Jjaek 숨김에 복구와 제한된 숨김 콘텐츠 조회 정책을 추가한다.
+현재 global admin Jjaek 숨김·복구와 제한된 숨김 콘텐츠 조회 정책은 구현되어 있다.
 대상은 일반짹, 책짹, Group Jjaek 등 현재 Jjaek으로 표현되는 모든 게시물이다.
 
 #### 정책과 불변 조건
 
-- 현재 구현 단위에서는 global admin만 다른 사용자가 작성한 Jjaek을 운영상 숨기고 복구할 수 있다.
+- 현재 구현에서는 global admin만 다른 사용자가 작성한 Jjaek을 운영상 숨기고 복구할 수 있다.
 - global admin도 자신이 작성한 Jjaek에는 hide와 restore를 실행하지 않는다.
 - 자기 Jjaek은 작성자 lifecycle의 기존 삭제 기능을 사용한다.
 - 다른 moderation 주체가 자기 Jjaek을 숨긴 경우에도 해당 Jjaek에서는 작성자 수준의 조회 권한만 적용한다.
@@ -114,17 +114,15 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 - 해당 Group의 group admin은 기존 Group read 권한과 lifecycle 경계 안에서 자기 Group의 숨겨진
   Jjaek 원문, 숨김 주체와 현재 hide의 공개 사유를 볼 수 있다. 내부 운영 메모는 볼 수 없고
   global admin의 hide를 복구할 수 없다. Group 밖 콘텐츠와 다른 Group 콘텐츠에는 이 조회 권한이 적용되지 않는다.
-- 향후 group admin의 자기 Group 콘텐츠 moderation이 구현되면 global admin이 작성한 Group Jjaek도
-  다른 회원의 Group Jjaek과 같은 기준으로 moderation 대상이 되며, global admin 작성 글에 면책 특권을 두지 않는다.
-- group admin이 숨긴 Group Jjaek의 작성자가 global admin이면 작성자 권한 우선 원칙을 그대로 적용한다.
-  작성자는 자기 원문, `동아리 관리자에 의해 숨겨진 짹입니다.` 상태와 현재 hide의 공개 사유를 볼 수 있지만
-  내부 운영 메모는 볼 수 없다. 자기 global admin 권한으로 해당 hide를 무효화하거나 restore할 수 없고,
-  수정과 새 Comment·Like·ReJjaek은 금지하며 기존 작성자 삭제만 허용한다.
-- 해당 Group의 group admin은 자기 Group moderation 주체로서 조치를 수행하며,
-  향후 restore 기능이 구현되면 정책에 따라 자신이 수행한 Group 콘텐츠 hide를 복구할 수 있다.
+- Group admin Jjaek moderation의 확정된 목표 정책에서는 global admin이 작성한 Group Jjaek을
+  Group admin의 hide/restore 대상에서 제외한다. Group admin은 해당 글을 direct request로도 moderation할 수 없다.
+- global admin 작성자는 자기 Group Jjaek에 moderation hide/restore를 사용하지 않고,
+  기존 작성자 권한 조건 안에서 자기 글을 수정·삭제하는 lifecycle을 따른다.
+  다른 global admin은 기존 platform moderation 정책에 따라 해당 글을 숨기고 복구할 수 있다.
+- 해당 Group의 group admin은 아래 목표 단위에 따라 자기 Group moderation 주체로서 조치를 수행하고,
+  같은 Group authority에서 발생한 hide를 복구할 수 있다.
 - 대상 Jjaek의 작성자가 아닌 다른 global admin은 서비스 전체 조사 권한으로 원문과 moderation 정보를
-  확인할 수 있다. group admin이 수행한 hide를 global admin이 직접 restore할 수 있는지는
-  group admin moderation 구현 단계에서 별도로 확정한다.
+  확인하고 group-admin-originated hide를 복구할 수 있다.
 - 숨겨진 Jjaek에는 새 Comment·Like·ReJjaek을 만들 수 없다. 화면 비노출뿐 아니라 서버 권한에서도 차단한다.
 - 기존 ReJjaek이나 다른 조회 문맥을 통해 숨겨진 원문의 본문·책 정보 등 원문 내용이 우회 노출되지 않아야 한다.
 - 대상 Jjaek의 작성자가 아닌 global admin은 운영 조사 문맥에서 숨겨진 원문,
@@ -201,21 +199,89 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 17. restore 후 일반 콘텐츠 화면에는 복구 사유를 계속 표시하지 않는다.
 18. 사용자-facing 화면에는 `시스템 관리자에 의해 숨겨진 짹입니다.` 또는
     `시스템 관리자에 의해 숨겨진 책짹입니다.`를 사용한다.
-19. 향후 group admin의 자기 Group 콘텐츠 moderation이 구현되면 global admin이 작성한 Group Jjaek도
-    moderation 대상에서 제외하지 않는다. group admin이 숨긴 경우 작성자인 global admin은
-    원문, `동아리 관리자에 의해 숨겨진 짹입니다.` 상태와 현재 hide의 공개 사유를 확인할 수 있지만
-    내부 운영 메모는 볼 수 없고 자기 global admin 권한으로 해당 hide를 우회하거나 restore할 수 없다.
+19. Group admin Jjaek moderation의 목표 정책에서는 global admin이 작성한 Group Jjaek을
+    Group admin의 hide/restore 대상에서 제외한다. 작성자인 global admin은 자기 글에 moderation 권한을 사용하지 않고
+    기존 작성자 권한 조건 안에서 수정·삭제하며, 다른 global admin만 기존 platform moderation 정책에 따라 hide/restore할 수 있다.
 20. 숨김·복구와 관계없는 일반 Jjaek visibility, Group 접근, 작성자 삭제 및
     기존 Comment·Like·ReJjaek 데이터는 회귀하지 않는다.
+
+### Group admin Jjaek 숨김·복구 목표 단위
+
+이 단위는 아직 구현되지 않은 목표 정책이다. 기존 global admin 숨김·복구의 상태·감사 구조와
+interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 콘텐츠에 한정된 권한만 추가한다.
+
+#### 대상과 Group 경계
+
+- 현재 Group admin은 자신이 관리하는 Group에 속한 다른 사용자의 짹과 책짹만 숨기고 복구할 수 있다.
+- personal Jjaek과 다른 Group의 Jjaek은 URL 직접 접근을 포함해 대상이 아니다.
+- Group admin 자신이 작성한 Jjaek은 숨기거나 복구할 수 없고 기존 작성자 삭제 lifecycle을 사용한다.
+- 작성자가 global admin이면 Group admin moderation 대상에서 제외한다. Group admin이 문제를 발견해도 직접 숨기지 않으며,
+  신고나 escalation 경로는 이번 범위에서 새로 만들지 않는다.
+- Group 관리자 이전 뒤에는 새 현재 Group admin이 같은 Group moderation authority를 승계한다. 이전 관리자는 권한을 잃는다.
+- 권한은 policy와 action 처리 양쪽에서 현재 `group_admin_id`, 대상의 `group_id`, 작성자 불일치와 lifecycle 조건을 다시 확인해야 한다.
+- policy와 action 처리는 대상 작성자의 global admin 여부도 다시 확인해 hide와 restore direct request를 명시적으로 거부해야 한다.
+
+#### Group lifecycle과 운영 정지
+
+- Group이 `active`이거나 `inactive`이고 운영 정지되지 않았다면 현재 Group admin은 숨김과 복구를 수행할 수 있다.
+- `inactive`는 과거 콘텐츠의 읽기와 관리 책임을 보존하는 자발적 lifecycle이므로, 기존 콘텐츠 moderation도 유지한다.
+- `pending_approval`에서는 숨김과 복구를 허용하지 않는다.
+- global admin에 의해 Group 운영이 정지된 동안에는 Group admin의 숨김과 복구를 모두 차단한다.
+- 콘텐츠 moderation은 새 Jjaek·Comment 같은 사용자 활동과는 구분하지만 Group 상태를 바꾸는 운영 mutation이다.
+  따라서 global admin의 운영 정지가 유지되는 동안에는 작성자 삭제 같은 기존 cleanup 경계만 유지하고,
+  Group admin moderation은 운영 복구 뒤 다시 허용한다.
+
+#### hide origin과 restore authority
+
+- Group admin hide도 현재 `hidden_at`과 `ModerationAction`을 사용하며 별도 상태 column이나 Group lifecycle 상태를 만들지 않는다.
+- Group admin hide에는 기존과 같은 정의된 공개 사유가 필수이고 감사 row에는 실제 actor를 보존한다.
+  Group admin에게 platform 내부 메모 입력 권한은 부여하지 않으며 `internal_note`는 비워 둔다.
+- 현재 Group admin은 같은 Group moderation authority에서 발생한 현재 hide를 복구할 수 있다.
+  정확히 같은 actor인지는 요구하지 않으므로 관리자 이전 전의 Group admin이 숨긴 글도 새 현재 Group admin이 복구할 수 있다.
+- Group admin은 global-admin-originated hide를 복구할 수 없다. 숨겨진 원문을 조사할 권한과 복구 권한을 동일시하지 않는다.
+- 대상 작성자가 아닌 global admin은 master operational authority에 따라 group-admin-originated hide도 복구할 수 있다.
+- 복구에는 hide 사유와 별개의 공개 복구 사유가 필수다. Group admin restore에는 platform 내부 메모 입력 권한을
+  부여하지 않으며, global admin override restore에는 기존과 같이 선택적 내부 메모를 허용한다.
+- restore는 현재 미복구 hide만 대상으로 하고 해당 hide를 `reversal_of`로 참조한다.
+  `hide A → restore A → hide B → restore B → hide C`의 모든 row를 보존하며 현재 hide는 최신 미복구 hide 하나다.
+
+#### 조회와 사용자-facing 정보
+
+- group-admin-originated hide도 기존 hidden visibility와 interaction 경계를 그대로 사용한다.
+  일반 사용자에게는 원문을 노출하지 않고 수정과 새 Comment·Like·ReJjaek을 차단한다.
+- 작성자는 자기 hidden 원문, 현재 hidden 상태, 숨김 authority와 현재 hide의 공개 사유를 확인하고 자기 삭제만 수행할 수 있다.
+- 현재 Group admin은 기존 Group read 권한과 lifecycle 경계 안에서 자기 Group의 hidden 원문,
+  현재 hidden 상태, 숨김 authority와 현재 hide의 공개 사유를 조사할 수 있다.
+- 사용자-facing 숨김 authority는 실제 actor 이름이 아니라 `시스템 관리자` 또는 `동아리 관리자`로 구분한다.
+  실제 actor와 전체 hide/restore 이력은 내부 감사에 보존한다.
+- Group admin에게 internal moderation note와 platform 전체 moderation audit를 노출하지 않는다.
+- 대상 작성자가 아닌 global admin은 기존 운영 조사 권한으로 원문, 실제 actor, 공개 사유,
+  내부 메모와 전체 감사 이력을 확인할 수 있다.
+- Group admin이 숨긴 일반 짹은 `동아리 관리자에 의해 숨겨진 짹입니다.`로 표시한다.
+- Group admin이 숨긴 책짹은 `동아리 관리자에 의해 숨겨진 책짹입니다.`로 표시한다.
+  `동아리 관리자에게 숨겨진` 표현은 사용하지 않는다.
+
+#### Acceptance criteria
+
+1. 현재 Group admin은 운영 정지되지 않은 active/inactive 자기 Group의 타인 짹·책짹만 숨길 수 있다.
+2. 자기 글, personal Jjaek, 다른 Group Jjaek, pending Group Jjaek과 운영 정지된 Group Jjaek은 direct request에서도 거부한다.
+3. global admin 작성 Group Jjaek은 Group admin moderation 대상이 아니며 hide/restore direct request를 모두 거부한다.
+   작성자는 기존 작성자 권한 조건 안에서 수정·삭제하고 다른 global admin만 기존 platform moderation 정책을 사용할 수 있다.
+4. Group admin hide는 기존 hidden 상태와 append-only 감사를 원자적으로 기록하며 실제 actor와 공개 사유를 보존하고 internal note는 비워 둔다.
+5. 현재 Group admin은 같은 Group authority에서 발생한 현재 hide를 actor 변경과 관계없이 복구할 수 있지만 global admin hide는 복구할 수 없다.
+6. 대상 작성자가 아닌 global admin은 group-admin-originated hide를 복구할 수 있으며 각 restore는 별도 공개 복구 사유와 `reversal_of` 연결을 남긴다.
+7. hidden 원문의 조회 권한과 restore 권한을 별도로 판단하고, Group admin에게 internal note와 platform 전체 감사 이력을 노출하지 않는다.
+8. group-admin-originated hide도 기존 ordinary visibility, interaction 차단, 작성자 조회·삭제와 반복 hide/restore 규칙을 그대로 따른다.
+9. 사용자-facing 문구는 Jjaek 종류에 따라 `동아리 관리자에 의해 숨겨진 짹입니다.` 또는
+   `동아리 관리자에 의해 숨겨진 책짹입니다.`를 사용한다.
 
 #### 후속 범위
 
 - Comment 숨김·복구
-- group admin의 자기 Group 콘텐츠 moderation
 - teacher/Classroom moderation
 - 신고 queue, notification, rate limit
 
-이번 구현 단위에는 group admin의 실제 hide/restore, Comment moderation, 신고, notification,
+이번 spec-only 단위에는 application code, endpoint, UI, Comment moderation, 신고, notification,
 Classroom 역할, 새로운 moderation framework와 작성자 삭제 lifecycle 변경을 포함하지 않는다.
 
 이 구현 단위는 실제 schema, endpoint, controller, service 이름을 확정하지 않는다.
@@ -273,8 +339,8 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 이미 저장된 감사 row는 수정·삭제할 수 없고 대상이 hard delete되더라도 target type/ID와 감사 정보는 보존한다.
 운영자는 콘텐츠 원문을 수정하지 않는다.
 
-User 정지/복구와 Jjaek 숨김은 이 감사 기반에 연결되어 있다. Jjaek 복구는 위 구현 단위의 목표 정책이며, Comment 숨김/복구,
-Group 운영 정지/복구와 그에 대응하는 authorization, action endpoint와 UI는 아직 구현되지 않았다.
+User 정지/복구, Jjaek 숨김·복구와 Group 운영 정지/복구는 이 감사 기반에 연결되어 있다.
+Group admin의 Jjaek 숨김·복구와 Comment 숨김·복구는 아직 구현되지 않았다.
 
 ---
 

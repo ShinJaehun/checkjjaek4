@@ -319,8 +319,10 @@ BookshelfEntry와 BookActivity도 profile 전용 scope를 통해 대상 사용�
 이 권한은 full Library 접근이나 Bookshelf·BookshelfEntry mutation 권한을 부여하지 않는다.
 일반 Jjaek scope와 홈 `FeedScope`에는 global admin 우회를 추가하지 않는다.
 운영 조사 권한은 Comment·Like·ReJjaek 등 일반 사용자 상호작용 권한으로 이어지지 않는다.
-group admin의 타인 콘텐츠 monitoring·moderation 권한은 아직 구현하지 않는다.
-향후 moderation 역할과 목표 권한은 현재 구현 권한과 구분하여 `docs/specs/moderation_mvp.md`를 따른다.
+group admin의 타인 콘텐츠 moderation 권한은 아직 구현하지 않는다. 확정된 목표 정책에서는 운영 정지되지 않은
+active/inactive 자기 Group의 타인 짹·책짹만 숨김·복구하고, 같은 Group authority의 hide는 현재 관리자가 복구할 수 있지만
+global admin hide는 복구할 수 없다. global admin 작성 글도 대상에서 제외하며 direct request에서 거부한다.
+상세 경계는 현재 구현 권한과 구분하여 `docs/specs/moderation_mvp.md`를 따른다.
 
 global admin은 다른 active User를 명시적인 `suspend?` action으로 정지하고 suspended User를 `restore?` action으로 복구할 수 있다.
 자기 자신 정지와 withdrawn User의 정지·복구는 허용하지 않으며 일반 User와 group admin에게 이 권한을 부여하지 않는다.

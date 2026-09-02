@@ -269,7 +269,8 @@
 - global admin은 다른 사용자의 모든 현재 Jjaek 유형을 정의된 숨김 사유와 선택적 내부 메모로 숨기고, 별도 공개 복구 사유와 선택적 내부 메모로 복구할 수 있으며 상태와 append-only hide/restore 감사를 원자적으로 남김
 - 숨겨진 Jjaek과 이를 원문으로 참조하는 ReJjaek은 일반 사용자의 목록·단건 조회와 새 Comment·Like·ReJjaek에서 제외됨. 작성자는 자기 원문·숨김 주체·공개 사유를 확인하고 자기 삭제만 수행할 수 있으며, 기존 Group read 경계 안의 group admin도 자기 Group의 숨겨진 원문·공개 사유를 확인함
 - 대상 Jjaek의 작성자인 global admin에게는 작성자 권한이 우선하여 내부 메모·전체 감사·hide/restore 권한을 제공하지 않고, 작성자가 아닌 global admin은 원문과 전체 hide/restore 감사를 조사함
-- group admin의 자기 동아리 콘텐츠 monitoring은 아직 구현되지 않음
+- group admin의 자기 동아리 짹·책짹 숨김·복구는 아직 구현되지 않았으며, active/inactive·운영 정지와
+  hide origin별 권한 및 global admin 작성 글 제외 정책은 `docs/specs/moderation_mvp.md`에 확정되어 있음
 - append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
 - 동아리 활동 정지·해제는 `ModerationAction`에만 기록하며 `GroupMembershipEvent`에 중복 저장하지 않음
 - GroupMembership 대상 `ModerationAction`은 membership hard delete 뒤에도 Group/User attribution을 잃지 않도록 FK 없는 `membership_group_id`/`membership_user_id` snapshot을 보존함
