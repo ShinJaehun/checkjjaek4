@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_31_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_02_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -233,6 +233,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_31_100000) do
     t.text "internal_note"
     t.bigint "membership_group_id"
     t.bigint "membership_user_id"
+    t.string "moderation_authority"
     t.text "public_reason", null: false
     t.bigint "reversal_of_id"
     t.bigint "target_id", null: false

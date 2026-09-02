@@ -13,8 +13,16 @@ module Jjaeks
     def call!
       jjaek.with_lock do
         current_hide = jjaek.current_hide_action
+        raise InvalidState unless current_hide
+
         policy = JjaekPolicy.new(actor, jjaek)
-        raise InvalidState unless restorable?(current_hide, policy)
+        moderation_authority = if policy.restore?
+          "platform"
+        elsif policy.restore_as_group_admin?
+          "group"
+        else
+          raise InvalidState
+        end
 
         jjaek.update!(hidden_at: nil)
         ModerationAction.create!(
@@ -22,8 +30,8 @@ module Jjaeks
           actor:,
           action_type: :restore,
           public_reason:,
-          moderation_authority: policy.restore? ? "platform" : "group",
-          internal_note: policy.restore? ? internal_note : nil,
+          moderation_authority:,
+          internal_note: moderation_authority == "platform" ? internal_note : nil,
           reversal_of: current_hide
         )
       end
@@ -34,9 +42,5 @@ module Jjaeks
     private
 
     attr_reader :jjaek, :actor, :public_reason, :internal_note
-
-    def restorable?(current_hide, policy)
-      current_hide.present? && (policy.restore? || policy.restore_as_group_admin?)
-    end
   end
 end

@@ -13,7 +13,13 @@ module Jjaeks
     def call!
       jjaek.with_lock do
         policy = JjaekPolicy.new(actor, jjaek)
-        raise InvalidState unless policy.hide? || policy.hide_as_group_admin?
+        moderation_authority = if policy.hide?
+          "platform"
+        elsif policy.hide_as_group_admin?
+          "group"
+        else
+          raise InvalidState
+        end
 
         jjaek.update!(hidden_at: Time.current)
         ModerationAction.create!(
@@ -21,8 +27,8 @@ module Jjaeks
           actor:,
           action_type: :hide,
           public_reason:,
-          moderation_authority: policy.hide? ? "platform" : "group",
-          internal_note: policy.hide? ? internal_note : nil
+          moderation_authority:,
+          internal_note: moderation_authority == "platform" ? internal_note : nil
         )
       end
 

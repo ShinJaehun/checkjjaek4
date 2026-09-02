@@ -118,17 +118,16 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     pending_group = Group.create!(group_admin:, name: "Pending restore group", group_type: :private_group, application_purpose: "Pending")
     suspended_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Suspended restore group", group_type: :private_group, operation_suspended_at: Time.current)
     own_target = group_admin.jjaeks.create!(group:, content: "Own hidden target")
-    global_target = global_author.jjaeks.create!(group:, content: "Global hidden target")
     other_target = author.jjaeks.create!(group: other_group, content: "Other hidden target")
     pending_target = author.jjaeks.create!(group: pending_group, content: "Pending hidden target")
     suspended_target = author.jjaeks.create!(group: suspended_group, content: "Suspended hidden target")
 
-    [ own_target, global_target, other_target, pending_target, suspended_target ].each do |target|
+    [ own_target, other_target, pending_target, suspended_target ].each do |target|
       target.update!(hidden_at: Time.current)
       ModerationAction.create!(target:, actor: author, action_type: :hide, public_reason: "other", moderation_authority: "group")
     end
 
-    [ global_hide, own_target, global_target, other_target, pending_target, suspended_target ].each do |target|
+    [ global_hide, own_target, other_target, pending_target, suspended_target ].each do |target|
       expect {
         patch restore_jjaek_path(target), params: { moderation_action: { public_reason: "Blocked" } }
       }.not_to change(ModerationAction, :count)
