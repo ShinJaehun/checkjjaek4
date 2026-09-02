@@ -83,6 +83,14 @@ RSpec.describe CommentPolicy do
       expect(described_class.new(user, comment).destroy?).to be(true)
     end
 
+    it "does not let the author update an existing comment on a hidden jjaek" do
+      comment = jjaek_record.comments.create!(user:, content: "Existing")
+      jjaek_record.update!(hidden_at: Time.current)
+
+      expect(described_class.new(user, comment).update?).to be(false)
+      expect(described_class.new(user, comment).destroy?).to be(true)
+    end
+
     it "allows active members to create and update their own group comments" do
       %i[public_group approval_group private_group].each do |group_type|
         group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: group_type.to_s, group_type:)
@@ -127,7 +135,6 @@ RSpec.describe CommentPolicy do
       expect(described_class.new(user, comment).update?).to be(false)
       expect(described_class.new(user, comment).destroy?).to be(true)
       expect(described_class.new(other_user, comment).destroy?).to be(false)
-
     end
   end
 end

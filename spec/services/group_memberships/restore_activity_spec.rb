@@ -47,5 +47,4 @@ RSpec.describe GroupMemberships::RestoreActivity do
     }.to raise_error(described_class::InvalidState)
     expect(membership.reload).to be_activity_suspended
   end
-
 end

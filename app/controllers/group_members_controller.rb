@@ -79,7 +79,7 @@ class GroupMembersController < ApplicationController
     )
 
     source_order = { lifecycle: 0, moderation: 1 }
-    entries.sort_by { |entry| [entry[:record].created_at, source_order.fetch(entry[:source]), entry[:record].id] }.reverse
+    entries.sort_by { |entry| [ entry[:record].created_at, source_order.fetch(entry[:source]), entry[:record].id ] }.reverse
   end
 
   def ban_actions_by_id

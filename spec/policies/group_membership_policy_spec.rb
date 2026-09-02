@@ -86,7 +86,6 @@ RSpec.describe GroupMembershipPolicy do
     expect(described_class.new(member, membership).destroy?).to be(true)
     expect(described_class.new(other_user, membership).destroy?).to be(false)
     expect(described_class.new(group_admin, group_admin_membership).destroy?).to be(false)
-
   end
 
   it "allows only a private group group_admin to invite another user" do

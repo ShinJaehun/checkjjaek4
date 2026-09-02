@@ -18,6 +18,7 @@ class CommentPolicy < ApplicationPolicy
 
   def update?
     return false unless user.present? && record.user_id == user.id
+    return false if record.jjaek.hidden?
     return true if record.jjaek.group_id.blank?
 
     jjaek_policy.visible_for_interaction? && record.jjaek.group.activity_allowed_for?(user)

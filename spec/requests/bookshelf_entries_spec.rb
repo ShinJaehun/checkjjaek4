@@ -693,5 +693,4 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to redirect_to(book_search_path)
   end
-
 end

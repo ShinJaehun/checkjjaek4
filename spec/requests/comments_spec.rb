@@ -365,6 +365,18 @@ RSpec.describe "Comments", type: :request do
     expect(comment.reload.content).to eq("My comment")
   end
 
+  it "does not update an existing comment on a hidden jjaek" do
+    own_jjaek = user.jjaeks.create!(content: "Hidden source")
+    own_comment = own_jjaek.comments.create!(user:, content: "Before moderation")
+    own_jjaek.update!(hidden_at: Time.current)
+    sign_in user
+
+    patch jjaek_comment_path(own_jjaek, own_comment), params: { comment: { content: "After moderation" } }
+
+    expect(response).to redirect_to(root_path)
+    expect(own_comment.reload.content).to eq("Before moderation")
+  end
+
   it "deletes the current user's comment" do
     sign_in user
 

@@ -98,5 +98,4 @@ User.transaction do
   User.where(default_avatar_index: nil).find_each do |user|
     user.update!(default_avatar_index: User.send(:least_used_default_avatar_index))
   end
-
 end

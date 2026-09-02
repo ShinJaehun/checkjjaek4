@@ -123,7 +123,6 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
 
     expect(described_class.new(member, jjaek).update?).to be(false)
     expect(described_class.new(member, jjaek).destroy?).to be(true)
-
   end
 
   it "does not let another member or the group group_admin manage someone else's jjaek" do

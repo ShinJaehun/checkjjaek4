@@ -32,6 +32,5 @@ module Admin
         result.where(global_admin: false).where("NOT EXISTS (SELECT 1 FROM groups WHERE groups.group_admin_id = users.id)")
       end
     end
-
   end
 end

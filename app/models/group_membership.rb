@@ -51,7 +51,7 @@ class GroupMembership < ApplicationRecord
 
   def status_transition_must_be_valid
     return unless persisted? && status_changed?
-    return if [status_was, status].in?([
+    return if [ status_was, status ].in?([
       %w[pending active],
       %w[invited active]
     ])
