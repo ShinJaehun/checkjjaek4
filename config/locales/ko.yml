@@ -776,7 +776,20 @@ ko:
       hidden_by_system_admin: "시스템 관리자에 의해 숨겨진 짹입니다."
       hidden_book_by_system_admin: "시스템 관리자에 의해 숨겨진 책짹입니다."
       hidden_by_group_admin: "동아리 관리자에 의해 숨겨진 짹입니다."
+      hidden_book_by_group_admin: "동아리 관리자에 의해 숨겨진 책짹입니다."
       reason: "숨김 사유"
+      group_admin:
+        title: "동아리 콘텐츠 관리"
+        reason_prompt: "숨김 사유를 선택하세요"
+        hide: "숨기기"
+        restore_reason: "복구 사유"
+        restore: "복구"
+      notices:
+        hidden: "동아리에서 글을 숨겼습니다."
+        restored: "동아리에서 글을 복구했습니다."
+      alerts:
+        hide_failed: "글을 숨길 수 없습니다."
+        restore_failed: "글을 복구할 수 없습니다."
       reasons:
         inappropriate_content: "부적절한 내용"
         spam_advertising: "스팸·광고"

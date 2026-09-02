@@ -54,6 +54,8 @@
     </section>
   <% end %>
 
+  <%= render "jjaeks/group_moderation", jjaek: @jjaek %>
+
   <%= render "jjaeks/jjaek", jjaek: @jjaek %>
 
   <% if policy(@jjaek).create_requote? %>

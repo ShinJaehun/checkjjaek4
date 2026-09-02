@@ -1,4 +1,6 @@
 class ModerationAction < ApplicationRecord
+  MODERATION_AUTHORITIES = %w[platform group].freeze
+
   TARGET_ACTIONS = {
     "User" => %w[suspend restore],
     "Group" => %w[suspend_group_operation restore_group_operation],
@@ -33,6 +35,7 @@ class ModerationAction < ApplicationRecord
   validates :reversal_of_id, uniqueness: true, allow_nil: true
   validate :action_type_must_match_target
   validate :jjaek_hide_reason_must_be_allowed
+  validate :jjaek_moderation_authority_must_be_valid
   validate :group_member_attribution_must_match_target, on: :create
   validate :reversal_must_match_action
 
@@ -81,6 +84,14 @@ class ModerationAction < ApplicationRecord
     persisted? || super
   end
 
+  def platform_authority?
+    moderation_authority == "platform"
+  end
+
+  def group_authority?
+    moderation_authority == "group"
+  end
+
   def delete
     raise ActiveRecord::ReadOnlyRecord, "#{self.class.name} is append-only" if persisted?
 
@@ -94,6 +105,14 @@ class ModerationAction < ApplicationRecord
     return if public_reason.in?(Jjaek::MODERATION_HIDE_REASONS)
 
     errors.add(:public_reason, :inclusion)
+  end
+
+  def jjaek_moderation_authority_must_be_valid
+    if target_type == "Jjaek" && (action_type_hide? || action_type_restore?)
+      errors.add(:moderation_authority, :inclusion) unless moderation_authority.in?(MODERATION_AUTHORITIES)
+    elsif moderation_authority.present?
+      errors.add(:moderation_authority, :invalid)
+    end
   end
 
   def set_group_member_attribution

@@ -764,7 +764,21 @@ en:
         other: "%{count} ReJjaeks"
     moderation:
       hidden_title: "This post was hidden by moderation."
+      hidden_by_group_admin: "This Jjaek was hidden by a group administrator."
+      hidden_book_by_group_admin: "This Book Jjaek was hidden by a group administrator."
       reason: "Hide reason"
+      group_admin:
+        title: "Group content moderation"
+        reason_prompt: "Select a hide reason"
+        hide: "Hide"
+        restore_reason: "Restore reason"
+        restore: "Restore"
+      notices:
+        hidden: "The post was hidden from the group."
+        restored: "The post was restored to the group."
+      alerts:
+        hide_failed: "The post could not be hidden."
+        restore_failed: "The post could not be restored."
       reasons:
         inappropriate_content: "Inappropriate content"
         spam_advertising: "Spam or advertising"

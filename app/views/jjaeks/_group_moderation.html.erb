@@ -1,0 +1,25 @@
+<% jjaek_policy = policy(jjaek) %>
+
+<% if jjaek_policy.hide_as_group_admin? %>
+  <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
+    <h2 class="font-semibold"><%= t("jjaeks.moderation.group_admin.title") %></h2>
+    <%= form_with url: hide_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
+      <%= form.label :public_reason, t("jjaeks.moderation.reason"), class: "block font-medium" %>
+      <%= form.select :public_reason,
+                      options_for_select(jjaek_hide_reason_options),
+                      { prompt: t("jjaeks.moderation.group_admin.reason_prompt") },
+                      required: true,
+                      class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+      <%= form.submit t("jjaeks.moderation.group_admin.hide"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+    <% end %>
+  </section>
+<% elsif jjaek_policy.restore_as_group_admin? %>
+  <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
+    <h2 class="font-semibold"><%= t("jjaeks.moderation.group_admin.title") %></h2>
+    <%= form_with url: restore_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
+      <%= form.label :public_reason, t("jjaeks.moderation.group_admin.restore_reason"), class: "block font-medium" %>
+      <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+      <%= form.submit t("jjaeks.moderation.group_admin.restore"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+    <% end %>
+  </section>
+<% end %>

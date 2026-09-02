@@ -64,6 +64,19 @@ class JjaekPolicy < ApplicationPolicy
     user&.global_admin? && record.user_id != user.id && record.hidden? && record.current_hide_action.present?
   end
 
+  def hide_as_group_admin?
+    group_admin_moderation_context? &&
+      !record.user.global_admin? &&
+      !record.hidden?
+  end
+
+  def restore_as_group_admin?
+    group_admin_moderation_context? &&
+      record.hidden? &&
+      record.current_hide_action.present? &&
+      record.current_hide_action.group_authority?
+  end
+
   class MembershipAwareScope < ApplicationPolicy::Scope
     private
 
@@ -196,6 +209,15 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   private
+
+  def group_admin_moderation_context?
+    return false unless user.present? && !user.global_admin?
+    return false unless record.group.present? && record.group.group_admin?(user)
+
+    record.group.operation_active? &&
+      (record.group.active? || record.group.inactive?) &&
+      record.user_id != user.id
+  end
 
   def group_admin_can_read_hidden_content?
     record.group.present? &&

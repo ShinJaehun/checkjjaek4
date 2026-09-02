@@ -85,4 +85,68 @@ RSpec.describe Jjaeks::Restore do
     expect(jjaek.current_hide_action).to eq(hide_c)
     expect(jjaek.moderation_actions.action_type_hide).to contain_exactly(hide_a, hide_b, hide_c)
   end
+
+  it "lets the current group admin restore a previous group admin's hide without an internal note" do
+    previous_admin = User.create!(name: "Previous admin", email: "restore-previous-group-admin@example.com", password: "password123!")
+    current_admin = User.create!(name: "Current admin", email: "restore-current-group-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin: previous_admin, name: "Transferred group", group_type: :private_group)
+    group.group_memberships.create!(user: current_admin, status: :active)
+    group_jjaek = author.jjaeks.create!(group:, content: "Group target")
+    Jjaeks::Hide.new(group_jjaek, actor: previous_admin, public_reason: "other").call!
+    hide = group_jjaek.current_hide_action
+    group.transfer_admin_to!(current_admin, by: previous_admin)
+
+    described_class.new(
+      group_jjaek,
+      actor: current_admin,
+      public_reason: "Resolved",
+      internal_note: "Must not persist"
+    ).call!
+
+    expect(group_jjaek.reload).not_to be_hidden
+    expect(group_jjaek.moderation_actions.action_type_restore.sole).to have_attributes(
+      actor: current_admin,
+      public_reason: "Resolved",
+      moderation_authority: "group",
+      internal_note: nil,
+      reversal_of: hide
+    )
+  end
+
+  it "does not let a group admin restore a global-admin-originated hide" do
+    group_admin = User.create!(name: "Group admin", email: "restore-group-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Group", group_type: :public_group)
+    group_jjaek = author.jjaeks.create!(group:, content: "Global hide")
+    Jjaeks::Hide.new(group_jjaek, actor: admin, public_reason: "other").call!
+
+    expect {
+      described_class.new(group_jjaek, actor: group_admin, public_reason: "Blocked").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(group_jjaek.reload).to be_hidden
+  end
+
+  it "keeps global admin restore and internal notes for a group-admin-originated hide" do
+    group_admin = User.create!(name: "Group admin", email: "restore-global-override-group-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Group", group_type: :public_group)
+    group_jjaek = author.jjaeks.create!(group:, content: "Group hide")
+    Jjaeks::Hide.new(group_jjaek, actor: group_admin, public_reason: "other").call!
+    hide = group_jjaek.current_hide_action
+
+    described_class.new(
+      group_jjaek,
+      actor: admin,
+      public_reason: "Platform override",
+      internal_note: "Reviewed by platform"
+    ).call!
+
+    expect(group_jjaek.reload).not_to be_hidden
+    expect(group_jjaek.moderation_actions.action_type_restore.sole).to have_attributes(
+      actor: admin,
+      public_reason: "Platform override",
+      moderation_authority: "platform",
+      internal_note: "Reviewed by platform",
+      reversal_of: hide
+    )
+  end
 end

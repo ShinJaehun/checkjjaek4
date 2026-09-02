@@ -95,4 +95,37 @@ RSpec.describe Jjaeks::Hide do
     }.to raise_error(ActiveRecord::RecordInvalid)
     expect(invalid.reload).not_to be_hidden
   end
+
+  it "lets a group admin hide another member's group jjaek without an internal note" do
+    group_admin = User.create!(name: "Group admin", email: "hide-group-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :inactive, group_admin:, name: "Inactive group", group_type: :private_group, closure_reason: "Closed", closed_at: Time.current)
+    group_jjaek = author.jjaeks.create!(group:, book:, content: "Group Book Jjaek")
+
+    described_class.new(
+      group_jjaek,
+      actor: group_admin,
+      public_reason: "other",
+      internal_note: "Must not persist"
+    ).call!
+
+    expect(group_jjaek.reload).to be_hidden
+    expect(group_jjaek.current_hide_action).to have_attributes(
+      actor: group_admin,
+      public_reason: "other",
+      moderation_authority: "group",
+      internal_note: nil
+    )
+  end
+
+  it "rejects group admin moderation of a global admin's jjaek" do
+    group_admin = User.create!(name: "Group admin", email: "hide-global-group-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Group", group_type: :public_group)
+    global_jjaek = admin.jjaeks.create!(group:, content: "Global authored")
+
+    expect {
+      described_class.new(global_jjaek, actor: group_admin, public_reason: "other").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(global_jjaek.reload).not_to be_hidden
+  end
 end

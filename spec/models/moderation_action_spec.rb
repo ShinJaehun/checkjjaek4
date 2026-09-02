@@ -19,6 +19,7 @@ RSpec.describe ModerationAction, type: :model do
 
   def action_for(target:, action_type:, reversal_of: nil)
     public_reason = target.is_a?(Jjaek) && action_type.to_sym == :hide ? "inappropriate_content" : "Public reason"
+    moderation_authority = "platform" if target.is_a?(Jjaek) && action_type.to_sym.in?(%i[hide restore])
 
     described_class.new(
       target:,
@@ -26,6 +27,7 @@ RSpec.describe ModerationAction, type: :model do
       action_type:,
       public_reason:,
       internal_note: "Internal note",
+      moderation_authority:,
       reversal_of:
     )
   end
@@ -41,6 +43,19 @@ RSpec.describe ModerationAction, type: :model do
     action = action_for(target: jjaek, action_type: :hide)
     action.public_reason = "undefined_reason"
     expect(action).not_to be_valid
+  end
+
+  it "requires a stored authority for jjaek hide and restore actions" do
+    hide = action_for(target: jjaek, action_type: :hide)
+    hide.moderation_authority = nil
+    expect(hide).not_to be_valid
+
+    hide.moderation_authority = "group"
+    expect(hide).to be_valid
+
+    restore = action_for(target: jjaek, action_type: :restore, reversal_of: hide.tap(&:save!))
+    restore.moderation_authority = "unknown"
+    expect(restore).not_to be_valid
   end
 
   it "allows supported original moderation actions" do

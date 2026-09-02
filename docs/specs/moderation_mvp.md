@@ -205,9 +205,9 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 20. 숨김·복구와 관계없는 일반 Jjaek visibility, Group 접근, 작성자 삭제 및
     기존 Comment·Like·ReJjaek 데이터는 회귀하지 않는다.
 
-### Group admin Jjaek 숨김·복구 목표 단위
+### Group admin Jjaek 숨김·복구 구현 단위
 
-이 단위는 아직 구현되지 않은 목표 정책이다. 기존 global admin 숨김·복구의 상태·감사 구조와
+이 단위는 현재 구현되어 있다. 기존 global admin 숨김·복구의 상태·감사 구조와
 interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 콘텐츠에 한정된 권한만 추가한다.
 
 #### 대상과 Group 경계
@@ -236,6 +236,8 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
 - Group admin hide도 현재 `hidden_at`과 `ModerationAction`을 사용하며 별도 상태 column이나 Group lifecycle 상태를 만들지 않는다.
 - Group admin hide에는 기존과 같은 정의된 공개 사유가 필수이고 감사 row에는 실제 actor를 보존한다.
   Group admin에게 platform 내부 메모 입력 권한은 부여하지 않으며 `internal_note`는 비워 둔다.
+- 각 Jjaek hide/restore 감사 row에는 조치 당시 authority를 `platform` 또는 `group`으로 보존한다.
+  hide origin과 사용자-facing attribution 및 restore authority는 이 저장값만 사용하며 actor의 이후 역할 변경으로 바뀌지 않는다.
 - 현재 Group admin은 같은 Group moderation authority에서 발생한 현재 hide를 복구할 수 있다.
   정확히 같은 actor인지는 요구하지 않으므로 관리자 이전 전의 Group admin이 숨긴 글도 새 현재 Group admin이 복구할 수 있다.
 - Group admin은 global-admin-originated hide를 복구할 수 없다. 숨겨진 원문을 조사할 권한과 복구 권한을 동일시하지 않는다.
@@ -281,10 +283,10 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
 - teacher/Classroom moderation
 - 신고 queue, notification, rate limit
 
-이번 spec-only 단위에는 application code, endpoint, UI, Comment moderation, 신고, notification,
+이번 구현 단위에는 Comment moderation, 신고, notification,
 Classroom 역할, 새로운 moderation framework와 작성자 삭제 lifecycle 변경을 포함하지 않는다.
 
-이 구현 단위는 실제 schema, endpoint, controller, service 이름을 확정하지 않는다.
+이 구현 단위는 새 moderation schema나 framework를 추가하지 않는다.
 
 ---
 

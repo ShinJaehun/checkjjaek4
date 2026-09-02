@@ -15,7 +15,7 @@ RSpec.describe Jjaek, type: :model do
 
   it "tracks moderation hiding separately from author deletion" do
     jjaek = user.jjaeks.create!(content: "Moderated")
-    action = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "inappropriate_content")
+    action = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "inappropriate_content", moderation_authority: "platform")
     jjaek.update!(hidden_at: Time.current)
 
     expect(jjaek).to be_hidden
@@ -26,9 +26,9 @@ RSpec.describe Jjaek, type: :model do
 
   it "finds the same unrestored current hide with or without a preloaded association" do
     jjaek = user.jjaeks.create!(content: "Repeated moderation")
-    hide_a = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "other")
-    ModerationAction.create!(target: jjaek, actor: other_user, action_type: :restore, public_reason: "Restore A", reversal_of: hide_a)
-    hide_b = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "spam_advertising")
+    hide_a = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "other", moderation_authority: "platform")
+    ModerationAction.create!(target: jjaek, actor: other_user, action_type: :restore, public_reason: "Restore A", moderation_authority: "platform", reversal_of: hide_a)
+    hide_b = ModerationAction.create!(target: jjaek, actor: other_user, action_type: :hide, public_reason: "spam_advertising", moderation_authority: "platform")
 
     expect(jjaek.current_hide_action).to eq(hide_b)
 

@@ -54,6 +54,8 @@ Rails.application.routes.draw do
     patch :move_down, on: :member
   end
   resources :jjaeks, only: %i[new show create edit update destroy] do
+    patch :hide, on: :member
+    patch :restore, on: :member
     resources :requotes, only: :index
     resources :comments, only: %i[index create update destroy]
     resource :like, only: %i[create destroy]

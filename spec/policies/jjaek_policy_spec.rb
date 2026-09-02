@@ -28,7 +28,7 @@ RSpec.describe JjaekPolicy do
   it "separates hidden jjaek inspection, author cleanup, and ordinary interaction" do
     admin = User.create!(name: "Admin", email: "jjaek-hide-policy-admin@example.com", password: "password123!", global_admin: true)
     hidden_jjaek = original_author.jjaeks.create!(content: "HIDDEN_POLICY_SOURCE", hidden_at: Time.current)
-    ModerationAction.create!(target: hidden_jjaek, actor: admin, action_type: :hide, public_reason: "other")
+    ModerationAction.create!(target: hidden_jjaek, actor: admin, action_type: :hide, public_reason: "other", moderation_authority: "platform")
 
     admin_policy = described_class.new(admin, hidden_jjaek)
     expect(admin_policy).not_to be_hide
@@ -93,6 +93,34 @@ RSpec.describe JjaekPolicy do
 
     author_membership.destroy!
     expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).not_to include(hidden_jjaek)
+  end
+
+  it "limits group admin moderation to eligible jjaeks and group-originated hides" do
+    group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Moderated group", group_type: :private_group)
+    group.group_memberships.create!(user: original_author, status: :active)
+    group_jjaek = original_author.jjaeks.create!(group:, content: "Group target")
+    policy = described_class.new(viewer, group_jjaek)
+
+    expect(policy).to be_hide_as_group_admin
+    expect(described_class.new(viewer, viewer.jjaeks.create!(group:, content: "Own"))).not_to be_hide_as_group_admin
+    expect(described_class.new(viewer, original_author.jjaeks.create!(content: "Personal"))).not_to be_hide_as_group_admin
+
+    global_author = User.create!(name: "Global author", email: "group-moderation-global-author@example.com", password: "password123!", global_admin: true)
+    global_jjaek = global_author.jjaeks.create!(group:, content: "Global target")
+    expect(described_class.new(viewer, global_jjaek)).not_to be_hide_as_group_admin
+
+    ModerationAction.create!(target: group_jjaek, actor: viewer, action_type: :hide, public_reason: "other", moderation_authority: "group")
+    group_jjaek.update!(hidden_at: Time.current)
+    expect(described_class.new(viewer, group_jjaek)).to be_restore_as_group_admin
+
+    original_author.update!(global_admin: true)
+    expect(described_class.new(viewer, group_jjaek)).to be_restore_as_group_admin
+    expect(described_class.new(viewer, original_author.jjaeks.create!(group:, content: "New global target"))).not_to be_hide_as_group_admin
+
+    global_admin = User.create!(name: "Global admin", email: "group-moderation-global@example.com", password: "password123!", global_admin: true)
+    ModerationAction.create!(target: global_jjaek, actor: global_admin, action_type: :hide, public_reason: "other", moderation_authority: "platform")
+    global_jjaek.update!(hidden_at: Time.current)
+    expect(described_class.new(viewer, global_jjaek)).not_to be_restore_as_group_admin
   end
 
   it "keeps suspended group content readable but blocks creation and editing while allowing deletion" do

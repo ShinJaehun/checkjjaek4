@@ -11,7 +11,10 @@ module JjaeksHelper
 
   def jjaek_hidden_title(jjaek)
     action = jjaek.current_hide_action
-    return t("jjaeks.moderation.hidden_by_group_admin") unless action&.actor&.global_admin?
+    if action&.group_authority?
+      key = jjaek.book.present? ? "hidden_book_by_group_admin" : "hidden_by_group_admin"
+      return t("jjaeks.moderation.#{key}")
+    end
 
     key = jjaek.book.present? ? "hidden_book_by_system_admin" : "hidden_by_system_admin"
     t("jjaeks.moderation.#{key}")
