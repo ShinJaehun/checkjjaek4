@@ -267,10 +267,14 @@
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
 - global admin은 다른 사용자의 모든 현재 Jjaek 유형을 정의된 숨김 사유와 선택적 내부 메모로 숨기고, 별도 공개 복구 사유와 선택적 내부 메모로 복구할 수 있으며 상태와 append-only hide/restore 감사를 원자적으로 남김
-- 숨겨진 Jjaek과 이를 원문으로 참조하는 ReJjaek은 일반 사용자의 목록·단건 조회와 새 Comment·Like·ReJjaek에서 제외됨. 작성자는 자기 원문·숨김 주체·공개 사유를 확인하고 자기 삭제만 수행할 수 있으며, 기존 Group read 경계 안의 group admin도 자기 Group의 숨겨진 원문·공개 사유를 확인함
+- platform-origin 숨겨진 Jjaek과 이를 원문으로 참조하는 ReJjaek은 일반 사용자의 목록·단건 조회와 새 Comment·Like·ReJjaek에서 제외됨
+- group-origin 숨겨진 Jjaek은 기존 Group read 경계 안의 Group 목록·단건 상세에서 원문 body 대신 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기 맥락을 유지하되 새 interaction은 차단함. 작성자는 자기 원문·숨김 주체·공개 사유를 확인하고 자기 삭제만 수행하며, group admin은 자기 Group의 숨겨진 원문·공개 사유를 조사함
 - 대상 Jjaek의 작성자인 global admin에게는 작성자 권한이 우선하여 내부 메모·전체 감사·hide/restore 권한을 제공하지 않고, 작성자가 아닌 global admin은 원문과 전체 hide/restore 감사를 조사함
 - group admin은 운영 정지되지 않은 active/inactive 자기 동아리에서 타인의 짹·책짹을 숨김·복구할 수 있음.
   같은 Group authority의 hide는 현재 관리자가 복구하고 global admin hide와 global admin 작성 글은 대상에서 제외함
+- group admin도 hide/restore 시 선택적 내부 메모를 저장함.
+  global admin은 platform/group-origin 메모를 모두 열람하고, 현재 group admin은 자기 Group의 group-origin 메모만 관리자 변경과 관계없이 열람하며 작성자·일반 회원과 권한을 잃은 이전 관리자는 열람하지 못함
+- Group Jjaek 상세의 운영 이력은 현재 group admin에게만 이전 관리자의 조치를 포함한 group-origin hide/restore 전체 cycle을 오래된 순서로 표시하며, visible 복구 뒤에도 유지되고 platform-origin 이력은 포함하지 않음
 - append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
 - Jjaek hide/restore의 `platform`/`group` authority는 조치 시점 snapshot으로 감사 row에 보존되어 actor의 이후 역할 변경에 영향받지 않음
 - 동아리 활동 정지·해제는 `ModerationAction`에만 기록하며 `GroupMembershipEvent`에 중복 저장하지 않음

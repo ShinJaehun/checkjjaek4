@@ -269,7 +269,10 @@ Library 안에서 볼 수 있는 책장:
 - User admin 상세는 작성자 기준의, Group 운영 상세는 Group 문맥 기준의 필터 가능한 chronological content inventory를 제공한다
 - 일반 User와 group admin은 admin User·Group 상세 URL에 접근할 수 없으며, 이 운영 조회 권한은 일반 홈 feed scope를 넓히지 않는다
 - `JjaekPolicy#show?`는 global admin이 admin 상세에서 발견한 특정 private·Group Jjaek을 직접 조사할 수 있게 하지만 타인의 update/destroy 권한은 부여하지 않으며 Comment의 author mutation 원칙도 유지한다
-- global admin은 다른 사용자의 Jjaek만 정의된 사유로 숨기고 별도 공개 복구 사유로 복구할 수 있다. 일반 scope는 숨겨진 Jjaek과 숨겨진 원문을 참조하는 ReJjaek을 제외한다. 작성자와 기존 Group read 경계 안의 해당 group admin은 숨겨진 원문·숨김 주체·공개 사유를 볼 수 있지만 내부 메모는 볼 수 없고, 작성자는 수정과 새 interaction 없이 자기 삭제만 할 수 있다. 대상 작성자인 global admin에게도 작성자 권한이 우선한다
+- global admin은 다른 사용자의 Jjaek만 정의된 사유로 숨기고 별도 공개 복구 사유로 복구할 수 있다. 일반 scope는 숨겨진 Jjaek과 숨겨진 원문을 참조하는 ReJjaek을 제외한다. 작성자는 숨겨진 원문·숨김 주체·공개 사유만 확인하고 수정과 새 interaction 없이 자기 삭제만 할 수 있다. 기존 Group read 경계 안의 해당 group admin은 숨겨진 원문·숨김 주체·공개 사유를 확인한다. 대상 작성자인 global admin에게도 작성자 권한이 우선한다
+- global admin과 Group admin은 모두 hide/restore 시 선택적 내부 메모를 입력한다. global admin은 platform/group-origin 메모를 모두 열람하고, 현재 Group admin은 자기 Group의 group-origin 메모만 관리자 변경과 관계없이 열람한다. 작성자·일반 회원, 권한을 잃은 이전 Group admin에게는 노출하지 않으며 platform-origin과 다른 Group 메모도 Group admin에게 노출하지 않는다
+- Group moderation history UI도 현재 Group admin 권한에 귀속한다. 현재 관리자는 자기 Group Jjaek 상세에서 이전 관리자의 조치를 포함한 group-origin hide/restore 이력만 누적 열람하고, 작성자·일반 회원·이전 관리자·다른 Group 관리자·비회원은 열람하지 못한다. platform-origin 이력은 이 영역에 포함하지 않으며 global admin UI의 추가·확장은 별도 후속 범위다
+- group-origin hide는 기존 Group read boundary 안의 일반 사용자에게 Group 목록의 hidden 카드와 단건 상세 접근을 허용하되 원문 body 대신 authority별 placeholder와 공개 사유만 제공한다. 좋아요 관련 요약·댓글 수·댓글 보기·글 보기와 기존 댓글 읽기 맥락은 유지하지만 새 interaction 권한은 추가하지 않으며, 내부 메모와 Group moderation history는 노출하지 않는다. Group boundary 밖 사용자와 platform-origin hide의 일반 사용자 조회 정책은 변경하지 않는다
 - global admin은 운영상 필요한 경우 active/inactive 동아리의 관리자를 다른 active member에게 이전할 수 있다
 - global admin의 `GroupPolicy::Scope`는 public/approval/private 및 pending/active/inactive 상태와 관계없이 모든 동아리를 포함한다
 - global admin의 `show?`와 `read_jjaeks?`는 이 전체 Group을 운영 목적으로 조사하기 위한 권한이다
