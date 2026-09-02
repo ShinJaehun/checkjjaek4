@@ -784,6 +784,16 @@ ko:
         hide: "숨기기"
         restore_reason: "복구 사유"
         restore: "복구"
+        internal_note: "내부 메모"
+        internal_note_hint: "선택 입력 · 동아리 운영자에게만 표시됩니다."
+        history: "운영 이력"
+        public_reason: "사유"
+        actions:
+          hide: "숨김"
+          restore: "복구"
+        action_summaries:
+          hide: "%{actor}님이 %{time}에 숨김"
+          restore: "%{actor}님이 %{time}에 복구함"
       notices:
         hidden: "동아리에서 글을 숨겼습니다."
         restored: "동아리에서 글을 복구했습니다."

@@ -26,6 +26,14 @@ module JjaeksHelper
     action.public_reason
   end
 
+  def group_moderation_action_summary(action)
+    t(
+      "jjaeks.moderation.group_admin.action_summaries.#{action.action_type}",
+      actor: action.actor.name,
+      time: l(action.created_at, format: :short)
+    )
+  end
+
   def jjaek_context_label(jjaek)
     translation_key = jjaek_context_translation_key(jjaek)
     return if translation_key.blank?

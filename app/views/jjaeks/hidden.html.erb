@@ -1,4 +1,7 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
-  <%= render "jjaeks/group_moderation", jjaek: @jjaek %>
+  <%= render "jjaeks/group_moderation", jjaek: @jjaek, moderation_actions: @group_moderation_actions %>
   <%= render "jjaeks/jjaek", jjaek: @jjaek %>
+  <% if policy(@jjaek).view_group_hidden_placeholder? %>
+    <%= render "comments/comments_panel", jjaek: @jjaek, comments: @comments, comment: @comment %>
+  <% end %>
 </section>

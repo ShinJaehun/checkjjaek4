@@ -17,8 +17,40 @@ class JjaekPolicy < ApplicationPolicy
     group_admin_can_read_hidden_content?
   end
 
+  def view_group_hidden_placeholder?
+    return false unless user.present? && record.hidden?
+    return false if view_hidden_content?
+    return false unless record.current_hide_action&.group_authority?
+    return false unless record.group.present?
+
+    GroupPolicy.new(user, record.group).read_jjaeks?
+  end
+
+  def view_group_hidden_read_actions?
+    return false unless user.present? && record.hidden? && record.group.present?
+    return true if view_group_hidden_placeholder?
+
+    user.global_admin? || record.group.group_admin?(user)
+  end
+
+  def view_moderation_internal_note?(moderation_action)
+    return false unless moderation_action.present?
+    return false if record.user_id == user&.id
+    return true if view_admin_inventory?
+
+    moderation_action.group_authority? && view_group_moderation_history?
+  end
+
+  def view_group_moderation_history?
+    return false unless user.present? && !user.global_admin?
+    return false unless record.group.present? && record.group.group_admin_id == user.id
+    return false if record.user_id == user.id
+
+    GroupPolicy.new(user, record.group).read_jjaeks?
+  end
+
   def show?
-    return view_hidden_content? if record.hidden?
+    return view_hidden_content? || view_group_hidden_placeholder? if record.hidden?
     return true if user&.global_admin?
 
     visible_for_interaction?
@@ -140,8 +172,24 @@ class JjaekPolicy < ApplicationPolicy
         .or(hidden_scope.where(group_id: readable_member_group_ids))
 
       hidden_administered_records = scope.where(group_id: readable_administered_group_ids).where.not(hidden_at: nil)
+      group_hidden_records = readable_group_hidden_records
 
-      visible_records.or(hidden_own_records).or(hidden_administered_records)
+      visible_records.or(hidden_own_records).or(hidden_administered_records).or(group_hidden_records)
+    end
+
+    private
+
+    def readable_group_hidden_records
+      restored_hide_ids = ModerationAction.action_type_restore.where.not(reversal_of_id: nil).select(:reversal_of_id)
+      group_hidden_jjaek_ids = ModerationAction.action_type_hide
+        .where(target_type: "Jjaek", moderation_authority: "group")
+        .where.not(id: restored_hide_ids)
+        .select(:target_id)
+      hidden_records = scope.where.not(hidden_at: nil).where(id: group_hidden_jjaek_ids)
+
+      public_group_ids = Group.active.public_group.select(:id)
+      hidden_records.where(group_id: public_group_ids)
+        .or(hidden_records.where(group_id: readable_member_group_ids))
     end
   end
 
@@ -220,9 +268,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def group_admin_can_read_hidden_content?
-    record.group.present? &&
-      record.group.group_admin_id == user.id &&
-      GroupPolicy.new(user, record.group).read_jjaeks?
+    view_group_moderation_history?
   end
 
   def requote_source_context_allowed?

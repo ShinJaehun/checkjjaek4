@@ -34,4 +34,15 @@ end %>
       <% end %>
     </div>
   <% end %>
+
+  <% if jjaek_policy.view_group_hidden_read_actions? && inline_comments_context == :group %>
+    <%= render "jjaeks/hidden_read_actions", jjaek: jjaek, inline_comments_context: inline_comments_context %>
+    <% unless content_visible %>
+      <div id="<%= comments_panel_dom_id(jjaek, context: inline_comments_context) %>"></div>
+    <% end %>
+  <% elsif jjaek.hidden? && inline_comments_context == :group && jjaek_policy.show? %>
+    <div class="mt-4 text-xs">
+      <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-red-800" %>
+    </div>
+  <% end %>
 </article>

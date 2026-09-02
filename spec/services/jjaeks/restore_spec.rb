@@ -86,7 +86,7 @@ RSpec.describe Jjaeks::Restore do
     expect(jjaek.moderation_actions.action_type_hide).to contain_exactly(hide_a, hide_b, hide_c)
   end
 
-  it "lets the current group admin restore a previous group admin's hide without an internal note" do
+  it "lets the current group admin restore a previous group admin's hide with an internal note" do
     previous_admin = User.create!(name: "Previous admin", email: "restore-previous-group-admin@example.com", password: "password123!")
     current_admin = User.create!(name: "Current admin", email: "restore-current-group-admin@example.com", password: "password123!")
     group = Group.create!(lifecycle_status: :active, group_admin: previous_admin, name: "Transferred group", group_type: :private_group)
@@ -100,7 +100,7 @@ RSpec.describe Jjaeks::Restore do
       group_jjaek,
       actor: current_admin,
       public_reason: "Resolved",
-      internal_note: "Must not persist"
+      internal_note: "Restore moderation note"
     ).call!
 
     expect(group_jjaek.reload).not_to be_hidden
@@ -108,7 +108,7 @@ RSpec.describe Jjaeks::Restore do
       actor: current_admin,
       public_reason: "Resolved",
       moderation_authority: "group",
-      internal_note: nil,
+      internal_note: "Restore moderation note",
       reversal_of: hide
     )
   end

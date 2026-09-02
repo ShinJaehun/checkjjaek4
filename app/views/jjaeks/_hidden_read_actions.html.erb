@@ -1,0 +1,9 @@
+<div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-600">
+  <span><%= t("jjaeks.meta.likes", count: jjaek.likes_count) %></span>
+  <%= render "jjaeks/comment_action", jjaek: jjaek %>
+  <%= link_to t("comments.actions.view_inline"),
+              jjaek_comments_path(jjaek, comments_context: inline_comments_context),
+              data: { turbo_stream: true },
+              class: "font-medium text-stone-700" %>
+  <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>
+</div>

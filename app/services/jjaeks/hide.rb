@@ -28,7 +28,7 @@ module Jjaeks
           action_type: :hide,
           public_reason:,
           moderation_authority:,
-          internal_note: moderation_authority == "platform" ? internal_note : nil
+          internal_note:
         )
       end
 

@@ -96,7 +96,7 @@ RSpec.describe Jjaeks::Hide do
     expect(invalid.reload).not_to be_hidden
   end
 
-  it "lets a group admin hide another member's group jjaek without an internal note" do
+  it "lets a group admin hide another member's group jjaek with an internal note" do
     group_admin = User.create!(name: "Group admin", email: "hide-group-admin@example.com", password: "password123!")
     group = Group.create!(lifecycle_status: :inactive, group_admin:, name: "Inactive group", group_type: :private_group, closure_reason: "Closed", closed_at: Time.current)
     group_jjaek = author.jjaeks.create!(group:, book:, content: "Group Book Jjaek")
@@ -105,7 +105,7 @@ RSpec.describe Jjaeks::Hide do
       group_jjaek,
       actor: group_admin,
       public_reason: "other",
-      internal_note: "Must not persist"
+      internal_note: "Group moderation note"
     ).call!
 
     expect(group_jjaek.reload).to be_hidden
@@ -113,7 +113,7 @@ RSpec.describe Jjaeks::Hide do
       actor: group_admin,
       public_reason: "other",
       moderation_authority: "group",
-      internal_note: nil
+      internal_note: "Group moderation note"
     )
   end
 

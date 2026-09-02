@@ -10,6 +10,16 @@ class JjaeksController < ApplicationController
   def show
     @current_hide_action = @jjaek.current_hide_action if @jjaek.hidden?
     @moderation_actions = @jjaek.moderation_actions.includes(:actor).order(created_at: :asc, id: :asc) if policy(@jjaek).view_admin_inventory?
+    if policy(@jjaek).view_group_moderation_history?
+      @group_moderation_actions = @jjaek.moderation_actions
+        .where(action_type: %i[hide restore], moderation_authority: "group")
+        .includes(:actor)
+        .order(created_at: :asc, id: :asc)
+    end
+    if policy(@jjaek).view_group_hidden_placeholder?
+      prepare_comments
+      return render :hidden
+    end
     return render :hidden if @jjaek.hidden? && !policy(@jjaek).view_admin_inventory?
 
     prepare_comments
@@ -101,7 +111,7 @@ class JjaeksController < ApplicationController
   end
 
   def group_moderation_params
-    params.require(:moderation_action).permit(:public_reason).to_h.symbolize_keys
+    params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
   end
 
   def build_new_jjaek

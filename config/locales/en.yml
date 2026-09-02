@@ -773,6 +773,16 @@ en:
         hide: "Hide"
         restore_reason: "Restore reason"
         restore: "Restore"
+        internal_note: "Internal note"
+        internal_note_hint: "Optional · Shown only to club operators."
+        history: "Moderation history"
+        public_reason: "Reason"
+        actions:
+          hide: "Hide"
+          restore: "Restore"
+        action_summaries:
+          hide: "%{actor} hid this at %{time}"
+          restore: "%{actor} restored this at %{time}"
       notices:
         hidden: "The post was hidden from the group."
         restored: "The post was restored to the group."
