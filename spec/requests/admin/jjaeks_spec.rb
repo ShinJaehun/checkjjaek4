@@ -16,6 +16,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     get jjaek_path(jjaek)
     document = Nokogiri::HTML(response.body)
     reason_select = document.at_css("select[name='moderation_action[public_reason]']")
+    expect(document.at_css("#admin_moderation_state").text.squish).to include("콘텐츠 관리", "현재 상태: 공개")
     expect(response.body).to include("숨김")
     expect(reason_select.css("option").map { |option| option["value"] }).to include(*Jjaek::MODERATION_HIDE_REASONS)
     expect(document.at_css("textarea[name='moderation_action[public_reason]']")).to be_nil
@@ -34,11 +35,18 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(jjaek.current_hide_action).to have_attributes(actor: admin, public_reason: "personal_information", internal_note: "INTERNAL HIDE NOTE")
 
     get jjaek_path(jjaek)
-    expect(response.body).to include("숨김", "ADMIN_HIDE_TARGET", "개인정보 노출", "INTERNAL HIDE NOTE", admin.name, "좋아요 0개", "댓글 0개", "댓글 보기", "글 보기")
     document = Nokogiri::HTML(response.body)
-    expect(document.at_css("#admin_moderation_state").text).to include("현재 상태: 숨김")
+    hidden_article = document.at_css("#jjaek_#{jjaek.id}")
+    expect(response.body).to include("숨김", "ADMIN_HIDE_TARGET", "개인정보 노출", "INTERNAL HIDE NOTE", admin.name, "좋아요 0개", "댓글 0개")
+    expect(hidden_article.at_css("#comment_action_jjaek_#{jjaek.id}")).to be_present
+    expect(hidden_article.text).to include("좋아요 0개", "댓글 0개")
+    expect(hidden_article.text).not_to include("댓글 보기", "글 보기")
+    expect(document.at_css("#admin_moderation_state").text.squish).to include("현재 상태: 숨김")
     expect(document.at_css("#admin_moderation_state #admin_moderation_history")).to be_nil
     expect(document.at_css("#admin_moderation_history_section [data-role='internal-note']")).to be_present
+    expect(response.body.index(%(id="jjaek_#{jjaek.id}"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))).to be < response.body.index(%(id="admin_moderation_state"))
+    expect(response.body.index(%(id="admin_moderation_state"))).to be < response.body.index(%(id="admin_moderation_history_section"))
     expect(response.body).not_to include(%(action="#{hide_admin_jjaek_path(jjaek)}"))
 
     expect {
@@ -61,8 +69,9 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     Jjaeks::Hide.new(own_jjaek, actor: other_admin, public_reason: "other", internal_note: "ADMIN ONLY").call!
 
     get jjaek_path(own_jjaek)
-    expect(response.body).to include("ADMIN OWN MODERATION TARGET", "시스템 관리자에 의해 숨겨진 짹입니다.", "기타", "좋아요 0개", "댓글 0개", "댓글 보기", "글 보기")
-    expect(response.body).not_to include("ADMIN ONLY", "숨김 이력", %(action="#{restore_admin_jjaek_path(own_jjaek)}"))
+    expect(response.body).to include("ADMIN OWN MODERATION TARGET", "시스템 관리자에 의해 숨겨진 짹입니다.", "기타", "좋아요 0개", "댓글 0개")
+    expect(response.body).not_to include("댓글 보기", "글 보기")
+    expect(response.body).not_to include("ADMIN ONLY", "운영 이력", %(action="#{restore_admin_jjaek_path(own_jjaek)}"))
 
     expect {
       patch restore_admin_jjaek_path(own_jjaek), params: { moderation_action: { public_reason: "Self restore" } }
@@ -99,7 +108,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(hide.reload).to have_attributes(public_reason: "personal_information", internal_note: "HIDE INTERNAL")
 
     get jjaek_path(jjaek)
-    expect(response.body).to include("숨김 이력", "복구", "개인정보 노출", "검토 결과 공개 가능", "HIDE INTERNAL", "RESTORE INTERNAL")
+    expect(response.body).to include("운영 이력", "복구", "개인정보 노출", "검토 결과 공개 가능", "HIDE INTERNAL", "RESTORE INTERNAL")
   end
 
   it "shows platform and group moderation history with immutable authority sources" do
@@ -126,6 +135,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(entries[1].text.squish).to include("복구", "동아리 관리자", "Group moderator", "Group restore", "GROUP RESTORE NOTE", I18n.l(actions[1].created_at, format: :short))
     expect(entries[2].text.squish).to include("숨김", "시스템 관리자", "Admin", "스팸·광고", "PLATFORM HIDE NOTE", I18n.l(actions[2].created_at, format: :short))
     expect(entries[3].text.squish).to include("복구", "시스템 관리자", "Admin", "Platform restore", "PLATFORM RESTORE NOTE", I18n.l(actions[3].created_at, format: :short))
+    expect(history.text).not_to include("조치 주체:", "실제 처리자:", "처리 시각:")
   end
 
   it "does not add unrelated personal or group jjaeks to the home feed after a platform hide" do
@@ -165,7 +175,8 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     get root_path
     home_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{general.id}")
     expect(home_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "좋아요 1개", "댓글 1개", "댓글 보기", "글 보기")
-    expect(home_card.text).not_to include(general.content, "PRIVATE PLATFORM NOTE", "숨김 이력", "다시짹")
+    expect(home_card.at_css("#comment_action_jjaek_#{general.id}")).to be_present
+    expect(home_card.text).not_to include(general.content, "PRIVATE PLATFORM NOTE", "운영 이력", "다시짹")
     expect(home_card.at_css(%(a[href="#{jjaek_comments_path(general, comments_context: :home)}"]))).to be_present
     expect(home_card.at_css(%(a[href="#{jjaek_path(general)}"]))).to be_present
     expect(home_card.at_css(%(form[action="#{jjaek_like_path(general)}"]))).to be_nil
@@ -199,7 +210,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(response).to have_http_status(:ok)
     detail = Nokogiri::HTML(response.body)
     expect(detail.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "EXISTING PLATFORM HIDDEN COMMENT")
-    expect(detail.text).not_to include(general.content, "PRIVATE PLATFORM NOTE", "숨김 이력")
+    expect(detail.text).not_to include(general.content, "PRIVATE PLATFORM NOTE", "운영 이력")
     expect(detail.at_css(%(form[action="#{jjaek_comments_path(general)}"]))).to be_nil
     expect(detail.at_css(%(form[action="#{jjaek_like_path(general)}"]))).to be_nil
   end
@@ -283,8 +294,9 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     jjaeks.each do |jjaek|
       get jjaek_path(jjaek)
       detail = Nokogiri::HTML(response.body)
-      expect(detail.text).to include(jjaek.content, "좋아요 1개", "댓글 1개", "댓글 보기", "글 보기")
-      expect(detail.text).not_to include("AUTHOR HIDDEN NOTE", "숨김 이력", "다시짹")
+      expect(detail.text).to include(jjaek.content, "좋아요 1개", "댓글 1개")
+      expect(detail.text).not_to include("댓글 보기", "글 보기")
+      expect(detail.text).not_to include("AUTHOR HIDDEN NOTE", "운영 이력", "다시짹")
       expect(detail.at_css(%(form[action="#{jjaek_like_path(jjaek)}"]))).to be_nil
       expect(detail.at_css(%(form[action="#{jjaek_comments_path(jjaek)}"]))).to be_nil
       expect(detail.at_css(%(a[href="#{edit_jjaek_path(jjaek)}"]))).to be_nil
@@ -331,7 +343,8 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(response.body).not_to include("GLOBAL ADMIN INTERNAL")
 
     get jjaek_path(jjaek)
-    expect(response.body).to include("GROUP ADMIN HIDDEN SOURCE", "서비스 운영 방해", "좋아요 0개", "댓글 0개", "댓글 보기", "글 보기")
+    expect(response.body).to include("GROUP ADMIN HIDDEN SOURCE", "서비스 운영 방해", "좋아요 0개", "댓글 0개")
+    expect(response.body).not_to include("댓글 보기", "글 보기")
     expect(response.body).not_to include("GLOBAL ADMIN INTERNAL", %(id="admin_moderation_history"), %(action="#{restore_admin_jjaek_path(jjaek)}"))
   end
 

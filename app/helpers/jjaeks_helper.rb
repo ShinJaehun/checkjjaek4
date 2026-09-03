@@ -26,14 +26,6 @@ module JjaeksHelper
     action.public_reason
   end
 
-  def group_moderation_action_summary(action)
-    t(
-      "jjaeks.moderation.group_admin.action_summaries.#{action.action_type}",
-      actor: action.actor.name,
-      time: l(action.created_at, format: :short)
-    )
-  end
-
   def moderation_authority_label(action)
     t("admin.jjaeks.moderation.authorities.#{action.moderation_authority}")
   end

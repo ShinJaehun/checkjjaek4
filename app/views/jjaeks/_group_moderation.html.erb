@@ -1,54 +1,42 @@
 <% jjaek_policy = policy(jjaek) %>
 
-<% if jjaek_policy.hide_as_group_admin? %>
-  <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
-    <h2 class="font-semibold"><%= t("jjaeks.moderation.group_admin.title") %></h2>
-    <%= form_with url: hide_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
-      <%= form.label :public_reason, t("jjaeks.moderation.reason"), class: "block font-medium" %>
-      <%= form.select :public_reason,
-                      options_for_select(jjaek_hide_reason_options),
-                      { prompt: t("jjaeks.moderation.group_admin.reason_prompt") },
-                      required: true,
-                      class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-      <%= form.label :internal_note, t("jjaeks.moderation.group_admin.internal_note"), class: "block font-medium" %>
-      <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-      <p class="text-xs text-amber-800"><%= t("jjaeks.moderation.group_admin.internal_note_hint") %></p>
-      <%= form.submit t("jjaeks.moderation.group_admin.hide"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-    <% end %>
-  </section>
-<% elsif jjaek_policy.restore_as_group_admin? %>
-  <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
-    <h2 class="font-semibold"><%= t("jjaeks.moderation.group_admin.title") %></h2>
-    <%= form_with url: restore_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
-      <%= form.label :public_reason, t("jjaeks.moderation.group_admin.restore_reason"), class: "block font-medium" %>
-      <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-      <%= form.label :internal_note, t("jjaeks.moderation.group_admin.internal_note"), class: "block font-medium" %>
-      <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-      <p class="text-xs text-amber-800"><%= t("jjaeks.moderation.group_admin.internal_note_hint") %></p>
-      <%= form.submit t("jjaeks.moderation.group_admin.restore"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+<% if jjaek_policy.view_group_moderation_history? %>
+  <section id="group_moderation_state" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
+    <h2 class="font-semibold"><%= t("admin.jjaeks.moderation.title") %></h2>
+    <p class="mt-3 font-medium">
+      <%= t("admin.jjaeks.moderation.status") %>:
+      <span class="inline-flex rounded-full bg-amber-200 px-2 py-0.5 text-xs">
+        <%= t("admin.jjaeks.moderation.#{jjaek.hidden? ? :hidden : :visible}") %>
+      </span>
+    </p>
+
+    <% if jjaek_policy.hide_as_group_admin? %>
+      <%= form_with url: hide_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
+        <%= form.label :public_reason, t("jjaeks.moderation.reason"), class: "block font-medium" %>
+        <%= form.select :public_reason,
+                        options_for_select(jjaek_hide_reason_options),
+                        { prompt: t("jjaeks.moderation.group_admin.reason_prompt") },
+                        required: true,
+                        class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+        <%= form.label :internal_note, t("jjaeks.moderation.group_admin.internal_note"), class: "block font-medium" %>
+        <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+        <p class="text-xs text-amber-800"><%= t("jjaeks.moderation.group_admin.internal_note_hint") %></p>
+        <%= form.submit t("admin.jjaeks.actions.hide"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+      <% end %>
+    <% elsif jjaek_policy.restore_as_group_admin? %>
+      <%= form_with url: restore_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
+        <%= form.label :public_reason, t("jjaeks.moderation.group_admin.restore_reason"), class: "block font-medium" %>
+        <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+        <%= form.label :internal_note, t("jjaeks.moderation.group_admin.internal_note"), class: "block font-medium" %>
+        <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+        <p class="text-xs text-amber-800"><%= t("jjaeks.moderation.group_admin.internal_note_hint") %></p>
+        <%= form.submit t("admin.jjaeks.actions.restore"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+      <% end %>
     <% end %>
   </section>
 <% end %>
 
-<% if moderation_actions.present? %>
-  <section id="group_moderation_history" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
-    <h2 class="font-semibold"><%= t("jjaeks.moderation.group_admin.history") %></h2>
-    <ol class="mt-3">
-      <% moderation_actions.each do |action| %>
-        <li class="border-t border-amber-200 py-3 first:border-t-0 first:pt-0 last:pb-0">
-          <p class="font-medium"><%= group_moderation_action_summary(action) %></p>
-          <p class="mt-1">
-            <%= t("jjaeks.moderation.group_admin.public_reason") %>:
-            <%= moderation_action_reason_label(action) %>
-          </p>
-          <% if action.internal_note.present? %>
-            <p data-role="internal-note" class="mt-2 whitespace-pre-wrap rounded-lg bg-amber-100/70 px-2 py-1.5">
-              <span class="mr-1 inline-flex rounded-full bg-amber-200 px-2 py-0.5 text-xs font-medium"><%= t("jjaeks.moderation.group_admin.internal_note") %></span>
-              <%= action.internal_note %>
-            </p>
-          <% end %>
-        </li>
-      <% end %>
-    </ol>
-  </section>
-<% end %>
+<%= render "jjaeks/moderation_history",
+           moderation_actions: moderation_actions,
+           section_id: "group_moderation_history",
+           list_id: "group_moderation_history_list" %>

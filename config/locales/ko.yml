@@ -220,8 +220,8 @@ ko:
         reason_prompt: "사유를 선택하세요"
         restore_reason: "복구 사유"
         internal_note: "내부 운영 메모"
-        performed_by: "%{actor} · %{time}"
-        history: "숨김 이력"
+        memo: "메모"
+        history: "운영 이력"
         authority: "조치 주체"
         authorities:
           platform: "시스템 관리자"
@@ -797,9 +797,6 @@ ko:
         actions:
           hide: "숨김"
           restore: "복구"
-        action_summaries:
-          hide: "%{actor}님이 %{time}에 숨김"
-          restore: "%{actor}님이 %{time}에 복구함"
       notices:
         hidden: "동아리에서 글을 숨겼습니다."
         restored: "동아리에서 글을 복구했습니다."

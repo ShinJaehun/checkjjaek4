@@ -3,6 +3,7 @@
 <% inline_comments_context = local_assigns[:inline_comments_context] %>
 <% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
 <% inline_comments_book = local_assigns[:inline_comments_book] %>
+<% detail_context = local_assigns.fetch(:detail_context, false) %>
 
 <% wrapper_class = if jjaek.hidden?
   "rounded-3xl border border-red-200 bg-red-50/60 p-5 text-red-900 shadow-sm"
@@ -25,7 +26,8 @@ end %>
                    jjaek: jjaek,
                    inline_comments_context: inline_comments_context,
                    inline_comments_profile_user: inline_comments_profile_user,
-                   inline_comments_book: inline_comments_book %>
+                   inline_comments_book: inline_comments_book,
+                   detail_context: detail_context %>
       <% end %>
 
       <% if inline_comments_context.present? %>
@@ -34,13 +36,13 @@ end %>
     </div>
   <% end %>
 
-  <% if jjaek_policy.view_hidden_read_actions? && inline_comments_context.present? %>
+  <% if jjaek_policy.view_hidden_read_actions? && (inline_comments_context.present? || detail_context) %>
     <%= render "jjaeks/hidden_read_actions",
                jjaek: jjaek,
-               inline_comments_context: inline_comments_context,
+               inline_comments_context: detail_context ? :detail : inline_comments_context,
                inline_comments_profile_user: inline_comments_profile_user,
                inline_comments_book: inline_comments_book %>
-    <% unless content_visible %>
+    <% if inline_comments_context.present? && !content_visible %>
       <div id="<%= comments_panel_dom_id(jjaek, context: inline_comments_context, profile_user: inline_comments_profile_user, book: inline_comments_book) %>"></div>
     <% end %>
   <% elsif jjaek.hidden? && inline_comments_context == :group && jjaek_policy.show? %>

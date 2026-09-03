@@ -20,6 +20,8 @@ RSpec.describe "Group Jjaek moderation", type: :request do
 
     jjaeks.each do |jjaek|
       get jjaek_path(jjaek)
+      state = Nokogiri::HTML(response.body).at_css("#group_moderation_state")
+      expect(state.text.squish).to include("콘텐츠 관리", "현재 상태: 공개")
       expect(response.body).to include(
         %(action="#{hide_jjaek_path(jjaek)}"),
         "내부 메모",
@@ -42,6 +44,15 @@ RSpec.describe "Group Jjaek moderation", type: :request do
       expected_title = jjaek.book.present? ? "동아리 관리자에 의해 숨겨진 책짹입니다." : "동아리 관리자에 의해 숨겨진 짹입니다."
       expect(response.body).to include(expected_title, "기타", "내부 메모", "Not accepted", %(action="#{restore_jjaek_path(jjaek)}"), %(id="group_moderation_history"))
       detail = Nokogiri::HTML(response.body)
+      hidden_article = detail.at_css("#jjaek_#{jjaek.id}")
+      expect(detail.at_css("#group_moderation_state").text.squish).to include("현재 상태: 숨김")
+      expect(detail.at_css("#group_moderation_state #group_moderation_history_list")).to be_nil
+      expect(hidden_article.at_css("#comment_action_jjaek_#{jjaek.id}")).to be_present
+      expect(hidden_article.text).to include("좋아요 0개", "댓글 0개")
+      expect(hidden_article.text).not_to include("댓글 보기", "글 보기")
+      expect(response.body.index(%(id="jjaek_#{jjaek.id}"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
+      expect(response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))).to be < response.body.index(%(id="group_moderation_state"))
+      expect(response.body.index(%(id="group_moderation_state"))).to be < response.body.index(%(id="group_moderation_history"))
       expect(detail.css('#group_moderation_history [data-role="internal-note"]').map(&:text).join).to include("Not accepted")
       expect(detail.text.scan("Not accepted").size).to eq(1)
       expect(detail.at_css(%(form[action="#{restore_jjaek_path(jjaek)}"] textarea[name="moderation_action[internal_note]"]))).to be_present
@@ -68,10 +79,11 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     expect(entries.size).to eq(4)
     entry_texts = entries.map(&:text).map(&:squish)
     group_actions = target.moderation_actions.where(moderation_authority: "group").order(created_at: :asc, id: :asc)
-    expect(entry_texts[0]).to include("Group admin님이 #{I18n.l(group_actions[0].created_at, format: :short)}에 숨김", "사유: 기타", "내부 메모 FIRST GROUP NOTE")
-    expect(entry_texts[1]).to include("Group admin님이 #{I18n.l(group_actions[1].created_at, format: :short)}에 복구함", "사유: First restore")
-    expect(entry_texts[2]).to include("Group admin님이 #{I18n.l(group_actions[2].created_at, format: :short)}에 숨김", "사유: 스팸·광고", "내부 메모 SECOND GROUP NOTE")
-    expect(entry_texts[3]).to include("Group admin님이 #{I18n.l(group_actions[3].created_at, format: :short)}에 복구함", "사유: Second restore", "내부 메모 RESTORE GROUP NOTE")
+    expect(entry_texts[0]).to include("숨김 동아리 관리자 Group admin · #{I18n.l(group_actions[0].created_at, format: :short)}", "사유: 기타", "메모: FIRST GROUP NOTE")
+    expect(entry_texts[1]).to include("복구 동아리 관리자 Group admin · #{I18n.l(group_actions[1].created_at, format: :short)}", "사유: First restore")
+    expect(entry_texts[2]).to include("숨김 동아리 관리자 Group admin · #{I18n.l(group_actions[2].created_at, format: :short)}", "사유: 스팸·광고", "메모: SECOND GROUP NOTE")
+    expect(entry_texts[3]).to include("복구 동아리 관리자 Group admin · #{I18n.l(group_actions[3].created_at, format: :short)}", "사유: Second restore", "메모: RESTORE GROUP NOTE")
+    expect(history.text).not_to include("조치 주체:", "실제 처리자:", "처리 시각:")
     expect(entries[0].at_css('[data-role="internal-note"]')).to be_present
     expect(entries[1].at_css('[data-role="internal-note"]')).to be_nil
     expect(history.text).not_to include("PLATFORM HIDE NOTE")
@@ -96,6 +108,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
       get group_path(group)
       moderator_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{target.id}")
       expect(moderator_card.text).to include("좋아요 1개", "댓글 1개", "댓글 보기", "글 보기")
+      expect(moderator_card.at_css("#comment_action_jjaek_#{target.id}")).to be_present
       expect(moderator_card.at_css(%(a[href="#{jjaek_comments_path(target, comments_context: :group)}"]))).to be_present
       expect(moderator_card.at_css(%(a[href="#{jjaek_path(target)}"]))).to be_present
       expect(moderator_card.at_css("##{comments_panel_id}")).to be_present
