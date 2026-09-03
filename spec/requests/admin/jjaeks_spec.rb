@@ -156,7 +156,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(response.body).not_to include("UNRELATED PERSONAL FEED BODY", "UNRELATED GROUP FEED BODY")
   end
 
-  it "shows platform-hidden placeholders in existing feed, profile, book, group, and detail boundaries" do
+  it "shows platform-hidden placeholders in existing profile, book, group, and detail boundaries without restoring Group content to home" do
     book = Book.create!(title: "HIDDEN_CONTEXT_BOOK", authors_text: "Author")
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Hidden context group", group_type: :public_group)
     general = author.jjaeks.create!(content: "HIDDEN_GENERAL_CONTEXT")
@@ -181,8 +181,8 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(home_card.at_css(%(a[href="#{jjaek_path(general)}"]))).to be_present
     expect(home_card.at_css(%(form[action="#{jjaek_like_path(general)}"]))).to be_nil
     home_group_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{group_jjaek.id}")
-    expect(home_group_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용")
-    expect(home_group_card.text).not_to include(group_jjaek.content, "PRIVATE PLATFORM NOTE")
+    expect(home_group_card).to be_nil
+    expect(response.body).not_to include(group_jjaek.content, "PRIVATE PLATFORM NOTE")
 
     get user_path(author)
     profile = Nokogiri::HTML(response.body)

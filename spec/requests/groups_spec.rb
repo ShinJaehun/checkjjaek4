@@ -124,19 +124,60 @@ RSpec.describe "Groups", type: :request do
     expect(GroupPolicy::Scope.new(user, Group.all).resolve).not_to include(invited_group)
   end
 
-  it "lists public, approval, and joined private groups only" do
+  it "lists only groups with an active membership" do
     other_group_admin = User.create!(name: "Group admin", email: "groups-group_admin@example.com", password: "password123!", password_confirmation: "password123!")
     public_group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Public group", group_type: :public_group)
-    approval_group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Approval group", group_type: :approval_group)
     joined_private = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Joined private", group_type: :private_group)
-    hidden_private = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Hidden private", group_type: :private_group)
     joined_private.group_memberships.create!(user: user, status: :active)
     sign_in user
 
     get groups_path
 
-    expect(response.body).to include(public_group.name, approval_group.name, joined_private.name)
-    expect(response.body).not_to include(hidden_private.name)
+    expect(response.body).to include("내 동아리", joined_private.name)
+    expect(response.body).not_to include(public_group.name)
+  end
+
+  it "shows joined group activity in stable reverse chronological order" do
+    group_admin = User.create!(name: "Activity admin", email: "groups-activity-admin@example.com", password: "password123!")
+    hidden_author = User.create!(name: "Hidden author", email: "groups-hidden-author@example.com", password: "password123!")
+    first_group = Group.create!(lifecycle_status: :active, group_admin:, name: "First joined group", group_type: :private_group)
+    second_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Second joined group", group_type: :private_group)
+    other_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Other public group", group_type: :public_group)
+    invited_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Invited group", group_type: :private_group)
+    [ first_group, second_group ].each { |group| group.group_memberships.create!(user:, status: :active) }
+    invited_group.group_memberships.create!(user:, status: :invited)
+    book = Book.create!(title: "GROUP ACTIVITY BOOK", authors_text: "Author")
+    older = first_group.jjaeks.create!(user: group_admin, content: "OLDER GROUP ACTIVITY", created_at: 2.hours.ago)
+    newer = second_group.jjaeks.create!(user: group_admin, book:, content: "NEWER GROUP BOOK ACTIVITY", created_at: 1.hour.ago)
+    other_group.jjaeks.create!(user: group_admin, content: "OTHER GROUP ACTIVITY")
+    first_group.group_memberships.create!(user: hidden_author, status: :active)
+    invited_group.jjaeks.create!(user: group_admin, content: "INVITED GROUP ACTIVITY")
+    hidden = first_group.jjaeks.create!(user: hidden_author, content: "HIDDEN GROUP ACTIVITY")
+    Jjaeks::Hide.new(hidden, actor: group_admin, public_reason: "other").call!
+    sign_in user
+
+    get groups_path
+
+    expect(response.body).to include("최근 동아리 활동", newer.content, older.content, book.title, "동아리 관리자에 의해 숨겨진 짹입니다.")
+    expect(response.body.index(newer.content)).to be < response.body.index(older.content)
+    expect(response.body).not_to include("OTHER GROUP ACTIVITY", "INVITED GROUP ACTIVITY", hidden.content)
+  end
+
+  it "shows separate empty states for memberships and activity" do
+    sign_in user
+
+    get groups_path
+
+    expect(response.body).to include("아직 가입한 동아리가 없습니다.", "아직 동아리 활동이 없습니다.")
+
+    group_admin = User.create!(name: "Empty admin", email: "groups-empty-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Empty joined group", group_type: :private_group)
+    group.group_memberships.create!(user:, status: :active)
+
+    get groups_path
+
+    expect(response.body).to include(group.name, "아직 동아리 활동이 없습니다.")
+    expect(response.body).not_to include("아직 가입한 동아리가 없습니다.")
   end
 
   it "does not expose a private group to a non-member by direct URL" do
@@ -260,10 +301,6 @@ RSpec.describe "Groups", type: :request do
     get group_path(normal_group)
     expect(response.body).to include("운영 중")
     expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{group_group_memberships_path(normal_group)}"]))).to be_present
-
-    get groups_path
-    normal_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?(normal_group.name) }
-    expect(normal_card.text).to include("운영 중")
 
     active_membership = public_group.group_memberships.create!(user:, status: :active)
     get group_path(public_group)

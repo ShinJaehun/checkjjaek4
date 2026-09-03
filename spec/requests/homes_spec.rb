@@ -88,6 +88,29 @@ RSpec.describe "Homes", type: :request do
       expect(response.body).to include(%(href="/jjaeks/#{jjaek.id}#comments_panel_jjaek_#{jjaek.id}"))
     end
 
+    it "keeps group jjaeks out of the people-based home feed" do
+      group_admin = User.create!(name: "Group admin", email: "home-group-admin@example.com", password: "password123!")
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Home excluded group", group_type: :private_group)
+      group.group_memberships.create!(user: viewer, status: :active)
+      group_book = Book.create!(title: "HOME EXCLUDED GROUP BOOK", authors_text: "Author")
+      group.jjaeks.create!(user: group_admin, content: "HOME EXCLUDED GROUP JJAEK")
+      group.jjaeks.create!(user: group_admin, book: group_book, content: "HOME EXCLUDED GROUP BOOK JJAEK")
+      hidden_group_jjaek = group.jjaeks.create!(user: viewer, content: "HOME EXCLUDED HIDDEN GROUP JJAEK")
+      Jjaeks::Hide.new(hidden_group_jjaek, actor: group_admin, public_reason: "other").call!
+      personal_jjaek = viewer.jjaeks.create!(content: "HOME ELIGIBLE PERSONAL JJAEK", visibility: :public_jjaek)
+      sign_in viewer
+
+      get root_path
+
+      expect(response.body).to include(personal_jjaek.content)
+      expect(response.body).not_to include(
+        "HOME EXCLUDED GROUP JJAEK",
+        "HOME EXCLUDED GROUP BOOK JJAEK",
+        "HOME EXCLUDED GROUP BOOK",
+        "동아리 관리자에 의해 숨겨진 짹입니다."
+      )
+    end
+
     it "orders Jjaeks and BookActivities together by created_at" do
       old_jjaek = viewer.jjaeks.create!(
         content: "HOME_FEED_OLD_JJAEK",

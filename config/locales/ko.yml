@@ -116,8 +116,11 @@ ko:
         reactivation_approved_at: "승인"
     index:
       title: "독서 동아리"
-      description: "함께 읽고 이야기할 독서 공동체를 찾아보세요."
-      empty: "아직 발견할 수 있는 동아리가 없습니다."
+      description: "내 동아리와 최근 독서 활동을 확인합니다."
+      my_groups: "내 동아리"
+      recent_activity: "최근 동아리 활동"
+      empty_my_groups: "아직 가입한 동아리가 없습니다."
+      empty_activity: "아직 동아리 활동이 없습니다."
     new:
       title: "동아리 개설 신청"
       description: "동아리 정보와 개설 목적을 제출하면 관리자 승인 후 운영을 시작할 수 있습니다."

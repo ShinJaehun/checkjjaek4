@@ -3,7 +3,13 @@ class GroupsController < ApplicationController
 
   def index
     authorize Group
-    @groups = policy_scope(Group).includes(:group_admin, :group_memberships).order(created_at: :desc)
+    @groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
+      .includes(:group_admin, :group_memberships)
+      .order(created_at: :desc, id: :desc)
+    @group_activity_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupActivityScope)
+      .includes(:user, :book, :target_user, :likes, :comments, :group, :quoted_jjaek, :moderation_actions)
+      .order(created_at: :desc, id: :desc)
+    prepare_visible_requote_counts_for(@group_activity_jjaeks)
     @invitations = current_user.group_memberships.invited
       .joins(:group)
       .merge(Group.active)

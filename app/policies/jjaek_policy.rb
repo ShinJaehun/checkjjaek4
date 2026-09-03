@@ -254,9 +254,7 @@ class JjaekPolicy < ApplicationPolicy
         .where(id: current_hidden_target_ids(authority: "platform"))
       readable_records = visible_feed_records.or(platform_hidden_records)
       visible_records = with_visible_quoted_jjaeks(readable_records, scope.visible)
-      hidden_scope = scope.where(user_id: user.id).where.not(hidden_at: nil)
-      hidden_own_records = hidden_scope.where(group_id: nil)
-        .or(hidden_scope.where(group_id: readable_member_group_ids))
+      hidden_own_records = scope.where(user_id: user.id, group_id: nil).where.not(hidden_at: nil)
 
       visible_records.or(hidden_own_records)
     end
@@ -273,7 +271,7 @@ class JjaekPolicy < ApplicationPolicy
         .or(visible_scope.where(group_id: nil, user_id: followee_ids, visibility: Jjaek.visibilities[:public_jjaek]))
         .or(visible_scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
 
-      personal_records.or(visible_scope.where(group_id: readable_member_group_ids))
+      personal_records
     end
 
     def with_visible_quoted_jjaeks(records, visible_scope)
@@ -284,6 +282,14 @@ class JjaekPolicy < ApplicationPolicy
         .where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
         .or(records.where(quoted_jjaek_id: visible_quoted_jjaek_ids))
         .or(deleted_source_requotes)
+    end
+  end
+
+  class GroupActivityScope < MembershipAwareScope
+    def resolve
+      return scope.none unless user.present?
+
+      GroupContentScope.new(user, scope).resolve.where(group_id: readable_member_group_ids)
     end
   end
 

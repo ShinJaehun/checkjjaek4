@@ -473,7 +473,7 @@ RSpec.describe JjaekPolicy do
       expect(resolved).to include(own_jjaek)
     end
 
-    it "includes group jjaeks from every active membership, including inactive groups" do
+    it "excludes group jjaeks from the home feed even with an active membership" do
       group_jjaeks = %i[public_group approval_group private_group].flat_map do |group_type|
         group = Group.create!(lifecycle_status: :active, group_admin: unrelated_author, name: "Feed #{group_type}", group_type:)
         group.group_memberships.create!(user: viewer, status: :active)
@@ -488,7 +488,7 @@ RSpec.describe JjaekPolicy do
 
       resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
 
-      expect(resolved).to include(*group_jjaeks)
+      expect(resolved).not_to include(*group_jjaeks)
     end
 
     it "excludes group jjaeks without an active membership" do
@@ -504,7 +504,7 @@ RSpec.describe JjaekPolicy do
       end
     end
 
-    it "uses active membership rather than operational authority for a global admin" do
+    it "excludes group jjaeks from a global admin's home feed regardless of membership" do
       admin = User.create!(name: "Admin", email: "jjaek-group-feed-admin@example.com", password: "password123!", global_admin: true)
       joined_group = Group.create!(lifecycle_status: :active, group_admin: unrelated_author, name: "Admin joined group", group_type: :private_group)
       joined_group.group_memberships.create!(user: admin, status: :active)
@@ -514,7 +514,7 @@ RSpec.describe JjaekPolicy do
 
       resolved = JjaekPolicy::FeedScope.new(admin, Jjaek.all).resolve
 
-      expect(resolved).to include(joined_group_jjaek)
+      expect(resolved).not_to include(joined_group_jjaek)
       expect(resolved).not_to include(hidden_group_jjaek)
     end
 

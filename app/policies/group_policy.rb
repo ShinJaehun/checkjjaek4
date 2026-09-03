@@ -5,6 +5,15 @@ class GroupPolicy < ApplicationPolicy
     end
   end
 
+  class MembershipScope < Scope
+    def resolve
+      return scope.none unless user.present?
+
+      membership_group_ids = GroupMembership.active.where(user: user).select(:group_id)
+      scope.where(id: membership_group_ids)
+    end
+  end
+
   def index?
     user.present?
   end
