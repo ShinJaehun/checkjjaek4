@@ -311,15 +311,17 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
   hide 또는 restore인 모든 row를 오래된 조치부터 최신 조치 순서로 표시한다.
 - 현재 hidden 여부와 관계없이 과거 이력을 누적 표시한다. 반복 hide/restore cycle에서도 기존 row를
   수정하거나 덮어쓰지 않고 모든 hide와 restore를 보존한다.
-- 각 항목에는 조치 종류(숨김/복구), 실제 actor 이름, `public_reason`, 조치 시각을 표시하고,
-  `internal_note`가 present인 경우에만 내부 메모 행을 표시한다. `reversal_of` 연결은 보존하되 ID를 UI에 표시하지 않는다.
+- 각 항목은 global admin 운영 이력과 같은 정보 구조와 시각적 문법으로 authority source(`동아리 관리자`),
+  조치 종류(숨김/복구), 실제 actor 이름, `public_reason`, present인 `internal_note`, 조치 시각을 표시한다.
+  `internal_note`는 공개 사유와 같은 일반 본문으로 이어 붙이지 않고 별도 memo 표현을 사용한다.
+  `reversal_of` 연결은 보존하되 ID를 UI에 표시하지 않는다.
 - 열람 권한은 개인 actor가 아니라 현재 Group 운영 권한에 귀속한다. 현재 Group admin은 이전 관리자가 남긴
   group-origin 이력도 볼 수 있고, 이전 Group admin은 권한을 잃은 뒤 볼 수 없다.
 - 작성자, 일반 Group 회원, 이전 Group admin, 다른 Group의 Group admin과 비회원에게는 이력 HTML 자체를 노출하지 않는다.
 - `moderation_authority == "platform"`인 hide/restore의 공개 사유, 내부 메모, actor와 시각은
   Group 운영 이력에 포함하지 않는다.
-- 이 구현 단위는 기존 global admin moderation UI를 변경하거나 확장하지 않는다.
-  global admin용 moderation history UI의 추가 작업은 별도 후속 범위다.
+- Group admin이 볼 수 있는 이력은 기존 권한대로 group-origin action뿐이므로 authority source는
+  `동아리 관리자`로 표시한다. 이 표시는 이력 조회 범위를 확대하지 않는다.
 
 Acceptance criteria:
 
@@ -351,6 +353,20 @@ Acceptance criteria:
 - 현재 Group admin의 이력 영역은 기존대로 자기 Group의 group-origin 이력만 표시한다.
   platform-origin history/internal note와 다른 Group 이력은 노출하지 않는다.
 - 작성자, 일반 사용자, 이전 Group admin과 관련 없는 Group admin에게 moderation history와 internal note를 노출하지 않는다.
+
+##### Jjaek moderation 운영 UI consistency
+
+- 같은 Jjaek moderation 개념은 운영자 종류와 관계없이 동일한 정보 구조와 시각적 문법을 사용한다.
+- 현재 상태와 현재 가능한 조치는 `콘텐츠 관리` 카드에 표시하고 과거 조치 정보는 중복 표시하지 않는다.
+  카드에는 현재 상태(`공개`/`숨김`), 현재 가능한 action form, `public_reason`, 선택적 `internal_note`, action button을 둔다.
+- 상태 용어는 `공개`/`숨김`, action button은 `숨김`/`숨김 해제`, 운영 이력의 action은 `숨김`/`복구`로 구분한다.
+- 과거 조치는 별도 `운영 이력` 카드에 `created_at ASC, id ASC` 순서로 표시하고 반복 hide/restore cycle을 모두 보존한다.
+- Group admin과 global admin의 각 history entry는 authority source(`시스템 관리자`/`동아리 관리자`),
+  조치 종류, 실제 처리자, `public_reason`, present인 `internal_note`, 처리 시각을 같은 순서와 디자인 문법으로 표시한다.
+- `internal_note`는 `public_reason`과 같은 일반 본문으로 이어 붙이지 않고, 현재 Group admin UI의 별도 memo 시각 표현을 공통으로 사용한다.
+- 이 문법은 일반 짹, 책짹, Group 짹, Group 책짹에 동일하게 적용한다.
+- UI 일관성은 권한 통일을 뜻하지 않는다. global admin, 현재 Group admin, 작성자, 일반 사용자의 기존 조회·조치 범위,
+  internal note/history 노출 범위, platform-origin restore 제한과 author-first 경계를 그대로 유지한다.
 
 ##### platform-origin hidden visibility와 읽기 맥락
 
