@@ -34,8 +34,8 @@ class ModerationAction < ApplicationRecord
   validates :public_reason, presence: true
   validates :reversal_of_id, uniqueness: true, allow_nil: true
   validate :action_type_must_match_target
-  validate :jjaek_hide_reason_must_be_allowed
-  validate :jjaek_moderation_authority_must_be_valid
+  validate :moderation_hide_reason_must_be_allowed
+  validate :moderation_authority_must_be_valid
   validate :group_member_attribution_must_match_target, on: :create
   validate :reversal_must_match_action
 
@@ -71,10 +71,10 @@ class ModerationAction < ApplicationRecord
       .first
   end
 
-  def self.current_hide_for(jjaek)
+  def self.current_hide_for(target)
     restored_action_ids = where(action_type: :restore).where.not(reversal_of_id: nil).select(:reversal_of_id)
 
-    where(target: jjaek, action_type: :hide)
+    where(target:, action_type: :hide)
       .where.not(id: restored_action_ids)
       .order(created_at: :desc, id: :desc)
       .first
@@ -100,15 +100,15 @@ class ModerationAction < ApplicationRecord
 
   private
 
-  def jjaek_hide_reason_must_be_allowed
-    return unless target_type == "Jjaek" && action_type_hide?
-    return if public_reason.in?(Jjaek::MODERATION_HIDE_REASONS)
+  def moderation_hide_reason_must_be_allowed
+    return unless target_type.in?(%w[Jjaek Comment]) && action_type_hide?
+    return if public_reason.in?(target.class::MODERATION_HIDE_REASONS)
 
     errors.add(:public_reason, :inclusion)
   end
 
-  def jjaek_moderation_authority_must_be_valid
-    if target_type == "Jjaek" && (action_type_hide? || action_type_restore?)
+  def moderation_authority_must_be_valid
+    if target_type.in?(%w[Jjaek Comment]) && (action_type_hide? || action_type_restore?)
       errors.add(:moderation_authority, :inclusion) unless moderation_authority.in?(MODERATION_AUTHORITIES)
     elsif moderation_authority.present?
       errors.add(:moderation_authority, :invalid)

@@ -91,6 +91,55 @@ RSpec.describe CommentPolicy do
       expect(described_class.new(user, comment).destroy?).to be(true)
     end
 
+    it "applies global moderation with author-first" do
+      admin = User.create!(name: "Global moderator", email: "comment-policy-global-moderator@example.com", password: "password123!", global_admin: true)
+      comment = jjaek_record.comments.create!(user:, content: "Target")
+      own_comment = jjaek_record.comments.create!(user: admin, content: "Own")
+      own_comment.update!(hidden_at: Time.current)
+
+      expect(described_class.new(admin, comment)).to be_hide
+      expect(described_class.new(admin, comment)).not_to be_restore
+      expect(described_class.new(admin, own_comment)).not_to be_hide
+      expect(described_class.new(admin, own_comment)).not_to be_restore
+      expect(described_class.new(admin, own_comment)).to be_destroy
+    end
+
+    it "limits group moderation to eligible parent groups and preserves promotion restore" do
+      group_admin = User.create!(name: "Group admin", email: "comment-policy-group-admin@example.com", password: "password123!")
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Comment group", group_type: :public_group)
+      target = other_user.jjaeks.create!(group:, content: "Group target")
+      comment = target.comments.create!(user:, content: "Group comment")
+
+      expect(described_class.new(group_admin, comment)).to be_hide_as_group_admin
+      expect(described_class.new(group_admin, comment)).not_to be_restore_as_group_admin
+
+      Comments::Hide.new(comment, actor: group_admin, public_reason: "other").call!
+      user.update!(global_admin: true)
+      expect(described_class.new(group_admin, comment)).to be_restore_as_group_admin
+
+      comment.update!(hidden_at: nil)
+      pending_group = Group.create!(group_admin:, name: "Pending comment group", group_type: :public_group, application_purpose: "Pending")
+      pending_comment = other_user.jjaeks.create!(group: pending_group, content: "Pending").comments.create!(user:, content: "Comment")
+      expect(described_class.new(group_admin, pending_comment)).not_to be_hide_as_group_admin
+
+      suspended_group = Group.create!(lifecycle_status: :active, operation_suspended_at: Time.current, group_admin:, name: "Suspended comment group", group_type: :public_group)
+      suspended_comment = other_user.jjaeks.create!(group: suspended_group, content: "Suspended").comments.create!(user:, content: "Comment")
+      expect(described_class.new(group_admin, suspended_comment)).not_to be_hide_as_group_admin
+    end
+
+    it "rejects other groups, self comments, and platform restores for group admins" do
+      group_admin = User.create!(name: "Group admin", email: "comment-policy-boundary-admin@example.com", password: "password123!")
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Boundary group", group_type: :public_group)
+      other_group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Other group", group_type: :public_group)
+      own_comment = other_user.jjaeks.create!(group:, content: "Own").comments.create!(user: group_admin, content: "Own comment")
+      other_comment = other_user.jjaeks.create!(group: other_group, content: "Other").comments.create!(user:, content: "Other comment")
+      other_comment.update!(hidden_at: Time.current)
+      ModerationAction.create!(target: other_comment, actor: User.create!(name: "Platform", email: "comment-policy-platform@example.com", password: "password123!", global_admin: true), action_type: :hide, public_reason: "other", moderation_authority: "platform")
+
+      expect(described_class.new(group_admin, own_comment)).not_to be_hide_as_group_admin
+      expect(described_class.new(group_admin, other_comment)).not_to be_restore_as_group_admin
+    end
+
     it "allows active members to create and update their own group comments" do
       %i[public_group approval_group private_group].each do |group_type|
         group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: group_type.to_s, group_type:)

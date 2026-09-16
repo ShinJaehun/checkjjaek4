@@ -18,8 +18,17 @@ RSpec.describe ModerationAction, type: :model do
   let(:membership) { group.group_memberships.create!(user: other_user, status: :active) }
 
   def action_for(target:, action_type:, reversal_of: nil)
-    public_reason = target.is_a?(Jjaek) && action_type.to_sym == :hide ? "inappropriate_content" : "Public reason"
-    moderation_authority = "platform" if target.is_a?(Jjaek) && action_type.to_sym.in?(%i[hide restore])
+    content_moderation_target = target.is_a?(Jjaek) || target.is_a?(Comment)
+    public_reason =
+      if content_moderation_target && action_type.to_sym == :hide
+        "inappropriate_content"
+      else
+        "Public reason"
+      end
+    moderation_authority =
+      if content_moderation_target && action_type.to_sym.in?(%i[hide restore])
+        "platform"
+      end
 
     described_class.new(
       target:,
@@ -42,6 +51,24 @@ RSpec.describe ModerationAction, type: :model do
 
     action = action_for(target: jjaek, action_type: :hide)
     action.public_reason = "undefined_reason"
+    expect(action).not_to be_valid
+  end
+
+  it "accepts only defined reasons and authorities for comment moderation" do
+    action = action_for(target: comment, action_type: :hide)
+    action.moderation_authority = "group"
+
+    expect(action).to be_valid
+    Comment::MODERATION_HIDE_REASONS.each do |reason|
+      action.public_reason = reason
+      expect(action).to be_valid
+    end
+
+    action.public_reason = "undefined_reason"
+    expect(action).not_to be_valid
+
+    action.public_reason = "other"
+    action.moderation_authority = "unknown"
     expect(action).not_to be_valid
   end
 

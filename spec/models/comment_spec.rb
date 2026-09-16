@@ -9,4 +9,16 @@ RSpec.describe Comment, type: :model do
 
     expect(comment).not_to be_valid
   end
+
+  it "keeps moderation hiding separate from author deletion" do
+    user = User.create!(name: "Reader", email: "comment-hidden@example.com", password: "password123!")
+    jjaek = user.jjaeks.create!(content: "Jjaek")
+    comment = jjaek.comments.create!(user:, content: "Hidden comment")
+
+    comment.update!(hidden_at: Time.current)
+
+    expect(comment.reload).to be_hidden
+    expect(comment.content).to eq("Hidden comment")
+    expect(comment.jjaek).to eq(jjaek)
+  end
 end
