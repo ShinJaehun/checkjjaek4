@@ -9,6 +9,14 @@ class CommentPolicy < ApplicationPolicy
     user.present? && user.global_admin? && record.user_id != user.id
   end
 
+  def view_group_moderation_history?
+    return false unless user.present? && !user.global_admin?
+    return false if record.user_id == user.id
+    return false unless record.jjaek.group.present? && record.jjaek.group.group_admin?(user)
+
+    GroupPolicy.new(user, record.jjaek.group).read_jjaeks?
+  end
+
   def view_original_content?
     return true unless record.hidden?
     return false unless user.present?

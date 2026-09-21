@@ -85,4 +85,13 @@
       <% end %>
     </section>
   <% end %>
+
+  <% if local_assigns[:moderation_actions].present? %>
+    <div class="mt-4">
+      <%= render "jjaeks/moderation_history",
+                moderation_actions: moderation_actions,
+                section_id: dom_id(comment, :moderation_history),
+                list_id: dom_id(comment, :moderation_history_list) %>
+    </div>
+  <% end %>
 </article>
