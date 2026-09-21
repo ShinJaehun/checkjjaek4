@@ -1,42 +1,25 @@
-<section id="account_history" class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-  <h2 class="text-xl font-semibold text-stone-900"><%= t("admin.users.account_history.title") %></h2>
+<section id="account_history" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
+  <h2 class="font-semibold"><%= t("admin.users.account_history.title") %></h2>
 
-  <div class="mt-4 space-y-3">
+  <ol class="mt-3">
     <% entries.each do |entry| %>
-      <article class="rounded-2xl bg-stone-50 p-4" data-account-event="<%= entry.event_type %>">
-        <p class="font-medium text-stone-900">
-          <%= t("admin.users.account_history.events.#{entry.event_type}.title") %>
-        </p>
-        <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <div class="flex gap-2">
-            <span class="font-medium text-stone-500">
-              <%= t("admin.users.account_history.events.#{entry.event_type}.occurred_at") %>
-            </span>
-            <span class="text-stone-700"><%= l(entry.occurred_at, format: :short) %></span>
-          </div>
+      <li class="border-t border-amber-200 py-3 first:border-t-0 first:pt-0 last:pb-0" data-account-event="<%= entry.event_type %>">
+        <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="font-semibold"><%= t("admin.users.account_history.events.#{entry.event_type}.title") %></span>
           <% if entry.action %>
-            <div class="flex gap-2">
-              <span class="font-medium text-stone-500"><%= t("admin.users.account_history.actor") %></span>
-              <span class="text-stone-700"><%= entry.action.actor.name %></span>
-            </div>
+            <span class="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800"><%= t("admin.users.moderation.platform_authority") %></span>
+            <span><%= entry.action.actor.name %></span>
           <% end %>
-        </div>
+          <span class="font-semibold">· <%= l(entry.occurred_at, format: :short) %></span>
+        </p>
 
         <% if entry.action %>
-          <div class="mt-3 text-sm">
-            <p class="font-medium text-stone-500">
-              <%= t("admin.users.account_history.events.#{entry.event_type}.reason") %>
-            </p>
-            <p class="mt-1 whitespace-pre-wrap text-stone-700"><%= entry.action.action_type_suspend? ? User.suspension_reason_label(entry.action.public_reason) : entry.action.public_reason %></p>
-          </div>
+          <p class="mt-1 whitespace-pre-wrap"><%= t("admin.users.account_history.reason") %>: <%= entry.action.action_type_suspend? ? User.suspension_reason_label(entry.action.public_reason) : entry.action.public_reason %></p>
           <% if entry.action.internal_note.present? %>
-            <div class="mt-3 text-sm">
-              <p class="font-medium text-stone-500"><%= t("admin.users.moderation.internal_note") %></p>
-              <p class="mt-1 whitespace-pre-wrap text-stone-700"><%= entry.action.internal_note %></p>
-            </div>
+            <p class="mt-1 whitespace-pre-wrap"><%= t("admin.users.account_history.memo") %>: <%= entry.action.internal_note %></p>
           <% end %>
         <% end %>
-      </article>
+      </li>
     <% end %>
-  </div>
+  </ol>
 </section>

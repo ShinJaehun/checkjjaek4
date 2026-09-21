@@ -305,7 +305,9 @@ en:
         suspend: "Suspend account"
         restore: "Restore account"
       moderation:
-        title: "Moderation action"
+        title: "Account management"
+        status: "Current status"
+        platform_authority: "System admin"
         current_suspension: "Current suspension"
         public_reason: "Public reason"
         internal_note: "Internal note"
@@ -321,6 +323,8 @@ en:
             public_reason_hint: "Recorded in the account operations history."
       account_history:
         title: "Account operations history"
+        reason: "Reason"
+        memo: "Memo"
         actor: "Actor"
         events:
           joined:

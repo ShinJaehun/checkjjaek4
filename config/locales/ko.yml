@@ -332,7 +332,9 @@ ko:
         suspend: "계정 정지"
         restore: "계정 복구"
       moderation:
-        title: "운영 조치"
+        title: "계정 관리"
+        status: "현재 상태"
+        platform_authority: "시스템 관리자"
         current_suspension: "현재 정지 정보"
         public_reason: "공개 사유"
         internal_note: "내부 운영 메모"
@@ -348,6 +350,8 @@ ko:
             public_reason_hint: "계정 운영 이력에 기록됩니다."
       account_history:
         title: "계정 운영 이력"
+        reason: "사유"
+        memo: "메모"
         actor: "처리자"
         events:
           joined:
