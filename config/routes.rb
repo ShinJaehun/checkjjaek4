@@ -9,6 +9,10 @@ Rails.application.routes.draw do
     resources :jjaeks, only: [] do
       patch :hide, on: :member
       patch :restore, on: :member
+      resources :comments, only: [], controller: "comments" do
+        patch :hide, on: :member
+        patch :restore, on: :member
+      end
     end
     resources :users, only: %i[index show] do
       patch :suspend, on: :member
@@ -57,7 +61,10 @@ Rails.application.routes.draw do
     patch :hide, on: :member
     patch :restore, on: :member
     resources :requotes, only: :index
-    resources :comments, only: %i[index create update destroy]
+    resources :comments, only: %i[index create update destroy] do
+      patch :hide, on: :member
+      patch :restore, on: :member
+    end
     resource :like, only: %i[create destroy]
   end
 

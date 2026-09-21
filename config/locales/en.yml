@@ -466,6 +466,13 @@ en:
       destroy_failed: "The club restriction could not be lifted."
       access_restricted: "Your club participation is restricted. Reason: %{reason}"
   comments:
+    moderation:
+      notices:
+        hidden: "Comment hidden."
+        restored: "Comment restored."
+      alerts:
+        hide_failed: "Could not hide the comment."
+        restore_failed: "Could not restore the comment."
     actions:
       close_inline: "Close"
       delete: "Delete"

@@ -1,10 +1,11 @@
 class CommentsController < ApplicationController
   COMMENTS_CONTEXTS = %w[detail home profile book group].freeze
 
-  before_action :set_readable_jjaek, except: :destroy
+  before_action :set_readable_jjaek, except: %i[destroy hide restore]
   before_action :set_destroy_jjaek, only: :destroy
+  before_action :set_moderation_jjaek, only: %i[hide restore]
   before_action :set_comments_context, only: %i[index create update destroy]
-  before_action :set_comment, only: %i[update destroy]
+  before_action :set_comment, only: %i[update destroy hide restore]
 
   def index
     @comments_panel_closed = inline_comments_context? && params[:panel_state] == "closed"
@@ -98,6 +99,22 @@ class CommentsController < ApplicationController
     end
   end
 
+  def hide
+    authorize @comment, :hide_as_group_admin?
+    Comments::Hide.new(@comment, actor: current_user, **moderation_action_params).call!
+    redirect_to jjaek_path(@jjaek), notice: t("comments.moderation.notices.hidden")
+  rescue Comments::Hide::Error, ActiveRecord::RecordInvalid
+    redirect_to jjaek_path(@jjaek), alert: t("comments.moderation.alerts.hide_failed")
+  end
+
+  def restore
+    authorize @comment, :restore_as_group_admin?
+    Comments::Restore.new(@comment, actor: current_user, **moderation_action_params).call!
+    redirect_to jjaek_path(@jjaek), notice: t("comments.moderation.notices.restored")
+  rescue Comments::Restore::Error, ActiveRecord::RecordInvalid
+    redirect_to jjaek_path(@jjaek), alert: t("comments.moderation.alerts.restore_failed")
+  end
+
   private
 
   def set_readable_jjaek
@@ -108,6 +125,10 @@ class CommentsController < ApplicationController
   end
 
   def set_destroy_jjaek
+    @jjaek = Jjaek.find(params[:jjaek_id])
+  end
+
+  def set_moderation_jjaek
     @jjaek = Jjaek.find(params[:jjaek_id])
   end
 
@@ -184,5 +205,9 @@ class CommentsController < ApplicationController
 
   def comment_params
     params.require(:comment).permit(:content)
+  end
+
+  def moderation_action_params
+    params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
   end
 end
