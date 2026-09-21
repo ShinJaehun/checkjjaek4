@@ -5,8 +5,8 @@
 이 문서는 Checkjjaek4의 SNS moderation MVP canonical spec이다.
 
 현재 구현 상태는 `docs/architecture/current_system.md`, 현재 서버측 권한은
-`docs/architecture/authorization.md`를 따른다. 이 문서는 이후 moderation과 Classroom 구현에서
-지켜야 할 목표 정책과 상태 경계를 확정하며, 아직 존재하지 않는 schema·class·method 이름을 확정하지 않는다.
+`docs/architecture/authorization.md`를 따른다. 이 문서는 구현된 moderation의 불변 조건과
+아직 남은 구현 정책을 구분해 기록하며, 아직 존재하지 않는 schema·class·method 이름을 확정하지 않는다.
 
 Checkjjaek4는 일반 사용자가 가입해 짹·책짹·댓글·동아리 콘텐츠를 작성하는 공개 SNS다.
 Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·복구하고 그 근거를 감사할 수 있는 최소 기반을 마련한다.
@@ -50,6 +50,24 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 - 복구 감사 row는 현재 미복구 suspend row를 `reversal_of`로 참조한다.
 - admin User 상세의 계정 운영 이력은 가입, 모든 정지·복구 감사 row와 탈퇴를 오래된 순으로 보존해 보여준다.
 
+#### 다음 구현 정책: 계정 정지 공개 사유
+
+신규 계정 정지는 아래 predefined `public_reason` 중 하나를 선택한다. 현재 구현의 자유 텍스트 입력은 이 정책의 적용 전 상태다.
+
+| key | 공개 표시 |
+| --- | --- |
+| `repeated_policy_violations` | 반복적인 운영 정책 위반 |
+| `spam_or_manipulation` | 스팸·비정상적 활동 |
+| `harassment_or_threats` | 괴롭힘·위협 행위 |
+| `privacy_or_deception` | 개인정보 침해·사칭·기만 |
+| `serious_safety_violation` | 심각한 안전 정책 위반 |
+| `other` | 기타 운영 정책 위반 |
+
+suspend의 `internal_note`는 선택이다. restore에는 정지 사유와 별도의 공개 복구 사유를 자유 텍스트로 입력하고
+`internal_note`는 선택한다. 기존 `ModerationAction`의 자유 텍스트 공개 사유는 변경하지 않는 legacy audit다.
+새 key로 rewrite/migrate하지 않으며, 표시할 때 known key는 locale로 변환하고 legacy 자유 텍스트는 그대로 보여준다.
+계정 보안 잠금/security lock은 moderation suspend와 다른 상태이며 이 범위에 포함하지 않는다.
+
 ### moderation 범위와 용어
 
 - **계정 정지 / 계정 복구**는 global admin이 `User` 전체의 서비스 로그인과 신규 mutation을 제한·복구하는 현재 구현 기능이다.
@@ -59,6 +77,30 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 동아리 활동 정지·복구는 별도 `moderation_status`와 `GroupMembership` 대상 append-only 감사 row로 구현했다. 동아리 이용 제한은 `GroupMemberBan` 현재 marker와 ban/unban 감사 row로 구현하며 membership을 종료하고 재참여를 차단한다. 해제는 membership을 복구하지 않는다. 일반 membership의 탈퇴·내보내기와 Group의 자발적 운영 종료 lifecycle을 moderation 상태로 해석하지 않는다.
 활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 현재 정지 상태도 종료되며 감사 row는 보존한다. global admin은 Group membership moderation을 실행하지 않고 전체 이력을 조사하며 service-wide 제재는 User 계정 정지·복구로 수행한다.
 계정 정지, 동아리 활동 정지와 동아리 운영 정지는 서로 자동 전파되지 않는다.
+
+#### 다음 구현 정책: Group 운영 정지 공개 사유와 전체 이력
+
+신규 Group operation suspension은 아래 predefined `public_reason` 중 하나를 선택한다. 현재 구현의 자유 텍스트 입력은 이 정책의 적용 전 상태다.
+
+| key | 공개 표시 |
+| --- | --- |
+| `repeated_policy_violations` | 반복적인 운영 정책 위반 |
+| `facilitating_violations` | 정책 위반 활동 조장·방치 |
+| `harassment_or_targeting` | 괴롭힘·공격 활동 조장 |
+| `spam_or_manipulation` | 스팸·비정상적 운영 |
+| `deceptive_operation` | 사칭·기만적 운영 |
+| `other` | 기타 운영 정책 위반 |
+
+operation suspend의 `internal_note`는 선택이다. restore에는 별도 공개 복구 사유를 자유 텍스트로 입력하고
+`internal_note`는 선택한다. 기존 자유 텍스트 감사 row는 변경하지 않으며, known key의 locale 표시와
+legacy 자유 텍스트의 원문 표시를 함께 지원한다. GroupMembership 활동 정지·복구와 GroupMemberBan의
+공개 사유는 현재 자유 텍스트 정책을 유지한다.
+
+Group 개설·자발적 운영 종료·재운영은 `GroupLifecycleEvent`의 lifecycle history이고, global admin의
+operation suspend/restore는 Group 대상 `ModerationAction`의 platform moderation history다.
+admin Group 상세에서는 현재 operation suspension 카드와 별도로 과거 전체 cycle을 오래된 순서로 조사할 수 있어야 한다.
+각 항목에는 action, 실제 actor, 공개 사유, 선택적 내부 메모, 시각을 표시한다. 현재는 현재 정지 카드만 구현되어 있다.
+일반 Group admin과 회원에게는 현재 운영 정지 상태와 공개 사유만 제공하고 platform 내부 메모·전체 이력은 노출하지 않는다.
 
 ---
 
@@ -114,17 +156,17 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 - 작성자는 자신이 작성한 숨겨진 Jjaek의 원문, 숨김 상태, 숨김 주체와 현재 hide의 공개 사유를 볼 수 있다.
   내부 운영 메모는 볼 수 없으며 수정과 새 Comment·Like·ReJjaek은 금지하고 기존 작성자 삭제만 허용한다.
 - 해당 Group의 group admin은 기존 Group read 권한과 lifecycle 경계 안에서 자기 Group의 숨겨진
-  Jjaek 원문, 숨김 주체와 현재 hide의 공개 사유를 볼 수 있다. 목표 정책에서는 자기 Group의
+  Jjaek 원문, 숨김 주체와 현재 hide의 공개 사유를 볼 수 있다. 자기 Group의
   group-origin 내부 운영 메모도 볼 수 있지만 platform-origin 내부 운영 메모는 볼 수 없고,
   global admin의 hide를 복구할 수 없다. Group 밖 콘텐츠와 다른 Group 콘텐츠에는 이 조회 권한이 적용되지 않는다.
-- Group admin Jjaek moderation의 확정된 목표 정책에서는 global admin이 작성한 Group Jjaek을
+- Group admin Jjaek moderation은 global admin이 작성한 Group Jjaek을
   Group admin의 신규 hide 대상에서 제외한다. direct request도 차단하되, 승격 전 group hide의 복구는 아래 예외를 따른다.
 - global admin 작성자는 자기 Group Jjaek에 moderation hide/restore를 사용하지 않고,
   기존 작성자 권한 조건 안에서 자기 글을 수정·삭제하는 lifecycle을 따른다.
-  다른 global admin은 기존 platform moderation 정책에 따라 해당 글을 숨기고 복구할 수 있다.
-- 해당 Group의 group admin은 아래 목표 단위에 따라 자기 Group moderation 주체로서 조치를 수행하고,
+  현재 단일 global admin 운영에서는 자기 글에 대한 동급 관리자 조치를 전제하지 않는다.
+- 해당 Group의 group admin은 자기 Group moderation 주체로서 조치를 수행하고,
   같은 Group authority에서 발생한 hide를 복구할 수 있다.
-- 대상 Jjaek의 작성자가 아닌 다른 global admin은 서비스 전체 조사 권한으로 원문과 moderation 정보를
+- 대상 Jjaek의 작성자가 아닌 global admin은 서비스 전체 조사 권한으로 원문과 moderation 정보를
   확인하고 group-admin-originated hide를 복구할 수 있다.
 - 숨겨진 Jjaek에는 새 Comment·Like·ReJjaek을 만들 수 없다. 화면 비노출뿐 아니라 서버 권한에서도 차단한다.
 - 기존 ReJjaek이나 다른 조회 문맥을 통해 숨겨진 원문의 본문·책 정보 등 원문 내용이 우회 노출되지 않아야 한다.
@@ -203,10 +245,10 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 17. restore 후 일반 콘텐츠 화면에는 복구 사유를 계속 표시하지 않는다.
 18. 사용자-facing 화면에는 `시스템 관리자에 의해 숨겨진 짹입니다.` 또는
     `시스템 관리자에 의해 숨겨진 책짹입니다.`를 사용한다.
-19. Group admin Jjaek moderation의 목표 정책에서는 global admin이 작성한 Group Jjaek을
+19. Group admin Jjaek moderation은 global admin이 작성한 Group Jjaek을
     Group admin의 신규 hide 대상에서 제외한다. 승격 전 group hide는 현재 Group admin이 복구할 수 있다.
     작성자인 global admin은 자기 글에 moderation 권한을 사용하지 않고 기존 작성자 lifecycle을 따르며,
-    다른 global admin은 기존 platform moderation 정책에 따라 hide/restore할 수 있다.
+    단일 global admin 운영에서 self-hide/self-restore를 우회하지 않는다.
 20. 숨김·복구와 관계없는 일반 Jjaek visibility, Group 접근, 작성자 삭제 및
     기존 Comment·Like·ReJjaek 데이터는 회귀하지 않는다.
 
@@ -229,7 +271,6 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
   현재 Group admin이 복구할 수 있다. 이는 기존 group-origin moderation의 reversal이며,
   global admin 콘텐츠에 대한 새로운 moderation 권한을 부여하지 않는다.
   과거 hide의 `moderation_authority = group` snapshot은 그대로 보존하고 작성자 자신의 self-restore는 author-first에 따라 금지한다.
-  다른 global admin의 platform authority 복구 권한도 유지한다.
 
 #### Group lifecycle과 운영 정지
 
@@ -245,7 +286,7 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
 
 - Group admin hide도 현재 `hidden_at`과 `ModerationAction`을 사용하며 별도 상태 column이나 Group lifecycle 상태를 만들지 않는다.
 - Group admin hide에는 기존과 같은 정의된 공개 사유가 필수이고 감사 row에는 실제 actor를 보존한다.
-  목표 정책에서는 Group admin도 선택적 `internal_note`를 입력하며 `ModerationAction`에 그대로 저장한다.
+  Group admin도 선택적 `internal_note`를 입력하며 `ModerationAction`에 그대로 저장한다.
 - 각 Jjaek hide/restore 감사 row에는 조치 당시 authority를 `platform` 또는 `group`으로 보존한다.
   hide origin과 사용자-facing attribution 및 restore authority는 이 저장값만 사용하며 actor의 이후 역할 변경으로 바뀌지 않는다.
   `internal_note` 유무는 authority 판단에 영향을 주지 않는다.
@@ -253,7 +294,7 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
   정확히 같은 actor인지는 요구하지 않으므로 관리자 이전 전의 Group admin이 숨긴 글도 새 현재 Group admin이 복구할 수 있다.
 - Group admin은 global-admin-originated hide를 복구할 수 없다. 숨겨진 원문을 조사할 권한과 복구 권한을 동일시하지 않는다.
 - 대상 작성자가 아닌 global admin은 master operational authority에 따라 group-admin-originated hide도 복구할 수 있다.
-- 복구에는 hide 사유와 별개의 공개 복구 사유가 필수다. 목표 정책에서는 Group admin restore와
+- 복구에는 hide 사유와 별개의 공개 복구 사유가 필수다. Group admin restore와
   global admin restore 모두 선택적 내부 메모를 허용한다.
 - restore는 현재 미복구 hide만 대상으로 하고 해당 hide를 `reversal_of`로 참조한다.
   `hide A → restore A → hide B → restore B → hide C`의 모든 row를 보존하며 현재 hide는 최신 미복구 hide 하나다.
@@ -294,7 +335,7 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
 2. 자기 글, personal Jjaek, 다른 Group Jjaek, lifecycle이 `pending_approval`이거나 operation suspended인 Group Jjaek은 direct request에서도 거부한다.
 3. global admin 작성 Group Jjaek의 신규 Group hide는 direct request에서도 거부한다.
    일반 사용자일 때 적법하게 발생한 group hide는 승격 후에도 현재 Group admin이 복구할 수 있으며,
-   과거 hide의 group authority snapshot은 유지한다. 작성자는 self-restore할 수 없고 다른 global admin의 platform 복구 권한은 유지한다.
+   과거 hide의 group authority snapshot은 유지한다. 작성자는 self-restore할 수 없다.
 4. Group admin hide/restore는 공개 사유를 필수로 받고 선택적 internal note를 허용하며, 기존 hidden 상태와 append-only 감사를 원자적으로 기록한다.
    실제 actor, 공개 사유, internal note, `moderation_authority` snapshot과 restore의 `reversal_of` 연결을 보존한다.
 5. 현재 Group admin은 같은 Group authority에서 발생한 현재 hide를 actor 변경과 관계없이 복구할 수 있지만 global admin hide는 복구할 수 없다.
@@ -404,17 +445,14 @@ Acceptance criteria:
 9. 현재 Group admin의 group-origin history/internal note 범위와 platform-origin restore 금지를 변경하지 않는다.
 10. 기존 visibility와 Group read boundary 밖 사용자에게 hidden post 존재를 새로 노출하지 않는다.
 11. authority source는 immutable `moderation_authority` snapshot으로 판단한다.
-12. Comment moderation은 이 구현 단위에 포함하지 않는다.
 
 #### 후속 범위
 
-- Comment 숨김·복구, authority/history/placeholder, hidden parent Jjaek의 Comment UI와 빈 comments panel 정책은
-  아래 `Comment moderation canonical policy`에서 정의한다.
 - teacher/Classroom moderation
 - 신고 queue, notification, rate limit
 
-이번 구현 단위에는 Comment moderation, 신고, notification,
-Classroom 역할, 새로운 moderation framework와 작성자 삭제 lifecycle 변경을 포함하지 않는다.
+Comment moderation은 아래 canonical 정책대로 구현되어 있다. 신고, notification,
+Classroom 역할, 새로운 moderation framework와 작성자 삭제 lifecycle 변경은 이 범위에 포함하지 않는다.
 
 이 구현 단위는 새 moderation schema나 framework를 추가하지 않는다.
 
@@ -424,17 +462,15 @@ Classroom 역할, 새로운 moderation framework와 작성자 삭제 lifecycle �
 
 ### 상태와 재사용 기준
 
-Comment moderation은 아직 미구현이며 이 절을 목표 정책의 canonical 기준으로 삼는다.
+Comment moderation의 상태·권한·표시·HTTP/Turbo 흐름은 구현되어 있으며 이 절을 현재 불변 조건의 canonical 기준으로 삼는다.
 
 - 현재 Comment는 Jjaek·작성자 연결과 본문을 가지며 일반 삭제는 hard delete다. 읽기는 부모 Jjaek 권한을 따르고,
   hidden 부모에서는 기존 댓글 읽기와 자기 삭제만 유지하며 새 작성·기존 댓글 수정은 차단한다.
-- Jjaek은 `JjaekPolicy`, global admin의 `Admin::JjaeksController`, Group admin의 `JjaeksController`,
-  `Jjaeks::Hide`/`Jjaeks::Restore`와 `ModerationAction`으로 권한 재검사·상태 전이·감사를 처리한다.
-  Comment도 이 책임 분리와 transaction/lock 패턴을 재사용하며 새로운 moderation framework를 만들지 않는다.
-- `ModerationAction`은 Comment hide/restore target을 이미 허용하지만, predefined hide reason과
-  `moderation_authority` 검증은 현재 Jjaek 전용이다. Comment 상태·정책·서비스·UI까지 구현된 것으로 해석하지 않는다.
-- 현재 comments panel은 detail/home/profile/book/group의 HTML·Turbo 흐름을 공유한다.
-  댓글과 작성 권한이 모두 없어도 빈 panel이 표시될 수 있어 아래 empty-state 정책을 적용할 필요가 있다.
+- `CommentPolicy`, global admin과 Group admin의 Comment HTTP action, `Comments::Hide`/`Comments::Restore`와
+  `ModerationAction`이 권한 재검사·상태 전이·감사를 담당한다. Jjaek의 transaction/lock 패턴을 재사용한다.
+- Comment hide/restore에는 Jjaek과 같은 predefined hide reason과 `moderation_authority` 검증이 적용된다.
+- comments panel은 detail/home/profile/book/group의 HTML·Turbo 흐름을 공유하며, 댓글도 작성 권한도 없으면
+  빈 panel을 표시하지 않는다.
 
 ### lifecycle과 조치 기록
 
@@ -625,6 +661,8 @@ admin inventory, 특정 User·Group 상세와 거기서 발견한 Jjaek 단건 �
 
 global admin의 비공개 콘텐츠 접근은 일반 사용자 열람 권한이 아니라 조사·안전·복구를 위한 운영 권한이다.
 `private_jjaek`의 나만 보기와 `book_friends` visibility를 포함한 사용자 공개 설정은 이 운영 조사를 차단하지 않는다.
+현재 제품 정책은 global admin을 정확히 한 명으로 전제한다. 추가 운영 인력은 두 번째 global admin이 아니라
+향후 `platform_moderator` 역할로 위임한다. 이번 문서 정리는 현재 DB cardinality constraint 변경을 요구하지 않는다.
 group admin은 현재와 같이 Group당 정확히 한 명이며 이번 MVP에서 cardinality를 변경하지 않는다.
 
 teacher/Classroom policy는 Classroom 도메인이 만들어질 때 연결한다. 교사와 학생이 실제 사용하기 전에는
@@ -646,16 +684,23 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 - 공개 가능한 사유
 - 필요한 경우 공개 사유와 분리된 내부 운영 메모
 - 처리자와 `created_at` 조치 시각
-- Jjaek hide/restore의 행위 당시 `moderation_authority` snapshot; Comment에도 위 canonical policy에 따라 적용 예정
+- Jjaek·Comment hide/restore의 행위 당시 `moderation_authority` snapshot
 - 복구는 원 조치 row를 변경하지 않고 별도 row로 추가하며 `reversal_of`로 원 조치와 연결
+
+가역적 moderation은 현재 상태만 저장하지 않는다. 모든 제재와 복구를 append-only history로 보존하고,
+현재 유효한 상태와 과거 전체 audit를 구분한다. 대상 당사자에게는 기본적으로 현재 상태와 공개 사유만 제공한다.
+내부 운영 메모와 과거 전체 audit는 허용된 운영 권한자에게만 제공한다. global admin은 전체 platform moderation
+audit를 조사하고, 현재 Group admin은 자기 Group에 위임된 group-origin moderation history만 조사한다.
+Group 자체의 platform operation suspension 전체 audit는 global admin 전용이며 Group admin과 일반 회원에게는
+현재 운영 정지 상태와 공개 사유만 제공한다. 이 Group 전체 이력 UI는 위 다음 구현 정책으로 남아 있다.
 
 정지·숨김 row는 복구 연결을 갖지 않으며 같은 원 조치를 두 번 복구할 수 없다.
 이미 저장된 감사 row는 수정·삭제할 수 없고 대상이 hard delete되더라도 target type/ID와 감사 정보는 보존한다.
 운영자는 콘텐츠 원문을 수정하지 않는다.
 
-User 정지/복구, Jjaek 숨김·복구와 Group 운영 정지/복구는 이 감사 기반에 연결되어 있다.
-Group admin의 Jjaek 숨김·복구는 구현되어 있고 Comment 숨김·복구는 아직 구현되지 않았다.
-Comment의 목표 lifecycle·authority·정보 공개·UI·검증 경계는 위 `Comment moderation canonical policy`를 따른다.
+User 정지/복구, Group 운영 정지/복구, GroupMembership 활동 정지/복구, GroupMemberBan 제한/해제,
+Jjaek·Comment 숨김/복구는 이 감사 기반에 연결되어 있다. 각 화면의 현재 이력 표시 범위는
+`docs/architecture/current_system.md`를 따르고, 남은 Group 전체 이력 UI 정책은 위 절을 따른다.
 
 ---
 
@@ -671,7 +716,7 @@ Comment의 목표 lifecycle·authority·정보 공개·UI·검증 경계는 위 
 
 ## 기본 남용 예방
 
-Classroom의 실제 교사·학생 사용 전에 다음 경로에 기본 rate limit을 둔다.
+rate limit은 아직 구현되지 않았다. 후속 구현에서는 Classroom의 실제 교사·학생 사용 전에 다음 경로를 다룬다.
 
 - 회원가입
 - 로그인 실패
@@ -708,23 +753,34 @@ rate limit은 환경별로 조정할 수 있어야 하며 정상적인 한 교�
 - URL query parameter를 조작해 다른 Group·Classroom·비공개 콘텐츠로 조회 범위를 넓힐 수 없어야 한다.
 - 필터링은 client 화면에서 항목을 감추는 방식만으로 구현하지 않는다.
 
+### 현재 구현과 closure 경계
+
+현재 global admin은 User·Group top-level inventory와 User 작성자 기준·Group 문맥 기준
+Jjaek/Comment content timeline을 사용한다. 검색, 기본 상태·역할·종류 필터, 정렬, 페이지네이션을 제공하며
+admin User·Group 상세에서 contextual investigation을 이어간다.
+
+남은 closure는 두 가지다. User/Group content timeline에서 hidden Comment를 hidden 상태로 표시·필터하고,
+Group top-level inventory에서 lifecycle과 별도로 operation active/suspended를 표시·필터한다.
+서비스 전체 Jjaek/Comment 전역 inventory는 현재 contextual investigation과 별개로 필요성을 판단할 후속 항목이며,
+Classroom 이전 필수 완료 항목으로 단정하지 않는다. User 가입 기간·Group 생성 기간 같은 고급 필터도 현재 구현이 아니다.
+
 ### 대상별 최소 검색·필터
 
 | 대상 | 검색 | 최소 필터 | 최소 정렬·표시 |
 | --- | --- | --- | --- |
-| User | 이름·이메일 | 정상·향후 정지·탈퇴 상태, global admin 여부, 가입 기간, 향후 일반 계정·managed student account 구분 | 최근 가입·오래된 가입, 계정 상태, 가입 시각 |
-| Group | 이름·group admin | Group 종류, pending/active/inactive lifecycle, 향후 운영 정지 상태, 생성 기간 | 최근 생성·최근 갱신, group admin, 구성원 수와 상태 |
-| Jjaek·책짹 | 본문 일부·작성자·관련 책 | 개인·Group·향후 Classroom 문맥, 짹·책짹·ReJjaek 종류, visibility, 작성자 삭제·향후 운영 숨김 상태, 작성 기간 | 최신·오래된 순, 작성자, 문맥, 상태, 짧은 내용 |
-| Comment | 본문 일부·작성자·원 Jjaek | 개인·Group·향후 Classroom 문맥, 정상·향후 운영 숨김 상태, 작성 기간 | 최신·오래된 순, 작성자, 원 Jjaek, 상태, 짧은 내용 |
+| User | 이름·이메일 | 정상·정지·탈퇴 상태, global admin 여부, 가입 기간(후속), 향후 일반 계정·managed student account 구분 | 최근 가입·오래된 가입, 계정 상태, 가입 시각 |
+| Group | 이름·group admin | Group 종류, pending/active/inactive lifecycle, operation 상태(closure), 생성 기간(후속) | 최근 생성·최근 갱신, group admin, 구성원 수와 상태 |
+| Jjaek·책짹 | 본문 일부·작성자·관련 책 | 개인·Group·향후 Classroom 문맥, 짹·책짹·ReJjaek 종류, visibility, 작성자 삭제·운영 숨김 상태, 작성 기간(후속) | 최신·오래된 순, 작성자, 문맥, 상태, 짧은 내용 |
+| Comment | 본문 일부·작성자·원 Jjaek | 개인·Group·향후 Classroom 문맥, 정상·운영 숨김 상태(타임라인 필터 closure), 작성 기간(후속) | 최신·오래된 순, 작성자, 원 Jjaek, 상태, 짧은 내용 |
 | Moderation 이력 | 대상·처리자 | 조치 종류, 대상 종류, 유효·복구 상태, 처리 기간 | 최근 조치·복구 순, 처리자, 사유, 상태 |
 
-표에서 현재 schema에 없는 정지·운영 숨김·managed student account·Classroom·moderation 이력 상태는
-각 moderation 또는 Classroom 구현 후 제공할 필터다. 이 표는 query class, scope, gem이나 DB 구조를 확정하지 않는다.
+이 표는 현재 구현, closure와 후속 탐색 범위를 함께 적는다. managed student account·Classroom은 아직 없고,
+Moderation 이력의 별도 전역 inventory 제공도 확정하지 않았다. query class, scope, gem이나 DB 구조를 확정하지 않는다.
 
 ### 기본적인 활동 관찰
 
-- 최근 일정 기간에 생성된 User·Group·Jjaek·Comment를 좁혀 볼 수 있다.
-- 특정 사용자, Group 또는 작성 기간을 기준으로 콘텐츠를 연속해서 확인할 수 있다.
+- 기간 필터가 필요하면 후속 구현에서 최근 일정 기간의 User·Group·Jjaek·Comment를 좁혀 볼 수 있다.
+- 현재 특정 사용자·Group 문맥의 콘텐츠를 연속해서 확인하며 작성 기간 필터는 후속으로 둔다.
 - 최근 작성량이 많은 사용자를 확인할 필요가 있지만 초기에는 기존 데이터로 안전하고 효율적으로 계산할 수 있는 범위에서 제공한다.
 - 신규 가입 직후 반복 작성처럼 운영자가 직접 확인할 가치가 있는 패턴을 필터 조합으로 좁힐 수 있어야 한다.
 - 자동으로 악성 사용자라고 판정하거나 제재하지 않는다.
@@ -761,14 +817,16 @@ moderation monitoring에는 다음을 포함하지 않는다.
 
 다음은 Classroom의 본격적인 교사·학생 운영 전에 완료할 필수 기반이다.
 
-- global admin의 User 모니터링 목록: 검색·상태 필터·가입 기간·정렬·페이지네이션
+- global admin의 User 모니터링 목록: 검색·기본 상태 필터·정렬·페이지네이션
 - global admin의 Group 모니터링 목록: 검색·종류·lifecycle 필터·정렬·페이지네이션
-- global admin의 Jjaek·Comment 모니터링 목록: 검색·작성자·문맥·종류·상태·작성 기간 필터·정렬·페이지네이션
+- admin User·Group 상세의 Jjaek·Comment contextual investigation과 위 hidden Comment closure
 - User 정지·복구
 - Jjaek·책짹·Comment 숨김·복구
 - group admin의 자기 Group 콘텐츠 검색·필터와 숨김·복구
 - 모든 moderation 조치의 사유·처리자·시각 기록
 - 가입·로그인·작성의 기본 rate limit
+
+서비스 전체 Jjaek/Comment 전역 inventory와 고급 기간 필터는 별도 필요성 판단 항목으로 둔다.
 
 teacher의 자기 Classroom moderation은 Classroom 구조가 존재해야 구현할 수 있으므로 Classroom 개발과 함께 연결하되,
 실제 교사·학생 배포 전 필수 release gate로 둔다.
@@ -782,7 +840,7 @@ teacher의 자기 Classroom moderation은 Classroom 구조가 존재해야 구�
 | User | 정상 | 본인 탈퇴 | 운영자 정지 | `withdrawn_at`을 정지로 재사용 금지 |
 | Group | 운영 중 | group admin 종료·비활성 | 플랫폼 운영 정지 | `inactive`를 운영 정지로 재사용 금지 |
 | Jjaek·Comment | 정상 | 작성자 삭제 | 운영자 숨김 | `deleted_at`을 숨김으로 재사용 금지 |
-| GroupMembership | 참여 상태 | 탈퇴·내보내기 | 향후 별도 제한 | membership 종료를 ban으로 해석 금지 |
+| GroupMembership | 참여 상태 | 탈퇴·내보내기 | 활동 정지·복구, 별도 GroupMemberBan 이용 제한 | membership 종료를 ban으로 해석 금지 |
 
 이 표는 의미와 불변 조건만 고정하며 schema 설계를 확정하지 않는다.
 
@@ -805,30 +863,9 @@ teacher의 자기 Classroom moderation은 Classroom 구조가 존재해야 구�
 
 ---
 
-## 권장 구현 순서
+## 남은 구현 경계
 
-각 단계는 가능한 한 별도 기능 브랜치로 나눈다.
-
-1. global admin 공통 navigation과 User·Group 읽기 전용 monitoring inventory
-   - 고밀도 표
-   - 검색
-   - 조합 가능한 기본 필터
-   - 정렬
-   - 페이지네이션
-2. Jjaek·Comment 읽기 전용 monitoring inventory
-   - 작성자·문맥·종류·상태·기간 필터
-   - 짧은 내용 표시
-   - 상세 조사 진입
-3. 공통 moderation action 감사 기반
-4. User 정지·복구
-5. Jjaek·Comment 숨김·복구
-6. group admin의 자기 Group 콘텐츠 moderation
-7. 가입·로그인·작성 rate limit
-8. Classroom 도메인과 managed student account
-9. teacher의 자기 Classroom moderation 연결
-10. 교사·학생 실제 사용 검증
-11. 필요성이 확인되면 신고 queue와 `platform_moderator`
-
-첫 구현 브랜치 `feature/admin-moderation-inventory`의 목적은 단순 조회 화면이 아니라 global admin의
-User·Group monitoring과 filtering 기반을 구축하는 것이다. 정지·숨김·복구·bulk action·신고·
-`platform_moderator`·자동 판정은 이 브랜치에서 제외한다.
+User·Group inventory, contextual content timeline, User/Group/GroupMembership/GroupMemberBan 및
+Jjaek·Comment moderation의 현재 구현은 위 절에 기록했다. 다음 closure는 신규 User·Group 정지 사유 선택,
+Group operation 전체 이력 UI, hidden Comment와 operation 상태의 inventory 표시·필터, 기본 rate limit이다.
+Classroom·managed student account와 teacher moderation은 별도 단계에서 다룬다.

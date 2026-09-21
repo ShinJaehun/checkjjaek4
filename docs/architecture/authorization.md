@@ -311,7 +311,7 @@ Library 안에서 볼 수 있는 책장:
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
 작성은 모든 동아리 종류에서 active member에게만 허용한다.
 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, 탈퇴하거나 내보내진 작성자도 자기 기존 글은 삭제할 수 있다.
-동아리 관리자의 타인 글 moderation, 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성은 아직 구현하지 않는다.
+동아리 관리자의 타인 Jjaek·Comment 숨김/복구는 구현되어 있다. 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성은 아직 구현하지 않는다.
 active 공개 동아리의 Jjaek·책짹을 개인 영역으로 ReJjaek하는 기능은 제공한다.
 홈 `FeedScope`에는 현재 사용자가 active member인 active/inactive 동아리의 Jjaek만 포함하며,
 public 동아리나 follow 관계만으로 가입하지 않은 동아리 콘텐츠를 포함하지 않는다.
@@ -325,10 +325,16 @@ BookshelfEntry와 BookActivity도 profile 전용 scope를 통해 대상 사용�
 이 권한은 full Library 접근이나 Bookshelf·BookshelfEntry mutation 권한을 부여하지 않는다.
 일반 Jjaek scope와 홈 `FeedScope`에는 global admin 우회를 추가하지 않는다.
 운영 조사 권한은 Comment·Like·ReJjaek 등 일반 사용자 상호작용 권한으로 이어지지 않는다.
-group admin은 운영 정지되지 않은
-active/inactive 자기 Group의 타인 짹·책짹만 숨김·복구하고, 같은 Group authority의 hide는 현재 관리자가 복구할 수 있지만
-global admin hide는 복구할 수 없다. global admin 작성 글도 대상에서 제외하며 direct request에서 거부한다.
-hide origin은 `ModerationAction`에 조치 당시 `platform`/`group` authority로 보존하며 actor의 현재 역할로 추론하지 않는다.
+group admin은 운영 정지되지 않은 active/inactive 자기 Group의 타인 짹·책짹·Comment만 숨김·복구하고,
+같은 Group authority의 hide는 현재 관리자가 복구할 수 있지만 global admin hide는 복구할 수 없다.
+현재 global admin 작성 콘텐츠의 신규 Group hide와 자기 콘텐츠의 hide/restore는 direct request에서도 거부한다.
+Comment의 author-first는 부모 Jjaek 작성자가 아니라 Comment 작성자를 기준으로 한다. 작성자가 나중에 global admin으로
+승격되어도 기존의 적법한 group-origin hide는 현재 Group admin이 복구할 수 있으며 작성자 self-restore는 허용하지 않는다.
+global admin은 타인의 personal·Group Comment를 platform 권한으로 숨김·복구하고 group-origin hide도 복구할 수 있다.
+hide/restore authority는 `ModerationAction`에 조치 당시 `platform`/`group` snapshot으로 보존하며 actor의 현재 역할로 추론하지 않는다.
+`CommentPolicy#view_original_content?`, `#view_admin_inventory?`, `#view_group_moderation_history?`는 원문·이력의 author-first 및 Group read 경계를
+유지한다. global admin은 타인 Comment의 platform/group-origin 전체 이력·메모를 보고, 현재 Group admin은 자기 Group의
+group-origin 이력·메모만 본다. 작성자와 일반 사용자는 현재 상태·공개 사유만 보고 전체 이력·메모는 보지 못한다.
 상세 경계는 `docs/specs/moderation_mvp.md`를 따른다.
 
 global admin은 다른 active User를 명시적인 `suspend?` action으로 정지하고 suspended User를 `restore?` action으로 복구할 수 있다.
@@ -338,6 +344,11 @@ global admin은 다른 active User를 명시적인 `suspend?` action으로 정�
 group admin은 일반 active 회원의 `GroupMembership`에만 적용되는 **동아리 활동 정지 / 동아리 활동 복구**와 현재 membership을 종료하고 재참여를 막는 **동아리 이용 제한 / 해제** 권한을 가진다. global admin은 모든 Group의 회원·제한·감사 이력을 조사하지만 Group membership moderation을 실행하지 않는다. service-wide 제재는 별도 User 계정 정지·복구를 사용한다.
 global admin은 active Group을 **동아리 운영 정지 / 동아리 운영 복구**할 수 있다. 이는 회원 제한 및 group admin의 자발적 `inactive` 운영 종료와 별도이며, 읽기와 기존 데이터는 유지하고 새 콘텐츠·membership·회원 moderation·Group lifecycle mutation만 차단한다.
 세 상태는 서로 자동 전파되지 않는다.
+
+확정된 다음 구현 정책에서는 Group 자체의 platform operation suspend/restore 전체 audit와 내부 메모를 global admin만 조사한다.
+현재 admin Group 상세에는 현재 정지 카드만 있으며 전체 이력 UI는 아직 없다. Group admin과 일반 회원에게는 현재 운영 정지
+상태와 공개 사유만 제공하고 platform 전체 audit·내부 메모는 노출하지 않는다. 이 목표 경계는 기존 회원 단위의
+group-origin moderation 이력 열람 권한을 넓히지 않는다.
 
 ## 계정 탈퇴 권한과 보존
 

@@ -212,7 +212,7 @@
 - 운영 종료는 동아리 관리 화면에서 사유와 종료 시각을 기록하며, 재활성화 요청도 같은 화면에서 수행함
 - Group 상세는 콘텐츠와 사용자의 참여 상태에 집중하고, `/groups/:id/members`는 동아리 관리자의 회원 관리 및 global admin의 회원 조사 화면으로 사용함
 - `/groups/:id/edit`는 기본 설정과 운영 lifecycle·이력에 집중하며 관리자 이전은 회원 관리 화면에서 수행함
-- global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·현재 상태/기간 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음
+- global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·기본 상태/역할/종류 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음. 가입·생성 기간 필터는 아직 없음
 - User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
 - Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 기존 승인 동작으로 연결함
 - lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·종료·재활성화·재승인 순서로 누적되며 개설 목적과 종료 사유 snapshot을 보존함
@@ -242,6 +242,7 @@
 - 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함
 - `GroupMemberBan`은 active membership에 적용하는 현재 Group/User 이용 제한 상태로 membership을 종료하고 재가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음. pending 가입 신청은 승인·거절 심사만 제공함
 - global admin의 Group 운영 정지는 `operation_suspended_at`과 Group 대상 `ModerationAction`으로 lifecycle `inactive`와 분리되며, 기존 visibility 읽기와 cleanup은 유지하고 새 콘텐츠·membership·회원 moderation·Group 운영 mutation을 복구 전까지 차단함
+- Group 개설·자발적 종료·재운영은 `GroupLifecycleEvent`에, platform operation 정지·복구는 `ModerationAction`에 별도로 기록함. admin Group 상세에는 현재 operation suspension 카드가 있지만 전체 suspend/restore 이력 UI는 아직 없음. Group admin과 회원에게는 현재 운영 정지 상태와 공개 사유만 표시함
 - 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
 - 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
 - 일반 member의 자발적 탈퇴와 관리자의 내보내기는 membership을 즉시 삭제함
@@ -265,6 +266,7 @@
 - 동아리 hard delete, 초대 알림, 이메일·링크 초대, moderator와 별도 moderation dashboard는 구현되지 않음
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를, Group 운영 상세의 같은 형태 inventory에서 해당 동아리의 Jjaek·책짹·Comment를 직접 조사할 수 있음
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
+- User/Group content timeline의 검색·기본 상태 필터·정렬·페이지네이션은 구현되어 있으나 hidden Comment를 hidden 상태로 표시·필터하지는 못함. Group top-level inventory도 lifecycle과 별도인 operation active/suspended 상태 필터는 아직 없음
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
 - global admin은 다른 사용자의 모든 현재 Jjaek 유형을 정의된 숨김 사유와 선택적 내부 메모로 숨기고, 별도 공개 복구 사유와 선택적 내부 메모로 복구할 수 있으며 상태와 append-only hide/restore 감사를 원자적으로 남김
 - platform-origin 숨겨진 Jjaek은 기존 feed/profile/Book/Group read boundary 안의 목록·단건 상세에서 원문 body 대신 시스템 관리자 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기를 유지하되 새 interaction은 차단함. 이를 원문으로 참조하는 ReJjaek은 일반 조회에서 제외됨
@@ -277,9 +279,12 @@
 - Group Jjaek 상세의 운영 이력은 현재 group admin에게만 이전 관리자의 조치를 포함한 group-origin hide/restore 전체 cycle을 오래된 순서로 표시하며, visible 복구 뒤에도 유지되고 platform-origin 이력은 포함하지 않음
 - 대상 작성자가 아닌 global admin은 Jjaek 단건 상세에서 platform/group-origin hide/restore 전체 이력을 authority source와 함께 `created_at`, `id` 오름차순으로 확인함. 현재 Group admin의 group-origin 전용 이력 권한은 변경하지 않음
 - platform-origin hidden Jjaek의 일반 사용자 placeholder/detail에서도 새 Like·Comment·ReJjaek 등 hidden mutation, internal note/history 노출과 기존 visibility/Group boundary 확대는 허용하지 않음
-- Comment hide/restore, authority/history/placeholder, hidden parent의 댓글 UI와 작성·댓글이 모두 없는 빈 comments panel 정리는 별도 후속 브랜치 범위임
+- Comment hide/restore는 global admin과 현재 Group admin의 권한 경계, author-first, 조치 시점 `platform`/`group` authority snapshot, Jjaek과 같은 predefined hide reason 및 별도 자유 텍스트 restore reason으로 구현됨
+- hidden Comment는 부모 Jjaek의 기존 read boundary 안에서 authority placeholder와 현재 공개 사유를 표시하고, 작성자·허용된 운영자에게만 원문을 보여줌. 작성자 hard delete는 유지하며 부모와 Comment의 hidden 상태는 독립됨
+- Comment 전체 hide/restore 이력과 internal note는 대상 작성자가 아닌 global admin에게, group-origin 이력·메모는 현재 Group admin에게만 표시함. 일반 사용자·작성자·이전 관리자는 전체 이력과 메모를 볼 수 없음. hide/restore Turbo 응답은 Comment 표시·조작 UI·공개 사유를 갱신함
+- 댓글도 작성 권한도 없으면 빈 comments panel을 렌더링하지 않고, hidden Comment placeholder가 하나라도 있으면 panel을 유지함. hide는 Comment row와 count를 줄이지 않음
 - append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
-- Jjaek hide/restore의 `platform`/`group` authority는 조치 시점 snapshot으로 감사 row에 보존되어 actor의 이후 역할 변경에 영향받지 않음
+- Jjaek·Comment hide/restore의 `platform`/`group` authority는 조치 시점 snapshot으로 감사 row에 보존되어 actor의 이후 역할 변경에 영향받지 않음
 - 동아리 활동 정지·해제는 `ModerationAction`에만 기록하며 `GroupMembershipEvent`에 중복 저장하지 않음
 - GroupMembership 대상 `ModerationAction`은 membership hard delete 뒤에도 Group/User attribution을 잃지 않도록 FK 없는 `membership_group_id`/`membership_user_id` snapshot을 보존함
 - 회원 관리 화면은 `GroupMembershipEvent`와 GroupMembership 대상 `ModerationAction`을 Group 단위 최신순 회원 운영 이력으로 통합 표시함
@@ -291,7 +296,7 @@
 - 정지 시 기존 콘텐츠·관계·서재·Group membership과 관리자 연결을 보존하고 콘텐츠 visibility나 Group lifecycle을 변경하지 않음
 - 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
 - Group membership 활동 정지·이용 제한은 group admin만 실행하며 global admin은 현재 회원·제한·감사 이력을 조사하고 service-wide 제재에는 User 계정 정지·복구를 사용함
-- Comment 숨김/복구와 rate limit은 아직 없으며 목표 정책은 `docs/specs/moderation_mvp.md`를 따름
+- User 계정 정지와 Group 운영 정지의 현재 공개 사유 입력은 자유 텍스트다. 신규 조치의 predefined 사유, Group operation 전체 이력 UI와 기본 rate limit은 아직 구현되지 않았으며 확정된 다음 정책은 `docs/specs/moderation_mvp.md`를 따름
 
 ### 5-2. 계정 탈퇴
 
