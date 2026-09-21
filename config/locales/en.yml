@@ -467,6 +467,9 @@ en:
       access_restricted: "Your club participation is restricted. Reason: %{reason}"
   comments:
     moderation:
+      hidden_by_platform: "This comment was hidden by a system admin."
+      hidden_by_group: "This comment was hidden by a group admin."
+      reason: "Reason for hiding"
       notices:
         hidden: "Comment hidden."
         restored: "Comment restored."

@@ -9,6 +9,15 @@ class CommentPolicy < ApplicationPolicy
     user.present? && user.global_admin? && record.user_id != user.id
   end
 
+  def view_original_content?
+    return true unless record.hidden?
+    return false unless user.present?
+    return true if record.user_id == user.id || view_admin_inventory?
+    return false unless record.jjaek.group.present? && record.jjaek.group.group_admin?(user)
+
+    GroupPolicy.new(user, record.jjaek.group).read_jjaeks?
+  end
+
   def create?
     return false unless user.present? && !record.jjaek.deleted? && jjaek_policy.visible_for_interaction?
     return true if record.jjaek.group_id.blank?
