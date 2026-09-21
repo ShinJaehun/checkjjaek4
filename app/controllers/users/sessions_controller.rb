@@ -8,6 +8,7 @@ module Users
 
       self.resource = suspended_user
       reason = suspended_user.current_suspension_action&.public_reason
+      reason = User.suspension_reason_label(reason) if reason.present?
       flash.now[:alert] = reason.present? ? t("auth.alerts.suspended", reason:) : t("auth.alerts.suspended_fallback")
       render :new, status: :unprocessable_content
     end

@@ -68,6 +68,17 @@ RSpec.describe "Authentication", type: :request do
       expect(response.body).not_to include(I18n.t("auth.alerts.suspended_fallback"))
     end
 
+    it "shows the localized label for a predefined suspension reason" do
+      user = User.create!(name: "Suspended", email: "keyed-suspension-sign-in@example.com", password: "password123!", suspended_at: Time.current)
+      actor = User.create!(name: "Admin", email: "keyed-suspension-admin@example.com", password: "password123!", global_admin: true)
+      ModerationAction.create!(target: user, actor:, action_type: :suspend, public_reason: "spam_or_manipulation")
+
+      post user_session_path, params: { user: { email: user.email, password: "password123!" } }
+
+      expect(response.body).to include(I18n.t("auth.alerts.suspended", reason: I18n.t("users.suspension_reasons.spam_or_manipulation")))
+      expect(response.body).not_to include("spam_or_manipulation")
+    end
+
     it "uses a generic suspension message when the audit row is unexpectedly missing" do
       user = User.create!(name: "Suspended", email: "suspended-fallback@example.com", password: "password123!", suspended_at: Time.current)
 
@@ -81,14 +92,14 @@ RSpec.describe "Authentication", type: :request do
     user = User.create!(name: "Existing Session", email: "suspended-session@example.com", password: "password123!")
     actor = User.create!(name: "Admin", email: "suspended-session-admin@example.com", password: "password123!", global_admin: true)
     sign_in user
-    Users::SuspendAccount.new(user, actor:, public_reason: "Session suspension").call!
+    Users::SuspendAccount.new(user, actor:, public_reason: "other").call!
 
     expect {
       post jjaeks_path, params: { jjaek: { content: "BLOCKED_SUSPENDED_MUTATION" } }
     }.not_to change(Jjaek, :count)
 
     expect(response).to redirect_to(new_user_session_path)
-    expect(flash[:alert]).to include("Session suspension")
+    expect(flash[:alert]).to include(I18n.t("users.suspension_reasons.other"))
 
     get root_path
     expect(response).to redirect_to(new_user_session_path)
@@ -122,7 +133,7 @@ RSpec.describe "Authentication", type: :request do
       user = User.create!(name: "Original Name", email: "suspended-account-update@example.com", password: "password123!")
       actor = User.create!(name: "Admin", email: "suspended-account-update-admin@example.com", password: "password123!", global_admin: true)
       sign_in user
-      Users::SuspendAccount.new(user, actor:, public_reason: "Account update suspension").call!
+      Users::SuspendAccount.new(user, actor:, public_reason: "other").call!
 
       patch user_registration_path, params: {
         user: { name: "Blocked Name", current_password: "password123!" }

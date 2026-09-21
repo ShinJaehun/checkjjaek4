@@ -342,6 +342,7 @@ ko:
           suspend:
             public_reason: "정지 사유"
             public_reason_hint: "정지된 사용자에게 표시됩니다."
+            reason_prompt: "정지 사유를 선택하세요"
           restore:
             public_reason: "복구 사유"
             public_reason_hint: "계정 운영 이력에 기록됩니다."
@@ -834,6 +835,13 @@ ko:
     formats:
       short: "%Y-%m-%d %H:%M"
   users:
+    suspension_reasons:
+      repeated_policy_violations: "반복적인 운영 정책 위반"
+      spam_or_manipulation: "스팸·비정상적 활동"
+      harassment_or_threats: "괴롭힘·위협 행위"
+      privacy_or_deception: "개인정보 침해·사칭·기만"
+      serious_safety_violation: "심각한 안전 정책 위반"
+      other: "기타 운영 정책 위반"
     actions:
       accept_book_friend: "책친구 수락"
       cancel_book_friend_request: "신청 취소"

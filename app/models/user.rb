@@ -1,6 +1,20 @@
 class User < ApplicationRecord
   DEFAULT_AVATAR_INDEX_RANGE = (1..32).freeze
   WITHDRAWN_NAME = "탈퇴한 사용자"
+  SUSPENSION_REASONS = %w[
+    repeated_policy_violations
+    spam_or_manipulation
+    harassment_or_threats
+    privacy_or_deception
+    serious_safety_violation
+    other
+  ].freeze
+
+  def self.suspension_reason_label(reason)
+    return reason unless SUSPENSION_REASONS.include?(reason)
+
+    I18n.t("users.suspension_reasons.#{reason}")
+  end
 
   devise :database_authenticatable,
          :registerable,

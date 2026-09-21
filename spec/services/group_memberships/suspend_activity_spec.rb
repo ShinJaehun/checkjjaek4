@@ -44,7 +44,7 @@ RSpec.describe GroupMemberships::SuspendActivity do
   it "does not change membership moderation when the user account is suspended" do
     global_admin = User.create!(name: "Global", email: "activity-global@example.com", password: "password123!", global_admin: true)
 
-    Users::SuspendAccount.new(member, actor: global_admin, public_reason: "Account reason").call!
+    Users::SuspendAccount.new(member, actor: global_admin, public_reason: "other").call!
 
     expect(membership.reload).to be_moderation_status_normal
   end

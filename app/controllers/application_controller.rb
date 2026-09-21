@@ -34,6 +34,7 @@ class ApplicationController < ActionController::Base
     return unless current_user&.suspended?
 
     reason = current_user.current_suspension_action&.public_reason
+    reason = User.suspension_reason_label(reason) if reason.present?
     message = reason.present? ? t("auth.alerts.suspended", reason:) : t("auth.alerts.suspended_fallback")
     sign_out current_user
     redirect_to new_user_session_path, alert: message, status: :see_other

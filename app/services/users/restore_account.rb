@@ -13,8 +13,10 @@ module Users
     def call!
       User.transaction do
         user.with_lock do
+          raise InvalidState unless UserPolicy.new(actor, user).restore?
+
           suspension = user.current_suspension_action
-          raise InvalidState if user.withdrawn? || !user.suspended? || suspension.nil?
+          raise InvalidState if suspension.nil?
 
           user.update!(suspended_at: nil)
           ModerationAction.create!(

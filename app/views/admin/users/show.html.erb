@@ -39,7 +39,7 @@
     <% if @current_suspension_action %>
       <section class="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-5">
         <h2 class="text-xl font-semibold"><%= t("admin.users.moderation.current_suspension") %></h2>
-        <p><%= @current_suspension_action.public_reason %></p>
+        <p><%= User.suspension_reason_label(@current_suspension_action.public_reason) %></p>
         <% if @current_suspension_action.internal_note.present? %>
           <p class="text-sm text-stone-600">
             <%= t("admin.users.moderation.internal_note") %>: <%= @current_suspension_action.internal_note %>
@@ -64,11 +64,20 @@
             <%= form.label :public_reason,
                            t("admin.users.moderation.forms.#{moderation_action}.public_reason"),
                            class: "text-sm font-medium" %>
-            <%= form.text_area :public_reason,
-                               required: true,
-                               rows: 3,
-                               aria: { describedby: "moderation_public_reason_hint" },
-                               class: "w-full rounded border p-3" %>
+            <% if @can_suspend %>
+              <%= form.select :public_reason,
+                              options_for_select(User::SUSPENSION_REASONS.map { |reason| [ User.suspension_reason_label(reason), reason ] }),
+                              { prompt: t("admin.users.moderation.forms.suspend.reason_prompt") },
+                              required: true,
+                              aria: { describedby: "moderation_public_reason_hint" },
+                              class: "w-full rounded border p-3" %>
+            <% else %>
+              <%= form.text_area :public_reason,
+                                 required: true,
+                                 rows: 3,
+                                 aria: { describedby: "moderation_public_reason_hint" },
+                                 class: "w-full rounded border p-3" %>
+            <% end %>
             <p id="moderation_public_reason_hint" class="text-sm text-stone-500">
               <%= t("admin.users.moderation.forms.#{moderation_action}.public_reason_hint") %>
             </p>

@@ -43,4 +43,15 @@ RSpec.describe Users::RestoreAccount do
     expect(user.reload).to be_suspended
     expect(ModerationAction.where(reversal_of: suspension)).to be_empty
   end
+
+  it "rejects a direct restore call from an ordinary actor" do
+    ordinary_actor = User.create!(name: "Ordinary", email: "restore-service-ordinary@example.com", password: "password123!")
+
+    expect {
+      described_class.new(user, actor: ordinary_actor, public_reason: "Resolved").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(user.reload).to be_suspended
+    expect(ModerationAction.where(reversal_of: suspension)).to be_empty
+  end
 end

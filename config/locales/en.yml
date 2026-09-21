@@ -315,6 +315,7 @@ en:
           suspend:
             public_reason: "Suspension reason"
             public_reason_hint: "Shown to the suspended user."
+            reason_prompt: "Select a suspension reason"
           restore:
             public_reason: "Restoration reason"
             public_reason_hint: "Recorded in the account operations history."
@@ -817,6 +818,13 @@ en:
     formats:
       short: "%Y-%m-%d %H:%M"
   users:
+    suspension_reasons:
+      repeated_policy_violations: "Repeated policy violations"
+      spam_or_manipulation: "Spam or abnormal activity"
+      harassment_or_threats: "Harassment or threats"
+      privacy_or_deception: "Privacy violations, impersonation, or deception"
+      serious_safety_violation: "Serious safety policy violation"
+      other: "Other policy violation"
     actions:
       accept_book_friend: "Accept book friend"
       cancel_book_friend_request: "Cancel request"

@@ -16,7 +16,7 @@ RSpec.describe Users::SuspendAccount do
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Preserved group", group_type: :public_group)
 
     expect {
-      described_class.new(user, actor:, public_reason: "Policy violation", internal_note: "Case 1").call!
+      described_class.new(user, actor:, public_reason: "repeated_policy_violations", internal_note: "Case 1").call!
     }.to change(ModerationAction, :count).by(1)
 
     action = ModerationAction.last
@@ -26,7 +26,7 @@ RSpec.describe Users::SuspendAccount do
       "target_id" => user.id,
       "actor_id" => actor.id,
       "action_type" => "suspend",
-      "public_reason" => "Policy violation",
+      "public_reason" => "repeated_policy_violations",
       "internal_note" => "Case 1"
     )
     expect(user.jjaeks).to contain_exactly(jjaek)
@@ -42,18 +42,47 @@ RSpec.describe Users::SuspendAccount do
 
   it "rejects suspended and withdrawn users" do
     user.update!(suspended_at: Time.current)
-    expect { described_class.new(user, actor:, public_reason: "Again").call! }.to raise_error(described_class::InvalidState)
+    expect { described_class.new(user, actor:, public_reason: "other").call! }.to raise_error(described_class::InvalidState)
 
     withdrawn = User.create!(name: "Withdrawn", email: "suspend-service-withdrawn@example.com", password: "password123!", withdrawn_at: Time.current)
-    expect { described_class.new(withdrawn, actor:, public_reason: "Blocked").call! }.to raise_error(described_class::InvalidState)
+    expect { described_class.new(withdrawn, actor:, public_reason: "other").call! }.to raise_error(described_class::InvalidState)
   end
 
-  it "rolls back suspended_at when the audit action is invalid" do
+  it "rejects undefined and free-text suspension reasons without changing state or audit" do
+    [ "", "Policy violation", "undefined_reason" ].each do |reason|
+      expect {
+        described_class.new(user, actor:, public_reason: reason).call!
+      }.to raise_error(described_class::InvalidState)
+
+      expect(user.reload).not_to be_suspended
+      expect(ModerationAction.where(target: user)).to be_empty
+    end
+  end
+
+  it "rolls back the suspension when the audit write fails" do
+    invalid_action = ModerationAction.new(target: user, actor:, action_type: :suspend, public_reason: "")
+    allow(ModerationAction).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(invalid_action))
+
     expect {
-      described_class.new(user, actor:, public_reason: "").call!
+      described_class.new(user, actor:, public_reason: "other").call!
     }.to raise_error(ActiveRecord::RecordInvalid)
 
     expect(user.reload).not_to be_suspended
     expect(ModerationAction.where(target: user)).to be_empty
+  end
+
+  it "rejects direct service calls from ordinary users and self-suspension" do
+    ordinary_actor = User.create!(name: "Ordinary", email: "suspend-service-ordinary@example.com", password: "password123!")
+
+    expect {
+      described_class.new(user, actor: ordinary_actor, public_reason: "other").call!
+    }.to raise_error(described_class::InvalidState)
+    expect {
+      described_class.new(actor, actor:, public_reason: "other").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(user.reload).not_to be_suspended
+    expect(ModerationAction.where(target: user)).to be_empty
+    expect(actor.reload).not_to be_suspended
   end
 end
