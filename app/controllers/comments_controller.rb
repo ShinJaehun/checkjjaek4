@@ -1,10 +1,11 @@
 class CommentsController < ApplicationController
   COMMENTS_CONTEXTS = %w[detail home profile book group].freeze
 
-  before_action :set_readable_jjaek, except: :destroy
+  before_action :set_readable_jjaek, except: %i[destroy hide restore]
   before_action :set_destroy_jjaek, only: :destroy
+  before_action :set_moderation_jjaek, only: %i[hide restore]
   before_action :set_comments_context, only: %i[index create update destroy]
-  before_action :set_comment, only: %i[update destroy]
+  before_action :set_comment, only: %i[update destroy hide restore]
 
   def index
     @comments_panel_closed = inline_comments_context? && params[:panel_state] == "closed"
@@ -98,6 +99,52 @@ class CommentsController < ApplicationController
     end
   end
 
+  def hide
+    authorize @comment, :hide_as_group_admin?
+    Comments::Hide.new(@comment, actor: current_user, **moderation_action_params).call!
+    respond_to do |format|
+      format.turbo_stream do
+        prepare_comment_moderation_histories([ @comment ])
+        flash.now[:notice] = t("comments.moderation.notices.hidden")
+        render :moderation
+      end
+      format.html { redirect_to jjaek_path(@jjaek), notice: t("comments.moderation.notices.hidden") }
+    end
+  rescue Comments::Hide::Error, ActiveRecord::RecordInvalid
+    @comment.reload
+    respond_to do |format|
+      format.turbo_stream do
+        prepare_comment_moderation_histories([ @comment ])
+        flash.now[:alert] = t("comments.moderation.alerts.hide_failed")
+        render :moderation
+      end
+      format.html { redirect_to jjaek_path(@jjaek), alert: t("comments.moderation.alerts.hide_failed") }
+    end
+  end
+
+  def restore
+    authorize @comment, :restore_as_group_admin?
+    Comments::Restore.new(@comment, actor: current_user, **moderation_action_params).call!
+    respond_to do |format|
+      format.turbo_stream do
+        prepare_comment_moderation_histories([ @comment ])
+        flash.now[:notice] = t("comments.moderation.notices.restored")
+        render :moderation
+      end
+      format.html { redirect_to jjaek_path(@jjaek), notice: t("comments.moderation.notices.restored") }
+    end
+  rescue Comments::Restore::Error, ActiveRecord::RecordInvalid
+    @comment.reload
+    respond_to do |format|
+      format.turbo_stream do
+        prepare_comment_moderation_histories([ @comment ])
+        flash.now[:alert] = t("comments.moderation.alerts.restore_failed")
+        render :moderation
+      end
+      format.html { redirect_to jjaek_path(@jjaek), alert: t("comments.moderation.alerts.restore_failed") }
+    end
+  end
+
   private
 
   def set_readable_jjaek
@@ -108,6 +155,10 @@ class CommentsController < ApplicationController
   end
 
   def set_destroy_jjaek
+    @jjaek = Jjaek.find(params[:jjaek_id])
+  end
+
+  def set_moderation_jjaek
     @jjaek = Jjaek.find(params[:jjaek_id])
   end
 
@@ -141,6 +192,19 @@ class CommentsController < ApplicationController
       @comments = @comments.map { |record| record.id == editing_comment.id ? editing_comment : record }
     end
     @comment = comment
+    prepare_comment_moderation_histories(@comments)
+  end
+
+  def prepare_comment_moderation_histories(comments)
+    @comment_moderation_histories = {}
+    comments.each do |record|
+      comment_policy = policy(record)
+      next unless comment_policy.view_admin_inventory? || comment_policy.view_group_moderation_history?
+
+      actions = record.moderation_actions.where(action_type: %i[hide restore])
+      actions = actions.where(moderation_authority: "group") if comment_policy.view_group_moderation_history?
+      @comment_moderation_histories[record.id] = actions.includes(:actor).order(created_at: :asc, id: :asc).to_a
+    end
   end
 
   def default_comments_context
@@ -184,5 +248,9 @@ class CommentsController < ApplicationController
 
   def comment_params
     params.require(:comment).permit(:content)
+  end
+
+  def moderation_action_params
+    params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
   end
 end

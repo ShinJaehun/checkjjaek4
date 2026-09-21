@@ -168,6 +168,15 @@ class JjaeksController < ApplicationController
   def prepare_comments
     @comment = Comment.new(jjaek: @jjaek)
     @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+    @comment_moderation_histories = {}
+    @comments.each do |comment|
+      comment_policy = policy(comment)
+      next unless comment_policy.view_admin_inventory? || comment_policy.view_group_moderation_history?
+
+      actions = comment.moderation_actions.where(action_type: %i[hide restore])
+      actions = actions.where(moderation_authority: "group") if comment_policy.view_group_moderation_history?
+      @comment_moderation_histories[comment.id] = actions.includes(:actor).order(created_at: :asc, id: :asc).to_a
+    end
   end
 
   def create_success_path

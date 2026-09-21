@@ -485,6 +485,16 @@ ko:
       destroy_failed: "동아리 이용 제한을 해제할 수 없습니다."
       access_restricted: "동아리 이용이 제한되었습니다. 사유: %{reason}"
   comments:
+    moderation:
+      hidden_by_platform: "시스템 관리자에 의해 숨겨진 댓글입니다."
+      hidden_by_group: "동아리 관리자에 의해 숨겨진 댓글입니다."
+      reason: "숨김 사유"
+      notices:
+        hidden: "댓글을 숨겼습니다."
+        restored: "댓글의 숨김을 해제했습니다."
+      alerts:
+        hide_failed: "댓글을 숨길 수 없습니다."
+        restore_failed: "댓글의 숨김을 해제할 수 없습니다."
     actions:
       close_inline: "닫기"
       delete: "삭제"
