@@ -124,21 +124,36 @@ RSpec.describe "Admin group approvals", type: :request do
   it "lets only a global admin suspend and restore active group operation with audited reasons" do
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Moderated club", group_type: :public_group)
     sign_in group_admin
-    patch suspend_operation_admin_group_path(active_group), params: { moderation_action: { public_reason: "No", internal_note: "Hidden" } }
+    patch suspend_operation_admin_group_path(active_group), params: { moderation_action: { public_reason: "other", internal_note: "Hidden" } }
     expect(active_group.reload).to be_operation_active
 
     sign_in admin
+    get admin_group_path(active_group)
+    page = Nokogiri::HTML(response.body)
+    suspend_form = page.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))
+    expect(suspend_form).to be_present
+    reason_select = suspend_form.at_css('select[name="moderation_action[public_reason]"]')
+    expect(page.at_css("#group_operation_moderation").text).to include("정상 (운영 정지 없음)")
+    expect(reason_select.css("option").map { |option| option["value"] }.reject(&:blank?)).to eq(Group::SUSPENSION_REASONS)
+    expect(reason_select.text).to include("반복적인 운영 정책 위반")
+    expect(suspend_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_nil
+
     patch suspend_operation_admin_group_path(active_group), params: {
-      moderation_action: { public_reason: "Public safety reason", internal_note: "Internal review" }
+      moderation_action: { public_reason: "repeated_policy_violations", internal_note: "Internal review" }
     }
     suspension = active_group.current_operation_suspension_action
     expect(active_group.reload).to be_operation_suspended
 
     get admin_group_path(active_group)
     page = Nokogiri::HTML(response.body)
-    expect(response.body).to include("운영 정지", "Public safety reason", "Internal review", "동아리 운영 복구")
-    expect(page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))).to be_present
-    expect(page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"] label[for="moderation_action_public_reason"])).text).to eq("사유")
+    moderation = page.at_css("#group_operation_moderation")
+    restore_form = page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))
+    expect(restore_form).to be_present
+    expect(moderation.text).to include("운영 정지", "반복적인 운영 정책 위반", "Internal review")
+    expect(moderation.text).not_to include("repeated_policy_violations")
+    expect(restore_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_present
+    expect(restore_form.at_css('select[name="moderation_action[public_reason]"]')).to be_nil
+    expect(restore_form.at_css('label[for="moderation_action_public_reason"]').text).to eq("복구 사유")
     expect(page.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_nil
 
     patch restore_operation_admin_group_path(active_group), params: {
@@ -151,6 +166,116 @@ RSpec.describe "Admin group approvals", type: :request do
     returning_member = User.create!(name: "Returning", email: "operation-returning@example.com", password: "password123!")
     sign_in returning_member
     expect { post group_group_memberships_path(active_group) }.to change(GroupMembership, :count).by(1)
+  end
+
+  it "shows lifecycle stages and every platform action in one history across repeated cycles" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "History club", group_type: :public_group)
+    active_group.lifecycle_events.create!(actor: group_admin, event_type: :opening_requested, detail: "Reading together")
+    second_admin = User.create!(name: "Second admin", email: "group-second-admin@example.com", password: "password123!", global_admin: true)
+
+    sign_in admin
+    patch suspend_operation_admin_group_path(active_group), params: {
+      moderation_action: { public_reason: "repeated_policy_violations", internal_note: "First review" }
+    }
+    first_suspension = active_group.current_operation_suspension_action
+
+    sign_in second_admin
+    patch restore_operation_admin_group_path(active_group), params: {
+      moderation_action: { public_reason: "Appeal accepted", internal_note: "Second review" }
+    }
+    restoration = ModerationAction.find_by!(reversal_of: first_suspension)
+
+    sign_in admin
+    patch suspend_operation_admin_group_path(active_group), params: {
+      moderation_action: { public_reason: "other", internal_note: "Third review" }
+    }
+    second_suspension = active_group.current_operation_suspension_action
+
+    get admin_group_path(active_group)
+    page = Nokogiri::HTML(response.body)
+    history = page.at_css("#group_operation_history")
+    entries = history.css("li[data-history-kind]")
+
+    expect(page.css("h2").count { |heading| heading.text.strip == "운영 이력" }).to eq(1)
+    expect(page.at_css("#group_lifecycle_history")).to be_nil
+    expect(entries.map { |entry| entry["data-history-entry"] }).to eq(
+      %w[opening suspend_group_operation restore_group_operation suspend_group_operation]
+    )
+    expect(entries.map { |entry| entry["data-history-kind"] }).to eq(%w[lifecycle platform platform platform])
+    expect(entries[0].text).to include("동아리 개설", "동아리 운영", "Reading together")
+    expect(entries[0].text).not_to include("플랫폼 조치", "First review", "Appeal accepted", "Third review")
+    expect(entries[1].text).to include(
+      "동아리 운영 정지", "시스템 관리자", admin.name,
+      I18n.l(first_suspension.created_at, format: :short), "반복적인 운영 정책 위반", "First review"
+    )
+    expect(entries[1].at_css("p.whitespace-pre-wrap").text.strip).to eq("사유: 반복적인 운영 정책 위반")
+    expect(entries[2].text).to include(
+      "동아리 운영 복구", "시스템 관리자", second_admin.name,
+      I18n.l(restoration.created_at, format: :short), "Appeal accepted", "Second review"
+    )
+    expect(entries[2].at_css("p.whitespace-pre-wrap").text.strip).to eq("사유: Appeal accepted")
+    expect(entries[3].text).to include(
+      "동아리 운영 정지", "시스템 관리자", admin.name,
+      I18n.l(second_suspension.created_at, format: :short), "기타 운영 정책 위반", "Third review"
+    )
+    entries.drop(1).each { |entry| expect(entry.text).to include("플랫폼 조치") }
+    expect(entries.drop(1).map(&:text).join).not_to include("Reading together", "repeated_policy_violations")
+  end
+
+  it "orders lifecycle stages and platform actions by stage start time with stable ties" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Ordered history", group_type: :public_group)
+    base_time = Time.zone.local(2026, 1, 1, 12)
+    active_group.lifecycle_events.create!(actor: admin, event_type: :opening_approved, created_at: base_time)
+    active_group.lifecycle_events.create!(actor: admin, event_type: :operations_closed, detail: "Season ended", created_at: base_time + 2.hours)
+    active_group.lifecycle_events.create!(actor: admin, event_type: :reactivation_approved, created_at: base_time + 3.hours)
+
+    first_suspension = ModerationAction.create!(
+      target: active_group, actor: admin, action_type: :suspend_group_operation,
+      public_reason: "other", created_at: base_time + 1.hour
+    )
+    ModerationAction.create!(
+      target: active_group, actor: admin, action_type: :restore_group_operation,
+      public_reason: "Review complete", reversal_of: first_suspension, created_at: base_time + 2.hours
+    )
+    ModerationAction.create!(
+      target: active_group, actor: admin, action_type: :suspend_group_operation,
+      public_reason: "other", created_at: base_time + 2.hours
+    )
+    active_group.update!(operation_suspended_at: base_time + 2.hours)
+    sign_in admin
+
+    get admin_group_path(active_group)
+
+    entries = Nokogiri::HTML(response.body).css("#group_operation_history li[data-history-entry]")
+    expect(entries.map { |entry| entry["data-history-entry"] }).to eq(
+      %w[opening suspend_group_operation closure restore_group_operation suspend_group_operation reactivation]
+    )
+    expect(entries[0].text).to include("승인", "기록 없음")
+    expect(entries[2].text).to include("종료", "Season ended")
+    expect(entries[5].text).to include("승인", "기록 없음")
+    expect(entries[2].text).not_to include("Review complete")
+    expect(entries[3].text).not_to include("Season ended")
+  end
+
+  it "shows legacy free-text suspension reasons without changing them" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Legacy moderation", group_type: :public_group)
+    active_group.update!(operation_suspended_at: Time.current)
+    legacy_suspension = ModerationAction.create!(
+      target: active_group,
+      actor: admin,
+      action_type: :suspend_group_operation,
+      public_reason: "Legacy free-text reason",
+      internal_note: "Legacy internal note"
+    )
+    sign_in admin
+
+    get admin_group_path(active_group)
+
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#group_operation_moderation").text).to include("Legacy free-text reason", "Legacy internal note")
+    expect(page.at_css("#group_operation_history").text).to include("Legacy free-text reason", "Legacy internal note")
+    expect(page.at_css("#group_operation_history p.whitespace-pre-wrap").text.strip).to eq("사유: Legacy free-text reason")
+    expect(legacy_suspension.reload.public_reason).to eq("Legacy free-text reason")
   end
 
   it "rolls back an invalid operation suspension audit" do

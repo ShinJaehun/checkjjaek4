@@ -84,6 +84,13 @@ en:
       invitation_accept_unavailable: "Invitations cannot be accepted while club operation is suspended."
       label: "Operation suspended"
       status: "This club's operation is currently suspended."
+    operation_suspension_reasons:
+      repeated_policy_violations: "Repeated operation policy violations"
+      facilitating_violations: "Facilitating or tolerating policy violations"
+      harassment_or_targeting: "Encouraging harassment or targeted attacks"
+      spam_or_manipulation: "Spam or manipulative operation"
+      deceptive_operation: "Impersonation or deceptive operation"
+      other: "Other operation policy violations"
     types:
       public_group: "Public club"
       approval_group: "Approval club"
@@ -359,6 +366,31 @@ en:
         inactive: "Stopped"
       operation_moderation:
         reason: "Reason"
+        title: "Operation management"
+        status: "Current operation status"
+        active_status: "Normal (not suspended)"
+        suspended_status: "Operation suspended"
+        current_suspension: "Current operation suspension"
+        public_reason: "Public reason"
+        internal_note: "Internal note"
+        internal_note_hint: "Optional · Not shown to club members."
+        platform_authority: "System admin"
+        forms:
+          suspend:
+            public_reason: "Suspension reason"
+            public_reason_hint: "Shown to the suspended club's admin."
+            reason_prompt: "Select a suspension reason"
+          restore:
+            public_reason: "Restoration reason"
+            public_reason_hint: "Recorded in the club operation moderation history."
+        history:
+          lifecycle_badge: "Club lifecycle"
+          platform_badge: "Platform action"
+          reason: "Reason"
+          memo: "Memo"
+          events:
+            suspend_group_operation: "Club operation suspended"
+            restore_group_operation: "Club operation restored"
       index:
         title: "Club operations"
         description: "Search and review club lifecycle information and pending approvals."

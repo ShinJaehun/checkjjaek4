@@ -1,0 +1,34 @@
+<% entries = admin_group_history_entries(lifecycle_events, actions) %>
+<section id="group_operation_history" class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+  <h2 class="text-xl font-semibold text-stone-900"><%= t("groups.lifecycle_history.title") %></h2>
+
+  <% if entries.any? %>
+    <ol class="mt-4 space-y-3">
+      <% entries.each do |entry| %>
+        <% if entry[:type] == :lifecycle %>
+          <% stage = entry[:stage] %>
+          <li data-history-kind="lifecycle" data-history-entry="<%= stage[:type] %>">
+            <%= render "admin/groups/lifecycle_stage", stage: %>
+          </li>
+        <% else %>
+          <% action = entry[:action] %>
+          <li class="rounded-2xl bg-stone-50 p-4 text-sm text-stone-900" data-history-kind="platform" data-history-entry="<%= action.action_type %>">
+            <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span class="font-semibold"><%= t("admin.groups.operation_moderation.history.events.#{action.action_type}") %></span>
+              <span class="rounded-full bg-amber-200 px-2 py-0.5 text-xs"><%= t("admin.groups.operation_moderation.history.platform_badge") %></span>
+              <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800"><%= t("admin.groups.operation_moderation.platform_authority") %></span>
+              <span><%= action.actor.name %></span>
+              <span class="font-semibold">· <%= l(action.created_at, format: :short) %></span>
+            </p>
+            <p class="mt-1 whitespace-pre-wrap"><%= t("admin.groups.operation_moderation.history.reason") %>: <%= action.action_type == "suspend_group_operation" ? Group.suspension_reason_label(action.public_reason) : action.public_reason %></p>
+            <% if action.internal_note.present? %>
+              <p class="mt-1 whitespace-pre-wrap"><%= t("admin.groups.operation_moderation.history.memo") %>: <%= action.internal_note %></p>
+            <% end %>
+          </li>
+        <% end %>
+      <% end %>
+    </ol>
+  <% else %>
+    <p class="mt-4 text-sm text-stone-500"><%= t("groups.lifecycle_history.empty") %></p>
+  <% end %>
+</section>

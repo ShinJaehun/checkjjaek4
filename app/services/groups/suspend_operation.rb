@@ -12,7 +12,8 @@ module Groups
 
     def call!
       group.with_lock do
-        raise InvalidState unless actor&.global_admin? && group.active? && group.operation_active?
+        raise InvalidState unless GroupPolicy.new(actor, group).suspend_operation?
+        raise InvalidState unless Group::SUSPENSION_REASONS.include?(public_reason)
 
         group.update!(operation_suspended_at: Time.current)
         ModerationAction.create!(target: group, actor:, action_type: :suspend_group_operation, public_reason:, internal_note:)

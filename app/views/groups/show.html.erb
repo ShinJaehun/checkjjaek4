@@ -60,7 +60,7 @@
   <% if @current_operation_suspension.present? %>
     <section class="rounded-3xl border border-red-200 bg-red-50/60 p-5 text-sm text-red-900">
       <p class="font-semibold"><%= t("groups.operation_suspension.status") %></p>
-      <p class="mt-2 whitespace-pre-wrap"><%= t("group_memberships.moderation.public_reason") %>: <%= @current_operation_suspension.public_reason %></p>
+      <p class="mt-2 whitespace-pre-wrap"><%= t("group_memberships.moderation.public_reason") %>: <%= Group.suspension_reason_label(@current_operation_suspension.public_reason) %></p>
     </section>
   <% end %>
 

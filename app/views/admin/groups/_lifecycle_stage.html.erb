@@ -1,0 +1,49 @@
+<article class="rounded-2xl bg-stone-50 p-4">
+  <div class="flex flex-wrap items-center gap-2">
+    <p class="font-medium text-stone-900"><%= t("groups.lifecycle_history.stages.#{stage[:type]}.title") %></p>
+    <span class="rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-700"><%= t("admin.groups.operation_moderation.history.lifecycle_badge") %></span>
+  </div>
+
+  <% if stage[:type] == :opening %>
+    <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <div class="flex gap-2">
+        <span class="font-medium text-stone-500"><%= t("groups.lifecycle_history.labels.requested_at") %></span>
+        <span class="text-stone-700"><%= stage[:requested] ? l(stage[:requested].created_at, format: :short) : t("groups.lifecycle_history.not_recorded") %></span>
+      </div>
+      <% if stage[:approved] %>
+        <div class="flex gap-2">
+          <span class="font-medium text-stone-500"><%= t("groups.lifecycle_history.labels.approved_at") %></span>
+          <span class="text-stone-700"><%= l(stage[:approved].created_at, format: :short) %></span>
+        </div>
+      <% end %>
+    </div>
+    <div class="mt-3 text-sm">
+      <p class="font-medium text-stone-500"><%= t("groups.lifecycle_history.labels.application_purpose") %></p>
+      <p class="mt-1 whitespace-pre-wrap text-stone-700"><%= stage[:requested]&.detail || t("groups.lifecycle_history.not_recorded") %></p>
+    </div>
+  <% elsif stage[:type] == :closure %>
+    <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <div class="flex gap-2">
+        <span class="font-medium text-stone-500"><%= t("groups.lifecycle_history.labels.closed_at") %></span>
+        <span class="text-stone-700"><%= l(stage[:event].created_at, format: :short) %></span>
+      </div>
+    </div>
+    <div class="mt-3 text-sm">
+      <p class="font-medium text-stone-500"><%= t("groups.lifecycle_history.labels.closure_reason") %></p>
+      <p class="mt-1 whitespace-pre-wrap text-stone-700"><%= stage[:event].detail %></p>
+    </div>
+  <% else %>
+    <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <div class="flex gap-2">
+        <span class="font-medium text-stone-500"><%= t("groups.lifecycle_history.labels.reactivation_requested_at") %></span>
+        <span class="text-stone-700"><%= stage[:requested] ? l(stage[:requested].created_at, format: :short) : t("groups.lifecycle_history.not_recorded") %></span>
+      </div>
+      <% if stage[:approved] %>
+        <div class="flex gap-2">
+          <span class="font-medium text-stone-500"><%= t("groups.lifecycle_history.labels.reactivation_approved_at") %></span>
+          <span class="text-stone-700"><%= l(stage[:approved].created_at, format: :short) %></span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</article>

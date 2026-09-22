@@ -9,30 +9,49 @@ RSpec.describe Groups::SuspendOperation do
     lifecycle_status = group.lifecycle_status
     membership_ids = group.group_membership_ids
 
-    described_class.new(group, actor: admin, public_reason: "Service safety", internal_note: "Reviewed").call!
+    described_class.new(group, actor: admin, public_reason: "repeated_policy_violations", internal_note: "Reviewed").call!
     action = group.current_operation_suspension_action
 
     expect(group.reload).to be_operation_suspended
     expect(group.lifecycle_status).to eq(lifecycle_status)
     expect(group.group_membership_ids).to eq(membership_ids)
-    expect(action).to have_attributes(actor: admin, action_type: "suspend_group_operation", public_reason: "Service safety", internal_note: "Reviewed")
+    expect(action).to have_attributes(actor: admin, action_type: "suspend_group_operation", public_reason: "repeated_policy_violations", internal_note: "Reviewed")
   end
 
-  it "rejects non-global admins, duplicate suspension, and invalid audits without partial state" do
+  it "rejects actors denied by the policy without changing state or audit" do
     expect {
-      described_class.new(group, actor: group_admin, public_reason: "No").call!
+      described_class.new(group, actor: group_admin, public_reason: "other").call!
     }.to raise_error(described_class::InvalidState)
     expect(group.reload).to be_operation_active
+    expect(ModerationAction.where(target: group)).to be_empty
+  end
 
-    expect {
-      described_class.new(group, actor: admin, public_reason: "").call!
-    }.to raise_error(ActiveRecord::RecordInvalid)
+  it "rejects free-text and blank reasons without changing state or audit" do
+    ["Service safety", ""].each do |reason|
+      expect {
+        described_class.new(group, actor: admin, public_reason: reason).call!
+      }.to raise_error(described_class::InvalidState)
+    end
+
     expect(group.reload).to be_operation_active
+    expect(ModerationAction.where(target: group)).to be_empty
+  end
 
-    described_class.new(group, actor: admin, public_reason: "First").call!
+  it "rejects duplicate suspension without adding another audit" do
+    described_class.new(group, actor: admin, public_reason: "other").call!
     expect {
-      described_class.new(group, actor: admin, public_reason: "Again").call!
+      described_class.new(group, actor: admin, public_reason: "other").call!
     }.to raise_error(described_class::InvalidState)
+
+    expect(group.reload).to be_operation_suspended
+    expect(ModerationAction.where(target: group, action_type: :suspend_group_operation).count).to eq(1)
+  end
+
+  it "translates predefined reasons and preserves legacy free-text labels" do
+    allow(I18n).to receive(:t).with("groups.operation_suspension_reasons.other").and_return("Other reason")
+
+    expect(Group.suspension_reason_label("other")).to eq("Other reason")
+    expect(Group.suspension_reason_label("Legacy free-text reason")).to eq("Legacy free-text reason")
   end
 
   it "does not change user suspension, member bans, or existing content" do
@@ -43,7 +62,7 @@ RSpec.describe Groups::SuspendOperation do
     ban = GroupMemberBan.create!(group:, user: other)
     jjaek = group_admin.jjaeks.create!(group:, content: "Preserved")
 
-    described_class.new(group, actor: admin, public_reason: "Service safety").call!
+    described_class.new(group, actor: admin, public_reason: "harassment_or_targeting").call!
 
     expect(membership.reload).to be_persisted
     expect(member.reload).to be_suspended

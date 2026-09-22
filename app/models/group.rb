@@ -1,5 +1,19 @@
 class Group < ApplicationRecord
   USER_CREATABLE_TYPES = %w[public_group approval_group private_group].freeze
+  SUSPENSION_REASONS = %w[
+    repeated_policy_violations
+    facilitating_violations
+    harassment_or_targeting
+    spam_or_manipulation
+    deceptive_operation
+    other
+  ].freeze
+
+  def self.suspension_reason_label(reason)
+    return reason unless SUSPENSION_REASONS.include?(reason)
+
+    I18n.t("groups.operation_suspension_reasons.#{reason}")
+  end
 
   enum :group_type,
        { public_group: 0, approval_group: 1, private_group: 2 },

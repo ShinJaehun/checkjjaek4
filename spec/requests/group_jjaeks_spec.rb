@@ -87,7 +87,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     group.group_memberships.create!(user: member, status: :active)
     member.bookshelf_entries.create!(book:)
     existing = member.jjaeks.create!(group:, content: "Preserved")
-    Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call!
+    Groups::SuspendOperation.new(group, actor: admin, public_reason: "other").call!
     sign_in member
 
     get jjaek_path(existing)
@@ -110,7 +110,7 @@ RSpec.describe "Group Jjaeks", type: :request do
       group.group_memberships.create!(user: other_member, status: :active)
       jjaek = member.jjaeks.create!(group:, content: "HIDDEN_GROUP_BODY_#{suspended}")
       Jjaeks::Hide.new(jjaek, actor: admin, public_reason: "other").call!
-      Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call! if suspended
+      Groups::SuspendOperation.new(group, actor: admin, public_reason: "other").call! if suspended
       [ group, jjaek ]
     end
 

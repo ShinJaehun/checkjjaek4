@@ -13,6 +13,13 @@ module Admin
       authorize @group, :view_admin_details?
       @lifecycle_events = @group.lifecycle_events.includes(:actor)
       @current_operation_suspension = @group.current_operation_suspension_action
+      @operation_moderation_actions = ModerationAction
+        .where(target: @group, action_type: %i[suspend_group_operation restore_group_operation])
+        .includes(:actor)
+        .order(:created_at, :id)
+        .to_a
+      @can_suspend_operation = policy(@group).suspend_operation?
+      @can_restore_operation = policy(@group).restore_operation?
       @content_section = permitted_content_section
       @content_filter_params = params.permit(:content_q, :content_status, :content_sort)
 

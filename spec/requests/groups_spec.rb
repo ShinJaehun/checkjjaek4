@@ -262,7 +262,7 @@ RSpec.describe "Groups", type: :request do
     groups = %i[public_group approval_group private_group].map do |group_type|
       group = Group.create!(lifecycle_status: :active, group_admin:, name: "Suspended #{group_type}", group_type:)
       group.group_memberships.create!(user:, status: :active)
-      Groups::SuspendOperation.new(group, actor: admin, public_reason: "VISIBLE OPERATION REASON", internal_note: "HIDDEN OPERATION NOTE").call!
+      Groups::SuspendOperation.new(group, actor: admin, public_reason: "other", internal_note: "HIDDEN OPERATION NOTE").call!
       group
     end
     sign_in user
@@ -270,7 +270,12 @@ RSpec.describe "Groups", type: :request do
     groups.each do |group|
       get group_path(group)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("운영 정지", "이 동아리는 현재 운영이 정지되었습니다.", "VISIBLE OPERATION REASON")
+      expect(response.body).to include(
+        "운영 정지",
+        "이 동아리는 현재 운영이 정지되었습니다.",
+        Group.suspension_reason_label("other")
+      )
+      expect(response.body).not_to include(">other<")
       expect(response.body).not_to include("HIDDEN OPERATION NOTE")
       expect(response.body).not_to include("수정하기")
     end
@@ -318,7 +323,7 @@ RSpec.describe "Groups", type: :request do
     replacement = User.create!(name: "Replacement", email: "group-operation-replacement@example.com", password: "password123!")
     group = Group.create!(lifecycle_status: :active, group_admin:, name: "Original name", group_type: :public_group)
     group.group_memberships.create!(user: replacement, status: :active)
-    Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call!
+    Groups::SuspendOperation.new(group, actor: admin, public_reason: "other").call!
     sign_in group_admin
 
     patch group_path(group), params: { group: { name: "Changed" } }

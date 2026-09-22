@@ -84,6 +84,13 @@ ko:
       invitation_accept_unavailable: "운영 정지 중에는 초대를 수락할 수 없습니다."
       label: "운영 정지"
       status: "이 동아리는 현재 운영이 정지되었습니다."
+    operation_suspension_reasons:
+      repeated_policy_violations: "반복적인 운영 정책 위반"
+      facilitating_violations: "정책 위반 활동 조장·방치"
+      harassment_or_targeting: "괴롭힘·공격 활동 조장"
+      spam_or_manipulation: "스팸·비정상적 운영"
+      deceptive_operation: "사칭·기만적 운영"
+      other: "기타 운영 정책 위반"
     types:
       public_group: "공개 동아리"
       approval_group: "승인 동아리"
@@ -386,6 +393,31 @@ ko:
         inactive: "중지"
       operation_moderation:
         reason: "사유"
+        title: "운영 관리"
+        status: "현재 운영 상태"
+        active_status: "정상 (운영 정지 없음)"
+        suspended_status: "운영 정지"
+        current_suspension: "현재 운영 정지 정보"
+        public_reason: "공개 사유"
+        internal_note: "내부 운영 메모"
+        internal_note_hint: "선택 입력 · 동아리 회원에게 표시되지 않습니다."
+        platform_authority: "시스템 관리자"
+        forms:
+          suspend:
+            public_reason: "정지 사유"
+            public_reason_hint: "정지된 동아리의 관리자에게 표시됩니다."
+            reason_prompt: "정지 사유를 선택하세요"
+          restore:
+            public_reason: "복구 사유"
+            public_reason_hint: "동아리 운영 조치 이력에 기록됩니다."
+        history:
+          lifecycle_badge: "동아리 운영"
+          platform_badge: "플랫폼 조치"
+          reason: "사유"
+          memo: "메모"
+          events:
+            suspend_group_operation: "동아리 운영 정지"
+            restore_group_operation: "동아리 운영 복구"
       index:
         title: "동아리 운영 관리"
         description: "동아리 운영 상태를 검색하고 승인 대기 신청을 확인합니다."

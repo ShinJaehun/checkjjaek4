@@ -12,8 +12,10 @@ module Groups
 
     def call!
       group.with_lock do
+        raise InvalidState unless GroupPolicy.new(actor, group).restore_operation?
+
         original_action = group.current_operation_suspension_action
-        raise InvalidState unless actor&.global_admin? && group.operation_suspended? && original_action
+        raise InvalidState unless original_action
 
         ModerationAction.create!(
           target: group,

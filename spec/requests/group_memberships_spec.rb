@@ -33,7 +33,7 @@ RSpec.describe "Group memberships", type: :request do
     invitee = User.create!(name: "Invitee", email: "membership-operation-invitee@example.com", password: "password123!")
     invitation = private_group.group_memberships.create!(user: invitee, status: :invited)
     [ public_group, approval_group, private_group ].each do |group|
-      Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call!
+      Groups::SuspendOperation.new(group, actor: admin, public_reason: "other").call!
     end
 
     sign_in member
@@ -59,7 +59,7 @@ RSpec.describe "Group memberships", type: :request do
     pending_membership = approval_group.group_memberships.create!(user: member, status: :pending)
     invitation = private_group.group_memberships.create!(user: member, status: :invited)
     [ active_group, approval_group, private_group ].each do |group|
-      Groups::SuspendOperation.new(group, actor: admin, public_reason: "Safety").call!
+      Groups::SuspendOperation.new(group, actor: admin, public_reason: "other").call!
     end
     sign_in member
 
