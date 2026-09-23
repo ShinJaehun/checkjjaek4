@@ -50,9 +50,9 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 - 복구 감사 row는 현재 미복구 suspend row를 `reversal_of`로 참조한다.
 - admin User 상세의 계정 운영 이력은 가입, 모든 정지·복구 감사 row와 탈퇴를 오래된 순으로 보존해 보여준다.
 
-#### 다음 구현 정책: 계정 정지 공개 사유
+#### 계정 정지 공개 사유
 
-신규 계정 정지는 아래 predefined `public_reason` 중 하나를 선택한다. 현재 구현의 자유 텍스트 입력은 이 정책의 적용 전 상태다.
+신규 계정 정지는 아래 predefined `public_reason` 중 하나를 선택한다.
 
 | key | 공개 표시 |
 | --- | --- |
@@ -74,13 +74,13 @@ suspend의 `internal_note`는 선택이다. restore에는 정지 사유와 별�
 - **동아리 활동 정지 / 동아리 활동 복구**는 group admin이 특정 `GroupMembership` 범위에서만 회원 활동을 제한·복구하는 구현 기능이다. active membership과 읽기 권한은 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like를 차단하되 자기 콘텐츠 삭제와 기존 Like 철회는 허용한다. 개인 프로필·개인 콘텐츠·다른 Group·서재·로그인에는 영향을 주지 않으며 `User#suspended_at`을 재사용하지 않는다.
 - **동아리 운영 정지 / 동아리 운영 복구**는 global admin이 `Group#operation_suspended_at`으로 Group 자체의 새 운영 mutation을 제한·복구하는 기능이다. group admin의 기존 자발적 운영 종료 lifecycle과 별도이며 Group 대상 append-only `ModerationAction`에 사유와 복구 연결을 남긴다.
 
-동아리 활동 정지·복구는 별도 `moderation_status`와 `GroupMembership` 대상 append-only 감사 row로 구현했다. 동아리 이용 제한은 `GroupMemberBan` 현재 marker와 ban/unban 감사 row로 구현하며 membership을 종료하고 재참여를 차단한다. 해제는 membership을 복구하지 않는다. 일반 membership의 탈퇴·내보내기와 Group의 자발적 운영 종료 lifecycle을 moderation 상태로 해석하지 않는다.
+동아리 활동 정지·복구는 별도 `moderation_status`와 `GroupMembership` 대상 append-only 감사 row로 구현되어 있으며 이번 closure에서 완료된 기반으로 유지한다. 동아리 이용 제한은 `GroupMemberBan` 현재 marker와 ban/unban 감사 row로 구현하며 membership을 종료하고 재참여를 차단한다. 해제는 membership을 복구하지 않는다. 일반 membership의 탈퇴·내보내기와 Group의 자발적 운영 종료 lifecycle을 moderation 상태로 해석하지 않는다.
 활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 현재 정지 상태도 종료되며 감사 row는 보존한다. global admin은 Group membership moderation을 실행하지 않고 전체 이력을 조사하며 service-wide 제재는 User 계정 정지·복구로 수행한다.
 계정 정지, 동아리 활동 정지와 동아리 운영 정지는 서로 자동 전파되지 않는다.
 
-#### 다음 구현 정책: Group 운영 정지 공개 사유와 전체 이력
+#### Group 운영 정지 공개 사유와 전체 이력
 
-신규 Group operation suspension은 아래 predefined `public_reason` 중 하나를 선택한다. 현재 구현의 자유 텍스트 입력은 이 정책의 적용 전 상태다.
+신규 Group operation suspension은 아래 predefined `public_reason` 중 하나를 선택한다.
 
 | key | 공개 표시 |
 | --- | --- |
@@ -98,8 +98,8 @@ legacy 자유 텍스트의 원문 표시를 함께 지원한다. GroupMembership
 
 Group 개설·자발적 운영 종료·재운영은 `GroupLifecycleEvent`의 lifecycle history이고, global admin의
 operation suspend/restore는 Group 대상 `ModerationAction`의 platform moderation history다.
-admin Group 상세에서는 현재 operation suspension 카드와 별도로 과거 전체 cycle을 오래된 순서로 조사할 수 있어야 한다.
-각 항목에는 action, 실제 actor, 공개 사유, 선택적 내부 메모, 시각을 표시한다. 현재는 현재 정지 카드만 구현되어 있다.
+admin Group 상세에서는 두 의미를 합치지 않으면서 lifecycle event와 platform moderation action을
+하나의 시간순 운영 이력으로 표시한다. 각 항목에는 action, 실제 actor, 공개 사유, 선택적 내부 메모, 시각을 표시한다.
 일반 Group admin과 회원에게는 현재 운영 정지 상태와 공개 사유만 제공하고 platform 내부 메모·전체 이력은 노출하지 않는다.
 
 ---
@@ -692,7 +692,7 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 내부 운영 메모와 과거 전체 audit는 허용된 운영 권한자에게만 제공한다. global admin은 전체 platform moderation
 audit를 조사하고, 현재 Group admin은 자기 Group에 위임된 group-origin moderation history만 조사한다.
 Group 자체의 platform operation suspension 전체 audit는 global admin 전용이며 Group admin과 일반 회원에게는
-현재 운영 정지 상태와 공개 사유만 제공한다. 이 Group 전체 이력 UI는 위 다음 구현 정책으로 남아 있다.
+현재 운영 정지 상태와 공개 사유만 제공한다. Group 전체 이력 UI도 이 권한 경계를 유지한다.
 
 정지·숨김 row는 복구 연결을 갖지 않으며 같은 원 조치를 두 번 복구할 수 없다.
 이미 저장된 감사 row는 수정·삭제할 수 없고 대상이 hard delete되더라도 target type/ID와 감사 정보는 보존한다.
@@ -757,10 +757,13 @@ rate limit은 환경별로 조정할 수 있어야 하며 정상적인 한 교�
 
 현재 global admin은 User·Group top-level inventory와 User 작성자 기준·Group 문맥 기준
 Jjaek/Comment content timeline을 사용한다. 검색, 기본 상태·역할·종류 필터, 정렬, 페이지네이션을 제공하며
-admin User·Group 상세에서 contextual investigation을 이어간다.
+admin User·Group 상세에서 contextual investigation을 이어간다. 두 content timeline은 공통으로
+`전체 / 정상 / 숨김 / 삭제` 상태 필터를 제공한다. Jjaek의 정상은 `deleted_at`과 `hidden_at`이 모두 없는 상태,
+숨김은 삭제되지 않고 `hidden_at`이 있는 상태, 삭제는 `deleted_at`이 있는 상태다. Comment는 `hidden_at`에 따라
+정상과 숨김만 구분하며 삭제 상태를 새로 만들지 않는다. hidden Comment도 두 timeline에서 숨김으로 표시·필터한다.
+Group top-level inventory는 lifecycle과 별도로 operation active/suspended 상태를 표시·필터한다.
 
-남은 closure는 두 가지다. User/Group content timeline에서 hidden Comment를 hidden 상태로 표시·필터하고,
-Group top-level inventory에서 lifecycle과 별도로 operation active/suspended를 표시·필터한다.
+이 moderation closure는 완료되었다. 기본 rate limit은 서비스 전반의 abuse-prevention 후속 구현으로 남는다.
 서비스 전체 Jjaek/Comment 전역 inventory는 현재 contextual investigation과 별개로 필요성을 판단할 후속 항목이며,
 Classroom 이전 필수 완료 항목으로 단정하지 않는다. User 가입 기간·Group 생성 기간 같은 고급 필터도 현재 구현이 아니다.
 
@@ -769,9 +772,9 @@ Classroom 이전 필수 완료 항목으로 단정하지 않는다. User 가입 
 | 대상 | 검색 | 최소 필터 | 최소 정렬·표시 |
 | --- | --- | --- | --- |
 | User | 이름·이메일 | 정상·정지·탈퇴 상태, global admin 여부, 가입 기간(후속), 향후 일반 계정·managed student account 구분 | 최근 가입·오래된 가입, 계정 상태, 가입 시각 |
-| Group | 이름·group admin | Group 종류, pending/active/inactive lifecycle, operation 상태(closure), 생성 기간(후속) | 최근 생성·최근 갱신, group admin, 구성원 수와 상태 |
+| Group | 이름·group admin | Group 종류, pending/active/inactive lifecycle, operation active/suspended, 생성 기간(후속) | 최근 생성·최근 갱신, group admin, 구성원 수와 상태 |
 | Jjaek·책짹 | 본문 일부·작성자·관련 책 | 개인·Group·향후 Classroom 문맥, 짹·책짹·ReJjaek 종류, visibility, 작성자 삭제·운영 숨김 상태, 작성 기간(후속) | 최신·오래된 순, 작성자, 문맥, 상태, 짧은 내용 |
-| Comment | 본문 일부·작성자·원 Jjaek | 개인·Group·향후 Classroom 문맥, 정상·운영 숨김 상태(타임라인 필터 closure), 작성 기간(후속) | 최신·오래된 순, 작성자, 원 Jjaek, 상태, 짧은 내용 |
+| Comment | 본문 일부·작성자·원 Jjaek | 개인·Group·향후 Classroom 문맥, 정상·숨김 상태, 작성 기간(후속) | 최신·오래된 순, 작성자, 원 Jjaek, 상태, 짧은 내용 |
 | Moderation 이력 | 대상·처리자 | 조치 종류, 대상 종류, 유효·복구 상태, 처리 기간 | 최근 조치·복구 순, 처리자, 사유, 상태 |
 
 이 표는 현재 구현, closure와 후속 탐색 범위를 함께 적는다. managed student account·Classroom은 아직 없고,
@@ -818,8 +821,8 @@ moderation monitoring에는 다음을 포함하지 않는다.
 다음은 Classroom의 본격적인 교사·학생 운영 전에 완료할 필수 기반이다.
 
 - global admin의 User 모니터링 목록: 검색·기본 상태 필터·정렬·페이지네이션
-- global admin의 Group 모니터링 목록: 검색·종류·lifecycle 필터·정렬·페이지네이션
-- admin User·Group 상세의 Jjaek·Comment contextual investigation과 위 hidden Comment closure
+- global admin의 Group 모니터링 목록: 검색·종류·lifecycle·operation 필터·정렬·페이지네이션
+- admin User·Group 상세의 Jjaek·Comment contextual investigation과 공통 상태 필터
 - User 정지·복구
 - Jjaek·책짹·Comment 숨김·복구
 - group admin의 자기 Group 콘텐츠 검색·필터와 숨김·복구
@@ -839,7 +842,8 @@ teacher의 자기 Classroom moderation은 Classroom 구조가 존재해야 구�
 | --- | --- | --- | --- | --- |
 | User | 정상 | 본인 탈퇴 | 운영자 정지 | `withdrawn_at`을 정지로 재사용 금지 |
 | Group | 운영 중 | group admin 종료·비활성 | 플랫폼 운영 정지 | `inactive`를 운영 정지로 재사용 금지 |
-| Jjaek·Comment | 정상 | 작성자 삭제 | 운영자 숨김 | `deleted_at`을 숨김으로 재사용 금지 |
+| Jjaek | 정상 | 작성자 삭제 | 운영자 숨김 | `deleted_at`을 숨김으로 재사용 금지 |
+| Comment | 정상 | 작성자 hard delete(별도 삭제 상태 없음) | 운영자 숨김 | hard delete와 숨김 상태 통합 금지 |
 | GroupMembership | 참여 상태 | 탈퇴·내보내기 | 활동 정지·복구, 별도 GroupMemberBan 이용 제한 | membership 종료를 ban으로 해석 금지 |
 
 이 표는 의미와 불변 조건만 고정하며 schema 설계를 확정하지 않는다.
@@ -866,6 +870,8 @@ teacher의 자기 Classroom moderation은 Classroom 구조가 존재해야 구�
 ## 남은 구현 경계
 
 User·Group inventory, contextual content timeline, User/Group/GroupMembership/GroupMemberBan 및
-Jjaek·Comment moderation의 현재 구현은 위 절에 기록했다. 다음 closure는 신규 User·Group 정지 사유 선택,
-Group operation 전체 이력 UI, hidden Comment와 operation 상태의 inventory 표시·필터, 기본 rate limit이다.
+Jjaek·Comment moderation의 현재 구현은 위 절에 기록했다. 신규 User·Group 정지 사유 선택,
+Group operation 전체 이력 UI, hidden Comment와 operation 상태의 inventory 표시·필터까지 이번 moderation closure에서 완료했다.
+기본 rate limit은 아직 구현되지 않았으며 가입·로그인·콘텐츠 작성·반복 mutation 등 서비스 전반의
+abuse-prevention을 다루는 별도 후속 구현 범위로 유지한다.
 Classroom·managed student account와 teacher moderation은 별도 단계에서 다룬다.
