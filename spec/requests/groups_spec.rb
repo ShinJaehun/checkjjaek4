@@ -519,11 +519,13 @@ RSpec.describe "Groups", type: :request do
       expect(response.body).to include("동아리 관리")
 
       get edit_group_path(pending_group)
-      opening_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 개설") }
+      page = Nokogiri::HTML(response.body)
+    opening_card = page.at_css("#group_operation_history [data-history-entry='opening_requested']")
       expect(response.body).to include("승인 대기", "Initial purpose")
       expect(opening_card.text).to include("신청", I18n.l(opening_event.created_at, format: :short))
       expect(opening_card.text).not_to include("승인")
-      expect(response.body.scan("개설 목적").size).to eq(1)
+      expect(opening_card.text).to include("개설 목적", "Initial purpose")
+      expect(page.at_css('textarea[name="group[application_purpose]"]')).to be_present
 
       patch group_path(pending_group), params: { group: { name: pending_group.name, application_purpose: "Updated purpose" } }
       expect(pending_group.reload.application_purpose).to eq("Updated purpose")
@@ -533,9 +535,15 @@ RSpec.describe "Groups", type: :request do
       pending_group.active!
       pending_group.lifecycle_events.create!(actor: user, event_type: :opening_approved)
       get edit_group_path(pending_group)
-      opening_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 개설") }
-      expect(opening_card.text).to include("신청", "승인")
-      expect(response.body).not_to include("Updated purpose", "개설 목적")
+      opening_card =
+        Nokogiri::HTML(response.body)
+          .at_css("#group_operation_history li[data-history-entry='opening']")
+    opening_request_entry = page.at_css("#group_operation_history [data-history-entry='opening_requested']")
+    opening_approval_entry = page.at_css("#group_operation_history [data-history-entry='opening_approved']")
+    expect(opening_request_entry.text).to include("동아리 개설 신청", "개설 목적", "Initial purpose")
+    expect(opening_approval_entry.text).to include("동아리 개설 승인")
+    expect(opening_approval_entry.text).not_to include("개설 목적")
+      expect(opening_card.text).to include("개설 목적", "Updated purpose")
     end
 
     it "renders edit with 422 when validation fails" do
@@ -618,7 +626,7 @@ RSpec.describe "Groups", type: :request do
 
       get edit_group_path(group)
       expect(response.body).to include("운영 종료", "종료", "재활성화 요청", "운영 이력")
-      expect(response.body).not_to include("The reading program finished", "운영 종료 사유")
+      expect(response.body).to include("The reading program finished", "운영 종료 사유")
 
       get group_path(group)
       expect(response.body).not_to include("운영 이력", "The reading program finished")
@@ -639,14 +647,152 @@ RSpec.describe "Groups", type: :request do
 
       expect(closure_reason_field).to be_present
       expect(closure_reason_field.text).to be_blank
-      expect(response.body).not_to include("The reading program finished")
+      expect(response.body).to include("The reading program finished")
       lifecycle_history =
         Nokogiri::HTML(response.body).css("section").find do |section|
           section.at_css("h2")&.text&.strip == "운영 이력"
         end
 
       expect(lifecycle_history).to be_present
-      expect(lifecycle_history.text).not_to include("운영 종료 사유")
+      expect(lifecycle_history.text).to include("운영 종료 사유", "The reading program finished")
+    end
+
+    it "shows lifecycle and public platform operation events in one chronology" do
+      platform_admin = User.create!(
+        name: "Platform history admin",
+        email: "platform-history-admin@example.com",
+        password: "password123!",
+        global_admin: true
+      )
+      base_time = Time.zone.local(2026, 1, 1, 12)
+      group.lifecycle_events.create!(
+        actor: user,
+        event_type: :opening_requested,
+        detail: "Opening purpose",
+        created_at: base_time
+      )
+      group.lifecycle_events.create!(
+        actor: platform_admin,
+        event_type: :opening_approved,
+        created_at: base_time + 30.minutes
+      )
+      suspension = ModerationAction.create!(
+        target: group,
+        actor: platform_admin,
+        action_type: :suspend_group_operation,
+        public_reason: "other",
+        internal_note: "ADMIN_ONLY_SUSPEND_NOTE",
+        created_at: base_time + 1.hour
+      )
+      group.lifecycle_events.create!(
+        actor: user,
+        event_type: :operations_closed,
+        detail: "Season completed",
+        created_at: base_time + 2.hours
+      )
+      ModerationAction.create!(
+        target: group,
+        actor: platform_admin,
+        action_type: :restore_group_operation,
+        public_reason: "Restriction lifted",
+        internal_note: "ADMIN_ONLY_RESTORE_NOTE",
+        reversal_of: suspension,
+        created_at: base_time + 2.hours
+      )
+      group.lifecycle_events.create!(
+        actor: user,
+        event_type: :reactivation_requested,
+        created_at: base_time + 3.hours
+      )
+      group.lifecycle_events.create!(
+        actor: platform_admin,
+        event_type: :reactivation_approved,
+        created_at: base_time + 4.hours
+      )
+      sign_in user
+
+      get edit_group_path(group)
+
+      page = Nokogiri::HTML(response.body)
+      history = page.at_css("#group_operation_history")
+    entries = history.css("[data-history-entry]")
+      expect(entries.map { |entry| entry["data-history-entry"] }).to eq(
+      %w[opening_requested opening_approved suspend_group_operation operations_closed restore_group_operation reactivation_requested reactivation_approved]
+      )
+      expect(entries.map { |entry| entry["data-history-kind"] }).to eq(
+      %w[lifecycle lifecycle platform lifecycle platform lifecycle lifecycle]
+    )
+
+    opening_request_entry = group_entries.find { |entry| entry["data-history-entry"] == "opening_requested" }
+    opening_approval_entry = group_entries.find { |entry| entry["data-history-entry"] == "opening_approved" }
+    closure_entry = group_entries.find { |entry| entry["data-history-entry"] == "operations_closed" }
+    reactivation_request_entry = group_entries.find { |entry| entry["data-history-entry"] == "reactivation_requested" }
+    reactivation_approval_entry = group_entries.find { |entry| entry["data-history-entry"] == "reactivation_approved" }
+
+    expect(opening_request_entry.text).to include("동아리 개설 신청", "동아리 관리자 #{group_admin.name}", "개설 목적", "Opening purpose")
+    expect(opening_approval_entry.text).to include("동아리 개설 승인", "시스템 관리자 #{platform_admin.name}")
+    expect(opening_approval_entry.text).not_to include("개설 목적", "Opening purpose")
+    expect(closure_entry.text).to include("동아리 운영 종료", "동아리 관리자 #{group_admin.name}", "운영 종료 사유")
+    expect(reactivation_request_entry.text).to include("동아리 재운영 신청", "동아리 관리자 #{group_admin.name}")
+    expect(reactivation_approval_entry.text).to include("동아리 재운영 승인", "시스템 관리자 #{platform_admin.name}")
+      expect(history.text).to include(
+        "동아리 개설",
+        "Opening purpose",
+        "동아리 운영 정지",
+        "기타 운영 정책 위반",
+        "동아리 운영 종료",
+        "Season completed",
+        "동아리 운영 복구",
+        "Restriction lifted",
+        "동아리 재운영",
+        "동아리 관리자 #{user.name}",
+        "시스템 관리자 #{platform_admin.name}"
+      )
+      expect(history.text).not_to include(
+        "ADMIN_ONLY_SUSPEND_NOTE",
+        "ADMIN_ONLY_RESTORE_NOTE",
+        "내부 운영 메모"
+      )
+      expect(entries[0].text).to include(
+        "신청", "동아리 관리자 #{user.name}",
+        "승인", "시스템 관리자 #{platform_admin.name}"
+      )
+      expect(entries[2].text).to include("동아리 관리자 #{user.name}", "Season completed")
+      expect(entries[4].text).to include(
+        "신청", "동아리 관리자 #{user.name}",
+        "승인", "시스템 관리자 #{platform_admin.name}"
+      )
+      expect(page.at_css(%(form[action="#{suspend_operation_admin_group_path(group)}"]))).to be_nil
+      expect(page.at_css(%(form[action="#{restore_operation_admin_group_path(group)}"]))).to be_nil
+
+      group_admin_signatures = entries.map do |entry|
+        [
+          entry["data-history-entry"],
+          entry.at_css("article > div > p")&.text&.strip,
+          entry.at_css("article > div > span")&.text&.strip
+        ]
+      end
+
+      sign_in platform_admin
+      get admin_group_path(group)
+      admin_page = Nokogiri::HTML(response.body)
+      admin_history = admin_page.at_css("#group_operation_history")
+      admin_entries = admin_history.css("li[data-history-entry]")
+      admin_signatures = admin_entries.map do |entry|
+        [
+          entry["data-history-entry"],
+          entry.at_css("article > div > p")&.text&.strip,
+          entry.at_css("article > div > span")&.text&.strip
+        ]
+      end
+
+      expect(admin_entries.map { |entry| entry["data-history-kind"] }).to eq(
+        entries.map { |entry| entry["data-history-kind"] }
+      )
+      expect(admin_signatures).to eq(group_admin_signatures)
+      expect(admin_history.text).to include("ADMIN_ONLY_SUSPEND_NOTE", "ADMIN_ONLY_RESTORE_NOTE")
+      expect(admin_page.at_css(%(form[action="#{close_group_path(group)}"]))).to be_nil
+      expect(admin_page.at_css(%(form[action="#{request_reactivation_group_path(group)}"]))).to be_nil
     end
 
     it "rolls back a close when lifecycle event creation fails" do

@@ -1,0 +1,83 @@
+<% history_entries = group_history_entries(
+     lifecycle_events: lifecycle_events,
+     moderation_actions: operation_actions
+   ) %>
+
+<section id="group_operation_history" class="space-y-4">
+  <h2 class="text-lg font-semibold text-gray-900"><%= t("groups.lifecycle_history.title") %></h2>
+
+  <% if history_entries.empty? %>
+    <p class="text-sm text-gray-500"><%= t("groups.lifecycle_history.empty") %></p>
+  <% else %>
+    <div class="space-y-3">
+      <% history_entries.each do |entry| %>
+        <% record = entry[:record] %>
+
+        <% if entry[:kind] == :lifecycle %>
+          <% detail_label_key = {
+               "opening_requested" => "application_purpose",
+               "operations_closed" => "closure_reason",
+               "reactivation_requested" => "reactivation_reason"
+             }[record.event_type] %>
+
+          <article class="rounded-lg border border-gray-200 bg-white p-4"
+                   data-history-kind="lifecycle"
+                   data-history-entry="<%= record.event_type %>">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="font-semibold text-gray-900">
+                <%= t("groups.lifecycle_history.events.#{record.event_type}") %>
+              </h3>
+              <span class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                <%= t("groups.lifecycle_history.lifecycle_badge") %>
+              </span>
+            </div>
+
+            <p class="mt-2 text-sm text-gray-600">
+              <%= group_history_actor_label(record) %>
+              ·
+              <%= l(record.created_at, format: :short) %>
+            </p>
+
+            <% if detail_label_key && record.detail.present? %>
+              <p class="mt-2 whitespace-pre-wrap text-sm text-gray-700">
+                <span class="font-medium"><%= t("groups.lifecycle_history.details.#{detail_label_key}") %>:</span>
+                <%= record.detail %>
+              </p>
+            <% end %>
+          </article>
+        <% else %>
+          <article class="rounded-lg border border-amber-200 bg-amber-50 p-4"
+                   data-history-kind="platform"
+                   data-history-entry="<%= record.action_type %>">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="font-semibold text-gray-900">
+                <%= t("groups.lifecycle_history.platform.events.#{record.action_type}") %>
+              </h3>
+              <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                <%= t("groups.lifecycle_history.platform.badge") %>
+              </span>
+            </div>
+
+            <p class="mt-2 text-sm text-gray-600">
+              <%= group_history_actor_label(record) %>
+              ·
+              <%= l(record.created_at, format: :short) %>
+            </p>
+
+            <% if record.public_reason.present? %>
+              <% reason = record.action_type == "suspend_group_operation" ? Group.suspension_reason_label(record.public_reason) : record.public_reason %>
+              <p class="mt-2 whitespace-pre-wrap text-sm text-gray-700"><span class="font-medium"><%= t("groups.lifecycle_history.platform.reason") %>:</span> <%= reason %></p>
+            <% end %>
+
+            <% if show_internal_notes && record.internal_note.present? %>
+              <p class="mt-2 whitespace-pre-wrap text-sm text-gray-700">
+                <span class="font-medium"><%= t("groups.lifecycle_history.platform.memo") %>:</span>
+                <%= record.internal_note %>
+              </p>
+            <% end %>
+          </article>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</section>

@@ -66,47 +66,53 @@
         <% moderation_action = @can_suspend_operation ? :suspend : :restore %>
         <% action_path = @can_suspend_operation ? suspend_operation_admin_group_path(@group) : restore_operation_admin_group_path(@group) %>
         <% submit_label = @can_suspend_operation ? t("admin.groups.actions.suspend_operation") : t("admin.groups.actions.restore_operation") %>
-        <%= form_with scope: :moderation_action, url: action_path, method: :patch, class: "mt-4 space-y-3" do |form| %>
-          <div class="space-y-2">
-            <%= form.label :public_reason,
-                           t("admin.groups.operation_moderation.forms.#{moderation_action}.public_reason"),
-                           class: "block font-medium" %>
-            <% if @can_suspend_operation %>
-              <%= form.select :public_reason,
-                              options_for_select(Group::SUSPENSION_REASONS.map { |reason| [ Group.suspension_reason_label(reason), reason ] }),
-                              { prompt: t("admin.groups.operation_moderation.forms.suspend.reason_prompt") },
-                              required: true,
-                              aria: { describedby: "operation_public_reason_hint" },
-                              class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-            <% else %>
-              <%= form.text_area :public_reason,
-                                 required: true,
+        <details class="mt-4 rounded-2xl border border-amber-200 bg-white/70 p-4" data-operation-action="<%= moderation_action %>">
+          <summary class="cursor-pointer font-semibold text-amber-900">
+            <%= t("admin.groups.operation_moderation.forms.#{moderation_action}.trigger") %>
+          </summary>
+          <%= form_with scope: :moderation_action, url: action_path, method: :patch, class: "mt-4 space-y-3" do |form| %>
+            <div class="space-y-2">
+              <%= form.label :public_reason,
+                             t("admin.groups.operation_moderation.forms.#{moderation_action}.public_reason"),
+                             class: "block font-medium" %>
+              <% if @can_suspend_operation %>
+                <%= form.select :public_reason,
+                                options_for_select(Group::SUSPENSION_REASONS.map { |reason| [ Group.suspension_reason_label(reason), reason ] }),
+                                { prompt: t("admin.groups.operation_moderation.forms.suspend.reason_prompt") },
+                                required: true,
+                                aria: { describedby: "operation_public_reason_hint" },
+                                class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+              <% else %>
+                <%= form.text_area :public_reason,
+                                   required: true,
+                                   rows: 3,
+                                   aria: { describedby: "operation_public_reason_hint" },
+                                   class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+              <% end %>
+              <p id="operation_public_reason_hint" class="text-xs text-amber-800">
+                <%= t("admin.groups.operation_moderation.forms.#{moderation_action}.public_reason_hint") %>
+              </p>
+            </div>
+            <div class="space-y-2">
+              <%= form.label :internal_note, t("admin.groups.operation_moderation.internal_note"), class: "block font-medium" %>
+              <%= form.text_area :internal_note,
                                  rows: 3,
-                                 aria: { describedby: "operation_public_reason_hint" },
+                                 aria: { describedby: "operation_internal_note_hint" },
                                  class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-            <% end %>
-            <p id="operation_public_reason_hint" class="text-xs text-amber-800">
-              <%= t("admin.groups.operation_moderation.forms.#{moderation_action}.public_reason_hint") %>
-            </p>
-          </div>
-          <div class="space-y-2">
-            <%= form.label :internal_note, t("admin.groups.operation_moderation.internal_note"), class: "block font-medium" %>
-            <%= form.text_area :internal_note,
-                               rows: 3,
-                               aria: { describedby: "operation_internal_note_hint" },
-                               class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-            <p id="operation_internal_note_hint" class="text-xs text-amber-800">
-              <%= t("admin.groups.operation_moderation.internal_note_hint") %>
-            </p>
-          </div>
-          <%= form.submit submit_label, class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-        <% end %>
+              <p id="operation_internal_note_hint" class="text-xs text-amber-800">
+                <%= t("admin.groups.operation_moderation.internal_note_hint") %>
+              </p>
+            </div>
+            <%= form.submit submit_label, class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+          <% end %>
+        </details>
       <% end %>
     </section>
 
-    <%= render "admin/groups/operation_history",
+    <%= render "groups/operation_history",
                lifecycle_events: @lifecycle_events,
-               actions: @operation_moderation_actions %>
+               operation_actions: @operation_moderation_actions,
+               show_internal_notes: true %>
     <%= link_to t("admin.groups.actions.back"),
                 admin_groups_path(@return_params),
                 class: "text-sm font-medium text-stone-600 underline" %>

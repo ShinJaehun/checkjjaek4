@@ -31,5 +31,8 @@
     </section>
   <% end %>
 
-  <%= render "groups/lifecycle_history", lifecycle_events: @lifecycle_events, show_details: false %>
+  <%= render "groups/operation_history",
+             lifecycle_events: @lifecycle_events,
+             operation_actions: @operation_moderation_actions,
+             show_internal_notes: false %>
 </section>

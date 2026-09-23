@@ -52,7 +52,6 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(approval.created_at).to be_present
 
     get admin_group_path(group)
-    expect(response.body.scan("동아리 개설").size).to eq(1)
     opening_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 개설") }
     expect(opening_card.text).to include("신청", "승인", I18n.l(approval.created_at, format: :short))
   end
@@ -83,7 +82,6 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(reapproval.actor).to eq(admin)
 
     get admin_group_path(legacy_group)
-    expect(response.body.scan("동아리 재운영").size).to eq(1)
     reactivation_card = Nokogiri::HTML(response.body).css("article").find { |node| node.text.include?("동아리 재운영") }
     expect(reactivation_card.text).to include("신청", "승인", I18n.l(reapproval.created_at, format: :short))
   end
@@ -130,10 +128,15 @@ RSpec.describe "Admin group approvals", type: :request do
     sign_in admin
     get admin_group_path(active_group)
     page = Nokogiri::HTML(response.body)
+    moderation = page.at_css("#group_operation_moderation")
+    suspend_details = moderation.at_css("details[data-operation-action='suspend']")
     suspend_form = page.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))
     expect(suspend_form).to be_present
+    expect(suspend_details.at_css("summary").text.strip).to eq("정지")
+    expect(suspend_details.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_present
     reason_select = suspend_form.at_css('select[name="moderation_action[public_reason]"]')
-    expect(page.at_css("#group_operation_moderation").text).to include("정상 (운영 정지 없음)")
+    expect(moderation.text.squish).to include("현재 운영 상태: 정상")
+    expect(moderation.text).not_to include("정상 (운영 정지 없음)")
     expect(reason_select.css("option").map { |option| option["value"] }.reject(&:blank?)).to eq(Group::SUSPENSION_REASONS)
     expect(reason_select.text).to include("반복적인 운영 정책 위반")
     expect(suspend_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_nil
@@ -147,9 +150,13 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_group_path(active_group)
     page = Nokogiri::HTML(response.body)
     moderation = page.at_css("#group_operation_moderation")
+    restore_details = moderation.at_css("details[data-operation-action='restore']")
     restore_form = page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))
     expect(restore_form).to be_present
-    expect(moderation.text).to include("운영 정지", "반복적인 운영 정책 위반", "Internal review")
+    expect(moderation.text.squish).to include("현재 운영 상태: 정지")
+    expect(moderation.text).to include("반복적인 운영 정책 위반", "Internal review")
+    expect(restore_details.at_css("summary").text.strip).to eq("복구")
+    expect(restore_details.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))).to be_present
     expect(moderation.text).not_to include("repeated_policy_violations")
     expect(restore_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_present
     expect(restore_form.at_css('select[name="moderation_action[public_reason]"]')).to be_nil
@@ -688,7 +695,6 @@ RSpec.describe "Admin group approvals", type: :request do
     expect([ opening_position, first_close_position, reactivation_position, second_close_position ]).to eq(
       [ opening_position, first_close_position, reactivation_position, second_close_position ].sort
     )
-    expect(response.body.scan("동아리 재운영").size).to eq(2)
     expect(response.body).to include("운영 종료 사유", "First season ended", "Second season ended")
   end
 

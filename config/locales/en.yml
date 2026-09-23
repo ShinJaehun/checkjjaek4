@@ -106,6 +106,23 @@ en:
       title: "Operations history"
       empty: "No operations history has been recorded."
       not_recorded: "Not recorded"
+      lifecycle_badge: "Club operation"
+      events:
+        opening_requested: "Group opening requested"
+        opening_approved: "Group opening approved"
+        operations_closed: "Group operations closed"
+        reactivation_requested: "Group reactivation requested"
+        reactivation_approved: "Group reactivation approved"
+      details:
+        application_purpose: "Opening purpose"
+        closure_reason: "Closure reason"
+        reactivation_reason: "Reactivation request reason"
+      actor:
+        label: "%{role} %{name}"
+        unknown: "Actor not recorded"
+        roles:
+          system_admin: "System admin"
+          group_admin: "Club admin"
       stages:
         opening:
           title: "Club opening"
@@ -121,6 +138,13 @@ en:
         closed_at: "Closed"
         reactivation_requested_at: "Requested"
         reactivation_approved_at: "Approved"
+      platform:
+        badge: "Operation restriction"
+        reason: "Reason"
+        memo: "Memo"
+        events:
+          suspend_group_operation: "Club operation suspended"
+          restore_group_operation: "Club operation restored"
     index:
       title: "Reading clubs"
       description: "Find a reading community to read and talk with."
@@ -371,8 +395,8 @@ en:
         reason: "Reason"
         title: "Operation management"
         status: "Current operation status"
-        active_status: "Normal (not suspended)"
-        suspended_status: "Operation suspended"
+        active_status: "Normal"
+        suspended_status: "Suspended"
         current_suspension: "Current operation suspension"
         public_reason: "Public reason"
         internal_note: "Internal note"
@@ -380,10 +404,12 @@ en:
         platform_authority: "System admin"
         forms:
           suspend:
+            trigger: "Suspend"
             public_reason: "Suspension reason"
             public_reason_hint: "Shown to the suspended club's admin."
             reason_prompt: "Select a suspension reason"
           restore:
+            trigger: "Restore"
             public_reason: "Restoration reason"
             public_reason_hint: "Recorded in the club operation moderation history."
         history:

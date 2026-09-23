@@ -106,6 +106,23 @@ ko:
       title: "운영 이력"
       empty: "기록된 운영 이력이 없습니다."
       not_recorded: "기록 없음"
+      events:
+        opening_requested: "동아리 개설 신청"
+        opening_approved: "동아리 개설 승인"
+        operations_closed: "동아리 운영 종료"
+        reactivation_requested: "동아리 재운영 신청"
+        reactivation_approved: "동아리 재운영 승인"
+      details:
+        application_purpose: "개설 목적"
+        closure_reason: "운영 종료 사유"
+        reactivation_reason: "재운영 신청 사유"
+      lifecycle_badge: "동아리 운영"
+      actor:
+        label: "%{role} %{name}"
+        unknown: "처리자 기록 없음"
+        roles:
+          system_admin: "시스템 관리자"
+          group_admin: "동아리 관리자"
       stages:
         opening:
           title: "동아리 개설"
@@ -121,6 +138,13 @@ ko:
         closed_at: "종료"
         reactivation_requested_at: "신청"
         reactivation_approved_at: "승인"
+      platform:
+        badge: "운영 제한"
+        reason: "사유"
+        memo: "메모"
+        events:
+          suspend_group_operation: "동아리 운영 정지"
+          restore_group_operation: "동아리 운영 복구"
     index:
       title: "독서 동아리"
       description: "내 동아리와 최근 독서 활동을 확인합니다."
@@ -398,8 +422,8 @@ ko:
         reason: "사유"
         title: "운영 관리"
         status: "현재 운영 상태"
-        active_status: "정상 (운영 정지 없음)"
-        suspended_status: "운영 정지"
+        active_status: "정상"
+        suspended_status: "정지"
         current_suspension: "현재 운영 정지 정보"
         public_reason: "공개 사유"
         internal_note: "내부 운영 메모"
@@ -407,10 +431,12 @@ ko:
         platform_authority: "시스템 관리자"
         forms:
           suspend:
+            trigger: "정지"
             public_reason: "정지 사유"
             public_reason_hint: "정지된 동아리의 관리자에게 표시됩니다."
             reason_prompt: "정지 사유를 선택하세요"
           restore:
+            trigger: "복구"
             public_reason: "복구 사유"
             public_reason_hint: "동아리 운영 조치 이력에 기록됩니다."
         history:

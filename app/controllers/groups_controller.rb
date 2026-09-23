@@ -182,7 +182,12 @@ class GroupsController < ApplicationController
   end
 
   def prepare_lifecycle_history
-    @lifecycle_events = @group.lifecycle_events.includes(:actor)
+    @lifecycle_events = @group.lifecycle_events.includes(:actor).to_a
+    @operation_moderation_actions = ModerationAction
+      .where(target: @group, action_type: %i[suspend_group_operation restore_group_operation])
+      .includes(:actor)
+      .order(:created_at, :id)
+      .to_a
   end
 
   def sync_opening_request_detail
