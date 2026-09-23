@@ -474,6 +474,17 @@ en:
       removed: "You were removed from the club."
       suspend_activity_failed: "Club activity could not be suspended."
       restore_activity_failed: "Club activity could not be restored."
+    management:
+      actions:
+        suspend_activity: "Suspend activity"
+        restore_activity: "Restore activity"
+        remove: "Remove"
+        ban_from_group: "Restrict access"
+      descriptions:
+        suspend_activity: "Keep the membership while suspending activity in this club."
+        restore_activity: "Lift the activity suspension and restore the existing membership's activity."
+        remove: "Remove this member from the club. They can join again."
+        ban_from_group: "Remove this member and prevent them from joining again until the restriction is lifted."
     moderation:
       statuses:
         activity_suspended: "Club activity suspended"

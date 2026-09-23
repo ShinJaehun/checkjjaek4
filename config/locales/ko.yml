@@ -493,6 +493,17 @@ ko:
       removed: "동아리에서 내보내졌습니다."
       suspend_activity_failed: "동아리 활동을 정지할 수 없습니다."
       restore_activity_failed: "동아리 활동을 복구할 수 없습니다."
+    management:
+      actions:
+        suspend_activity: "활동 정지"
+        restore_activity: "활동 복구"
+        remove: "내보내기"
+        ban_from_group: "이용 제한"
+      descriptions:
+        suspend_activity: "회원 자격은 유지하고 동아리 활동만 정지합니다."
+        restore_activity: "활동 정지를 해제하고 기존 회원 활동을 복구합니다."
+        remove: "동아리에서 내보냅니다. 다시 가입할 수 있습니다."
+        ban_from_group: "동아리에서 내보내고 제한을 해제하기 전까지 다시 가입할 수 없습니다."
     moderation:
       statuses:
         activity_suspended: "동아리 활동 정지"

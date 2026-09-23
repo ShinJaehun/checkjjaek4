@@ -1,36 +1,33 @@
-<% membership_policy = policy(membership) %>
-
-<% if current_suspension.present? %>
-  <p class="mt-3 text-sm text-stone-600">
-    <span class="font-medium text-stone-800"><%= t("group_memberships.moderation.public_reason") %>:</span>
-    <span class="whitespace-pre-wrap"><%= current_suspension.public_reason %></span>
-  </p>
-<% end %>
-
 <% if membership_policy.suspend_activity? %>
-  <%= form_with url: suspend_activity_group_group_membership_path(@group, membership),
-                method: :patch,
-                scope: :moderation_action,
-                class: "mt-4 space-y-3 rounded-2xl bg-stone-50 p-4" do |form| %>
-    <h3 class="text-sm font-semibold text-stone-900"><%= t("group_memberships.moderation.suspend.title") %></h3>
-    <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
-    <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
-    <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
-    <%= form.text_area :internal_note, rows: 2, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
-    <p class="text-xs text-stone-500"><%= t("group_memberships.moderation.internal_note_hint") %></p>
-    <%= form.submit t("group_memberships.moderation.suspend.submit"), class: "rounded-full bg-red-700 px-4 py-2 text-sm font-medium text-white" %>
-  <% end %>
+  <details class="rounded-2xl border border-stone-200 p-4" data-member-action="suspend_activity">
+    <summary class="cursor-pointer text-sm font-semibold text-stone-800"><%= t("group_memberships.management.actions.suspend_activity") %></summary>
+    <p class="mt-3 text-sm text-stone-600"><%= t("group_memberships.management.descriptions.suspend_activity") %></p>
+    <%= form_with url: suspend_activity_group_group_membership_path(@group, membership),
+                  method: :patch,
+                  scope: :moderation_action,
+                  class: "mt-3 space-y-3" do |form| %>
+      <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
+      <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+      <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
+      <%= form.text_area :internal_note, rows: 2, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+      <p class="text-xs text-stone-500"><%= t("group_memberships.moderation.internal_note_hint") %></p>
+      <%= form.submit t("group_memberships.moderation.suspend.submit"), class: "rounded-full bg-red-700 px-4 py-2 text-sm font-medium text-white" %>
+    <% end %>
+  </details>
 <% elsif membership_policy.restore_activity? %>
-  <%= form_with url: restore_activity_group_group_membership_path(@group, membership),
-                method: :patch,
-                scope: :moderation_action,
-                class: "mt-4 space-y-3 rounded-2xl bg-stone-50 p-4" do |form| %>
-    <h3 class="text-sm font-semibold text-stone-900"><%= t("group_memberships.moderation.restore.title") %></h3>
-    <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
-    <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
-    <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
-    <%= form.text_area :internal_note, rows: 2, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
-    <p class="text-xs text-stone-500"><%= t("group_memberships.moderation.internal_note_hint") %></p>
-    <%= form.submit t("group_memberships.moderation.restore.submit"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
-  <% end %>
+  <details class="rounded-2xl border border-stone-200 p-4" data-member-action="restore_activity">
+    <summary class="cursor-pointer text-sm font-semibold text-stone-800"><%= t("group_memberships.management.actions.restore_activity") %></summary>
+    <p class="mt-3 text-sm text-stone-600"><%= t("group_memberships.management.descriptions.restore_activity") %></p>
+    <%= form_with url: restore_activity_group_group_membership_path(@group, membership),
+                  method: :patch,
+                  scope: :moderation_action,
+                  class: "mt-3 space-y-3" do |form| %>
+      <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
+      <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+      <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
+      <%= form.text_area :internal_note, rows: 2, class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+      <p class="text-xs text-stone-500"><%= t("group_memberships.moderation.internal_note_hint") %></p>
+      <%= form.submit t("group_memberships.moderation.restore.submit"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+    <% end %>
+  </details>
 <% end %>

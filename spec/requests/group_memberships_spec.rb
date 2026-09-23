@@ -363,6 +363,35 @@ RSpec.describe "Group memberships", type: :request do
       membership = group.group_memberships.create!(user: member, status: :active)
       sign_in group_admin
 
+      get group_members_path(group)
+      page = Nokogiri::HTML(response.body)
+      member_card = page.at_css("#group_membership_#{membership.id}")
+      management = member_card.at_css("[data-member-management]")
+      activity_form = management.at_css(%(form[action="#{suspend_activity_group_group_membership_path(group, membership)}"]))
+      removal_form = management.at_css(%(form[action="#{remove_group_group_membership_path(group, membership)}"]))
+      ban_form = management.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))
+
+      expect(management.css("[data-member-action]").map { |action| action["data-member-action"] }).to eq(
+        %w[suspend_activity remove ban_from_group]
+      )
+      expect(management.css("summary").map { |summary| summary.text.strip }).to eq(
+        [ "활동 정지", "내보내기", "이용 제한" ]
+      )
+      expect(management.text).to include(
+        "회원 자격은 유지하고 동아리 활동만 정지합니다.",
+        "동아리에서 내보냅니다. 다시 가입할 수 있습니다.",
+        "동아리에서 내보내고 제한을 해제하기 전까지 다시 가입할 수 없습니다."
+      )
+      [ activity_form, ban_form ].each do |form|
+        expect(form.at_css("textarea[name='moderation_action[public_reason]']")).to be_present
+        expect(form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
+      end
+      expect(removal_form).to be_present
+      expect(removal_form.at_css("[name^='moderation_action']")).to be_nil
+
+      group_admin_membership = group.group_memberships.find_by!(user: group_admin)
+      expect(page.at_css("#group_membership_#{group_admin_membership.id} [data-member-management]")).to be_nil
+
       patch suspend_activity_group_group_membership_path(group, membership), params: {
         moderation_action: { public_reason: "Community rule", internal_note: "Case 10" }
       }
@@ -809,9 +838,22 @@ RSpec.describe "Group memberships", type: :request do
       get group_members_path(group)
       page = Nokogiri::HTML(response.body)
       current_members = page.at_css("#current-members")
+      management = page.at_css("#group_membership_#{membership.id} [data-member-management]")
       history = page.at_css("#membership-operations-history")
 
       expect(current_members.text).to include(member.name, "동아리 활동 정지", "Current public reason", "활동 복구")
+      expect(management.css("[data-member-action]").map { |action| action["data-member-action"] }).to eq(
+        %w[restore_activity remove ban_from_group]
+      )
+      expect(management.css("summary").map { |summary| summary.text.strip }).to eq(
+        [ "활동 복구", "내보내기", "이용 제한" ]
+      )
+      restore_form = management.at_css(%(form[action="#{restore_activity_group_group_membership_path(group, membership)}"]))
+      ban_form = management.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))
+      [ restore_form, ban_form ].each do |form|
+        expect(form.at_css("textarea[name='moderation_action[public_reason]']")).to be_present
+        expect(form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
+      end
       expect(current_members.text).not_to include(
         I18n.t("group_memberships.moderation.history.title")
       )
