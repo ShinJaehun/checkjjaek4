@@ -438,6 +438,8 @@ RSpec.describe "Admin group approvals", type: :request do
     deleted.destroy_or_tombstone!
     hidden = member.jjaeks.create!(group: active_group, content: "GROUP_HIDDEN_CONTENT")
     Jjaeks::Hide.new(hidden, actor: admin, public_reason: "other").call!
+    hidden_comment = general.comments.create!(user: member, content: "GROUP_HIDDEN_COMMENT_CONTENT")
+    Comments::Hide.new(hidden_comment, actor: admin, public_reason: "other").call!
     other_jjaek = group_admin.jjaeks.create!(group: other_group, content: "OTHER_GROUP_CONTENT")
     sign_in admin
 
@@ -463,7 +465,8 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(comment_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
     expect(deleted_row.at_css("[data-field='body']").text.strip).to eq("-")
     expect(deleted_row.at_css("[data-field='status']").text.strip).to eq("삭제")
-    expect(timeline.at_css("#group_timeline_jjaek_#{hidden.id} [data-field='status']").text.strip).to eq("운영 숨김")
+    expect(timeline.at_css("#group_timeline_jjaek_#{hidden.id} [data-field='status']").text.strip).to eq("숨김")
+    expect(timeline.at_css("#group_timeline_comment_#{hidden_comment.id} [data-field='status']").text.strip).to eq("숨김")
     expect(deleted_comment_row.at_css("[data-field='reference']").text).to include(member.name, "-")
     expect(timeline.text).not_to include(other_jjaek.content)
     expect(book_row.at_css("a[href='#{jjaek_path(book_jjaek)}']")).to be_present
@@ -489,6 +492,10 @@ RSpec.describe "Admin group approvals", type: :request do
     general = group_admin.jjaeks.create!(group: active_group, content: "FILTER_GROUP_GENERAL")
     book_jjaek = member.jjaeks.create!(group: active_group, book:, content: "FILTER_GROUP_BOOK")
     comment = general.comments.create!(user: member, content: "FILTER_GROUP_COMMENT")
+    hidden_jjaek = member.jjaeks.create!(group: active_group, content: "FILTER_GROUP_HIDDEN_JJAEK")
+    Jjaeks::Hide.new(hidden_jjaek, actor: admin, public_reason: "other").call!
+    hidden_comment = general.comments.create!(user: member, content: "FILTER_GROUP_HIDDEN_COMMENT")
+    Comments::Hide.new(hidden_comment, actor: admin, public_reason: "other").call!
     deleted = member.jjaeks.create!(group: active_group, content: "FILTER_GROUP_DELETED")
     preservation_comment = deleted.comments.create!(user: group_admin, content: "PRESERVE_FILTER_GROUP_DELETED")
     deleted.destroy_or_tombstone!
@@ -498,14 +505,19 @@ RSpec.describe "Admin group approvals", type: :request do
     filter_document = Nokogiri::HTML(response.body)
     expect(filter_document.at_css("input[name='content_q']")).to be_present
     expect(filter_document.at_css("select[name='content_status']")).to be_present
+    expect(filter_document.css("select[name='content_status'] option").map { |option| option.text.strip }).to eq(
+      [ "전체", "정상", "숨김", "삭제" ]
+    )
     expect(filter_document.at_css("select[name='content_sort']")).to be_present
     expect(filter_document.at_css("select[name='kind'], select[name='location']")).to be_nil
 
     {
-      { content_q: "filter-member@example.com" } => [ book_jjaek, comment, deleted ],
-      { content: "general" } => [ general, deleted ],
+      { content_q: "filter-member@example.com" } => [ book_jjaek, comment, hidden_jjaek, hidden_comment, deleted ],
+      { content: "general" } => [ general, hidden_jjaek, deleted ],
       { content: "book" } => [ book_jjaek ],
-      { content: "comments" } => [ comment, preservation_comment ],
+      { content: "comments" } => [ comment, hidden_comment, preservation_comment ],
+      { content_status: "active" } => [ general, book_jjaek, comment, preservation_comment ],
+      { content_status: "hidden" } => [ hidden_jjaek, hidden_comment ],
       { content_status: "deleted" } => [ deleted ],
       { content_q: "group_book", content: "book", content_status: "active" } => [ book_jjaek ]
     }.each do |filters, expected_records|
@@ -535,7 +547,7 @@ RSpec.describe "Admin group approvals", type: :request do
       page: 2
     }
     invalid_document = Nokogiri::HTML(response.body)
-    expect(invalid_document.css("#admin_group_content_timeline tbody tr").size).to eq(5)
+    expect(invalid_document.css("#admin_group_content_timeline tbody tr").size).to eq(7)
     expect(invalid_document.at_css("nav a[aria-current='page']").text.strip).to eq("전체")
     expect(invalid_document.at_css("input[name='content_q']")["value"]).to be_blank
 

@@ -276,7 +276,7 @@ ko:
         source: "원문"
       statuses:
         active: "정상"
-        hidden: "운영 숨김"
+        hidden: "숨김"
         deleted: "삭제"
       filters:
         all: "전체"

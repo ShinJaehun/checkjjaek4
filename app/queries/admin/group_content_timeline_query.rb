@@ -1,7 +1,7 @@
 module Admin
   class GroupContentTimelineQuery
     PER_PAGE = InventoryPage::PER_PAGE
-    STATUSES = %w[active deleted].freeze
+    STATUSES = %w[active hidden deleted].freeze
     SORT_DIRECTIONS = { "recent" => "DESC", "oldest" => "ASC" }.freeze
     TimelineItem = Struct.new(:record_type, :record, :kind, keyword_init: true)
 
@@ -75,9 +75,14 @@ module Admin
     def apply_status
       return unless STATUSES.include?(@params[:content_status])
 
-      if @params[:content_status] == "active"
-        @jjaek_scope = @jjaek_scope.where(deleted_at: nil)
-      else
+      case @params[:content_status]
+      when "active"
+        @jjaek_scope = @jjaek_scope.where(deleted_at: nil, hidden_at: nil)
+        @comment_scope = @comment_scope.where(hidden_at: nil)
+      when "hidden"
+        @jjaek_scope = @jjaek_scope.where(deleted_at: nil).where.not(hidden_at: nil)
+        @comment_scope = @comment_scope.where.not(hidden_at: nil)
+      when "deleted"
         @jjaek_scope = @jjaek_scope.where.not(deleted_at: nil)
         @comment_scope = @comment_scope.none
       end

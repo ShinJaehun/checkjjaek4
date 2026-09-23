@@ -296,6 +296,8 @@ RSpec.describe "Admin user inventory", type: :request do
     hidden_jjaek = reader.jjaeks.create!(content: "USER_HIDDEN_CONTENT")
     Jjaeks::Hide.new(hidden_jjaek, actor: admin, public_reason: "other").call!
     comment = source.comments.create!(user: reader, content: "USER_COMMENT_CONTENT")
+    hidden_comment = source.comments.create!(user: reader, content: "USER_HIDDEN_COMMENT_CONTENT")
+    Comments::Hide.new(hidden_comment, actor: admin, public_reason: "other").call!
     deleted_comment_source = group_admin.jjaeks.create!(content: "DELETED_COMMENT_SOURCE")
     deleted_source_comment = deleted_comment_source.comments.create!(user: reader, content: "COMMENT_ON_DELETED_SOURCE")
     deleted_comment_source.destroy_or_tombstone!
@@ -336,7 +338,8 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(comment_row.at_css("[data-field='reference']").text).not_to include("짹 ·", "책짹 ·", "다시짹 ·")
     expect(deleted_comment_source_row.at_css("[data-field='reference']").text).to include(group_admin.name, "-")
     expect(timeline.at_css("#timeline_jjaek_#{deleted_jjaek.id} [data-field='status']").text.strip).to eq("삭제")
-    expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status']").text.strip).to eq("운영 숨김")
+    expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status']").text.strip).to eq("숨김")
+    expect(timeline.at_css("#timeline_comment_#{hidden_comment.id} [data-field='status']").text.strip).to eq("숨김")
     expect(personal_row.at_css("[data-field='status']").text.strip).to eq("-")
     expect(personal_row.at_css("[data-field='actions'] a").text.strip).to eq("바로가기")
     expect(personal_row.at_css("a[href='#{jjaek_path(personal_jjaek)}']")).to be_present
@@ -356,6 +359,10 @@ RSpec.describe "Admin user inventory", type: :request do
     source = group_admin.jjaeks.create!(content: "FILTER_SOURCE")
     requote = reader.jjaeks.create!(quoted_jjaek: source, content: "FILTER_REQUOTE_MATCH")
     comment = source.comments.create!(user: reader, content: "FILTER_COMMENT_MATCH")
+    hidden_jjaek = reader.jjaeks.create!(content: "FILTER_HIDDEN_JJAEK")
+    Jjaeks::Hide.new(hidden_jjaek, actor: admin, public_reason: "other").call!
+    hidden_comment = source.comments.create!(user: reader, content: "FILTER_HIDDEN_COMMENT")
+    Comments::Hide.new(hidden_comment, actor: admin, public_reason: "other").call!
     deleted = reader.jjaeks.create!(content: "FILTER_DELETED_MATCH")
     deleted.comments.create!(user: group_admin, content: "PRESERVE_FILTER_DELETED")
     deleted.destroy_or_tombstone!
@@ -372,15 +379,20 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(document.at_css("input[name='q']")).to be_present
     expect(document.at_css("select[name='location']")).to be_present
     expect(document.at_css("select[name='status']")).to be_present
+    expect(document.css("select[name='status'] option").map { |option| option.text.strip }).to eq(
+      [ "전체", "정상", "숨김", "삭제" ]
+    )
     expect(document.at_css("select[name='sort']")).to be_present
 
     {
       { q: "personal_match" } => [ personal ],
-      { content: "general" } => [ personal, group_general, deleted ],
+      { content: "general" } => [ personal, group_general, hidden_jjaek, deleted ],
       { content: "book" } => [ book_jjaek ],
       { content: "requote" } => [ requote ],
-      { content: "comments" } => [ comment ],
+      { content: "comments" } => [ comment, hidden_comment ],
       { location: "group" } => [ group_general ],
+      { status: "active" } => [ personal, group_general, book_jjaek, requote, comment ],
+      { status: "hidden" } => [ hidden_jjaek, hidden_comment ],
       { status: "deleted" } => [ deleted ],
       { q: "group_match", content: "general", location: "group", status: "active" } => [ group_general ]
     }.each do |filters, expected_records|
@@ -406,7 +418,7 @@ RSpec.describe "Admin user inventory", type: :request do
     }
     expect(response).to have_http_status(:ok)
     invalid_document = Nokogiri::HTML(response.body)
-    expect(invalid_document.css("#admin_user_content_timeline tbody tr").size).to eq(6)
+    expect(invalid_document.css("#admin_user_content_timeline tbody tr").size).to eq(8)
     expect(invalid_document.at_css("nav a[aria-current='page']").text.strip).to eq("전체")
 
     get admin_user_path(reader), params: {
