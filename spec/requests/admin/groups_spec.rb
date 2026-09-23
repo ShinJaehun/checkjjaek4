@@ -203,7 +203,7 @@ RSpec.describe "Admin group approvals", type: :request do
     )
     expect(entries.map { |entry| entry["data-history-kind"] }).to eq(%w[lifecycle platform platform platform])
     expect(entries[0].text).to include("동아리 개설", "동아리 운영", "Reading together")
-    expect(entries[0].text).not_to include("플랫폼 조치", "First review", "Appeal accepted", "Third review")
+    expect(entries[0].text).not_to include("운영 제한", "First review", "Appeal accepted", "Third review")
     expect(entries[1].text).to include(
       "동아리 운영 정지", "시스템 관리자", admin.name,
       I18n.l(first_suspension.created_at, format: :short), "반복적인 운영 정책 위반", "First review"
@@ -218,7 +218,7 @@ RSpec.describe "Admin group approvals", type: :request do
       "동아리 운영 정지", "시스템 관리자", admin.name,
       I18n.l(second_suspension.created_at, format: :short), "기타 운영 정책 위반", "Third review"
     )
-    entries.drop(1).each { |entry| expect(entry.text).to include("플랫폼 조치") }
+    entries.drop(1).each { |entry| expect(entry.text).to include("운영 제한") }
     expect(entries.drop(1).map(&:text).join).not_to include("Reading together", "repeated_policy_violations")
   end
 
@@ -298,6 +298,70 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get admin_groups_path, params: { q: "Pending club", status: "pending_approval" }
     expect(listed_group_ids).to eq([ group.id ])
+  end
+
+  it "shows lifecycle and platform operation statuses separately" do
+    normal_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Normal club", group_type: :public_group)
+    suspended_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Suspended club", group_type: :public_group, operation_suspended_at: Time.current)
+    inactive_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Inactive club", group_type: :public_group)
+    inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+    sign_in admin
+
+    get admin_groups_path
+
+    document = Nokogiri::HTML(response.body)
+    expect(document.css("thead th").map { |header| header.text.strip }).to include("동아리 상태", "운영 제한")
+    expect(document.at_css("#group_#{normal_group.id} [data-field='operation-status']").text.strip).to eq("없음")
+    expect(document.at_css("#group_#{suspended_group.id} [data-field='operation-status']").text.strip).to eq("운영 정지")
+    expect(document.at_css("#group_#{group.id} [data-field='operation-status']").text.strip).to eq("-")
+    expect(document.at_css("#group_#{inactive_group.id} [data-field='operation-status']").text.strip).to eq("-")
+  end
+
+  it "filters active groups by platform operation status" do
+    normal_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Normal filter club", group_type: :public_group)
+    suspended_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Suspended filter club", group_type: :public_group, operation_suspended_at: Time.current)
+    inactive_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Inactive filter club", group_type: :public_group)
+    inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+    sign_in admin
+
+    get admin_groups_path, params: { operation_status: "normal" }
+    expect(listed_group_ids).to eq([ normal_group.id ])
+
+    get admin_groups_path, params: { operation_status: "suspended" }
+    expect(listed_group_ids).to eq([ suspended_group.id ])
+
+    get admin_groups_path, params: { status: "active", operation_status: "suspended" }
+    expect(listed_group_ids).to eq([ suspended_group.id ])
+
+    get admin_groups_path, params: { status: "inactive", operation_status: "normal" }
+    expect(listed_group_ids).to be_empty
+
+    get admin_groups_path, params: { q: "filter club", operation_status: "invalid" }
+    expect(listed_group_ids).to match_array([ normal_group.id, suspended_group.id, inactive_group.id ])
+  end
+
+  it "preserves platform operation status across inventory detail navigation" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Navigation club", group_type: :public_group)
+    inventory_params = {
+      q: "Navigation club",
+      group_type: "public_group",
+      status: "active",
+      operation_status: "normal",
+      sort: "name",
+      page: 1
+    }
+    sign_in admin
+
+    get admin_groups_path, params: inventory_params
+
+    detail_path = admin_group_path(active_group, inventory_params)
+    document = Nokogiri::HTML(response.body)
+    expect(document.at_css("#group_#{active_group.id} a[href='#{detail_path}']")).to be_present
+
+    get detail_path
+
+    back_link = Nokogiri::HTML(response.body).css("a").find { |link| link.text.include?("동아리 운영 관리로") }
+    expect(back_link["href"]).to eq(admin_groups_path(inventory_params))
   end
 
   it "applies whitelisted sorts and ignores invalid values" do

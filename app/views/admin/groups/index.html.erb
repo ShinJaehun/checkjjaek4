@@ -8,6 +8,7 @@
     <%= f.search_field :q, value: params[:q], placeholder: t("admin.groups.filters.search"), class: "min-w-0 rounded border p-2 lg:flex-1" %>
     <%= f.select :group_type, options_for_select([[t("admin.filters.all"), ""]] + Group.group_types.keys.map { |type| [t("admin.groups.types.#{type}"), type] }, params[:group_type]), {}, class: "rounded border p-2" %>
     <%= f.select :status, options_for_select([[t("admin.filters.all"), ""]] + Group.lifecycle_statuses.keys.map { |status| [t("admin.groups.lifecycle_statuses.#{status}"), status] }, params[:status]), {}, class: "rounded border p-2" %>
+    <%= f.select :operation_status, options_for_select([[t("admin.filters.all"), ""], [t("admin.groups.operation_statuses.normal"), "normal"], [t("admin.groups.operation_statuses.suspended"), "suspended"]], params[:operation_status]), {}, class: "rounded border p-2" %>
     <%= f.select :sort, options_for_select([[t("admin.sorts.recent"), "recent"], [t("admin.sorts.oldest"), "oldest"], [t("admin.sorts.name"), "name"]], params[:sort]), {}, class: "rounded border p-2" %>
     <%= f.submit t("admin.filters.apply"), class: "whitespace-nowrap rounded bg-stone-900 p-2 text-white" %>
     <%= link_to t("admin.filters.reset"), admin_groups_path, class: "whitespace-nowrap p-2 underline" %>
@@ -20,6 +21,7 @@
           <th class="p-3"><%= t("admin.groups.fields.name") %></th>
           <th class="p-3"><%= t("admin.groups.fields.type") %></th>
           <th class="p-3"><%= t("admin.groups.fields.status") %></th>
+          <th class="p-3"><%= t("admin.groups.fields.operation_status") %></th>
           <th class="p-3"><%= t("admin.groups.fields.group_admin") %></th>
           <th class="p-3"><%= t("admin.groups.fields.active_members") %></th>
           <th class="p-3"><%= t("admin.groups.fields.created") %></th>
@@ -36,6 +38,13 @@
               <% if group.pending_approval? %>
                 <br>
                 <span class="text-xs"><%= t(group.closed_at.present? ? "admin.groups.request_types.reactivation" : "admin.groups.request_types.initial") %></span>
+              <% end %>
+            </td>
+            <td class="p-3" data-field="operation-status">
+              <% if group.active? %>
+                <%= t("admin.groups.operation_statuses.#{group.operation_suspended? ? 'suspended' : 'normal'}") %>
+              <% else %>
+                -
               <% end %>
             </td>
             <td class="p-3">

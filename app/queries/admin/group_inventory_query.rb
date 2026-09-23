@@ -10,6 +10,8 @@ module Admin
       result = result.where("groups.name ILIKE :term OR users.name ILIKE :term OR users.email ILIKE :term", term: "%#{ActiveRecord::Base.sanitize_sql_like(term)}%") if term.present?
       result = result.where(group_type: @params[:group_type]) if Group.group_types.key?(@params[:group_type])
       result = result.where(lifecycle_status: @params[:status]) if Group.lifecycle_statuses.key?(@params[:status])
+      result = result.where(lifecycle_status: :active, operation_suspended_at: nil) if @params[:operation_status] == "normal"
+      result = result.where(lifecycle_status: :active).where.not(operation_suspended_at: nil) if @params[:operation_status] == "suspended"
       result.order(SORTS.fetch(@params[:sort].to_s, SORTS["recent"]))
     end
   end

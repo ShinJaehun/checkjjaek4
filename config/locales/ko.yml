@@ -391,6 +391,9 @@ ko:
         pending_approval: "승인 대기"
         active: "운영"
         inactive: "중지"
+      operation_statuses:
+        normal: "없음"
+        suspended: "운영 정지"
       operation_moderation:
         reason: "사유"
         title: "운영 관리"
@@ -412,7 +415,7 @@ ko:
             public_reason_hint: "동아리 운영 조치 이력에 기록됩니다."
         history:
           lifecycle_badge: "동아리 운영"
-          platform_badge: "플랫폼 조치"
+          platform_badge: "운영 제한"
           reason: "사유"
           memo: "메모"
           events:
@@ -429,7 +432,8 @@ ko:
       fields:
         name: "동아리"
         type: "종류"
-        status: "운영 상태"
+        status: "동아리 상태"
+        operation_status: "운영 제한"
         group_admin: "동아리 관리자"
         active_members: "활동 회원"
         created: "생성 시각"

@@ -37,7 +37,7 @@ module Admin
         params:
       ).call
       @timeline_items = @timeline_page.records
-      @return_params = params.permit(:q, :group_type, :status, :sort, :page)
+      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
     end
 
     def approve

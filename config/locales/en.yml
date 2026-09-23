@@ -364,6 +364,9 @@ en:
         pending_approval: "Pending approval"
         active: "Operating"
         inactive: "Stopped"
+      operation_statuses:
+        normal: "None"
+        suspended: "Operation suspended"
       operation_moderation:
         reason: "Reason"
         title: "Operation management"
@@ -385,7 +388,7 @@ en:
             public_reason_hint: "Recorded in the club operation moderation history."
         history:
           lifecycle_badge: "Club lifecycle"
-          platform_badge: "Platform action"
+          platform_badge: "Operation restriction"
           reason: "Reason"
           memo: "Memo"
           events:
@@ -403,6 +406,7 @@ en:
         name: "Club"
         type: "Type"
         status: "Lifecycle"
+        operation_status: "Operation restriction"
         group_admin: "Club admin"
         active_members: "Active members"
         created: "Created"
