@@ -3,8 +3,11 @@
     <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p class="text-sm font-medium text-amber-700">
-            <%= @group.active? && @group.operation_suspended? ? t("groups.operation_suspension.label") : t("groups.lifecycle_statuses.#{@group.lifecycle_status}") %>
+          <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-stone-600">
+            <%= t("admin.groups.current_status_label") %>:
+            <span class="rounded-full px-2 py-1 text-xs <%= admin_group_status_badge_classes(@group) %>">
+              <%= admin_group_current_status(@group) %>
+            </span>
           </p>
           <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= @group.name %></h1>
           <p class="mt-2 text-sm text-stone-500"><%= t("groups.types.#{@group.group_type}") %> · <%= t("groups.group_admin", name: @group.group_admin.name) %></p>
@@ -43,26 +46,20 @@
 
     </section>
 
-    <section id="group_operation_moderation" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
-      <h2 class="font-semibold"><%= t("admin.groups.operation_moderation.title") %></h2>
-      <p class="mt-3 font-medium">
-        <%= t("admin.groups.operation_moderation.status") %>:
-        <span class="inline-flex rounded-full bg-amber-200 px-2 py-0.5 text-xs">
-          <%= @group.operation_suspended? ? t("admin.groups.operation_moderation.suspended_status") : t("admin.groups.operation_moderation.active_status") %>
-        </span>
-      </p>
+    <% if @can_suspend_operation || @can_restore_operation %>
+      <section id="group_operation_moderation" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
+        <h2 class="font-semibold"><%= t("admin.groups.operation_moderation.title") %></h2>
 
-      <% if @current_operation_suspension.present? %>
-        <div class="mt-4 rounded-2xl border border-amber-200 bg-white/70 p-4">
-          <p class="font-semibold"><%= t("admin.groups.operation_moderation.current_suspension") %></p>
-          <p class="mt-2 whitespace-pre-wrap"><%= t("admin.groups.operation_moderation.public_reason") %>: <%= Group.suspension_reason_label(@current_operation_suspension.public_reason) %></p>
-          <% if @current_operation_suspension.internal_note.present? %>
-            <p class="mt-2 whitespace-pre-wrap"><%= t("admin.groups.operation_moderation.internal_note") %>: <%= @current_operation_suspension.internal_note %></p>
-          <% end %>
-        </div>
-      <% end %>
+        <% if @current_operation_suspension.present? %>
+          <div class="mt-4 rounded-2xl border border-amber-200 bg-white/70 p-4">
+            <p class="font-semibold"><%= t("admin.groups.operation_moderation.current_suspension") %></p>
+            <p class="mt-2 whitespace-pre-wrap"><%= t("admin.groups.operation_moderation.public_reason") %>: <%= Group.suspension_reason_label(@current_operation_suspension.public_reason) %></p>
+            <% if @current_operation_suspension.internal_note.present? %>
+              <p class="mt-2 whitespace-pre-wrap"><%= t("admin.groups.operation_moderation.internal_note") %>: <%= @current_operation_suspension.internal_note %></p>
+            <% end %>
+          </div>
+        <% end %>
 
-      <% if @can_suspend_operation || @can_restore_operation %>
         <% moderation_action = @can_suspend_operation ? :suspend : :restore %>
         <% action_path = @can_suspend_operation ? suspend_operation_admin_group_path(@group) : restore_operation_admin_group_path(@group) %>
         <% submit_label = @can_suspend_operation ? t("admin.groups.actions.suspend_operation") : t("admin.groups.actions.restore_operation") %>
@@ -106,8 +103,8 @@
             <%= form.submit submit_label, class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
           <% end %>
         </details>
-      <% end %>
-    </section>
+      </section>
+    <% end %>
 
     <%= render "groups/operation_history",
                lifecycle_events: @lifecycle_events,

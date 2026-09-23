@@ -106,13 +106,12 @@ en:
       title: "Operations history"
       empty: "No operations history has been recorded."
       not_recorded: "Not recorded"
-      lifecycle_badge: "Club operation"
       events:
-        opening_requested: "Group opening requested"
-        opening_approved: "Group opening approved"
-        operations_closed: "Group operations closed"
-        reactivation_requested: "Group reactivation requested"
-        reactivation_approved: "Group reactivation approved"
+        opening_requested: "Opening requested"
+        opening_approved: "Approved"
+        operations_closed: "Closed"
+        reactivation_requested: "Reactivation requested"
+        reactivation_approved: "Reactivation approved"
       details:
         application_purpose: "Opening purpose"
         closure_reason: "Closure reason"
@@ -139,12 +138,12 @@ en:
         reactivation_requested_at: "Requested"
         reactivation_approved_at: "Approved"
       platform:
-        badge: "Operation restriction"
+        badge: "Operation management"
         reason: "Reason"
         memo: "Memo"
         events:
-          suspend_group_operation: "Club operation suspended"
-          restore_group_operation: "Club operation restored"
+          suspend_group_operation: "Operation suspended"
+          restore_group_operation: "Operation restored"
     index:
       title: "Reading clubs"
       description: "Find a reading community to read and talk with."
@@ -387,9 +386,16 @@ en:
       lifecycle_statuses:
         pending_approval: "Pending approval"
         active: "Operating"
-        inactive: "Stopped"
+        inactive: "Closed"
       operation_statuses:
-        normal: "None"
+        normal: "Operating normally"
+        suspended: "Operation suspended"
+      current_status_label: "Current status"
+      current_statuses:
+        pending_approval: "Pending approval"
+        active: "Operating normally"
+        inactive: "Closed"
+        reactivation_pending: "Reactivation approval pending"
         suspended: "Operation suspended"
       operation_moderation:
         reason: "Reason"
@@ -404,22 +410,22 @@ en:
         platform_authority: "System admin"
         forms:
           suspend:
-            trigger: "Suspend"
+            trigger: "Suspend operation"
             public_reason: "Suspension reason"
             public_reason_hint: "Shown to the suspended club's admin."
             reason_prompt: "Select a suspension reason"
           restore:
-            trigger: "Restore"
+            trigger: "Restore operation"
             public_reason: "Restoration reason"
             public_reason_hint: "Recorded in the club operation moderation history."
         history:
           lifecycle_badge: "Club lifecycle"
-          platform_badge: "Operation restriction"
+          platform_badge: "Operation management"
           reason: "Reason"
           memo: "Memo"
           events:
-            suspend_group_operation: "Club operation suspended"
-            restore_group_operation: "Club operation restored"
+            suspend_group_operation: "Operation suspended"
+            restore_group_operation: "Operation restored"
       index:
         title: "Club operations"
         description: "Search and review club lifecycle information and pending approvals."
@@ -431,15 +437,15 @@ en:
       fields:
         name: "Club"
         type: "Type"
-        status: "Lifecycle"
-        operation_status: "Operation restriction"
+        status: "Status"
+        operation_status: "Status"
         group_admin: "Club admin"
         active_members: "Active members"
         created: "Created"
         actions: "Actions"
       actions:
-        suspend_operation: "Suspend club operation"
-        restore_operation: "Restore club operation"
+        suspend_operation: "Suspend operation"
+        restore_operation: "Restore operation"
         approve: "Approve"
         show: "View operations"
         back: "Back to club operations"

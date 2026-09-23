@@ -107,16 +107,15 @@ ko:
       empty: "기록된 운영 이력이 없습니다."
       not_recorded: "기록 없음"
       events:
-        opening_requested: "동아리 개설 신청"
-        opening_approved: "동아리 개설 승인"
-        operations_closed: "동아리 운영 종료"
-        reactivation_requested: "동아리 재운영 신청"
-        reactivation_approved: "동아리 재운영 승인"
+        opening_requested: "개설 신청"
+        opening_approved: "승인"
+        operations_closed: "종료"
+        reactivation_requested: "재운영 신청"
+        reactivation_approved: "재운영 승인"
       details:
         application_purpose: "개설 목적"
         closure_reason: "운영 종료 사유"
         reactivation_reason: "재운영 신청 사유"
-      lifecycle_badge: "동아리 운영"
       actor:
         label: "%{role} %{name}"
         unknown: "처리자 기록 없음"
@@ -139,12 +138,12 @@ ko:
         reactivation_requested_at: "신청"
         reactivation_approved_at: "승인"
       platform:
-        badge: "운영 제한"
+        badge: "운영 관리"
         reason: "사유"
         memo: "메모"
         events:
-          suspend_group_operation: "동아리 운영 정지"
-          restore_group_operation: "동아리 운영 복구"
+          suspend_group_operation: "운영 정지"
+          restore_group_operation: "운영 복구"
     index:
       title: "독서 동아리"
       description: "내 동아리와 최근 독서 활동을 확인합니다."
@@ -414,9 +413,16 @@ ko:
       lifecycle_statuses:
         pending_approval: "승인 대기"
         active: "운영"
-        inactive: "중지"
+        inactive: "종료"
       operation_statuses:
-        normal: "없음"
+        normal: "정상 운영"
+        suspended: "운영 정지"
+      current_status_label: "현재 상태"
+      current_statuses:
+        pending_approval: "승인 대기"
+        active: "정상 운영"
+        inactive: "종료"
+        reactivation_pending: "재운영 승인 대기"
         suspended: "운영 정지"
       operation_moderation:
         reason: "사유"
@@ -431,22 +437,22 @@ ko:
         platform_authority: "시스템 관리자"
         forms:
           suspend:
-            trigger: "정지"
+            trigger: "운영 정지"
             public_reason: "정지 사유"
             public_reason_hint: "정지된 동아리의 관리자에게 표시됩니다."
             reason_prompt: "정지 사유를 선택하세요"
           restore:
-            trigger: "복구"
+            trigger: "운영 복구"
             public_reason: "복구 사유"
             public_reason_hint: "동아리 운영 조치 이력에 기록됩니다."
         history:
           lifecycle_badge: "동아리 운영"
-          platform_badge: "운영 제한"
+          platform_badge: "운영 관리"
           reason: "사유"
           memo: "메모"
           events:
-            suspend_group_operation: "동아리 운영 정지"
-            restore_group_operation: "동아리 운영 복구"
+            suspend_group_operation: "운영 정지"
+            restore_group_operation: "운영 복구"
       index:
         title: "동아리 운영 관리"
         description: "동아리 운영 상태를 검색하고 승인 대기 신청을 확인합니다."
@@ -458,15 +464,15 @@ ko:
       fields:
         name: "동아리"
         type: "종류"
-        status: "동아리 상태"
-        operation_status: "운영 제한"
+        status: "상태"
+        operation_status: "상태"
         group_admin: "동아리 관리자"
         active_members: "활동 회원"
         created: "생성 시각"
         actions: "작업"
       actions:
-        suspend_operation: "동아리 운영 정지"
-        restore_operation: "동아리 운영 복구"
+        suspend_operation: "운영 정지"
+        restore_operation: "운영 복구"
         approve: "운영 승인"
         show: "운영 정보 보기"
         back: "동아리 운영 관리로"
