@@ -322,6 +322,11 @@ en:
         global_admin: "Global admin"
         group_admin: "Club admin"
         regular: "Regular user"
+      sections:
+        group_relationships: "Club relationships"
+      empty:
+        administered_groups: "No administered clubs."
+        joined_groups: "No joined clubs."
       fields:
         user: "User"
         avatar: "User avatar"
@@ -332,11 +337,10 @@ en:
         latest_activity: "Latest activity"
         joined: "Joined"
         actions: "Actions"
-        updated: "Updated"
         withdrawn: "Withdrawn"
         suspended: "Suspended"
         groups: "Administered clubs"
-        memberships: "Club memberships"
+        memberships: "Joined clubs"
       actions:
         suspend: "Suspend account"
         restore: "Restore account"

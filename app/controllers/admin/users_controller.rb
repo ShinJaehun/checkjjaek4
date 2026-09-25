@@ -21,7 +21,7 @@ module Admin
       @can_restore = policy(@user).restore?
       @account_history_entries = UserAccountHistoryQuery.new(@user).call
       @administered_groups = @user.administered_groups.order(created_at: :desc).load
-      @membership_counts = @user.group_memberships.group(:status).count
+      @joined_groups = @user.joined_groups.order(created_at: :desc).load
     end
 
     def content

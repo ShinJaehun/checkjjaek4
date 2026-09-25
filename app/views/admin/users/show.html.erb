@@ -1,45 +1,103 @@
-<section class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2 space-y-5">
-  <div class="max-w-4xl space-y-5">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-3xl font-semibold"><%= @user.name %></h1>
-      <%= link_to t("admin.actions.content"),
-                  content_admin_user_path(@user),
-                  class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
-    </div>
-
-    <dl class="grid gap-3 rounded-2xl border bg-white p-5 md:grid-cols-2">
-      <%
-        {
-          "ID" => @user.id,
-          t("admin.users.fields.email") => (@user.withdrawn? ? "-" : @user.email),
-          t("admin.users.fields.status") => t("admin.users.statuses.#{@account_status}"),
-          t("admin.users.fields.joined") => l(@user.created_at, format: :short),
-          t("admin.users.fields.updated") => l(@user.updated_at, format: :short),
-          t("admin.users.fields.withdrawn") => (@user.withdrawn_at && l(@user.withdrawn_at, format: :short)),
-          t("admin.users.fields.suspended") => (@user.suspended_at && l(@user.suspended_at, format: :short))
-        }.each do |label, value|
-      %>
-        <div>
-          <dt class="text-xs text-stone-500"><%= label %></dt>
-          <dd><%= value.presence || "-" %></dd>
+<section class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2">
+  <div class="mx-auto max-w-5xl space-y-6">
+    <section id="admin_user_identity" class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-5">
+        <div class="flex min-w-0 items-center gap-4">
+          <%= user_avatar_image(@user,
+                                size: 128,
+                                alt: @user.name,
+                                class: "h-20 w-20 shrink-0 rounded-full object-cover") %>
+          <div class="min-w-0">
+            <h1 class="truncate text-3xl font-semibold tracking-tight text-stone-900"><%= @user.name %></h1>
+            <p class="mt-1 truncate text-sm text-stone-500" data-field="email"><%= @user.withdrawn? ? "-" : @user.email %></p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <%
+                status_classes = case @account_status
+                when :active then "bg-emerald-100 text-emerald-800"
+                when :suspended then "bg-red-100 text-red-800"
+                else "bg-stone-200 text-stone-700"
+                end
+              %>
+              <span class="rounded-full px-2 py-1 text-xs <%= status_classes %>" data-field="account-status">
+                <%= t("admin.users.statuses.#{@account_status}") %>
+              </span>
+              <% if @user.global_admin? %>
+                <span class="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-900" data-role="global-admin">
+                  <%= t("admin.users.roles.global_admin") %>
+                </span>
+              <% end %>
+              <% if @administered_groups.any? %>
+                <span class="rounded-full bg-sky-100 px-2 py-1 text-xs text-sky-900" data-role="group-admin">
+                  <%= t("admin.users.roles.group_admin") %>
+                </span>
+              <% end %>
+              <% unless @user.global_admin? || @administered_groups.any? %>
+                <span class="rounded-full bg-stone-100 px-2 py-1 text-xs text-stone-700" data-role="regular">
+                  <%= t("admin.users.roles.regular") %>
+                </span>
+              <% end %>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
+              <span data-field="joined-at">
+                <%= t("admin.users.fields.joined") %>: <%= l(@user.created_at, format: :short) %>
+              </span>
+              <% if @user.suspended_at %>
+                <span data-field="suspended-at">
+                  <%= t("admin.users.fields.suspended") %>: <%= l(@user.suspended_at, format: :short) %>
+                </span>
+              <% end %>
+              <% if @user.withdrawn_at %>
+                <span data-field="withdrawn-at">
+                  <%= t("admin.users.fields.withdrawn") %>: <%= l(@user.withdrawn_at, format: :short) %>
+                </span>
+              <% end %>
+            </div>
+          </div>
         </div>
-      <% end %>
 
-      <div>
-        <dt class="text-xs text-stone-500"><%= t("admin.users.fields.role") %></dt>
-        <dd class="mt-1 flex flex-wrap gap-1">
-          <% if @user.global_admin? %>
-            <span class="rounded-full bg-amber-100 px-2 py-1"><%= t("admin.users.roles.global_admin") %></span>
-          <% end %>
-          <% if @administered_groups.any? %>
-            <span class="rounded-full bg-sky-100 px-2 py-1"><%= t("admin.users.roles.group_admin") %></span>
-          <% end %>
-          <% unless @user.global_admin? || @administered_groups.any? %>
-            <span class="rounded-full bg-stone-100 px-2 py-1"><%= t("admin.users.roles.regular") %></span>
-          <% end %>
-        </dd>
+        <%= link_to t("admin.actions.content"),
+                    content_admin_user_path(@user),
+                    class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
       </div>
-    </dl>
+    </section>
+
+    <section id="group_relationships" class="rounded-3xl border border-stone-200 bg-white p-5">
+      <h2 class="text-lg font-semibold text-stone-900"><%= t("admin.users.sections.group_relationships") %></h2>
+
+      <div class="mt-4" id="administered_groups">
+        <h3 class="text-sm font-semibold text-stone-700"><%= t("admin.users.fields.groups") %></h3>
+        <% if @administered_groups.any? %>
+          <ul class="mt-2 flex flex-wrap gap-2">
+            <% @administered_groups.each do |group| %>
+              <li>
+                <%= link_to group.name,
+                            admin_group_path(group),
+                            class: "inline-flex rounded-full bg-sky-50 px-3 py-1.5 text-sm text-sky-900 underline" %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="mt-2 text-sm text-stone-500"><%= t("admin.users.empty.administered_groups") %></p>
+        <% end %>
+      </div>
+
+      <div class="mt-5" id="joined_groups">
+        <h3 class="text-sm font-semibold text-stone-700"><%= t("admin.users.fields.memberships") %></h3>
+        <% if @joined_groups.any? %>
+          <ul class="mt-2 flex flex-wrap gap-2">
+            <% @joined_groups.each do |group| %>
+              <li>
+                <%= link_to group.name,
+                            admin_group_path(group),
+                            class: "inline-flex rounded-full bg-stone-100 px-3 py-1.5 text-sm text-stone-700 underline" %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="mt-2 text-sm text-stone-500"><%= t("admin.users.empty.joined_groups") %></p>
+        <% end %>
+      </div>
+    </section>
 
     <% if @current_suspension_action || @can_suspend || @can_restore %>
       <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
@@ -92,19 +150,5 @@
     <% end %>
 
     <%= render "admin/users/account_history", entries: @account_history_entries %>
-
-    <h2 class="text-xl font-semibold"><%= t("admin.users.fields.groups") %></h2>
-    <ul>
-      <% @administered_groups.each do |group| %>
-        <li><%= link_to group.name, admin_group_path(group), class: "underline" %></li>
-      <% end %>
-    </ul>
-
-    <h2 class="text-xl font-semibold"><%= t("admin.users.fields.memberships") %></h2>
-    <ul class="flex flex-wrap gap-3">
-      <% @membership_counts.each do |status, count| %>
-        <li><%= t("group_memberships.statuses.#{status}") %>: <%= count %></li>
-      <% end %>
-    </ul>
   </div>
 </section>

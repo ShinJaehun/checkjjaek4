@@ -75,6 +75,56 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  it "presents identity, Group relationships, moderation, and history" do
+    managed_group = Group.create!(
+      lifecycle_status: :active,
+      group_admin: reader,
+      name: "Reader managed club",
+      group_type: :public_group
+    )
+    membership_group = Group.create!(
+      lifecycle_status: :active,
+      group_admin: admin,
+      name: "Reader membership club",
+      group_type: :public_group
+    )
+    GroupMembership.create!(group: membership_group, user: reader, status: :active)
+    sign_in admin
+
+    get admin_user_path(reader)
+    document = Nokogiri::HTML(response.body)
+    identity = document.at_css("#admin_user_identity")
+    group_relationships = document.at_css("#group_relationships")
+
+    expect(identity.at_css("img")['alt']).to eq(reader.name)
+    expect(identity.text).to include(reader.name, reader.email, "정상", "동아리 관리자")
+    expect(identity.at_css("[data-field='joined-at']").text).to include(I18n.l(reader.created_at, format: :short))
+    expect(identity.at_css("[data-field='suspended-at']")).to be_nil
+    expect(identity.at_css("[data-field='withdrawn-at']")).to be_nil
+    expect(identity.at_css("[data-role='group-admin']")).to be_present
+    expect(identity.at_css("[data-role='regular']")).to be_nil
+    expect(identity.at_css("a[href='#{content_admin_user_path(reader)}']")).to be_present
+    expect(document.at_css("#account_information, [data-field='user-id']")).to be_nil
+    expect(document.text).not_to include("수정 시각")
+    expect(group_relationships.at_css("#administered_groups a[href='#{admin_group_path(managed_group)}']").text.strip).to eq(managed_group.name)
+    expect(group_relationships.at_css("#joined_groups a[href='#{admin_group_path(membership_group)}']").text.strip).to eq(membership_group.name)
+    expect(group_relationships.at_css("#joined_groups a[href='#{admin_group_path(managed_group)}']").text.strip).to eq(managed_group.name)
+    expect(group_relationships.at_css("[data-membership-status]")).to be_nil
+    expect(document.at_css(%(form[action="#{suspend_admin_user_path(reader)}"]))).to be_present
+    expect(document.at_css("#account_history [data-account-event='joined']")).to be_present
+
+    get admin_user_path(admin)
+    admin_identity = Nokogiri::HTML(response.body).at_css("#admin_user_identity")
+    expect(admin_identity.at_css("[data-role='global-admin']")).to be_present
+    expect(admin_identity.at_css("[data-role='group-admin']")).to be_present
+
+    get admin_user_path(withdrawn)
+    withdrawn_document = Nokogiri::HTML(response.body)
+    expect(withdrawn_document.at_css("#admin_user_identity [data-role='regular']")).to be_present
+    expect(withdrawn_document.at_css("#administered_groups").text).to include("관리 중인 동아리가 없습니다.")
+    expect(withdrawn_document.at_css("#joined_groups").text).to include("참여 중인 동아리가 없습니다.")
+  end
+
   it "combines name or email search with account and role filters" do
     sign_in admin
     get admin_users_path, params: { q: "alpha@", status: "active", role: "regular" }
@@ -174,6 +224,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(response).to redirect_to(admin_user_path(reader))
 
     get admin_user_path(reader)
+    suspended_document = Nokogiri::HTML(response.body)
     expect(response.body).to include(
       I18n.t("admin.users.statuses.suspended"),
       I18n.t("users.suspension_reasons.repeated_policy_violations"),
@@ -184,6 +235,10 @@ RSpec.describe "Admin user inventory", type: :request do
       I18n.t("admin.users.moderation.internal_note_hint"),
       admin.name
     )
+    expect(suspended_document.at_css("#admin_user_identity [data-field='suspended-at']").text).to include(
+      I18n.l(reader.suspended_at, format: :short)
+    )
+    expect(suspended_document.at_css("#admin_user_identity [data-field='withdrawn-at']")).to be_nil
     expect(response.body).not_to include("repeated_policy_violations")
 
     expect {
@@ -286,9 +341,12 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get admin_user_path(withdrawn)
     detail = Nokogiri::HTML(response.body)
-    email_label = detail.css("dt").find { |node| node.text.strip == I18n.t("admin.users.fields.email") }
     expect(response.body).to include("본인 탈퇴", I18n.l(withdrawn.withdrawn_at, format: :short))
-    expect(email_label.next_element.text.strip).to eq("-")
+    expect(detail.at_css("#admin_user_identity [data-field='email']").text.strip).to eq("-")
+    expect(detail.at_css("#admin_user_identity [data-field='withdrawn-at']").text).to include(
+      I18n.l(withdrawn.withdrawn_at, format: :short)
+    )
+    expect(detail.at_css("#admin_user_identity [data-field='suspended-at']")).to be_nil
     expect(response.body).not_to include(withdrawn.email)
     expect(detail.css("#account_history [data-account-event]").map { |entry| entry["data-account-event"] }).to eq(
       %w[joined withdrawn]

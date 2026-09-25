@@ -349,6 +349,11 @@ ko:
         global_admin: "Global admin"
         group_admin: "동아리 관리자"
         regular: "일반 사용자"
+      sections:
+        group_relationships: "동아리 관계"
+      empty:
+        administered_groups: "관리 중인 동아리가 없습니다."
+        joined_groups: "참여 중인 동아리가 없습니다."
       fields:
         user: "사용자"
         avatar: "사용자 이미지"
@@ -359,11 +364,10 @@ ko:
         latest_activity: "최근 활동"
         joined: "가입 시각"
         actions: "작업"
-        updated: "수정 시각"
         withdrawn: "탈퇴 시각"
         suspended: "정지 시각"
         groups: "관리 중인 동아리"
-        memberships: "동아리 참여 상태"
+        memberships: "참여 중인 동아리"
       actions:
         suspend: "계정 정지"
         restore: "계정 복구"
