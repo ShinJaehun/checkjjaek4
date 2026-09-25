@@ -141,11 +141,13 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_group_path(active_group)
     page = Nokogiri::HTML(response.body)
     moderation = page.at_css("#group_operation_moderation")
-    suspend_details = moderation.at_css("details[data-operation-action='suspend']")
+    suspend_card = moderation.at_css("[data-operation-action='suspend']")
     suspend_form = page.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))
     expect(suspend_form).to be_present
-    expect(suspend_details.at_css("summary").text.strip).to eq("운영 정지")
-    expect(suspend_details.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_present
+    expect(suspend_card.name).to eq("div")
+    expect(suspend_card.at_css("h3").text.strip).to eq("운영 정지")
+    expect(suspend_card.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_present
+    expect(moderation.at_css("details, summary")).to be_nil
     reason_select = suspend_form.at_css('select[name="moderation_action[public_reason]"]')
     expect(page.text.squish).to include("현재 상태: 정상 운영")
     expect(reason_select.css("option").map { |option| option["value"] }.reject(&:blank?)).to eq(Group::SUSPENSION_REASONS)
@@ -161,13 +163,15 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_group_path(active_group)
     page = Nokogiri::HTML(response.body)
     moderation = page.at_css("#group_operation_moderation")
-    restore_details = moderation.at_css("details[data-operation-action='restore']")
+    restore_card = moderation.at_css("[data-operation-action='restore']")
     restore_form = page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))
     expect(restore_form).to be_present
     expect(page.text.squish).to include("현재 상태: 운영 정지")
     expect(moderation.text).to include("반복적인 운영 정책 위반", "Internal review")
-    expect(restore_details.at_css("summary").text.strip).to eq("운영 복구")
-    expect(restore_details.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))).to be_present
+    expect(restore_card.name).to eq("div")
+    expect(restore_card.at_css("h3").text.strip).to eq("운영 복구")
+    expect(restore_card.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))).to be_present
+    expect(moderation.at_css("details, summary")).to be_nil
     expect(moderation.text).not_to include("repeated_policy_violations")
     expect(restore_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_present
     expect(restore_form.at_css('select[name="moderation_action[public_reason]"]')).to be_nil

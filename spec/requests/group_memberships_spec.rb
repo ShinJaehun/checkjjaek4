@@ -374,9 +374,10 @@ RSpec.describe "Group memberships", type: :request do
       expect(management.css("[data-member-action]").map { |action| action["data-member-action"] }).to eq(
         %w[suspend_activity remove ban_from_group]
       )
-      expect(management.css("summary").map { |summary| summary.text.strip }).to eq(
+      expect(management.css("[data-member-action] > h4").map { |heading| heading.text.strip }).to eq(
         [ "활동 정지", "내보내기", "이용 제한" ]
       )
+      expect(management.css("details, summary")).to be_empty
       expect(management.text).to include(
         "회원 자격은 유지하고 동아리 활동만 정지합니다.",
         "동아리에서 내보냅니다. 다시 가입할 수 있습니다.",
@@ -878,9 +879,10 @@ RSpec.describe "Group memberships", type: :request do
       expect(management.css("[data-member-action]").map { |action| action["data-member-action"] }).to eq(
         %w[restore_activity remove ban_from_group]
       )
-      expect(management.css("summary").map { |summary| summary.text.strip }).to eq(
+      expect(management.css("[data-member-action] > h4").map { |heading| heading.text.strip }).to eq(
         [ "활동 복구", "내보내기", "이용 제한" ]
       )
+      expect(management.css("details, summary")).to be_empty
       restore_form = management.at_css(%(form[action="#{restore_activity_group_group_membership_path(group, membership)}"]))
       ban_form = management.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))
       [ restore_form, ban_form ].each do |form|

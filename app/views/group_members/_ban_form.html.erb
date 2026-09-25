@@ -1,8 +1,8 @@
 <% membership_policy = local_assigns[:membership_policy] || policy(membership) %>
 
 <% if membership_policy.ban_from_group? %>
-  <details class="rounded-2xl border border-stone-200 p-4" data-member-action="ban_from_group">
-    <summary class="cursor-pointer text-sm font-semibold text-stone-800"><%= t("group_memberships.management.actions.ban_from_group") %></summary>
+  <div class="rounded-2xl border border-stone-200 p-4" data-member-action="ban_from_group">
+    <h4 class="text-sm font-semibold text-stone-800"><%= t("group_memberships.management.actions.ban_from_group") %></h4>
     <p class="mt-3 text-sm text-stone-600"><%= t("group_memberships.management.descriptions.ban_from_group") %></p>
     <%= form_with url: group_group_member_bans_path(@group), scope: :moderation_action, class: "mt-3 space-y-3" do |form| %>
       <%= hidden_field_tag :membership_id, membership.id %>
@@ -13,5 +13,5 @@
       <p class="text-xs text-stone-500"><%= t("group_memberships.moderation.internal_note_hint") %></p>
       <%= form.submit t("group_member_bans.actions.create"), class: "rounded-full bg-red-700 px-4 py-2 text-sm font-medium text-white" %>
     <% end %>
-  </details>
+  </div>
 <% end %>

@@ -34,14 +34,14 @@
                 <%= render "group_members/activity_moderation", membership:, membership_policy: %>
 
                 <% if membership_policy.remove? %>
-                  <details class="rounded-2xl border border-stone-200 p-4" data-member-action="remove">
-                    <summary class="cursor-pointer text-sm font-semibold text-stone-800"><%= t("group_memberships.management.actions.remove") %></summary>
+                  <div class="rounded-2xl border border-stone-200 p-4" data-member-action="remove">
+                    <h4 class="text-sm font-semibold text-stone-800"><%= t("group_memberships.management.actions.remove") %></h4>
                     <p class="mt-3 text-sm text-stone-600"><%= t("group_memberships.management.descriptions.remove") %></p>
                     <%= button_to t("group_memberships.actions.remove"),
                                   remove_group_group_membership_path(@group, membership),
                                   method: :delete,
                                   class: "mt-3 rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700" %>
-                  </details>
+                  </div>
                 <% end %>
 
                 <%= render "group_members/ban_form", membership:, membership_policy: %>
