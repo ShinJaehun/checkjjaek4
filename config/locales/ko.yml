@@ -434,6 +434,9 @@ ko:
         inactive: "종료"
         reactivation_pending: "재운영 승인 대기"
         suspended: "운영 정지"
+      membership_summary:
+        title: "회원 현황"
+        empty: "회원 관계가 없습니다."
       operation_moderation:
         reason: "사유"
         title: "운영 관리"
@@ -490,9 +493,6 @@ ko:
       request_types:
         initial: "개설 신청"
         reactivation: "재활성화 요청"
-      application_purpose_missing: "등록된 동아리 개설 목적이 없습니다."
-      previous_closure: "이전 운영 종료 정보"
-      closure_reason_missing: "등록된 운영 종료 사유가 없습니다."
       notices:
         operation_suspended: "동아리 운영을 정지했습니다."
         operation_restored: "동아리 운영을 복구했습니다."

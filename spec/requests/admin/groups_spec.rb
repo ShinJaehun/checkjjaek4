@@ -44,9 +44,11 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response.body).not_to include("신청 정보 갱신")
 
     get admin_group_path(group)
-    opening_card = Nokogiri::HTML(response.body).at_css("[data-history-entry='opening_requested']")
+    detail_page = Nokogiri::HTML(response.body)
+    opening_card = detail_page.at_css("[data-history-entry='opening_requested']")
     expect(response.body).to include("승인 대기", "운영 이력")
     expect(response.body).to include("콘텐츠")
+    expect(detail_page.at_css(%(#admin_group_identity form[action="#{approve_admin_group_path(group)}"]))).to be_present
     expect(opening_card.text).to include("개설 목적", "Create a reading circle", "신청", I18n.l(opening_event.created_at, format: :short))
     expect(opening_card.text).not_to include("승인")
 
@@ -103,8 +105,13 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response.body).not_to include("운영 이력", "The first season ended")
 
     get admin_group_path(legacy_group)
-    expect(response.body).to include("재운영 승인 대기", "종료", "재운영 신청", "The first season ended", I18n.l(closed_at, format: :short), "운영 이력")
-    reactivation_card = Nokogiri::HTML(response.body).at_css("[data-history-entry='reactivation_requested']")
+    page = Nokogiri::HTML(response.body)
+    identity = page.at_css("#admin_group_identity")
+    closure_entry = page.at_css("#group_operation_history [data-history-entry='operations_closed']")
+    reactivation_card = page.at_css("#group_operation_history [data-history-entry='reactivation_requested']")
+    expect(response.body).to include("재운영 승인 대기", "종료", "재운영 신청", "운영 이력")
+    expect(identity.text).not_to include("The first season ended")
+    expect(closure_entry.text).to include("The first season ended", I18n.l(closed_at, format: :short))
     expect(reactivation_card.text).to include("신청")
     expect(reactivation_card.text).not_to include("승인")
 
@@ -121,13 +128,38 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(reactivation_approval_entry.text).to include("재운영 승인", I18n.l(reapproval.created_at, format: :short))
   end
 
-  it "falls back to the current purpose on admin details for a legacy pending group without events" do
-    legacy_group = Group.create!(group_admin: group_admin, name: "Legacy application", group_type: :public_group, application_purpose: "Legacy purpose")
+  it "does not promote a legacy application field into identity or lifecycle history" do
+    legacy_group = Group.create!(
+      group_admin: group_admin,
+      name: "Legacy application",
+      description: "Current description",
+      group_type: :public_group,
+      application_purpose: "Legacy purpose"
+    )
     sign_in admin
 
     get admin_group_path(legacy_group)
+    page = Nokogiri::HTML(response.body)
 
-    expect(response.body).to include("Legacy purpose", "기록된 운영 이력이 없습니다.")
+    expect(page.at_css("#admin_group_identity").text).to include("Current description")
+    expect(page.at_css("#admin_group_identity").text).not_to include("Legacy purpose")
+    expect(page.at_css("#group_operation_history").text).to include("기록된 운영 이력이 없습니다.")
+    expect(page.at_css("#group_operation_history").text).not_to include("Legacy purpose")
+  end
+
+  it "does not promote legacy closure fields into identity or lifecycle history" do
+    legacy_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Legacy closure", group_type: :public_group)
+    legacy_group.update!(lifecycle_status: :inactive, closure_reason: "Legacy closure reason", closed_at: Time.current)
+    legacy_group.update!(lifecycle_status: :pending_approval)
+    sign_in admin
+
+    get admin_group_path(legacy_group)
+    page = Nokogiri::HTML(response.body)
+
+    expect(page.at_css("#admin_group_identity").text).not_to include("이전 운영 종료 정보")
+    expect(page.at_css("#admin_group_identity").text).not_to include("Legacy closure reason")
+    expect(page.at_css("#group_operation_history").text).to include("기록된 운영 이력이 없습니다.")
+    expect(page.at_css("#group_operation_history").text).not_to include("Legacy closure reason")
   end
 
   it "shows an approval-only opening stage for a legacy pending group" do
@@ -157,6 +189,45 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(group.name, group.application_purpose, "운영 이력")
     expect(response.body).not_to include('data-history-entry="operations_closed"', "재활성화 요청", "수정하기")
+  end
+
+  it "presents Group identity, membership lifecycle counts, operations, and history" do
+    active_group = Group.create!(
+      lifecycle_status: :active,
+      group_admin:,
+      name: "Operations overview club",
+      group_type: :private_group,
+      created_at: 2.days.ago
+    )
+    pending_user = User.create!(name: "Pending member", email: "pending-overview@example.com", password: "password123!")
+    invited_user = User.create!(name: "Invited member", email: "invited-overview@example.com", password: "password123!")
+    GroupMembership.create!(group: active_group, user: pending_user, status: :pending)
+    GroupMembership.create!(group: active_group, user: invited_user, status: :invited)
+    sign_in admin
+
+    get admin_group_path(active_group)
+    document = Nokogiri::HTML(response.body)
+    identity = document.at_css("#admin_group_identity")
+    membership_summary = document.at_css("#group_membership_summary")
+
+    expect(identity.text).to include(
+      active_group.name,
+      "비공개",
+      "정상 운영",
+      group_admin.name,
+      I18n.l(active_group.created_at, format: :short)
+    )
+    expect(identity.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
+    expect(identity.at_css("a[href='#{group_members_path(active_group)}']")).to be_present
+    expect(identity.at_css("a[href='#{content_admin_group_path(active_group)}']")).to be_present
+    expect(document.at_css("[data-field='group-id'], [data-field='updated-at']")).to be_nil
+    expect(document.text).not_to include("수정 시각")
+    expect(membership_summary.at_css("[data-membership-status='active']").text.squish).to eq("참여 중 1")
+    expect(membership_summary.at_css("[data-membership-status='pending']").text.squish).to eq("승인 대기 1")
+    expect(membership_summary.at_css("[data-membership-status='invited']").text.squish).to eq("초대됨 1")
+    expect(document.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_present
+    expect(document.at_css("#group_operation_history")).to be_present
+    expect(document.at_css("#admin_group_content_timeline")).to be_nil
   end
 
   it "lets only a global admin suspend and restore active group operation with audited reasons" do
@@ -194,6 +265,7 @@ RSpec.describe "Admin group approvals", type: :request do
     restore_card = moderation.at_css("[data-operation-action='restore']")
     restore_form = page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))
     expect(restore_form).to be_present
+    expect(page.at_css("#admin_group_identity [data-field='current-status']").text.strip).to eq("운영 정지")
     expect(page.text.squish).to include("현재 상태: 운영 정지")
     expect(moderation.text).to include("반복적인 운영 정책 위반", "Internal review")
     expect(restore_card.name).to eq("div")

@@ -24,6 +24,7 @@ module Admin
         .to_a
       @can_suspend_operation = policy(@group).suspend_operation?
       @can_restore_operation = policy(@group).restore_operation?
+      @membership_counts = @group.group_memberships.group(:status).count
       @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
     end
 

@@ -407,6 +407,9 @@ en:
         inactive: "Closed"
         reactivation_pending: "Reactivation approval pending"
         suspended: "Operation suspended"
+      membership_summary:
+        title: "Membership summary"
+        empty: "No membership relationships."
       operation_moderation:
         reason: "Reason"
         title: "Operation management"
@@ -463,9 +466,6 @@ en:
       request_types:
         initial: "Opening application"
         reactivation: "Reactivation request"
-      application_purpose_missing: "No opening purpose was recorded."
-      previous_closure: "Previous closure"
-      closure_reason_missing: "No closure reason was recorded."
       notices:
         operation_suspended: "Club operation was suspended."
         operation_restored: "Club operation was restored."
