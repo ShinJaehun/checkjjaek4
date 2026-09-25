@@ -74,12 +74,12 @@ RSpec.describe CommentPolicy do
       expect(described_class.new(nil, comment).create?).to be(false)
     end
 
-    it "does not create a new comment on a deleted jjaek but keeps existing comment permissions" do
+    it "blocks comment creation and updates on a deleted jjaek while preserving author deletion" do
       comment = jjaek_record.comments.create!(user:, content: "Existing")
       jjaek_record.destroy_or_tombstone!
 
       expect(described_class.new(user, jjaek_record.comments.build(user:, content: "New")).create?).to be(false)
-      expect(described_class.new(user, comment).update?).to be(true)
+      expect(described_class.new(user, comment).update?).to be(false)
       expect(described_class.new(user, comment).destroy?).to be(true)
     end
 
