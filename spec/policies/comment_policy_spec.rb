@@ -117,6 +117,11 @@ RSpec.describe CommentPolicy do
       user.update!(global_admin: true)
       expect(described_class.new(group_admin, comment)).to be_restore_as_group_admin
 
+      inactive_comment = target.comments.create!(user: other_user, content: "Inactive target")
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      expect(described_class.new(group_admin, inactive_comment)).not_to be_hide_as_group_admin
+      expect(described_class.new(group_admin, comment)).to be_restore_as_group_admin
+
       comment.update!(hidden_at: nil)
       pending_group = Group.create!(group_admin:, name: "Pending comment group", group_type: :public_group, application_purpose: "Pending")
       pending_comment = other_user.jjaeks.create!(group: pending_group, content: "Pending").comments.create!(user:, content: "Comment")

@@ -37,15 +37,18 @@ class GroupMembershipPolicy < ApplicationPolicy
   end
 
   def remove?
-    user.present? && record.group.operation_active? && record.group.group_admin?(user) && record.active? && record.user_id != user.id
+    user.present? && record.group.active? && record.group.operation_active? && record.group.group_admin?(user) && record.active? &&
+      record.user_id != user.id
   end
 
   def suspend_activity?
-    record.group.operation_active? && moderation_actor? && record.active? && record.moderation_status_normal? && !group_admin_membership?
+    record.group.active? && record.group.operation_active? && moderation_actor? && record.active? &&
+      record.moderation_status_normal? && !group_admin_membership?
   end
 
   def restore_activity?
-    record.group.operation_active? && moderation_actor? && record.activity_suspended? && !group_admin_membership?
+    (record.group.active? || record.group.inactive?) && record.group.operation_active? && moderation_actor? &&
+      record.activity_suspended? && !group_admin_membership?
   end
 
   def ban_from_group?

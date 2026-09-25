@@ -46,26 +46,28 @@ RSpec.describe GroupMemberBans::Unban do
     expect(ban.reload).to be_persisted
   end
 
-  it "does not lift a ban after the group is inactive" do
+  it "lifts an existing ban after the group is inactive" do
     membership = group.group_memberships.create!(user: member, status: :active)
     ban = GroupMemberBans::Ban.new(
       membership,
       actor: group_admin,
       public_reason: "Ban"
     ).call!
+    original = ban.current_ban_action
 
     group.update!(
       lifecycle_status: :inactive,
       closure_reason: "Group closed"
     )
-    expect {
-      described_class.new(
-        ban,
-        actor: group_admin,
-        public_reason: "Unban"
-      ).call!
-    }.to raise_error(described_class::InvalidState)
+    described_class.new(
+      ban,
+      actor: group_admin,
+      public_reason: "Unban"
+    ).call!
 
-    expect(ban.reload).to be_persisted
+    expect(GroupMemberBan.exists?(ban.id)).to be(false)
+    expect(
+      ModerationAction.action_type_unban_from_group.where(reversal_of: original)
+    ).to exist
   end
 end

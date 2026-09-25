@@ -11,5 +11,11 @@ RSpec.describe GroupMemberBanPolicy do
     expect(described_class.new(group_admin, ban).destroy?).to be(true)
     expect(described_class.new(global_admin, ban).destroy?).to be(false)
     expect(described_class.new(member, ban).destroy?).to be(false)
+
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+    expect(described_class.new(group_admin, ban).destroy?).to be(true)
+
+    group.update!(operation_suspended_at: Time.current)
+    expect(described_class.new(group_admin, ban).destroy?).to be(false)
   end
 end

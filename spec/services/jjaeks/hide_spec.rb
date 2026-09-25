@@ -98,7 +98,7 @@ RSpec.describe Jjaeks::Hide do
 
   it "lets a group admin hide another member's group jjaek with an internal note" do
     group_admin = User.create!(name: "Group admin", email: "hide-group-admin@example.com", password: "password123!")
-    group = Group.create!(lifecycle_status: :inactive, group_admin:, name: "Inactive group", group_type: :private_group, closure_reason: "Closed", closed_at: Time.current)
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Active group", group_type: :private_group)
     group_jjaek = author.jjaeks.create!(group:, book:, content: "Group Book Jjaek")
 
     described_class.new(

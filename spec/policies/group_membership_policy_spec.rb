@@ -46,6 +46,17 @@ RSpec.describe GroupMembershipPolicy do
     expect(described_class.new(global_admin, membership).ban_from_group?).to be(false)
   end
 
+  it "blocks new member moderation after closure but allows an existing activity suspension to be restored" do
+    suspended_membership = group.group_memberships.create!(user: member, status: :active, moderation_status: :activity_suspended)
+    ordinary_member = group.group_memberships.create!(user: other_user, status: :active)
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+
+    expect(described_class.new(group_admin, ordinary_member).suspend_activity?).to be(false)
+    expect(described_class.new(group_admin, ordinary_member).remove?).to be(false)
+    expect(described_class.new(group_admin, ordinary_member).ban_from_group?).to be(false)
+    expect(described_class.new(group_admin, suspended_membership).restore_activity?).to be(true)
+  end
+
   it "does not moderate the group admin or non-active memberships" do
     group_admin_membership = group.group_memberships.find_by!(user: group_admin)
 

@@ -55,12 +55,14 @@ class CommentPolicy < ApplicationPolicy
 
   def hide_as_group_admin?
     group_admin_moderation_context? &&
+      record.jjaek.group.active? &&
       !record.user.global_admin? &&
       !record.hidden?
   end
 
   def restore_as_group_admin?
     group_admin_moderation_context? &&
+      (record.jjaek.group.active? || record.jjaek.group.inactive?) &&
       record.hidden? &&
       record.current_hide_action&.group_authority?
   end
@@ -76,7 +78,6 @@ class CommentPolicy < ApplicationPolicy
     return false unless record.jjaek.group.present?
     return false unless record.jjaek.group.group_admin?(user)
     return false unless record.jjaek.group.operation_active?
-    return false unless record.jjaek.group.active? || record.jjaek.group.inactive?
     return false if record.user_id == user.id
 
     true

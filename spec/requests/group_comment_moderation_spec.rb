@@ -92,6 +92,23 @@ RSpec.describe "Group Comment moderation", type: :request do
     expect(comment.reload).to be_hidden
   end
 
+  it "blocks new hides in an inactive group but restores a hide created before closure" do
+    hidden_before_closure = jjaek.comments.create!(user: author, content: "Hidden before closure")
+    new_target = jjaek.comments.create!(user: author, content: "New inactive target")
+    Comments::Hide.new(hidden_before_closure, actor: group_admin, public_reason: "other").call!
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+
+    expect {
+      patch hide_jjaek_comment_path(jjaek, new_target), params: { moderation_action: { public_reason: "other" } }
+    }.not_to change(ModerationAction, :count)
+    expect(new_target.reload).not_to be_hidden
+
+    patch restore_jjaek_comment_path(jjaek, hidden_before_closure), params: {
+      moderation_action: { public_reason: "Resolved" }
+    }
+    expect(hidden_before_closure.reload).not_to be_hidden
+  end
+
   it "rejects pending and operation-suspended Groups" do
     pending_group = Group.create!(group_admin:, name: "Pending", group_type: :private_group, application_purpose: "Pending")
     suspended_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Suspended", group_type: :private_group, operation_suspended_at: Time.current)

@@ -447,6 +447,39 @@ RSpec.describe "Group memberships", type: :request do
       expect(membership.reload).to be_moderation_status_normal
     end
 
+    it "blocks new member moderation after closure but restores an existing activity suspension" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Inactive moderation", group_type: :public_group)
+      suspended_membership = group.group_memberships.create!(user: member, status: :active)
+      ordinary_user = User.create!(name: "Ordinary member", email: "inactive-moderation-member@example.com", password: "password123!")
+      ordinary_membership = group.group_memberships.create!(user: ordinary_user, status: :active)
+      GroupMemberships::SuspendActivity.new(
+        suspended_membership,
+        actor: group_admin,
+        public_reason: "Before closure"
+      ).call!
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      sign_in group_admin
+
+      expect {
+        patch suspend_activity_group_group_membership_path(group, ordinary_membership), params: {
+          moderation_action: { public_reason: "Blocked" }
+        }
+        delete remove_group_group_membership_path(group, ordinary_membership)
+        post group_group_member_bans_path(group), params: {
+          membership_id: ordinary_membership.id,
+          moderation_action: { public_reason: "Blocked" }
+        }
+      }.not_to change(ModerationAction, :count)
+      expect(ordinary_membership.reload).to be_persisted
+      expect(group.group_member_bans.where(user: ordinary_user)).to be_empty
+
+      patch restore_activity_group_group_membership_path(group, suspended_membership), params: {
+        moderation_action: { public_reason: "Restored after closure" }
+      }
+      expect(suspended_membership.reload).to be_moderation_status_normal
+      expect(ModerationAction.where(target: suspended_membership).action_type_restore_activity).to exist
+    end
+
     it "lets the group_admin remove an active ordinary member directly" do
       group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Direct removal", group_type: :public_group)
       membership = group.group_memberships.create!(user: member, status: :active)
@@ -988,6 +1021,20 @@ RSpec.describe "Group memberships", type: :request do
       sign_in group_admin
       post invite_group_group_memberships_path(private_group), params: { user_id: member.id }
       expect(private_group.group_memberships.find_by!(user: member)).to be_invited
+    end
+
+    it "unbans an existing restriction after the group closes" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Inactive unban", group_type: :public_group)
+      ban = ban_membership(group, group.group_memberships.create!(user: member, status: :active))
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      sign_in group_admin
+
+      expect {
+        delete group_group_member_ban_path(group, ban), params: {
+          moderation_action: { public_reason: "Lifted after closure" }
+        }
+      }.to change(GroupMemberBan, :count).by(-1)
+      expect(ModerationAction.action_type_unban_from_group.where(reversal_of: ban.current_ban_action)).to exist
     end
 
     it "shows current restrictions and ban history to global admins without mutation forms" do

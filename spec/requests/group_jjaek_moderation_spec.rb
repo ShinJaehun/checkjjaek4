@@ -180,20 +180,28 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     expect(response.body).not_to include("PLATFORM HIDDEN BODY")
   end
 
-  it "allows inactive group moderation but rejects ineligible hide targets" do
+  it "blocks new hides in an inactive group but restores a hide created before closure" do
     inactive_group = Group.create!(
-      lifecycle_status: :inactive,
+      lifecycle_status: :active,
       group_admin:,
       name: "Inactive group",
-      group_type: :private_group,
-      closure_reason: "Closed",
-      closed_at: Time.current
+      group_type: :private_group
     )
-    inactive_target = author.jjaeks.create!(group: inactive_group, content: "Inactive target")
-    patch hide_jjaek_path(inactive_target), params: { moderation_action: { public_reason: "other" } }
-    expect(inactive_target.reload).to be_hidden
-    patch restore_jjaek_path(inactive_target), params: { moderation_action: { public_reason: "Resolved" } }
-    expect(inactive_target.reload).not_to be_hidden
+    hidden_before_closure = author.jjaeks.create!(group: inactive_group, content: "Hidden before closure")
+    new_target = author.jjaeks.create!(group: inactive_group, content: "New inactive target")
+    Jjaeks::Hide.new(hidden_before_closure, actor: group_admin, public_reason: "other").call!
+    inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+
+    expect {
+      patch hide_jjaek_path(new_target), params: { moderation_action: { public_reason: "other" } }
+    }.not_to change(ModerationAction, :count)
+    expect(new_target.reload).not_to be_hidden
+
+    patch restore_jjaek_path(hidden_before_closure), params: { moderation_action: { public_reason: "Resolved" } }
+    expect(hidden_before_closure.reload).not_to be_hidden
+  end
+
+  it "rejects ineligible hide targets" do
 
     other_group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Other group", group_type: :public_group)
     pending_group = Group.create!(group_admin:, name: "Pending group", group_type: :private_group, application_purpose: "Pending")

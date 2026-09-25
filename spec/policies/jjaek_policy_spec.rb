@@ -119,6 +119,11 @@ RSpec.describe JjaekPolicy do
     group_jjaek.update!(hidden_at: Time.current)
     expect(described_class.new(viewer, group_jjaek)).to be_restore_as_group_admin
 
+    inactive_target = original_author.jjaeks.create!(group:, content: "Inactive target")
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+    expect(described_class.new(viewer, inactive_target)).not_to be_hide_as_group_admin
+    expect(described_class.new(viewer, group_jjaek)).to be_restore_as_group_admin
+
     original_author.update!(global_admin: true)
     expect(described_class.new(viewer, group_jjaek)).to be_restore_as_group_admin
     expect(described_class.new(viewer, original_author.jjaeks.create!(group:, content: "New global target"))).not_to be_hide_as_group_admin
