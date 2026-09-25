@@ -32,6 +32,17 @@ RSpec.describe GroupMemberships::SuspendActivity do
     expect { described_class.new(admin_membership, actor: group_admin, public_reason: "Blocked").call! }.to raise_error(described_class::InvalidState)
   end
 
+  it "rejects suspension after the group becomes inactive" do
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+
+    expect {
+      described_class.new(membership, actor: group_admin, public_reason: "Blocked").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(membership.reload).to be_moderation_status_normal
+    expect(ModerationAction.where(target: membership)).to be_empty
+  end
+
   it "rolls back state when the audit action is invalid" do
     expect {
       described_class.new(membership, actor: group_admin, public_reason: "").call!
