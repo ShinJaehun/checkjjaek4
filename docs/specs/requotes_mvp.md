@@ -37,7 +37,7 @@
 
 기술적으로는 다음 조건을 가진다.
 
-- `quoted_jjaek_id`가 없다.
+- `Jjaek#requote?`가 false다. 즉 `quoted_jjaek_id`가 없고 deleted-source snapshot도 없다.
 - viewer가 볼 수 있어야 한다.
 - `private_jjaek`이면 다시짹 목록 접근 대상이 아니다.
 
@@ -47,7 +47,7 @@
 
 기술적으로는 다음 조건을 가진다.
 
-- `quoted_jjaek_id`가 있다.
+- `quoted_jjaek_id`가 있거나 source 삭제 snapshot이 남아 있다.
 - `quoted_jjaek`은 다른 ReJjaek이면 안 된다.
 - 원문보다 더 넓은 visibility를 가질 수 없다.
 
@@ -58,7 +58,8 @@
 현재 ReJjaek 관련 핵심 구현은 아래 구조를 따른다.
 
 - `Jjaek#requote?`
-  - `quoted_jjaek_id.present?`로 ReJjaek 여부를 판단한다.
+  - `quoted_jjaek_id.present? || quoted_source_deleted?`로 ReJjaek 여부를 판단한다.
+  - source 삭제로 association이 제거된 deleted-source ReJjaek도 계속 ReJjaek으로 취급한다.
 
 - `Jjaek#requotes`
   - 원본 Jjaek에 연결된 ReJjaek 목록 association이다.
@@ -83,6 +84,18 @@
 이번 MVP에서는 이 구조를 유지한다.
 
 새 조회 기능을 만들기 위해 기존 생성, 알림, visibility validation 코드를 크게 이동하지 않는다.
+
+### source 상태와 기존 ReJjaek
+
+- 살아 있는 source가 hidden되면 기존 ReJjaek row와 `quoted_jjaek` 관계는 유지하되 일반 read scope에서는 함께 비노출한다.
+  source가 restore되면 보존된 관계를 기준으로 현재 접근 권한을 다시 판단한다.
+- source가 살아 있어도 viewer가 friendship, visibility 또는 Group context의 현재 read 권한을 잃으면 기존 ReJjaek도 볼 수 없다.
+  과거에 source를 읽었다는 사실은 현재 source visibility를 우회하지 않으며 ReJjaek을 자동으로 private 전환하지 않는다.
+- source가 hard delete되거나 tombstone이 되면 기존 ReJjaek의 `quoted_jjaek_id`를 제거하고 삭제 source snapshot을 보존하며
+  ReJjaek visibility를 `private_jjaek`으로 축소한다. source 원문 body는 보존하거나 노출하지 않는다.
+- deleted-source ReJjaek 자체는 삭제된 Jjaek이 아니다. 작성자 자신의 콘텐츠로 남아 일반 personal Jjaek의 수정·삭제와
+  살아 있는 Jjaek에 허용되는 Comment·Like interaction 계약을 그대로 따른다.
+- ReJjaek 자체의 hide/delete에도 별도 예외를 두지 않고 일반 Jjaek lifecycle/moderation 계약을 적용한다.
 
 ---
 

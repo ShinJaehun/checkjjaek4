@@ -260,7 +260,7 @@
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - 탈퇴하거나 내보내진 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
 - 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 탈퇴하거나 내보내진 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
-- 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있고, 조회 가능한 기존 자기 좋아요는 이후 동아리 운영 종료·membership 종료·Jjaek 삭제 상태에서도 철회할 수 있음
+- 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있음. 기존 자기 Like 철회는 hidden, deleted tombstone, 동아리 운영 종료 등에서도 부모 Jjaek의 현재 read boundary가 유지되는 범위에서만 가능하고, membership 종료 등으로 부모를 읽을 수 없으면 허용하지 않음
 - active 공개 동아리의 Jjaek·책짹은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
 - 승인·비공개·inactive·pending 동아리 원문의 외부 ReJjaek과 개인 Jjaek의 동아리 공유·동아리 안에서의 ReJjaek 작성은 허용하지 않음
 - 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
@@ -271,7 +271,7 @@
 - Group top-level inventory는 lifecycle 상태, 재활성화 대기와 operation suspended를 하나의 현재 상태 badge·필터로 제공함. `operation_suspended_at`이 있으면 lifecycle 상태보다 운영 정지를 우선 표시함
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
 - global admin은 다른 사용자의 모든 현재 Jjaek 유형을 정의된 숨김 사유와 선택적 내부 메모로 숨기고, 별도 공개 복구 사유와 선택적 내부 메모로 복구할 수 있으며 상태와 append-only hide/restore 감사를 원자적으로 남김
-- platform-origin 숨겨진 Jjaek은 기존 feed/profile/Book/Group read boundary 안의 목록·단건 상세에서 원문 body 대신 시스템 관리자 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기를 유지하되 새 interaction은 차단함. 이를 원문으로 참조하는 ReJjaek은 일반 조회에서 제외됨
+- platform-origin 숨겨진 Jjaek은 기존 feed/profile/Book/Group read boundary 안의 목록·단건 상세에서 원문 body 대신 시스템 관리자 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기를 유지하되 새 interaction은 차단함. 이를 원문으로 참조하는 ReJjaek row와 관계는 보존하되 일반 조회에서 제외하며, source restore 뒤에는 현재 접근 권한을 다시 적용함
 - group-origin 숨겨진 Jjaek은 기존 Group read 경계 안의 Group 목록·단건 상세에서 원문 body 대신 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기 맥락을 유지하되 새 interaction은 차단함. 작성자는 자기 원문·숨김 주체·공개 사유를 확인하고 자기 삭제만 수행하며, group admin은 자기 Group의 숨겨진 원문·공개 사유를 조사함
 - 대상 Jjaek의 작성자인 global admin에게는 작성자 권한이 우선하여 내부 메모·전체 감사·hide/restore 권한을 제공하지 않고, 작성자가 아닌 global admin은 원문과 전체 hide/restore 감사를 조사함
 - group admin은 운영 정지되지 않은 active/inactive 자기 동아리에서 타인의 짹·책짹을 숨김·복구할 수 있음.
@@ -282,7 +282,7 @@
 - 대상 작성자가 아닌 global admin은 Jjaek 단건 상세에서 platform/group-origin hide/restore 전체 이력을 authority source와 함께 `created_at`, `id` 오름차순으로 확인함. 현재 Group admin의 group-origin 전용 이력 권한은 변경하지 않음
 - platform-origin hidden Jjaek의 일반 사용자 placeholder/detail에서도 새 Like·Comment·ReJjaek 등 hidden mutation, internal note/history 노출과 기존 visibility/Group boundary 확대는 허용하지 않음
 - Comment hide/restore는 global admin과 현재 Group admin의 권한 경계, author-first, 조치 시점 `platform`/`group` authority snapshot, Jjaek과 같은 predefined hide reason 및 별도 자유 텍스트 restore reason으로 구현됨
-- hidden Comment는 부모 Jjaek의 기존 read boundary 안에서 authority placeholder와 현재 공개 사유를 표시하고, 작성자·허용된 운영자에게만 원문을 보여줌. 작성자 hard delete는 유지하며 부모와 Comment의 hidden 상태는 독립됨
+- hidden Comment는 부모 Jjaek의 기존 read boundary 안에서 authority placeholder와 현재 공개 사유를 표시하고, 작성자·허용된 운영자에게만 원문을 보여줌. 작성자 hard delete는 유지하며 부모와 Comment의 hidden 상태는 독립됨. deleted parent에서도 원래 Jjaek context의 read boundary 안에서 tombstone과 기존 댓글을 읽되 새 댓글 작성·기존 댓글 수정은 금지하고, Comment 작성자 삭제와 살아 있는 Comment의 hide/restore는 유지함
 - Comment 전체 hide/restore 이력과 internal note는 대상 작성자가 아닌 global admin에게, group-origin 이력·메모는 현재 Group admin에게만 표시함. 일반 사용자·작성자·이전 관리자는 전체 이력과 메모를 볼 수 없음. hide/restore Turbo 응답은 Comment 표시·조작 UI·공개 사유를 갱신함
 - 댓글도 작성 권한도 없으면 빈 comments panel을 렌더링하지 않고, hidden Comment placeholder가 하나라도 있으면 panel을 유지함. hide는 Comment row와 count를 줄이지 않음
 - append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
@@ -390,23 +390,29 @@
 - 동아리의 짹 (group_id 있음, book_id 없음)
 - 동아리의 책짹 (group_id 있음, book_id 있음)
 - profile-context 짹 (target_user_id 있음)
-- ReJjaek (quoted_jjaek 있음)
+- ReJjaek (`quoted_jjaek`이 있거나 deleted-source snapshot이 남아 있음)
 
 → 하나의 Jjaek 모델이 문맥(context)에 따라 역할을 나눠 갖는다.
 
 ReJjaek은 원문을 복사하지 않고 `quoted_jjaek`으로 참조한다.
 원문이 수정되면 quoted block도 최신 원문을 보여준다.
+일반짹, 책짹, Group 짹·책짹과 ReJjaek은 같은 Jjaek lifecycle/moderation 의미를 공유하며,
+각 context는 read/create 범위를 정하지만 hidden/deleted 상태 의미를 바꾸지 않는다.
 모든 Jjaek은 권한 범위에서 본문을 수정할 수 있고 실제 본문 수정 시각만 표시하며 수정 이력 전체 조회는 제공하지 않는다.
 댓글이 없는 Jjaek 삭제는 hard delete하고, persisted 댓글이 있으면 본문을 제거한 tombstone과 기존 댓글을 보존한다.
-삭제된 Jjaek에는 새 댓글, 좋아요, ReJjaek을 허용하지 않는다.
+삭제된 Jjaek에는 새 댓글·좋아요·ReJjaek과 기존 댓글 수정을 허용하지 않는다. tombstone과 기존 댓글은 원래 context의
+read boundary 안에서 읽고, Comment 작성자의 자기 삭제와 살아 있는 Comment의 moderation 및 접근 가능한 기존 자기 Like 철회는 유지한다.
 원문이 삭제되지 않았지만 현재 사용자에게 보이지 않으면, 해당 사용자에게는 ReJjaek도 조회 시점 권한 기준으로 비노출한다.
-이 경우 ReJjaek을 자동으로 private 전환하지 않는다.
+source hidden 또는 friendship·visibility·Group context 변화로 현재 read 권한을 잃은 경우에도 기존 ReJjaek 관계를 보존하며,
+과거 접근 사실로 우회하지 않는다. source hidden은 restore 가능한 노출 제한이고 이 경우 ReJjaek을 자동으로 private 전환하지 않는다.
 원문이 hard delete되거나 tombstone되면 ReJjaek 본문은 보존하고 `private_jjaek`으로 전환한다.
 이후 ReJjaek 작성자 본인에게만 보이며, quoted block 위치에는
 “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
 deleted-source 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기고,
 원문 본문/책 메타/avatar snapshot은 저장하지 않는다.
 공개 화면에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다.
+deleted-source ReJjaek 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 personal Jjaek과 같은 수정·삭제 lifecycle과
+살아 있는 Jjaek에 허용되는 Comment·Like interaction을 계속 사용할 수 있다.
 한 사용자는 같은 원문 Jjaek을 한 번만 ReJjaek할 수 있으며,
 동일 사용자 + 동일 원문 중복 ReJjaek 요청은 새 ReJjaek을 만들지 않는다.
 다른 사용자가 같은 원문을 ReJjaek하는 것은 허용한다.

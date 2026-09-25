@@ -119,14 +119,16 @@ admin Group 상세에서는 두 의미를 합치지 않으면서 lifecycle event
   기존 read boundary 안에서는 원문 대신 authority별 placeholder와 기존 읽기 맥락을 보존하되 새 mutation 권한은 추가하지 않는다.
 - global admin은 조사와 복구를 위해 확인할 수 있다.
 - 작성자는 자신의 콘텐츠가 제한됐다는 사실과 공개 가능한 조치 사유를 확인할 수 있다.
-- 숨김을 해제해도 작성자가 이미 삭제했다면 작성자 삭제 상태가 유지된다.
+- deleted/tombstoned Jjaek은 콘텐츠 lifecycle의 terminal state이므로 새 hide와 기존 hide의 restore를 모두 허용하지 않는다.
+  삭제 전의 `hidden_at`과 기존 `ModerationAction` 감사 이력은 그대로 보존한다.
 - Jjaek의 `deleted_at`을 moderation 숨김에 재사용하지 않는다.
 - Comment hard delete와 moderation 숨김을 같은 상태로 기록하지 않는다.
 
 ### global admin Jjaek 운영자 숨김·복구 구현 단위
 
 현재 global admin Jjaek 숨김·복구와 제한된 숨김 콘텐츠 조회 정책은 구현되어 있다.
-대상은 일반짹, 책짹, Group Jjaek 등 현재 Jjaek으로 표현되는 모든 게시물이다.
+대상은 일반짹, 책짹, Group Jjaek, ReJjaek 등 현재 Jjaek으로 표현되는 모든 게시물이다.
+문맥은 read/create 범위를 정하지만 Jjaek 자체의 lifecycle/moderation 의미를 바꾸지 않는다.
 
 #### 정책과 불변 조건
 
@@ -142,6 +144,8 @@ admin Group 상세에서는 두 의미를 합치지 않으면서 lifecycle event
 - 일반 사용자와 작성자는 자기 글이라는 이유로 hide/restore 권한을 얻지 않는다.
 - 숨김은 작성자 삭제와 독립된 상태이며 `deleted_at`이나 기존 hard delete/tombstone 상태를 재사용하지 않는다.
 - 숨김 시 원문과 기존 Comment·Like·ReJjaek 관계를 삭제하거나 변경하지 않는다.
+- source Jjaek hide는 기존 ReJjaek 관계를 보존하는 가역적 노출 제한이다. hidden 동안 일반 read scope에서는
+  해당 ReJjaek도 비노출하고 restore 뒤에는 현재 source 접근 권한을 다시 적용한다.
 - global admin은 자유 텍스트 공개 사유를 입력하는 대신 아래의 미리 정의된 숨김 사유 중 하나를 반드시 선택한다. 정의되지 않은 값은 허용하지 않는다.
   - 부적절한 내용
   - 스팸·광고
@@ -176,7 +180,7 @@ admin Group 상세에서는 두 의미를 합치지 않으면서 lifecycle event
 
 #### 복구와 반복 cycle
 
-- 현재 숨겨진 Jjaek만 복구할 수 있다.
+- 현재 숨겨져 있고 삭제되지 않은 Jjaek만 복구할 수 있다.
 - 복구는 Jjaek의 현재 숨김 상태를 해제하고 append-only restore `ModerationAction`을 새로 생성한다.
   기존 hide 감사 row는 수정하거나 삭제하지 않는다.
 - global admin은 restore 실행 시 별도의 공개 복구 사유를 반드시 입력한다.
@@ -186,7 +190,7 @@ admin Group 상세에서는 두 의미를 합치지 않으면서 lifecycle event
 - restore row는 그 cycle의 현재 유효한 hide row를 `reversal_of`로 정확히 참조한다.
 - 상태 변경과 restore 감사 기록은 하나의 transaction으로 처리하며 어느 한쪽이라도 실패하면
   모두 작업 전 상태를 유지한다.
-- 작성자 삭제 상태는 복구하지 않는다. 이미 작성자가 삭제한 Jjaek은 숨김 해제 후에도 삭제 상태를 유지한다.
+- 작성자가 삭제한 Jjaek에는 restore transition을 시작하지 않는다. 기존 hide 상태와 감사 이력은 삭제 상태와 함께 보존한다.
 - 복구 후 노출 여부는 원래 visibility, Group 접근 권한과 현재 authorization을 따른다.
 - restore 이후 일반 콘텐츠 화면에는 복구 사유를 계속 표시하지 않는다.
   global admin의 감사·조사 이력에서는 hide 사유와 restore 사유를 각각 확인할 수 있어야 한다.
@@ -230,8 +234,8 @@ admin Group 상세에서는 두 의미를 합치지 않으면서 lifecycle event
 10. 숨겨지지 않은 Jjaek, 이미 restore된 hide 또는 현재 cycle이 아닌 과거 hide에는 restore를 실행할 수 없다.
 11. `hide → restore → hide → restore`를 반복할 수 있고 모든 감사 row가 보존되며,
     restore된 과거 hide를 현재 hide로 판단하지 않는다.
-12. 작성자가 이미 삭제한 Jjaek을 restore해도 삭제 상태는 유지되며, 그 밖의 복구 후 노출은
-    원래 visibility, Group 접근 권한과 현재 authorization을 따른다.
+12. 작성자가 이미 삭제한 Jjaek에는 새 hide와 restore를 실행하지 않는다. 삭제 전 hide 상태와 감사 이력은 보존하며,
+    삭제되지 않은 Jjaek의 복구 후 노출은 원래 visibility, Group 접근 권한과 현재 authorization을 따른다.
 13. 일반 사용자는 feed, 목록, direct URL과 ReJjaek 등 우회 경로에서 숨겨진 원문을 볼 수 없다.
     group-origin hide는 기존 Group read boundary 안의 목록·상세에서 placeholder와 기존 읽기 맥락만 제공하는 아래 정책을 따른다.
 14. 작성자는 자기 hidden Jjaek의 원문, 숨김 주체와 현재 hide의 공개 사유를 볼 수 있지만
@@ -466,6 +470,8 @@ Comment moderation의 상태·권한·표시·HTTP/Turbo 흐름은 구현되어 
 
 - 현재 Comment는 Jjaek·작성자 연결과 본문을 가지며 일반 삭제는 hard delete다. 읽기는 부모 Jjaek 권한을 따르고,
   hidden 부모에서는 기존 댓글 읽기와 자기 삭제만 유지하며 새 작성·기존 댓글 수정은 차단한다.
+  deleted parent의 tombstone에서도 원래 Jjaek context의 read boundary 안에서 기존 댓글을 읽을 수 있지만
+  새 작성과 기존 댓글 수정은 금지하고 Comment 작성자의 자기 삭제는 유지한다.
 - `CommentPolicy`, global admin과 Group admin의 Comment HTTP action, `Comments::Hide`/`Comments::Restore`와
   `ModerationAction`이 권한 재검사·상태 전이·감사를 담당한다. Jjaek의 transaction/lock 패턴을 재사용한다.
 - Comment hide/restore에는 Jjaek과 같은 predefined hide reason과 `moderation_authority` 검증이 적용된다.
@@ -575,8 +581,9 @@ global admin의 운영 조사는 기존 별도 권한을 사용하되 자기 Com
   부모가 hidden이어도 Comment 운영 조치는 가능하지만 Group 운영 정지 등 기존 moderation 제한은 그대로 적용한다.
 - Comment 원문을 볼 수 있다고 hidden 부모 Jjaek 원문까지 볼 수 있는 것은 아니다.
   반대로 부모 원문 조사 권한만으로 hidden Comment 원문·감사 권한을 추정하지 않는다.
-- 삭제된 부모의 기존 tombstone/댓글 보존 정책은 변경하지 않는다. 새 댓글은 계속 금지하고,
-  남아 있는 Comment에만 이 절의 개별 moderation 상태·권한을 추가로 적용한다.
+- 삭제된 부모의 tombstone과 기존 Comment는 원래 Jjaek context의 read boundary 안에서 읽을 수 있다.
+  새 Comment 작성과 기존 Comment 수정은 금지하지만 Comment 작성자의 자기 삭제는 유지하고,
+  살아 있는 Comment 자체의 hide/restore moderation은 부모 lifecycle 종료와 별개로 기존 권한에 따라 계속 적용한다.
 
 ### comments panel과 운영 UI
 
