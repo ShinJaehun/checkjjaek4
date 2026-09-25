@@ -64,6 +64,7 @@
             <td class="p-3 whitespace-nowrap"><%= l(group.created_at, format: :short) %></td>
             <td class="space-y-2 p-3">
               <%= link_to t("admin.groups.actions.show"), admin_group_path(group, request.query_parameters), class: "block underline" %>
+              <%= link_to t("admin.actions.content"), content_admin_group_path(group, request.query_parameters), class: "block underline" %>
               <% if policy(group).approve? %>
                 <%= button_to t("admin.groups.actions.approve"), approve_admin_group_path(group), method: :patch, class: "rounded bg-stone-900 px-3 py-1 text-white" %>
               <% end %>

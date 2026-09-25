@@ -240,6 +240,8 @@ ko:
   admin:
     actions:
       show: "상세 보기"
+      content: "콘텐츠 관리"
+      back_to_details: "상세로 돌아가기"
     jjaeks:
       actions:
         hide: "숨김"

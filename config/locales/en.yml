@@ -227,6 +227,8 @@ en:
   admin:
     actions:
       show: "Details"
+      content: "Manage content"
+      back_to_details: "Back to details"
     jjaeks:
       actions:
         hide: "Hide"

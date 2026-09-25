@@ -15,10 +15,12 @@ Rails.application.routes.draw do
       end
     end
     resources :users, only: %i[index show] do
+      get :content, on: :member
       patch :suspend, on: :member
       patch :restore, on: :member
     end
     resources :groups, only: %i[index show] do
+      get :content, on: :member
       patch :approve, on: :member
       patch :suspend_operation, on: :member
       patch :restore_operation, on: :member

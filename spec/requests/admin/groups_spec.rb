@@ -13,6 +13,8 @@ RSpec.describe "Admin group approvals", type: :request do
   it "requires authentication for the inventory" do
     get admin_groups_path
     expect(response).to redirect_to(new_user_session_path)
+    get content_admin_group_path(group)
+    expect(response).to redirect_to(new_user_session_path)
   end
 
   it "blocks a non-admin from the approval list and approve action" do
@@ -22,6 +24,9 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response).to redirect_to(root_path)
 
     get admin_group_path(group)
+    expect(response).to redirect_to(root_path)
+
+    get content_admin_group_path(group)
     expect(response).to redirect_to(root_path)
 
     patch approve_admin_group_path(group)
@@ -413,11 +418,14 @@ RSpec.describe "Admin group approvals", type: :request do
     detail_path = admin_group_path(active_group, inventory_params)
     document = Nokogiri::HTML(response.body)
     expect(document.at_css("#group_#{active_group.id} a[href='#{detail_path}']")).to be_present
+    expect(document.at_css("#group_#{active_group.id} a[href='#{content_admin_group_path(active_group, inventory_params)}']")).to be_present
 
     get detail_path
 
-    back_link = Nokogiri::HTML(response.body).css("a").find { |link| link.text.include?("동아리 운영 관리로") }
+    detail_document = Nokogiri::HTML(response.body)
+    back_link = detail_document.css("a").find { |link| link.text.include?("동아리 운영 관리로") }
     expect(back_link["href"]).to eq(admin_groups_path(inventory_params))
+    expect(detail_document.at_css("a[href='#{content_admin_group_path(active_group, inventory_params)}']")).to be_present
   end
 
   it "applies whitelisted sorts and ignores invalid values" do
@@ -501,6 +509,12 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get admin_group_path(active_group)
 
+    detail = Nokogiri::HTML(response.body)
+    expect(detail.at_css("#admin_group_content_timeline")).to be_nil
+    expect(detail.at_css("a[href='#{content_admin_group_path(active_group)}']")).to be_present
+
+    get content_admin_group_path(active_group)
+
     document = Nokogiri::HTML(response.body)
     timeline = document.at_css("#admin_group_content_timeline")
     expect(timeline.css("th").map { |header| header.text.strip }).to eq(
@@ -534,11 +548,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
     expect(navigation.text).not_to include("다시짹")
 
-    lifecycle_position = response.body.index("운영 이력")
-    back_position = response.body.index("동아리 운영 관리로")
-    content_position = response.body.index("id=\"admin_group_content\"")
-    expect(content_position).to be > lifecycle_position
-    expect(content_position).to be > back_position
+    expect(document.at_css("a[href='#{admin_group_path(active_group)}']")).to be_present
   end
 
   it "filters Group content and preserves filters across navigation" do
@@ -557,7 +567,7 @@ RSpec.describe "Admin group approvals", type: :request do
     deleted.destroy_or_tombstone!
     sign_in admin
 
-    get admin_group_path(active_group)
+    get content_admin_group_path(active_group)
     filter_document = Nokogiri::HTML(response.body)
     expect(filter_document.at_css("input[name='content_q']")).to be_present
     expect(filter_document.at_css("select[name='content_status']")).to be_present
@@ -577,7 +587,7 @@ RSpec.describe "Admin group approvals", type: :request do
       { content_status: "deleted" } => [ deleted ],
       { content_q: "group_book", content: "book", content_status: "active" } => [ book_jjaek ]
     }.each do |filters, expected_records|
-      get admin_group_path(active_group), params: filters
+      get content_admin_group_path(active_group), params: filters
       document = Nokogiri::HTML(response.body)
       rows = document.css("#admin_group_content_timeline tbody tr")
       expected_ids = expected_records.map do |record|
@@ -592,7 +602,7 @@ RSpec.describe "Admin group approvals", type: :request do
       expect(document.at_css("nav a[aria-current='page']")["href"]).to include("content=#{active_content}")
     end
 
-    get admin_group_path(active_group), params: {
+    get content_admin_group_path(active_group), params: {
       content: "invalid",
       content_status: "invalid",
       content_sort: "invalid",
@@ -607,7 +617,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(invalid_document.at_css("nav a[aria-current='page']").text.strip).to eq("전체")
     expect(invalid_document.at_css("input[name='content_q']")["value"]).to be_blank
 
-    get admin_group_path(active_group), params: {
+    get content_admin_group_path(active_group), params: {
       content: "comments",
       content_q: "FILTER",
       content_status: "active",
@@ -623,7 +633,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(filtered_document.at_css("input[name='content']")["value"]).to eq("comments")
     reset_link = filtered_document.css("a").find { |link| link.text.strip == "필터 초기화" }
     expect(reset_link["href"]).to eq(
-      admin_group_path(
+      content_admin_group_path(
         active_group,
         q: "Filtered content group",
         group_type: "public_group",
@@ -653,6 +663,19 @@ RSpec.describe "Admin group approvals", type: :request do
       )
     )
     expect(back_link["href"]).not_to include("content=", "content_", "all_page")
+
+    details_link = filtered_document.css("a").find { |link| link.text.strip == "상세로 돌아가기" }
+    expect(details_link["href"]).to eq(
+      admin_group_path(
+        active_group,
+        q: "Filtered content group",
+        group_type: "public_group",
+        status: "active",
+        sort: "name",
+        page: 2
+      )
+    )
+    expect(details_link["href"]).not_to include("content=", "content_", "all_page")
   end
 
   it "paginates mixed Group content chronologically at the database boundary" do
@@ -677,7 +700,7 @@ RSpec.describe "Admin group approvals", type: :request do
     end
     sign_in admin
 
-    get admin_group_path(active_group), params: {
+    get content_admin_group_path(active_group), params: {
       content: "all",
       content_q: "PAGED_GROUP",
       content_status: "active",
@@ -698,7 +721,7 @@ RSpec.describe "Admin group approvals", type: :request do
       "all_page=2"
     )
 
-    get admin_group_path(active_group), params: {
+    get content_admin_group_path(active_group), params: {
       content: "all",
       content_q: "PAGED_GROUP",
       content_status: "active",
@@ -709,7 +732,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(second_page.css("#admin_group_content_timeline tbody tr").size).to eq(1)
     expect(second_page.css("#admin_group_content_timeline tbody tr").first.text).to include("PAGED_GROUP_JJAEK_25")
 
-    get admin_group_path(active_group), params: { content_q: "PAGED_GROUP", content_sort: "oldest" }
+    get content_admin_group_path(active_group), params: { content_q: "PAGED_GROUP", content_sort: "oldest" }
     oldest_first = Nokogiri::HTML(response.body).css("#admin_group_content_timeline tbody tr").first
     expect(oldest_first.text).to include("PAGED_GROUP_JJAEK_25")
   end

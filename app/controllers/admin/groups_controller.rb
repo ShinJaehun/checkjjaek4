@@ -24,8 +24,15 @@ module Admin
         .to_a
       @can_suspend_operation = policy(@group).suspend_operation?
       @can_restore_operation = policy(@group).restore_operation?
+      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
+    end
+
+    def content
+      @group = Group.find(params[:id])
+      authorize @group, :view_admin_details?
       @content_section = permitted_content_section
       @content_filter_params = params.permit(:content_q, :content_status, :content_sort)
+      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
 
       jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope)
         .where(group: @group)
@@ -41,7 +48,6 @@ module Admin
         params:
       ).call
       @timeline_items = @timeline_page.records
-      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
     end
 
     def approve

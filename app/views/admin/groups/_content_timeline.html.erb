@@ -1,5 +1,5 @@
 <section id="admin_group_content_timeline" class="space-y-5">
-  <%= form_with url: admin_group_path(group),
+  <%= form_with url: content_admin_group_path(group),
                 method: :get,
                 class: "flex flex-col gap-3 rounded-2xl border bg-white p-4 lg:flex-row lg:items-center" do |f| %>
     <%= f.hidden_field :content, value: content_section %>
@@ -36,7 +36,7 @@
     <%= f.submit t("admin.user_content.filters.apply"),
                  class: "whitespace-nowrap rounded bg-stone-900 p-2 text-white" %>
     <%= link_to t("admin.user_content.filters.reset"),
-                admin_group_path(group, return_params.merge(content: content_section)),
+                content_admin_group_path(group, return_params.merge(content: content_section)),
                 class: "whitespace-nowrap p-2 underline" %>
   <% end %>
 

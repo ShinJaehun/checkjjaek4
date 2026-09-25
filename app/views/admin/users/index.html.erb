@@ -66,8 +66,9 @@
               <% end %>
             </td>
             <td class="p-3 whitespace-nowrap"><%= l(user.created_at, format: :short) %></td>
-            <td class="p-3 whitespace-nowrap">
-              <%= link_to t("admin.actions.show"), admin_user_path(user), class: "text-stone-700 underline" %>
+            <td class="space-y-2 p-3 whitespace-nowrap">
+              <%= link_to t("admin.actions.show"), admin_user_path(user), class: "block text-stone-700 underline" %>
+              <%= link_to t("admin.actions.content"), content_admin_user_path(user), class: "block text-stone-700 underline" %>
             </td>
           </tr>
         <% end %>

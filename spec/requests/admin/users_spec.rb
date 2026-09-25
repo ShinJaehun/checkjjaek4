@@ -54,6 +54,8 @@ RSpec.describe "Admin user inventory", type: :request do
   it "allows only a global admin to access the list and details" do
     get admin_users_path
     expect(response).to redirect_to(new_user_session_path)
+    get content_admin_user_path(reader)
+    expect(response).to redirect_to(new_user_session_path)
 
     Group.create!(group_admin: reader, name: "Managed by reader", group_type: :public_group, application_purpose: "Read")
     sign_in reader
@@ -61,11 +63,15 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(response).to redirect_to(root_path)
     get admin_user_path(admin)
     expect(response).to redirect_to(root_path)
+    get content_admin_user_path(admin)
+    expect(response).to redirect_to(root_path)
 
     sign_in admin
     get admin_users_path
     expect(response).to have_http_status(:ok)
     get admin_user_path(reader)
+    expect(response).to have_http_status(:ok)
+    get content_admin_user_path(reader)
     expect(response).to have_http_status(:ok)
   end
 
@@ -117,6 +123,8 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(identity.at_css("img")['alt']).to eq(reader.name)
     expect(document.at_css("#user_#{withdrawn.id} [data-field='user'] [data-field='email']").text.strip).to eq("-")
     expect(document.at_css("#user_#{withdrawn.id} [data-field='latest-activity']").text.strip).to eq("-")
+    expect(document.at_css("#user_#{reader.id} a[href='#{admin_user_path(reader)}']")).to be_present
+    expect(document.at_css("#user_#{reader.id} a[href='#{content_admin_user_path(reader)}']")).to be_present
 
     activities.each_with_index do |(author, activity), index|
       cell = document.at_css("#user_#{author.id} [data-field='latest-activity']")
@@ -350,7 +358,15 @@ RSpec.describe "Admin user inventory", type: :request do
     sign_in admin
     get admin_user_path(reader)
 
+    detail = Nokogiri::HTML(response.body)
+    expect(detail.at_css("#admin_user_content_timeline")).to be_nil
+    expect(detail.at_css("a[href='#{content_admin_user_path(reader)}']")).to be_present
+
+    get content_admin_user_path(reader)
+
     document = Nokogiri::HTML(response.body)
+    expect(document.text).to include(reader.name)
+    expect(document.at_css("a[href='#{admin_user_path(reader)}']").text.strip).to eq("상세로 돌아가기")
     timeline = document.at_css("#admin_user_content_timeline")
     expect(timeline).to be_present
     expect(timeline.css("th").map { |header| header.text.strip }).to eq(
@@ -413,7 +429,7 @@ RSpec.describe "Admin user inventory", type: :request do
     deleted.destroy_or_tombstone!
     sign_in admin
 
-    get admin_user_path(reader)
+    get content_admin_user_path(reader)
     document = Nokogiri::HTML(response.body)
     navigation = document.at_css("nav[aria-label='작성 콘텐츠 종류']")
     expect(navigation.css("a").map { |link| link.text.strip }).to eq(
@@ -441,7 +457,7 @@ RSpec.describe "Admin user inventory", type: :request do
       { status: "deleted" } => [ deleted ],
       { q: "group_match", content: "general", location: "group", status: "active" } => [ group_general ]
     }.each do |filters, expected_records|
-      get admin_user_path(reader), params: filters
+      get content_admin_user_path(reader), params: filters
       filtered_document = Nokogiri::HTML(response.body)
       rows = filtered_document.css("#admin_user_content_timeline tbody tr")
       expected_ids = expected_records.map do |record|
@@ -454,7 +470,7 @@ RSpec.describe "Admin user inventory", type: :request do
       )
     end
 
-    get admin_user_path(reader), params: {
+    get content_admin_user_path(reader), params: {
       content: "invalid",
       location: "invalid",
       status: "invalid",
@@ -466,7 +482,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(invalid_document.css("#admin_user_content_timeline tbody tr").size).to eq(8)
     expect(invalid_document.at_css("nav a[aria-current='page']").text.strip).to eq("전체")
 
-    get admin_user_path(reader), params: {
+    get content_admin_user_path(reader), params: {
       content: "comments",
       q: "FILTER",
       location: "group",
@@ -477,7 +493,7 @@ RSpec.describe "Admin user inventory", type: :request do
     filtered_document = Nokogiri::HTML(response.body)
     expect(filtered_document.at_css("input[name='content']")["value"]).to eq("comments")
     reset_link = filtered_document.css("a").find { |link| link.text.strip == "필터 초기화" }
-    expect(reset_link["href"]).to eq(admin_user_path(reader, content: "comments"))
+    expect(reset_link["href"]).to eq(content_admin_user_path(reader, content: "comments"))
     book_link = filtered_document.css("nav a").find { |link| link.text.strip == "책짹" }
     expect(book_link["href"]).to include(
       "content=book", "q=FILTER", "location=group", "status=active", "sort=oldest"
@@ -501,7 +517,7 @@ RSpec.describe "Admin user inventory", type: :request do
     end
     sign_in admin
 
-    get admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "recent" }
+    get content_admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "recent" }
     first_page = Nokogiri::HTML(response.body)
     first_page_rows = first_page.css("#admin_user_content_timeline tbody tr")
     expect(first_page_rows.size).to eq(50)
@@ -510,12 +526,12 @@ RSpec.describe "Admin user inventory", type: :request do
     )
     expect(response.body).to include("content=all", "q=PAGED", "sort=recent", "all_page=2")
 
-    get admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "recent", all_page: 2 }
+    get content_admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "recent", all_page: 2 }
     second_page = Nokogiri::HTML(response.body)
     expect(second_page.css("#admin_user_content_timeline tbody tr").size).to eq(1)
     expect(second_page.css("#admin_user_content_timeline tbody tr").first.text).to include("PAGED_GENERAL_25")
 
-    get admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "oldest" }
+    get content_admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "oldest" }
     oldest_first = Nokogiri::HTML(response.body).css("#admin_user_content_timeline tbody tr").first
     expect(oldest_first.text).to include("PAGED_GENERAL_25")
   end

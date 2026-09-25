@@ -22,6 +22,11 @@ module Admin
       @account_history_entries = UserAccountHistoryQuery.new(@user).call
       @administered_groups = @user.administered_groups.order(created_at: :desc).load
       @membership_counts = @user.group_memberships.group(:status).count
+    end
+
+    def content
+      @user = User.find(params[:id])
+      authorize @user, :view_admin_inventory?
       @content_section = permitted_content_section
       @content_filter_params = params.permit(:q, :location, :status, :sort)
 
