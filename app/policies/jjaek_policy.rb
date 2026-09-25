@@ -21,6 +21,10 @@ class JjaekPolicy < ApplicationPolicy
     !record.hidden? || view_hidden_content?
   end
 
+  def view_deleted_tombstone?
+    user.present? && record.hidden? && record.deleted? && context_visible_to_user?
+  end
+
   def view_group_hidden_placeholder?
     return false unless user.present? && record.hidden?
     return false if view_hidden_content?
@@ -62,7 +66,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def show?
-    return view_hidden_content? || view_hidden_placeholder? if record.hidden?
+    return view_hidden_content? || view_deleted_tombstone? || view_hidden_placeholder? if record.hidden?
     return true if user&.global_admin?
 
     visible_for_interaction?
@@ -101,23 +105,26 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def hide?
-    user&.global_admin? && record.user_id != user.id && !record.hidden?
+    user&.global_admin? && record.user_id != user.id && !record.deleted? && !record.hidden?
   end
 
   def restore?
-    user&.global_admin? && record.user_id != user.id && record.hidden? && record.current_hide_action.present?
+    user&.global_admin? && record.user_id != user.id && !record.deleted? && record.hidden? &&
+      record.current_hide_action.present?
   end
 
   def hide_as_group_admin?
     group_admin_moderation_context? &&
       record.group.active? &&
       !record.user.global_admin? &&
+      !record.deleted? &&
       !record.hidden?
   end
 
   def restore_as_group_admin?
     group_admin_moderation_context? &&
       (record.group.active? || record.group.inactive?) &&
+      !record.deleted? &&
       record.hidden? &&
       record.current_hide_action.present? &&
       record.current_hide_action.group_authority?

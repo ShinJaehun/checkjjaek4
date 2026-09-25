@@ -69,6 +69,21 @@ RSpec.describe Jjaeks::Hide do
     expect(own_jjaek.moderation_actions).to be_empty
   end
 
+  it "rejects hiding a tombstoned jjaek" do
+    jjaek = author.jjaeks.create!(content: "Deleted target")
+    comment = jjaek.comments.create!(user: admin, content: "Preserved comment")
+    jjaek.destroy_or_tombstone!
+
+    expect {
+      described_class.new(jjaek, actor: admin, public_reason: "other").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(jjaek.reload).to be_deleted
+    expect(jjaek).not_to be_hidden
+    expect(jjaek.comments).to contain_exactly(comment)
+    expect(jjaek.moderation_actions).to be_empty
+  end
+
   it "rolls back the hidden state when audit creation fails" do
     jjaek = author.jjaeks.create!(content: "Atomic target")
     allow(ModerationAction).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(ModerationAction.new))

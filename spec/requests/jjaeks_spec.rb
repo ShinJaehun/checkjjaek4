@@ -515,6 +515,37 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).not_to include(%(action="#{jjaek_comments_path(original)}"))
     end
 
+    it "shows a hidden deleted tombstone and preserved comments only to original-context readers" do
+      admin = User.create!(name: "Admin", email: "hidden-deleted-request-admin@example.com", password: "password123!", global_admin: true)
+      stranger = User.create!(name: "Stranger", email: "hidden-deleted-request-stranger@example.com", password: "password123!")
+      original_body = original.content
+      original.comments.create!(user: viewer, content: "HIDDEN_DELETED_PRESERVED_COMMENT")
+      Jjaeks::Hide.new(original, actor: admin, public_reason: "other").call!
+
+      sign_in viewer
+      get jjaek_path(original)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include(original_body)
+
+      sign_in original_author
+      delete jjaek_path(original)
+      expect(original.reload).to be_deleted
+      expect(original).to be_hidden
+
+      sign_in viewer
+      get jjaek_path(original)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted"), "HIDDEN_DELETED_PRESERVED_COMMENT")
+      expect(response.body).not_to include(original_body)
+
+      sign_in stranger
+      get jjaek_path(original)
+      expect(response).to redirect_to(root_path)
+      expect(response.body).not_to include(I18n.t("jjaeks.labels.deleted"))
+      expect(response.body).not_to include("HIDDEN_DELETED_PRESERVED_COMMENT")
+      expect(response.body).not_to include(original_body)
+    end
+
     it "shows only the tombstone body and comments when a requote itself is deleted" do
       requote.comments.create!(user: original_author, content: "PRESERVED_REQUOTE_COMMENT")
       requote.destroy_or_tombstone!

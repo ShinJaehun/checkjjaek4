@@ -148,6 +148,29 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     expect(detail.at_css(%(form[action="#{jjaek_like_path(target)}"]))).to be_nil
   end
 
+  it "shows a hidden deleted group tombstone only while Group read access remains valid" do
+    member = User.create!(name: "Member", email: "hidden-deleted-group-member@example.com", password: "password123!")
+    membership = group.group_memberships.create!(user: member, status: :active)
+    target = author.jjaeks.create!(group:, content: "HIDDEN DELETED GROUP BODY")
+    target.comments.create!(user: member, content: "HIDDEN DELETED GROUP COMMENT")
+    Jjaeks::Hide.new(target, actor: group_admin, public_reason: "other").call!
+
+    sign_in author
+    delete jjaek_path(target)
+    expect(target.reload).to be_deleted
+    expect(target).to be_hidden
+
+    sign_in member
+    get jjaek_path(target)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(I18n.t("jjaeks.labels.deleted"), "HIDDEN DELETED GROUP COMMENT")
+    expect(response.body).not_to include("HIDDEN DELETED GROUP BODY")
+
+    membership.destroy!
+    get jjaek_path(target)
+    expect(response).to have_http_status(:not_found)
+  end
+
   it "keeps group and platform authority boundaries for hidden Jjaeks" do
     outsider = User.create!(name: "Outsider", email: "hidden-group-outsider@example.com", password: "password123!")
     global_admin = User.create!(name: "Platform admin", email: "hidden-group-platform@example.com", password: "password123!", global_admin: true)
@@ -202,7 +225,6 @@ RSpec.describe "Group Jjaek moderation", type: :request do
   end
 
   it "rejects ineligible hide targets" do
-
     other_group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Other group", group_type: :public_group)
     pending_group = Group.create!(group_admin:, name: "Pending group", group_type: :private_group, application_purpose: "Pending")
     suspended_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Suspended group", group_type: :private_group, operation_suspended_at: Time.current)

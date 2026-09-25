@@ -1,5 +1,5 @@
 <% jjaek_policy = policy(jjaek) %>
-<% content_visible = jjaek_policy.view_original_content? %>
+<% content_visible = jjaek_policy.view_original_content? || jjaek_policy.view_deleted_tombstone? %>
 <% inline_comments_context = local_assigns[:inline_comments_context] %>
 <% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
 <% inline_comments_book = local_assigns[:inline_comments_book] %>

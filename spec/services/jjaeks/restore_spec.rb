@@ -58,15 +58,23 @@ RSpec.describe Jjaeks::Restore do
     expect(hide.reload).to have_attributes(public_reason: "spam_advertising")
   end
 
-  it "preserves author deletion while clearing moderation hiding" do
-    jjaek.comments.create!(user: admin, content: "Preserve tombstone")
-    hide!
+  it "rejects restoring a hidden jjaek after author deletion" do
+    comment = jjaek.comments.create!(user: admin, content: "Preserve tombstone")
+    hide = hide!
     jjaek.destroy_or_tombstone!
+    deleted_at = jjaek.reload.deleted_at
+    hidden_at = jjaek.hidden_at
 
-    described_class.new(jjaek, actor: admin, public_reason: "숨김만 해제").call!
+    expect {
+      described_class.new(jjaek, actor: admin, public_reason: "숨김만 해제").call!
+    }.to raise_error(described_class::InvalidState)
 
-    expect(jjaek.reload).to be_deleted
-    expect(jjaek).not_to be_hidden
+    expect(jjaek.reload).to have_attributes(deleted_at:, hidden_at:)
+    expect(jjaek).to be_deleted
+    expect(jjaek).to be_hidden
+    expect(jjaek.comments).to contain_exactly(comment)
+    expect(jjaek.moderation_actions.action_type_hide).to contain_exactly(hide)
+    expect(jjaek.moderation_actions.action_type_restore).to be_empty
   end
 
   it "supports repeated hide and restore cycles without reusing an old hide" do

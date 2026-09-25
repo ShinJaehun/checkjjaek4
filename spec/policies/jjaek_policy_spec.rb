@@ -134,6 +134,49 @@ RSpec.describe JjaekPolicy do
     expect(described_class.new(viewer, global_jjaek)).not_to be_restore_as_group_admin
   end
 
+  it "rejects platform and group moderation transitions for deleted jjaeks" do
+    admin = User.create!(name: "Admin", email: "deleted-jjaek-policy-admin@example.com", password: "password123!", global_admin: true)
+    group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Deleted moderation", group_type: :private_group)
+    group.group_memberships.create!(user: original_author, status: :active)
+
+    deleted_jjaek = original_author.jjaeks.create!(group:, content: "Deleted target")
+    deleted_jjaek.comments.create!(user: viewer, content: "Preserved comment")
+    deleted_jjaek.destroy_or_tombstone!
+
+    expect(described_class.new(admin, deleted_jjaek)).not_to be_hide
+    expect(described_class.new(viewer, deleted_jjaek)).not_to be_hide_as_group_admin
+
+    hidden_deleted_jjaek = original_author.jjaeks.create!(group:, content: "Hidden deleted target")
+    hidden_deleted_jjaek.comments.create!(user: viewer, content: "Preserved comment")
+    Jjaeks::Hide.new(hidden_deleted_jjaek, actor: viewer, public_reason: "other").call!
+    hidden_deleted_jjaek.destroy_or_tombstone!
+
+    expect(described_class.new(admin, hidden_deleted_jjaek)).not_to be_restore
+    expect(described_class.new(viewer, hidden_deleted_jjaek)).not_to be_restore_as_group_admin
+  end
+
+  it "allows only original-context readers to view a hidden deleted tombstone" do
+    admin = User.create!(name: "Admin", email: "deleted-tombstone-policy-admin@example.com", password: "password123!", global_admin: true)
+    hidden_jjaek = original
+    hidden_jjaek.comments.create!(user: viewer, content: "Preserved comment")
+    Jjaeks::Hide.new(hidden_jjaek, actor: admin, public_reason: "other").call!
+
+    live_policy = described_class.new(viewer, hidden_jjaek)
+    expect(live_policy).not_to be_view_deleted_tombstone
+    expect(live_policy).not_to be_view_original_content
+
+    hidden_jjaek.destroy_or_tombstone!
+
+    reader_policy = described_class.new(viewer, hidden_jjaek)
+    expect(reader_policy).to be_view_deleted_tombstone
+    expect(reader_policy).not_to be_view_original_content
+    expect(reader_policy).to be_show
+
+    outsider_policy = described_class.new(unrelated_author, hidden_jjaek)
+    expect(outsider_policy).not_to be_view_deleted_tombstone
+    expect(outsider_policy).not_to be_show
+  end
+
   it "keeps suspended group content readable but blocks creation and editing while allowing deletion" do
     group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Suspended", group_type: :public_group)
     group.group_memberships.create!(user: viewer, status: :active)

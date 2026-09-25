@@ -21,6 +21,10 @@ class JjaeksController < ApplicationController
         .includes(:actor)
         .order(created_at: :asc, id: :asc)
     end
+    if policy(@jjaek).view_deleted_tombstone? && !policy(@jjaek).view_admin_inventory?
+      prepare_comments
+      return render :hidden
+    end
     if policy(@jjaek).view_hidden_placeholder?
       prepare_comments
       return render :hidden
