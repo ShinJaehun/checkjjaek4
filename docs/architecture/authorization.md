@@ -262,9 +262,10 @@ Library 안에서 볼 수 있는 책장:
 - `active` 동아리만 기존 group type에 따른 일반 발견·가입·초대·작성 흐름을 제공한다
 - 동아리 관리자만 active 동아리를 `inactive`로 종료하고 inactive 동아리를 다시 승인 대기로 전환할 수 있다
 - 운영 종료는 동아리 관리자가 사유를 입력해 lifecycle·종료 사유·종료 시각을 함께 저장하며, 재활성화 요청은 이 정보를 보존한다
-- 동아리 관리자는 자기 동아리 관리 화면에서 목적·사유를 제외한 시각 중심 누적 운영 이력을 열람한다
+- 동아리 관리자는 자기 동아리 관리 화면에서 `GroupLifecycleEvent`와 Group 대상 platform `ModerationAction`을 실제 event 단위의 시간순 운영 이력으로 열람한다. lifecycle detail과 platform 공개 사유는 볼 수 있지만 platform 내부 메모는 볼 수 없다
 - global admin은 전용 policy query와 admin inventory scope를 통해 전체 User와 모든 Group metadata를 검색·필터·정렬·페이지네이션하여 조회한다
-- global admin은 admin 상세 화면에서 모든 동아리의 목적·사유를 포함한 운영 metadata·이력·내부 콘텐츠를 조사하고 pending 동아리를 승인한다
+- global admin은 admin 상세 화면에서 lifecycle과 platform operation moderation을 반영한 통합 현재 상태, 목적·사유·내부 메모를 포함한 전체 운영 이력과 내부 콘텐츠를 조사하고 pending 동아리를 승인한다
+- admin Group 운영 관리 card는 `suspend_operation?` 또는 `restore_operation?`이 허용될 때만 표시하며, 현재 가능한 운영 action이 없으면 표시하지 않는다
 - global admin은 `JjaekPolicy::AdminInventoryScope`와 `CommentPolicy::AdminInventoryScope`를 통해 admin User·Group 운영 상세 안에서 private visibility, private Group, inactive Group과 작성자 삭제 tombstone을 포함한 관련 콘텐츠를 read-only로 조사한다
 - User admin 상세는 작성자 기준의, Group 운영 상세는 Group 문맥 기준의 필터 가능한 chronological content inventory를 제공한다
 - 일반 User와 group admin은 admin User·Group 상세 URL에 접근할 수 없으며, 이 운영 조회 권한은 일반 홈 feed scope를 넓히지 않는다
@@ -345,10 +346,11 @@ group admin은 일반 active 회원의 `GroupMembership`에만 적용되는 **�
 global admin은 active Group을 **동아리 운영 정지 / 동아리 운영 복구**할 수 있다. 이는 회원 제한 및 group admin의 자발적 `inactive` 운영 종료와 별도이며, 읽기와 기존 데이터는 유지하고 새 콘텐츠·membership·회원 moderation·Group lifecycle mutation만 차단한다.
 세 상태는 서로 자동 전파되지 않는다.
 
-확정된 다음 구현 정책에서는 Group 자체의 platform operation suspend/restore 전체 audit와 내부 메모를 global admin만 조사한다.
-현재 admin Group 상세에는 현재 정지 카드만 있으며 전체 이력 UI는 아직 없다. Group admin과 일반 회원에게는 현재 운영 정지
-상태와 공개 사유만 제공하고 platform 전체 audit·내부 메모는 노출하지 않는다. 이 목표 경계는 기존 회원 단위의
-group-origin moderation 이력 열람 권한을 넓히지 않는다.
+Group 자체의 platform operation suspend/restore 전체 audit와 내부 메모는 global admin만 조사한다.
+admin Group 상세는 `GroupLifecycleEvent`와 Group 대상 `ModerationAction` 전체를 실제 event 단위의 시간순 운영 이력으로
+표시한다. Group admin의 동아리 관리 화면도 같은 두 종류의 event와 platform 공개 사유를 표시하지만 내부 메모는 제외하며,
+일반 회원에게는 현재 운영 정지 상태와 공개 사유만 제공한다. 이 경계는 기존 회원 단위의 group-origin moderation 이력
+열람 권한을 넓히지 않는다.
 
 ## 계정 탈퇴 권한과 보존
 

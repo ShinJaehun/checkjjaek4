@@ -680,7 +680,7 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 공통 감사 기반인 `ModerationAction`은 append-only action log로 구현되어 다음 정보를 보존한다.
 
 - 대상 종류와 대상 ID
-- 조치 종류(`suspend`, `hide`, `restore`)
+- 대상별 조치 종류(User `suspend`/`restore`, Group `suspend_group_operation`/`restore_group_operation`, GroupMembership `suspend_activity`/`restore_activity`, GroupMemberBan `ban_from_group`/`unban_from_group`, Jjaek·Comment `hide`/`restore`)
 - 공개 가능한 사유
 - 필요한 경우 공개 사유와 분리된 내부 운영 메모
 - 처리자와 `created_at` 조치 시각
@@ -700,7 +700,7 @@ Group 자체의 platform operation suspension 전체 audit는 global admin 전�
 
 User 정지/복구, Group 운영 정지/복구, GroupMembership 활동 정지/복구, GroupMemberBan 제한/해제,
 Jjaek·Comment 숨김/복구는 이 감사 기반에 연결되어 있다. 각 화면의 현재 이력 표시 범위는
-`docs/architecture/current_system.md`를 따르고, 남은 Group 전체 이력 UI 정책은 위 절을 따른다.
+`docs/architecture/current_system.md`를 따르며 Group 전체 이력 UI도 위 권한 경계대로 구현되어 있다.
 
 ---
 
@@ -761,7 +761,8 @@ admin User·Group 상세에서 contextual investigation을 이어간다. 두 con
 `전체 / 정상 / 숨김 / 삭제` 상태 필터를 제공한다. Jjaek의 정상은 `deleted_at`과 `hidden_at`이 모두 없는 상태,
 숨김은 삭제되지 않고 `hidden_at`이 있는 상태, 삭제는 `deleted_at`이 있는 상태다. Comment는 `hidden_at`에 따라
 정상과 숨김만 구분하며 삭제 상태를 새로 만들지 않는다. hidden Comment도 두 timeline에서 숨김으로 표시·필터한다.
-Group top-level inventory는 lifecycle과 별도로 operation active/suspended 상태를 표시·필터한다.
+Group top-level inventory는 lifecycle 상태, 재활성화 대기와 operation suspended를 하나의 현재 상태 badge·필터로 제공한다.
+`operation_suspended_at`이 있으면 lifecycle 상태보다 운영 정지를 우선 표시한다.
 
 이 moderation closure는 완료되었다. 기본 rate limit은 서비스 전반의 abuse-prevention 후속 구현으로 남는다.
 서비스 전체 Jjaek/Comment 전역 inventory는 현재 contextual investigation과 별개로 필요성을 판단할 후속 항목이며,
@@ -772,7 +773,7 @@ Classroom 이전 필수 완료 항목으로 단정하지 않는다. User 가입 
 | 대상 | 검색 | 최소 필터 | 최소 정렬·표시 |
 | --- | --- | --- | --- |
 | User | 이름·이메일 | 정상·정지·탈퇴 상태, global admin 여부, 가입 기간(후속), 향후 일반 계정·managed student account 구분 | 최근 가입·오래된 가입, 계정 상태, 가입 시각 |
-| Group | 이름·group admin | Group 종류, pending/active/inactive lifecycle, operation active/suspended, 생성 기간(후속) | 최근 생성·최근 갱신, group admin, 구성원 수와 상태 |
+| Group | 이름·group admin | Group 종류, pending/active/inactive lifecycle·재활성화 대기·operation suspended를 합친 현재 상태, 생성 기간(후속) | 최근 생성·최근 갱신, group admin, 구성원 수와 상태 |
 | Jjaek·책짹 | 본문 일부·작성자·관련 책 | 개인·Group·향후 Classroom 문맥, 짹·책짹·ReJjaek 종류, visibility, 작성자 삭제·운영 숨김 상태, 작성 기간(후속) | 최신·오래된 순, 작성자, 문맥, 상태, 짧은 내용 |
 | Comment | 본문 일부·작성자·원 Jjaek | 개인·Group·향후 Classroom 문맥, 정상·숨김 상태, 작성 기간(후속) | 최신·오래된 순, 작성자, 원 Jjaek, 상태, 짧은 내용 |
 | Moderation 이력 | 대상·처리자 | 조치 종류, 대상 종류, 유효·복구 상태, 처리 기간 | 최근 조치·복구 순, 처리자, 사유, 상태 |

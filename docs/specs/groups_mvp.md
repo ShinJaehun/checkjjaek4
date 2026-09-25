@@ -34,7 +34,14 @@
 - 동아리 관리자의 동아리 운영 종료와 재활성화 요청·재승인
 - 신규 신청의 개설 목적과 운영 종료 사유·시각 기록
 - 신청·승인·운영 종료·재활성화·재승인의 시각과 목적/사유 snapshot을 운영 이력으로 누적
-- 동아리 관리자 화면은 운영 시각 중심으로, global admin 운영 상세는 목적·사유 snapshot을 포함해 이력을 표시
+- Group lifecycle은 `lifecycle_status`와 `GroupLifecycleEvent`, global admin의 platform 운영 정지는 `operation_suspended_at`과 Group 대상 `ModerationAction`으로 서로 분리
+- 동아리 관리자 화면과 global admin 운영 상세에서 lifecycle event와 platform operation suspend/restore action을 실제 event 단위의 시간순 운영 이력으로 표시
+- 동아리 관리자는 lifecycle detail과 platform 공개 사유를 보고, global admin은 platform 내부 메모까지 포함한 전체 운영 이력을 조사
+- admin Group 목록·상세에서 lifecycle, 재활성화 대기와 platform 운영 정지를 반영한 통합 현재 상태를 표시하고, 현재 가능한 운영 정지·복구 action이 없으면 운영 관리 card를 표시하지 않음
+- User 계정 정지와 Group 운영 정지의 신규 조치는 각각 정의된 predefined 공개 사유를 사용하고 기존 자유 텍스트 감사 row는 그대로 표시
+- GroupMembership의 별도 `moderation_status` 기반 활동 정지·복구와 `GroupMemberBan` 기반 이용 제한·해제
+- 회원 관리 화면에서 `GroupMembershipEvent`와 GroupMembership·GroupMemberBan 대상 `ModerationAction`을 실제 사건 단위의 통합 회원 운영 이력으로 표시
+- Group admin과 global admin의 권한 경계에 따른 Group Jjaek·Comment 숨김·복구 및 append-only 감사 이력
 
 비공개 동아리는 사용자 생성 UI에서 제공하며, 동아리 관리자가 기존 사용자를 초대할 수 있다.
 초대는 `GroupMembership`의 `invited` 상태로 표현하고 수락하면 `active`, 거절하면 삭제한다.
@@ -58,7 +65,7 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 일반 내보내기 `removed` lifecycle event로 중복 기록하지 않는다. group admin만 해당 Group의 활동 정지·해제와 이용 제한·해제를
 실행하고 global admin은 회원·제한·감사 이력을 운영 조사 목적으로만 조회한다.
 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성,
-초대 알림, 이메일·링크 초대와 moderation 상세는 미구현이며,
+초대 알림, 이메일·링크 초대와 별도 moderation dashboard는 미구현이며,
 이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
 
 또한 여기서 사용하는 `visibility`, `discoverability`, `join policy`는 제품 정책을 설명하기 위한 개념적 구분이다. 실제 DB column, enum, association 구조를 확정하지 않는다.
@@ -249,7 +256,7 @@ ReJjaek row를 자동 삭제하거나 visibility를 변경하지 않는다.
 
 동아리 Jjaek도 기존 `Comment` 모델을 사용하며 댓글 visibility는 부모 Jjaek을 상속한다.
 댓글 작성과 자기 댓글 수정은 active member만 가능하다. 탈퇴하거나 내보내진 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능하다.
-동아리 관리자의 타인 댓글 삭제와 moderation은 아직 구현하지 않는다.
+동아리 관리자의 타인 댓글 삭제는 구현하지 않는다. 타인 Comment의 moderation hide/restore는 원문 수정이나 삭제와 분리된 상태로 구현되어 있다.
 
 ---
 
@@ -267,7 +274,7 @@ membership 탈퇴 후 콘텐츠 정책은 다음과 같이 확정한다.
 - 탈퇴하거나 내보내진 작성자는 자기 기존 동아리 Jjaek을 수정할 수 없지만 삭제할 수 있다.
 - 댓글이 없는 Jjaek은 hard delete하고, 댓글이 있으면 본문을 제거한 tombstone과 기존 댓글을 보존한다.
 - 삭제된 Jjaek에는 새 댓글·좋아요·ReJjaek을 허용하지 않는다.
-- 동아리 관리자의 타인 Jjaek 수정·삭제 moderation은 아직 구현하지 않는다.
+- 동아리 관리자의 타인 Jjaek 수정·작성자 삭제는 구현하지 않는다. 타인 Jjaek의 moderation hide/restore는 원문 lifecycle과 분리된 상태로 구현되어 있다.
 
 승인 동아리 또는 비공개 동아리에서 탈퇴해 원문 접근 권한을 잃은 사용자는 동아리 콘텐츠를 다시 볼 수 없어야 한다.
 위 권한을 만족시키는 정확한 UI, 메시지와 동선은 후속 구현에서 결정한다.
@@ -288,7 +295,7 @@ group admin은 일반 active 회원의 동아리 활동을 정지·복구할 수
 활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 현재 정지도 종료되고 새 membership에 자동 승계하지 않으며 기존 감사 row는 보존한다.
 승인 동아리의 pending 가입 신청은 승인·거절 심사 대상으로만 다루며 동아리 이용 제한 대상이 아니다. 동아리 이용 제한은 active membership에만 적용한다.
 
-동아리 관리자는 자기 Group의 Jjaek·책짹·Comment를 사유와 함께 숨김·복구할 수 있어야 한다.
+동아리 관리자는 자기 Group의 Jjaek·책짹·Comment를 사유와 함께 숨김·복구할 수 있다.
 원문 수정·hard delete나 서비스 전체 User 정지는 허용하지 않으며 현재 Group당 group admin 1명 구조를 유지한다.
 상태 분리, 감사 기록, 역할 경계와 제외 범위의 canonical 기준은 `docs/specs/moderation_mvp.md`를 따른다.
 
