@@ -50,9 +50,10 @@ RSpec.describe "Group Jjaek moderation", type: :request do
       expect(hidden_article.at_css("#comment_action_jjaek_#{jjaek.id}")).to be_present
       expect(hidden_article.text).to include("좋아요 0개", "댓글 0개")
       expect(hidden_article.text).not_to include("댓글 보기", "글 보기")
-      expect(response.body.index(%(id="jjaek_#{jjaek.id}"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
-      expect(response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))).to be < response.body.index(%(id="group_moderation_state"))
+      expect(hidden_article.at_css("#group_moderation_state")).to be_present
+      expect(hidden_article.at_css("#group_moderation_history")).to be_present
       expect(response.body.index(%(id="group_moderation_state"))).to be < response.body.index(%(id="group_moderation_history"))
+      expect(response.body.index(%(id="group_moderation_history"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
       expect(detail.css('#group_moderation_history [data-role="internal-note"]').map(&:text).join).to include("Not accepted")
       expect(detail.text.scan("Not accepted").size).to eq(1)
       expect(detail.at_css(%(form[action="#{restore_jjaek_path(jjaek)}"] textarea[name="moderation_action[internal_note]"]))).to be_present
@@ -166,6 +167,17 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     expect(response.body).to include(I18n.t("jjaeks.labels.deleted"), "HIDDEN DELETED GROUP COMMENT")
     expect(response.body).not_to include("HIDDEN DELETED GROUP BODY")
 
+    sign_in group_admin
+    get jjaek_path(target)
+    detail = Nokogiri::HTML(response.body)
+    jjaek_article = detail.at_css("#jjaek_#{target.id}")
+    expect(jjaek_article.at_css("#group_moderation_state")).to be_nil
+    expect(jjaek_article.at_css("#group_moderation_history")).to be_present
+    expect(response.body).not_to include(%(action="#{restore_jjaek_path(target)}"))
+    expect(response.body).not_to include(%(action="#{hide_jjaek_path(target)}"))
+    expect(response.body.index(%(id="group_moderation_history"))).to be < response.body.index(%(id="comments_panel_jjaek_#{target.id}"))
+
+    sign_in member
     membership.destroy!
     get jjaek_path(target)
     expect(response).to have_http_status(:not_found)

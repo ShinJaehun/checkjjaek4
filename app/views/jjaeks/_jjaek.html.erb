@@ -50,4 +50,11 @@ end %>
       <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-red-800" %>
     </div>
   <% end %>
+
+  <% if detail_context %>
+    <%= render "jjaeks/moderation",
+               jjaek: jjaek,
+               moderation_actions: local_assigns[:moderation_actions],
+               group_moderation_actions: local_assigns[:group_moderation_actions] %>
+  <% end %>
 </article>

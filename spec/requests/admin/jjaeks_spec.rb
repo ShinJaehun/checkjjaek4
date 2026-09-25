@@ -16,7 +16,10 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     get jjaek_path(jjaek)
     document = Nokogiri::HTML(response.body)
     reason_select = document.at_css("select[name='moderation_action[public_reason]']")
+    jjaek_article = document.at_css("#jjaek_#{jjaek.id}")
     expect(document.at_css("#admin_moderation_state").text.squish).to include("콘텐츠 관리", "현재 상태: 공개")
+    expect(jjaek_article.at_css("#admin_moderation_state")).to be_present
+    expect(response.body.index(%(id="admin_moderation_state"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
     expect(response.body).to include("숨김")
     expect(reason_select.css("option").map { |option| option["value"] }).to include(*Jjaek::MODERATION_HIDE_REASONS)
     expect(document.at_css("textarea[name='moderation_action[public_reason]']")).to be_nil
@@ -44,14 +47,35 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(document.at_css("#admin_moderation_state").text.squish).to include("현재 상태: 숨김")
     expect(document.at_css("#admin_moderation_state #admin_moderation_history")).to be_nil
     expect(document.at_css("#admin_moderation_history_section [data-role='internal-note']")).to be_present
-    expect(response.body.index(%(id="jjaek_#{jjaek.id}"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
-    expect(response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))).to be < response.body.index(%(id="admin_moderation_state"))
+    expect(hidden_article.at_css("#admin_moderation_state")).to be_present
+    expect(hidden_article.at_css("#admin_moderation_history_section")).to be_present
     expect(response.body.index(%(id="admin_moderation_state"))).to be < response.body.index(%(id="admin_moderation_history_section"))
+    expect(response.body.index(%(id="admin_moderation_history_section"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
     expect(response.body).not_to include(%(action="#{hide_admin_jjaek_path(jjaek)}"))
 
     expect {
       patch hide_admin_jjaek_path(jjaek), params: { moderation_action: { public_reason: "other" } }
     }.not_to change(ModerationAction, :count)
+  end
+
+  it "keeps deleted hidden history inside the Jjaek without an empty moderation card" do
+    jjaek = author.jjaeks.create!(content: "DELETED HIDDEN MODERATION TARGET")
+    jjaek.comments.create!(user: viewer, content: "PRESERVED COMMENT")
+    Jjaeks::Hide.new(jjaek, actor: admin, public_reason: "other", internal_note: "PRESERVED HIDE NOTE").call!
+    jjaek.destroy_or_tombstone!
+    sign_in admin
+
+    get jjaek_path(jjaek)
+
+    document = Nokogiri::HTML(response.body)
+    jjaek_article = document.at_css("#jjaek_#{jjaek.id}")
+    expect(jjaek_article).to be_present
+    expect(jjaek_article.text).to include(I18n.t("jjaeks.labels.deleted"), "운영 이력", "PRESERVED HIDE NOTE")
+    expect(jjaek_article.at_css("#admin_moderation_state")).to be_nil
+    expect(jjaek_article.at_css("#admin_moderation_history_section")).to be_present
+    expect(response.body).not_to include(%(action="#{restore_admin_jjaek_path(jjaek)}"))
+    expect(response.body).not_to include(%(action="#{hide_admin_jjaek_path(jjaek)}"))
+    expect(response.body.index(%(id="admin_moderation_history_section"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
   end
 
   it "does not let a global admin hide or restore their own jjaek" do

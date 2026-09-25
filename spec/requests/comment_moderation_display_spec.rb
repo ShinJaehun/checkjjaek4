@@ -102,8 +102,11 @@ RSpec.describe "Comment moderation display", type: :request do
     sign_in other_admin
 
     get jjaek_path(jjaek)
-    history = Nokogiri::HTML(response.body).at_css("#moderation_history_comment_#{comment.id}")
+    document = Nokogiri::HTML(response.body)
+    comment_article = document.at_css("#comment_#{comment.id}")
+    history = comment_article.at_css("#moderation_history_comment_#{comment.id}")
     expect(history).to be_present
+    expect(comment_article.at_css(%(form[action="#{hide_admin_jjaek_comment_path(jjaek, comment)}"]))).to be_present
     expect(history.css("li").map { |entry| entry["data-moderation-action-id"].to_i }).to eq(comment.moderation_actions.order(:created_at, :id).ids)
     expect(history.text).to include("Admin", "시스템 관리자", "PLATFORM HIDE NOTE", "Platform restored", "PLATFORM RESTORE NOTE")
     expect(history.text).to include(I18n.l(comment.moderation_actions.first.created_at, format: :short))

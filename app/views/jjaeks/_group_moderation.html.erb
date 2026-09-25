@@ -1,7 +1,7 @@
 <% jjaek_policy = policy(jjaek) %>
 
-<% if jjaek_policy.view_group_moderation_history? %>
-  <section id="group_moderation_state" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
+<% if jjaek_policy.hide_as_group_admin? || jjaek_policy.restore_as_group_admin? %>
+  <section id="group_moderation_state" class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-950">
     <h2 class="font-semibold"><%= t("admin.jjaeks.moderation.title") %></h2>
     <p class="mt-3 font-medium">
       <%= t("admin.jjaeks.moderation.status") %>:
@@ -39,4 +39,5 @@
 <%= render "jjaeks/moderation_history",
            moderation_actions: moderation_actions,
            section_id: "group_moderation_history",
-           list_id: "group_moderation_history_list" %>
+           list_id: "group_moderation_history_list",
+           nested: true %>

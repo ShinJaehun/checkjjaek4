@@ -1,0 +1,53 @@
+<% jjaek_policy = policy(jjaek) %>
+<% platform_action_available = jjaek_policy.hide? || jjaek_policy.restore? %>
+<% platform_history_visible = jjaek_policy.view_admin_inventory? && moderation_actions.present? %>
+<% group_action_available = jjaek_policy.hide_as_group_admin? || jjaek_policy.restore_as_group_admin? %>
+<% group_history_visible = jjaek_policy.view_group_moderation_history? && group_moderation_actions.present? %>
+
+<% if platform_action_available || platform_history_visible || group_action_available || group_history_visible %>
+  <div class="mt-4 space-y-4">
+    <% if platform_action_available %>
+      <section id="admin_moderation_state" class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-950">
+        <h2 class="font-semibold"><%= t("admin.jjaeks.moderation.title") %></h2>
+        <p class="mt-3 font-medium">
+          <%= t("admin.jjaeks.moderation.status") %>:
+          <span class="inline-flex rounded-full bg-amber-200 px-2 py-0.5 text-xs">
+            <%= t("admin.jjaeks.moderation.#{jjaek.hidden? ? :hidden : :visible}") %>
+          </span>
+        </p>
+
+        <% if jjaek_policy.restore? %>
+          <%= form_with url: restore_admin_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
+            <%= form.label :public_reason, t("admin.jjaeks.moderation.restore_reason"), class: "block font-medium" %>
+            <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+            <%= form.label :internal_note, t("admin.jjaeks.moderation.internal_note"), class: "block font-medium" %>
+            <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+            <%= form.submit t("admin.jjaeks.actions.restore"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+          <% end %>
+        <% else %>
+          <%= form_with url: hide_admin_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
+            <%= form.label :public_reason, t("admin.jjaeks.moderation.reason"), class: "block font-medium" %>
+            <%= form.select :public_reason,
+                            options_for_select(jjaek_hide_reason_options),
+                            { prompt: t("admin.jjaeks.moderation.reason_prompt") },
+                            required: true,
+                            class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+            <%= form.label :internal_note, t("admin.jjaeks.moderation.internal_note"), class: "block font-medium" %>
+            <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
+            <%= form.submit t("admin.jjaeks.actions.hide"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+          <% end %>
+        <% end %>
+      </section>
+    <% end %>
+
+    <% if platform_history_visible %>
+      <%= render "jjaeks/moderation_history",
+                 moderation_actions: moderation_actions,
+                 section_id: "admin_moderation_history_section",
+                 list_id: "admin_moderation_history",
+                 nested: true %>
+    <% end %>
+
+    <%= render "jjaeks/group_moderation", jjaek: jjaek, moderation_actions: group_moderation_actions %>
+  </div>
+<% end %>
