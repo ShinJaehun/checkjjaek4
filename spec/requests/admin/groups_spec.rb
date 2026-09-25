@@ -60,6 +60,29 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(opening_approval_entry.text).not_to include("개설 목적")
   end
 
+  it "links each group's latest Jjaek or Comment activity and shows an empty state" do
+    book = Book.create!(title: "Group inventory book")
+    comment_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Comment activity club", group_type: :public_group)
+    book_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Book activity club", group_type: :public_group)
+    general = group_admin.jjaeks.create!(group: comment_group, content: "Older group Jjaek", created_at: 2.hours.ago)
+    comment = general.comments.create!(user: admin, content: "Latest group comment", created_at: 1.hour.ago)
+    group_book = group_admin.jjaeks.create!(group: book_group, book:, content: "Latest group book", created_at: 30.minutes.ago)
+
+    sign_in admin
+    get admin_groups_path
+    document = Nokogiri::HTML(response.body)
+
+    comment_cell = document.at_css("#group_#{comment_group.id} [data-field='latest-activity']")
+    expect(comment_cell.text).to include("댓글", I18n.l(comment.created_at, format: :short))
+    expect(comment_cell.at_css("a")['href']).to eq(jjaek_path(general, anchor: "comment_#{comment.id}"))
+
+    book_cell = document.at_css("#group_#{book_group.id} [data-field='latest-activity']")
+    expect(book_cell.text).to include("동아리책짹", I18n.l(group_book.created_at, format: :short))
+    expect(book_cell.at_css("a")['href']).to eq(jjaek_path(group_book))
+
+    expect(document.at_css("#group_#{group.id} [data-field='latest-activity']").text.strip).to eq("-")
+  end
+
   it "shows a reactivation request with previous closure details" do
     legacy_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Returning club", group_type: :public_group)
     closed_at = Time.current

@@ -281,6 +281,8 @@ ko:
         general: "짹"
         book: "책짹"
         requote: "다시짹"
+        group_general: "동아리짹"
+        group_book: "동아리책짹"
         comments: "댓글"
       locations:
         personal: "일반"
@@ -346,11 +348,13 @@ ko:
         group_admin: "동아리 관리자"
         regular: "일반 사용자"
       fields:
+        user: "사용자"
         avatar: "사용자 이미지"
         name: "이름"
         email: "이메일"
         status: "계정 상태"
         role: "권한"
+        latest_activity: "최근 활동"
         joined: "가입 시각"
         actions: "작업"
         updated: "수정 시각"
@@ -468,6 +472,7 @@ ko:
         operation_status: "상태"
         group_admin: "동아리 관리자"
         active_members: "활동 회원"
+        latest_activity: "최근 활동"
         created: "생성 시각"
         actions: "작업"
       actions:

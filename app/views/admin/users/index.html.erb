@@ -14,11 +14,10 @@
     <table class="min-w-full text-sm">
       <thead>
         <tr class="border-b text-left">
-          <th class="p-3"><span class="sr-only"><%= t("admin.users.fields.avatar") %></span></th>
-          <th class="p-3"><%= t("admin.users.fields.name") %></th>
-          <th class="p-3"><%= t("admin.users.fields.email") %></th>
+          <th class="w-56 p-3"><%= t("admin.users.fields.user") %></th>
           <th class="p-3"><%= t("admin.users.fields.status") %></th>
           <th class="p-3"><%= t("admin.users.fields.role") %></th>
+          <th class="p-3"><%= t("admin.users.fields.latest_activity") %></th>
           <th class="p-3"><%= t("admin.users.fields.joined") %></th>
           <th class="p-3"><%= t("admin.users.fields.actions") %></th>
         </tr>
@@ -26,12 +25,17 @@
       <tbody>
         <% @users.each do |user| %>
           <% account_status = user.moderation_status %>
+          <% latest_activity = @latest_activities_by_user_id[user.id] %>
           <tr id="<%= dom_id(user) %>" class="border-b <%= account_status == :active ? nil : 'bg-stone-50 text-stone-500' %>">
-            <td class="p-3">
-              <%= user_avatar_image(user, size: 128, alt: user.name, class: "h-9 w-9 shrink-0 rounded-full object-cover") %>
+            <td class="w-56 max-w-56 p-3" data-field="user">
+              <div class="flex w-56 items-center gap-3">
+                <%= user_avatar_image(user, size: 128, alt: user.name, class: "h-9 w-9 shrink-0 rounded-full object-cover") %>
+                <div class="min-w-0">
+                  <div class="truncate font-medium text-stone-900"><%= user.name %></div>
+                  <div class="truncate text-xs text-stone-500" data-field="email"><%= user.withdrawn? ? "-" : user.email %></div>
+                </div>
+              </div>
             </td>
-            <td class="p-3"><%= user.name %></td>
-            <td class="p-3" data-field="email"><%= user.withdrawn? ? "-" : user.email %></td>
             <td class="p-3 whitespace-nowrap">
               <span class="rounded-full px-2 py-1 <%= user.withdrawn? ? 'bg-stone-200 text-stone-700' : 'bg-stone-100' %>">
                 <%= t("admin.users.statuses.#{account_status}") %>
@@ -49,6 +53,17 @@
                   <span class="rounded-full bg-stone-100 px-2 py-1"><%= t("admin.users.roles.regular") %></span>
                 <% end %>
               </div>
+            </td>
+            <td class="p-3 whitespace-nowrap" data-field="latest-activity">
+              <% if latest_activity %>
+                <% activity_path = latest_activity.comment? ? jjaek_path(latest_activity.record.jjaek, anchor: dom_id(latest_activity.record)) : jjaek_path(latest_activity.record) %>
+                <%= link_to activity_path, class: "inline-flex items-center gap-2 whitespace-nowrap underline-offset-2 hover:underline" do %>
+                  <span class="rounded-full bg-stone-100 px-2 py-1 text-xs"><%= t("admin.user_content.kinds.#{latest_activity.kind}") %></span>
+                  <span class="text-sm text-stone-500"><%= l(latest_activity.created_at, format: :short) %></span>
+                <% end %>
+              <% else %>
+                <span>-</span>
+              <% end %>
             </td>
             <td class="p-3 whitespace-nowrap"><%= l(user.created_at, format: :short) %></td>
             <td class="p-3 whitespace-nowrap">

@@ -254,6 +254,8 @@ en:
         general: "Jjaeks"
         book: "Book Jjaeks"
         requote: "ReJjaeks"
+        group_general: "Club Jjaeks"
+        group_book: "Club Book Jjaeks"
         comments: "Comments"
       locations:
         personal: "Personal"
@@ -319,11 +321,13 @@ en:
         group_admin: "Club admin"
         regular: "Regular user"
       fields:
+        user: "User"
         avatar: "User avatar"
         name: "Name"
         email: "Email"
         status: "Account status"
         role: "Role"
+        latest_activity: "Latest activity"
         joined: "Joined"
         actions: "Actions"
         updated: "Updated"
@@ -441,6 +445,7 @@ en:
         operation_status: "Status"
         group_admin: "Club admin"
         active_members: "Active members"
+        latest_activity: "Latest activity"
         created: "Created"
         actions: "Actions"
       actions:

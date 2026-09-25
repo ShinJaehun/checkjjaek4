@@ -6,6 +6,10 @@ module Admin
       scope = UserInventoryQuery.new(users, params).call
       @inventory_page = InventoryPage.new(scope, page: params[:page])
       @users = @inventory_page.records
+      @latest_activities_by_user_id = LatestContentActivityQuery.new(
+        owner_type: :user,
+        owner_ids: @users.map(&:id)
+      ).call
     end
 
     def show

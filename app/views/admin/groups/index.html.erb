@@ -22,19 +22,24 @@
       <thead>
         <tr class="border-b text-left">
           <th class="p-3"><%= t("admin.groups.fields.name") %></th>
-          <th class="p-3"><%= t("admin.groups.fields.type") %></th>
           <th class="p-3"><%= t("admin.groups.fields.status") %></th>
           <th class="p-3"><%= t("admin.groups.fields.group_admin") %></th>
           <th class="p-3"><%= t("admin.groups.fields.active_members") %></th>
+          <th class="p-3"><%= t("admin.groups.fields.latest_activity") %></th>
           <th class="p-3"><%= t("admin.groups.fields.created") %></th>
           <th class="p-3"><%= t("admin.groups.fields.actions") %></th>
         </tr>
       </thead>
       <tbody>
         <% @groups.each do |group| %>
+          <% latest_activity = @latest_activities_by_group_id[group.id] %>
           <tr id="<%= dom_id(group) %>" class="border-b">
-            <td class="p-3"><%= group.name %></td>
-            <td class="p-3"><%= t("admin.groups.types.#{group.group_type}") %></td>
+            <td class="p-3">
+              <div class="flex items-center gap-2 whitespace-nowrap">
+                <span class="font-medium text-stone-900"><%= group.name %></span>
+                <span class="rounded-full bg-stone-100 px-2 py-1 text-xs"><%= t("admin.groups.types.#{group.group_type}") %></span>
+              </div>
+            </td>
             <td class="p-3 whitespace-nowrap" data-field="current-status">
               <span class="rounded-full px-2 py-1 <%= admin_group_status_badge_classes(group) %>">
                 <%= admin_group_current_status(group) %>
@@ -45,6 +50,17 @@
               <span class="text-xs text-stone-500"><%= group.group_admin.withdrawn? ? "-" : group.group_admin.email %></span>
             </td>
             <td class="p-3"><%= group.active_members_count %></td>
+            <td class="p-3 whitespace-nowrap" data-field="latest-activity">
+              <% if latest_activity %>
+                <% activity_path = latest_activity.comment? ? jjaek_path(latest_activity.record.jjaek, anchor: dom_id(latest_activity.record)) : jjaek_path(latest_activity.record) %>
+                <%= link_to activity_path, class: "inline-flex items-center gap-2 whitespace-nowrap underline-offset-2 hover:underline" do %>
+                  <span class="rounded-full bg-stone-100 px-2 py-1 text-xs"><%= t("admin.user_content.kinds.#{latest_activity.kind}") %></span>
+                  <span class="text-sm text-stone-500"><%= l(latest_activity.created_at, format: :short) %></span>
+                <% end %>
+              <% else %>
+                <span>-</span>
+              <% end %>
+            </td>
             <td class="p-3 whitespace-nowrap"><%= l(group.created_at, format: :short) %></td>
             <td class="space-y-2 p-3">
               <%= link_to t("admin.groups.actions.show"), admin_group_path(group, request.query_parameters), class: "block underline" %>

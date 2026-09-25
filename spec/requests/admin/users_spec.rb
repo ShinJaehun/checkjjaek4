@@ -81,6 +81,51 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(listed_ids).to eq([ admin.id ])
   end
 
+  it "combines user identity details and links each latest authored content activity" do
+    book = Book.create!(title: "Inventory book")
+    active_group = Group.create!(
+      lifecycle_status: :active,
+      group_admin: reader,
+      name: "Inventory activity group",
+      group_type: :public_group
+    )
+    source = admin.jjaeks.create!(content: "Inventory requote source", created_at: 2.hours.ago)
+    comment_source = admin.jjaeks.create!(content: "Inventory comment source", created_at: 90.minutes.ago)
+    general_author = User.create!(name: "General author", email: "general-inventory@example.com", password: "password123!")
+    book_author = User.create!(name: "Book author", email: "book-inventory@example.com", password: "password123!")
+    requote_author = User.create!(name: "Requote author", email: "requote-inventory@example.com", password: "password123!")
+    group_author = User.create!(name: "Group author", email: "group-inventory@example.com", password: "password123!")
+    group_book_author = User.create!(name: "Group book author", email: "group-book-inventory@example.com", password: "password123!")
+    comment_author = User.create!(name: "Comment author", email: "comment-inventory@example.com", password: "password123!")
+
+    activities = {
+      general_author => general_author.jjaeks.create!(content: "Inventory general", created_at: 70.minutes.ago),
+      book_author => book_author.jjaeks.create!(book:, content: "Inventory book", created_at: 60.minutes.ago),
+      requote_author => requote_author.jjaeks.create!(quoted_jjaek: source, content: "Inventory requote", created_at: 50.minutes.ago),
+      group_author => group_author.jjaeks.create!(group: active_group, content: "Inventory group", created_at: 40.minutes.ago),
+      group_book_author => group_book_author.jjaeks.create!(group: active_group, book:, content: "Inventory group book", created_at: 30.minutes.ago),
+      comment_author => comment_source.comments.create!(user: comment_author, content: "Inventory comment", created_at: 20.minutes.ago)
+    }
+    expected_kinds = %w[짹 책짹 다시짹 동아리짹 동아리책짹 댓글]
+
+    sign_in admin
+    get admin_users_path
+    document = Nokogiri::HTML(response.body)
+
+    identity = document.at_css("#user_#{reader.id} [data-field='user']")
+    expect(identity.text).to include(reader.name, reader.email)
+    expect(identity.at_css("img")['alt']).to eq(reader.name)
+    expect(document.at_css("#user_#{withdrawn.id} [data-field='user'] [data-field='email']").text.strip).to eq("-")
+    expect(document.at_css("#user_#{withdrawn.id} [data-field='latest-activity']").text.strip).to eq("-")
+
+    activities.each_with_index do |(author, activity), index|
+      cell = document.at_css("#user_#{author.id} [data-field='latest-activity']")
+      expected_path = activity.is_a?(Comment) ? jjaek_path(activity.jjaek, anchor: "comment_#{activity.id}") : jjaek_path(activity)
+      expect(cell.text).to include(expected_kinds[index], I18n.l(activity.created_at, format: :short))
+      expect(cell.at_css("a")['href']).to eq(expected_path)
+    end
+  end
+
   it "filters suspended users separately from active and withdrawn users" do
     reader.update!(suspended_at: Time.current)
     sign_in admin

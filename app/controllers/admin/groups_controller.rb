@@ -6,6 +6,10 @@ module Admin
       scope = GroupInventoryQuery.new(groups, params).call.includes(:group_admin)
       @inventory_page = InventoryPage.new(scope, page: params[:page])
       @groups = @inventory_page.records
+      @latest_activities_by_group_id = LatestContentActivityQuery.new(
+        owner_type: :group,
+        owner_ids: @groups.map(&:id)
+      ).call
     end
 
     def show
