@@ -40,12 +40,18 @@ class GroupsController < ApplicationController
     created = Group.transaction do
       next false unless @group.save
 
-      GroupLifecycleEvent.create!(
+      event = GroupLifecycleEvent.create!(
         group: @group,
         actor: current_user,
         event_type: current_user.global_admin? ? :opening_approved : :opening_requested,
         detail: @group.application_purpose
       )
+      recipient_ids = if event.opening_requested?
+        eligible_global_admin_ids
+      else
+        [ @group.group_admin_id ]
+      end
+      Notifications::GroupLifecycleNotifier.schedule(event:, recipient_ids:)
       true
     end
 
@@ -86,18 +92,20 @@ class GroupsController < ApplicationController
 
     closed = @group.with_lock do
       authorize @group, :close?
+      recipient_ids = @group.group_memberships.active.distinct.pluck(:user_id)
       next false unless @group.update(
         lifecycle_status: :inactive,
         closure_reason: @closure_reason_input,
         closed_at: Time.current
       )
 
-      GroupLifecycleEvent.create!(
+      event = GroupLifecycleEvent.create!(
         group: @group,
         actor: current_user,
         event_type: :operations_closed,
         detail: @closure_reason_input
       )
+      Notifications::GroupLifecycleNotifier.schedule(event:, recipient_ids:)
       true
     end
 
@@ -114,7 +122,9 @@ class GroupsController < ApplicationController
     authorize @group, :request_reactivation?
     Group.transaction do
       @group.pending_approval!
-      GroupLifecycleEvent.create!(group: @group, actor: current_user, event_type: :reactivation_requested)
+      event = GroupLifecycleEvent.create!(group: @group, actor: current_user, event_type: :reactivation_requested)
+      Notifications::GroupLifecycleNotifier.schedule(event:, recipient_ids: eligible_global_admin_ids)
+      event
     end
 
     redirect_to @group, notice: t("groups.notices.reactivation_requested")
@@ -131,6 +141,10 @@ class GroupsController < ApplicationController
   end
 
   private
+
+  def eligible_global_admin_ids
+    User.where(global_admin: true, withdrawn_at: nil, suspended_at: nil).pluck(:id)
+  end
 
   def set_group
     @group = policy_scope(Group).find(params[:id])

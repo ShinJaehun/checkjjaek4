@@ -5,7 +5,7 @@ RSpec.describe Notification, type: :model do
   let(:actor) { User.create!(name: "Actor", email: "notification-actor@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:jjaek) { actor.jjaeks.create!(content: "Notification source") }
 
-  it "appends moderation actions without changing existing enum values" do
+  it "appends lifecycle actions without changing existing enum values" do
     expect(described_class.actions).to eq(
       "book_friendship_requested" => 0,
       "profile_jjaek_created" => 1,
@@ -20,7 +20,14 @@ RSpec.describe Notification, type: :model do
       "comment_hidden" => 10,
       "comment_restored" => 11,
       "group_member_activity_suspended" => 12,
-      "group_member_activity_restored" => 13
+      "group_member_activity_restored" => 13,
+      "group_opening_requested" => 14,
+      "group_opening_approved" => 15,
+      "group_operations_closed" => 16,
+      "group_reactivation_requested" => 17,
+      "group_reactivation_approved" => 18,
+      "group_admin_role_revoked" => 19,
+      "group_admin_role_granted" => 20
     )
   end
 

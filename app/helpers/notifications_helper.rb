@@ -1,6 +1,7 @@
 module NotificationsHelper
   def notification_message(notification)
     return moderation_notification_message(notification) if notification.moderation?
+    return group_lifecycle_notification_message(notification) if notification.group_lifecycle?
 
     if notification.comment_created? && notification.notifiable&.jjaek&.group.present?
       return t(
@@ -15,6 +16,7 @@ module NotificationsHelper
 
   def notification_target_path(notification)
     return moderation_notification_target_path(notification) if notification.moderation?
+    return group_lifecycle_notification_target_path(notification) if notification.group_lifecycle?
 
     case notification.action
     when "book_friendship_requested"
@@ -29,6 +31,25 @@ module NotificationsHelper
   end
 
   private
+
+  def group_lifecycle_notification_message(notification)
+    event = notification.notifiable
+    return t("notifications.lifecycle.unavailable") unless event
+
+    group_name = event.group&.name || t("notifications.lifecycle.group_fallback")
+    t("notifications.messages.#{notification.action}", group_name:)
+  end
+
+  def group_lifecycle_notification_target_path(notification)
+    group = notification.notifiable&.group
+    return groups_path unless group
+
+    if notification.group_opening_requested? || notification.group_reactivation_requested?
+      GroupPolicy.new(current_user, group).view_admin_details? ? admin_group_path(group) : groups_path
+    else
+      readable_group_path_or_fallback(group)
+    end
+  end
 
   def moderation_notification_message(notification)
     action = notification.notifiable

@@ -89,8 +89,11 @@ class Group < ApplicationRecord
       end
 
       update!(group_admin: new_admin)
-      group_membership_events.create!(user: previous_admin, actor: by, event_type: :admin_role_revoked)
-      group_membership_events.create!(user: new_admin, actor: by, event_type: :admin_role_granted)
+      revoked_event = group_membership_events.create!(user: previous_admin, actor: by, event_type: :admin_role_revoked)
+      granted_event = group_membership_events.create!(user: new_admin, actor: by, event_type: :admin_role_granted)
+      Notifications::GroupLifecycleNotifier.schedule(event: revoked_event, recipient_ids: [ previous_admin.id ])
+      Notifications::GroupLifecycleNotifier.schedule(event: granted_event, recipient_ids: [ new_admin.id ])
+      granted_event
     end
   end
 

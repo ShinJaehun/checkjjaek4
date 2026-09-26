@@ -55,6 +55,60 @@ RSpec.describe "Notifications", type: :request do
     expect(response.body).to include(jjaek_path(jjaek))
   end
 
+  it "renders a lifecycle request without actor identity or application detail and links eligible admins to review" do
+    recipient.update!(global_admin: true)
+    group = Group.create!(group_admin: actor, name: "Review club", group_type: :public_group, application_purpose: "PRIVATE_APPLICATION")
+    event = GroupLifecycleEvent.create!(group:, actor:, event_type: :opening_requested, detail: "PRIVATE_DETAIL")
+    Notification.create!(recipient:, actor:, action: :group_opening_requested, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include("새 동아리 개설 신청", group.name)
+    expect(article.text).not_to include(actor.name, "PRIVATE_APPLICATION", "PRIVATE_DETAIL")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(admin_group_path(group))
+
+    recipient.update!(global_admin: false)
+    get notifications_path
+    expect(parse_html.at_css("article a")["href"]).to eq(groups_path)
+  end
+
+  it "shows a closure without its reason and falls back when the club is unreadable" do
+    group = Group.create!(group_admin: actor, name: "Private club", group_type: :private_group, lifecycle_status: :active)
+    event = GroupLifecycleEvent.create!(group:, actor:, event_type: :operations_closed, detail: "PRIVATE_CLOSURE")
+    Notification.create!(recipient:, actor:, action: :group_operations_closed, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include("동아리 운영진", group.name)
+    expect(article.text).not_to include(actor.name, "PRIVATE_CLOSURE")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(groups_path)
+  end
+
+  it "links lifecycle approvals and admin-role changes only to a currently readable group" do
+    group = Group.create!(group_admin: actor, name: "Public club", group_type: :public_group, lifecycle_status: :active)
+    approval = GroupLifecycleEvent.create!(group:, actor:, event_type: :opening_approved)
+    role_change = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :admin_role_granted)
+    Notification.create!(recipient:, actor:, action: :group_opening_approved, notifiable: approval)
+    Notification.create!(recipient:, actor:, action: :group_admin_role_granted, notifiable: role_change)
+    sign_in recipient
+
+    get notifications_path
+    articles = parse_html.css("article")
+    expect(articles.map { |article| article.at_css("a")["href"] }).to eq([ group_path(group), group_path(group) ])
+    expect(articles.map(&:text).join).to include("운영팀", "관리자 권한")
+    expect(articles.flat_map { |article| article.css("img") }).to be_empty
+
+    group.update!(group_type: :private_group)
+    get notifications_path
+    expect(parse_html.css("article a").map { |link| link["href"] }).to eq([ groups_path, groups_path ])
+  end
+
   it "marks unread notifications as read when opening the list" do
     jjaek = actor.jjaeks.create!(target_user: recipient, content: "PROFILE_NOTIFICATION", visibility: :book_friends)
     notification = Notification.notify_profile_jjaek_created(jjaek)

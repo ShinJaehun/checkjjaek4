@@ -57,8 +57,15 @@ module Admin
       event_type = @group.closed_at.nil? ? :opening_approved : :reactivation_approved
 
       Group.transaction do
+        recipient_ids = if event_type == :reactivation_approved
+          @group.group_memberships.active.distinct.pluck(:user_id)
+        else
+          [ @group.group_admin_id ]
+        end
         @group.active!
-        GroupLifecycleEvent.create!(group: @group, actor: current_user, event_type: event_type)
+        event = GroupLifecycleEvent.create!(group: @group, actor: current_user, event_type: event_type)
+        Notifications::GroupLifecycleNotifier.schedule(event:, recipient_ids:)
+        event
       end
 
       redirect_to admin_groups_path, notice: t("admin.groups.notices.approved")

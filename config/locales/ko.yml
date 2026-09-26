@@ -702,6 +702,9 @@ ko:
     moderation:
       unavailable: "운영 조치 알림입니다."
       group_fallback: "동아리"
+    lifecycle:
+      unavailable: "동아리 상태 변경 알림입니다."
+      group_fallback: "동아리"
     messages:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
       profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
@@ -718,6 +721,13 @@ ko:
       comment_restored: "%{authority}에서 내 댓글을 복구했습니다. 사유: %{reason}"
       group_member_activity_suspended: "%{authority}에서 %{group_name} 동아리 활동을 정지했습니다. 사유: %{reason}"
       group_member_activity_restored: "%{authority}에서 %{group_name} 동아리 활동을 복구했습니다. 사유: %{reason}"
+      group_opening_requested: "새 동아리 개설 신청: %{group_name}"
+      group_opening_approved: "운영팀에서 %{group_name} 동아리 개설을 승인했습니다."
+      group_operations_closed: "동아리 운영진에서 %{group_name} 동아리 운영을 종료했습니다."
+      group_reactivation_requested: "동아리 재운영 신청: %{group_name}"
+      group_reactivation_approved: "운영팀에서 %{group_name} 동아리 재운영을 승인했습니다."
+      group_admin_role_revoked: "%{group_name} 동아리의 관리자 권한이 해제되었습니다."
+      group_admin_role_granted: "%{group_name} 동아리의 관리자 권한이 부여되었습니다."
   requotes:
     actions:
       view_panel: "다시짹 보기"

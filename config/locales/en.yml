@@ -683,6 +683,9 @@ en:
     moderation:
       unavailable: "A moderation action was taken."
       group_fallback: "the club"
+    lifecycle:
+      unavailable: "A club status changed."
+      group_fallback: "the club"
     messages:
       book_friendship_requested: "%{actor_name} sent you a book friend request."
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
@@ -699,6 +702,13 @@ en:
       comment_restored: "%{authority} restored your comment. Reason: %{reason}"
       group_member_activity_suspended: "%{authority} suspended your activity in the %{group_name} club. Reason: %{reason}"
       group_member_activity_restored: "%{authority} restored your activity in the %{group_name} club. Reason: %{reason}"
+      group_opening_requested: "New club opening request: %{group_name}"
+      group_opening_approved: "The team approved the opening of %{group_name}."
+      group_operations_closed: "The club team closed %{group_name}."
+      group_reactivation_requested: "Club reactivation request: %{group_name}"
+      group_reactivation_approved: "The team approved the reopening of %{group_name}."
+      group_admin_role_revoked: "Your admin role for %{group_name} was removed."
+      group_admin_role_granted: "You were granted the admin role for %{group_name}."
   requotes:
     actions:
       view_panel: "View ReJjaeks"

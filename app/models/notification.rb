@@ -13,7 +13,14 @@ class Notification < ApplicationRecord
     comment_hidden: 10,
     comment_restored: 11,
     group_member_activity_suspended: 12,
-    group_member_activity_restored: 13
+    group_member_activity_restored: 13,
+    group_opening_requested: 14,
+    group_opening_approved: 15,
+    group_operations_closed: 16,
+    group_reactivation_requested: 17,
+    group_reactivation_approved: 18,
+    group_admin_role_revoked: 19,
+    group_admin_role_granted: 20
   }, validate: true
 
   belongs_to :recipient, class_name: "User", inverse_of: :received_notifications
@@ -92,5 +99,13 @@ class Notification < ApplicationRecord
 
   def moderation?
     notifiable_type == "ModerationAction"
+  end
+
+  def group_lifecycle?
+    action.in?(%w[
+      group_opening_requested group_opening_approved group_operations_closed
+      group_reactivation_requested group_reactivation_approved
+      group_admin_role_revoked group_admin_role_granted
+    ])
   end
 end

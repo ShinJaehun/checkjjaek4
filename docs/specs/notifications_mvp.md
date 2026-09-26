@@ -169,7 +169,7 @@ Group 이름과 목적지 확인에는 audit row의 `membership_group_id` attrib
 
 ---
 
-## Group lifecycle Notification 정책 `(확정·구현 전)`
+## Group lifecycle Notification 정책 `(확정·구현)`
 
 아래 7개 사건의 recipient와 공개 범위는 확정한다. Notification은 기존
 `GroupLifecycleEvent` 또는 관리자 이전의 `GroupMembershipEvent`를 전달하는
@@ -229,8 +229,7 @@ actor와 recipient가 같으면 관리자 이전에도 예외 없이 생성하�
 `group_members_path`를 관리자 이전의 공통 목적지로 사용하지 않는다.
 Notification 자체는 read/admin 권한을 부여하지 않는다.
 
-이 정책은 후속 구현 기준이며 현재 Group lifecycle Notification을 생성한다는
-뜻은 아니다.
+위 7개 사건은 실제 event row를 source로 commit 이후 Notification을 생성한다.
 
 ---
 
@@ -247,7 +246,7 @@ Group 운영 정지·복구는 앞서 정의한 active recipient ID 집합을 �
 synchronous best-effort delivery가 가능하며 background job은 필수가 아니다.
 규모·응답시간·재시도 요구가 생기면 background delivery를 후속 검토한다.
 
-Group lifecycle Notification 구현도 실제 생성한 event row를 전달하며,
+Group lifecycle Notification도 실제 생성한 event row를 전달하며,
 commit 후 recipient별 best-effort로 생성한다. rollback 시에는 생성하지 않고
 전달 실패로 핵심 lifecycle action을 실패시키지 않는다. 별도 background job은
 도입하지 않는다.
@@ -407,7 +406,8 @@ Group 운영 fan-out에서는 동일한 사용자 ID를 먼저 중복 제거한�
 
 이 문서는 Notification 모델 도입 이후의 통합 기준이다.
 받은 책친구 요청, profile-context Jjaek, 댓글, ReJjaek 알림과
-Platform moderation 8개 사건과 GroupMembership 활동 정지·복구 2개 사건의
+Platform moderation 8개 사건, GroupMembership 활동 정지·복구 2개 사건과
+Group lifecycle 7개 사건의
 현재 구현을 함께 다룬다.
 
 ---
