@@ -1,56 +1,15 @@
 <section id="admin_group_content_timeline" class="space-y-5">
-  <%= form_with url: content_admin_group_path(group),
-                method: :get,
-                class: "flex flex-col gap-3 rounded-2xl border bg-white p-4 lg:flex-row lg:items-center" do |f| %>
-    <%= f.hidden_field :content, value: content_section %>
-    <% return_params.each do |key, value| %>
-      <%= hidden_field_tag key, value %>
-    <% end %>
-    <%= f.search_field :content_q,
-                       value: params[:content_q],
-                       placeholder: t("admin.group_content.filters.search"),
-                       class: "min-w-0 rounded border p-2 lg:flex-1" %>
-    <%= f.select :content_status,
-                 options_for_select(
-                   [
-                     [t("admin.user_content.filters.all"), ""],
-                     [t("admin.user_content.statuses.active"), "active"],
-                     [t("admin.user_content.statuses.hidden"), "hidden"],
-                     [t("admin.user_content.statuses.deleted"), "deleted"]
-                   ],
-                   params[:content_status]
-                 ),
-                 {},
-                 class: "rounded border p-2",
-                 aria: { label: t("admin.user_content.fields.status") } %>
-    <%= f.select :content_sort,
-                 options_for_select(
-                   [
-                     [t("admin.user_content.sorts.recent"), "recent"],
-                     [t("admin.user_content.sorts.oldest"), "oldest"]
-                   ],
-                   params[:content_sort]
-                 ),
-                 {},
-                 class: "rounded border p-2" %>
-    <%= f.submit t("admin.user_content.filters.apply"),
-                 class: "whitespace-nowrap rounded bg-stone-900 p-2 text-white" %>
-    <%= link_to t("admin.user_content.filters.reset"),
-                content_admin_group_path(group, return_params.merge(content: content_section)),
-                class: "whitespace-nowrap p-2 underline" %>
-  <% end %>
-
-  <div class="overflow-x-auto rounded-2xl border bg-white">
+  <div class="overflow-x-auto rounded-3xl border border-stone-200 bg-white shadow-sm">
     <table class="min-w-full text-sm">
-      <thead>
-        <tr class="border-b text-left">
-          <th class="p-3 whitespace-nowrap"><%= t("admin.user_content.fields.kind") %></th>
-          <th class="min-w-36 p-3 whitespace-nowrap"><%= t("admin.group_content.fields.author") %></th>
-          <th class="min-w-80 p-3"><%= t("admin.user_content.fields.body") %></th>
-          <th class="min-w-80 p-3"><%= t("admin.user_content.fields.reference") %></th>
-          <th class="p-3 whitespace-nowrap"><%= t("admin.user_content.fields.status") %></th>
-          <th class="p-3 whitespace-nowrap"><%= t("admin.user_content.fields.created") %></th>
-          <th class="p-3 whitespace-nowrap"><%= t("admin.user_content.fields.actions") %></th>
+      <thead class="bg-stone-50/80 text-xs font-semibold text-stone-500">
+        <tr class="border-b border-stone-200 text-left">
+          <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.kind") %></th>
+          <th class="min-w-36 px-4 py-3 whitespace-nowrap"><%= t("admin.group_content.fields.author") %></th>
+          <th class="min-w-80 px-4 py-3"><%= t("admin.user_content.fields.body") %></th>
+          <th class="min-w-80 px-4 py-3"><%= t("admin.user_content.fields.reference") %></th>
+          <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.status") %></th>
+          <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.created") %></th>
+          <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.actions") %></th>
         </tr>
       </thead>
       <tbody>
@@ -61,24 +20,30 @@
             body = if item.record_type == "Jjaek" && record.deleted?
               "-"
             else
-              truncate(record.content.to_s, length: 220).presence || "-"
+              truncate(record.content.to_s, length: 140, omission: " [...]").presence || "-"
             end
           %>
           <tr id="group_timeline_<%= item.record_type.downcase %>_<%= record.id %>"
-              class="border-b align-middle"
+              class="border-b border-stone-100 align-middle hover:bg-stone-50/60 last:border-b-0"
               data-content-kind="<%= item.kind %>">
-            <td class="p-3 align-middle whitespace-nowrap">
-              <span class="whitespace-nowrap rounded-full bg-stone-100 px-2 py-1 text-xs text-stone-700">
-                <%= t("admin.user_content.kinds.#{item.kind}") %>
+            <td class="px-4 py-3.5 align-middle whitespace-nowrap">
+              <span class="whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium <%= admin_group_activity_badge_classes(item.kind) %>" data-activity-kind="<%= item.kind %>">
+                <%= t("admin.group_content.navigation.#{item.kind}") %>
               </span>
             </td>
-            <td class="p-3 align-middle" data-field="author">
-              <%= link_to record.user.name,
-                          admin_user_path(record.user),
-                          class: "text-stone-700 underline" %>
+            <td class="px-4 py-3.5 align-middle" data-field="author">
+              <div class="flex items-center gap-2">
+                <%= user_avatar_image(record.user,
+                                      size: 128,
+                                      alt: record.user.name,
+                                      class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
+                <%= link_to record.user.name,
+                            admin_user_path(record.user),
+                            class: "text-sm font-medium text-stone-800 hover:underline" %>
+              </div>
             </td>
-            <td class="p-3 align-middle leading-6" data-field="body"><%= body %></td>
-            <td class="p-3 align-middle leading-6" data-field="reference">
+            <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body"><%= body %></td>
+            <td class="px-4 py-3.5 align-middle leading-6" data-field="reference">
               <% if item.kind == "general" %>
                 -
               <% elsif item.kind == "book" %>
@@ -98,13 +63,13 @@
                               class: "text-stone-700 underline" %>
                 </p>
                 <p class="mt-1 text-stone-500">
-                  <%= truncate(source_jjaek.content.to_s, length: 220).presence || "-" %>
+                  <%= truncate(source_jjaek.content.to_s, length: 140, omission: " [...]").presence || "-" %>
                 </p>
               <% else %>
                 -
               <% end %>
             </td>
-            <td class="p-3 align-middle whitespace-nowrap" data-field="status">
+            <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
               <% if item.record_type == "Jjaek" && record.deleted? %>
                 <span class="rounded-full bg-stone-200 px-2 py-1 text-xs text-stone-700">
                   <%= t("admin.user_content.statuses.deleted") %>
@@ -117,16 +82,16 @@
                 -
               <% end %>
             </td>
-            <td class="p-3 align-middle whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
-            <td class="p-3 align-middle whitespace-nowrap" data-field="actions">
+            <td class="px-4 py-3.5 align-middle whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
+            <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="actions">
               <% if item.record_type == "Comment" %>
                 <%= link_to t("admin.user_content.actions.direct"),
                             jjaek_path(record.jjaek, anchor: dom_id(record)),
-                            class: "text-stone-700 underline" %>
+                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
               <% else %>
                 <%= link_to t("admin.user_content.actions.direct"),
                             jjaek_path(record),
-                            class: "text-stone-700 underline" %>
+                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
               <% end %>
             </td>
           </tr>

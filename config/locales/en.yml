@@ -244,8 +244,15 @@ en:
       alerts:
         hide_failed: "The post could not be hidden."
     user_content:
-      title: "Content"
-      navigation_label: "Authored content type"
+      title: "User activity"
+      description: "Review this user's Jjaeks and comments by area and type."
+      total_count: "Total %{count}"
+      location_navigation_label: "Activity area"
+      location_navigation:
+        all: "All"
+        personal: "Personal"
+        group: "Club"
+      navigation_label: "Activity type"
       navigation:
         all: "All"
         general: "Jjaeks"
@@ -263,8 +270,8 @@ en:
         personal: "Personal"
         group: "Club"
       fields:
-        kind: "Kind"
-        location: "Location"
+        kind: "Type"
+        location: "Area"
         body: "Body"
         reference: "Reference"
         status: "Status"
@@ -281,20 +288,30 @@ en:
       filters:
         all: "All"
         search: "Search body"
-        apply: "Apply filters"
-        reset: "Reset filters"
+        apply: "Search"
+        reset: "Clear filters"
       sorts:
         recent: "Newest first"
         oldest: "Oldest first"
       actions:
         direct: "Open"
-      empty: "No authored content."
+      empty: "No activity."
     group_content:
-      navigation_label: "Club content type"
+      title: "User activity"
+      description: "Review Jjaeks and comments written in this club by type."
+      total_count: "Total %{count}"
+      navigation_label: "Activity type"
+      navigation:
+        all: "All"
+        general: "Club Jjaeks"
+        book: "Club Book Jjaeks"
+        comments: "Comments"
       fields:
         author: "Author"
       filters:
         search: "Search body or author"
+        apply: "Search"
+        reset: "Clear filters"
       empty: "No matching club content."
     filters:
       all: "All"
@@ -313,7 +330,10 @@ en:
     users:
       nav: "Users"
       index:
-        title: "User monitoring"
+        title: "User management"
+        description: "Search and review user accounts and their status."
+        search: "Search"
+        reset: "Clear filters"
       statuses:
         active: "Active"
         suspended: "Suspended"
@@ -342,6 +362,8 @@ en:
         groups: "Administered clubs"
         memberships: "Joined clubs"
       actions:
+        activity: "User activity"
+        details: "View details"
         suspend: "Suspend account"
         restore: "Restore account"
       moderation:
@@ -388,7 +410,7 @@ en:
         suspend_failed: "The user account could not be suspended."
         restore_failed: "The user account could not be restored."
     groups:
-      nav: "Club operations"
+      nav: "Club management"
       types:
         public_group: "Public"
         approval_group: "Approval"
@@ -440,8 +462,10 @@ en:
             suspend_group_operation: "Operation suspended"
             restore_group_operation: "Operation restored"
       index:
-        title: "Club operations"
+        title: "Club management"
         description: "Search and review club lifecycle information and pending approvals."
+        search: "Search"
+        reset: "Clear filters"
         pending_title: "Pending approval"
         all_title: "All clubs"
         empty: "No clubs are awaiting approval."
@@ -461,8 +485,9 @@ en:
         suspend_operation: "Suspend operation"
         restore_operation: "Restore operation"
         approve: "Approve"
-        show: "View operations"
-        back: "Back to club operations"
+        show: "Details"
+        activity: "User activity"
+        back: "Back to club management"
       request_types:
         initial: "Opening application"
         reactivation: "Reactivation request"

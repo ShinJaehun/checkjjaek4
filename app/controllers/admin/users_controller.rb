@@ -15,7 +15,7 @@ module Admin
     def show
       @user = User.find(params[:id])
       authorize @user, :view_admin_inventory?
-      @account_status = @user.moderation_status
+      prepare_user_identity
       @current_suspension_action = @user.current_suspension_action
       @can_suspend = policy(@user).suspend?
       @can_restore = policy(@user).restore?
@@ -27,7 +27,9 @@ module Admin
     def content
       @user = User.find(params[:id])
       authorize @user, :view_admin_inventory?
+      prepare_user_identity
       @content_section = permitted_content_section
+      @content_location = permitted_content_location
       @content_filter_params = params.permit(:q, :location, :status, :sort)
 
       authored_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope)
@@ -66,6 +68,11 @@ module Admin
 
     private
 
+    def prepare_user_identity
+      @account_status = @user.moderation_status
+      @has_administered_groups = @user.administered_groups.exists?
+    end
+
     def moderation_action_params
       params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
     end
@@ -73,6 +80,11 @@ module Admin
     def permitted_content_section
       section = params[:content].to_s
       %w[general book requote comments].include?(section) ? section : "all"
+    end
+
+    def permitted_content_location
+      location = params[:location].to_s
+      location if %w[personal group].include?(location)
     end
   end
 end

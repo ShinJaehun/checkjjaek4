@@ -25,19 +25,19 @@ RSpec.describe "Admin user inventory", type: :request do
     get root_path
     expect(application_nav_links).to include(
       "사용자 관리" => admin_users_path,
-      "동아리 운영 관리" => admin_groups_path
+      "동아리 관리" => admin_groups_path
     )
     expect(application_nav_links).not_to have_key("운영 관리")
 
     sign_in reader
     get root_path
     expect(application_nav_links).not_to have_key("사용자 관리")
-    expect(application_nav_links).not_to have_key("동아리 운영 관리")
+    expect(application_nav_links).not_to have_key("동아리 관리")
 
     Group.create!(group_admin: reader, name: "Reader managed", group_type: :public_group, application_purpose: "Read")
     get root_path
     expect(application_nav_links).not_to have_key("사용자 관리")
-    expect(application_nav_links).not_to have_key("동아리 운영 관리")
+    expect(application_nav_links).not_to have_key("동아리 관리")
   end
 
   it "does not repeat inventory switching navigation inside admin pages" do
@@ -104,6 +104,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(identity.at_css("[data-role='group-admin']")).to be_present
     expect(identity.at_css("[data-role='regular']")).to be_nil
     expect(identity.at_css("a[href='#{content_admin_user_path(reader)}']")).to be_present
+    expect(identity.at_css("a[href='#{content_admin_user_path(reader)}']").text.strip).to eq("사용자 활동")
     expect(document.at_css("#account_information, [data-field='user-id']")).to be_nil
     expect(document.text).not_to include("수정 시각")
     expect(group_relationships.at_css("#administered_groups a[href='#{admin_group_path(managed_group)}']").text.strip).to eq(managed_group.name)
@@ -113,16 +114,43 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(document.at_css(%(form[action="#{suspend_admin_user_path(reader)}"]))).to be_present
     expect(document.at_css("#account_history [data-account-event='joined']")).to be_present
 
+    get content_admin_user_path(reader)
+    activity_identity = Nokogiri::HTML(response.body).at_css("#admin_user_identity")
+    expect(activity_identity.at_css("img")['alt']).to eq(reader.name)
+    expect(activity_identity.text).to include(reader.name, reader.email, "정상", "동아리 관리자")
+    expect(activity_identity.at_css("[data-field='joined-at']").text).to include(I18n.l(reader.created_at, format: :short))
+    expect(activity_identity.at_css("[data-role='group-admin']")).to be_present
+    expect(activity_identity.at_css("[data-role='regular']")).to be_nil
+    expect(activity_identity.at_css("[data-field='suspended-at']")).to be_nil
+    expect(activity_identity.at_css("[data-field='withdrawn-at']")).to be_nil
+    expect(activity_identity.at_css("a[href='#{admin_user_path(reader)}']").text.strip).to eq("상세 보기")
+    expect(activity_identity.text).not_to match(/translation missing/i)
+
     get admin_user_path(admin)
     admin_identity = Nokogiri::HTML(response.body).at_css("#admin_user_identity")
     expect(admin_identity.at_css("[data-role='global-admin']")).to be_present
     expect(admin_identity.at_css("[data-role='group-admin']")).to be_present
+
+    get content_admin_user_path(admin)
+    admin_activity_identity = Nokogiri::HTML(response.body).at_css("#admin_user_identity")
+    expect(admin_activity_identity.at_css("[data-role='global-admin']")).to be_present
+    expect(admin_activity_identity.at_css("[data-role='group-admin']")).to be_present
 
     get admin_user_path(withdrawn)
     withdrawn_document = Nokogiri::HTML(response.body)
     expect(withdrawn_document.at_css("#admin_user_identity [data-role='regular']")).to be_present
     expect(withdrawn_document.at_css("#administered_groups").text).to include("관리 중인 동아리가 없습니다.")
     expect(withdrawn_document.at_css("#joined_groups").text).to include("참여 중인 동아리가 없습니다.")
+
+    get content_admin_user_path(withdrawn)
+    withdrawn_activity_identity = Nokogiri::HTML(response.body).at_css("#admin_user_identity")
+    expect(withdrawn_activity_identity.at_css("[data-role='regular']")).to be_present
+    expect(withdrawn_activity_identity.at_css("[data-field='account-status']").text.strip).to eq("본인 탈퇴")
+    expect(withdrawn_activity_identity.at_css("[data-field='email']").text.strip).to eq("-")
+    expect(withdrawn_activity_identity.at_css("[data-field='withdrawn-at']").text).to include(
+      I18n.l(withdrawn.withdrawn_at, format: :short)
+    )
+    expect(withdrawn_activity_identity.at_css("[data-field='suspended-at']")).to be_nil
   end
 
   it "combines name or email search with account and role filters" do
@@ -168,13 +196,29 @@ RSpec.describe "Admin user inventory", type: :request do
     get admin_users_path
     document = Nokogiri::HTML(response.body)
 
+    header = document.at_css("#admin_user_inventory_header")
+    expect(header).to be_present
+    expect(header.at_css("h1").text.strip).to eq("사용자 관리")
+    expect(header.text).to include("사용자 계정과 상태를 검색하고 확인합니다.")
+    expect(header.at_css("form")).to be_nil
+    controls = document.at_css("#admin_user_inventory_controls")
+    expect(controls).to be_present
+    expect(controls.at_css("form")).to be_present
+    expect(controls.at_css("h1")).to be_nil
+    expect(controls.at_css("input[type='submit']")["value"]).to eq("검색")
+    expect(controls.css("a").map { |link| link.text.strip }).to include("조건 초기화")
+    expect(document.at_css("#admin_user_inventory_table")).to be_present
+    expect(document.css("#admin_user_inventory_table th").map { |header| header.text.strip }).to eq(
+      [ "사용자", "계정 상태", "권한", "최근 활동", "가입 시각", "작업" ]
+    )
     identity = document.at_css("#user_#{reader.id} [data-field='user']")
     expect(identity.text).to include(reader.name, reader.email)
     expect(identity.at_css("img")['alt']).to eq(reader.name)
     expect(document.at_css("#user_#{withdrawn.id} [data-field='user'] [data-field='email']").text.strip).to eq("-")
     expect(document.at_css("#user_#{withdrawn.id} [data-field='latest-activity']").text.strip).to eq("-")
     expect(document.at_css("#user_#{reader.id} a[href='#{admin_user_path(reader)}']")).to be_present
-    expect(document.at_css("#user_#{reader.id} a[href='#{content_admin_user_path(reader)}']")).to be_present
+    expect(document.at_css("#user_#{reader.id} a[href='#{admin_user_path(reader)}']").text.strip).to eq("상세 보기")
+    expect(document.at_css("#user_#{reader.id} a[href='#{content_admin_user_path(reader)}']").text.strip).to eq("사용자 활동")
 
     activities.each_with_index do |(author, activity), index|
       cell = document.at_css("#user_#{author.id} [data-field='latest-activity']")
@@ -240,6 +284,13 @@ RSpec.describe "Admin user inventory", type: :request do
     )
     expect(suspended_document.at_css("#admin_user_identity [data-field='withdrawn-at']")).to be_nil
     expect(response.body).not_to include("repeated_policy_violations")
+
+    get content_admin_user_path(reader)
+    suspended_activity_identity = Nokogiri::HTML(response.body).at_css("#admin_user_identity")
+    expect(suspended_activity_identity.at_css("[data-field='account-status']").text.strip).to eq("운영 정지")
+    expect(suspended_activity_identity.at_css("[data-field='suspended-at']").text).to include(
+      I18n.l(reader.suspended_at, format: :short)
+    )
 
     expect {
       patch restore_admin_user_path(reader), params: {
@@ -418,17 +469,30 @@ RSpec.describe "Admin user inventory", type: :request do
 
     detail = Nokogiri::HTML(response.body)
     expect(detail.at_css("#admin_user_content_timeline")).to be_nil
-    expect(detail.at_css("a[href='#{content_admin_user_path(reader)}']")).to be_present
+    expect(detail.at_css("#admin_user_identity a[href='#{content_admin_user_path(reader)}']").text.strip).to eq("사용자 활동")
 
     get content_admin_user_path(reader)
 
     document = Nokogiri::HTML(response.body)
-    expect(document.text).to include(reader.name)
-    expect(document.at_css("a[href='#{admin_user_path(reader)}']").text.strip).to eq("상세로 돌아가기")
+    expect(document.at_css("#admin_user_identity")).to be_present
+    expect(document.at_css("#admin_user_identity").parent["class"].split).to include("mx-auto", "max-w-5xl")
+    expect(document.at_css("#admin_user_identity a[href='#{admin_user_path(reader)}']").text.strip).to eq("상세 보기")
+    expect(document.text).not_to match(/translation missing/i)
+    controls = document.at_css("#admin_user_activity_controls")
+    expect(controls).to be_present
+    expect(controls.at_css("h2").text.strip).to eq("사용자 활동")
+    expect(controls.text).to include("이 사용자가 작성한 짹과 댓글을 영역·유형별로 확인합니다.")
+    expect(controls.text).to match(/전체 \d+건/)
+    expect(controls.at_css("nav[aria-label='활동 영역']")).to be_present
+    expect(controls.at_css("nav[aria-label='활동 유형']")).to be_present
+    expect(controls.at_css("form")).to be_present
+    expect(controls.at_css("input[type='submit']")["value"]).to eq("검색")
+    expect(controls.css("a").map { |link| link.text.strip }).to include("조건 초기화")
     timeline = document.at_css("#admin_user_content_timeline")
     expect(timeline).to be_present
+    expect(timeline.at_css("form")).to be_nil
     expect(timeline.css("th").map { |header| header.text.strip }).to eq(
-      [ "종류", "위치", "본문", "참고", "상태", "작성 시각", "작업" ]
+      [ "유형", "영역", "본문", "참고", "상태", "작성 시각", "작업" ]
     )
     kinds = timeline.css("[data-content-kind]").map { |row| row["data-content-kind"] }
     expect(kinds).to include("general", "book", "requote", "comments")
@@ -442,12 +506,14 @@ RSpec.describe "Admin user inventory", type: :request do
     comment_row = timeline.at_css("#timeline_comment_#{comment.id}")
     deleted_comment_source_row = timeline.at_css("#timeline_comment_#{deleted_source_comment.id}")
 
-    expect(personal_row.at_css("[data-field='location']").text.strip).to eq("일반")
+    expect(personal_row.at_css("[data-field='location']").text.strip).to eq("개인")
     expect(personal_row.at_css("[data-field='reference']").text.strip).to eq("-")
     expect(targeted_row.at_css("[data-field='reference']").text).to include("대상", target_user.name)
     expect(targeted_row.at_css("a[href='#{admin_user_path(target_user)}']")).to be_present
-    expect(group_row.at_css("[data-field='location']").text).to include("동아리", group.name)
-    expect(group_row.at_css("a[href='#{admin_group_path(group)}']")).to be_present
+    group_location = group_row.at_css("[data-field='location']")
+    expect(group_location.at_css("div").text.strip).to eq("동아리")
+    expect(group_location.at_css("a[href='#{admin_group_path(group)}']").text.strip).to eq(group.name)
+    expect(group_location.text).not_to include("·")
     expect(book_row.at_css("[data-field='reference']").text).to include("책", book.title)
     expect(book_row.at_css("a[href='#{book_path(book)}']")).to be_present
     expect(requote_row.at_css("[data-field='reference']").text).to include("원문", group_admin.name, source.content)
@@ -468,7 +534,33 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(response.body).not_to include(reader.encrypted_password, "reset_password_token")
   end
 
-  it "navigates content kinds while preserving filters and using one table" do
+  it "truncates long activity bodies and source excerpts without changing their links" do
+    source_author = User.create!(name: "Excerpt author", email: "excerpt-author@example.com", password: "password123!")
+    long_content = "LONG_EXCERPT_#{'가' * 150}"
+    source = source_author.jjaeks.create!(content: long_content)
+    requote = reader.jjaeks.create!(content: long_content, quoted_jjaek: source)
+    comment = source.comments.create!(user: reader, content: long_content)
+    sign_in admin
+
+    get content_admin_user_path(reader)
+    document = Nokogiri::HTML(response.body)
+
+    [ [ "jjaek", requote ], [ "comment", comment ] ].each do |record_type, record|
+      row = document.at_css("#timeline_#{record_type}_#{record.id}")
+      body = row.at_css("[data-field='body']").text.strip
+      source_excerpt = row.at_css("[data-field='reference'] p.mt-1").text.strip
+
+      expect(body).to include("[...]")
+      expect(body.length).to be <= 140
+      expect(body).not_to include(long_content)
+      expect(source_excerpt).to include("[...]")
+      expect(source_excerpt.length).to be <= 140
+      expect(source_excerpt).not_to include(long_content)
+      expect(row.at_css("a[href='#{admin_user_path(source_author)}']").text.strip).to eq(source_author.name)
+    end
+  end
+
+  it "navigates activity areas and types while preserving filters and using one table" do
     group_admin = User.create!(name: "Filter group admin", email: "filter-group-admin@example.com", password: "password123!")
     group = Group.create!(lifecycle_status: :active, group_admin:, name: "Filter club", group_type: :private_group)
     book = Book.create!(title: "Filter book", authors_text: "Author")
@@ -489,14 +581,22 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get content_admin_user_path(reader)
     document = Nokogiri::HTML(response.body)
-    navigation = document.at_css("nav[aria-label='작성 콘텐츠 종류']")
-    expect(navigation.css("a").map { |link| link.text.strip }).to eq(
+    area_navigation = document.at_css("nav[aria-label='활동 영역']")
+    type_navigation = document.at_css("nav[aria-label='활동 유형']")
+    expect(document.at_css("#admin_user_activity_controls h2").text.strip).to eq("사용자 활동")
+    expect(area_navigation.css("a").map { |link| link.text.strip }).to eq(
+      [ "전체", "개인", "동아리" ]
+    )
+    expect(type_navigation.css("a").map { |link| link.text.strip }).to eq(
       [ "전체", "짹", "책짹", "다시짹", "댓글" ]
     )
-    expect(navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
+    expect(area_navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
+    expect(type_navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
     expect(document.at_css("select[name='kind']")).to be_nil
     expect(document.at_css("input[name='q']")).to be_present
-    expect(document.at_css("select[name='location']")).to be_present
+    expect(document.at_css("select[name='location']")).to be_nil
+    expect(document.at_css("input[type='hidden'][name='location']")).to be_nil
+    expect(document.at_css("input[type='hidden'][name='content']")).to be_present
     expect(document.at_css("select[name='status']")).to be_present
     expect(document.css("select[name='status'] option").map { |option| option.text.strip }).to eq(
       [ "전체", "정상", "숨김", "삭제" ]
@@ -509,6 +609,7 @@ RSpec.describe "Admin user inventory", type: :request do
       { content: "book" } => [ book_jjaek ],
       { content: "requote" } => [ requote ],
       { content: "comments" } => [ comment, hidden_comment ],
+      { location: "personal" } => [ personal, book_jjaek, requote, comment, hidden_jjaek, hidden_comment, deleted ],
       { location: "group" } => [ group_general ],
       { status: "active" } => [ personal, group_general, book_jjaek, requote, comment ],
       { status: "hidden" } => [ hidden_jjaek, hidden_comment ],
@@ -524,7 +625,7 @@ RSpec.describe "Admin user inventory", type: :request do
       end
       expect(rows.map { |row| row["id"] }).to match_array(expected_ids)
       expect(filtered_document.css("#admin_user_content_timeline th").map { |header| header.text.strip }).to eq(
-        [ "종류", "위치", "본문", "참고", "상태", "작성 시각", "작업" ]
+        [ "유형", "영역", "본문", "참고", "상태", "작성 시각", "작업" ]
       )
     end
 
@@ -538,7 +639,8 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(response).to have_http_status(:ok)
     invalid_document = Nokogiri::HTML(response.body)
     expect(invalid_document.css("#admin_user_content_timeline tbody tr").size).to eq(8)
-    expect(invalid_document.at_css("nav a[aria-current='page']").text.strip).to eq("전체")
+    expect(invalid_document.at_css("nav[aria-label='활동 영역'] a[aria-current='page']").text.strip).to eq("전체")
+    expect(invalid_document.at_css("nav[aria-label='활동 유형'] a[aria-current='page']").text.strip).to eq("전체")
 
     get content_admin_user_path(reader), params: {
       content: "comments",
@@ -550,13 +652,60 @@ RSpec.describe "Admin user inventory", type: :request do
     }
     filtered_document = Nokogiri::HTML(response.body)
     expect(filtered_document.at_css("input[name='content']")["value"]).to eq("comments")
-    reset_link = filtered_document.css("a").find { |link| link.text.strip == "필터 초기화" }
-    expect(reset_link["href"]).to eq(content_admin_user_path(reader, content: "comments"))
-    book_link = filtered_document.css("nav a").find { |link| link.text.strip == "책짹" }
+    expect(filtered_document.at_css("input[type='hidden'][name='location']")["value"]).to eq("group")
+    expect(filtered_document.at_css("nav[aria-label='활동 영역'] a[aria-current='page']").text.strip).to eq("동아리")
+    expect(filtered_document.at_css("nav[aria-label='활동 유형'] a[aria-current='page']").text.strip).to eq("댓글")
+    reset_link = filtered_document.css("a").find { |link| link.text.strip == "조건 초기화" }
+    expect(reset_link["href"]).to eq(content_admin_user_path(reader, content: "comments", location: "group"))
+    book_link = filtered_document.css("nav[aria-label='활동 유형'] a").find { |link| link.text.strip == "책짹" }
     expect(book_link["href"]).to include(
       "content=book", "q=FILTER", "location=group", "status=active", "sort=oldest"
     )
     expect(book_link["href"]).not_to include("all_page")
+    personal_link = filtered_document.css("nav[aria-label='활동 영역'] a").find { |link| link.text.strip == "개인" }
+    expect(personal_link["href"]).to include(
+      "content=comments", "location=personal", "q=FILTER", "status=active", "sort=oldest"
+    )
+    expect(personal_link["href"]).not_to include("all_page")
+    all_areas_link = filtered_document.css("nav[aria-label='활동 영역'] a").find { |link| link.text.strip == "전체" }
+    expect(all_areas_link["href"]).to include("content=comments", "q=FILTER", "status=active", "sort=oldest")
+    expect(all_areas_link["href"]).not_to include("location=", "all_page")
+  end
+
+  it "combines personal and Group activity areas with types and keeps the selected axes on reset" do
+    group_admin = User.create!(name: "Area group admin", email: "area-group-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Area club", group_type: :private_group)
+    GroupMembership.create!(group:, user: reader, status: :active)
+    book = Book.create!(title: "Area book", authors_text: "Author")
+    personal_general = reader.jjaeks.create!(content: "COMBO_PERSONAL_GENERAL")
+    personal_book = reader.jjaeks.create!(book:, content: "COMBO_PERSONAL_BOOK")
+    group_general = reader.jjaeks.create!(group:, content: "COMBO_GROUP_GENERAL")
+    group_book = reader.jjaeks.create!(group:, book:, content: "COMBO_GROUP_BOOK")
+    group_source = group_admin.jjaeks.create!(group:, content: "COMBO_GROUP_SOURCE")
+    group_comment = group_source.comments.create!(user: reader, content: "COMBO_GROUP_COMMENT")
+    sign_in admin
+
+    {
+      { location: "group", content: "general" } => group_general,
+      { location: "personal", content: "book" } => personal_book,
+      { location: "group", content: "comments" } => group_comment
+    }.each do |filters, expected_record|
+      get content_admin_user_path(reader), params: filters.merge(q: "COMBO", status: "active", sort: "oldest")
+      document = Nokogiri::HTML(response.body)
+      record_type = expected_record.is_a?(Comment) ? "comment" : "jjaek"
+      expect(document.css("#admin_user_content_timeline tbody tr").map { |row| row["id"] }).to eq(
+        [ "timeline_#{record_type}_#{expected_record.id}" ]
+      )
+      expect(document.at_css("input[name='location']")["value"]).to eq(filters[:location])
+      expect(document.at_css("input[name='content']")["value"]).to eq(filters[:content])
+      expect(document.at_css("input[name='q']")["value"]).to eq("COMBO")
+      expect(document.at_css("select[name='status'] option[selected]")["value"]).to eq("active")
+      expect(document.at_css("select[name='sort'] option[selected]")["value"]).to eq("oldest")
+      reset_link = document.css("a").find { |link| link.text.strip == "조건 초기화" }
+      expect(reset_link["href"]).to eq(
+        content_admin_user_path(reader, content: filters[:content], location: filters[:location])
+      )
+    end
   end
 
   it "orders and paginates the mixed content timeline at the database boundary" do

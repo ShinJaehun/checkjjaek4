@@ -1,34 +1,107 @@
 <section class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2 space-y-5">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <p class="text-sm text-stone-500"><%= @user.name %></p>
-      <h1 class="text-3xl font-semibold"><%= t("admin.user_content.title") %></h1>
-    </div>
-    <%= link_to t("admin.actions.back_to_details"),
-                admin_user_path(@user),
-                class: "text-sm font-medium text-stone-600 underline" %>
+  <div class="mx-auto max-w-5xl">
+    <%= render "admin/users/identity",
+               user: @user,
+               account_status: @account_status,
+               has_administered_groups: @has_administered_groups,
+               action_label: t("admin.users.actions.details"),
+               action_path: admin_user_path(@user) %>
   </div>
 
-  <nav class="flex flex-wrap gap-2" aria-label="<%= t('admin.user_content.navigation_label') %>">
-    <% %w[all general book requote comments].each do |section| %>
-      <% selected = @content_section == section %>
-      <%
-        classes = if selected
-          "rounded-full border border-stone-800 bg-stone-800 px-4 py-2 text-sm font-medium text-white"
-        else
-          "rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50"
-        end
-      %>
-      <%= link_to t("admin.user_content.navigation.#{section}"),
-                  content_admin_user_path(@user, @content_filter_params.merge(content: section)),
-                  class: classes,
-                  aria: { current: ("page" if selected) } %>
+  <section id="admin_user_activity_controls" class="mx-auto max-w-5xl space-y-5 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+    <header class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="text-2xl font-semibold text-stone-900"><%= t("admin.user_content.title") %></h2>
+        <p class="mt-1 text-sm text-stone-500"><%= t("admin.user_content.description") %></p>
+      </div>
+      <span class="text-sm font-medium text-stone-500"><%= t("admin.user_content.total_count", count: @timeline_page.total_count) %></span>
+    </header>
+
+    <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="w-16 text-sm font-semibold text-stone-600"><%= t("admin.user_content.location_navigation_label") %></span>
+        <nav class="inline-flex flex-wrap gap-1 rounded-xl bg-stone-100 p-1" aria-label="<%= t('admin.user_content.location_navigation_label') %>">
+          <% [nil, "personal", "group"].each do |location| %>
+            <% selected = @content_location == location %>
+            <%
+              classes = if selected
+                "rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-stone-900 shadow-sm"
+              else
+                "rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-white/70"
+              end
+              filter_params = @content_filter_params.except(:location).merge(content: @content_section)
+              filter_params = filter_params.merge(location: location) if location
+            %>
+            <%= link_to t("admin.user_content.location_navigation.#{location || 'all'}"),
+                        content_admin_user_path(@user, filter_params),
+                        class: classes,
+                        aria: { current: ("page" if selected) } %>
+          <% end %>
+        </nav>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="w-16 text-sm font-semibold text-stone-600"><%= t("admin.user_content.navigation_label") %></span>
+        <nav class="inline-flex flex-wrap gap-1 rounded-xl bg-stone-100 p-1" aria-label="<%= t('admin.user_content.navigation_label') %>">
+          <% %w[all general book requote comments].each do |section| %>
+            <% selected = @content_section == section %>
+            <%
+              classes = if selected
+                "rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-stone-900 shadow-sm"
+              else
+                "rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-white/70"
+              end
+            %>
+            <%= link_to t("admin.user_content.navigation.#{section}"),
+                        content_admin_user_path(@user, @content_filter_params.merge(content: section)),
+                        class: classes,
+                        aria: { current: ("page" if selected) } %>
+          <% end %>
+        </nav>
+      </div>
+    </div>
+
+    <%= form_with url: content_admin_user_path(@user),
+                  method: :get,
+                  class: "flex flex-col gap-3 border-t border-stone-200 pt-4 lg:flex-row lg:items-center" do |f| %>
+      <%= f.hidden_field :content, value: @content_section %>
+      <%= f.hidden_field :location, value: @content_location if @content_location %>
+      <%= f.search_field :q,
+                         value: params[:q],
+                         placeholder: t("admin.user_content.filters.search"),
+                         class: "min-w-0 rounded-xl border border-stone-200 px-3 py-2 lg:flex-1" %>
+      <%= f.select :status,
+                   options_for_select(
+                     [
+                       [t("admin.user_content.filters.all"), ""],
+                       [t("admin.user_content.statuses.active"), "active"],
+                       [t("admin.user_content.statuses.hidden"), "hidden"],
+                       [t("admin.user_content.statuses.deleted"), "deleted"]
+                     ],
+                     params[:status]
+                   ),
+                   {},
+                   class: "rounded-xl border border-stone-200 px-3 py-2",
+                   aria: { label: t("admin.user_content.fields.status") } %>
+      <%= f.select :sort,
+                   options_for_select(
+                     [
+                       [t("admin.user_content.sorts.recent"), "recent"],
+                       [t("admin.user_content.sorts.oldest"), "oldest"]
+                     ],
+                     params[:sort]
+                   ),
+                   {},
+                   class: "rounded-xl border border-stone-200 px-3 py-2" %>
+      <%= f.submit t("admin.user_content.filters.apply"),
+                   class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
+      <%= link_to t("admin.user_content.filters.reset"),
+                  content_admin_user_path(@user, { content: @content_section, location: @content_location }.compact),
+                  class: "whitespace-nowrap px-2 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 hover:underline" %>
     <% end %>
-  </nav>
+  </section>
 
   <%= render "admin/users/content_timeline",
              timeline_items: @timeline_items,
-             page: @timeline_page,
-             user: @user,
-             content_section: @content_section %>
+             page: @timeline_page %>
 </section>

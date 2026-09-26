@@ -1,65 +1,11 @@
 <section class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2">
   <div class="mx-auto max-w-5xl space-y-6">
-    <section id="admin_user_identity" class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-      <div class="flex flex-wrap items-center justify-between gap-5">
-        <div class="flex min-w-0 items-center gap-4">
-          <%= user_avatar_image(@user,
-                                size: 128,
-                                alt: @user.name,
-                                class: "h-20 w-20 shrink-0 rounded-full object-cover") %>
-          <div class="min-w-0">
-            <h1 class="truncate text-3xl font-semibold tracking-tight text-stone-900"><%= @user.name %></h1>
-            <p class="mt-1 truncate text-sm text-stone-500" data-field="email"><%= @user.withdrawn? ? "-" : @user.email %></p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <%
-                status_classes = case @account_status
-                when :active then "bg-emerald-100 text-emerald-800"
-                when :suspended then "bg-red-100 text-red-800"
-                else "bg-stone-200 text-stone-700"
-                end
-              %>
-              <span class="rounded-full px-2 py-1 text-xs <%= status_classes %>" data-field="account-status">
-                <%= t("admin.users.statuses.#{@account_status}") %>
-              </span>
-              <% if @user.global_admin? %>
-                <span class="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-900" data-role="global-admin">
-                  <%= t("admin.users.roles.global_admin") %>
-                </span>
-              <% end %>
-              <% if @administered_groups.any? %>
-                <span class="rounded-full bg-sky-100 px-2 py-1 text-xs text-sky-900" data-role="group-admin">
-                  <%= t("admin.users.roles.group_admin") %>
-                </span>
-              <% end %>
-              <% unless @user.global_admin? || @administered_groups.any? %>
-                <span class="rounded-full bg-stone-100 px-2 py-1 text-xs text-stone-700" data-role="regular">
-                  <%= t("admin.users.roles.regular") %>
-                </span>
-              <% end %>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
-              <span data-field="joined-at">
-                <%= t("admin.users.fields.joined") %>: <%= l(@user.created_at, format: :short) %>
-              </span>
-              <% if @user.suspended_at %>
-                <span data-field="suspended-at">
-                  <%= t("admin.users.fields.suspended") %>: <%= l(@user.suspended_at, format: :short) %>
-                </span>
-              <% end %>
-              <% if @user.withdrawn_at %>
-                <span data-field="withdrawn-at">
-                  <%= t("admin.users.fields.withdrawn") %>: <%= l(@user.withdrawn_at, format: :short) %>
-                </span>
-              <% end %>
-            </div>
-          </div>
-        </div>
-
-        <%= link_to t("admin.actions.content"),
-                    content_admin_user_path(@user),
-                    class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
-      </div>
-    </section>
+    <%= render "admin/users/identity",
+               user: @user,
+               account_status: @account_status,
+               has_administered_groups: @has_administered_groups,
+               action_label: t("admin.users.actions.activity"),
+               action_path: content_admin_user_path(@user) %>
 
     <section id="group_relationships" class="rounded-3xl border border-stone-200 bg-white p-5">
       <h2 class="text-lg font-semibold text-stone-900"><%= t("admin.users.sections.group_relationships") %></h2>

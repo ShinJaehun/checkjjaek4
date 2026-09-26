@@ -1,73 +1,112 @@
 <section class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2 space-y-5">
-  <div>
-    <h1 class="text-3xl font-semibold"><%= t("admin.groups.index.title") %></h1>
-    <p class="mt-2 text-sm text-stone-500"><%= t("admin.groups.index.description") %></p>
-  </div>
+  <section id="admin_group_inventory_header" class="mx-auto max-w-5xl rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+    <h1 class="text-2xl font-semibold text-stone-900"><%= t("admin.groups.index.title") %></h1>
+    <p class="mt-1 text-sm text-stone-500"><%= t("admin.groups.index.description") %></p>
+  </section>
 
-  <%= form_with url: admin_groups_path, method: :get, class: "flex flex-col gap-3 rounded-2xl border bg-white p-4 lg:flex-row lg:items-center" do |f| %>
-    <%= f.search_field :q, value: params[:q], placeholder: t("admin.groups.filters.search"), class: "min-w-0 rounded border p-2 lg:flex-1" %>
-    <%= f.select :group_type, options_for_select([[t("admin.filters.all"), ""]] + Group.group_types.keys.map { |type| [t("admin.groups.types.#{type}"), type] }, params[:group_type]), {}, class: "rounded border p-2" %>
-    <%= f.select :status,
-                 options_for_select([[t("admin.filters.all"), ""]] + admin_group_status_filter_options, params[:status]),
-                 {},
-                 class: "rounded border p-2",
-                 aria: { label: t("admin.groups.fields.status") } %>
-    <%= f.select :sort, options_for_select([[t("admin.sorts.recent"), "recent"], [t("admin.sorts.oldest"), "oldest"], [t("admin.sorts.name"), "name"]], params[:sort]), {}, class: "rounded border p-2" %>
-    <%= f.submit t("admin.filters.apply"), class: "whitespace-nowrap rounded bg-stone-900 p-2 text-white" %>
-    <%= link_to t("admin.filters.reset"), admin_groups_path, class: "whitespace-nowrap p-2 underline" %>
-  <% end %>
+  <section id="admin_group_inventory_controls" class="mx-auto max-w-5xl rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+    <%= form_with url: admin_groups_path,
+                  method: :get,
+                  class: "flex flex-col gap-3 lg:flex-row lg:items-center" do |f| %>
+      <%= f.search_field :q,
+                         value: params[:q],
+                         placeholder: t("admin.groups.filters.search"),
+                         class: "min-w-0 rounded-xl border border-stone-200 px-3 py-2 lg:flex-1" %>
+      <%= f.select :group_type,
+                   options_for_select(
+                     [[t("admin.filters.all"), ""]] + Group.group_types.keys.map { |type| [t("admin.groups.types.#{type}"), type] },
+                     params[:group_type]
+                   ),
+                   {},
+                   class: "rounded-xl border border-stone-200 px-3 py-2" %>
+      <%= f.select :status,
+                   options_for_select([[t("admin.filters.all"), ""]] + admin_group_status_filter_options, params[:status]),
+                   {},
+                   class: "rounded-xl border border-stone-200 px-3 py-2",
+                   aria: { label: t("admin.groups.fields.status") } %>
+      <%= f.select :sort,
+                   options_for_select(
+                     [
+                       [t("admin.sorts.recent"), "recent"],
+                       [t("admin.sorts.oldest"), "oldest"],
+                       [t("admin.sorts.name"), "name"]
+                     ],
+                     params[:sort]
+                   ),
+                   {},
+                   class: "rounded-xl border border-stone-200 px-3 py-2" %>
+      <%= f.submit t("admin.groups.index.search"),
+                   class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
+      <%= link_to t("admin.groups.index.reset"),
+                  admin_groups_path,
+                  class: "whitespace-nowrap px-2 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 hover:underline" %>
+    <% end %>
+  </section>
 
-  <div class="overflow-x-auto rounded-2xl border bg-white">
-    <table class="min-w-full text-sm">
-      <thead>
-        <tr class="border-b text-left">
-          <th class="p-3"><%= t("admin.groups.fields.name") %></th>
-          <th class="p-3"><%= t("admin.groups.fields.status") %></th>
-          <th class="p-3"><%= t("admin.groups.fields.group_admin") %></th>
-          <th class="p-3"><%= t("admin.groups.fields.active_members") %></th>
-          <th class="p-3"><%= t("admin.groups.fields.latest_activity") %></th>
-          <th class="p-3"><%= t("admin.groups.fields.created") %></th>
-          <th class="p-3"><%= t("admin.groups.fields.actions") %></th>
+  <div class="overflow-x-auto rounded-3xl border border-stone-200 bg-white shadow-sm">
+    <table id="admin_group_inventory_table" class="min-w-full text-sm">
+      <thead class="bg-stone-50/80 text-xs font-semibold text-stone-500">
+        <tr class="border-b border-stone-200 text-left">
+          <th class="px-4 py-3"><%= t("admin.groups.fields.name") %></th>
+          <th class="px-4 py-3"><%= t("admin.groups.fields.status") %></th>
+          <th class="px-4 py-3"><%= t("admin.groups.fields.group_admin") %></th>
+          <th class="px-4 py-3"><%= t("admin.groups.fields.active_members") %></th>
+          <th class="px-4 py-3"><%= t("admin.groups.fields.latest_activity") %></th>
+          <th class="px-4 py-3"><%= t("admin.groups.fields.created") %></th>
+          <th class="px-4 py-3"><%= t("admin.groups.fields.actions") %></th>
         </tr>
       </thead>
       <tbody>
         <% @groups.each do |group| %>
           <% latest_activity = @latest_activities_by_group_id[group.id] %>
-          <tr id="<%= dom_id(group) %>" class="border-b">
-            <td class="p-3">
+          <tr id="<%= dom_id(group) %>" class="border-b border-stone-100 hover:bg-stone-50/60 last:border-b-0">
+            <td class="px-4 py-3.5">
               <div class="flex items-center gap-2 whitespace-nowrap">
                 <span class="font-medium text-stone-900"><%= group.name %></span>
-                <span class="rounded-full bg-stone-100 px-2 py-1 text-xs"><%= t("admin.groups.types.#{group.group_type}") %></span>
+                <span class="rounded-full px-2 py-1 text-xs font-medium <%= admin_group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>">
+                  <%= t("admin.groups.types.#{group.group_type}") %>
+                </span>
               </div>
             </td>
-            <td class="p-3 whitespace-nowrap" data-field="current-status">
+            <td class="px-4 py-3.5 whitespace-nowrap" data-field="current-status">
               <span class="rounded-full px-2 py-1 <%= admin_group_status_badge_classes(group) %>">
                 <%= admin_group_current_status(group) %>
               </span>
             </td>
-            <td class="p-3">
+            <td class="px-4 py-3.5">
               <%= group.group_admin.name %><br>
               <span class="text-xs text-stone-500"><%= group.group_admin.withdrawn? ? "-" : group.group_admin.email %></span>
             </td>
-            <td class="p-3"><%= group.active_members_count %></td>
-            <td class="p-3 whitespace-nowrap" data-field="latest-activity">
+            <td class="px-4 py-3.5"><%= group.active_members_count %></td>
+            <td class="px-4 py-3.5 whitespace-nowrap" data-field="latest-activity">
               <% if latest_activity %>
                 <% activity_path = latest_activity.comment? ? jjaek_path(latest_activity.record.jjaek, anchor: dom_id(latest_activity.record)) : jjaek_path(latest_activity.record) %>
                 <%= link_to activity_path, class: "inline-flex items-center gap-2 whitespace-nowrap underline-offset-2 hover:underline" do %>
-                  <span class="rounded-full bg-stone-100 px-2 py-1 text-xs"><%= t("admin.user_content.kinds.#{latest_activity.kind}") %></span>
+                  <span class="rounded-full px-2 py-1 text-xs font-medium <%= admin_group_activity_badge_classes(latest_activity.kind) %>" data-activity-kind="<%= latest_activity.kind %>">
+                    <%= t("admin.user_content.kinds.#{latest_activity.kind}") %>
+                  </span>
                   <span class="text-sm text-stone-500"><%= l(latest_activity.created_at, format: :short) %></span>
                 <% end %>
               <% else %>
                 <span>-</span>
               <% end %>
             </td>
-            <td class="p-3 whitespace-nowrap"><%= l(group.created_at, format: :short) %></td>
-            <td class="space-y-2 p-3">
-              <%= link_to t("admin.groups.actions.show"), admin_group_path(group, request.query_parameters), class: "block underline" %>
-              <%= link_to t("admin.actions.content"), content_admin_group_path(group, request.query_parameters), class: "block underline" %>
-              <% if policy(group).approve? %>
-                <%= button_to t("admin.groups.actions.approve"), approve_admin_group_path(group), method: :patch, class: "rounded bg-stone-900 px-3 py-1 text-white" %>
-              <% end %>
+            <td class="px-4 py-3.5 whitespace-nowrap"><%= l(group.created_at, format: :short) %></td>
+            <td class="px-4 py-3.5">
+              <div class="flex flex-wrap gap-2">
+                <%= link_to t("admin.groups.actions.show"),
+                            admin_group_path(group, request.query_parameters),
+                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+                <%= link_to t("admin.groups.actions.activity"),
+                            content_admin_group_path(group, request.query_parameters),
+                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+                <% if policy(group).approve? %>
+                  <%= button_to t("admin.groups.actions.approve"),
+                                approve_admin_group_path(group),
+                                method: :patch,
+                                class: "rounded-xl bg-stone-900 px-3 py-1.5 text-xs font-medium text-white" %>
+                <% end %>
+              </div>
             </td>
           </tr>
         <% end %>

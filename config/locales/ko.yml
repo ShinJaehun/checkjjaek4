@@ -271,8 +271,15 @@ ko:
         hide_failed: "글을 숨길 수 없습니다."
         restore_failed: "글의 숨김을 해제할 수 없습니다."
     user_content:
-      title: "콘텐츠"
-      navigation_label: "작성 콘텐츠 종류"
+      title: "사용자 활동"
+      description: "이 사용자가 작성한 짹과 댓글을 영역·유형별로 확인합니다."
+      total_count: "전체 %{count}건"
+      location_navigation_label: "활동 영역"
+      location_navigation:
+        all: "전체"
+        personal: "개인"
+        group: "동아리"
+      navigation_label: "활동 유형"
       navigation:
         all: "전체"
         general: "짹"
@@ -287,11 +294,11 @@ ko:
         group_book: "동아리책짹"
         comments: "댓글"
       locations:
-        personal: "일반"
+        personal: "개인"
         group: "동아리"
       fields:
-        kind: "종류"
-        location: "위치"
+        kind: "유형"
+        location: "영역"
         body: "본문"
         reference: "참고"
         status: "상태"
@@ -308,20 +315,30 @@ ko:
       filters:
         all: "전체"
         search: "본문 검색"
-        apply: "필터 적용"
-        reset: "필터 초기화"
+        apply: "검색"
+        reset: "조건 초기화"
       sorts:
         recent: "최근 작성순"
         oldest: "오래된 작성순"
       actions:
         direct: "바로가기"
-      empty: "작성한 콘텐츠가 없습니다."
+      empty: "활동이 없습니다."
     group_content:
-      navigation_label: "동아리 콘텐츠 종류"
+      title: "사용자 활동"
+      description: "이 동아리에서 작성된 짹과 댓글을 유형별로 확인합니다."
+      total_count: "전체 %{count}건"
+      navigation_label: "활동 유형"
+      navigation:
+        all: "전체"
+        general: "동아리짹"
+        book: "동아리책짹"
+        comments: "댓글"
       fields:
         author: "작성자"
       filters:
         search: "본문 또는 작성자 검색"
+        apply: "검색"
+        reset: "조건 초기화"
       empty: "조건에 맞는 동아리 콘텐츠가 없습니다."
     filters:
       all: "전체"
@@ -340,7 +357,10 @@ ko:
     users:
       nav: "사용자 관리"
       index:
-        title: "사용자 모니터링"
+        title: "사용자 관리"
+        description: "사용자 계정과 상태를 검색하고 확인합니다."
+        search: "검색"
+        reset: "조건 초기화"
       statuses:
         active: "정상"
         suspended: "운영 정지"
@@ -369,6 +389,8 @@ ko:
         groups: "관리 중인 동아리"
         memberships: "참여 중인 동아리"
       actions:
+        activity: "사용자 활동"
+        details: "상세 보기"
         suspend: "계정 정지"
         restore: "계정 복구"
       moderation:
@@ -415,7 +437,7 @@ ko:
         suspend_failed: "사용자 계정을 정지할 수 없습니다."
         restore_failed: "사용자 계정을 복구할 수 없습니다."
     groups:
-      nav: "동아리 운영 관리"
+      nav: "동아리 관리"
       types:
         public_group: "공개"
         approval_group: "승인"
@@ -467,8 +489,10 @@ ko:
             suspend_group_operation: "운영 정지"
             restore_group_operation: "운영 복구"
       index:
-        title: "동아리 운영 관리"
+        title: "동아리 관리"
         description: "동아리 운영 상태를 검색하고 승인 대기 신청을 확인합니다."
+        search: "검색"
+        reset: "조건 초기화"
         pending_title: "승인 대기"
         all_title: "전체 동아리"
         empty: "승인 대기 중인 동아리가 없습니다."
@@ -488,8 +512,9 @@ ko:
         suspend_operation: "운영 정지"
         restore_operation: "운영 복구"
         approve: "운영 승인"
-        show: "운영 정보 보기"
-        back: "동아리 운영 관리로"
+        show: "세부 정보"
+        activity: "사용자 활동"
+        back: "동아리 관리로"
       request_types:
         initial: "개설 신청"
         reactivation: "재활성화 요청"

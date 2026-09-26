@@ -39,7 +39,21 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get admin_groups_path
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include(group.name, group_admin.name, "승인 대기", "운영 승인", "운영 정보 보기")
+    document = Nokogiri::HTML(response.body)
+    header = document.at_css("#admin_group_inventory_header")
+    controls = document.at_css("#admin_group_inventory_controls")
+    table = document.at_css("#admin_group_inventory_table")
+    expect(header.at_css("h1").text.strip).to eq("동아리 관리")
+    expect(header.text).to include("동아리 운영 상태를 검색하고 승인 대기 신청을 확인합니다.")
+    expect(controls.at_css("form")).to be_present
+    expect(controls.at_css("input[type='submit']")["value"]).to eq("검색")
+    expect(controls.css("a").map { |link| link.text.strip }).to include("조건 초기화")
+    expect(table.css("th").map { |cell| cell.text.strip }).to eq(
+      [ "동아리", "상태", "동아리 관리자", "활동 회원", "최근 활동", "생성 시각", "작업" ]
+    )
+    expect(response.body).to include(group.name, group_admin.name, "승인 대기", "운영 승인", "세부 정보")
+    expect(document.at_css("#group_#{group.id} a[href='#{admin_group_path(group)}']").text.strip).to eq("세부 정보")
+    expect(document.at_css("#group_#{group.id} a[href='#{content_admin_group_path(group)}']").text.strip).to eq("사용자 활동")
     expect(response.body).not_to include("운영 이력", "Create a reading circle")
     expect(response.body).not_to include("신청 정보 갱신")
 
@@ -82,10 +96,12 @@ RSpec.describe "Admin group approvals", type: :request do
     comment_cell = document.at_css("#group_#{comment_group.id} [data-field='latest-activity']")
     expect(comment_cell.text).to include("댓글", I18n.l(comment.created_at, format: :short))
     expect(comment_cell.at_css("a")['href']).to eq(jjaek_path(general, anchor: "comment_#{comment.id}"))
+    expect(comment_cell.at_css("[data-activity-kind='comments']")).to be_present
 
     book_cell = document.at_css("#group_#{book_group.id} [data-field='latest-activity']")
     expect(book_cell.text).to include("동아리책짹", I18n.l(group_book.created_at, format: :short))
     expect(book_cell.at_css("a")['href']).to eq(jjaek_path(group_book))
+    expect(book_cell.at_css("[data-activity-kind='group_book']")).to be_present
 
     expect(document.at_css("#group_#{group.id} [data-field='latest-activity']").text.strip).to eq("-")
   end
@@ -101,7 +117,7 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get admin_groups_path
 
-    expect(response.body).to include("재운영 승인 대기", "운영 정보 보기", "운영 승인")
+    expect(response.body).to include("재운영 승인 대기", "세부 정보", "운영 승인")
     expect(response.body).not_to include("운영 이력", "The first season ended")
 
     get admin_group_path(legacy_group)
@@ -183,7 +199,7 @@ RSpec.describe "Admin group approvals", type: :request do
     sign_in admin
 
     get admin_groups_path
-    expect(response.body).to include(active_group.name, "운영 정보 보기")
+    expect(response.body).to include(active_group.name, "세부 정보")
 
     get admin_group_path(group)
     expect(response).to have_http_status(:ok)
@@ -422,6 +438,24 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(listed_group_ids).to eq([ group.id ])
   end
 
+  it "labels public, approval, and private group types in the inventory" do
+    approval_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Approval badge club", group_type: :approval_group)
+    private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Private badge club", group_type: :private_group)
+    sign_in admin
+
+    get admin_groups_path
+    document = Nokogiri::HTML(response.body)
+
+    {
+      group => [ "public_group", "공개" ],
+      approval_group => [ "approval_group", "승인" ],
+      private_group => [ "private_group", "비공개" ]
+    }.each do |record, (type, label)|
+      badge = document.at_css("#group_#{record.id} [data-group-type='#{type}']")
+      expect(badge.text.strip).to eq(label)
+    end
+  end
+
   it "shows one current status derived from lifecycle and platform operation status" do
     normal_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Normal club", group_type: :public_group)
     suspended_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Suspended club", group_type: :public_group, operation_suspended_at: Time.current)
@@ -495,7 +529,7 @@ RSpec.describe "Admin group approvals", type: :request do
     get detail_path
 
     detail_document = Nokogiri::HTML(response.body)
-    back_link = detail_document.css("a").find { |link| link.text.include?("동아리 운영 관리로") }
+    back_link = detail_document.css("a").find { |link| link.text.include?("동아리 관리로") }
     expect(back_link["href"]).to eq(admin_groups_path(inventory_params))
     expect(detail_document.at_css("a[href='#{content_admin_group_path(active_group, inventory_params)}']")).to be_present
   end
@@ -588,9 +622,26 @@ RSpec.describe "Admin group approvals", type: :request do
     get content_admin_group_path(active_group)
 
     document = Nokogiri::HTML(response.body)
+    identity = document.at_css("#admin_group_activity_identity")
+    controls = document.at_css("#admin_group_activity_controls")
+    expect(identity).to be_present
+    expect(controls).to be_present
+    expect(identity.at_css("h1").text.strip).to eq(active_group.name)
+    expect(identity.at_css("[data-group-type='private_group']").text.strip).to eq("비공개")
+    expect(identity.at_css("[data-field='current-status']").text.strip).to eq("정상 운영")
+    expect(identity.text).to include(group_admin.name, I18n.l(active_group.created_at, format: :short))
+    expect(identity.at_css("a[href='#{admin_group_path(active_group)}']").text.strip).to eq("세부 정보")
+    expect(identity.at_css("a[href='#{admin_groups_path}']").text.strip).to eq("동아리 관리로")
+    expect(controls.at_css("h2").text.strip).to eq("사용자 활동")
+    expect(controls.text).to include("이 동아리에서 작성된 짹과 댓글을 유형별로 확인합니다.")
+    expect(controls.text).to include("전체 7건")
+    expect(controls.at_css("form")).to be_present
+    expect(controls.at_css("input[type='submit']")["value"]).to eq("검색")
+    expect(controls.css("a").map { |link| link.text.strip }).to include("조건 초기화")
     timeline = document.at_css("#admin_group_content_timeline")
+    expect(timeline.at_css("form")).to be_nil
     expect(timeline.css("th").map { |header| header.text.strip }).to eq(
-      [ "종류", "작성자", "본문", "참고", "상태", "작성 시각", "작업" ]
+      [ "유형", "작성자", "본문", "참고", "상태", "작성 시각", "작업" ]
     )
 
     general_row = timeline.at_css("#group_timeline_jjaek_#{general.id}")
@@ -598,12 +649,20 @@ RSpec.describe "Admin group approvals", type: :request do
     comment_row = timeline.at_css("#group_timeline_comment_#{comment.id}")
     deleted_row = timeline.at_css("#group_timeline_jjaek_#{deleted.id}")
     deleted_comment_row = timeline.at_css("#group_timeline_comment_#{deleted_comment.id}")
+    [ [ general_row, group_admin ], [ book_row, member ], [ comment_row, member ] ].each do |row, author|
+      author_cell = row.at_css("[data-field='author']")
+      expect(author_cell.at_css("img")['alt']).to eq(author.name)
+      expect(author_cell.at_css("a[href='#{admin_user_path(author)}']").text.strip).to eq(author.name)
+    end
     expect(general_row.at_css("[data-field='reference']").text.strip).to eq("-")
+    expect(general_row.at_css("[data-activity-kind='general']").text.strip).to eq("동아리짹")
     expect(general_row.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
+    expect(book_row.at_css("[data-activity-kind='book']").text.strip).to eq("동아리책짹")
     expect(book_row.at_css("[data-field='reference']").text).to include("책", book.title)
     expect(book_row.at_css("a[href='#{book_path(book)}']")).to be_present
     expect(book_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
     expect(comment_row.at_css("[data-field='reference']").text).to include("원문", group_admin.name, general.content)
+    expect(comment_row.at_css("[data-activity-kind='comments']").text.strip).to eq("댓글")
     expect(comment_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
     expect(deleted_row.at_css("[data-field='body']").text.strip).to eq("-")
     expect(deleted_row.at_css("[data-field='status']").text.strip).to eq("삭제")
@@ -615,12 +674,41 @@ RSpec.describe "Admin group approvals", type: :request do
     comment_anchor = ActionView::RecordIdentifier.dom_id(comment)
     expect(comment_row.at_css("a[href='#{jjaek_path(general, anchor: comment_anchor)}']")).to be_present
 
-    navigation = document.at_css("nav[aria-label='동아리 콘텐츠 종류']")
-    expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "짹", "책짹", "댓글" ])
+    navigation = controls.at_css("nav[aria-label='활동 유형']")
+    expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "동아리짹", "동아리책짹", "댓글" ])
     expect(navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
     expect(navigation.text).not_to include("다시짹")
 
     expect(document.at_css("a[href='#{admin_group_path(active_group)}']")).to be_present
+  end
+
+  it "truncates long Group activity bodies and source excerpts without changing direct links" do
+    active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Excerpt club", group_type: :public_group)
+    long_content = "LONG_GROUP_EXCERPT_#{'가' * 150}"
+    source = group_admin.jjaeks.create!(group: active_group, content: long_content)
+    comment = source.comments.create!(user: group_admin, content: long_content)
+    sign_in admin
+
+    get content_admin_group_path(active_group)
+    document = Nokogiri::HTML(response.body)
+    source_row = document.at_css("#group_timeline_jjaek_#{source.id}")
+    comment_row = document.at_css("#group_timeline_comment_#{comment.id}")
+
+    [ source_row, comment_row ].each do |row|
+      body = row.at_css("[data-field='body']").text.strip
+      expect(body).to include("[...]")
+      expect(body.length).to be <= 140
+      expect(body).not_to include(long_content)
+    end
+
+    source_excerpt = comment_row.at_css("[data-field='reference'] p.mt-1").text.strip
+    expect(source_excerpt).to include("[...]")
+    expect(source_excerpt.length).to be <= 140
+    expect(source_excerpt).not_to include(long_content)
+    expect(comment_row.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
+    expect(source_row.at_css("a[href='#{jjaek_path(source)}']")).to be_present
+    comment_anchor = ActionView::RecordIdentifier.dom_id(comment)
+    expect(comment_row.at_css("a[href='#{jjaek_path(source, anchor: comment_anchor)}']")).to be_present
   end
 
   it "filters Group content and preserves filters across navigation" do
@@ -668,7 +756,7 @@ RSpec.describe "Admin group approvals", type: :request do
       end
       expect(rows.map { |row| row["id"] }).to match_array(expected_ids)
       expect(document.css("#admin_group_content_timeline th").map { |header| header.text.strip }).to eq(
-        [ "종류", "작성자", "본문", "참고", "상태", "작성 시각", "작업" ]
+        [ "유형", "작성자", "본문", "참고", "상태", "작성 시각", "작업" ]
       )
       active_content = filters.fetch(:content, "all")
       expect(document.at_css("nav a[aria-current='page']")["href"]).to include("content=#{active_content}")
@@ -703,7 +791,7 @@ RSpec.describe "Admin group approvals", type: :request do
     }
     filtered_document = Nokogiri::HTML(response.body)
     expect(filtered_document.at_css("input[name='content']")["value"]).to eq("comments")
-    reset_link = filtered_document.css("a").find { |link| link.text.strip == "필터 초기화" }
+    reset_link = filtered_document.css("a").find { |link| link.text.strip == "조건 초기화" }
     expect(reset_link["href"]).to eq(
       content_admin_group_path(
         active_group,
@@ -715,7 +803,7 @@ RSpec.describe "Admin group approvals", type: :request do
         content: "comments"
       )
     )
-    book_link = filtered_document.css("nav a").find { |link| link.text.strip == "책짹" }
+    book_link = filtered_document.css("nav a").find { |link| link.text.strip == "동아리책짹" }
     expect(book_link["href"]).to include(
       "content=book",
       "content_q=FILTER",
@@ -724,7 +812,7 @@ RSpec.describe "Admin group approvals", type: :request do
     )
     expect(book_link["href"]).not_to include("all_page")
 
-    back_link = filtered_document.css("a").find { |link| link.text.include?("동아리 운영 관리로") }
+    back_link = filtered_document.css("a").find { |link| link.text.include?("동아리 관리로") }
     expect(back_link["href"]).to eq(
       admin_groups_path(
         q: "Filtered content group",
@@ -736,7 +824,7 @@ RSpec.describe "Admin group approvals", type: :request do
     )
     expect(back_link["href"]).not_to include("content=", "content_", "all_page")
 
-    details_link = filtered_document.css("a").find { |link| link.text.strip == "상세로 돌아가기" }
+    details_link = filtered_document.css("a").find { |link| link.text.strip == "세부 정보" }
     expect(details_link["href"]).to eq(
       admin_group_path(
         active_group,

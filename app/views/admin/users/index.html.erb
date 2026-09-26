@@ -1,33 +1,79 @@
 <section class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2 space-y-5">
-  <h1 class="text-3xl font-semibold"><%= t("admin.users.index.title") %></h1>
+  <section id="admin_user_inventory_header" class="mx-auto max-w-5xl rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+    <h1 class="text-2xl font-semibold text-stone-900"><%= t("admin.users.index.title") %></h1>
+    <p class="mt-1 text-sm text-stone-500"><%= t("admin.users.index.description") %></p>
+  </section>
 
-  <%= form_with url: admin_users_path, method: :get, class: "flex flex-col gap-3 rounded-2xl border bg-white p-4 lg:flex-row lg:items-center" do |f| %>
-    <%= f.search_field :q, value: params[:q], placeholder: t("admin.filters.search"), class: "min-w-0 rounded border p-2 lg:flex-1" %>
-    <%= f.select :status, options_for_select([[t("admin.filters.all"), ""], [t("admin.users.statuses.active"), "active"], [t("admin.users.statuses.suspended"), "suspended"], [t("admin.users.statuses.withdrawn"), "withdrawn"]], params[:status]), {}, class: "rounded border p-2" %>
-    <%= f.select :role, options_for_select([[t("admin.filters.all"), ""], [t("admin.users.roles.global_admin"), "global_admin"], [t("admin.users.roles.group_admin"), "group_admin"], [t("admin.users.roles.regular"), "regular"]], params[:role]), {}, class: "rounded border p-2", aria: { label: t("admin.users.fields.role") } %>
-    <%= f.select :sort, options_for_select([[t("admin.sorts.recent"), "recent"], [t("admin.sorts.oldest"), "oldest"], [t("admin.sorts.name"), "name"]], params[:sort]), {}, class: "rounded border p-2" %>
-    <%= f.submit t("admin.filters.apply"), class: "whitespace-nowrap rounded bg-stone-900 p-2 text-white" %>
-    <%= link_to t("admin.filters.reset"), admin_users_path, class: "whitespace-nowrap p-2 underline" %>
-  <% end %>
+  <section id="admin_user_inventory_controls" class="mx-auto max-w-5xl rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+    <%= form_with url: admin_users_path,
+                  method: :get,
+                  class: "flex flex-col gap-3 lg:flex-row lg:items-center" do |f| %>
+      <%= f.search_field :q,
+                         value: params[:q],
+                         placeholder: t("admin.filters.search"),
+                         class: "min-w-0 rounded-xl border border-stone-200 px-3 py-2 lg:flex-1" %>
+      <%= f.select :status,
+                   options_for_select(
+                     [
+                       [t("admin.filters.all"), ""],
+                       [t("admin.users.statuses.active"), "active"],
+                       [t("admin.users.statuses.suspended"), "suspended"],
+                       [t("admin.users.statuses.withdrawn"), "withdrawn"]
+                     ],
+                     params[:status]
+                   ),
+                   {},
+                   class: "rounded-xl border border-stone-200 px-3 py-2" %>
+      <%= f.select :role,
+                   options_for_select(
+                     [
+                       [t("admin.filters.all"), ""],
+                       [t("admin.users.roles.global_admin"), "global_admin"],
+                       [t("admin.users.roles.group_admin"), "group_admin"],
+                       [t("admin.users.roles.regular"), "regular"]
+                     ],
+                     params[:role]
+                   ),
+                   {},
+                   class: "rounded-xl border border-stone-200 px-3 py-2",
+                   aria: { label: t("admin.users.fields.role") } %>
+      <%= f.select :sort,
+                   options_for_select(
+                     [
+                       [t("admin.sorts.recent"), "recent"],
+                       [t("admin.sorts.oldest"), "oldest"],
+                       [t("admin.sorts.name"), "name"]
+                     ],
+                     params[:sort]
+                   ),
+                   {},
+                   class: "rounded-xl border border-stone-200 px-3 py-2" %>
+      <%= f.submit t("admin.users.index.search"),
+                   class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
+      <%= link_to t("admin.users.index.reset"),
+                  admin_users_path,
+                  class: "whitespace-nowrap px-2 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 hover:underline" %>
+    <% end %>
+  </section>
 
-  <div class="overflow-x-auto rounded-2xl border bg-white">
-    <table class="min-w-full text-sm">
-      <thead>
-        <tr class="border-b text-left">
-          <th class="w-56 p-3"><%= t("admin.users.fields.user") %></th>
-          <th class="p-3"><%= t("admin.users.fields.status") %></th>
-          <th class="p-3"><%= t("admin.users.fields.role") %></th>
-          <th class="p-3"><%= t("admin.users.fields.latest_activity") %></th>
-          <th class="p-3"><%= t("admin.users.fields.joined") %></th>
-          <th class="p-3"><%= t("admin.users.fields.actions") %></th>
+  <div class="overflow-x-auto rounded-3xl border border-stone-200 bg-white shadow-sm">
+    <table id="admin_user_inventory_table" class="min-w-full text-sm">
+      <thead class="bg-stone-50/80 text-xs font-semibold text-stone-500">
+        <tr class="border-b border-stone-200 text-left">
+          <th class="w-56 px-4 py-3"><%= t("admin.users.fields.user") %></th>
+          <th class="px-4 py-3"><%= t("admin.users.fields.status") %></th>
+          <th class="px-4 py-3"><%= t("admin.users.fields.role") %></th>
+          <th class="px-4 py-3"><%= t("admin.users.fields.latest_activity") %></th>
+          <th class="px-4 py-3"><%= t("admin.users.fields.joined") %></th>
+          <th class="px-4 py-3"><%= t("admin.users.fields.actions") %></th>
         </tr>
       </thead>
       <tbody>
         <% @users.each do |user| %>
           <% account_status = user.moderation_status %>
           <% latest_activity = @latest_activities_by_user_id[user.id] %>
-          <tr id="<%= dom_id(user) %>" class="border-b <%= account_status == :active ? nil : 'bg-stone-50 text-stone-500' %>">
-            <td class="w-56 max-w-56 p-3" data-field="user">
+          <tr id="<%= dom_id(user) %>" class="border-b border-stone-100 hover:bg-stone-50/60 last:border-b-0 <%= account_status == :active ? nil : 'bg-stone-50 text-stone-500' %>">
+            <td class="w-56 max-w-56 px-4 py-3.5" data-field="user">
               <div class="flex w-56 items-center gap-3">
                 <%= user_avatar_image(user, size: 128, alt: user.name, class: "h-9 w-9 shrink-0 rounded-full object-cover") %>
                 <div class="min-w-0">
@@ -36,39 +82,45 @@
                 </div>
               </div>
             </td>
-            <td class="p-3 whitespace-nowrap">
-              <span class="rounded-full px-2 py-1 <%= user.withdrawn? ? 'bg-stone-200 text-stone-700' : 'bg-stone-100' %>">
+            <td class="px-4 py-3.5 whitespace-nowrap">
+              <span class="rounded-full px-2 py-1 text-xs <%= user.withdrawn? ? 'bg-stone-200 text-stone-700' : 'bg-stone-100' %>">
                 <%= t("admin.users.statuses.#{account_status}") %>
               </span>
             </td>
-            <td class="p-3">
+            <td class="px-4 py-3.5">
               <div class="flex flex-wrap gap-1">
                 <% if user.global_admin? %>
-                  <span class="rounded-full bg-amber-100 px-2 py-1"><%= t("admin.users.roles.global_admin") %></span>
+                  <span class="rounded-full bg-amber-100 px-2 py-1 text-xs"><%= t("admin.users.roles.global_admin") %></span>
                 <% end %>
                 <% if user.administered_groups_count.to_i.positive? %>
-                  <span class="rounded-full bg-sky-100 px-2 py-1"><%= t("admin.users.roles.group_admin") %></span>
+                  <span class="rounded-full bg-sky-100 px-2 py-1 text-xs"><%= t("admin.users.roles.group_admin") %></span>
                 <% end %>
                 <% unless user.global_admin? || user.administered_groups_count.to_i.positive? %>
-                  <span class="rounded-full bg-stone-100 px-2 py-1"><%= t("admin.users.roles.regular") %></span>
+                  <span class="rounded-full bg-stone-100 px-2 py-1 text-xs"><%= t("admin.users.roles.regular") %></span>
                 <% end %>
               </div>
             </td>
-            <td class="p-3 whitespace-nowrap" data-field="latest-activity">
+            <td class="px-4 py-3.5 whitespace-nowrap" data-field="latest-activity">
               <% if latest_activity %>
                 <% activity_path = latest_activity.comment? ? jjaek_path(latest_activity.record.jjaek, anchor: dom_id(latest_activity.record)) : jjaek_path(latest_activity.record) %>
                 <%= link_to activity_path, class: "inline-flex items-center gap-2 whitespace-nowrap underline-offset-2 hover:underline" do %>
-                  <span class="rounded-full bg-stone-100 px-2 py-1 text-xs"><%= t("admin.user_content.kinds.#{latest_activity.kind}") %></span>
+                  <span class="rounded-full bg-stone-100 px-2 py-1 text-xs text-stone-700"><%= t("admin.user_content.kinds.#{latest_activity.kind}") %></span>
                   <span class="text-sm text-stone-500"><%= l(latest_activity.created_at, format: :short) %></span>
                 <% end %>
               <% else %>
                 <span>-</span>
               <% end %>
             </td>
-            <td class="p-3 whitespace-nowrap"><%= l(user.created_at, format: :short) %></td>
-            <td class="space-y-2 p-3 whitespace-nowrap">
-              <%= link_to t("admin.actions.show"), admin_user_path(user), class: "block text-stone-700 underline" %>
-              <%= link_to t("admin.actions.content"), content_admin_user_path(user), class: "block text-stone-700 underline" %>
+            <td class="px-4 py-3.5 whitespace-nowrap"><%= l(user.created_at, format: :short) %></td>
+            <td class="px-4 py-3.5 whitespace-nowrap">
+              <div class="flex flex-wrap gap-2">
+                <%= link_to t("admin.actions.show"),
+                            admin_user_path(user),
+                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+                <%= link_to t("admin.users.actions.activity"),
+                            content_admin_user_path(user),
+                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+              </div>
             </td>
           </tr>
         <% end %>
