@@ -677,12 +677,28 @@ en:
     title: "Notifications"
     description: "Check new updates"
     empty: "You have no notifications yet."
+    authorities:
+      platform: "The moderation team"
+      group: "The club moderation team"
+    moderation:
+      unavailable: "A moderation action was taken."
+      group_fallback: "the club"
     messages:
       book_friendship_requested: "%{actor_name} sent you a book friend request."
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
       comment_created: "%{actor_name} commented on your Jjaek."
       group_comment_created: "%{actor_name} commented on your post in the %{group_name} club."
       requote_created: "%{actor_name} ReJjaeked your Jjaek."
+      user_account_suspended: "%{authority} suspended your account. Reason: %{reason}"
+      user_account_restored: "%{authority} restored your account. Reason: %{reason}"
+      group_operation_suspended: "%{authority} suspended operations for %{group_name}. Reason: %{reason}"
+      group_operation_restored: "%{authority} restored operations for %{group_name}. Reason: %{reason}"
+      jjaek_hidden: "%{authority} hid your Jjaek. Reason: %{reason}"
+      jjaek_restored: "%{authority} restored your Jjaek. Reason: %{reason}"
+      comment_hidden: "%{authority} hid your comment. Reason: %{reason}"
+      comment_restored: "%{authority} restored your comment. Reason: %{reason}"
+      group_member_activity_suspended: "%{authority} suspended your activity in the %{group_name} club. Reason: %{reason}"
+      group_member_activity_restored: "%{authority} restored your activity in the %{group_name} club. Reason: %{reason}"
   requotes:
     actions:
       view_panel: "View ReJjaeks"

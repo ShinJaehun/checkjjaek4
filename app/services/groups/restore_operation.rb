@@ -17,7 +17,8 @@ module Groups
         original_action = group.current_operation_suspension_action
         raise InvalidState unless original_action
 
-        ModerationAction.create!(
+        recipient_ids = group.group_memberships.active.distinct.pluck(:user_id)
+        action = ModerationAction.create!(
           target: group,
           actor:,
           action_type: :restore_group_operation,
@@ -26,6 +27,7 @@ module Groups
           reversal_of: original_action
         )
         group.update!(operation_suspended_at: nil)
+        Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids:)
       end
       group
     end

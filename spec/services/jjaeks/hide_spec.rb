@@ -5,6 +5,17 @@ RSpec.describe Jjaeks::Hide do
   let(:admin) { User.create!(name: "Admin", email: "hide-service-admin@example.com", password: "password123!", global_admin: true) }
   let(:book) { Book.create!(title: "Moderated book", authors_text: "Author") }
 
+  it "schedules its exact hide action for the author and returns the jjaek" do
+    jjaek = author.jjaeks.create!(content: "Notification target")
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(target: jjaek, actor: admin, action_type: "hide", moderation_authority: "platform")
+      expect(moderation_action).to be_persisted
+      expect(recipient_ids).to eq([ author.id ])
+    end
+
+    expect(described_class.new(jjaek, actor: admin, public_reason: "other").call!).to eq(jjaek)
+  end
+
   it "hides every current jjaek context with an audit record" do
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Moderated group", group_type: :public_group)
     jjaeks = [

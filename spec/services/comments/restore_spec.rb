@@ -17,6 +17,17 @@ RSpec.describe Comments::Restore do
     comment_target.current_hide_action
   end
 
+  it "schedules its exact reversal action for the author and returns the comment" do
+    hide = hide!
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(target: comment_target, actor: admin, action_type: "restore", reversal_of: hide)
+      expect(moderation_action).to be_persisted
+      expect(recipient_ids).to eq([ author.id ])
+    end
+
+    expect(described_class.new(comment_target, actor: admin, public_reason: "Resolved").call!).to eq(comment_target)
+  end
+
   it "restores with a separate reason and reversal link" do
     hide = hide!
 

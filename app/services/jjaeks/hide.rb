@@ -22,7 +22,7 @@ module Jjaeks
         end
 
         jjaek.update!(hidden_at: Time.current)
-        ModerationAction.create!(
+        action = ModerationAction.create!(
           target: jjaek,
           actor:,
           action_type: :hide,
@@ -30,6 +30,7 @@ module Jjaeks
           moderation_authority:,
           internal_note:
         )
+        Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ jjaek.user_id ])
       end
 
       jjaek

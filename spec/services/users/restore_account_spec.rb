@@ -7,6 +7,16 @@ RSpec.describe Users::RestoreAccount do
     ModerationAction.create!(target: user, actor:, action_type: :suspend, public_reason: "Original reason", internal_note: "Original note")
   end
 
+  it "schedules the new reversal row for the target user without changing its return value" do
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(target: user, actor:, action_type: "restore", reversal_of: suspension)
+      expect(moderation_action).to be_persisted
+      expect(recipient_ids).to eq([ user.id ])
+    end
+
+    expect(described_class.new(user, actor:, public_reason: "Resolved").call!).to eq(user)
+  end
+
   it "restores the user with a separate audit action linked to the suspension" do
     original_attributes = suspension.attributes
 

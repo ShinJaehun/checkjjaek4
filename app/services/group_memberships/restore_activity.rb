@@ -18,7 +18,7 @@ module GroupMemberships
                                     suspension.present? && membership.group.group_admin?(actor)
 
           membership.update!(moderation_status: :normal)
-          ModerationAction.create!(
+          action = ModerationAction.create!(
             target: membership,
             actor:,
             action_type: :restore_activity,
@@ -26,6 +26,7 @@ module GroupMemberships
             internal_note:,
             reversal_of: suspension
           )
+          Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ membership.user_id ])
         end
       end
 

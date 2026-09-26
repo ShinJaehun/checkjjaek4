@@ -696,12 +696,28 @@ ko:
     title: "알림"
     description: "새로운 소식 확인하기"
     empty: "아직 알림이 없습니다."
+    authorities:
+      platform: "운영팀"
+      group: "동아리 운영진"
+    moderation:
+      unavailable: "운영 조치 알림입니다."
+      group_fallback: "동아리"
     messages:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
       profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
       comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
       group_comment_created: "%{group_name} 동아리에서 %{actor_name}님이 내 글에 댓글을 남겼습니다."
       requote_created: "%{actor_name}님이 내 Jjaek을 다시짹했습니다."
+      user_account_suspended: "%{authority}에서 계정을 정지했습니다. 사유: %{reason}"
+      user_account_restored: "%{authority}에서 계정을 복구했습니다. 사유: %{reason}"
+      group_operation_suspended: "%{authority}에서 %{group_name} 운영을 정지했습니다. 사유: %{reason}"
+      group_operation_restored: "%{authority}에서 %{group_name} 운영을 복구했습니다. 사유: %{reason}"
+      jjaek_hidden: "%{authority}에서 내 짹을 숨겼습니다. 사유: %{reason}"
+      jjaek_restored: "%{authority}에서 내 짹을 복구했습니다. 사유: %{reason}"
+      comment_hidden: "%{authority}에서 내 댓글을 숨겼습니다. 사유: %{reason}"
+      comment_restored: "%{authority}에서 내 댓글을 복구했습니다. 사유: %{reason}"
+      group_member_activity_suspended: "%{authority}에서 %{group_name} 동아리 활동을 정지했습니다. 사유: %{reason}"
+      group_member_activity_restored: "%{authority}에서 %{group_name} 동아리 활동을 복구했습니다. 사유: %{reason}"
   requotes:
     actions:
       view_panel: "다시짹 보기"

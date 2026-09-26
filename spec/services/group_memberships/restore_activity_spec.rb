@@ -9,6 +9,19 @@ RSpec.describe GroupMemberships::RestoreActivity do
     ModerationAction.create!(target: membership, actor: group_admin, action_type: :suspend_activity, public_reason: "Original")
   end
 
+  it "schedules its actual reversal audit action for the member and preserves the return value" do
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to be_persisted
+      expect(moderation_action).to have_attributes(
+        target: membership, actor: group_admin, action_type: "restore_activity", reversal_of: suspension,
+        moderation_authority: nil, membership_group_id: group.id, membership_user_id: member.id
+      )
+      expect(recipient_ids).to eq([ member.id ])
+    end
+
+    expect(described_class.new(membership, actor: group_admin, public_reason: "Resolved").call!).to eq(membership)
+  end
+
   it "restores activity with a separate audit action linked to the suspension" do
     described_class.new(membership, actor: group_admin, public_reason: "Resolved", internal_note: "Reviewed").call!
 
@@ -37,6 +50,17 @@ RSpec.describe GroupMemberships::RestoreActivity do
 
     described_class.new(membership, actor: group_admin, public_reason: "Resolved").call!
     expect { described_class.new(membership, actor: group_admin, public_reason: "Again").call! }.to raise_error(described_class::InvalidState)
+  end
+
+  it "does not schedule an alert when the reversal audit is invalid" do
+    expect(Notifications::ModerationNotifier).not_to receive(:schedule)
+
+    expect {
+      described_class.new(membership, actor: group_admin, public_reason: "").call!
+    }.to raise_error(ActiveRecord::RecordInvalid)
+
+    expect(membership.reload).to be_activity_suspended
+    expect(ModerationAction.where(target: membership, action_type: :restore_activity)).to be_empty
   end
 
   it "does not let a global admin restore group membership activity directly" do

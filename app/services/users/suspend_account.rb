@@ -17,13 +17,14 @@ module Users
           raise InvalidState unless User::SUSPENSION_REASONS.include?(public_reason)
 
           user.update!(suspended_at: Time.current)
-          ModerationAction.create!(
+          action = ModerationAction.create!(
             target: user,
             actor:,
             action_type: :suspend,
             public_reason:,
             internal_note:
           )
+          Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ user.id ])
         end
       end
 

@@ -99,15 +99,16 @@ Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 �
 `requote_created`의 notifiable은 새로 생성된 ReJjaek이다.
 원문 Jjaek이 아니다.
 
-아래 Platform moderation 정책의 8개 action은 아직 구현되지 않았다.
-구현 시 각각의 `notifiable`은 해당 조치의 `ModerationAction` row로 둔다.
-Group lifecycle의 후보는 `GroupLifecycleEvent`, membership lifecycle의 후보는
-`GroupMembershipEvent`, membership moderation의 후보는 `ModerationAction`을
-사건 source로 사용하되, recipient 정책이 확정되기 전에는 생성하지 않는다.
+아래 Platform moderation 정책의 8개 action은 각각 해당 조치의
+`ModerationAction` row를 `notifiable`로 둔다.
+GroupMembership 활동 정지·복구도 이번 조치의 `ModerationAction`을 사건 source로
+사용한다. 그 밖의 Group lifecycle은 `GroupLifecycleEvent`, membership lifecycle은
+`GroupMembershipEvent`, 회원 이용 제한·해제는 `ModerationAction`을 사건 source
+후보로만 두며 recipient 정책이 확정되기 전에는 생성하지 않는다.
 
 ---
 
-## Platform moderation Notification 정책 `(확정·구현 전)`
+## Platform moderation Notification 정책 `(확정·구현)`
 
 | 사건 | recipient | 사용자에게 공개할 정보 |
 | --- | --- | --- |
@@ -148,7 +149,25 @@ moderation의 사용자용 메시지에는 global admin의 실명·avatar를 노
 
 ---
 
-## Lifecycle/moderation delivery 경계 `(확정·구현 전)`
+## GroupMembership 활동 정지·복구 Notification `(확정·구현)`
+
+`suspend_activity`와 `restore_activity`는 각각 대상 membership의 User 한 명에게
+알린다. `notifiable`은 이번 조치에서 생성된 `ModerationAction`이며, actor와
+recipient가 같으면 생성하지 않는다. 상태 변경과 audit row의 기존 원자성을 유지하고
+Notification은 commit 후 기존 best-effort delivery로 생성한다.
+
+사용자 메시지에는 Group 이름, 활동 정지·복구 사실과 해당 action의
+`public_reason`만 표시한다. `internal_note`와 실제 group admin 이름·avatar는
+노출하지 않고 항상 "동아리 운영진"으로 표시한다. 이 사건의
+`moderation_authority`는 기존 모델대로 `nil`이며 별도 snapshot을 추가하지 않는다.
+Group 이름과 목적지 확인에는 audit row의 `membership_group_id` attribution을
+사용한다. 클릭 시점에 Group read policy를 다시 확인하여 접근 가능하면 Group
+상세로, membership 종료·Group 삭제 등으로 접근할 수 없으면 안전한 Group 목록으로
+연결한다. 알림 자체는 새 읽기 권한을 부여하지 않는다.
+
+---
+
+## Lifecycle/moderation delivery 경계 `(구현)`
 
 핵심 lifecycle/moderation 조치의 성공 조건은 **상태 변경과 audit/event row 생성**이다.
 이 둘의 기존 원자성을 유지한다. Notification은 commit 이후의 파생 delivery다.
@@ -163,7 +182,7 @@ synchronous best-effort delivery가 가능하며 background job은 필수가 아
 
 ---
 
-## Group lifecycle / membership recipient 후보 `(미확정·구현 대상 아님)`
+## 그 밖의 Group lifecycle / membership recipient 후보 `(미확정·구현 대상 아님)`
 
 아래는 현재 사건의 의미와 접근 경계를 바탕으로 검토할 후보일 뿐이다.
 알림 생성 여부, recipient, 공개 범위, 목적지는 별도 승인 전까지 확정하지 않는다.
@@ -187,7 +206,6 @@ synchronous best-effort delivery가 가능하며 background job은 필수가 아
 | 초대 철회 | 초대받은 사용자: 기존 초대 무효화 |
 | 자발적 탈퇴 | group admin: 회원 구성 변화 |
 | 내보내기 | 대상 사용자: 접근 상실. 사유 필드를 새로 추정하지 않음 |
-| 회원 활동 정지·복구 | 대상 회원: 해당 Group에서의 활동 권한 변화와 공개 사유 |
 | 이용 제한·해제 | 대상 사용자: 재참여 제한 변화와 공개 사유. 해제는 membership 자동 복구가 아님 |
 
 가입 거절·초대 거절과 그 밖의 soft-rejection 성격 사건의 알림 여부는 모두 TBD다.
@@ -253,10 +271,11 @@ MVP에서는 자동 만료, 자동 삭제, pruning, archive,
 관계 요청 처리는 `/relationships`,
 Jjaek / Comment / ReJjaek 확인은 관련 Jjaek 상세에서 한다.
 
-Platform moderation 알림은 `ModerationAction`을 `notifiable`로 갖더라도
+Moderation 알림은 `ModerationAction`을 `notifiable`로 갖더라도
 조치 row 자체가 아닌 수신자가 이해하고 접근할 수 있는 현재 화면으로 연결한다.
 
 - Group 운영 정지·복구: 현재 접근 가능하면 `group_path`
+- GroupMembership 활동 정지·복구: 현재 접근 가능하면 `group_path`, 아니면 `groups_path`
 - Jjaek 숨김·복구: 현재 접근 가능하면 `jjaek_path`
 - Comment 숨김·복구: 현재 접근 가능하면 부모 Jjaek의 댓글 문맥
 - User 계정 정지·복구: 정지 중 inbox 접근이 불가능하므로 Notification 클릭이
@@ -321,15 +340,13 @@ Group 운영 fan-out에서는 동일한 사용자 ID를 먼저 중복 제거한�
 `BookFriendship.pending`을 직접 세어 받은 책친구 요청 badge를 표시했다.
 
 이 문서는 Notification 모델 도입 이후의 통합 기준이다.
-받은 책친구 요청, profile-context Jjaek, 댓글, ReJjaek 알림의 현재 구현과
-Platform moderation 8개 사건의 확정된 후속 정책을 함께 다룬다.
-
-Platform moderation 알림 구현이 완료되면 현재 시스템 설명은
-`docs/architecture/current_system.md`에 최소 반영한다.
+받은 책친구 요청, profile-context Jjaek, 댓글, ReJjaek 알림과
+Platform moderation 8개 사건과 GroupMembership 활동 정지·복구 2개 사건의
+현재 구현을 함께 다룬다.
 
 ---
 
-## 구현 전 테스트 기준
+## 테스트 기준
 
 ### Model spec
 
@@ -351,7 +368,7 @@ Platform moderation 알림 구현이 완료되면 현재 시스템 설명은
 - `/notifications`에서 책친구 요청 알림을 read 처리해도 `BookFriendship`은 pending 상태로 남는다.
 - 각 알림 링크가 올바른 목적지로 이동한다.
 
-### Platform moderation 후속 구현 검증 기준
+### Platform moderation 구현 검증 기준
 
 - 8개 action이 각각 실제 `ModerationAction` row를 `notifiable`로 사용하고
   확정된 recipient에게만 생성된다.

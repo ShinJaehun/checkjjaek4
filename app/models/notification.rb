@@ -3,7 +3,17 @@ class Notification < ApplicationRecord
     book_friendship_requested: 0,
     profile_jjaek_created: 1,
     comment_created: 2,
-    requote_created: 3
+    requote_created: 3,
+    user_account_suspended: 4,
+    user_account_restored: 5,
+    group_operation_suspended: 6,
+    group_operation_restored: 7,
+    jjaek_hidden: 8,
+    jjaek_restored: 9,
+    comment_hidden: 10,
+    comment_restored: 11,
+    group_member_activity_suspended: 12,
+    group_member_activity_restored: 13
   }, validate: true
 
   belongs_to :recipient, class_name: "User", inverse_of: :received_notifications
@@ -78,5 +88,9 @@ class Notification < ApplicationRecord
 
   def unread?
     read_at.nil?
+  end
+
+  def moderation?
+    notifiable_type == "ModerationAction"
   end
 end

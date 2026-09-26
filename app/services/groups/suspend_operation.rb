@@ -15,8 +15,10 @@ module Groups
         raise InvalidState unless GroupPolicy.new(actor, group).suspend_operation?
         raise InvalidState unless Group::SUSPENSION_REASONS.include?(public_reason)
 
+        recipient_ids = group.group_memberships.active.distinct.pluck(:user_id)
         group.update!(operation_suspended_at: Time.current)
-        ModerationAction.create!(target: group, actor:, action_type: :suspend_group_operation, public_reason:, internal_note:)
+        action = ModerationAction.create!(target: group, actor:, action_type: :suspend_group_operation, public_reason:, internal_note:)
+        Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids:)
       end
       group
     end

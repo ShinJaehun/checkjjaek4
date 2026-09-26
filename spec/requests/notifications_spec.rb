@@ -145,4 +145,128 @@ RSpec.describe "Notifications", type: :request do
 
     expect(response.body).to include(jjaek_path(requote))
   end
+
+  it "shows platform moderation without the actor identity or internal note" do
+    actor.update!(global_admin: true)
+    action = ModerationAction.create!(target: recipient, actor:, action_type: :suspend,
+                                      public_reason: "other", internal_note: "PRIVATE_INTERNAL_NOTE")
+    Notification.create!(recipient:, actor:, action: :user_account_suspended, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.authorities.platform"))
+    expect(article.text).to include(User.suspension_reason_label("other"))
+    expect(article.text).not_to include(actor.name, "PRIVATE_INTERNAL_NOTE")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(user_path(recipient))
+  end
+
+  it "shows group moderation as the club team while preserving the jjaek destination" do
+    group = Group.create!(lifecycle_status: :active, group_admin: actor, name: "Reading club", group_type: :public_group)
+    group.group_memberships.create!(user: recipient, status: :active)
+    jjaek = recipient.jjaeks.create!(group:, content: "Moderated post")
+    action = ModerationAction.create!(target: jjaek, actor:, action_type: :hide,
+                                      public_reason: "other", moderation_authority: "group", internal_note: "PRIVATE_INTERNAL_NOTE")
+    Notification.create!(recipient:, actor:, action: :jjaek_hidden, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.authorities.group"))
+    expect(article.text).to include(I18n.t("jjaeks.moderation.reasons.other"))
+    expect(article.text).not_to include(actor.name, "PRIVATE_INTERNAL_NOTE")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(jjaek_path(jjaek))
+  end
+
+  it "falls back to the club list when a group operation target is no longer readable" do
+    group = Group.create!(lifecycle_status: :active, group_admin: actor, name: "Private club", group_type: :private_group)
+    action = ModerationAction.create!(target: group, actor:, action_type: :suspend_group_operation, public_reason: "other")
+    Notification.create!(recipient:, actor:, action: :group_operation_suspended, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(group.name, Group.suspension_reason_label("other"))
+    expect(article.at_css("a")["href"]).to eq(groups_path)
+  end
+
+  it "falls back safely when a moderated comment has been deleted" do
+    jjaek = recipient.jjaeks.create!(content: "Parent")
+    comment = jjaek.comments.create!(user: recipient, content: "Comment")
+    action = ModerationAction.create!(target: comment, actor:, action_type: :hide,
+                                      public_reason: "other", moderation_authority: "platform")
+    Notification.create!(recipient:, actor:, action: :comment_hidden, notifiable: action)
+    comment.destroy!
+    sign_in recipient
+
+    get notifications_path
+
+    expect(parse_html.at_css("article a")["href"]).to eq(user_path(recipient))
+  end
+
+  it "links a moderated comment to its readable parent context" do
+    jjaek = recipient.jjaeks.create!(content: "Parent")
+    comment = jjaek.comments.create!(user: recipient, content: "Comment")
+    action = ModerationAction.create!(target: comment, actor:, action_type: :hide,
+                                      public_reason: "other", moderation_authority: "platform")
+    Notification.create!(recipient:, actor:, action: :comment_hidden, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(parse_html.at_css("article a")["href"]).to eq(jjaek_path(jjaek, anchor: "comment_#{comment.id}"))
+  end
+
+  it "does not link to a moderated jjaek that the recipient can no longer read" do
+    jjaek = actor.jjaeks.create!(content: "Private post", visibility: :private_jjaek)
+    action = ModerationAction.create!(target: jjaek, actor:, action_type: :hide,
+                                      public_reason: "other", moderation_authority: "platform")
+    Notification.create!(recipient:, actor:, action: :jjaek_hidden, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(parse_html.at_css("article a")["href"]).to eq(user_path(recipient))
+  end
+
+  it "shows membership activity suspension as a club action without revealing the admin" do
+    group = Group.create!(lifecycle_status: :active, group_admin: actor, name: "Reading circle", group_type: :private_group)
+    membership = group.group_memberships.create!(user: recipient, status: :active)
+    action = ModerationAction.create!(target: membership, actor:, action_type: :suspend_activity,
+                                      public_reason: "Group rule", internal_note: "PRIVATE_INTERNAL_NOTE")
+    Notification.create!(recipient:, actor:, action: :group_member_activity_suspended, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.authorities.group"), group.name, "Group rule")
+    expect(article.text).not_to include(actor.name, "PRIVATE_INTERNAL_NOTE")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(group_path(group))
+  end
+
+  it "shows membership activity restoration and falls back safely after membership removal" do
+    group = Group.create!(lifecycle_status: :active, group_admin: actor, name: "Private circle", group_type: :private_group)
+    membership = group.group_memberships.create!(user: recipient, status: :active)
+    suspension = ModerationAction.create!(target: membership, actor:, action_type: :suspend_activity, public_reason: "Original")
+    restoration = ModerationAction.create!(target: membership, actor:, action_type: :restore_activity,
+                                           public_reason: "Resolved", internal_note: "PRIVATE_RESTORE_NOTE", reversal_of: suspension)
+    Notification.create!(recipient:, actor:, action: :group_member_activity_restored, notifiable: restoration)
+    membership.destroy!
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.authorities.group"), group.name, "Resolved")
+    expect(article.text).not_to include(actor.name, "PRIVATE_RESTORE_NOTE")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(groups_path)
+  end
 end

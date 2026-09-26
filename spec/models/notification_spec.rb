@@ -5,6 +5,25 @@ RSpec.describe Notification, type: :model do
   let(:actor) { User.create!(name: "Actor", email: "notification-actor@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:jjaek) { actor.jjaeks.create!(content: "Notification source") }
 
+  it "appends moderation actions without changing existing enum values" do
+    expect(described_class.actions).to eq(
+      "book_friendship_requested" => 0,
+      "profile_jjaek_created" => 1,
+      "comment_created" => 2,
+      "requote_created" => 3,
+      "user_account_suspended" => 4,
+      "user_account_restored" => 5,
+      "group_operation_suspended" => 6,
+      "group_operation_restored" => 7,
+      "jjaek_hidden" => 8,
+      "jjaek_restored" => 9,
+      "comment_hidden" => 10,
+      "comment_restored" => 11,
+      "group_member_activity_suspended" => 12,
+      "group_member_activity_restored" => 13
+    )
+  end
+
   it "requires recipient, actor, action, and notifiable" do
     notification = described_class.new
 

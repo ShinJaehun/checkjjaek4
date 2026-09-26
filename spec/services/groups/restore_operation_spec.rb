@@ -5,6 +5,18 @@ RSpec.describe Groups::RestoreOperation do
   let(:admin) { User.create!(name: "Admin", email: "operation-restore-admin@example.com", password: "password123!", global_admin: true) }
   let(:group) { Group.create!(lifecycle_status: :active, group_admin:, name: "Readers", group_type: :public_group) }
 
+  it "schedules the new reversal row for active members without changing its return value" do
+    Groups::SuspendOperation.new(group, actor: admin, public_reason: "other").call!
+    suspension = group.current_operation_suspension_action
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(target: group, actor: admin, action_type: "restore_group_operation", reversal_of: suspension)
+      expect(moderation_action).to be_persisted
+      expect(recipient_ids).to eq([ group_admin.id ])
+    end
+
+    expect(described_class.new(group, actor: admin, public_reason: "Resolved").call!).to eq(group)
+  end
+
   it "atomically records a reversal and restores only operation state" do
     membership_ids = group.group_membership_ids
     jjaek = group_admin.jjaeks.create!(group:, content: "Preserved")

@@ -25,7 +25,7 @@ module Comments
         end
 
         comment.update!(hidden_at: nil)
-        ModerationAction.create!(
+        action = ModerationAction.create!(
           target: comment,
           actor:,
           action_type: :restore,
@@ -34,6 +34,7 @@ module Comments
           internal_note:,
           reversal_of: current_hide
         )
+        Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ comment.user_id ])
       end
 
       comment

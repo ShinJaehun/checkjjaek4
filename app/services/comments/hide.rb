@@ -22,7 +22,7 @@ module Comments
         end
 
         comment.update!(hidden_at: Time.current)
-        ModerationAction.create!(
+        action = ModerationAction.create!(
           target: comment,
           actor:,
           action_type: :hide,
@@ -30,6 +30,7 @@ module Comments
           moderation_authority:,
           internal_note:
         )
+        Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ comment.user_id ])
       end
 
       comment

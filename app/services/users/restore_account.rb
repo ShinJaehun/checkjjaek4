@@ -19,7 +19,7 @@ module Users
           raise InvalidState if suspension.nil?
 
           user.update!(suspended_at: nil)
-          ModerationAction.create!(
+          action = ModerationAction.create!(
             target: user,
             actor:,
             action_type: :restore,
@@ -27,6 +27,7 @@ module Users
             internal_note:,
             reversal_of: suspension
           )
+          Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ user.id ])
         end
       end
 

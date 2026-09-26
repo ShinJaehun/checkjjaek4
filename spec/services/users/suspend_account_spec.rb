@@ -4,6 +4,16 @@ RSpec.describe Users::SuspendAccount do
   let(:actor) { User.create!(name: "Admin", email: "suspend-service-admin@example.com", password: "password123!", global_admin: true) }
   let(:user) { User.create!(name: "Reader", email: "suspend-service-reader@example.com", password: "password123!") }
 
+  it "schedules the created audit row for the target user without changing its return value" do
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(target: user, actor:, action_type: "suspend")
+      expect(moderation_action).to be_persisted
+      expect(recipient_ids).to eq([ user.id ])
+    end
+
+    expect(described_class.new(user, actor:, public_reason: "other").call!).to eq(user)
+  end
+
   it "suspends the user and records the audit action without changing existing data" do
     other = User.create!(name: "Other", email: "suspend-service-other@example.com", password: "password123!")
     jjaek = user.jjaeks.create!(content: "Preserved public content")
@@ -62,6 +72,7 @@ RSpec.describe Users::SuspendAccount do
   it "rolls back the suspension when the audit write fails" do
     invalid_action = ModerationAction.new(target: user, actor:, action_type: :suspend, public_reason: "")
     allow(ModerationAction).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(invalid_action))
+    expect(Notifications::ModerationNotifier).not_to receive(:schedule)
 
     expect {
       described_class.new(user, actor:, public_reason: "other").call!

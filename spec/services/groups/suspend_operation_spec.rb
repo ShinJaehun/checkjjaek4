@@ -5,6 +5,29 @@ RSpec.describe Groups::SuspendOperation do
   let(:admin) { User.create!(name: "Admin", email: "operation-suspend-admin@example.com", password: "password123!", global_admin: true) }
   let(:group) { Group.create!(lifecycle_status: :active, group_admin:, name: "Readers", group_type: :public_group) }
 
+  it "snapshots all active member IDs and schedules the created audit row" do
+    normal_member = User.create!(name: "Normal", email: "operation-normal-member@example.com", password: "password123!")
+    suspended_member = User.create!(name: "Activity suspended", email: "operation-suspended-member@example.com", password: "password123!")
+    invited = User.create!(name: "Invited", email: "operation-invited-member@example.com", password: "password123!")
+    pending = User.create!(name: "Pending", email: "operation-pending-member@example.com", password: "password123!")
+    former_member = User.create!(name: "Former", email: "operation-former-member@example.com", password: "password123!")
+    banned = User.create!(name: "Banned", email: "operation-banned-member@example.com", password: "password123!")
+    group.group_memberships.create!(user: normal_member, status: :active)
+    group.group_memberships.create!(user: suspended_member, status: :active, moderation_status: :activity_suspended)
+    suspended_member.update!(suspended_at: Time.current)
+    group.group_memberships.create!(user: invited, status: :invited)
+    group.group_memberships.create!(user: pending, status: :pending)
+    group.group_memberships.create!(user: former_member, status: :active).destroy!
+    GroupMemberBan.create!(group:, user: banned)
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(target: group, actor: admin, action_type: "suspend_group_operation")
+      expect(moderation_action).to be_persisted
+      expect(recipient_ids).to match_array([ group_admin.id, normal_member.id, suspended_member.id ])
+    end
+
+    expect(described_class.new(group, actor: admin, public_reason: "other").call!).to eq(group)
+  end
+
   it "atomically records the state and audit without changing lifecycle or membership" do
     lifecycle_status = group.lifecycle_status
     membership_ids = group.group_membership_ids

@@ -6,6 +6,19 @@ RSpec.describe GroupMemberships::SuspendActivity do
   let(:group) { Group.create!(lifecycle_status: :active, group_admin:, name: "Readers", group_type: :private_group) }
   let(:membership) { group.group_memberships.create!(user: member, status: :active) }
 
+  it "schedules its actual audit action for the member and preserves the return value" do
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to be_persisted
+      expect(moderation_action).to have_attributes(
+        target: membership, actor: group_admin, action_type: "suspend_activity",
+        moderation_authority: nil, membership_group_id: group.id, membership_user_id: member.id
+      )
+      expect(recipient_ids).to eq([ member.id ])
+    end
+
+    expect(described_class.new(membership, actor: group_admin, public_reason: "Group rule").call!).to eq(membership)
+  end
+
   it "suspends only group activity and records an audit action atomically" do
     described_class.new(membership, actor: group_admin, public_reason: "Group rule", internal_note: "Case 1").call!
 
@@ -44,6 +57,8 @@ RSpec.describe GroupMemberships::SuspendActivity do
   end
 
   it "rolls back state when the audit action is invalid" do
+    expect(Notifications::ModerationNotifier).not_to receive(:schedule)
+
     expect {
       described_class.new(membership, actor: group_admin, public_reason: "").call!
     }.to raise_error(ActiveRecord::RecordInvalid)

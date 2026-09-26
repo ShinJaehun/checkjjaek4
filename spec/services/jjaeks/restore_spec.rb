@@ -10,6 +10,17 @@ RSpec.describe Jjaeks::Restore do
     jjaek.current_hide_action
   end
 
+  it "schedules its exact reversal action for the author and returns the jjaek" do
+    hide = hide!
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(target: jjaek, actor: admin, action_type: "restore", reversal_of: hide)
+      expect(moderation_action).to be_persisted
+      expect(recipient_ids).to eq([ author.id ])
+    end
+
+    expect(described_class.new(jjaek, actor: admin, public_reason: "Resolved").call!).to eq(jjaek)
+  end
+
   it "restores the current hide with a separate audit reason" do
     hide = hide!
 

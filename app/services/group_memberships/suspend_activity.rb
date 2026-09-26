@@ -19,13 +19,14 @@ module GroupMemberships
           raise InvalidState if membership.user_id == membership.group.group_admin_id
 
           membership.update!(moderation_status: :activity_suspended)
-          ModerationAction.create!(
+          action = ModerationAction.create!(
             target: membership,
             actor:,
             action_type: :suspend_activity,
             public_reason:,
             internal_note:
           )
+          Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ membership.user_id ])
         end
       end
 

@@ -4,6 +4,17 @@ RSpec.describe Comments::Hide do
   let(:author) { User.create!(name: "Comment author", email: "comment-hide-author@example.com", password: "password123!") }
   let(:admin) { User.create!(name: "Global admin", email: "comment-hide-admin@example.com", password: "password123!", global_admin: true) }
 
+  it "schedules its exact hide action for the author and returns the comment" do
+    comment = author.jjaeks.create!(content: "Source").comments.create!(user: author, content: "Notification target")
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(target: comment, actor: admin, action_type: "hide", moderation_authority: "platform")
+      expect(moderation_action).to be_persisted
+      expect(recipient_ids).to eq([ author.id ])
+    end
+
+    expect(described_class.new(comment, actor: admin, public_reason: "other").call!).to eq(comment)
+  end
+
   it "hides a comment and records platform authority" do
     comment = author.jjaeks.create!(content: "Source").comments.create!(user: author, content: "Comment")
 
