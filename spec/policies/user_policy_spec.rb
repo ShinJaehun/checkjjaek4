@@ -48,6 +48,13 @@ RSpec.describe UserPolicy do
       expect(described_class.new(user, user).follow?).to be(false)
     end
 
+    it "blocks only new follows when the target declines followers" do
+      other_user.update!(allows_new_followers: false)
+
+      expect(described_class.new(user, other_user).follow?).to be(false)
+      expect(described_class.new(user, other_user).unfollow?).to be(true)
+    end
+
     it "does not let a guest view a profile" do
       expect(described_class.new(nil, other_user).show?).to be(false)
     end

@@ -12,6 +12,24 @@ RSpec.describe "Follows", type: :request do
     }.to change(Follow, :count).by(1)
   end
 
+  it "blocks a new follow when the target opts out" do
+    other_user.update!(allows_new_followers: false)
+    sign_in user
+
+    expect { post user_follow_path(other_user) }.not_to change(Follow, :count)
+    expect(response).to redirect_to(root_path)
+  end
+
+  it "still allows unfollowing an existing relationship after the target opts out" do
+    follow = user.active_follows.create!(followee: other_user)
+    other_user.update!(allows_new_followers: false)
+    sign_in user
+
+    delete user_follow_path(other_user)
+
+    expect(Follow.exists?(follow.id)).to be(false)
+  end
+
   it "redirects guests to sign in when following a user" do
     post user_follow_path(other_user)
 

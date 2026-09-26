@@ -124,6 +124,18 @@ RSpec.describe GroupMembershipPolicy do
     expect(described_class.new(group_admin, invitation).decline?).to be(false)
   end
 
+  it "blocks a new private invitation when the recipient opts out without changing existing invitation actions" do
+    private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Private opt-out", group_type: :private_group)
+    member.update!(accepts_group_invitations: false)
+
+    expect(described_class.new(group_admin, private_group.group_memberships.build(user: member, status: :invited)).invite?).to be(false)
+
+    existing_invitation = private_group.group_memberships.create!(user: member, status: :invited)
+    expect(described_class.new(member, existing_invitation).accept?).to be(true)
+    expect(described_class.new(member, existing_invitation).decline?).to be(true)
+    expect(described_class.new(group_admin, existing_invitation).revoke?).to be(true)
+  end
+
   it "allows only the group_admin to remove an active non-group_admin member" do
     membership = group.group_memberships.create!(user: member, status: :active)
     group_admin_membership = group.group_memberships.find_by!(user: group_admin)

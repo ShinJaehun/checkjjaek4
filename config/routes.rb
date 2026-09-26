@@ -3,6 +3,9 @@ Rails.application.routes.draw do
   root "homes#show"
   devise_for :users, controllers: { registrations: "users/registrations", sessions: "users/sessions" }
   resource :account_withdrawal, only: %i[show destroy]
+  namespace :account do
+    resource :settings, only: %i[show update]
+  end
   get "/relationships", to: "relationships#index"
   resources :notifications, only: :index
   namespace :admin do

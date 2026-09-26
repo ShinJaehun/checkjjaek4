@@ -1,6 +1,7 @@
 class BookFriendshipPolicy < ApplicationPolicy
   def create?
     user.present? && user.active_account? && record.addressee&.active_account? &&
+      record.addressee.accepts_book_friend_requests? &&
       record.requester_id == user.id && record.addressee_id != user.id
   end
 

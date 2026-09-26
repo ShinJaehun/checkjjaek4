@@ -12,6 +12,25 @@ RSpec.describe "BookFriendships", type: :request do
     }.to change(BookFriendship, :count).by(1)
   end
 
+  it "does not create a new request when the addressee opts out" do
+    other_user.update!(accepts_book_friend_requests: false)
+    sign_in user
+
+    expect { post user_book_friendship_path(other_user) }.not_to change(BookFriendship, :count)
+    expect(response).to redirect_to(root_path)
+  end
+
+  it "keeps pending and accepted friendship actions available after opt-out" do
+    pending = BookFriendship.create!(requester: user, addressee: other_user)
+    other_user.update!(accepts_book_friend_requests: false)
+    sign_in other_user
+    patch user_book_friendship_path(user)
+    expect(pending.reload).to be_accepted
+
+    delete user_book_friendship_path(user)
+    expect(BookFriendship.exists?(pending.id)).to be(false)
+  end
+
   it "does not create a reverse request when a pending request exists" do
     BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user

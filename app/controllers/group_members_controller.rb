@@ -29,6 +29,7 @@ class GroupMembersController < ApplicationController
     return User.none unless @can_invite
 
     User.active_accounts
+      .where(accepts_group_invitations: true)
       .where.not(id: @group.group_memberships.select(:user_id))
       .where.not(id: @group.group_member_bans.select(:user_id))
       .order(:name)

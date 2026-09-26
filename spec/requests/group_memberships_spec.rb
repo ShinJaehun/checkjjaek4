@@ -275,6 +275,21 @@ RSpec.describe "Group memberships", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
+    it "omits opted-out users from private invitation candidates and blocks direct invitations" do
+      group
+      member.update!(accepts_group_invitations: false)
+      sign_in group_admin
+
+      get group_members_path(group)
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("select[name='user_id'] option[value='#{member.id}']")).to be_nil
+
+      expect {
+        post invite_group_group_memberships_path(group), params: { user_id: member.id }
+      }.not_to change(GroupMembership, :count)
+      expect(group.group_memberships.find_by(user: member)).to be_nil
+    end
+
     it "blocks duplicate and self invitations" do
       group.group_memberships.create!(user: member, status: :invited)
       sign_in group_admin

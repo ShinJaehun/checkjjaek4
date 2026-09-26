@@ -19,7 +19,7 @@ class GroupMembershipPolicy < ApplicationPolicy
 
   def invite?
     record.group.active? && record.group.operation_active? && user.present? && record.group.private_group? && record.group.group_admin?(user) &&
-      record.invited? && record.user&.active_account? && record.user_id != user.id &&
+      record.invited? && record.user&.active_account? && record.user.accepts_group_invitations? && record.user_id != user.id &&
       !record.group.member_banned?(record.user)
   end
 

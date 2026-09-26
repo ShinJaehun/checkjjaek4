@@ -14,7 +14,7 @@ class FollowsController < ApplicationController
   end
 
   def destroy
-    authorize @user, :follow?
+    authorize @user, :unfollow?
     follow = current_user.active_follows.find_by(followee: @user)
 
     unless follow

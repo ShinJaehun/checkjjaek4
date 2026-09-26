@@ -22,6 +22,26 @@ en:
       pending_group_content: "Withdrawal is blocked because a pending club contains unexpected content."
       suspended: "A suspended account cannot be withdrawn."
       use_confirmation: "Enter your current password on the account withdrawal confirmation page."
+  settings:
+    nav: "Settings"
+    title: "Settings"
+    description: "Manage your relationship and invitation preferences."
+    interactions:
+      title: "Relationships and invitations"
+      description: "Changes apply only to new relationships going forward."
+      accepts_book_friend_requests:
+        label: "Accept new book friend requests"
+        description: "Others can send you new book friend requests."
+      accepts_group_invitations:
+        label: "Accept new private club invitations"
+        description: "Private club admins can invite you."
+      allows_new_followers:
+        label: "Allow new followers"
+        description: "Others can start following your updates."
+    actions:
+      save: "Save"
+    notices:
+      updated: "Settings saved."
   activerecord:
     errors:
       models:

@@ -93,6 +93,8 @@ module UsersHelper
         class_name: secondary_profile_action_class
       }
     else
+      return unless policy(user).follow?
+
       {
         label: t("users.actions.follow"),
         path: user_follow_path(user),
@@ -124,6 +126,9 @@ module UsersHelper
         class_name: primary_profile_action_class
       }
     else
+      friendship_request = BookFriendship.new(requester: current_user, addressee: user)
+      return unless policy(friendship_request).create?
+
       {
         label: t("users.actions.request_book_friend"),
         path: user_book_friendship_path(user),

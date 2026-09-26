@@ -46,6 +46,8 @@
 - `User`: `withdrawn_at` 기반 terminal 탈퇴와 별도 `suspended_at` 기반 가역적 운영 정지 상태
 - `Group`: 일반 사용자 생성은 global admin 승인 기반, global admin 직접 생성은 즉시 active인 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active 상태와 별도 활동 moderation 상태
+- `User` 상호작용 설정: `/account/settings`에서 새 책친구 신청·비공개 동아리 초대·소식받기 허용을 관리하며, 기존 관계에는 소급 적용하지 않음 (`docs/specs/interaction_preferences.md`)
+- `/users/:id`는 사용자 프로필 surface로 유지하고, `/account/...`는 자기 계정 관리용 self-only 경로로 확장할 수 있으며 현재는 settings만 구현됨
 
 ---
 

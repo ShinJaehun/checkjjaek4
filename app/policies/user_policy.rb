@@ -26,6 +26,10 @@ class UserPolicy < ApplicationPolicy
   end
 
   def follow?
+    unfollow? && record.allows_new_followers?
+  end
+
+  def unfollow?
     user.present? && user.active_account? && record.active_account? && record != user
   end
 

@@ -8,6 +8,7 @@
         <%= link_to t("bookshelf_entries.nav"), user_library_path(current_user), class: "font-medium" %>
         <%= link_to t("relationships.nav"), relationships_path, class: "font-medium" %>
         <%= link_to t("groups.nav"), groups_path, class: "font-medium" %>
+        <%= link_to t("settings.nav"), account_settings_path, class: "font-medium" %>
         <% if current_user.global_admin? %>
           <%= link_to t("admin.users.nav"), admin_users_path, class: "font-medium" %>
           <%= link_to t("admin.groups.nav"), admin_groups_path, class: "font-medium" %>
