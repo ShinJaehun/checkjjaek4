@@ -161,6 +161,7 @@ class JjaeksController < ApplicationController
     profile_policy = policy(@user)
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
+    @invitable_private_groups = ProfileInvitablePrivateGroupsQuery.new(actor: current_user, target: @user).call
     prepare_profile_bookshelf(profile_policy)
     prepare_profile_book_activities
     prepare_profile_jjaeks(profile_policy)

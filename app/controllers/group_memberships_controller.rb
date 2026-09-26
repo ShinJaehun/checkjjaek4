@@ -56,10 +56,14 @@ class GroupMembershipsController < ApplicationController
     end
 
     if saved
-      redirect_to group_members_path(@group), notice: t("group_memberships.notices.invited")
+      redirect_to invitation_return_path, notice: t("group_memberships.notices.invited")
     else
-      redirect_to group_members_path(@group), alert: @membership.errors.full_messages.to_sentence
+      redirect_to invitation_return_path, alert: @membership.errors.full_messages.to_sentence
     end
+  rescue Pundit::NotAuthorizedError
+    raise unless profile_invitation_return?
+
+    redirect_to invitation_return_path, alert: t("auth.alerts.not_authorized")
   end
 
   def accept
@@ -160,6 +164,14 @@ class GroupMembershipsController < ApplicationController
   end
 
   private
+
+  def profile_invitation_return?
+    params[:return_context] == "profile" && @membership&.user.present?
+  end
+
+  def invitation_return_path
+    profile_invitation_return? ? user_path(@membership.user) : group_members_path(@group)
+  end
 
   def set_group
     @group = policy_scope(Group).find(params[:group_id])

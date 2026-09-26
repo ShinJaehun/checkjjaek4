@@ -24,5 +24,5 @@ pending·accepted BookFriendship, invited GroupMembership은 자동 삭제하거
 기존 관계·요청의 후속 action을 유지한다.
 
 이 설정은 Notification 수신 설정이 아니다. Notification on/off, 이메일·푸시
-설정과 초대 Notification은 후속 범위다. 이번 단계는 프로필 동아리 초대 버튼이나
-기존 회원 관리 초대 UI 구조를 변경하지 않는다.
+설정과 초대 Notification은 후속 범위다. 비공개 동아리 초대는 사용자 프로필에서
+시작하며, 회원 관리 화면은 이미 보낸 초대의 관리만 담당한다.

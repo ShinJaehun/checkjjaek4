@@ -423,18 +423,22 @@ RSpec.describe "Groups", type: :request do
   end
 
 
-  it "shows the invitation form only to a private group group_admin" do
+  it "keeps sent invitation management on private group members without a new invitation form" do
     invitee = User.create!(name: "Invitee", email: "invite-form-user@example.com", password: "password123!", password_confirmation: "password123!")
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Private invitations", group_type: :private_group)
     sign_in user
 
     get group_members_path(group)
-    expect(response.body).to include("동아리 초대", invitee.name)
+    page = Nokogiri::HTML(response.body)
+    expect(page.text).to include(I18n.t("groups.invitations.sent_title"))
+    expect(page.at_css(%(form[action="#{invite_group_group_memberships_path(group)}"]))).to be_nil
+    expect(page.at_css("select[name='user_id']")).to be_nil
+    expect(page.text).not_to include(invitee.name)
 
     group.group_memberships.create!(user: invitee, status: :active)
     sign_in invitee
     get group_members_path(group)
-    expect(response.body).not_to include("동아리 초대")
+    expect(response).to redirect_to(root_path)
   end
 
   describe "member management" do

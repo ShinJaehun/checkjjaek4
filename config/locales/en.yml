@@ -232,10 +232,8 @@ en:
           unban_from_group: "%{actor} lifted %{user}'s club restriction."
     invitations:
       title: "Club invitations"
-      invite_title: "Invite to club"
-      user: "User"
-      empty_candidates: "No users are available to invite."
       sent_title: "Sent invitations"
+      sent_empty: "No invitations sent yet."
     notices:
       created: "Your club application was submitted."
       closed: "The club was closed."
@@ -1028,6 +1026,8 @@ en:
         title: "Move books between bookshelves"
     profile:
       activity_title: "Recent Activity"
+      invite_to_group: "Invite to %{group_name}"
+      invite_to_group_menu: "Invite to a club"
       bookshelf_sort:
         label: "Book sort"
         options:

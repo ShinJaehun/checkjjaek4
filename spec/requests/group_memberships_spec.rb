@@ -275,14 +275,14 @@ RSpec.describe "Group memberships", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it "omits opted-out users from private invitation candidates and blocks direct invitations" do
+    it "omits opted-out users from profile invitations and blocks direct invitations" do
       group
       member.update!(accepts_group_invitations: false)
       sign_in group_admin
 
-      get group_members_path(group)
+      get user_path(member)
       page = Nokogiri::HTML(response.body)
-      expect(page.at_css("select[name='user_id'] option[value='#{member.id}']")).to be_nil
+      expect(page.at_css(%(form[action="#{invite_group_group_memberships_path(group)}"]))).to be_nil
 
       expect {
         post invite_group_group_memberships_path(group), params: { user_id: member.id }
@@ -987,20 +987,17 @@ RSpec.describe "Group memberships", type: :request do
       expect(GroupMembership.find(invitation_id)).to be_invited
     end
 
-    it "removes banned users from invitation candidates" do
+    it "shows sent invitation management without the old invitation select" do
       group = Group.create!(lifecycle_status: :active, group_admin:, name: "Ban candidates", group_type: :private_group)
-      eligible_user = User.create!(
-        name: "Eligible member",
-        email: "ban-candidate-eligible@example.com",
-        password: "password123!"
-      )
-      ban_membership(group, group.group_memberships.create!(user: member, status: :active))
+      invitee = User.create!(name: "Invitee", email: "sent-invitee@example.com", password: "password123!")
+      invitation = group.group_memberships.create!(user: invitee, status: :invited)
+      sign_in group_admin
 
       get group_members_path(group)
-      invite_form = Nokogiri::HTML(response.body).at_css(%(form[action="#{invite_group_group_memberships_path(group)}"]))
-      expect(invite_form).to be_present
-      expect(invite_form.text).to include(eligible_user.name)
-      expect(invite_form.text).not_to include(member.name)
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css(%(form[action="#{invite_group_group_memberships_path(group)}"]))).to be_nil
+      expect(page.text).to include(I18n.t("groups.invitations.sent_title"), invitee.name)
+      expect(page.at_css(%(form[action="#{revoke_group_group_membership_path(group, invitation)}"]))).to be_present
     end
 
     it "unbans without restoring membership and permits each normal participation flow again" do

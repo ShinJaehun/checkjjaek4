@@ -20,6 +20,8 @@
         <% if book_friend_button %>
           <%= button_to book_friend_button[:label], book_friend_button[:path], method: book_friend_button[:method], class: book_friend_button[:class_name] %>
         <% end %>
+
+        <%= render "users/private_group_invitation", user:, groups: invitable_private_groups if invitable_private_groups.any? %>
       </div>
     <% end %>
   </div>

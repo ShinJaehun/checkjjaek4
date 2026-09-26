@@ -785,7 +785,12 @@ RSpec.describe "Users", type: :request do
 
     it "rerenders the profile-context form when a profile-context jjaek is invalid" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      private_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Profile invitation", group_type: :private_group)
       sign_in viewer
+
+      get user_path(profile_user)
+      invitation_form = %(form[action="#{invite_group_group_memberships_path(private_group)}"])
+      expect(Nokogiri::HTML(response.body).at_css(invitation_form)).to be_present
 
       expect {
         post jjaeks_path, params: {
@@ -799,6 +804,7 @@ RSpec.describe "Users", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include('name="jjaek[target_user_id]"')
+      expect(Nokogiri::HTML(response.body).at_css(invitation_form)).to be_present
     end
 
     it "does not create a profile-context jjaek when the viewer cannot write in that profile context" do

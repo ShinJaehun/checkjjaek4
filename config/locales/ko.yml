@@ -237,10 +237,8 @@ ko:
           unban_from_group: "%{actor}님이 %{user}님의 동아리 이용 제한을 해제했습니다."
     invitations:
       title: "받은 동아리 초대"
-      invite_title: "동아리 초대"
-      user: "초대할 사용자"
-      empty_candidates: "초대할 수 있는 사용자가 없습니다."
       sent_title: "보낸 초대"
+      sent_empty: "아직 보낸 초대가 없습니다."
     notices:
       created: "동아리 생성 신청이 접수되었습니다."
       closed: "동아리 운영을 종료했습니다."
@@ -1045,6 +1043,8 @@ ko:
         title: "책장 이동"
     profile:
       activity_title: "최근 활동"
+      invite_to_group: "%{group_name}에 초대"
+      invite_to_group_menu: "동아리에 초대"
       bookshelf_sort:
         label: "책 정렬"
         options:

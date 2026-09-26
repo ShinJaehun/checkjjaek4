@@ -16,24 +16,12 @@ class GroupMembersController < ApplicationController
     end
     @group_member_bans = @group.group_member_bans.includes(:user).order(created_at: :desc)
     @ban_actions_by_id = ban_actions_by_id
-    @can_invite = policy(@group.group_memberships.build(user: User.new, status: :invited)).invite?
-    @invite_candidates = invite_candidates
     @admin_transfer_candidates = admin_transfer_candidates
     @current_activity_suspensions_by_membership_id = current_activity_suspensions_by_membership_id
     @membership_history = membership_history
   end
 
   private
-
-  def invite_candidates
-    return User.none unless @can_invite
-
-    User.active_accounts
-      .where(accepts_group_invitations: true)
-      .where.not(id: @group.group_memberships.select(:user_id))
-      .where.not(id: @group.group_member_bans.select(:user_id))
-      .order(:name)
-  end
 
   def admin_transfer_candidates
     return User.none unless policy(@group).transfer_admin?

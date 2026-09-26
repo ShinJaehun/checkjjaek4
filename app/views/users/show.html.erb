@@ -1,5 +1,5 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
-  <%= render "users/profile_header", user: @user, book_friendship: @book_friendship %>
+  <%= render "users/profile_header", user: @user, book_friendship: @book_friendship, invitable_private_groups: @invitable_private_groups %>
 
   <% if @profile_jjaek.present? %>
     <%= render "users/profile_jjaek_form",

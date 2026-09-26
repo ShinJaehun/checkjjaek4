@@ -126,6 +126,8 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 - 공개 동아리는 발견 가능하며 로그인 사용자가 즉시 가입할 수 있다.
 - 승인 동아리는 발견 가능하지만 가입 승인이 필요하다.
 - 비공개 동아리는 일반 발견 대상에서 제외하며 초대를 기본 진입점으로 삼는다.
+- 비공개 동아리의 새 초대는 대상 사용자의 프로필에서 시작한다. 관리 중인 초대 가능한 비공개 동아리가 여러 개면 한 동아리를 선택해 한 번에 한 명만 초대한다. `/groups/:id/members`에서는 이미 보낸 초대의 철회·이력만 관리한다.
+- 초대 후보는 대상의 `accepts_group_invitations` 설정과 기존 membership·이용 제한을 반영하며, 최종 권한은 `GroupMembershipPolicy#invite?`가 확인한다. 초대 Notification은 후속 범위다.
 - 일반 사용자의 생성을 운영 신청으로 보고, global admin 승인 전에는 정상 운영하지 않는다.
 - global admin이 직접 생성한 동아리는 승인 대기를 거치지 않고 즉시 `active`로 시작한다. 이는 다른 사용자가 만든 pending 동아리의 자동 승인을 뜻하지 않는다.
 - 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 group admin과 global admin만 확인한다.
