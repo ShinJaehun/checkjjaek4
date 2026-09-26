@@ -103,7 +103,8 @@ Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 �
 `ModerationAction` row를 `notifiable`로 둔다.
 GroupMembership 활동 정지·복구도 이번 조치의 `ModerationAction`을 사건 source로
 사용한다. 아래 확정된 Group lifecycle Notification은 실제
-`GroupLifecycleEvent` row를, 관리자 이전 Notification은 실제
+`GroupLifecycleEvent` row를 사용한다. 관리자 이전 Notification과 아래 확정된
+GroupMembership 승인제 가입 workflow Notification은 실제
 `GroupMembershipEvent` row를 `notifiable`로 사용한다. 그 밖의 membership
 lifecycle은 `GroupMembershipEvent`, 회원 이용 제한·해제는 `ModerationAction`을
 사건 source 후보로만 두며 recipient 정책이 확정되기 전에는 생성하지 않는다.
@@ -253,6 +254,93 @@ commit 후 recipient별 best-effort로 생성한다. rollback 시에는 생성�
 
 ---
 
+## GroupMembership 승인제 가입 workflow Notification `(확정·구현 전)`
+
+승인제 Group의 가입 신청·승인·거절은 기존 `GroupMembershipEvent`를
+Notification의 사건 source로 사용한다.
+
+새 schema나 generic membership event를 만들지 않는다.
+각 Notification의 `notifiable`은 이번 조치에서 실제 생성된
+`GroupMembershipEvent` row다.
+
+| event_type | recipient | 사용자-facing 정보 |
+| --- | --- | --- |
+| `requested_to_join` | 사건 시점의 Group admin, actor 제외 | 신청자 이름·avatar, Group 이름, 가입 신청 사실 |
+| `approved` | `event.user`인 신청자, actor 제외 | Group 이름과 가입 승인 사실 |
+| `request_rejected` | `event.user`인 신청자, actor 제외 | Group 이름과 가입 신청 거절 사실 |
+
+### 가입 신청
+
+`requested_to_join`은 Group admin이 후속 승인·거절 작업을 해야 하는
+workflow Notification이다.
+
+이 사건에서는 신청자를 식별할 필요가 있으므로
+신청자인 actor의 이름과 avatar를 사용자-facing inbox에 표시한다.
+
+메시지는 다음 의미를 표현한다.
+
+`%{actor_name}님이 %{group_name} 동아리 가입을 신청했습니다.`
+
+클릭 시점에 수신자가 여전히 해당 Group admin이고 회원 관리 화면에
+접근할 수 있으면 `group_members_path(group)`로 이동한다.
+권한을 잃었거나 Group에 접근할 수 없으면 `groups_path` 등 안전한
+fallback을 사용한다.
+
+가입 신청이 이후 취소·승인·거절되어 pending membership이 사라졌더라도
+과거 Notification을 별도 상태 페이지로 전환하지 않는다.
+현재 권한이 있다면 현재 회원 관리 화면을 그대로 보여준다.
+
+Notification 자체가 승인 권한을 부여하지 않는다.
+
+### 가입 승인
+
+`approved`는 신청자인 `event.user`에게 전달한다.
+
+실제 Group admin actor는 event와 `Notification.actor`에 보존하지만
+사용자-facing inbox에는 actor 이름·avatar를 표시하지 않는다.
+
+메시지는 Group 이름과 가입 승인 사실만 표시하고
+`동아리 운영진` 중심으로 표현한다.
+
+현재 `GroupPolicy#show?`가 허용하면 `group_path(group)`로,
+그렇지 않으면 `groups_path`로 연결한다.
+
+### 가입 거절
+
+`request_rejected`도 신청자인 `event.user`에게 전달한다.
+
+가입 신청의 결과를 신청자가 확인할 수 있도록
+승인과 대칭적으로 Notification을 생성한다.
+
+현재 `GroupMembershipEvent`에는 사용자에게 공개할 거절 사유가 없으므로
+거절 이유를 추정하거나 새로 만들지 않는다.
+
+사용자-facing inbox에는 Group 이름과 가입 신청이 거절되었다는 사실만
+표시한다.
+
+실제 Group admin actor의 이름·avatar는 표시하지 않는다.
+
+거절 과정에서 pending membership이 삭제되므로 목적지 판단에
+membership row를 사용하지 않는다.
+`event.group`을 기준으로 현재 `GroupPolicy#show?`를 다시 검사하고,
+허용하면 `group_path(group)`, 아니면 `groups_path`로 연결한다.
+
+### Delivery
+
+세 사건 모두 기존 membership 상태 변경과 `GroupMembershipEvent` 생성의
+transaction 원자성을 유지한다.
+
+Notification은 실제 생성된 event 객체를 사용해 같은 transaction 안에서
+전달을 예약하고 최외곽 commit 이후 best-effort로 생성한다.
+
+- rollback이면 Notification 없음
+- delivery 실패가 membership 상태 변경이나 event 생성을 실패시키지 않음
+- actor == recipient이면 생성하지 않음
+- 동일 event/recipient 중복 생성 방지
+- latest event 재조회 금지
+
+---
+
 ## 그 밖의 GroupMembership lifecycle·moderation recipient 후보 `(미확정·구현 대상 아님)`
 
 아래는 현재 사건의 의미와 접근 경계를 바탕으로 검토할 후보일 뿐이다.
@@ -261,10 +349,7 @@ commit 후 recipient별 best-effort로 생성한다. rollback 시에는 생성�
 | 사건 | recipient 후보 / 검토 사항 |
 | --- | --- |
 | 최초 관리자 가입·일반 가입 | 일반 가입은 group admin에게 후보. 최초 관리자 본인의 `joined`는 self 알림 제외 |
-| 가입 신청 | group admin: 심사 작업 |
 | 가입 신청 취소 | 알림 없이 심사 목록 갱신만으로 충분한지 검토 |
-| 가입 승인 | 신청자: 참여 권한 획득 |
-| 가입 거절 | 신청자에게 결과를 알릴지 TBD; soft-rejection 원칙과 비교 |
 | 초대 | 초대받은 사용자: 수락 작업 |
 | 초대 수락 | group admin: 회원 참여 |
 | 초대 거절 | group admin에게 알릴지 TBD; soft-rejection 원칙과 비교 |
@@ -273,7 +358,7 @@ commit 후 recipient별 best-effort로 생성한다. rollback 시에는 생성�
 | 내보내기 | 대상 사용자: 접근 상실. 사유 필드를 새로 추정하지 않음 |
 | 이용 제한·해제 | 대상 사용자: 재참여 제한 변화와 공개 사유. 해제는 membership 자동 복구가 아님 |
 
-가입 거절·초대 거절과 그 밖의 soft-rejection 성격 사건의 알림 여부는 모두 TBD다.
+초대 거절과 그 밖의 soft-rejection 성격 사건의 알림 여부는 모두 TBD다.
 기존 책친구 관계의 soft-rejection 정책을 Group 사건에 자동 적용하지 않는다.
 
 ---
