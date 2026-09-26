@@ -55,6 +55,71 @@ RSpec.describe "Notifications", type: :request do
     expect(response.body).to include(jjaek_path(jjaek))
   end
 
+  it "shows an applicant identity and links a membership request to current member management" do
+    group = Group.create!(group_admin: recipient, name: "Approval circle", group_type: :approval_group, lifecycle_status: :active)
+    event = GroupMembershipEvent.create!(group:, user: actor, actor:, event_type: :requested_to_join)
+    Notification.create!(recipient:, actor:, action: :group_membership_requested_to_join, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(actor.name, group.name, "가입을 신청했습니다")
+    expect(article.at_css("img")["alt"]).to eq(actor.name)
+    expect(article.at_css("a")["href"]).to eq(group_members_path(group))
+  end
+
+  it "falls back for a membership request when the recipient is no longer group admin" do
+    group = Group.create!(group_admin: actor, name: "Other circle", group_type: :approval_group, lifecycle_status: :active)
+    event = GroupMembershipEvent.create!(group:, user: actor, actor:, event_type: :requested_to_join)
+    Notification.create!(recipient:, actor:, action: :group_membership_requested_to_join, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(parse_html.at_css("article a")["href"]).to eq(groups_path)
+  end
+
+  it "shows membership approval without the admin identity and links to the readable group" do
+    group = Group.create!(group_admin: actor, name: "Approved circle", group_type: :approval_group, lifecycle_status: :active)
+    event = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :approved)
+    Notification.create!(recipient:, actor:, action: :group_membership_approved, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include("동아리 운영진", group.name, "가입을 승인했습니다")
+    expect(article.text).not_to include(actor.name)
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(group_path(group))
+
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+    get notifications_path
+    expect(parse_html.at_css("article a")["href"]).to eq(groups_path)
+  end
+
+  it "keeps a rejection notification readable after the membership is deleted" do
+    group = Group.create!(group_admin: actor, name: "Declined circle", group_type: :approval_group, lifecycle_status: :active)
+    membership = group.group_memberships.create!(user: recipient, status: :pending)
+    event = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :request_rejected)
+    membership.destroy!
+    Notification.create!(recipient:, actor:, action: :group_membership_request_rejected, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(group.name, "가입 신청이 거절되었습니다")
+    expect(article.text).not_to include(actor.name, "사유")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(group_path(group))
+
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+    get notifications_path
+    expect(parse_html.at_css("article a")["href"]).to eq(groups_path)
+  end
+
   it "renders a lifecycle request without actor identity or application detail and links eligible admins to review" do
     recipient.update!(global_admin: true)
     group = Group.create!(group_admin: actor, name: "Review club", group_type: :public_group, application_purpose: "PRIVATE_APPLICATION")

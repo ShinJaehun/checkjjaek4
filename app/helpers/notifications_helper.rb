@@ -2,6 +2,7 @@ module NotificationsHelper
   def notification_message(notification)
     return moderation_notification_message(notification) if notification.moderation?
     return group_lifecycle_notification_message(notification) if notification.group_lifecycle?
+    return group_membership_notification_message(notification) if notification.group_membership_workflow?
 
     if notification.comment_created? && notification.notifiable&.jjaek&.group.present?
       return t(
@@ -17,6 +18,7 @@ module NotificationsHelper
   def notification_target_path(notification)
     return moderation_notification_target_path(notification) if notification.moderation?
     return group_lifecycle_notification_target_path(notification) if notification.group_lifecycle?
+    return group_membership_notification_target_path(notification) if notification.group_membership_workflow?
 
     case notification.action
     when "book_friendship_requested"
@@ -31,6 +33,29 @@ module NotificationsHelper
   end
 
   private
+
+  def group_membership_notification_message(notification)
+    event = notification.notifiable
+    return t("notifications.membership.unavailable") unless event
+
+    group_name = event.group&.name || t("notifications.membership.group_fallback")
+    options = { group_name: }
+    options[:actor_name] = notification.actor.name if notification.group_membership_requested_to_join?
+    t("notifications.messages.#{notification.action}", **options)
+  end
+
+  def group_membership_notification_target_path(notification)
+    group = notification.notifiable&.group
+    return groups_path unless group
+
+    if notification.group_membership_requested_to_join?
+      current_admin = group.group_admin?(current_user)
+      can_view_members = GroupPolicy.new(current_user, group).view_members?
+      current_admin && can_view_members ? group_members_path(group) : groups_path
+    else
+      readable_group_path_or_fallback(group)
+    end
+  end
 
   def group_lifecycle_notification_message(notification)
     event = notification.notifiable

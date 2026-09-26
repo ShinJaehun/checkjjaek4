@@ -20,7 +20,10 @@ class Notification < ApplicationRecord
     group_reactivation_requested: 17,
     group_reactivation_approved: 18,
     group_admin_role_revoked: 19,
-    group_admin_role_granted: 20
+    group_admin_role_granted: 20,
+    group_membership_requested_to_join: 21,
+    group_membership_approved: 22,
+    group_membership_request_rejected: 23
   }, validate: true
 
   belongs_to :recipient, class_name: "User", inverse_of: :received_notifications
@@ -107,5 +110,17 @@ class Notification < ApplicationRecord
       group_reactivation_requested group_reactivation_approved
       group_admin_role_revoked group_admin_role_granted
     ])
+  end
+
+  def group_membership_workflow?
+    action.in?(%w[
+      group_membership_requested_to_join group_membership_approved
+      group_membership_request_rejected
+    ])
+  end
+
+  def show_actor_avatar?
+    !moderation? && !group_lifecycle? &&
+      !group_membership_approved? && !group_membership_request_rejected?
   end
 end

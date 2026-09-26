@@ -254,7 +254,7 @@ commit 후 recipient별 best-effort로 생성한다. rollback 시에는 생성�
 
 ---
 
-## GroupMembership 승인제 가입 workflow Notification `(확정·구현 전)`
+## GroupMembership 승인제 가입 workflow Notification `(확정·구현)`
 
 승인제 Group의 가입 신청·승인·거절은 기존 `GroupMembershipEvent`를
 Notification의 사건 source로 사용한다.
@@ -492,7 +492,8 @@ Group 운영 fan-out에서는 동일한 사용자 ID를 먼저 중복 제거한�
 이 문서는 Notification 모델 도입 이후의 통합 기준이다.
 받은 책친구 요청, profile-context Jjaek, 댓글, ReJjaek 알림과
 Platform moderation 8개 사건, GroupMembership 활동 정지·복구 2개 사건과
-Group lifecycle 7개 사건의
+Group lifecycle 7개 사건,
+GroupMembership 승인제 가입 workflow 3개 사건의
 현재 구현을 함께 다룬다.
 
 ---

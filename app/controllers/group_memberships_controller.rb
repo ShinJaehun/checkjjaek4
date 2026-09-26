@@ -15,7 +15,10 @@ class GroupMembershipsController < ApplicationController
       authorize @membership
       next false unless @membership.save
 
-      record_membership_event!(@membership.active? ? :joined : :requested_to_join)
+      event = record_membership_event!(@membership.active? ? :joined : :requested_to_join)
+      if event.requested_to_join?
+        Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ @group.group_admin_id ])
+      end
       true
     end
 
@@ -32,7 +35,9 @@ class GroupMembershipsController < ApplicationController
     @group.with_lock do
       authorize @membership, :approve?
       @membership.active!
-      record_membership_event!(:approved)
+      event = record_membership_event!(:approved)
+      Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ event.user_id ])
+      event
     end
 
     redirect_to group_members_path(@group), notice: t("group_memberships.notices.approved")
@@ -82,8 +87,9 @@ class GroupMembershipsController < ApplicationController
     authorize @membership, :reject?
     @group.with_lock do
       authorize @membership, :reject?
-      record_membership_event!(:request_rejected)
+      event = record_membership_event!(:request_rejected)
       @membership.destroy!
+      Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ event.user_id ])
     end
 
     redirect_to group_members_path(@group), notice: t("group_memberships.notices.rejected"), status: :see_other

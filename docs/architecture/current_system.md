@@ -327,7 +327,9 @@
 
 ### 6. 알림 화면 (/notifications)
 
-- `Notification` 모델 기반 알림 inbox. Group lifecycle 5개 사건과 관리자 이전 2개 사건은 실제 `GroupLifecycleEvent`/`GroupMembershipEvent`를 source로 commit 이후 전달
+- `Notification` 모델 기반 알림 inbox. Group lifecycle 5개 사건, 관리자 이전
+  2개 사건, 승인제 가입 workflow 3개 사건은 실제
+  `GroupLifecycleEvent`/`GroupMembershipEvent`를 source로 commit 이후 전달
 - unread count를 navbar에 표시
 - `/notifications` 진입 시 현재 사용자의 unread 알림을 read 처리
 - 책친구 요청 알림은 `/relationships#received-book-friend-requests`로 연결

@@ -705,6 +705,9 @@ ko:
     lifecycle:
       unavailable: "동아리 상태 변경 알림입니다."
       group_fallback: "동아리"
+    membership:
+      unavailable: "동아리 가입 관련 알림입니다."
+      group_fallback: "동아리"
     messages:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
       profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
@@ -728,6 +731,9 @@ ko:
       group_reactivation_approved: "운영팀에서 %{group_name} 동아리 재운영을 승인했습니다."
       group_admin_role_revoked: "%{group_name} 동아리의 관리자 권한이 해제되었습니다."
       group_admin_role_granted: "%{group_name} 동아리의 관리자 권한이 부여되었습니다."
+      group_membership_requested_to_join: "%{actor_name}님이 %{group_name} 동아리 가입을 신청했습니다."
+      group_membership_approved: "동아리 운영진에서 %{group_name} 동아리 가입을 승인했습니다."
+      group_membership_request_rejected: "%{group_name} 동아리 가입 신청이 거절되었습니다."
   requotes:
     actions:
       view_panel: "다시짹 보기"

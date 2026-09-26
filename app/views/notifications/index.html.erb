@@ -12,7 +12,7 @@
           <%= link_to notification_target_path(notification), class: "block" do %>
             <div class="flex items-start justify-between gap-4">
               <div class="flex min-w-0 items-start gap-3">
-                <% if notification.actor.present? && !notification.moderation? && !notification.group_lifecycle? %>
+                <% if notification.actor.present? && notification.show_actor_avatar? %>
                   <%= user_avatar_image(notification.actor, size: 128, alt: notification.actor.name, class: "h-9 w-9 shrink-0 rounded-full object-cover") %>
                 <% end %>
 

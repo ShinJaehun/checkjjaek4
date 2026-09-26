@@ -686,6 +686,9 @@ en:
     lifecycle:
       unavailable: "A club status changed."
       group_fallback: "the club"
+    membership:
+      unavailable: "A club membership was updated."
+      group_fallback: "the club"
     messages:
       book_friendship_requested: "%{actor_name} sent you a book friend request."
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
@@ -709,6 +712,9 @@ en:
       group_reactivation_approved: "The team approved the reopening of %{group_name}."
       group_admin_role_revoked: "Your admin role for %{group_name} was removed."
       group_admin_role_granted: "You were granted the admin role for %{group_name}."
+      group_membership_requested_to_join: "%{actor_name} requested to join %{group_name}."
+      group_membership_approved: "The club team approved your request to join %{group_name}."
+      group_membership_request_rejected: "Your request to join %{group_name} was declined."
   requotes:
     actions:
       view_panel: "View ReJjaeks"
