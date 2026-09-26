@@ -607,6 +607,8 @@ global admin의 운영 조사는 기존 별도 권한을 사용하되 자기 Com
 
 신고/신고 큐, 자동 판정, AI moderation, 알림, teacher/Classroom moderation, Classroom 도메인,
 학생 계정/PIN 로그인, 새로운 rate limit, Comment 이외 콘텐츠 lifecycle 변경과 기존 Jjaek moderation 재설계는 포함하지 않는다.
+여기서 알림 제외는 이 Comment moderation 구현 단위에 한정된다.
+후속 Comment hide/restore Notification 정책은 `docs/specs/notifications_mvp.md`를 따른다.
 
 ### Acceptance criteria
 
@@ -717,7 +719,9 @@ Jjaek·Comment 숨김/복구는 이 감사 기반에 연결되어 있다. 각 �
 - 숨겨진 콘텐츠 작성자는 제한 상태와 공개 가능한 사유를 확인할 수 있어야 한다.
 - 신고자 신원과 내부 운영 메모는 대상 사용자에게 공개하지 않는다.
 - 최소 MVP에서는 상태와 공개 사유를 해당 계정·콘텐츠 화면에서 확인할 수 있어야 한다.
-- 별도 Notification inbox 알림 여부는 moderation action UI가 확정될 때 결정한다.
+- User 계정·Group 운영 정지/복구, Jjaek·Comment 숨김/복구의 Notification
+  recipient와 공개 범위는 `docs/specs/notifications_mvp.md`에 확정되어 있다.
+  이 알림은 상태·공개 사유를 해당 화면과 로그인 차단 시점에 안내하는 기존 흐름을 대체하지 않는다.
 
 ---
 

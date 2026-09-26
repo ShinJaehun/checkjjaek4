@@ -20,9 +20,13 @@ Notification 모델 도입 후에는 `book_friendship_requested` action으로 �
 - `BookFriendship`은 관계 요청과 수락/거절 상태의 source of truth다.
 - `Jjaek`은 사용자가 남긴 글과 ReJjaek 문맥의 source of truth다.
 - `Comment`는 Jjaek 댓글의 source of truth다.
+- `GroupLifecycleEvent`, `GroupMembershipEvent`, `ModerationAction`은 각각의 lifecycle/moderation 사건을 기록하는 source of truth다.
 
 즉, Notification은 "사용자가 확인해야 할 일"의 진입점이며,
 도메인 상태 자체를 저장하거나 판정하는 모델이 아니다.
+Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 현재 대상이 아니라
+실제 사건을 기록한 audit/event row를 가리킨다. 새 generic event system이나
+별도 notification framework는 만들지 않는다.
 
 ---
 
@@ -67,9 +71,9 @@ Notification 모델 도입 후에는 `book_friendship_requested` action으로 �
 
 ---
 
-## 초기 action 범위
+## 현재 구현된 social action 범위
 
-초기 `Notification` MVP는 아래 네 가지 action만 다룬다.
+현재 구현된 `Notification` action은 아래 네 가지다.
 
 - `book_friendship_requested`
 - `profile_jjaek_created`
@@ -94,6 +98,100 @@ Notification 모델 도입 후에는 `book_friendship_requested` action으로 �
 
 `requote_created`의 notifiable은 새로 생성된 ReJjaek이다.
 원문 Jjaek이 아니다.
+
+아래 Platform moderation 정책의 8개 action은 아직 구현되지 않았다.
+구현 시 각각의 `notifiable`은 해당 조치의 `ModerationAction` row로 둔다.
+Group lifecycle의 후보는 `GroupLifecycleEvent`, membership lifecycle의 후보는
+`GroupMembershipEvent`, membership moderation의 후보는 `ModerationAction`을
+사건 source로 사용하되, recipient 정책이 확정되기 전에는 생성하지 않는다.
+
+---
+
+## Platform moderation Notification 정책 `(확정·구현 전)`
+
+| 사건 | recipient | 사용자에게 공개할 정보 |
+| --- | --- | --- |
+| User 계정 정지 | 대상 User | 정지 사실과 `public_reason` |
+| User 계정 복구 | 대상 User | 복구 사실. 복구 사유를 표시한다면 해당 조치의 `public_reason`만 사용 |
+| Group 운영 정지 | 조치 시점의 active GroupMembership User | Group 이름, 운영 정지 사실, `public_reason` |
+| Group 운영 복구 | 조치 시점의 active GroupMembership User | Group 이름, 운영 복구 사실, 해당 restore 조치의 `public_reason` |
+| Jjaek 숨김 | 작성자 | 숨김 사실과 `public_reason` |
+| Jjaek 복구 | 작성자 | 복구 사실. 복구 사유를 표시한다면 해당 조치의 `public_reason`만 사용 |
+| Comment 숨김 | 작성자 | 숨김 사실과 `public_reason` |
+| Comment 복구 | 작성자 | 복구 사실. 복구 사유를 표시한다면 해당 조치의 `public_reason`만 사용 |
+
+Group 운영 정지·복구의 recipient는 상태 변경 transaction 안에서 확정한
+**조치 시점의 active membership 사용자 ID 집합**이다. Group admin도 active
+membership을 통해 포함하며 중복 ID를 제거한다. 다음 사용자는 포함한다.
+
+- membership은 active이나 `activity_suspended`인 사용자
+- User 계정은 suspended이나 membership은 active인 사용자
+
+pending, invited, 자발적 탈퇴·내보내기로 membership이 없어진 사용자,
+`GroupMemberBan`으로 이용 제한되어 membership이 종료된 사용자는 제외한다.
+모든 사건에서 actor와 recipient가 같으면 알림을 생성하지 않는다.
+
+`internal_note`와 platform 내부 감사 상세는 어떤 Notification에도 노출하지 않는다.
+Moderation 사유로 사용자에게 보여줄 수 있는 것은 해당 `ModerationAction`의
+`public_reason`뿐이다. 미리 정의된 공개 사유 key는 기존 공개 label로 표시하고,
+legacy 자유 텍스트는 별도 내부 메모와 혼동하지 않는다.
+
+실제 처리자는 audit row와 `Notification.actor`에 보존한다. 다만 platform
+moderation의 사용자용 메시지에는 global admin의 실명·avatar를 노출하지 않고
+"운영팀"처럼 권한 주체를 표시한다. Lifecycle/moderation 알림 UI는 actor avatar를
+필수 요소로 가정하지 않는다. 기존 댓글·다시짹 등 social 알림의 actor 이름·avatar
+표시는 유지할 수 있다. 향후 system actor가 필요하면 별도 정책으로 정한다.
+
+계정 정지 중에는 대상 User가 Notification inbox에 접근할 수 없다.
+따라서 정지 알림은 서비스 내부 전달 기록이며, 올바른 비밀번호 확인 후
+로그인 차단 화면에서 현재 공개 사유를 안내하는 기존 흐름을 대체하지 않는다.
+
+---
+
+## Lifecycle/moderation delivery 경계 `(확정·구현 전)`
+
+핵심 lifecycle/moderation 조치의 성공 조건은 **상태 변경과 audit/event row 생성**이다.
+이 둘의 기존 원자성을 유지한다. Notification은 commit 이후의 파생 delivery다.
+알림 생성 실패 때문에 이미 성공한 조치를 rollback하거나 사용자에게 핵심 조치가
+실패한 것처럼 응답하지 않는다. 나중에 "현재 최신 audit row"를 재조회해 사건을
+추측하지 않고, 실제 생성된 event/audit row를 알림 source로 전달한다.
+
+Group 운영 정지·복구는 위 recipient ID 집합을 상태 변경 transaction 안에서
+확정하고, commit 후 중복 제거된 수신자에게 생성한다. 초기 소규모 MVP에서는
+synchronous best-effort delivery가 가능하며 background job은 필수가 아니다.
+규모·응답시간·재시도 요구가 생기면 background delivery를 후속 검토한다.
+
+---
+
+## Group lifecycle / membership recipient 후보 `(미확정·구현 대상 아님)`
+
+아래는 현재 사건의 의미와 접근 경계를 바탕으로 검토할 후보일 뿐이다.
+알림 생성 여부, recipient, 공개 범위, 목적지는 별도 승인 전까지 확정하지 않는다.
+
+| 사건 | recipient 후보 / 검토 사항 |
+| --- | --- |
+| Group 개설 신청 | global admin: 승인 작업. 직접 승인으로 생성된 Group에는 별도 신청 사건이 없음 |
+| Group 개설 승인 | 신청한 group admin: 신청 결과 |
+| Group 운영 종료 | 조치 시점 active 회원: 공간 운영 변화. 종료 사유의 일반 회원 공개 여부 TBD |
+| Group 재운영 신청 | global admin: 승인 작업 |
+| Group 재운영 승인 | group admin 및 active 회원: 운영 재개 |
+| 관리자 권한 해제·부여 | 각각 이전 관리자와 새 관리자: 두 `GroupMembershipEvent`를 구분 |
+| 최초 관리자 가입·일반 가입 | 일반 가입은 group admin에게 후보. 최초 관리자 본인의 `joined`는 self 알림 제외 |
+| 가입 신청 | group admin: 심사 작업 |
+| 가입 신청 취소 | 알림 없이 심사 목록 갱신만으로 충분한지 검토 |
+| 가입 승인 | 신청자: 참여 권한 획득 |
+| 가입 거절 | 신청자에게 결과를 알릴지 TBD; soft-rejection 원칙과 비교 |
+| 초대 | 초대받은 사용자: 수락 작업 |
+| 초대 수락 | group admin: 회원 참여 |
+| 초대 거절 | group admin에게 알릴지 TBD; soft-rejection 원칙과 비교 |
+| 초대 철회 | 초대받은 사용자: 기존 초대 무효화 |
+| 자발적 탈퇴 | group admin: 회원 구성 변화 |
+| 내보내기 | 대상 사용자: 접근 상실. 사유 필드를 새로 추정하지 않음 |
+| 회원 활동 정지·복구 | 대상 회원: 해당 Group에서의 활동 권한 변화와 공개 사유 |
+| 이용 제한·해제 | 대상 사용자: 재참여 제한 변화와 공개 사유. 해제는 membership 자동 복구가 아님 |
+
+가입 거절·초대 거절과 그 밖의 soft-rejection 성격 사건의 알림 여부는 모두 TBD다.
+기존 책친구 관계의 soft-rejection 정책을 Group 사건에 자동 적용하지 않는다.
 
 ---
 
@@ -155,11 +253,28 @@ MVP에서는 자동 만료, 자동 삭제, pruning, archive,
 관계 요청 처리는 `/relationships`,
 Jjaek / Comment / ReJjaek 확인은 관련 Jjaek 상세에서 한다.
 
+Platform moderation 알림은 `ModerationAction`을 `notifiable`로 갖더라도
+조치 row 자체가 아닌 수신자가 이해하고 접근할 수 있는 현재 화면으로 연결한다.
+
+- Group 운영 정지·복구: 현재 접근 가능하면 `group_path`
+- Jjaek 숨김·복구: 현재 접근 가능하면 `jjaek_path`
+- Comment 숨김·복구: 현재 접근 가능하면 부모 Jjaek의 댓글 문맥
+- User 계정 정지·복구: 정지 중 inbox 접근이 불가능하므로 Notification 클릭이
+  로그인 차단 안내를 대신하지 않음
+
+대상이 hard delete되었거나 클릭 시점의 policy/visibility상 접근할 수 없으면
+권한을 우회하지 않고 안전한 fallback으로 이동한다. 대상·관계가 이후 바뀌어도
+알림의 존재만으로 비공개 콘텐츠 접근 권한을 부여하지 않는다.
+
 ---
 
 ## 생성 조건
 
-알림은 self-action에 대해 생성하지 않는다.
+기존 social 알림과 새 lifecycle/moderation 알림 모두 actor와 recipient가 같으면
+Notification을 생성하지 않는다. 조치 실행자 본인에게 같은 사건을 inbox로
+다시 전달하지 않는다. 향후 system actor는 별도 정책으로 다룬다.
+
+기존 social self-action 예:
 
 - 내가 내 프로필에 남긴 Jjaek은 알림을 만들지 않는다.
 - 내가 내 Jjaek에 단 댓글은 알림을 만들지 않는다.
@@ -185,7 +300,7 @@ Jjaek / Comment / ReJjaek 확인은 관련 Jjaek 상세에서 한다.
 
 같은 이벤트에 대한 중복 알림은 만들지 않는다.
 
-기본 후보:
+기본 기준:
 
 - `recipient`
 - `actor`
@@ -193,6 +308,7 @@ Jjaek / Comment / ReJjaek 확인은 관련 Jjaek 상세에서 한다.
 - `notifiable`
 
 위 조합을 기준으로 중복 생성을 막는다.
+Group 운영 fan-out에서는 동일한 사용자 ID를 먼저 중복 제거한다.
 
 동일 사용자가 같은 Jjaek에 여러 댓글을 남기는 경우에는
 각 댓글이 별도 `Comment`이므로 별도 알림으로 볼 수 있다.
@@ -205,9 +321,10 @@ Jjaek / Comment / ReJjaek 확인은 관련 Jjaek 상세에서 한다.
 `BookFriendship.pending`을 직접 세어 받은 책친구 요청 badge를 표시했다.
 
 이 문서는 Notification 모델 도입 이후의 통합 기준이다.
-받은 책친구 요청, profile-context Jjaek, 댓글, ReJjaek 알림을 함께 다룬다.
+받은 책친구 요청, profile-context Jjaek, 댓글, ReJjaek 알림의 현재 구현과
+Platform moderation 8개 사건의 확정된 후속 정책을 함께 다룬다.
 
-구현이 완료되면 현재 시스템 설명은
+Platform moderation 알림 구현이 완료되면 현재 시스템 설명은
 `docs/architecture/current_system.md`에 최소 반영한다.
 
 ---
@@ -233,3 +350,18 @@ Jjaek / Comment / ReJjaek 확인은 관련 Jjaek 상세에서 한다.
 - `/notifications` 목록 진입 시 unread 알림이 read 처리된다.
 - `/notifications`에서 책친구 요청 알림을 read 처리해도 `BookFriendship`은 pending 상태로 남는다.
 - 각 알림 링크가 올바른 목적지로 이동한다.
+
+### Platform moderation 후속 구현 검증 기준
+
+- 8개 action이 각각 실제 `ModerationAction` row를 `notifiable`로 사용하고
+  확정된 recipient에게만 생성된다.
+- actor 본인에게 생성되지 않고, Group 운영 알림의 active 수신자를 사건 시점에
+  확정·중복 제거하며 pending/invited/탈퇴·내보내기/이용 제한 사용자를 제외한다.
+- activity-suspended membership과 계정 정지 User의 active membership도
+  Group 운영 알림 recipient에 포함한다.
+- 공개 사유만 보이고 `internal_note`·platform actor 신원은 사용자용 메시지와
+  avatar에 노출되지 않는다. 기존 social 알림의 actor 표시는 유지된다.
+- 알림 저장 실패가 핵심 상태·audit 성공을 rollback하거나 실패 응답으로
+  바꾸지 않는다.
+- 삭제·권한 변경으로 목적지에 접근할 수 없으면 안전한 fallback으로 이동하고,
+  정지 계정의 기존 로그인 차단 사유 안내를 유지한다.
