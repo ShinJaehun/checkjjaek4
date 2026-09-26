@@ -102,9 +102,11 @@ Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 �
 아래 Platform moderation 정책의 8개 action은 각각 해당 조치의
 `ModerationAction` row를 `notifiable`로 둔다.
 GroupMembership 활동 정지·복구도 이번 조치의 `ModerationAction`을 사건 source로
-사용한다. 그 밖의 Group lifecycle은 `GroupLifecycleEvent`, membership lifecycle은
-`GroupMembershipEvent`, 회원 이용 제한·해제는 `ModerationAction`을 사건 source
-후보로만 두며 recipient 정책이 확정되기 전에는 생성하지 않는다.
+사용한다. 아래 확정된 Group lifecycle Notification은 실제
+`GroupLifecycleEvent` row를, 관리자 이전 Notification은 실제
+`GroupMembershipEvent` row를 `notifiable`로 사용한다. 그 밖의 membership
+lifecycle은 `GroupMembershipEvent`, 회원 이용 제한·해제는 `ModerationAction`을
+사건 source 후보로만 두며 recipient 정책이 확정되기 전에는 생성하지 않는다.
 
 ---
 
@@ -167,7 +169,72 @@ Group 이름과 목적지 확인에는 audit row의 `membership_group_id` attrib
 
 ---
 
-## Lifecycle/moderation delivery 경계 `(구현)`
+## Group lifecycle Notification 정책 `(확정·구현 전)`
+
+아래 7개 사건의 recipient와 공개 범위는 확정한다. Notification은 기존
+`GroupLifecycleEvent` 또는 관리자 이전의 `GroupMembershipEvent`를 전달하는
+inbox record다. 두 관리자 이전 event를 새 generic transfer event로 합치거나
+새 schema를 만들지 않는다. 실제 actor는 event row와 `Notification.actor`에
+보존한다.
+
+| event_type | notifiable | recipient | 사용자 메시지에 표시할 정보 |
+| --- | --- | --- | --- |
+| `opening_requested` | 해당 `GroupLifecycleEvent` | 현재 `global_admin`이고 `withdrawn_at`·`suspended_at`이 모두 없는 User, actor 제외 | Group 이름과 새 개설 신청 사실 |
+| `opening_approved` | 해당 `GroupLifecycleEvent` | Group admin, actor 제외 | Group 이름과 개설 승인 사실 |
+| `operations_closed` | 해당 `GroupLifecycleEvent` | 종료 사건 시점의 모든 active `GroupMembership` User, actor 제외 | Group 이름과 운영 종료 사실 |
+| `reactivation_requested` | 해당 `GroupLifecycleEvent` | 현재 `global_admin`이고 `withdrawn_at`·`suspended_at`이 모두 없는 User, actor 제외 | Group 이름과 재운영 신청 사실 |
+| `reactivation_approved` | 해당 `GroupLifecycleEvent` | 승인 사건 시점의 모든 active `GroupMembership` User, actor 제외 | Group 이름과 재운영 승인 사실 |
+| `admin_role_revoked` | 해당 `GroupMembershipEvent` | 이전 Group admin, actor 제외 | Group 이름과 자신의 관리자 권한 해제 사실 |
+| `admin_role_granted` | 해당 `GroupMembershipEvent` | 새 Group admin, actor 제외 | Group 이름과 자신의 관리자 권한 부여 사실 |
+
+`opening_requested`는 일반 사용자의 개설 신청에서 생긴다. global admin이
+자기 Group을 직접 만들면 `opening_approved`가 생성되지만 actor와 Group admin이
+같으므로 self Notification은 없다. 개설·재운영 신청을 받는 global admin은 각
+신청 사건 시점의 계정·권한 상태를 기준으로 선정한다. `reactivation_approved`에서는
+Group admin도 active membership을 통해 포함한다. 운영 종료와 재운영 승인의
+recipient ID는 중복 제거하고 pending·invited membership을 제외하며, 상태 변경
+transaction 안에서 사건 시점에 snapshot한다.
+
+`opening_requested.detail` / `application_purpose`는 admin 전용 신청 정보다.
+Notification 본문에 복사하지 않고, 권한이 있는 global admin이 현재 admin 상세에서
+확인한다. `operations_closed.detail` / `closure_reason`은 audit에 보존하지만
+일반 active 회원 Notification에는 표시하지 않는다. 현재 일반 회원 Group 화면보다
+정보 공개 범위를 넓히지 않는다. 나머지 사건에도 존재하지 않는 공개 사유를
+추정하거나 다른 event의 detail을 가져와 표시하지 않는다. 관리자 이전 알림은
+각 수신자의 권한 변화만 표현하며 두 event를 시각·순서로 묶어 상대 관리자 이름을
+추정하지 않는다.
+
+Lifecycle 알림의 사용자-facing 표시에는 실제 actor 이름·avatar를 기본적으로
+노출하지 않는다. 기존 social 알림의 actor 표시나 moderation authority 표시를
+기계적으로 재사용하지 않고 사건별로 표현한다.
+
+- `opening_requested`: "새 동아리 개설 신청"처럼 사건 중심
+- `opening_approved`, `reactivation_approved`: "운영팀" 중심
+- `operations_closed`: "동아리 운영진" 중심
+- `reactivation_requested`: "동아리 재운영 신청"처럼 사건 중심
+- `admin_role_revoked`, `admin_role_granted`: "관리자 권한 변경"처럼 사건 중심
+
+관리자 이전 event에는 authority snapshot이 없다. 표시 시점의 actor 역할이나
+`global_admin` 현재 값을 사용해 과거 조치의 authority를 추정하지 않는다.
+actor와 recipient가 같으면 관리자 이전에도 예외 없이 생성하지 않는다.
+따라서 이전 관리자가 직접 실행한 정상 이전에서는 새 관리자에게만 grant 알림을
+보내고, 별도 global admin이 실행한 recovery에서는 이전 관리자에게 revoke,
+새 관리자에게 grant 알림을 보낸다. recovery actor 자신은 수신자일 때 제외한다.
+
+신청·재운영 신청 알림은 클릭 시점의 admin 상세 접근 권한이 있으면
+`admin_group_path`로, 권한 상실·대상 소멸 시 `groups_path` 등 안전한 화면으로
+연결한다. 승인·운영 종료·재운영 승인과 관리자 이전 알림은 현재
+`GroupPolicy#show?`가 허용하면 `group_path`, 아니면 `groups_path`로 연결한다.
+이전 관리자가 권한 이전 직후 members 관리 권한을 잃을 수 있으므로
+`group_members_path`를 관리자 이전의 공통 목적지로 사용하지 않는다.
+Notification 자체는 read/admin 권한을 부여하지 않는다.
+
+이 정책은 후속 구현 기준이며 현재 Group lifecycle Notification을 생성한다는
+뜻은 아니다.
+
+---
+
+## Lifecycle/moderation delivery 경계
 
 핵심 lifecycle/moderation 조치의 성공 조건은 **상태 변경과 audit/event row 생성**이다.
 이 둘의 기존 원자성을 유지한다. Notification은 commit 이후의 파생 delivery다.
@@ -175,26 +242,25 @@ Group 이름과 목적지 확인에는 audit row의 `membership_group_id` attrib
 실패한 것처럼 응답하지 않는다. 나중에 "현재 최신 audit row"를 재조회해 사건을
 추측하지 않고, 실제 생성된 event/audit row를 알림 source로 전달한다.
 
-Group 운영 정지·복구는 위 recipient ID 집합을 상태 변경 transaction 안에서
+Group 운영 정지·복구는 앞서 정의한 active recipient ID 집합을 상태 변경 transaction 안에서
 확정하고, commit 후 중복 제거된 수신자에게 생성한다. 초기 소규모 MVP에서는
 synchronous best-effort delivery가 가능하며 background job은 필수가 아니다.
 규모·응답시간·재시도 요구가 생기면 background delivery를 후속 검토한다.
 
+Group lifecycle Notification 구현도 실제 생성한 event row를 전달하며,
+commit 후 recipient별 best-effort로 생성한다. rollback 시에는 생성하지 않고
+전달 실패로 핵심 lifecycle action을 실패시키지 않는다. 별도 background job은
+도입하지 않는다.
+
 ---
 
-## 그 밖의 Group lifecycle / membership recipient 후보 `(미확정·구현 대상 아님)`
+## 그 밖의 GroupMembership lifecycle·moderation recipient 후보 `(미확정·구현 대상 아님)`
 
 아래는 현재 사건의 의미와 접근 경계를 바탕으로 검토할 후보일 뿐이다.
 알림 생성 여부, recipient, 공개 범위, 목적지는 별도 승인 전까지 확정하지 않는다.
 
 | 사건 | recipient 후보 / 검토 사항 |
 | --- | --- |
-| Group 개설 신청 | global admin: 승인 작업. 직접 승인으로 생성된 Group에는 별도 신청 사건이 없음 |
-| Group 개설 승인 | 신청한 group admin: 신청 결과 |
-| Group 운영 종료 | 조치 시점 active 회원: 공간 운영 변화. 종료 사유의 일반 회원 공개 여부 TBD |
-| Group 재운영 신청 | global admin: 승인 작업 |
-| Group 재운영 승인 | group admin 및 active 회원: 운영 재개 |
-| 관리자 권한 해제·부여 | 각각 이전 관리자와 새 관리자: 두 `GroupMembershipEvent`를 구분 |
 | 최초 관리자 가입·일반 가입 | 일반 가입은 group admin에게 후보. 최초 관리자 본인의 `joined`는 self 알림 제외 |
 | 가입 신청 | group admin: 심사 작업 |
 | 가입 신청 취소 | 알림 없이 심사 목록 갱신만으로 충분한지 검토 |
