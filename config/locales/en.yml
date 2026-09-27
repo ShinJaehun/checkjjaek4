@@ -583,7 +583,14 @@ en:
         ban_from_group: "Remove this member and prevent them from joining again until the restriction is lifted."
     moderation:
       statuses:
+        normal: "Normal activity"
         activity_suspended: "Club activity suspended"
+      group: "Club"
+      member: "Member"
+      membership_status: "Membership status"
+      activity_status: "Activity status"
+      current_suspension: "Current suspension action"
+      cancel: "Back to member management"
       public_reason: "Public reason"
       internal_note: "Internal note"
       internal_note_hint: "Optional · Not shown to the member."

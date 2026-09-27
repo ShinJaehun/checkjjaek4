@@ -602,7 +602,14 @@ ko:
         ban_from_group: "동아리에서 내보내고 제한을 해제하기 전까지 다시 가입할 수 없습니다."
     moderation:
       statuses:
+        normal: "정상 활동"
         activity_suspended: "동아리 활동 정지"
+      group: "동아리"
+      member: "대상 회원"
+      membership_status: "회원 상태"
+      activity_status: "활동 상태"
+      current_suspension: "현재 정지 조치"
+      cancel: "회원 관리로 돌아가기"
       public_reason: "공개 사유"
       internal_note: "내부 운영 메모"
       internal_note_hint: "선택 입력 · 회원에게 표시되지 않습니다."

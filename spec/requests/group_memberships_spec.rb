@@ -382,7 +382,7 @@ RSpec.describe "Group memberships", type: :request do
       page = Nokogiri::HTML(response.body)
       member_card = page.at_css("#group_membership_#{membership.id}")
       management = member_card.at_css("[data-member-management]")
-      activity_form = management.at_css(%(form[action="#{suspend_activity_group_group_membership_path(group, membership)}"]))
+      activity_link = management.at_css("a[href='#{new_group_group_membership_activity_suspension_path(group, membership)}']")
       removal_form = management.at_css(%(form[action="#{remove_group_group_membership_path(group, membership)}"]))
       ban_form = management.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))
 
@@ -398,17 +398,17 @@ RSpec.describe "Group memberships", type: :request do
         "동아리에서 내보냅니다. 다시 가입할 수 있습니다.",
         "동아리에서 내보내고 제한을 해제하기 전까지 다시 가입할 수 없습니다."
       )
-      [ activity_form, ban_form ].each do |form|
-        expect(form.at_css("textarea[name='moderation_action[public_reason]']")).to be_present
-        expect(form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
-      end
+      expect(activity_link).to be_present
+      expect(management.at_css("[data-member-action='suspend_activity'] form")).to be_nil
+      expect(ban_form.at_css("textarea[name='moderation_action[public_reason]']")).to be_present
+      expect(ban_form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
       expect(removal_form).to be_present
       expect(removal_form.at_css("[name^='moderation_action']")).to be_nil
 
       group_admin_membership = group.group_memberships.find_by!(user: group_admin)
       expect(page.at_css("#group_membership_#{group_admin_membership.id} [data-member-management]")).to be_nil
 
-      patch suspend_activity_group_group_membership_path(group, membership), params: {
+      post group_group_membership_activity_suspensions_path(group, membership), params: {
         moderation_action: { public_reason: "Community rule", internal_note: "Case 10" }
       }
 
@@ -420,7 +420,7 @@ RSpec.describe "Group memberships", type: :request do
       expect(response.body).to include("동아리 활동 정지", "Community rule", "Case 10", group_admin.name)
 
       sign_in group_admin
-      patch restore_activity_group_group_membership_path(group, membership), params: {
+      post group_group_membership_activity_restorations_path(group, membership), params: {
         moderation_action: { public_reason: "Restored", internal_note: "Reviewed" }
       }
 
@@ -436,14 +436,14 @@ RSpec.describe "Group memberships", type: :request do
       sign_in global_admin
 
       expect {
-        patch suspend_activity_group_group_membership_path(group, membership), params: {
+        post group_group_membership_activity_suspensions_path(group, membership), params: {
           moderation_action: { public_reason: "Blocked" }
         }
       }.not_to change(ModerationAction, :count)
 
       membership.update!(moderation_status: :activity_suspended)
       expect {
-        patch restore_activity_group_group_membership_path(group, membership), params: {
+        post group_group_membership_activity_restorations_path(group, membership), params: {
           moderation_action: { public_reason: "Blocked" }
         }
       }.not_to change(ModerationAction, :count)
@@ -456,7 +456,7 @@ RSpec.describe "Group memberships", type: :request do
       sign_in other
 
       expect {
-        patch suspend_activity_group_group_membership_path(group, membership), params: {
+        post group_group_membership_activity_suspensions_path(group, membership), params: {
           moderation_action: { public_reason: "Blocked" }
         }
       }.not_to change(ModerationAction, :count)
@@ -477,7 +477,7 @@ RSpec.describe "Group memberships", type: :request do
       sign_in group_admin
 
       expect {
-        patch suspend_activity_group_group_membership_path(group, ordinary_membership), params: {
+        post group_group_membership_activity_suspensions_path(group, ordinary_membership), params: {
           moderation_action: { public_reason: "Blocked" }
         }
         delete remove_group_group_membership_path(group, ordinary_membership)
@@ -489,7 +489,7 @@ RSpec.describe "Group memberships", type: :request do
       expect(ordinary_membership.reload).to be_persisted
       expect(group.group_member_bans.where(user: ordinary_user)).to be_empty
 
-      patch restore_activity_group_group_membership_path(group, suspended_membership), params: {
+      post group_group_membership_activity_restorations_path(group, suspended_membership), params: {
         moderation_action: { public_reason: "Restored after closure" }
       }
       expect(suspended_membership.reload).to be_moderation_status_normal
@@ -762,14 +762,14 @@ RSpec.describe "Group memberships", type: :request do
       event_count = GroupMembershipEvent.count
 
       expect {
-        patch suspend_activity_group_group_membership_path(group, membership), params: {
+        post group_group_membership_activity_suspensions_path(group, membership), params: {
           moderation_action: { public_reason: "Community rule" }
         }
       }.to change(ModerationAction, :count).by(1)
       expect(GroupMembershipEvent.count).to eq(event_count)
 
       expect {
-        patch restore_activity_group_group_membership_path(group, membership), params: {
+        post group_group_membership_activity_restorations_path(group, membership), params: {
           moderation_action: { public_reason: "Restored" }
         }
       }.to change(ModerationAction, :count).by(1)
@@ -898,12 +898,12 @@ RSpec.describe "Group memberships", type: :request do
         [ "활동 복구", "내보내기", "이용 제한" ]
       )
       expect(management.css("details, summary")).to be_empty
-      restore_form = management.at_css(%(form[action="#{restore_activity_group_group_membership_path(group, membership)}"]))
+      restore_link = management.at_css("a[href='#{new_group_group_membership_activity_restoration_path(group, membership)}']")
       ban_form = management.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))
-      [ restore_form, ban_form ].each do |form|
-        expect(form.at_css("textarea[name='moderation_action[public_reason]']")).to be_present
-        expect(form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
-      end
+      expect(restore_link).to be_present
+      expect(management.at_css("[data-member-action='restore_activity'] form")).to be_nil
+      expect(ban_form.at_css("textarea[name='moderation_action[public_reason]']")).to be_present
+      expect(ban_form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
       expect(current_members.text).not_to include(
         I18n.t("group_memberships.moderation.history.title")
       )

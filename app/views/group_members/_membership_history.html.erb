@@ -5,16 +5,20 @@
     <div class="mt-4 divide-y divide-stone-100">
       <% membership_history.each do |entry| %>
         <% record = entry.fetch(:record) %>
-        <article class="py-4 text-sm text-stone-600">
-          <time datetime="<%= record.created_at.iso8601 %>" class="text-xs text-stone-500"><%= l(record.created_at, format: :short) %></time>
-          <p class="mt-1 font-medium text-stone-900"><%= membership_history_description(entry) %></p>
-          <% if entry.fetch(:source) == :moderation %>
-            <p class="mt-2 whitespace-pre-wrap"><%= t("group_memberships.moderation.public_reason") %>: <%= record.public_reason %></p>
-            <% if record.internal_note.present? %>
-              <p class="mt-1 whitespace-pre-wrap text-stone-500"><%= t("group_memberships.moderation.internal_note") %>: <%= record.internal_note %></p>
+        <% if entry.fetch(:source) == :moderation && record.action_type.in?(%w[suspend_activity restore_activity]) %>
+          <%= render "group_members/activity_moderation_history_entry", record:, user: entry.fetch(:user) %>
+        <% else %>
+          <article class="py-4 text-sm text-stone-600">
+            <time datetime="<%= record.created_at.iso8601 %>" class="text-xs text-stone-500"><%= l(record.created_at, format: :short) %></time>
+            <p class="mt-1 font-medium text-stone-900"><%= membership_history_description(entry) %></p>
+            <% if entry.fetch(:source) == :moderation %>
+              <p class="mt-2 whitespace-pre-wrap"><%= t("group_memberships.moderation.public_reason") %>: <%= record.public_reason %></p>
+              <% if record.internal_note.present? %>
+                <p class="mt-1 whitespace-pre-wrap text-stone-500"><%= t("group_memberships.moderation.internal_note") %>: <%= record.internal_note %></p>
+              <% end %>
             <% end %>
-          <% end %>
-        </article>
+          </article>
+        <% end %>
       <% end %>
     </div>
   <% else %>

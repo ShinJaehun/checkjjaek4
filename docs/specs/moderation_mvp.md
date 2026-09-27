@@ -78,6 +78,11 @@ suspend의 `internal_note`는 선택이다. restore에는 정지 사유와 별�
 활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 현재 정지 상태도 종료되며 감사 row는 보존한다. global admin은 Group membership moderation을 실행하지 않고 전체 이력을 조사하며 service-wide 제재는 User 계정 정지·복구로 수행한다.
 계정 정지, 동아리 활동 정지와 동아리 운영 정지는 서로 자동 전파되지 않는다.
 
+회원 관리 화면에서는 현재 활동 상태·공개 사유와 허용된 활동 정지 또는 복구 버튼을 표시하고,
+사유 입력은 각각 독립된 canonical action page에서 수행한다. 버튼 노출, action page GET과
+실행 POST는 동일한 `GroupMembershipPolicy#suspend_activity?` 또는 `#restore_activity?`를 따른다.
+복구 page는 현재 정지 조치를 회원 운영 이력과 같은 표현으로 보여준다. 이 page는 JavaScript 없이 동작한다.
+
 #### Group 운영 정지 공개 사유와 전체 이력
 
 신규 Group operation suspension은 아래 predefined `public_reason` 중 하나를 선택한다.

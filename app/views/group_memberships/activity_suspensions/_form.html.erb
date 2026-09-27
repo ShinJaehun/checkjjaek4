@@ -1,0 +1,16 @@
+<%= form_with model: @moderation_action,
+              scope: :moderation_action,
+              url: group_group_membership_activity_suspensions_path(@group, @membership),
+              method: :post,
+              class: "mt-6 space-y-4" do |form| %>
+  <div>
+    <%= form.label :public_reason, t("group_memberships.moderation.public_reason"), class: "block text-sm font-medium text-stone-700" %>
+    <%= form.text_area :public_reason, rows: 3, required: true, class: "mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+  </div>
+  <div>
+    <%= form.label :internal_note, t("group_memberships.moderation.internal_note"), class: "block text-sm font-medium text-stone-700" %>
+    <%= form.text_area :internal_note, rows: 3, class: "mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" %>
+    <p class="mt-1 text-xs text-stone-500"><%= t("group_memberships.moderation.internal_note_hint") %></p>
+  </div>
+  <%= form.submit t("group_memberships.moderation.suspend.submit"), class: "rounded-full bg-red-700 px-4 py-2 text-sm font-medium text-white" %>
+<% end %>

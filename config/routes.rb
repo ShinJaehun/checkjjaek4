@@ -42,8 +42,8 @@ Rails.application.routes.draw do
       delete :reject, on: :member
       delete :revoke, on: :member
       delete :remove, on: :member
-      patch :suspend_activity, on: :member
-      patch :restore_activity, on: :member
+      resources :activity_suspensions, only: %i[new create], module: :group_memberships
+      resources :activity_restorations, only: %i[new create], module: :group_memberships
     end
     resources :jjaeks, only: :create
   end

@@ -239,7 +239,7 @@
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
 - 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
 - 동아리 관리자는 회원 관리 화면에서 active 일반 회원을 직접 내보낼 수 있음
-- group admin은 일반 active 회원을 별도 `moderation_status`로 동아리 활동 정지·복구할 수 있음
+- group admin은 일반 active 회원을 별도 `moderation_status`로 동아리 활동 정지·복구할 수 있음. 회원 관리 화면은 현재 정지 상태·공개 사유와 허용된 action 링크를 보여주고, 사유 입력·실행은 `/groups/:group_id/group_memberships/:group_membership_id/activity_suspensions/new` 또는 `activity_restorations/new`의 독립 page에서 처리함
 - 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
 - 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함
 - `GroupMemberBan`은 active membership에 적용하는 현재 Group/User 이용 제한 상태로 membership을 종료하고 재가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음. pending 가입 신청은 승인·거절 심사만 제공함
