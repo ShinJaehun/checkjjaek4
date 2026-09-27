@@ -535,11 +535,17 @@ Group 운영 fan-out에서는 동일한 사용자 ID를 먼저 중복 제거한�
 `BookFriendship.pending`을 직접 세어 받은 책친구 요청 badge를 표시했다.
 
 이 문서는 Notification 모델 도입 이후의 통합 기준이다.
-받은 책친구 요청, profile-context Jjaek, 댓글, ReJjaek 알림과
-Platform moderation 8개 사건, GroupMembership 활동 정지·복구 2개 사건과
-Group lifecycle 7개 사건,
-GroupMembership 승인제 가입 workflow 3개 사건의
-현재 구현을 함께 다룬다.
+현재 구현된 action은 총 33개다.
+
+- social Notification 5개
+- Platform moderation 8개
+- Group member moderation 4개: 활동 정지·복구, 이용 제한·해제
+- Group lifecycle·관리자 이전 7개
+- Group membership workflow 9개: 승인제 가입 3개, 비공개 동아리 초대 4개,
+  가입 신청 취소, 내보내기
+
+일반 가입 `joined`와 자발적 탈퇴 `left`는 운영 이력만 남기고
+Notification을 생성하지 않는다.
 
 ---
 
@@ -554,27 +560,34 @@ GroupMembership 승인제 가입 workflow 3개 사건의
 
 ### Request spec
 
-- 책친구 요청 생성 시 notification이 생성된다.
-- profile-context Jjaek 생성 시 notification이 생성된다.
-- comment 생성 시 notification이 생성된다.
-- ReJjaek 생성 시 notification이 생성된다.
-- self-action은 notification을 생성하지 않는다.
-- navbar에 unread notification count가 표시된다.
-- `/notifications`에서 현재 사용자의 알림 목록을 볼 수 있다.
-- `/notifications` 목록 진입 시 unread 알림이 read 처리된다.
-- `/notifications`에서 책친구 요청 알림을 read 처리해도 `BookFriendship`은 pending 상태로 남는다.
-- 각 알림 링크가 올바른 목적지로 이동한다.
+- 책친구 신청·수락, profile-context Jjaek·Comment·ReJjaek 생성 시 지정된
+  수신자에게 알림을 만들고 self-action은 제외한다.
+- 책친구 수락 알림은 관계가 이후 삭제되어도 actor 이름·avatar와 프로필 링크를
+  유지한다. 거절·신청 취소·관계 해제에는 알림을 만들지 않는다.
+- navbar의 unread badge와 현재 사용자만의 알림 목록을 확인한다.
+  `/notifications` 진입 시 unread를 read로 바꾸되 알림은 목록에 남아
+  시각적으로 약하게 표시한다. 알림 읽음 상태는 `BookFriendship.pending` 등
+  domain source 상태와 별개다.
+- 확정된 Group lifecycle·membership 사건은 지정된 수신자에게 전달하고,
+  필요한 수신자는 사건 transaction 안에서 고정한다. membership이 삭제되어도
+  event source로 표시하며 사건별 actor 표시·비표시 정책과 클릭 시점 권한에 따른
+  destination을 확인한다. `joined`·`left`는 알림을 만들지 않는다.
+- 알림 링크는 현재 접근 권한을 우회하지 않는다.
 
-### Platform moderation 구현 검증 기준
+### Moderation 구현 검증 기준
 
-- 8개 action이 각각 실제 `ModerationAction` row를 `notifiable`로 사용하고
-  확정된 recipient에게만 생성된다.
+- Platform 8개와 Group member 4개 action은 각각 실제 `ModerationAction` row를
+  `notifiable`로 사용하고 확정된 recipient에게만 생성된다. Group member 조치에는
+  활동 정지·복구와 이용 제한·해제가 포함된다.
 - actor 본인에게 생성되지 않고, Group 운영 알림의 active 수신자를 사건 시점에
   확정·중복 제거하며 pending/invited/탈퇴·내보내기/이용 제한 사용자를 제외한다.
 - activity-suspended membership과 계정 정지 User의 active membership도
   Group 운영 알림 recipient에 포함한다.
-- 공개 사유만 보이고 `internal_note`·platform actor 신원은 사용자용 메시지와
-  avatar에 노출되지 않는다. 기존 social 알림의 actor 표시는 유지된다.
+- 공개 사유는 해당 action의 `public_reason`만 사용한다. `internal_note`와
+  실제 platform/group moderator 신원을 숨기는 사건에서는 이름·avatar를
+  노출하지 않는다. 기존 social 알림의 actor 표시는 유지된다.
+- membership이나 ban row가 삭제되어도 audit의 Group/User attribution으로
+  알림을 표시하고 현재 권한을 기준으로 안전한 목적지를 선택한다.
 - 알림 저장 실패가 핵심 상태·audit 성공을 rollback하거나 실패 응답으로
   바꾸지 않는다.
 - 삭제·권한 변경으로 목적지에 접근할 수 없으면 안전한 fallback으로 이동하고,

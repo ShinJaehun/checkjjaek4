@@ -5,7 +5,7 @@ RSpec.describe Notification, type: :model do
   let(:actor) { User.create!(name: "Actor", email: "notification-actor@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:jjaek) { actor.jjaeks.create!(content: "Notification source") }
 
-  it "appends membership workflow actions without changing existing enum values" do
+  it "keeps notification action enum values append-only" do
     expect(described_class.actions).to eq(
       "book_friendship_requested" => 0,
       "profile_jjaek_created" => 1,
