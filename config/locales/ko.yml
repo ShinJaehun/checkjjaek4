@@ -728,6 +728,7 @@ ko:
       group_fallback: "동아리"
     messages:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
+      book_friendship_accepted: "%{actor_name}님이 책친구 신청을 수락했습니다."
       profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
       comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
       group_comment_created: "%{group_name} 동아리에서 %{actor_name}님이 내 글에 댓글을 남겼습니다."

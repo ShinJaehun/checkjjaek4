@@ -66,16 +66,17 @@ Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 �
 - "책친구 신청을 취소했습니다."
 - "책친구 관계를 해제했습니다."
 
-책친구 요청 수락 알림은 후속 기능으로 검토할 수 있지만,
-초기 `Notification` MVP 필수 범위에는 포함하지 않는다.
+책친구 요청 수락은 원래 신청자에게 알린다. 수락한 사용자의 이름과
+avatar를 표시하고, 클릭하면 수락한 사용자의 프로필로 이동한다.
 
 ---
 
 ## 현재 구현된 social action 범위
 
-현재 구현된 `Notification` action은 아래 네 가지다.
+현재 구현된 social `Notification` action은 아래 다섯 가지다.
 
 - `book_friendship_requested`
+- `book_friendship_accepted`
 - `profile_jjaek_created`
 - `comment_created`
 - `requote_created`
@@ -92,6 +93,7 @@ Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 �
 각 action의 `notifiable`은 아래처럼 둔다.
 
 - `book_friendship_requested` -> `BookFriendship`
+- `book_friendship_accepted` -> `BookFriendship`
 - `profile_jjaek_created` -> `Jjaek`
 - `comment_created` -> `Comment`
 - `requote_created` -> `Jjaek`
@@ -447,6 +449,8 @@ MVP에서는 자동 만료, 자동 삭제, pruning, archive,
 
 - `book_friendship_requested`
   - `/relationships#received-book-friend-requests`
+- `book_friendship_accepted`
+  - 수락한 사용자(`Notification.actor`)의 프로필
 - `profile_jjaek_created`
   - 생성된 Jjaek 상세
 - `comment_created`
@@ -490,6 +494,10 @@ Notification을 생성하지 않는다. 조치 실행자 본인에게 같은 사
 
 - `book_friendship_requested`
   - 책친구 요청 수신자에게만 생성한다.
+- `book_friendship_accepted`
+  - pending 요청이 수락되면 원래 신청자에게 생성한다.
+  - 수락한 사용자를 actor로 보존하며, 관계가 나중에 삭제되어도
+    메시지와 목적지는 `Notification.actor`로 결정한다.
 - `profile_jjaek_created`
   - `target_user`가 있고, 작성자와 `target_user`가 다를 때 생성한다.
 - `comment_created`

@@ -23,6 +23,8 @@ module NotificationsHelper
     case notification.action
     when "book_friendship_requested"
       relationships_path(anchor: "received-book-friend-requests")
+    when "book_friendship_accepted"
+      user_path(notification.actor)
     when "profile_jjaek_created", "requote_created"
       notification.notifiable ? jjaek_path(notification.notifiable) : root_path
     when "comment_created"

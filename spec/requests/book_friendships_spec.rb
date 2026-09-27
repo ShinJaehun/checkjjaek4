@@ -87,6 +87,26 @@ RSpec.describe "BookFriendships", type: :request do
     expect(BookFriendship.last).to be_accepted
   end
 
+  it "notifies the original requester when the addressee accepts the same friendship" do
+    sign_in user
+    post user_book_friendship_path(other_user)
+    friendship = BookFriendship.find_by!(requester: user, addressee: other_user)
+    request_notification = Notification.find_by!(action: :book_friendship_requested, notifiable: friendship)
+    sign_out user
+    sign_in other_user
+
+    expect {
+      patch user_book_friendship_path(user)
+    }.to change(Notification, :count).by(1)
+
+    expect(friendship.reload).to be_accepted
+    expect(Notification.find_by!(action: :book_friendship_accepted, notifiable: friendship)).to have_attributes(
+      recipient: user, actor: other_user
+    )
+    expect(request_notification.reload).to be_book_friendship_requested
+    expect(response).to redirect_to(user_path(user))
+  end
+
   it "returns to the relationship hub when return_to is relationships" do
     BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user
@@ -94,6 +114,9 @@ RSpec.describe "BookFriendships", type: :request do
     patch user_book_friendship_path(user), params: { return_to: "relationships" }
 
     expect(response).to redirect_to(relationships_path)
+    expect(Notification.find_by!(action: :book_friendship_accepted)).to have_attributes(
+      recipient: user, actor: other_user
+    )
   end
 
   it "updates received requests and book friends when accepting from the relationship hub with Turbo" do
@@ -106,6 +129,9 @@ RSpec.describe "BookFriendships", type: :request do
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(friendship.reload).to be_accepted
+    expect(Notification.find_by!(action: :book_friendship_accepted, notifiable: friendship)).to have_attributes(
+      recipient: user, actor: other_user
+    )
     expect(response.body).to include(%(action="replace" target="received-book-friend-requests"))
     expect(response.body).to include(%(action="replace" target="book-friends"))
     expect(response.body).to include(%(action="update" target="flash-messages"))
@@ -126,7 +152,9 @@ RSpec.describe "BookFriendships", type: :request do
     BookFriendship.create!(requester: user, addressee: other_user)
     sign_in user
 
-    delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
+    expect {
+      delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
+    }.not_to change(Notification, :count)
 
     expect(response).to redirect_to(relationships_path)
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.cancelled"))
@@ -152,7 +180,9 @@ RSpec.describe "BookFriendships", type: :request do
     BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user
 
-    delete user_book_friendship_path(user), params: { return_to: "relationships" }
+    expect {
+      delete user_book_friendship_path(user), params: { return_to: "relationships" }
+    }.not_to change(Notification, :count)
 
     expect(response).to redirect_to(relationships_path)
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.rejected"))
@@ -178,7 +208,9 @@ RSpec.describe "BookFriendships", type: :request do
     BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
     sign_in user
 
-    delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
+    expect {
+      delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
+    }.not_to change(Notification, :count)
 
     expect(response).to redirect_to(relationships_path)
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.removed"))

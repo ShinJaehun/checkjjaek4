@@ -405,6 +405,21 @@ RSpec.describe "Notifications", type: :request do
     expect(response.body).to include("/relationships#received-book-friend-requests")
   end
 
+  it "shows an accepted request with the actor avatar and profile link after the friendship is deleted" do
+    friendship = recipient.requested_book_friendships.create!(addressee: actor, status: :accepted)
+    notification = Notification.notify_book_friendship_accepted(friendship)
+    friendship.destroy!
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(notification.reload).to be_book_friendship_accepted
+    expect(article.text).to include(I18n.t("notifications.messages.book_friendship_accepted", actor_name: actor.name))
+    expect(article.at_css("img")["alt"]).to eq(actor.name)
+    expect(article.at_css("a")["href"]).to eq(user_path(actor))
+  end
+
   it "links a comment notification to the commented jjaek" do
     jjaek = recipient.jjaeks.create!(content: "COMMENTED_JJAEK")
     comment = jjaek.comments.create!(user: actor, content: "COMMENT_NOTIFICATION")

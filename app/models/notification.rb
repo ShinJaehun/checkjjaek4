@@ -31,7 +31,8 @@ class Notification < ApplicationRecord
     group_membership_join_request_cancelled: 28,
     group_membership_removed: 29,
     group_member_banned: 30,
-    group_member_unbanned: 31
+    group_member_unbanned: 31,
+    book_friendship_accepted: 32
   }, validate: true
 
   belongs_to :recipient, class_name: "User", inverse_of: :received_notifications
@@ -52,6 +53,15 @@ class Notification < ApplicationRecord
       recipient: book_friendship.addressee,
       actor: book_friendship.requester,
       action: :book_friendship_requested,
+      notifiable: book_friendship
+    )
+  end
+
+  def self.notify_book_friendship_accepted(book_friendship)
+    notify_once(
+      recipient: book_friendship.requester,
+      actor: book_friendship.addressee,
+      action: :book_friendship_accepted,
       notifiable: book_friendship
     )
   end

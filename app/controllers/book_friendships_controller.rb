@@ -25,6 +25,7 @@ class BookFriendshipsController < ApplicationController
     authorize friendship, :accept?
 
     friendship.accepted!
+    Notification.notify_book_friendship_accepted(friendship)
 
     if params[:return_to] == "relationships"
       @received_book_friend_requests = current_user.received_book_friendships.pending.includes(:requester)

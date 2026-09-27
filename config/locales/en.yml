@@ -709,6 +709,7 @@ en:
       group_fallback: "the club"
     messages:
       book_friendship_requested: "%{actor_name} sent you a book friend request."
+      book_friendship_accepted: "%{actor_name} accepted your book friend request."
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
       comment_created: "%{actor_name} commented on your Jjaek."
       group_comment_created: "%{actor_name} commented on your post in the %{group_name} club."

@@ -338,6 +338,7 @@
 - unread count를 navbar에 표시
 - `/notifications` 진입 시 현재 사용자의 unread 알림을 read 처리
 - 책친구 요청 알림은 `/relationships#received-book-friend-requests`로 연결
+- 책친구 신청 수락 알림은 원래 신청자에게 전달하고, 수락한 사용자의 이름·avatar와 프로필 링크를 표시함
 - profile-context Jjaek, 댓글, ReJjaek 알림은 관련 Jjaek 상세로 연결
 - User 계정·Group 운영 정지/복구와 Jjaek·Comment 숨김/복구는 이번 조치의 `ModerationAction`을 참조하는 알림을 핵심 transaction commit 뒤 best-effort로 전달하며, group 수신자는 조치 시점 active membership으로 확정
 - GroupMembership 활동 정지·복구도 대상 회원에게 실제 `ModerationAction`을 참조하는 알림을 commit 뒤 전달하며, 운영진 권한 표시·공개 사유와 현재 Group 접근 권한에 따른 링크를 사용
