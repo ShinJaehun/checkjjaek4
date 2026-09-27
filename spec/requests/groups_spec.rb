@@ -717,10 +717,10 @@ RSpec.describe "Groups", type: :request do
       page = Nokogiri::HTML(response.body)
       history = page.at_css("#group_operation_history")
       entries = history.css("[data-history-entry]")
-        expect(entries.map { |entry| entry["data-history-entry"] }).to eq(
-        %w[opening_requested opening_approved suspend_group_operation operations_closed restore_group_operation reactivation_requested reactivation_approved]
-        )
-        expect(entries.map { |entry| entry["data-history-kind"] }).to eq(
+      expect(entries.map { |entry| entry["data-history-entry"] }).to eq(
+        %w[reactivation_approved reactivation_requested restore_group_operation operations_closed suspend_group_operation opening_approved opening_requested]
+      )
+      expect(entries.map { |entry| entry["data-history-kind"] }).to eq(
         %w[lifecycle lifecycle platform lifecycle platform lifecycle lifecycle]
       )
 
@@ -754,13 +754,13 @@ RSpec.describe "Groups", type: :request do
         "ADMIN_ONLY_RESTORE_NOTE",
         "내부 운영 메모"
       )
-      expect(entries[0].text).to include("개설 신청", "동아리 관리자 #{user.name}")
-      expect(entries[1].text).to include("승인", "시스템 관리자 #{platform_admin.name}")
+      expect(entries[6].text).to include("개설 신청", "동아리 관리자 #{user.name}")
+      expect(entries[5].text).to include("승인", "시스템 관리자 #{platform_admin.name}")
       expect(entries[3].text).to include("종료", "동아리 관리자 #{user.name}", "Season completed")
-      expect(entries[5].text).to include("재운영 신청", "동아리 관리자 #{user.name}")
-      expect(entries[6].text).to include("재운영 승인", "시스템 관리자 #{platform_admin.name}")
-      expect(page.at_css(%(form[action="#{suspend_operation_admin_group_path(group)}"]))).to be_nil
-      expect(page.at_css(%(form[action="#{restore_operation_admin_group_path(group)}"]))).to be_nil
+      expect(entries[1].text).to include("재운영 신청", "동아리 관리자 #{user.name}")
+      expect(entries[0].text).to include("재운영 승인", "시스템 관리자 #{platform_admin.name}")
+      expect(page.at_css("a[href='#{new_admin_group_operation_suspension_path(group)}']")).to be_nil
+      expect(page.at_css("a[href='#{new_admin_group_operation_restoration_path(group)}']")).to be_nil
 
       group_admin_signatures = entries.map do |entry|
         [

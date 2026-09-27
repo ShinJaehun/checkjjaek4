@@ -1,0 +1,32 @@
+<%= form_with model: @moderation_action,
+              scope: :moderation_action,
+              url: admin_group_operation_restorations_path(@group, @return_params),
+              method: :post,
+              class: "mt-6 space-y-4" do |form| %>
+  <div class="space-y-2">
+    <%= form.label :public_reason,
+                   t("admin.groups.operation_moderation.forms.restore.public_reason"),
+                   class: "block text-sm font-medium text-stone-800" %>
+    <%= form.text_area :public_reason,
+                       required: true,
+                       rows: 3,
+                       aria: { describedby: "operation_public_reason_hint" },
+                       class: "w-full rounded-xl border border-stone-300 px-3 py-2" %>
+    <p id="operation_public_reason_hint" class="text-xs text-stone-500">
+      <%= t("admin.groups.operation_moderation.forms.restore.public_reason_hint") %>
+    </p>
+  </div>
+
+  <div class="space-y-2">
+    <%= form.label :internal_note, t("admin.groups.operation_moderation.internal_note"), class: "block text-sm font-medium text-stone-800" %>
+    <%= form.text_area :internal_note,
+                       rows: 3,
+                       aria: { describedby: "operation_internal_note_hint" },
+                       class: "w-full rounded-xl border border-stone-300 px-3 py-2" %>
+    <p id="operation_internal_note_hint" class="text-xs text-stone-500">
+      <%= t("admin.groups.operation_moderation.internal_note_hint") %>
+    </p>
+  </div>
+
+  <%= form.submit t("admin.groups.actions.restore_operation"), class: "rounded-full bg-amber-800 px-5 py-2.5 text-sm font-medium text-white" %>
+<% end %>

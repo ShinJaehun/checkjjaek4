@@ -275,7 +275,7 @@ Library 안에서 볼 수 있는 책장:
 - 동아리 관리자는 자기 동아리 관리 화면에서 `GroupLifecycleEvent`와 Group 대상 platform `ModerationAction`을 실제 event 단위의 시간순 운영 이력으로 열람한다. lifecycle detail과 platform 공개 사유는 볼 수 있지만 platform 내부 메모는 볼 수 없다
 - global admin은 전용 policy query와 admin inventory scope를 통해 전체 User와 모든 Group metadata를 검색·필터·정렬·페이지네이션하여 조회한다
 - global admin은 admin 상세 화면에서 lifecycle과 platform operation moderation을 반영한 통합 현재 상태, 목적·사유·내부 메모를 포함한 전체 운영 이력과 내부 콘텐츠를 조사하고 pending 동아리를 승인한다
-- admin Group 운영 관리 card는 `suspend_operation?` 또는 `restore_operation?`이 허용될 때만 표시하며, 현재 가능한 운영 action이 없으면 표시하지 않는다
+- admin Group 운영 관리 card의 action button은 `suspend_operation?` 또는 `restore_operation?`이 허용될 때만 표시하며, 각 action page와 실행도 같은 policy predicate를 사용한다
 - global admin은 `JjaekPolicy::AdminInventoryScope`와 `CommentPolicy::AdminInventoryScope`를 통해 admin User·Group 운영 상세 안에서 private visibility, private Group, inactive Group과 작성자 삭제 tombstone을 포함한 관련 콘텐츠를 read-only로 조사한다
 - User admin 상세는 작성자 기준의, Group 운영 상세는 Group 문맥 기준의 필터 가능한 chronological content inventory를 제공한다
 - 일반 User와 group admin은 admin User·Group 상세 URL에 접근할 수 없으며, 이 운영 조회 권한은 일반 홈 feed scope를 넓히지 않는다

@@ -487,10 +487,11 @@ ko:
       operation_moderation:
         reason: "사유"
         title: "운영 관리"
+        cancel: "동아리 상세로 돌아가기"
         status: "현재 운영 상태"
         active_status: "정상"
         suspended_status: "정지"
-        current_suspension: "현재 운영 정지 정보"
+        current_suspension: "현재 정지 조치"
         public_reason: "공개 사유"
         internal_note: "내부 운영 메모"
         internal_note_hint: "선택 입력 · 동아리 회원에게 표시되지 않습니다."
@@ -498,11 +499,13 @@ ko:
         forms:
           suspend:
             trigger: "운영 정지"
+            description: "동아리의 새 운영 활동을 제한하고 조치 이력을 남깁니다."
             public_reason: "정지 사유"
             public_reason_hint: "정지된 동아리의 관리자에게 표시됩니다."
             reason_prompt: "정지 사유를 선택하세요"
           restore:
             trigger: "운영 복구"
+            description: "동아리 운영 제한을 해제하고 복구 사유를 기록합니다."
             public_reason: "복구 사유"
             public_reason_hint: "동아리 운영 조치 이력에 기록됩니다."
         history:

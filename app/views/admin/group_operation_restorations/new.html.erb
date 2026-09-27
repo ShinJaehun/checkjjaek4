@@ -1,0 +1,26 @@
+<section class="mx-auto w-full max-w-2xl rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
+  <h1 class="text-2xl font-semibold text-stone-900"><%= t("admin.groups.actions.restore_operation") %></h1>
+  <p class="mt-2 text-sm text-stone-600"><%= t("admin.groups.operation_moderation.forms.restore.description") %></p>
+
+  <div class="mt-5 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950">
+    <p class="font-semibold"><%= @group.name %></p>
+    <p class="mt-2"><%= t("admin.groups.operation_moderation.status") %>: <%= t("admin.groups.current_statuses.suspended") %></p>
+    <p class="mt-2"><%= t("admin.groups.fields.group_admin") %>: <%= @group.group_admin.name %></p>
+  </div>
+
+  <% if @current_operation_suspension.present? %>
+    <section class="mt-6">
+      <h2 class="mb-3 text-lg font-semibold text-stone-900"><%= t("admin.groups.operation_moderation.current_suspension") %></h2>
+      <%= render "groups/platform_operation_history_entry", record: @current_operation_suspension, show_internal_notes: true %>
+    </section>
+  <% end %>
+
+  <% if @error_message.present? %>
+    <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @error_message %></p>
+  <% end %>
+
+  <%= render "form" %>
+  <%= link_to t("admin.groups.operation_moderation.cancel"),
+              admin_group_path(@group, @return_params),
+              class: "mt-5 inline-block text-sm font-medium text-stone-600 underline" %>
+</section>

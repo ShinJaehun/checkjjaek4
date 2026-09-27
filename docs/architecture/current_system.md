@@ -218,7 +218,7 @@
 - User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
 - Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 기존 승인 동작으로 연결함
 - lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·종료·재활성화·재승인 순서로 누적되며 개설 목적과 종료 사유 snapshot을 보존함
-- 동아리 관리자는 동아리 관리에서 `GroupLifecycleEvent`와 Group 대상 `ModerationAction`을 실제 event 단위의 시간순 운영 이력으로 확인하며 platform 내부 메모는 볼 수 없음
+- 동아리 관리자는 동아리 관리에서 `GroupLifecycleEvent`와 Group 대상 `ModerationAction`을 실제 event 단위의 최신순 운영 이력으로 확인하며 platform 내부 메모는 볼 수 없음
 - global admin은 admin 전용 show에서 lifecycle과 platform moderation을 반영한 통합 현재 상태, 목적·사유·내부 메모를 포함한 전체 운영 이력과 내부 콘텐츠를 조사함. 목록 query parameter를 보존한 돌아가기 경로도 제공함
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
 - inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
@@ -244,8 +244,8 @@
 - 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함
 - `GroupMemberBan`은 active membership에 적용하는 현재 Group/User 이용 제한 상태로 membership을 종료하고 재가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음. pending 가입 신청은 승인·거절 심사만 제공함
 - global admin의 Group 운영 정지는 `operation_suspended_at`과 Group 대상 `ModerationAction`으로 lifecycle `inactive`와 분리되며, 기존 visibility 읽기와 cleanup은 유지하고 새 콘텐츠·membership·회원 moderation·Group 운영 mutation을 복구 전까지 차단함
-- Group 개설·자발적 종료·재운영은 `GroupLifecycleEvent`에, platform operation 정지·복구는 `ModerationAction`에 별도로 기록하며 두 기록을 하나의 시간순 운영 이력에서 event 단위로 표시함. global admin은 전체 suspend/restore 이력과 내부 메모를 보고, Group admin은 동아리 관리 화면에서 platform 공개 사유를 포함한 이력을 보되 내부 메모는 볼 수 없음. 일반 회원에게는 현재 운영 정지 상태와 공개 사유만 표시함
-- admin Group 상세의 운영 관리 card는 현재 허용된 운영 정지 또는 복구 action이 있을 때만 표시하며, 가능한 action이 없으면 표시하지 않음
+- Group 개설·자발적 종료·재운영은 `GroupLifecycleEvent`에, platform operation 정지·복구는 `ModerationAction`에 별도로 기록하며 두 기록을 하나의 최신순 운영 이력에서 event 단위로 표시함. global admin은 전체 suspend/restore 이력과 내부 메모를 보고, Group admin은 동아리 관리 화면에서 platform 공개 사유를 포함한 이력을 보되 내부 메모는 볼 수 없음. 일반 회원에게는 현재 운영 정지 상태와 공개 사유만 표시함
+- admin Group 상세의 운영 관리 card는 현재 운영 상태와 허용된 운영 정지 또는 복구 action page 링크만 표시하며, 공개 사유와 내부 메모는 운영 이력에 표시함. 복구 action page의 현재 정지 조치도 같은 이력 card를 사용함. 사유 입력과 실행은 `/admin/groups/:group_id/operation_suspensions/new`와 `/admin/groups/:group_id/operation_restorations/new`에서 각각 `Admin::GroupOperationSuspensionsController`, `Admin::GroupOperationRestorationsController`가 기존 정책·서비스로 처리함
 - 승인 동아리 관리자는 pending 가입 요청을 거절할 수 있음
 - 비공개 동아리 관리자는 아직 수락되지 않은 보낸 초대를 취소할 수 있음
 - 일반 member의 자발적 탈퇴와 관리자의 내보내기는 membership을 즉시 삭제함

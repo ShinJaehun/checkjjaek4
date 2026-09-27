@@ -460,10 +460,11 @@ en:
       operation_moderation:
         reason: "Reason"
         title: "Operation management"
+        cancel: "Back to club details"
         status: "Current operation status"
         active_status: "Normal"
         suspended_status: "Suspended"
-        current_suspension: "Current operation suspension"
+        current_suspension: "Current suspension action"
         public_reason: "Public reason"
         internal_note: "Internal note"
         internal_note_hint: "Optional · Not shown to club members."
@@ -471,11 +472,13 @@ en:
         forms:
           suspend:
             trigger: "Suspend operation"
+            description: "Restrict new club operations and record the action."
             public_reason: "Suspension reason"
             public_reason_hint: "Shown to the suspended club's admin."
             reason_prompt: "Select a suspension reason"
           restore:
             trigger: "Restore operation"
+            description: "Lift the operation restriction and record the restoration reason."
             public_reason: "Restoration reason"
             public_reason_hint: "Recorded in the club operation moderation history."
         history:

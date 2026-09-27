@@ -99,8 +99,14 @@ legacy 자유 텍스트의 원문 표시를 함께 지원한다. GroupMembership
 Group 개설·자발적 운영 종료·재운영은 `GroupLifecycleEvent`의 lifecycle history이고, global admin의
 operation suspend/restore는 Group 대상 `ModerationAction`의 platform moderation history다.
 admin Group 상세에서는 두 의미를 합치지 않으면서 lifecycle event와 platform moderation action을
-하나의 시간순 운영 이력으로 표시한다. 각 항목에는 action, 실제 actor, 공개 사유, 선택적 내부 메모, 시각을 표시한다.
+하나의 최신순 운영 이력으로 표시한다. 각 항목에는 action, 실제 actor, 공개 사유, 선택적 내부 메모, 시각을 표시한다.
 일반 Group admin과 회원에게는 현재 운영 정지 상태와 공개 사유만 제공하고 platform 내부 메모·전체 이력은 노출하지 않는다.
+
+Group 운영 정지·복구의 admin inventory/detail에서는 현재 허용되는 action button만 제공하고,
+실제 공개 사유와 내부 메모는 독립된 canonical action page에서 입력한다.
+button 노출, action page GET, 실행 POST는 같은 `GroupPolicy#suspend_operation?` 또는
+`GroupPolicy#restore_operation?`을 따른다. 이 페이지는 JavaScript 없이 동작하며,
+향후 modal은 같은 form의 progressive enhancement로만 사용한다.
 
 ---
 

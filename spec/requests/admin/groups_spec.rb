@@ -63,6 +63,8 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response.body).to include("승인 대기", "운영 이력")
     expect(response.body).to include("콘텐츠")
     expect(detail_page.at_css(%(#admin_group_identity form[action="#{approve_admin_group_path(group)}"]))).to be_present
+    expect(detail_page.at_css("#group_operation_moderation")).to be_present
+    expect(detail_page.at_css("#group_operation_moderation a[href*='operation_suspensions'], #group_operation_moderation a[href*='operation_restorations']")).to be_nil
     expect(opening_card.text).to include("개설 목적", "Create a reading circle", "신청", I18n.l(opening_event.created_at, format: :short))
     expect(opening_card.text).not_to include("승인")
 
@@ -241,7 +243,8 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(membership_summary.at_css("[data-membership-status='active']").text.squish).to eq("참여 중 1")
     expect(membership_summary.at_css("[data-membership-status='pending']").text.squish).to eq("승인 대기 1")
     expect(membership_summary.at_css("[data-membership-status='invited']").text.squish).to eq("초대됨 1")
-    expect(document.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_present
+    expect(document.at_css("#group_operation_moderation a[href='#{new_admin_group_operation_suspension_path(active_group)}']")).to be_present
+    expect(document.at_css("#group_operation_moderation form")).to be_nil
     expect(document.at_css("#group_operation_history")).to be_present
     expect(document.at_css("#admin_group_content_timeline")).to be_nil
   end
@@ -249,27 +252,25 @@ RSpec.describe "Admin group approvals", type: :request do
   it "lets only a global admin suspend and restore active group operation with audited reasons" do
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Moderated club", group_type: :public_group)
     sign_in group_admin
-    patch suspend_operation_admin_group_path(active_group), params: { moderation_action: { public_reason: "other", internal_note: "Hidden" } }
+    post admin_group_operation_suspensions_path(active_group), params: { moderation_action: { public_reason: "other", internal_note: "Hidden" } }
     expect(active_group.reload).to be_operation_active
 
     sign_in admin
     get admin_group_path(active_group)
     page = Nokogiri::HTML(response.body)
     moderation = page.at_css("#group_operation_moderation")
-    suspend_card = moderation.at_css("[data-operation-action='suspend']")
-    suspend_form = page.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))
-    expect(suspend_form).to be_present
-    expect(suspend_card.name).to eq("div")
-    expect(suspend_card.at_css("h3").text.strip).to eq("운영 정지")
-    expect(suspend_card.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_present
-    expect(moderation.at_css("details, summary")).to be_nil
-    reason_select = suspend_form.at_css('select[name="moderation_action[public_reason]"]')
+    expect(moderation.at_css("a[href='#{new_admin_group_operation_suspension_path(active_group)}']")).to be_present
+    expect(moderation.at_css("form")).to be_nil
     expect(page.text.squish).to include("현재 상태: 정상 운영")
+
+    get new_admin_group_operation_suspension_path(active_group)
+    suspend_form = Nokogiri::HTML(response.body).at_css(%(form[action="#{admin_group_operation_suspensions_path(active_group)}"]))
+    reason_select = suspend_form.at_css('select[name="moderation_action[public_reason]"]')
     expect(reason_select.css("option").map { |option| option["value"] }.reject(&:blank?)).to eq(Group::SUSPENSION_REASONS)
     expect(reason_select.text).to include("반복적인 운영 정책 위반")
     expect(suspend_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_nil
 
-    patch suspend_operation_admin_group_path(active_group), params: {
+    post admin_group_operation_suspensions_path(active_group), params: {
       moderation_action: { public_reason: "repeated_policy_violations", internal_note: "Internal review" }
     }
     suspension = active_group.current_operation_suspension_action
@@ -278,23 +279,21 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_group_path(active_group)
     page = Nokogiri::HTML(response.body)
     moderation = page.at_css("#group_operation_moderation")
-    restore_card = moderation.at_css("[data-operation-action='restore']")
-    restore_form = page.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))
-    expect(restore_form).to be_present
+    expect(moderation.at_css("a[href='#{new_admin_group_operation_restoration_path(active_group)}']")).to be_present
+    expect(moderation.at_css("a[href='#{new_admin_group_operation_suspension_path(active_group)}']")).to be_nil
+    expect(moderation.at_css("form")).to be_nil
     expect(page.at_css("#admin_group_identity [data-field='current-status']").text.strip).to eq("운영 정지")
     expect(page.text.squish).to include("현재 상태: 운영 정지")
-    expect(moderation.text).to include("반복적인 운영 정책 위반", "Internal review")
-    expect(restore_card.name).to eq("div")
-    expect(restore_card.at_css("h3").text.strip).to eq("운영 복구")
-    expect(restore_card.at_css(%(form[action="#{restore_operation_admin_group_path(active_group)}"]))).to be_present
-    expect(moderation.at_css("details, summary")).to be_nil
-    expect(moderation.text).not_to include("repeated_policy_violations")
+    expect(moderation.text).not_to include("반복적인 운영 정책 위반", "Internal review")
+    expect(page.at_css("#group_operation_history").text).to include("반복적인 운영 정책 위반", "Internal review")
+
+    get new_admin_group_operation_restoration_path(active_group)
+    restore_form = Nokogiri::HTML(response.body).at_css(%(form[action="#{admin_group_operation_restorations_path(active_group)}"]))
     expect(restore_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_present
     expect(restore_form.at_css('select[name="moderation_action[public_reason]"]')).to be_nil
     expect(restore_form.at_css('label[for="moderation_action_public_reason"]').text).to eq("복구 사유")
-    expect(page.at_css(%(form[action="#{suspend_operation_admin_group_path(active_group)}"]))).to be_nil
 
-    patch restore_operation_admin_group_path(active_group), params: {
+    post admin_group_operation_restorations_path(active_group), params: {
       moderation_action: { public_reason: "Resolved", internal_note: "Verified" }
     }
     restore = ModerationAction.find_by!(reversal_of: suspension)
@@ -312,19 +311,19 @@ RSpec.describe "Admin group approvals", type: :request do
     second_admin = User.create!(name: "Second admin", email: "group-second-admin@example.com", password: "password123!", global_admin: true)
 
     sign_in admin
-    patch suspend_operation_admin_group_path(active_group), params: {
+    post admin_group_operation_suspensions_path(active_group), params: {
       moderation_action: { public_reason: "repeated_policy_violations", internal_note: "First review" }
     }
     first_suspension = active_group.current_operation_suspension_action
 
     sign_in second_admin
-    patch restore_operation_admin_group_path(active_group), params: {
+    post admin_group_operation_restorations_path(active_group), params: {
       moderation_action: { public_reason: "Appeal accepted", internal_note: "Second review" }
     }
     restoration = ModerationAction.find_by!(reversal_of: first_suspension)
 
     sign_in admin
-    patch suspend_operation_admin_group_path(active_group), params: {
+    post admin_group_operation_suspensions_path(active_group), params: {
       moderation_action: { public_reason: "other", internal_note: "Third review" }
     }
     second_suspension = active_group.current_operation_suspension_action
@@ -337,30 +336,30 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(page.css("h2").count { |heading| heading.text.strip == "운영 이력" }).to eq(1)
     expect(page.at_css("#group_lifecycle_history")).to be_nil
     expect(entries.map { |entry| entry["data-history-entry"] }).to eq(
-      %w[opening_requested suspend_group_operation restore_group_operation suspend_group_operation]
+      %w[suspend_group_operation restore_group_operation suspend_group_operation opening_requested]
     )
-    expect(entries.map { |entry| entry["data-history-kind"] }).to eq(%w[lifecycle platform platform platform])
-    expect(entries[0].text).to include("개설 신청", "Reading together")
-    expect(entries[0].text).not_to include("동아리 운영", "운영 관리", "First review", "Appeal accepted", "Third review")
-    expect(entries[1].text).to include(
+    expect(entries.map { |entry| entry["data-history-kind"] }).to eq(%w[platform platform platform lifecycle])
+    expect(entries[3].text).to include("개설 신청", "Reading together")
+    expect(entries[3].text).not_to include("동아리 운영", "운영 관리", "First review", "Appeal accepted", "Third review")
+    expect(entries[2].text).to include(
       "운영 정지", "운영 관리", "시스템 관리자", admin.name,
       I18n.l(first_suspension.created_at, format: :short), "반복적인 운영 정책 위반", "First review"
     )
-    expect(entries[1].at_css("[data-history-detail='reason'] p.whitespace-pre-wrap").text.strip).to eq("반복적인 운영 정책 위반")
-    expect(entries[2].text).to include(
+    expect(entries[2].at_css("[data-history-detail='reason'] p.whitespace-pre-wrap").text.strip).to eq("반복적인 운영 정책 위반")
+    expect(entries[1].text).to include(
       "운영 복구", "운영 관리", "시스템 관리자", second_admin.name,
       I18n.l(restoration.created_at, format: :short), "Appeal accepted", "Second review"
     )
-    expect(entries[2].at_css("[data-history-detail='reason'] p.whitespace-pre-wrap").text.strip).to eq("Appeal accepted")
-    expect(entries[3].text).to include(
+    expect(entries[1].at_css("[data-history-detail='reason'] p.whitespace-pre-wrap").text.strip).to eq("Appeal accepted")
+    expect(entries[0].text).to include(
       "운영 정지", "운영 관리", "시스템 관리자", admin.name,
       I18n.l(second_suspension.created_at, format: :short), "기타 운영 정책 위반", "Third review"
     )
-    entries.drop(1).each { |entry| expect(entry.text).to include("운영 관리") }
-    expect(entries.drop(1).map(&:text).join).not_to include("Reading together", "repeated_policy_violations")
+    entries.first(3).each { |entry| expect(entry.text).to include("운영 관리") }
+    expect(entries.first(3).map(&:text).join).not_to include("Reading together", "repeated_policy_violations")
   end
 
-  it "orders lifecycle stages and platform actions by stage start time with stable ties" do
+  it "orders lifecycle events and platform actions newest first with stable ties" do
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Ordered history", group_type: :public_group)
     base_time = Time.zone.local(2026, 1, 1, 12)
     active_group.lifecycle_events.create!(actor: admin, event_type: :opening_approved, created_at: base_time)
@@ -386,19 +385,19 @@ RSpec.describe "Admin group approvals", type: :request do
 
     entries = Nokogiri::HTML(response.body).css("#group_operation_history [data-history-entry]")
     expect(entries.map { |entry| entry["data-history-entry"] }).to eq(
-      %w[opening_approved suspend_group_operation operations_closed restore_group_operation suspend_group_operation reactivation_approved]
+      %w[reactivation_approved suspend_group_operation restore_group_operation operations_closed suspend_group_operation opening_approved]
     )
-    expect(entries[0].text).to include("승인")
-    expect(entries[2].text).to include("종료", "Season ended")
-    expect(entries[5].text).to include("재운영 승인")
-    expect(entries[2].text).not_to include("Review complete")
-    expect(entries[3].text).not_to include("Season ended")
+    expect(entries[5].text).to include("승인")
+    expect(entries[3].text).to include("종료", "Season ended")
+    expect(entries[0].text).to include("재운영 승인")
+    expect(entries[3].text).not_to include("Review complete")
+    expect(entries[2].text).not_to include("Season ended")
   end
 
   it "shows legacy free-text suspension reasons without changing them" do
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Legacy moderation", group_type: :public_group)
     active_group.update!(operation_suspended_at: Time.current)
-    legacy_suspension = ModerationAction.create!(
+    ModerationAction.create!(
       target: active_group,
       actor: admin,
       action_type: :suspend_group_operation,
@@ -410,18 +409,23 @@ RSpec.describe "Admin group approvals", type: :request do
     get admin_group_path(active_group)
 
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("#group_operation_moderation").text).to include("Legacy free-text reason", "Legacy internal note")
-    expect(page.at_css("#group_operation_history").text).to include("Legacy free-text reason", "Legacy internal note")
-    expect(page.at_css("#group_operation_history [data-history-detail='reason'] p.whitespace-pre-wrap").text.strip).to eq("Legacy free-text reason")
-    expect(legacy_suspension.reload.public_reason).to eq("Legacy free-text reason")
+
+    moderation = page.at_css("#group_operation_moderation")
+    history = page.at_css("#group_operation_history")
+
+    expect(moderation.text).not_to include("Legacy free-text reason", "Legacy internal note")
+    expect(history.text).to include("Legacy free-text reason", "Legacy internal note")
+    expect(history.at_css("[data-history-detail='reason'] p.whitespace-pre-wrap").text.strip)
+      .to eq("Legacy free-text reason")
   end
 
   it "rolls back an invalid operation suspension audit" do
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Audit rollback", group_type: :public_group)
     sign_in admin
 
-    patch suspend_operation_admin_group_path(active_group), params: { moderation_action: { public_reason: "" } }
+    post admin_group_operation_suspensions_path(active_group), params: { moderation_action: { public_reason: "" } }
 
+    expect(response).to have_http_status(:unprocessable_content)
     expect(active_group.reload).to be_operation_active
     expect(ModerationAction.where(target: active_group, action_type: :suspend_group_operation)).to be_empty
   end
@@ -928,15 +932,15 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(opening_entry).to be_present
     expect(reactivation_entry).to be_present
     expect(close_entries.map { |entry| entry.at_css("[data-history-detail='closure_reason'] p.whitespace-pre-wrap").text.strip }).to eq(
-      [ "First season ended", "Second season ended" ]
+      [ "Second season ended", "First season ended" ]
     )
 
     opening_position = entries.index(opening_entry)
-    first_close_position = entries.index(close_entries.first)
+    first_close_position = entries.index(close_entries.second)
     reactivation_position = entries.index(reactivation_entry)
-    second_close_position = entries.index(close_entries.second)
-    expect([ opening_position, first_close_position, reactivation_position, second_close_position ]).to eq(
-      [ opening_position, first_close_position, reactivation_position, second_close_position ].sort
+    second_close_position = entries.index(close_entries.first)
+    expect([ reactivation_position, second_close_position, first_close_position, opening_position ]).to eq(
+      [ reactivation_position, second_close_position, first_close_position, opening_position ].sort
     )
     expect(response.body).to include("운영 종료 사유", "First season ended", "Second season ended")
   end

@@ -25,8 +25,8 @@ Rails.application.routes.draw do
     resources :groups, only: %i[index show] do
       get :content, on: :member
       patch :approve, on: :member
-      patch :suspend_operation, on: :member
-      patch :restore_operation, on: :member
+      resources :operation_suspensions, only: %i[new create], controller: "group_operation_suspensions"
+      resources :operation_restorations, only: %i[new create], controller: "group_operation_restorations"
     end
   end
   resources :groups, only: %i[index show new create edit update] do

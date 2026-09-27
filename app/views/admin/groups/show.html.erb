@@ -69,65 +69,23 @@
       <% end %>
     </section>
 
-    <% if @can_suspend_operation || @can_restore_operation %>
-      <section id="group_operation_moderation" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
-        <h2 class="font-semibold"><%= t("admin.groups.operation_moderation.title") %></h2>
+    <section id="group_operation_moderation" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
+      <h2 class="font-semibold"><%= t("admin.groups.operation_moderation.title") %></h2>
+      <p class="mt-3">
+        <%= t("admin.groups.operation_moderation.status") %>:
+        <%= t("admin.groups.operation_moderation.#{@group.operation_suspended? ? "suspended_status" : "active_status"}") %>
+      </p>
 
-        <% if @current_operation_suspension.present? %>
-          <div class="mt-4 rounded-2xl border border-amber-200 bg-white/70 p-4">
-            <p class="font-semibold"><%= t("admin.groups.operation_moderation.current_suspension") %></p>
-            <p class="mt-2 whitespace-pre-wrap"><%= t("admin.groups.operation_moderation.public_reason") %>: <%= Group.suspension_reason_label(@current_operation_suspension.public_reason) %></p>
-            <% if @current_operation_suspension.internal_note.present? %>
-              <p class="mt-2 whitespace-pre-wrap"><%= t("admin.groups.operation_moderation.internal_note") %>: <%= @current_operation_suspension.internal_note %></p>
-            <% end %>
-          </div>
-        <% end %>
-
-        <% moderation_action = @can_suspend_operation ? :suspend : :restore %>
-        <% action_path = @can_suspend_operation ? suspend_operation_admin_group_path(@group) : restore_operation_admin_group_path(@group) %>
-        <% submit_label = @can_suspend_operation ? t("admin.groups.actions.suspend_operation") : t("admin.groups.actions.restore_operation") %>
-        <div class="mt-4 rounded-2xl border border-amber-200 bg-white/70 p-4" data-operation-action="<%= moderation_action %>">
-          <h3 class="font-semibold text-amber-900">
-            <%= t("admin.groups.operation_moderation.forms.#{moderation_action}.trigger") %>
-          </h3>
-          <%= form_with scope: :moderation_action, url: action_path, method: :patch, class: "mt-4 space-y-3" do |form| %>
-            <div class="space-y-2">
-              <%= form.label :public_reason,
-                             t("admin.groups.operation_moderation.forms.#{moderation_action}.public_reason"),
-                             class: "block font-medium" %>
-              <% if @can_suspend_operation %>
-                <%= form.select :public_reason,
-                                options_for_select(Group::SUSPENSION_REASONS.map { |reason| [ Group.suspension_reason_label(reason), reason ] }),
-                                { prompt: t("admin.groups.operation_moderation.forms.suspend.reason_prompt") },
-                                required: true,
-                                aria: { describedby: "operation_public_reason_hint" },
-                                class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-              <% else %>
-                <%= form.text_area :public_reason,
-                                   required: true,
-                                   rows: 3,
-                                   aria: { describedby: "operation_public_reason_hint" },
-                                   class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-              <% end %>
-              <p id="operation_public_reason_hint" class="text-xs text-amber-800">
-                <%= t("admin.groups.operation_moderation.forms.#{moderation_action}.public_reason_hint") %>
-              </p>
-            </div>
-            <div class="space-y-2">
-              <%= form.label :internal_note, t("admin.groups.operation_moderation.internal_note"), class: "block font-medium" %>
-              <%= form.text_area :internal_note,
-                                 rows: 3,
-                                 aria: { describedby: "operation_internal_note_hint" },
-                                 class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-              <p id="operation_internal_note_hint" class="text-xs text-amber-800">
-                <%= t("admin.groups.operation_moderation.internal_note_hint") %>
-              </p>
-            </div>
-            <%= form.submit submit_label, class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-          <% end %>
-        </div>
-      </section>
-    <% end %>
+      <% if @can_suspend_operation %>
+        <%= link_to t("admin.groups.actions.suspend_operation"),
+                    new_admin_group_operation_suspension_path(@group, @return_params),
+                    class: "mt-4 inline-block rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+      <% elsif @can_restore_operation %>
+        <%= link_to t("admin.groups.actions.restore_operation"),
+                    new_admin_group_operation_restoration_path(@group, @return_params),
+                    class: "mt-4 inline-block rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+      <% end %>
+    </section>
 
     <%= render "groups/operation_history",
                lifecycle_events: @lifecycle_events,
