@@ -41,7 +41,7 @@ Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 �
 다만 두 상태는 분리한다.
 
 - 알림을 읽음 처리해도 `BookFriendship`의 `pending` 상태는 바뀌지 않는다.
-- 책친구 요청 수락/거절은 여전히 `/relationships`에서 처리한다.
+- 책친구 요청 수락/거절은 여전히 `/account/relationships`에서 처리한다.
 - 관계 요청 처리 권한은 기존 `BookFriendshipPolicy`와 controller 흐름을 따른다.
 
 ---
@@ -439,7 +439,7 @@ MVP에서는 자동 만료, 자동 삭제, pruning, archive,
 
 관계 요청 알림의 `read_at`과 `BookFriendship.pending`은 별개다.
 알림을 읽어도 관계 요청은 pending으로 남고,
-사용자는 `/relationships`에서 수락하거나 거절해야 한다.
+사용자는 `/account/relationships`에서 수락하거나 거절해야 한다.
 
 ---
 
@@ -448,7 +448,7 @@ MVP에서는 자동 만료, 자동 삭제, pruning, archive,
 알림 항목 클릭 시 이동 경로는 아래처럼 둔다.
 
 - `book_friendship_requested`
-  - `/relationships#received-book-friend-requests`
+  - `/account/relationships#received-book-friend-requests`
 - `book_friendship_accepted`
   - 수락한 사용자(`Notification.actor`)의 프로필
 - `profile_jjaek_created`
@@ -459,7 +459,7 @@ MVP에서는 자동 만료, 자동 삭제, pruning, archive,
   - 생성된 ReJjaek 상세
 
 알림 목록은 처리 화면이 아니라 진입점이다.
-관계 요청 처리는 `/relationships`,
+관계 요청 처리는 `/account/relationships`,
 Jjaek / Comment / ReJjaek 확인은 관련 Jjaek 상세에서 한다.
 
 Moderation 알림은 `ModerationAction`을 `notifiable`로 갖더라도

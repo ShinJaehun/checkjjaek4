@@ -44,6 +44,6 @@ class FollowsController < ApplicationController
   end
 
   def redirect_target
-    params[:return_to] == "relationships" ? relationships_path : user_path(@user)
+    params[:return_to] == "relationships" ? account_relationships_path : user_path(@user)
   end
 end

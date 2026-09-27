@@ -53,7 +53,7 @@
 
 ## Relationship Page `(현재 구현)`
 
-`/relationships`는 현재 구현된 관계 관리 허브다.
+`/account/relationships`는 현재 구현된 관계 관리 허브다.
 
 이 화면은 현재 아래를 관리한다.
 
@@ -65,7 +65,7 @@
 
 원칙:
 - 프로필 화면은 관계 상태 확인과 관계 액션의 보조 경로로 남길 수 있다.
-- 하지만 관계 목록과 요청 처리의 중심 화면은 `/relationships`다.
+- 하지만 관계 목록과 요청 처리의 중심 화면은 `/account/relationships`다.
 
 ---
 
@@ -76,12 +76,12 @@ Notification의 canonical 기준은 `docs/specs/notifications_mvp.md`를 따른�
 
 현재 구현:
 - 받은 책친구 요청은 `book_friendship_requested` notification으로 생성된다.
-- 해당 알림은 `/relationships#received-book-friend-requests`로 연결된다.
+- 해당 알림은 `/account/relationships#received-book-friend-requests`로 연결된다.
 - 알림을 읽음 처리해도 `BookFriendship.pending` 상태는 바뀌지 않는다.
 
 원칙:
 - Notification은 관계 요청 확인의 진입점이다.
-- 실제 관계 조회/처리의 주 화면은 `/relationships`다.
+- 실제 관계 조회/처리의 주 화면은 `/account/relationships`다.
 - 실제 권한 판단은 계속 policy와 관계 모델이 담당한다.
 - `Follow` 알림은 초기 MVP 필수 범위로 두지 않는다.
 

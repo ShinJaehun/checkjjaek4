@@ -18,6 +18,7 @@ module Account
 
     def settings_params
       params.require(:user).permit(
+        :name,
         :accepts_book_friend_requests,
         :accepts_group_invitations,
         :allows_new_followers

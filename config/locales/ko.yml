@@ -25,7 +25,11 @@ ko:
   settings:
     nav: "설정"
     title: "설정"
-    description: "내 관계와 초대 설정을 관리합니다."
+    description: "내 프로필과 관계, 계정을 관리합니다."
+    profile:
+      title: "프로필"
+      description: "다른 사용자에게 표시되는 이름을 변경합니다."
+      name: "이름"
     interactions:
       title: "관계 및 초대"
       description: "변경한 설정은 앞으로 새로 만들어지는 관계에만 적용됩니다."
@@ -38,6 +42,9 @@ ko:
       allows_new_followers:
         label: "새 소식받기 허용"
         description: "다른 사용자가 내 소식을 새로 받아볼 수 있습니다."
+    account:
+      title: "계정"
+      description: "계정 탈퇴는 별도의 확인 화면에서 진행합니다."
     actions:
       save: "저장"
     notices:

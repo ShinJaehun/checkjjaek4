@@ -34,7 +34,7 @@ RSpec.describe "Relationships", type: :request do
   end
 
   it "redirects guests to sign in" do
-    get relationships_path
+    get account_relationships_path
 
     expect(response).to redirect_to(new_user_session_path)
   end
@@ -43,13 +43,13 @@ RSpec.describe "Relationships", type: :request do
     get new_user_session_path
 
     expect(response.body).not_to include("relationship-notification-badge")
-    expect(response.body).not_to include(%(href="/relationships#received-book-friend-requests"))
+    expect(response.body).not_to include(%(href="/account/relationships#received-book-friend-requests"))
   end
 
   it "allows signed-in users to open the relationship hub" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(I18n.t("relationships.title"))
@@ -71,7 +71,7 @@ RSpec.describe "Relationships", type: :request do
 
     get root_path
 
-    expect(relationship_nav_link&.[]("href")).to eq("/relationships")
+    expect(relationship_nav_link&.[]("href")).to eq(account_relationships_path)
   end
 
   it "keeps the relationships navigation stable when the current user has no pending received requests" do
@@ -81,13 +81,13 @@ RSpec.describe "Relationships", type: :request do
     get root_path
 
     expect(parse_html.at_css("#relationship-notification-badge")).to be_nil
-    expect(relationship_nav_link&.[]("href")).to eq("/relationships")
+    expect(relationship_nav_link&.[]("href")).to eq(account_relationships_path)
   end
 
   it "shows received book-friend requests to the addressee" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(response.body).to include("Received Requester")
   end
@@ -95,7 +95,7 @@ RSpec.describe "Relationships", type: :request do
   it "shows sent book-friend requests to the requester" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(response.body).to include("Sent Addressee")
   end
@@ -103,7 +103,7 @@ RSpec.describe "Relationships", type: :request do
   it "shows accepted book friends" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(response.body).to include("Book Friend")
   end
@@ -111,7 +111,7 @@ RSpec.describe "Relationships", type: :request do
   it "shows users the viewer follows" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(response.body).to include("Followee")
   end
@@ -119,7 +119,7 @@ RSpec.describe "Relationships", type: :request do
   it "shows users following the viewer" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(response.body).to include("Follower")
   end
@@ -127,7 +127,7 @@ RSpec.describe "Relationships", type: :request do
   it "includes the received book-friend requests anchor in the relationship hub" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(parse_html.at_css("#received-book-friend-requests")).not_to be_nil
   end
@@ -135,7 +135,7 @@ RSpec.describe "Relationships", type: :request do
   it "shows clear relationship action labels" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(response.body).to include(I18n.t("users.actions.accept_book_friend"))
     expect(response.body).to include(I18n.t("users.actions.reject_book_friend_request"))
@@ -147,7 +147,7 @@ RSpec.describe "Relationships", type: :request do
   it "does not show other users' requests or relationships" do
     sign_in viewer
 
-    get relationships_path
+    get account_relationships_path
 
     expect(response.body).not_to include("Hidden Requester")
     expect(response.body).not_to include("Hidden Addressee")

@@ -535,7 +535,7 @@ docs
 | `/users/:id` | 사용자 프로필 |
 | `/users/:user_id/library` | 사용자 서재 |
 | `/users/:user_id/library/transfer` | 책장 이동 모드 |
-| `/relationships` | 관계 관리 |
+| `/account/relationships` | 관계 관리 |
 | `/notifications` | 알림 |
 | `/jjaeks/:id` | 짹 상세 |
 

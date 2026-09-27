@@ -113,7 +113,7 @@ RSpec.describe "BookFriendships", type: :request do
 
     patch user_book_friendship_path(user), params: { return_to: "relationships" }
 
-    expect(response).to redirect_to(relationships_path)
+    expect(response).to redirect_to(account_relationships_path)
     expect(Notification.find_by!(action: :book_friendship_accepted)).to have_attributes(
       recipient: user, actor: other_user
     )
@@ -156,7 +156,7 @@ RSpec.describe "BookFriendships", type: :request do
       delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
     }.not_to change(Notification, :count)
 
-    expect(response).to redirect_to(relationships_path)
+    expect(response).to redirect_to(account_relationships_path)
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.cancelled"))
   end
 
@@ -184,7 +184,7 @@ RSpec.describe "BookFriendships", type: :request do
       delete user_book_friendship_path(user), params: { return_to: "relationships" }
     }.not_to change(Notification, :count)
 
-    expect(response).to redirect_to(relationships_path)
+    expect(response).to redirect_to(account_relationships_path)
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.rejected"))
   end
 
@@ -212,7 +212,7 @@ RSpec.describe "BookFriendships", type: :request do
       delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
     }.not_to change(Notification, :count)
 
-    expect(response).to redirect_to(relationships_path)
+    expect(response).to redirect_to(account_relationships_path)
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.removed"))
   end
 

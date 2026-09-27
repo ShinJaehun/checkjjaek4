@@ -25,7 +25,11 @@ en:
   settings:
     nav: "Settings"
     title: "Settings"
-    description: "Manage your relationship and invitation preferences."
+    description: "Manage your profile, relationships, and account."
+    profile:
+      title: "Profile"
+      description: "Change the name shown to others."
+      name: "Name"
     interactions:
       title: "Relationships and invitations"
       description: "Changes apply only to new relationships going forward."
@@ -38,6 +42,9 @@ en:
       allows_new_followers:
         label: "Allow new followers"
         description: "Others can start following your updates."
+    account:
+      title: "Account"
+      description: "Account withdrawal continues on a separate confirmation page."
     actions:
       save: "Save"
     notices:

@@ -2,9 +2,10 @@
 
 ## 범위
 
-사용자는 `/account/settings`의 “관계 및 초대”에서 다음 세 설정을 직접 변경한다.
+사용자는 `/account/settings` 한 화면에서 자신의 이름을 편집하고,
+“관계 및 초대”에서 다음 세 설정을 직접 변경하며, 계정 탈퇴 확인 화면으로 이동할 수 있다.
 `/users/:id`는 사용자 프로필 surface로 유지하고, `/account/...`는 로그인한
-사용자의 self-management surface로 확장한다. 이번 단계에는 settings만 포함한다.
+사용자의 self-management surface로 사용한다. 별도 account 하위 화면은 만들지 않는다.
 
 | 설정 | 기본값 | OFF일 때 새로 차단하는 행동 |
 | --- | --- | --- |

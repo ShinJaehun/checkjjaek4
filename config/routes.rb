@@ -6,7 +6,7 @@ Rails.application.routes.draw do
   namespace :account do
     resource :settings, only: %i[show update]
   end
-  get "/relationships", to: "relationships#index"
+  get "/account/relationships", to: "relationships#index", as: :account_relationships
   resources :notifications, only: :index
   namespace :admin do
     resources :jjaeks, only: [] do

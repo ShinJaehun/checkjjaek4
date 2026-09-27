@@ -61,7 +61,7 @@ RSpec.describe "Follows", type: :request do
 
     delete user_follow_path(other_user), params: { return_to: "relationships" }
 
-    expect(response).to redirect_to(relationships_path)
+    expect(response).to redirect_to(account_relationships_path)
   end
 
   it "updates the following users section when unfollowing from the relationship hub with Turbo" do
