@@ -1,5 +1,7 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
-  <%= render "users/profile_header", user: @user, book_friendship: @book_friendship, invitable_private_groups: @invitable_private_groups %>
+  <%= render "users/profile_header", user: @user, book_friendship: @book_friendship,
+                                     invitable_private_groups: @invitable_private_groups,
+                                     cancelable_private_group_invitations: @cancelable_private_group_invitations %>
 
   <% if @profile_jjaek.present? %>
     <%= render "users/profile_jjaek_form",

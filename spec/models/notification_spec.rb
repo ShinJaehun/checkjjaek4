@@ -30,7 +30,11 @@ RSpec.describe Notification, type: :model do
       "group_admin_role_granted" => 20,
       "group_membership_requested_to_join" => 21,
       "group_membership_approved" => 22,
-      "group_membership_request_rejected" => 23
+      "group_membership_request_rejected" => 23,
+      "group_membership_invited" => 24,
+      "group_membership_invitation_accepted" => 25,
+      "group_membership_invitation_declined" => 26,
+      "group_membership_invitation_revoked" => 27
     )
   end
 

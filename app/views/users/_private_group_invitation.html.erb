@@ -4,7 +4,7 @@
                 invite_group_group_memberships_path(group),
                 params: { user_id: user.id, return_context: "profile" },
                 class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50" %>
-<% else %>
+<% elsif groups.many? %>
   <details class="relative">
     <summary class="cursor-pointer rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50">
       <%= t("users.profile.invite_to_group_menu") %>
@@ -18,4 +18,12 @@
       <% end %>
     </div>
   </details>
+<% end %>
+
+<% cancelable_invitations.each do |membership| %>
+  <%= button_to t("users.profile.cancel_group_invitation", group_name: membership.group.name),
+                revoke_group_group_membership_path(membership.group, membership),
+                method: :delete,
+                params: { return_context: "profile" },
+                class: "rounded-full border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700" %>
 <% end %>

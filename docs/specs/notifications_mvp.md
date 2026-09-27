@@ -104,7 +104,7 @@ Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 �
 GroupMembership 활동 정지·복구도 이번 조치의 `ModerationAction`을 사건 source로
 사용한다. 아래 확정된 Group lifecycle Notification은 실제
 `GroupLifecycleEvent` row를 사용한다. 관리자 이전 Notification과 아래 확정된
-GroupMembership 승인제 가입 workflow Notification은 실제
+GroupMembership 승인제 가입·비공개 동아리 초대 workflow Notification은 실제
 `GroupMembershipEvent` row를 `notifiable`로 사용한다. 그 밖의 membership
 lifecycle은 `GroupMembershipEvent`, 회원 이용 제한·해제는 `ModerationAction`을
 사건 source 후보로만 두며 recipient 정책이 확정되기 전에는 생성하지 않는다.
@@ -341,6 +341,39 @@ Notification은 실제 생성된 event 객체를 사용해 같은 transaction �
 
 ---
 
+## 비공개 동아리 초대 workflow Notification `(확정·구현)`
+
+비공개 동아리 초대의 네 사건은 실제 생성된 `GroupMembershipEvent`를
+`notifiable`로 사용한다. 사건의 actor 이름과 avatar를 모두 표시한다.
+
+| event_type | recipient | 메시지 | destination |
+| --- | --- | --- | --- |
+| `invited` | 초대받은 `event.user` | `%{actor_name}님이 %{group_name}에 초대했습니다.` | 받은 초대를 확인할 수 있는 `groups_path` |
+| `invitation_accepted` | 사건 시점의 Group admin | `%{actor_name}님이 %{group_name} 초대를 수락했습니다.` | 현재 회원 관리 권한이 있으면 `group_members_path`, 아니면 접근 가능한 Group 또는 `groups_path` |
+| `invitation_declined` | 사건 시점의 Group admin | `%{actor_name}님이 %{group_name} 초대를 거절했습니다.` | 현재 회원 관리 권한이 있으면 `group_members_path`, 아니면 접근 가능한 Group 또는 `groups_path` |
+| `invitation_revoked` | 초대받았던 `event.user` | `%{actor_name}님이 %{group_name} 초대를 취소했습니다.` | `groups_path` |
+
+recipient ID는 event 생성 transaction 안에서 확정해 notifier에 전달한다.
+수락·거절의 수신자는 전달 시점의 현재 관리자로 다시 결정하지 않는다.
+거절·취소 과정에서 membership이 삭제되어도 event의 actor·user·group으로
+문구를 만들고 destination을 결정한다. 현재 회원 관리 화면 접근 여부는
+클릭 시점의 `GroupPolicy`로 다시 확인한다.
+
+사용자-facing 용어는 `초대 취소`이며 내부 event type은
+`invitation_revoked`로 유지한다. 대상 사용자 프로필에서 새 초대와
+기존 pending 초대 취소를 모두 할 수 있다. `/groups/:id/members`에서도
+보낸 초대를 취소한다. 두 화면은 같은 revoke action과
+`GroupMembershipPolicy#revoke?`를 사용한다.
+
+기존 `Notifications::GroupMembershipNotifier`와 같이 commit 이후
+best-effort로 전달하며, rollback 시에는 생성하지 않는다. actor와 recipient가
+같으면 알리지 않고, 동일 event/recipient의 중복도 방지한다.
+
+`accepts_group_invitations`는 새 초대 생성 가능 여부만 제어한다.
+Notification 수신 설정이 아니며 별도 Notification on/off 설정은 이번 범위가 아니다.
+
+---
+
 ## 그 밖의 GroupMembership lifecycle·moderation recipient 후보 `(미확정·구현 대상 아님)`
 
 아래는 현재 사건의 의미와 접근 경계를 바탕으로 검토할 후보일 뿐이다.
@@ -350,16 +383,11 @@ Notification은 실제 생성된 event 객체를 사용해 같은 transaction �
 | --- | --- |
 | 최초 관리자 가입·일반 가입 | 일반 가입은 group admin에게 후보. 최초 관리자 본인의 `joined`는 self 알림 제외 |
 | 가입 신청 취소 | 알림 없이 심사 목록 갱신만으로 충분한지 검토 |
-| 초대 | 초대받은 사용자: 수락 작업 |
-| 초대 수락 | group admin: 회원 참여 |
-| 초대 거절 | group admin에게 알릴지 TBD; soft-rejection 원칙과 비교 |
-| 초대 철회 | 초대받은 사용자: 기존 초대 무효화 |
 | 자발적 탈퇴 | group admin: 회원 구성 변화 |
 | 내보내기 | 대상 사용자: 접근 상실. 사유 필드를 새로 추정하지 않음 |
 | 이용 제한·해제 | 대상 사용자: 재참여 제한 변화와 공개 사유. 해제는 membership 자동 복구가 아님 |
 
-초대 거절과 그 밖의 soft-rejection 성격 사건의 알림 여부는 모두 TBD다.
-기존 책친구 관계의 soft-rejection 정책을 Group 사건에 자동 적용하지 않는다.
+그 밖의 soft-rejection 성격 사건에는 기존 책친구 관계의 정책을 자동 적용하지 않는다.
 
 ---
 

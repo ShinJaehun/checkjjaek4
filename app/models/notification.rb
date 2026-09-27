@@ -23,7 +23,11 @@ class Notification < ApplicationRecord
     group_admin_role_granted: 20,
     group_membership_requested_to_join: 21,
     group_membership_approved: 22,
-    group_membership_request_rejected: 23
+    group_membership_request_rejected: 23,
+    group_membership_invited: 24,
+    group_membership_invitation_accepted: 25,
+    group_membership_invitation_declined: 26,
+    group_membership_invitation_revoked: 27
   }, validate: true
 
   belongs_to :recipient, class_name: "User", inverse_of: :received_notifications
@@ -115,7 +119,9 @@ class Notification < ApplicationRecord
   def group_membership_workflow?
     action.in?(%w[
       group_membership_requested_to_join group_membership_approved
-      group_membership_request_rejected
+      group_membership_request_rejected group_membership_invited
+      group_membership_invitation_accepted group_membership_invitation_declined
+      group_membership_invitation_revoked
     ])
   end
 

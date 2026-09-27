@@ -51,7 +51,8 @@ class GroupMembershipsController < ApplicationController
       authorize @membership, :invite?
       next false unless @membership.save
 
-      record_membership_event!(:invited)
+      event = record_membership_event!(:invited)
+      Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ event.user_id ])
       true
     end
 
@@ -71,7 +72,9 @@ class GroupMembershipsController < ApplicationController
     @membership.group.with_lock do
       authorize @membership, :accept?
       @membership.active!
-      record_membership_event!(:invitation_accepted)
+      event = record_membership_event!(:invitation_accepted)
+      admin_id = event.group.group_admin_id
+      Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ admin_id ])
     end
 
     redirect_to @membership.group, notice: t("group_memberships.notices.accepted")
@@ -80,8 +83,10 @@ class GroupMembershipsController < ApplicationController
   def decline
     authorize @membership, :decline?
     @membership.group.with_lock do
-      record_membership_event!(:invitation_declined)
+      event = record_membership_event!(:invitation_declined)
+      admin_id = event.group.group_admin_id
       @membership.destroy!
+      Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ admin_id ])
     end
 
     redirect_to groups_path, notice: t("group_memberships.notices.declined"), status: :see_other
@@ -101,13 +106,15 @@ class GroupMembershipsController < ApplicationController
 
   def revoke
     authorize @membership, :revoke?
+    return_path = invitation_return_path
     @group.with_lock do
       authorize @membership, :revoke?
-      record_membership_event!(:invitation_revoked)
+      event = record_membership_event!(:invitation_revoked)
       @membership.destroy!
+      Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ event.user_id ])
     end
 
-    redirect_to group_members_path(@group), notice: t("group_memberships.notices.revoked"), status: :see_other
+    redirect_to return_path, notice: t("group_memberships.notices.revoked"), status: :see_other
   end
 
   def remove

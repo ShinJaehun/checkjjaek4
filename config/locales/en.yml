@@ -733,6 +733,10 @@ en:
       group_membership_requested_to_join: "%{actor_name} requested to join %{group_name}."
       group_membership_approved: "The club team approved your request to join %{group_name}."
       group_membership_request_rejected: "Your request to join %{group_name} was declined."
+      group_membership_invited: "%{actor_name} invited you to %{group_name}."
+      group_membership_invitation_accepted: "%{actor_name} accepted the invitation to %{group_name}."
+      group_membership_invitation_declined: "%{actor_name} declined the invitation to %{group_name}."
+      group_membership_invitation_revoked: "%{actor_name} cancelled your invitation to %{group_name}."
   requotes:
     actions:
       view_panel: "View ReJjaeks"
@@ -1028,6 +1032,7 @@ en:
       activity_title: "Recent Activity"
       invite_to_group: "Invite to %{group_name}"
       invite_to_group_menu: "Invite to a club"
+      cancel_group_invitation: "Cancel invitation to %{group_name}"
       bookshelf_sort:
         label: "Book sort"
         options:

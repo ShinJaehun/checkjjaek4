@@ -752,6 +752,10 @@ ko:
       group_membership_requested_to_join: "%{actor_name}님이 %{group_name} 동아리 가입을 신청했습니다."
       group_membership_approved: "동아리 운영진에서 %{group_name} 동아리 가입을 승인했습니다."
       group_membership_request_rejected: "%{group_name} 동아리 가입 신청이 거절되었습니다."
+      group_membership_invited: "%{actor_name}님이 %{group_name}에 초대했습니다."
+      group_membership_invitation_accepted: "%{actor_name}님이 %{group_name} 초대를 수락했습니다."
+      group_membership_invitation_declined: "%{actor_name}님이 %{group_name} 초대를 거절했습니다."
+      group_membership_invitation_revoked: "%{actor_name}님이 %{group_name} 초대를 취소했습니다."
   requotes:
     actions:
       view_panel: "다시짹 보기"
@@ -1045,6 +1049,7 @@ ko:
       activity_title: "최근 활동"
       invite_to_group: "%{group_name}에 초대"
       invite_to_group_menu: "동아리에 초대"
+      cancel_group_invitation: "%{group_name}에 초대 취소"
       bookshelf_sort:
         label: "책 정렬"
         options:

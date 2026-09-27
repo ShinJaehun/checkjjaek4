@@ -65,7 +65,7 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 일반 내보내기 `removed` lifecycle event로 중복 기록하지 않는다. group admin만 해당 Group의 활동 정지·해제와 이용 제한·해제를
 실행하고 global admin은 회원·제한·감사 이력을 운영 조사 목적으로만 조회한다.
 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성,
-초대 알림, 이메일·링크 초대와 별도 moderation dashboard는 미구현이며,
+이메일·링크 초대와 별도 moderation dashboard는 미구현이며,
 이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
 
 또한 여기서 사용하는 `visibility`, `discoverability`, `join policy`는 제품 정책을 설명하기 위한 개념적 구분이다. 실제 DB column, enum, association 구조를 확정하지 않는다.
@@ -126,8 +126,8 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 - 공개 동아리는 발견 가능하며 로그인 사용자가 즉시 가입할 수 있다.
 - 승인 동아리는 발견 가능하지만 가입 승인이 필요하다.
 - 비공개 동아리는 일반 발견 대상에서 제외하며 초대를 기본 진입점으로 삼는다.
-- 비공개 동아리의 새 초대는 대상 사용자의 프로필에서 시작한다. 관리 중인 초대 가능한 비공개 동아리가 여러 개면 한 동아리를 선택해 한 번에 한 명만 초대한다. `/groups/:id/members`에서는 이미 보낸 초대의 철회·이력만 관리한다.
-- 초대 후보는 대상의 `accepts_group_invitations` 설정과 기존 membership·이용 제한을 반영하며, 최종 권한은 `GroupMembershipPolicy#invite?`가 확인한다. 초대 Notification은 후속 범위다.
+- 비공개 동아리의 새 초대는 대상 사용자의 프로필에서 시작한다. 관리 중인 초대 가능한 비공개 동아리가 여러 개면 한 동아리를 선택해 한 번에 한 명만 초대한다. 기존 pending 초대는 대상 프로필과 `/groups/:id/members` 양쪽에서 취소할 수 있다. 두 화면 모두 같은 revoke action과 `GroupMembershipPolicy#revoke?`를 사용한다.
+- 초대 후보는 대상의 `accepts_group_invitations` 설정과 기존 membership·이용 제한을 반영하며, 최종 권한은 `GroupMembershipPolicy#invite?`가 확인한다. 초대 workflow Notification은 `docs/specs/notifications_mvp.md`를 따른다.
 - 일반 사용자의 생성을 운영 신청으로 보고, global admin 승인 전에는 정상 운영하지 않는다.
 - global admin이 직접 생성한 동아리는 승인 대기를 거치지 않고 즉시 `active`로 시작한다. 이는 다른 사용자가 만든 pending 동아리의 자동 승인을 뜻하지 않는다.
 - 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 group admin과 global admin만 확인한다.
@@ -350,16 +350,16 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 - 승인 동아리·비공개 동아리 원문의 외부 ReJjaek
 - `book_friends`, `private_jjaek`의 동아리 공유
 - nested ReJjaek
-- Group lifecycle·membership 알림의 recipient 정책 확정
+- 나머지 GroupMembership lifecycle 알림의 recipient 정책 확정
 - 여러 group admin과 Group moderator 역할
 
 ---
 
 ## 미결정 사항
 
-- 가입·승인·초대·공유 및 회원 활동 정지·이용 제한의 Notification inbox 정책.
-  Group 운영 정지·복구를 포함한 Platform moderation 8개 사건의 recipient 정책은
-  `docs/specs/notifications_mvp.md`에 확정되어 있으며, 나머지는 후보만 기록되어 있다.
+- 아직 확정되지 않은 GroupMembership lifecycle·이용 제한·공유 Notification inbox 정책.
+  확정된 승인제 가입·비공개 동아리 초대 workflow와 moderation 정책은
+  `docs/specs/notifications_mvp.md`를 따른다.
 - 동아리 생성 횟수 제한, 계정 연령과 남용 방지 조건
 - 탈퇴 후 댓글 삭제를 제공하는 정확한 UI, 메시지와 동선
 - 승인 동아리 또는 비공개 동아리 탈퇴 후 원문 조회 권한을 잃은 상태에서 자기 콘텐츠 관리 진입을 제공하는 방식

@@ -15,11 +15,15 @@ RSpec.describe Notifications::GroupMembershipNotifier do
     @commit_callbacks.shift&.call
   end
 
-  it "maps only the three approved workflow events to their actual event rows" do
+  it "maps the approved and invitation workflow events to their actual event rows" do
     {
       requested_to_join: "group_membership_requested_to_join",
       approved: "group_membership_approved",
-      request_rejected: "group_membership_request_rejected"
+      request_rejected: "group_membership_request_rejected",
+      invited: "group_membership_invited",
+      invitation_accepted: "group_membership_invitation_accepted",
+      invitation_declined: "group_membership_invitation_declined",
+      invitation_revoked: "group_membership_invitation_revoked"
     }.each do |event_type, notification_action|
       event = GroupMembershipEvent.create!(group:, user: actor, actor:, event_type:)
       deliver(event)
@@ -38,6 +42,28 @@ RSpec.describe Notifications::GroupMembershipNotifier do
     expect(Notification.where(notifiable: event).pluck(:recipient_id)).to eq([ recipient.id ])
     described_class.schedule(event:, recipient_ids: [ actor.id ])
     expect(@commit_callbacks).to be_empty
+  end
+
+  it "suppresses an invitation workflow notification when actor and recipient match" do
+    event = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :invitation_accepted)
+
+    described_class.schedule(event:, recipient_ids: [ actor.id ])
+
+    expect(@commit_callbacks).to be_empty
+    expect(Notification.where(notifiable: event)).to be_empty
+  end
+
+  it "delivers a revoked invitation after its membership has been deleted" do
+    invitee = User.create!(name: "Invitee", email: "membership-notifier-invitee@example.com", password: "password123!")
+    membership = group.group_memberships.create!(user: invitee, status: :invited)
+    event = GroupMembershipEvent.create!(group:, user: invitee, actor:, event_type: :invitation_revoked)
+    membership.destroy!
+
+    deliver(event, recipient_ids: [ invitee.id ])
+
+    expect(Notification.find_by!(recipient: invitee, notifiable: event)).to have_attributes(
+      action: "group_membership_invitation_revoked", actor:
+    )
   end
 
   it "continues after a recipient failure without logging its message" do

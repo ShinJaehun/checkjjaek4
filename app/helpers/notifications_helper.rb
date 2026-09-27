@@ -40,7 +40,13 @@ module NotificationsHelper
 
     group_name = event.group&.name || t("notifications.membership.group_fallback")
     options = { group_name: }
-    options[:actor_name] = notification.actor.name if notification.group_membership_requested_to_join?
+    if notification.action.in?(%w[
+      group_membership_requested_to_join group_membership_invited
+      group_membership_invitation_accepted group_membership_invitation_declined
+      group_membership_invitation_revoked
+    ])
+      options[:actor_name] = notification.actor.name
+    end
     t("notifications.messages.#{notification.action}", **options)
   end
 
@@ -48,13 +54,22 @@ module NotificationsHelper
     group = notification.notifiable&.group
     return groups_path unless group
 
+    return groups_path if notification.group_membership_invited? || notification.group_membership_invitation_revoked?
+
     if notification.group_membership_requested_to_join?
       current_admin = group.group_admin?(current_user)
       can_view_members = GroupPolicy.new(current_user, group).view_members?
-      current_admin && can_view_members ? group_members_path(group) : groups_path
-    else
-      readable_group_path_or_fallback(group)
+      return group_members_path(group) if current_admin && can_view_members
+      return groups_path
     end
+
+    if notification.group_membership_invitation_accepted? ||
+       notification.group_membership_invitation_declined?
+      can_view_members = GroupPolicy.new(current_user, group).view_members?
+      return group_members_path(group) if can_view_members
+    end
+
+    readable_group_path_or_fallback(group)
   end
 
   def group_lifecycle_notification_message(notification)

@@ -120,6 +120,95 @@ RSpec.describe "Notifications", type: :request do
     expect(parse_html.at_css("article a")["href"]).to eq(groups_path)
   end
 
+  it "shows the inviting admin and links an invitation to the club list" do
+    group = Group.create!(group_admin: actor, name: "Reading circle", group_type: :private_group, lifecycle_status: :active)
+    event = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :invited)
+    Notification.create!(recipient:, actor:, action: :group_membership_invited, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.messages.group_membership_invited", actor_name: actor.name, group_name: group.name))
+    expect(article.at_css("img")["alt"]).to eq(actor.name)
+    expect(article.at_css("a")["href"]).to eq(groups_path)
+  end
+
+  it "shows invitation acceptance to the current admin and falls back after an admin change" do
+    group = Group.create!(group_admin: recipient, name: "Reading circle", group_type: :private_group, lifecycle_status: :active)
+    group.group_memberships.create!(user: actor, status: :active)
+    event = GroupMembershipEvent.create!(group:, user: actor, actor:, event_type: :invitation_accepted)
+    Notification.create!(recipient:, actor:, action: :group_membership_invitation_accepted, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.messages.group_membership_invitation_accepted", actor_name: actor.name, group_name: group.name))
+    expect(article.at_css("img")["alt"]).to eq(actor.name)
+    expect(article.at_css("a")["href"]).to eq(group_members_path(group))
+
+    group.update!(group_admin: actor)
+    get notifications_path
+    expect(parse_html.at_css("article a")["href"]).to eq(group_path(group))
+  end
+
+  it "shows invitation decline after membership deletion and falls back when the former admin loses access" do
+    group = Group.create!(group_admin: recipient, name: "Reading circle", group_type: :private_group, lifecycle_status: :active)
+    invitation = group.group_memberships.create!(user: actor, status: :invited)
+    event = GroupMembershipEvent.create!(group:, user: actor, actor:, event_type: :invitation_declined)
+    invitation.destroy!
+    Notification.create!(recipient:, actor:, action: :group_membership_invitation_declined, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.messages.group_membership_invitation_declined", actor_name: actor.name, group_name: group.name))
+    expect(article.at_css("img")["alt"]).to eq(actor.name)
+    expect(article.at_css("a")["href"]).to eq(group_members_path(group))
+
+    group.group_memberships.create!(user: actor, status: :active)
+    group.update!(group_admin: actor)
+    group.group_memberships.find_by!(user: recipient).destroy!
+    get notifications_path
+    expect(parse_html.at_css("article a")["href"]).to eq(groups_path)
+  end
+
+  it "shows invitation revocation after membership deletion and links to the club list" do
+    group = Group.create!(group_admin: actor, name: "Reading circle", group_type: :private_group, lifecycle_status: :active)
+    invitation = group.group_memberships.create!(user: recipient, status: :invited)
+    event = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :invitation_revoked)
+    invitation.destroy!
+    Notification.create!(recipient:, actor:, action: :group_membership_invitation_revoked, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.messages.group_membership_invitation_revoked", actor_name: actor.name, group_name: group.name))
+    expect(article.text).to include("초대를 취소했습니다")
+    expect(article.text).not_to include("철회")
+    expect(article.at_css("img")["alt"]).to eq(actor.name)
+    expect(article.at_css("a")["href"]).to eq(groups_path)
+  end
+
+  %w[group_membership_invitation_accepted group_membership_invitation_declined].each do |action|
+    it "links #{action} to members when the recipient is a global admin" do
+      recipient.update!(global_admin: true)
+      group = Group.create!(group_admin: actor, name: "Reading circle", group_type: :private_group, lifecycle_status: :active)
+      invitee = User.create!(name: "Invitee", email: "#{action}-invitee@example.com", password: "password123!")
+      event_type = action.delete_prefix("group_membership_")
+      event = GroupMembershipEvent.create!(group:, user: invitee, actor: invitee, event_type:)
+      Notification.create!(recipient:, actor: invitee, action:, notifiable: event)
+      sign_in recipient
+
+      get notifications_path
+
+      expect(parse_html.at_css("article a")["href"]).to eq(group_members_path(group))
+    end
+  end
+
   it "renders a lifecycle request without actor identity or application detail and links eligible admins to review" do
     recipient.update!(global_admin: true)
     group = Group.create!(group_admin: actor, name: "Review club", group_type: :public_group, application_purpose: "PRIVATE_APPLICATION")

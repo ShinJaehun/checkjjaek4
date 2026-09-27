@@ -12,6 +12,7 @@ class UsersController < ApplicationController
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
     @invitable_private_groups = ProfileInvitablePrivateGroupsQuery.new(actor: current_user, target: @user).call
+    @cancelable_private_group_invitations = ProfileCancelablePrivateGroupInvitationsQuery.new(actor: current_user, target: @user).call
     prepare_profile_bookshelf(profile_policy)
     prepare_profile_book_activities
     prepare_profile_jjaeks(profile_policy)

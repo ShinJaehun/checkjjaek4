@@ -3,7 +3,11 @@ module Notifications
     ACTIONS = {
       "requested_to_join" => :group_membership_requested_to_join,
       "approved" => :group_membership_approved,
-      "request_rejected" => :group_membership_request_rejected
+      "request_rejected" => :group_membership_request_rejected,
+      "invited" => :group_membership_invited,
+      "invitation_accepted" => :group_membership_invitation_accepted,
+      "invitation_declined" => :group_membership_invitation_declined,
+      "invitation_revoked" => :group_membership_invitation_revoked
     }.freeze
 
     def self.schedule(event:, recipient_ids:)

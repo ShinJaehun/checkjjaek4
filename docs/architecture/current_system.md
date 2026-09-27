@@ -234,7 +234,7 @@
 - active 일반 member는 탈퇴할 수 있고 현재 동아리 관리자는 탈퇴할 수 없음
 - 비공개 동아리는 동아리 관리자와 active member가 목록과 기본 상세에서 조회할 수 있음
 - 일반 사용자가 비공개 동아리를 생성할 수 있음
-- 비공개 동아리 관리자는 사용자 프로필에서 초대 가능한 동아리를 선택해 기존 사용자를 `invited` membership으로 초대하며, 회원 관리 화면에서는 이미 보낸 초대를 관리함
+- 비공개 동아리 관리자는 대상 사용자 프로필에서 새 `invited` membership으로 초대하거나 기존 pending 초대를 취소하며, 회원 관리 화면에서도 보낸 초대를 취소함. 두 화면 모두 같은 revoke action과 `GroupMembershipPolicy#revoke?`를 사용함
 - 초대받은 사용자는 동아리 목록의 별도 초대 영역에서 수락하거나 거절할 수 있음
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
 - 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
@@ -266,7 +266,7 @@
 - active 공개 동아리의 Jjaek·책짹은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
 - 승인·비공개·inactive·pending 동아리 원문의 외부 ReJjaek과 개인 Jjaek의 동아리 공유·동아리 안에서의 ReJjaek 작성은 허용하지 않음
 - 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
-- 동아리 hard delete, 초대 알림, 이메일·링크 초대, moderator와 별도 moderation dashboard는 구현되지 않음
+- 동아리 hard delete, 이메일·링크 초대, moderator와 별도 moderation dashboard는 구현되지 않음
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를, Group 운영 상세의 같은 형태 inventory에서 해당 동아리의 Jjaek·책짹·Comment를 직접 조사할 수 있음
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
 - User/Group content timeline은 검색·기본 상태 필터·정렬·페이지네이션을 제공하며 hidden Comment를 `hidden_at` 기준으로 숨김 상태에 표시·필터함. Comment에는 별도 삭제 상태를 만들지 않고 삭제 필터에서는 제외함
@@ -330,8 +330,9 @@
 ### 6. 알림 화면 (/notifications)
 
 - `Notification` 모델 기반 알림 inbox. Group lifecycle 5개 사건, 관리자 이전
-  2개 사건, 승인제 가입 workflow 3개 사건은 실제
+  2개 사건, 승인제 가입 workflow 3개 사건, 비공개 동아리 초대 workflow 4개 사건은 실제
   `GroupLifecycleEvent`/`GroupMembershipEvent`를 source로 commit 이후 전달
+- 비공개 동아리 초대·수락·거절·취소 Notification은 사건 시점의 invitee 또는 Group admin을 수신자로 확정하고 실제 actor를 표시함. 취소의 내부 event type은 `invitation_revoked`이며, 초대·취소는 `/groups`, 수락·거절은 현재 회원 관리 권한에 따라 회원 관리 또는 안전한 Group 목록으로 연결
 - unread count를 navbar에 표시
 - `/notifications` 진입 시 현재 사용자의 unread 알림을 read 처리
 - 책친구 요청 알림은 `/relationships#received-book-friend-requests`로 연결
