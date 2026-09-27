@@ -290,7 +290,7 @@
 - append-only `ModerationAction` 감사 모델은 대상·처리자·공개 사유·내부 메모와 별도 restore row의 원 조치 연결을 보존하며, 대상 hard delete와 관계없이 감사 row를 유지함
 - Jjaek·Comment hide/restore의 `platform`/`group` authority는 조치 시점 snapshot으로 감사 row에 보존되어 actor의 이후 역할 변경에 영향받지 않음
 - 동아리 활동 정지·해제는 `ModerationAction`에만 기록하며 `GroupMembershipEvent`에 중복 저장하지 않음
-- GroupMembership 대상 `ModerationAction`은 membership hard delete 뒤에도 Group/User attribution을 잃지 않도록 FK 없는 `membership_group_id`/`membership_user_id` snapshot을 보존함
+- GroupMembership·GroupMemberBan 대상 `ModerationAction`은 membership 또는 ban row 삭제 뒤에도 Group/User attribution을 잃지 않도록 FK 없는 `membership_group_id`/`membership_user_id` snapshot을 보존함
 - 회원 관리 화면은 `GroupMembershipEvent`와 GroupMembership 대상 `ModerationAction`을 Group 단위 최신순 회원 운영 이력으로 통합 표시함
 - 이용 제한·해제는 `GroupMemberBan` 대상 append-only 감사 row로 같은 운영 이력에 표시하며 일반 `removed` lifecycle event로 기록하지 않음
 - global admin은 다른 active User를 정지하고 suspended User를 복구할 수 있으며 자기 자신 정지는 허용하지 않음
@@ -330,8 +330,10 @@
 ### 6. 알림 화면 (/notifications)
 
 - `Notification` 모델 기반 알림 inbox. Group lifecycle 5개 사건, 관리자 이전
-  2개 사건, 승인제 가입 workflow 3개 사건, 비공개 동아리 초대 workflow 4개 사건은 실제
+  2개 사건, 승인제 가입 workflow 3개 사건, 비공개 동아리 초대 workflow 4개 사건과 가입 신청 취소·내보내기는 실제
   `GroupLifecycleEvent`/`GroupMembershipEvent`를 source로 commit 이후 전달
+- 가입 신청 취소는 사건 시점 Group admin에게 신청자 이름으로, 내보내기는 대상 회원에게 운영 주체 이름으로 알림. `joined`와 자발적 `left`는 운영 이력만 남김
+- 동아리 이용 제한·해제는 실제 `ModerationAction`의 Group/User attribution과 공개 사유로 대상 회원에게 commit 후 알림. 해제 후 회원 자격은 자동 복구되지 않으며, 삭제된 ban row 없이도 표시·목적지를 결정함
 - 비공개 동아리 초대·수락·거절·취소 Notification은 사건 시점의 invitee 또는 Group admin을 수신자로 확정하고 실제 actor를 표시함. 취소의 내부 event type은 `invitation_revoked`이며, 초대·취소는 `/groups`, 수락·거절은 현재 회원 관리 권한에 따라 회원 관리 또는 안전한 Group 목록으로 연결
 - unread count를 navbar에 표시
 - `/notifications` 진입 시 현재 사용자의 unread 알림을 read 처리

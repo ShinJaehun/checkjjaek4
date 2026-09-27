@@ -104,10 +104,9 @@ Lifecycle/moderation 알림의 `notifiable`은 가능한 한 User/Group 같은 �
 GroupMembership 활동 정지·복구도 이번 조치의 `ModerationAction`을 사건 source로
 사용한다. 아래 확정된 Group lifecycle Notification은 실제
 `GroupLifecycleEvent` row를 사용한다. 관리자 이전 Notification과 아래 확정된
-GroupMembership 승인제 가입·비공개 동아리 초대 workflow Notification은 실제
-`GroupMembershipEvent` row를 `notifiable`로 사용한다. 그 밖의 membership
-lifecycle은 `GroupMembershipEvent`, 회원 이용 제한·해제는 `ModerationAction`을
-사건 source 후보로만 두며 recipient 정책이 확정되기 전에는 생성하지 않는다.
+GroupMembership 승인제 가입·비공개 동아리 초대·신청 취소·내보내기 Notification은
+실제 `GroupMembershipEvent` row를 `notifiable`로 사용한다. 동아리 이용 제한·해제는
+실제 `ModerationAction` row를 `notifiable`로 사용한다.
 
 ---
 
@@ -374,20 +373,30 @@ Notification 수신 설정이 아니며 별도 Notification on/off 설정은 이
 
 ---
 
-## 그 밖의 GroupMembership lifecycle·moderation recipient 후보 `(미확정·구현 대상 아님)`
+## 가입 신청 취소·내보내기·이용 제한 Notification `(확정·구현)`
 
-아래는 현재 사건의 의미와 접근 경계를 바탕으로 검토할 후보일 뿐이다.
-알림 생성 여부, recipient, 공개 범위, 목적지는 별도 승인 전까지 확정하지 않는다.
+| 사건 | notifiable | recipient | 표시와 destination |
+| --- | --- | --- | --- |
+| `join_request_cancelled` | 해당 `GroupMembershipEvent` | 사건 시점 Group admin | 신청자 이름·avatar와 Group 이름. 현재 `GroupPolicy#view_members?` 허용 시 회원 관리, 아니면 `groups_path` |
+| `removed` | 해당 `GroupMembershipEvent` | 내보내진 `event.user` | 운영 주체와 Group 이름만 표시하고 `groups_path`로 연결 |
+| `ban_from_group` | 해당 `ModerationAction` | `membership_user_id` 대상 사용자 | 운영 주체, Group 이름, 이번 조치의 `public_reason`만 표시하고 `groups_path`로 연결 |
+| `unban_from_group` | 해당 `ModerationAction` | `membership_user_id` 대상 사용자 | 운영 주체, Group 이름, 이번 조치의 `public_reason`, 회원 자격이 자동 복구되지 않는다는 안내. 현재 Group 조회 가능 시 Group 상세, 아니면 `groups_path` |
 
-| 사건 | recipient 후보 / 검토 사항 |
-| --- | --- |
-| 최초 관리자 가입·일반 가입 | 일반 가입은 group admin에게 후보. 최초 관리자 본인의 `joined`는 self 알림 제외 |
-| 가입 신청 취소 | 알림 없이 심사 목록 갱신만으로 충분한지 검토 |
-| 자발적 탈퇴 | group admin: 회원 구성 변화 |
-| 내보내기 | 대상 사용자: 접근 상실. 사유 필드를 새로 추정하지 않음 |
-| 이용 제한·해제 | 대상 사용자: 재참여 제한 변화와 공개 사유. 해제는 membership 자동 복구가 아님 |
+가입 신청 취소의 Group admin ID는 event 생성 transaction 안에서 확정한다.
+내보내기는 `event.user_id`, 이용 제한·해제는 해당 action의
+`membership_user_id`를 같은 transaction 안에서 수신자로 확정한다.
+모두 기존 notifier를 통해 commit 이후 best-effort로 전달한다.
 
-그 밖의 soft-rejection 성격 사건에는 기존 책친구 관계의 정책을 자동 적용하지 않는다.
+내보내기·이용 제한·해제는 실제 Group admin을 actor로 보존하지만
+사용자 화면에는 이름·avatar를 표시하지 않는다. 내보내기에는 사유를
+추정하거나 추가하지 않는다. 이용 제한·해제의 `internal_note`는 노출하지 않는다.
+이용 제한·해제의 Group 이름과 대상 사용자 식별에는 각각
+`membership_group_id`, `membership_user_id` attribution을 사용한다.
+특히 해제 action은 ban row 삭제 후에도 표시되어야 하므로 `action.target`에
+의존하지 않는다. Notification 링크는 기존 Group 접근 정책을 우회하지 않는다.
+
+`joined`는 일반 가입이고 `left`는 자발적 탈퇴이므로 운영 이력만 남기고
+Notification을 생성하지 않는다.
 
 ---
 

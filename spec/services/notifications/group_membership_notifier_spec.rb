@@ -23,7 +23,9 @@ RSpec.describe Notifications::GroupMembershipNotifier do
       invited: "group_membership_invited",
       invitation_accepted: "group_membership_invitation_accepted",
       invitation_declined: "group_membership_invitation_declined",
-      invitation_revoked: "group_membership_invitation_revoked"
+      invitation_revoked: "group_membership_invitation_revoked",
+      join_request_cancelled: "group_membership_join_request_cancelled",
+      removed: "group_membership_removed"
     }.each do |event_type, notification_action|
       event = GroupMembershipEvent.create!(group:, user: actor, actor:, event_type:)
       deliver(event)
@@ -63,6 +65,19 @@ RSpec.describe Notifications::GroupMembershipNotifier do
 
     expect(Notification.find_by!(recipient: invitee, notifiable: event)).to have_attributes(
       action: "group_membership_invitation_revoked", actor:
+    )
+  end
+
+  it "delivers a removal event after its membership has been deleted" do
+    member = User.create!(name: "Removed", email: "membership-notifier-removed@example.com", password: "password123!")
+    membership = group.group_memberships.create!(user: member, status: :active)
+    event = GroupMembershipEvent.create!(group:, user: member, actor: recipient, event_type: :removed)
+    membership.destroy!
+
+    deliver(event, recipient_ids: [ member.id ])
+
+    expect(Notification.find_by!(recipient: member, notifiable: event)).to have_attributes(
+      action: "group_membership_removed", actor: recipient
     )
   end
 

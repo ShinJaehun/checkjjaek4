@@ -27,7 +27,11 @@ class Notification < ApplicationRecord
     group_membership_invited: 24,
     group_membership_invitation_accepted: 25,
     group_membership_invitation_declined: 26,
-    group_membership_invitation_revoked: 27
+    group_membership_invitation_revoked: 27,
+    group_membership_join_request_cancelled: 28,
+    group_membership_removed: 29,
+    group_member_banned: 30,
+    group_member_unbanned: 31
   }, validate: true
 
   belongs_to :recipient, class_name: "User", inverse_of: :received_notifications
@@ -121,12 +125,14 @@ class Notification < ApplicationRecord
       group_membership_requested_to_join group_membership_approved
       group_membership_request_rejected group_membership_invited
       group_membership_invitation_accepted group_membership_invitation_declined
-      group_membership_invitation_revoked
+      group_membership_invitation_revoked group_membership_join_request_cancelled
+      group_membership_removed
     ])
   end
 
   def show_actor_avatar?
     !moderation? && !group_lifecycle? &&
-      !group_membership_approved? && !group_membership_request_rejected?
+      !group_membership_approved? && !group_membership_request_rejected? &&
+      !group_membership_removed?
   end
 end

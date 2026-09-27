@@ -7,7 +7,9 @@ module Notifications
       "invited" => :group_membership_invited,
       "invitation_accepted" => :group_membership_invitation_accepted,
       "invitation_declined" => :group_membership_invitation_declined,
-      "invitation_revoked" => :group_membership_invitation_revoked
+      "invitation_revoked" => :group_membership_invitation_revoked,
+      "join_request_cancelled" => :group_membership_join_request_cancelled,
+      "removed" => :group_membership_removed
     }.freeze
 
     def self.schedule(event:, recipient_ids:)

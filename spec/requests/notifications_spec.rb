@@ -120,6 +120,96 @@ RSpec.describe "Notifications", type: :request do
     expect(parse_html.at_css("article a")["href"]).to eq(groups_path)
   end
 
+  it "shows a cancelled join request with applicant identity and current members access" do
+    group = Group.create!(group_admin: recipient, name: "Approval circle", group_type: :approval_group, lifecycle_status: :active)
+    event = GroupMembershipEvent.create!(group:, user: actor, actor:, event_type: :join_request_cancelled)
+    Notification.create!(recipient:, actor:, action: :group_membership_join_request_cancelled, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(actor.name, group.name, "가입 신청을 취소했습니다")
+    expect(article.at_css("img")["alt"]).to eq(actor.name)
+    expect(article.at_css("a")["href"]).to eq(group_members_path(group))
+
+    group.group_memberships.create!(user: actor, status: :active)
+    group.update!(group_admin: actor)
+    get notifications_path
+    expect(parse_html.at_css("article a")["href"]).to eq(groups_path)
+  end
+
+  it "shows removal without the admin identity after membership deletion" do
+    group = Group.create!(group_admin: actor, name: "Private circle", group_type: :private_group, lifecycle_status: :active)
+    membership = group.group_memberships.create!(user: recipient, status: :active)
+    event = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :removed)
+    GroupMembershipRemoval.create!(group:, user: recipient, removed_by: actor)
+    membership.destroy!
+    Notification.create!(recipient:, actor:, action: :group_membership_removed, notifiable: event)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include("동아리 운영진", group.name, "회원님을 내보냈습니다")
+    expect(article.text).not_to include(actor.name, "사유")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(groups_path)
+  end
+
+  it "shows a ban from its audit attribution without the admin identity or internal note" do
+    group = Group.create!(group_admin: actor, name: "Private circle", group_type: :private_group, lifecycle_status: :active)
+    membership = group.group_memberships.create!(user: recipient, status: :active)
+    ban = group.group_member_bans.create!(user: recipient)
+    action = ModerationAction.create!(target: ban, actor:, action_type: :ban_from_group,
+                                      public_reason: "Group rule", internal_note: "PRIVATE_NOTE")
+    membership.destroy!
+    Notification.create!(recipient:, actor:, action: :group_member_banned, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include("동아리 운영진", group.name, "Group rule")
+    expect(article.text).not_to include(actor.name, "PRIVATE_NOTE")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(groups_path)
+  end
+
+  it "shows an unban after the ban row is deleted without restoring private group access" do
+    group = Group.create!(group_admin: actor, name: "Private circle", group_type: :private_group, lifecycle_status: :active)
+    ban = group.group_member_bans.create!(user: recipient)
+    original = ModerationAction.create!(target: ban, actor:, action_type: :ban_from_group, public_reason: "Rule")
+    action = ModerationAction.create!(target: ban, actor:, action_type: :unban_from_group,
+                                      public_reason: "Resolved", internal_note: "PRIVATE_NOTE", reversal_of: original)
+    ban.destroy!
+    Notification.create!(recipient:, actor:, action: :group_member_unbanned, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include("동아리 운영진", group.name, "회원 자격은 자동으로 복구되지 않습니다", "Resolved")
+    expect(article.text).not_to include(actor.name, "PRIVATE_NOTE")
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(groups_path)
+  end
+
+  it "links an unban to a currently readable group after the ban row is deleted" do
+    group = Group.create!(group_admin: actor, name: "Public circle", group_type: :public_group, lifecycle_status: :active)
+    ban = group.group_member_bans.create!(user: recipient)
+    original = ModerationAction.create!(target: ban, actor:, action_type: :ban_from_group, public_reason: "Rule")
+    action = ModerationAction.create!(target: ban, actor:, action_type: :unban_from_group,
+                                      public_reason: "Resolved", reversal_of: original)
+    ban.destroy!
+    Notification.create!(recipient:, actor:, action: :group_member_unbanned, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(parse_html.at_css("article a")["href"]).to eq(group_path(group))
+  end
+
   it "shows the inviting admin and links an invitation to the club list" do
     group = Group.create!(group_admin: actor, name: "Reading circle", group_type: :private_group, lifecycle_status: :active)
     event = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :invited)

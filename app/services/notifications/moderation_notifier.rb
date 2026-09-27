@@ -7,6 +7,8 @@ module Notifications
       [ "Group", "restore_group_operation" ] => :group_operation_restored,
       [ "GroupMembership", "suspend_activity" ] => :group_member_activity_suspended,
       [ "GroupMembership", "restore_activity" ] => :group_member_activity_restored,
+      [ "GroupMemberBan", "ban_from_group" ] => :group_member_banned,
+      [ "GroupMemberBan", "unban_from_group" ] => :group_member_unbanned,
       [ "Jjaek", "hide" ] => :jjaek_hidden,
       [ "Jjaek", "restore" ] => :jjaek_restored,
       [ "Comment", "hide" ] => :comment_hidden,

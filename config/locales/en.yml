@@ -723,6 +723,8 @@ en:
       comment_restored: "%{authority} restored your comment. Reason: %{reason}"
       group_member_activity_suspended: "%{authority} suspended your activity in the %{group_name} club. Reason: %{reason}"
       group_member_activity_restored: "%{authority} restored your activity in the %{group_name} club. Reason: %{reason}"
+      group_member_banned: "%{authority} restricted your access to %{group_name}. Reason: %{reason}"
+      group_member_unbanned: "%{authority} lifted your restriction from %{group_name}. Your membership was not automatically restored. Reason: %{reason}"
       group_opening_requested: "New club opening request: %{group_name}"
       group_opening_approved: "The team approved the opening of %{group_name}."
       group_operations_closed: "The club team closed %{group_name}."
@@ -737,6 +739,8 @@ en:
       group_membership_invitation_accepted: "%{actor_name} accepted the invitation to %{group_name}."
       group_membership_invitation_declined: "%{actor_name} declined the invitation to %{group_name}."
       group_membership_invitation_revoked: "%{actor_name} cancelled your invitation to %{group_name}."
+      group_membership_join_request_cancelled: "%{actor_name} cancelled their request to join %{group_name}."
+      group_membership_removed: "The club team removed you from %{group_name}."
   requotes:
     actions:
       view_panel: "View ReJjaeks"

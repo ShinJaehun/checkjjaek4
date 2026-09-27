@@ -18,7 +18,7 @@ module GroupMemberBans
                                   ban.group.group_admin?(actor) &&
                                   original_action
 
-        ModerationAction.create!(
+        action = ModerationAction.create!(
           target: ban,
           actor:,
           action_type: :unban_from_group,
@@ -27,6 +27,8 @@ module GroupMemberBans
           reversal_of: original_action
         )
         ban.destroy!
+        Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ action.membership_user_id ])
+        ban
       end
     end
 

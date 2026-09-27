@@ -64,6 +64,20 @@ RSpec.describe GroupMemberBans::Ban do
     expect(group.group_membership_events.removed.count).to eq(removed_count)
   end
 
+  it "schedules the attributed ban action for the user after deleting the membership" do
+    membership = group.group_memberships.create!(user: member, status: :active)
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(
+        target_type: "GroupMemberBan", action_type: "ban_from_group",
+        membership_group_id: group.id, membership_user_id: member.id
+      )
+      expect(recipient_ids).to eq([ member.id ])
+      expect(GroupMembership.exists?(membership.id)).to be(false)
+    end
+
+    described_class.new(membership, actor: group_admin, public_reason: "Rule").call!
+  end
+
   it "rolls back the marker and membership deletion when the audit is invalid" do
     membership = group.group_memberships.create!(user: member, status: :active)
 

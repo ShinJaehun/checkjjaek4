@@ -34,7 +34,11 @@ RSpec.describe Notification, type: :model do
       "group_membership_invited" => 24,
       "group_membership_invitation_accepted" => 25,
       "group_membership_invitation_declined" => 26,
-      "group_membership_invitation_revoked" => 27
+      "group_membership_invitation_revoked" => 27,
+      "group_membership_join_request_cancelled" => 28,
+      "group_membership_removed" => 29,
+      "group_member_banned" => 30,
+      "group_member_unbanned" => 31
     )
   end
 

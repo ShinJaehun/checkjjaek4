@@ -41,7 +41,8 @@ module NotificationsHelper
     group_name = event.group&.name || t("notifications.membership.group_fallback")
     options = { group_name: }
     if notification.action.in?(%w[
-      group_membership_requested_to_join group_membership_invited
+      group_membership_requested_to_join group_membership_join_request_cancelled
+      group_membership_invited
       group_membership_invitation_accepted group_membership_invitation_declined
       group_membership_invitation_revoked
     ])
@@ -54,7 +55,13 @@ module NotificationsHelper
     group = notification.notifiable&.group
     return groups_path unless group
 
-    return groups_path if notification.group_membership_invited? || notification.group_membership_invitation_revoked?
+    return groups_path if notification.group_membership_invited? ||
+                          notification.group_membership_invitation_revoked? ||
+                          notification.group_membership_removed?
+
+    if notification.group_membership_join_request_cancelled?
+      return GroupPolicy.new(current_user, group).view_members? ? group_members_path(group) : groups_path
+    end
 
     if notification.group_membership_requested_to_join?
       current_admin = group.group_admin?(current_user)
@@ -101,7 +108,7 @@ module NotificationsHelper
       reason: moderation_notification_reason(action)
     }
     options[:group_name] = action.target&.name || t("notifications.moderation.group_fallback") if action.target_type == "Group"
-    if action.target_type == "GroupMembership"
+    if action.target_type.in?(%w[GroupMembership GroupMemberBan])
       options[:group_name] = Group.find_by(id: action.membership_group_id)&.name || t("notifications.moderation.group_fallback")
     end
 
@@ -109,7 +116,7 @@ module NotificationsHelper
   end
 
   def moderation_notification_authority(action)
-    return "group" if action.target_type == "GroupMembership"
+    return "group" if action.target_type.in?(%w[GroupMembership GroupMemberBan])
 
     action.group_authority? ? "group" : "platform"
   end
@@ -120,7 +127,7 @@ module NotificationsHelper
       User.suspension_reason_label(action.public_reason)
     when "Group"
       Group.suspension_reason_label(action.public_reason)
-    when "GroupMembership"
+    when "GroupMembership", "GroupMemberBan"
       action.public_reason
     when "Jjaek", "Comment"
       action.action_type_hide? ? jjaek_hide_reason_label(action.public_reason) : action.public_reason
@@ -130,6 +137,12 @@ module NotificationsHelper
   def moderation_notification_target_path(notification)
     action = notification.notifiable
     return user_path(current_user) unless action
+
+    if action.target_type == "GroupMemberBan"
+      return groups_path if notification.group_member_banned?
+
+      return readable_group_path_or_fallback(Group.find_by(id: action.membership_group_id))
+    end
 
     target = action.target
     case action.target_type

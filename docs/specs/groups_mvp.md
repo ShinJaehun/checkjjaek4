@@ -350,15 +350,15 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 - 승인 동아리·비공개 동아리 원문의 외부 ReJjaek
 - `book_friends`, `private_jjaek`의 동아리 공유
 - nested ReJjaek
-- 나머지 GroupMembership lifecycle 알림의 recipient 정책 확정
+- Group 공유 Notification 정책 확정
 - 여러 group admin과 Group moderator 역할
 
 ---
 
 ## 미결정 사항
 
-- 아직 확정되지 않은 GroupMembership lifecycle·이용 제한·공유 Notification inbox 정책.
-  확정된 승인제 가입·비공개 동아리 초대 workflow와 moderation 정책은
+- 아직 확정되지 않은 Group 공유 Notification inbox 정책.
+  승인제 가입·초대 workflow, 신청 취소·내보내기, 이용 제한·해제의 확정 정책은
   `docs/specs/notifications_mvp.md`를 따른다.
 - 동아리 생성 횟수 제한, 계정 연령과 남용 방지 조건
 - 탈퇴 후 댓글 삭제를 제공하는 정확한 UI, 메시지와 동선

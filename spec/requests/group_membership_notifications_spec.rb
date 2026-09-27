@@ -161,4 +161,64 @@ RSpec.describe "Group membership notification scheduling", type: :request do
     delivery_callbacks.fetch(0).call
     expect(Notification.where(notifiable: event)).to be_empty
   end
+
+  it "passes a cancelled request event and the event-time admin ID after deleting the membership" do
+    membership = group.group_memberships.create!(user: applicant, status: :pending)
+    sign_in applicant
+    expect(Notifications::GroupMembershipNotifier).to receive(:schedule) do |event:, recipient_ids:|
+      expect(event).to eq(group.group_membership_events.join_request_cancelled.sole)
+      expect(event).to have_attributes(actor: applicant, user: applicant, group:)
+      expect(recipient_ids).to eq([ group_admin.id ])
+      expect(GroupMembership.exists?(membership.id)).to be(false)
+    end
+
+    delete group_group_membership_path(group, membership)
+
+    expect(response).to redirect_to(groups_path)
+  end
+
+  it "keeps the event-time recipient when the group admin changes before delivery" do
+    membership = group.group_memberships.create!(user: applicant, status: :pending)
+    callbacks = []
+    allow(ActiveRecord).to receive(:after_all_transactions_commit) { |&callback| callbacks << callback }
+    sign_in applicant
+
+    delete group_group_membership_path(group, membership)
+
+    event = group.group_membership_events.join_request_cancelled.sole
+    group.group_memberships.create!(user: applicant, status: :active)
+    group.update!(group_admin: applicant)
+    expect(callbacks.length).to eq(1)
+    callbacks.fetch(0).call
+    expect(Notification.find_by!(notifiable: event).recipient).to eq(group_admin)
+  end
+
+  it "passes a removal event and the removed user's ID while preserving the marker" do
+    membership = group.group_memberships.create!(user: applicant, status: :active)
+    sign_in group_admin
+    expect(Notifications::GroupMembershipNotifier).to receive(:schedule) do |event:, recipient_ids:|
+      expect(event).to eq(group.group_membership_events.removed.sole)
+      expect(event).to have_attributes(actor: group_admin, user: applicant, group:)
+      expect(recipient_ids).to eq([ applicant.id ])
+      expect(GroupMembership.exists?(membership.id)).to be(false)
+      expect(GroupMembershipRemoval.exists?(group:, user: applicant)).to be(true)
+    end
+
+    delete remove_group_group_membership_path(group, membership)
+
+    expect(response).to redirect_to(group_members_path(group))
+  end
+
+  it "does not schedule a notification for public joining or voluntary leaving" do
+    public_group = Group.create!(name: "Public club", group_admin:, lifecycle_status: :active, group_type: :public_group)
+    sign_in applicant
+    expect(Notifications::GroupMembershipNotifier).not_to receive(:schedule)
+
+    post group_group_memberships_path(public_group)
+    membership = public_group.group_memberships.find_by!(user: applicant)
+    delete group_group_membership_path(public_group, membership)
+
+    expect(public_group.group_membership_events.joined.where(user: applicant)).to exist
+    expect(public_group.group_membership_events.left.where(user: applicant)).to exist
+  end
 end

@@ -25,6 +25,22 @@ RSpec.describe GroupMemberBans::Unban do
     )
   end
 
+  it "schedules the attributed unban action after deleting the ban marker" do
+    membership = group.group_memberships.create!(user: member, status: :active)
+    ban = GroupMemberBans::Ban.new(membership, actor: group_admin, public_reason: "Ban").call!
+    expect(Notifications::ModerationNotifier).to receive(:schedule) do |moderation_action:, recipient_ids:|
+      expect(moderation_action).to have_attributes(
+        target_type: "GroupMemberBan", action_type: "unban_from_group",
+        membership_group_id: group.id, membership_user_id: member.id
+      )
+      expect(recipient_ids).to eq([ member.id ])
+      expect(GroupMemberBan.exists?(ban.id)).to be(false)
+      expect(group.group_memberships.exists?(user: member)).to be(false)
+    end
+
+    described_class.new(ban, actor: group_admin, public_reason: "Unban").call!
+  end
+
   it "keeps the marker when the reversal audit is invalid" do
     membership = group.group_memberships.create!(user: member, status: :active)
     ban = GroupMemberBans::Ban.new(membership, actor: group_admin, public_reason: "Ban").call!

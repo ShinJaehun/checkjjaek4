@@ -742,6 +742,8 @@ ko:
       comment_restored: "%{authority}에서 내 댓글을 복구했습니다. 사유: %{reason}"
       group_member_activity_suspended: "%{authority}에서 %{group_name} 동아리 활동을 정지했습니다. 사유: %{reason}"
       group_member_activity_restored: "%{authority}에서 %{group_name} 동아리 활동을 복구했습니다. 사유: %{reason}"
+      group_member_banned: "%{authority}이 %{group_name} 이용을 제한했습니다. 사유: %{reason}"
+      group_member_unbanned: "%{authority}이 %{group_name} 이용 제한을 해제했습니다. 회원 자격은 자동으로 복구되지 않습니다. 사유: %{reason}"
       group_opening_requested: "새 동아리 개설 신청: %{group_name}"
       group_opening_approved: "운영팀에서 %{group_name} 동아리 개설을 승인했습니다."
       group_operations_closed: "동아리 운영진에서 %{group_name} 동아리 운영을 종료했습니다."
@@ -756,6 +758,8 @@ ko:
       group_membership_invitation_accepted: "%{actor_name}님이 %{group_name} 초대를 수락했습니다."
       group_membership_invitation_declined: "%{actor_name}님이 %{group_name} 초대를 거절했습니다."
       group_membership_invitation_revoked: "%{actor_name}님이 %{group_name} 초대를 취소했습니다."
+      group_membership_join_request_cancelled: "%{actor_name}님이 %{group_name} 가입 신청을 취소했습니다."
+      group_membership_removed: "동아리 운영진이 %{group_name}에서 회원님을 내보냈습니다."
   requotes:
     actions:
       view_panel: "다시짹 보기"

@@ -121,11 +121,12 @@ class GroupMembershipsController < ApplicationController
     authorize @membership, :remove?
     @group.with_lock do
       authorize @membership, :remove?
-      record_membership_event!(:removed)
+      event = record_membership_event!(:removed)
       removal = GroupMembershipRemoval.find_or_initialize_by(group: @group, user: @membership.user)
       removal.removed_by = current_user
       removal.save!
       @membership.destroy!
+      Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ event.user_id ])
     end
 
     redirect_to group_members_path(@group), notice: t("group_memberships.notices.removed"), status: :see_other
@@ -161,8 +162,10 @@ class GroupMembershipsController < ApplicationController
     authorize @membership
     pending = @membership.pending?
     @group.with_lock do
-      record_membership_event!(pending ? :join_request_cancelled : :left)
+      event = record_membership_event!(pending ? :join_request_cancelled : :left)
+      admin_id = event.group.group_admin_id if pending
       @membership.destroy!
+      Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ admin_id ]) if pending
     end
 
     redirect_to groups_path,

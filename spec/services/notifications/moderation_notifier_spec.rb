@@ -60,6 +60,22 @@ RSpec.describe Notifications::ModerationNotifier do
     end
   end
 
+  it "maps ban and unban to their audit rows after the ban marker is deleted" do
+    group = Group.create!(lifecycle_status: :active, group_admin: actor, name: "Ban group", group_type: :public_group)
+    ban = group.group_member_bans.create!(user: recipient)
+    ban_action = ModerationAction.create!(target: ban, actor:, action_type: :ban_from_group, public_reason: "Rule")
+    unban_action = ModerationAction.create!(target: ban, actor:, action_type: :unban_from_group,
+                                            public_reason: "Resolved", reversal_of: ban_action)
+    ban.destroy!
+
+    { ban_action => "group_member_banned", unban_action => "group_member_unbanned" }.each do |action, notification_action|
+      deliver_after_commit(action)
+      expect(Notification.find_by!(notifiable: action, recipient:)).to have_attributes(
+        action: notification_action, actor:
+      )
+    end
+  end
+
   it "does not schedule a membership activity notification for its actor" do
     group = Group.create!(lifecycle_status: :active, group_admin: actor, name: "Own group", group_type: :private_group)
     membership = group.group_memberships.find_by!(user: actor)

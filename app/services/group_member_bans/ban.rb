@@ -18,7 +18,7 @@ module GroupMemberBans
         raise InvalidState unless membership.active?
 
         ban = group.group_member_bans.create!(user: membership.user)
-        ModerationAction.create!(
+        action = ModerationAction.create!(
           target: ban,
           actor:,
           action_type: :ban_from_group,
@@ -27,6 +27,7 @@ module GroupMemberBans
         )
         GroupMembershipRemoval.where(group:, user: membership.user).delete_all
         membership.destroy!
+        Notifications::ModerationNotifier.schedule(moderation_action: action, recipient_ids: [ action.membership_user_id ])
         ban
       end
     end
