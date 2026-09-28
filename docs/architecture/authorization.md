@@ -317,6 +317,9 @@ Library 안에서 볼 수 있는 책장:
 - 활동 정지·해제 감사는 `ModerationAction`에만 기록하고 membership lifecycle history에 복제하지 않는다
 - GroupMembership 대상 moderation row의 `membership_group_id`/`membership_user_id`는 현재 membership이나 FK가 아니라 target hard delete 후에도 남는 역사적 attribution이다
 - `GroupMemberBan`은 현재 Group/User 이용 제한 상태이며 membership 생성·승인·초대·수락을 차단한다. ban/unban 사유와 이력은 같은 Group/User attribution을 가진 `ModerationAction`으로 보존한다
+- 이용 제한 action의 button, canonical page GET과 실행 POST는 모두 대상 `GroupMembership`의 `GroupMembershipPolicy#ban_from_group?`를 사용한다. 이용 제한 해제 action의 button, canonical page GET과 실행 POST는 모두 대상 `GroupMemberBan`의 `GroupMemberBanPolicy#unban?`를 사용한다
+- `ban_from_group?`와 `unban?`는 실제 해당 Group의 group admin에게만 허용하며 global admin 자격 자체로는 허용하지 않는다. global admin인 사용자가 실제 해당 Group의 group admin이기도 한 경우에는 그 group-admin 자격으로 허용한다
+- Ban은 `GroupMembership`을 삭제하고 Unban은 `GroupMemberBan` marker만 삭제하므로 두 canonical route의 target은 의도적으로 비대칭이다. Unban은 membership을 자동 생성하거나 복구하지 않는다
 
 동아리에서는 같은 `Jjaek` 모델과 optional `group` / `book` association으로 `짹`과 `책짹`을 제공한다.
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,

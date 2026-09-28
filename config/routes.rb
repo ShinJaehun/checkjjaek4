@@ -31,7 +31,6 @@ Rails.application.routes.draw do
   end
   resources :groups, only: %i[index show new create edit update] do
     resources :members, only: :index, controller: "group_members"
-    resources :group_member_bans, only: %i[create destroy]
     patch :close, on: :member
     patch :request_reactivation, on: :member
     patch :transfer_admin, on: :member
@@ -44,6 +43,10 @@ Rails.application.routes.draw do
       delete :remove, on: :member
       resources :activity_suspensions, only: %i[new create], module: :group_memberships
       resources :activity_restorations, only: %i[new create], module: :group_memberships
+      resources :member_bans, only: %i[new create], module: :group_memberships
+    end
+    resources :group_member_bans, only: [] do
+      resources :restorations, only: %i[new create], module: :group_member_bans
     end
     resources :jjaeks, only: :create
   end

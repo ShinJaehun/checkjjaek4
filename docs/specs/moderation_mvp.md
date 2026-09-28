@@ -83,6 +83,17 @@ suspend의 `internal_note`는 선택이다. restore에는 정지 사유와 별�
 실행 POST는 동일한 `GroupMembershipPolicy#suspend_activity?` 또는 `#restore_activity?`를 따른다.
 복구 page는 현재 정지 조치를 회원 운영 이력과 같은 표현으로 보여준다. 이 page는 JavaScript 없이 동작한다.
 
+동아리 이용 제한·해제도 회원 관리 화면에는 현재 상태·공개 사유와 허용된 action 링크만 표시하고,
+사유 입력과 실행은 독립된 canonical action page에서 수행한다. 이용 제한은 실행 전 존재하는
+`GroupMembership`이 action target이므로 `/groups/:group_id/group_memberships/:group_membership_id/member_bans/new`를,
+이용 제한 해제는 현재 `GroupMemberBan`이 action target이므로
+`/groups/:group_id/group_member_bans/:group_member_ban_id/restorations/new`를 사용한다. 두 route의 비대칭은
+membership을 삭제하는 ban과 ban marker를 삭제하는 unban의 서로 다른 domain 의미를 반영한다. action link,
+GET과 POST는 각각 동일한 `GroupMembershipPolicy#ban_from_group?` 또는 `GroupMemberBanPolicy#unban?`를 따른다.
+global admin 자격 자체는 두 권한을 부여하지 않으며 실제 해당 Group의 group admin인 경우에만 허용한다.
+해제 page는 현재 ban action을 회원 운영 이력과 같은 표현으로 보여주며, 해제 후 membership은 자동 복구하지 않는다.
+이 page들은 JavaScript 없이 동작한다.
+
 #### Group 운영 정지 공개 사유와 전체 이력
 
 신규 Group operation suspension은 아래 predefined `public_reason` 중 하나를 선택한다.

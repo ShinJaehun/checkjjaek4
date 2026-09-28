@@ -384,7 +384,7 @@ RSpec.describe "Group memberships", type: :request do
       management = member_card.at_css("[data-member-management]")
       activity_link = management.at_css("a[href='#{new_group_group_membership_activity_suspension_path(group, membership)}']")
       removal_form = management.at_css(%(form[action="#{remove_group_group_membership_path(group, membership)}"]))
-      ban_form = management.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))
+      ban_link = management.at_css("a[href='#{new_group_group_membership_member_ban_path(group, membership)}']")
 
       expect(management.css("[data-member-action]").map { |action| action["data-member-action"] }).to eq(
         %w[suspend_activity remove ban_from_group]
@@ -400,8 +400,8 @@ RSpec.describe "Group memberships", type: :request do
       )
       expect(activity_link).to be_present
       expect(management.at_css("[data-member-action='suspend_activity'] form")).to be_nil
-      expect(ban_form.at_css("textarea[name='moderation_action[public_reason]']")).to be_present
-      expect(ban_form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
+      expect(ban_link).to be_present
+      expect(management.at_css("[data-member-action='ban_from_group'] form")).to be_nil
       expect(removal_form).to be_present
       expect(removal_form.at_css("[name^='moderation_action']")).to be_nil
 
@@ -481,8 +481,7 @@ RSpec.describe "Group memberships", type: :request do
           moderation_action: { public_reason: "Blocked" }
         }
         delete remove_group_group_membership_path(group, ordinary_membership)
-        post group_group_member_bans_path(group), params: {
-          membership_id: ordinary_membership.id,
+        post group_group_membership_member_bans_path(group, ordinary_membership), params: {
           moderation_action: { public_reason: "Blocked" }
         }
       }.not_to change(ModerationAction, :count)
@@ -899,11 +898,11 @@ RSpec.describe "Group memberships", type: :request do
       )
       expect(management.css("details, summary")).to be_empty
       restore_link = management.at_css("a[href='#{new_group_group_membership_activity_restoration_path(group, membership)}']")
-      ban_form = management.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))
+      ban_link = management.at_css("a[href='#{new_group_group_membership_member_ban_path(group, membership)}']")
       expect(restore_link).to be_present
       expect(management.at_css("[data-member-action='restore_activity'] form")).to be_nil
-      expect(ban_form.at_css("textarea[name='moderation_action[public_reason]']")).to be_present
-      expect(ban_form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
+      expect(ban_link).to be_present
+      expect(management.at_css("[data-member-action='ban_from_group'] form")).to be_nil
       expect(current_members.text).not_to include(
         I18n.t("group_memberships.moderation.history.title")
       )
@@ -914,8 +913,7 @@ RSpec.describe "Group memberships", type: :request do
   describe "group member bans" do
     def ban_membership(group, membership, reason: "Rule violation")
       sign_in group.group_admin
-      post group_group_member_bans_path(group), params: {
-        membership_id: membership.id,
+      post group_group_membership_member_bans_path(group, membership), params: {
         moderation_action: { public_reason: reason, internal_note: "Operations only" }
       }
       group.group_member_bans.find_by!(user: membership.user)
@@ -930,11 +928,10 @@ RSpec.describe "Group memberships", type: :request do
       page = Nokogiri::HTML(response.body)
       expect(page.at_css(%(form[action="#{group_group_membership_path(group, membership)}"]))).to be_present
       expect(page.at_css(%(form[action="#{reject_group_group_membership_path(group, membership)}"]))).to be_present
-      expect(page.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))).to be_nil
+      expect(page.at_css("a[href='#{new_group_group_membership_member_ban_path(group, membership)}']")).to be_nil
 
       expect {
-        post group_group_member_bans_path(group), params: {
-          membership_id: membership.id,
+        post group_group_membership_member_bans_path(group, membership), params: {
           moderation_action: { public_reason: "Not active" }
         }
       }.not_to change(GroupMemberBan, :count)
@@ -1011,7 +1008,7 @@ RSpec.describe "Group memberships", type: :request do
       ]
 
       bans.each do |ban|
-        delete group_group_member_ban_path(ban.group, ban), params: {
+        post group_group_member_ban_restorations_path(ban.group, ban), params: {
           moderation_action: { public_reason: "Restriction lifted" }
         }
       end
@@ -1044,7 +1041,7 @@ RSpec.describe "Group memberships", type: :request do
       sign_in group_admin
 
       expect {
-        delete group_group_member_ban_path(group, ban), params: {
+        post group_group_member_ban_restorations_path(group, ban), params: {
           moderation_action: { public_reason: "Lifted after closure" }
         }
       }.to change(GroupMemberBan, :count).by(-1)
@@ -1065,18 +1062,17 @@ RSpec.describe "Group memberships", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(member.name, "Visible reason", "Operations only")
       expect(history.text).to include("#{group_admin.name}님이 #{member.name}님의 동아리 이용을 제한했습니다.")
-      expect(page.at_css(%(form[action="#{group_group_member_ban_path(group, ban)}"]))).to be_nil
-      expect(page.at_css(%(form[action="#{group_group_member_bans_path(group)}"]))).to be_nil
+      expect(page.at_css("a[href='#{new_group_group_member_ban_restoration_path(group, ban)}']")).to be_nil
+      expect(page.at_css("a[href='#{new_group_group_membership_member_ban_path(group, other_membership)}']")).to be_nil
 
       expect {
-        post group_group_member_bans_path(group), params: {
-          membership_id: other_membership.id,
+        post group_group_membership_member_bans_path(group, other_membership), params: {
           moderation_action: { public_reason: "Blocked" }
         }
       }.not_to change(GroupMemberBan, :count)
 
       expect {
-        delete group_group_member_ban_path(group, ban), params: {
+        post group_group_member_ban_restorations_path(group, ban), params: {
           moderation_action: { public_reason: "Blocked" }
         }
       }.not_to change(GroupMemberBan, :count)

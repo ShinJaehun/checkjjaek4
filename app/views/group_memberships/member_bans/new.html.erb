@@ -1,0 +1,18 @@
+<section class="mx-auto w-full max-w-2xl rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+  <h1 class="text-2xl font-semibold text-stone-900"><%= t("group_member_bans.moderation.ban.title") %></h1>
+  <p class="mt-2 text-sm text-stone-600"><%= t("group_member_bans.moderation.ban.description") %></p>
+
+  <div class="mt-5 rounded-2xl bg-stone-50 p-4 text-sm text-stone-800">
+    <p><span class="font-semibold"><%= t("group_member_bans.moderation.group") %>:</span> <%= @group.name %></p>
+    <p class="mt-2"><span class="font-semibold"><%= t("group_member_bans.moderation.member") %>:</span> <%= @membership.user.name %></p>
+    <p class="mt-2"><span class="font-semibold"><%= t("group_member_bans.moderation.membership_status") %>:</span> <%= t("group_memberships.statuses.#{@membership.status}") %></p>
+    <p class="mt-2"><span class="font-semibold"><%= t("group_member_bans.moderation.activity_status") %>:</span> <%= t("group_memberships.moderation.statuses.#{@membership.moderation_status}") %></p>
+  </div>
+
+  <% if @error_message.present? %>
+    <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @error_message %></p>
+  <% end %>
+
+  <%= render "form" %>
+  <%= link_to t("group_member_bans.moderation.cancel"), group_members_path(@group), class: "mt-5 inline-block text-sm font-medium text-stone-600 underline" %>
+</section>

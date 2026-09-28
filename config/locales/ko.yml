@@ -629,15 +629,32 @@ ko:
     title: "이용 제한 사용자"
     status: "동아리 이용 제한"
     empty: "현재 이용이 제한된 사용자가 없습니다."
-    actions:
-      create: "동아리 이용 제한"
-      destroy: "동아리 이용 제한 해제"
+    moderation:
+      group: "동아리"
+      member: "대상 회원"
+      membership_status: "회원 상태"
+      activity_status: "활동 상태"
+      restriction_status: "이용 제한 상태"
+      current_ban: "현재 이용 제한 조치"
+      cancel: "회원 관리로 돌아가기"
+      public_reason: "공개 사유"
+      internal_note: "내부 운영 메모"
+      internal_note_hint: "선택 입력 · 회원에게 표시되지 않습니다."
+      ban:
+        title: "동아리 이용 제한"
+        description: "회원을 동아리에서 내보내고 이용 제한을 해제하기 전까지 다시 참여하지 못하게 합니다."
+        submit: "동아리 이용 제한"
+      unban:
+        title: "동아리 이용 제한 해제"
+        description: "이용 제한만 해제하며 회원 자격은 자동으로 복구되지 않습니다."
+        public_reason: "해제 공개 사유"
+        submit: "동아리 이용 제한 해제"
     notices:
-      created: "동아리 이용을 제한했습니다."
-      destroyed: "동아리 이용 제한을 해제했습니다."
+      banned: "동아리 이용을 제한했습니다."
+      unbanned: "동아리 이용 제한을 해제했습니다."
     alerts:
-      create_failed: "동아리 이용을 제한할 수 없습니다."
-      destroy_failed: "동아리 이용 제한을 해제할 수 없습니다."
+      ban_failed: "동아리 이용을 제한할 수 없습니다."
+      unban_failed: "동아리 이용 제한을 해제할 수 없습니다."
       access_restricted: "동아리 이용이 제한되었습니다. 사유: %{reason}"
   comments:
     moderation:

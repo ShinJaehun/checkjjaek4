@@ -27,6 +27,14 @@ RSpec.describe GroupMembershipPolicy do
     expect(policy.ban_from_group?).to be(false)
   end
 
+  it "allows a global admin to ban only as the actual group admin" do
+    global_group_admin = User.create!(name: "Both roles", email: "membership-both-roles@example.com", password: "password123!", global_admin: true)
+    managed_group = Group.create!(lifecycle_status: :active, group_admin: global_group_admin, name: "Managed", group_type: :public_group)
+    membership = managed_group.group_memberships.create!(user: member, status: :active)
+
+    expect(described_class.new(global_group_admin, membership).ban_from_group?).to be(true)
+  end
+
   it "allows only the group admin to moderate an ordinary active member" do
     global_admin = User.create!(name: "Global moderator", email: "membership-moderator@example.com", password: "password123!", global_admin: true)
     peer = User.create!(name: "Peer", email: "membership-peer@example.com", password: "password123!")

@@ -1,0 +1,24 @@
+<section class="mx-auto w-full max-w-2xl rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+  <h1 class="text-2xl font-semibold text-stone-900"><%= t("group_member_bans.moderation.unban.title") %></h1>
+  <p class="mt-2 text-sm text-stone-600"><%= t("group_member_bans.moderation.unban.description") %></p>
+
+  <div class="mt-5 rounded-2xl bg-stone-50 p-4 text-sm text-stone-800">
+    <p><span class="font-semibold"><%= t("group_member_bans.moderation.group") %>:</span> <%= @group.name %></p>
+    <p class="mt-2"><span class="font-semibold"><%= t("group_member_bans.moderation.member") %>:</span> <%= @ban.user.name %></p>
+    <p class="mt-2"><span class="font-semibold"><%= t("group_member_bans.moderation.restriction_status") %>:</span> <%= t("group_member_bans.status") %></p>
+  </div>
+
+  <% if @current_ban_action.present? %>
+    <section class="mt-6">
+      <h2 class="text-lg font-semibold text-stone-900"><%= t("group_member_bans.moderation.current_ban") %></h2>
+      <%= render "group_members/ban_moderation_history_entry", record: @current_ban_action, user: @ban.user %>
+    </section>
+  <% end %>
+
+  <% if @error_message.present? %>
+    <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @error_message %></p>
+  <% end %>
+
+  <%= render "form" %>
+  <%= link_to t("group_member_bans.moderation.cancel"), group_members_path(@group), class: "mt-5 inline-block text-sm font-medium text-stone-600 underline" %>
+</section>

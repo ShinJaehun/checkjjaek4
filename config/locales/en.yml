@@ -610,15 +610,32 @@ en:
     title: "Restricted users"
     status: "Club participation restricted"
     empty: "No users are currently restricted."
-    actions:
-      create: "Restrict club participation"
-      destroy: "Lift club restriction"
+    moderation:
+      group: "Club"
+      member: "Member"
+      membership_status: "Membership status"
+      activity_status: "Activity status"
+      restriction_status: "Restriction status"
+      current_ban: "Current restriction action"
+      cancel: "Back to member management"
+      public_reason: "Public reason"
+      internal_note: "Internal note"
+      internal_note_hint: "Optional · Not shown to the member."
+      ban:
+        title: "Restrict club participation"
+        description: "Remove this member and prevent them from participating again until the restriction is lifted."
+        submit: "Restrict club participation"
+      unban:
+        title: "Lift club restriction"
+        description: "Lift only the restriction. The membership is not restored automatically."
+        public_reason: "Public reason for lifting the restriction"
+        submit: "Lift club restriction"
     notices:
-      created: "Club participation was restricted."
-      destroyed: "The club restriction was lifted."
+      banned: "Club participation was restricted."
+      unbanned: "The club restriction was lifted."
     alerts:
-      create_failed: "Club participation could not be restricted."
-      destroy_failed: "The club restriction could not be lifted."
+      ban_failed: "Club participation could not be restricted."
+      unban_failed: "The club restriction could not be lifted."
       access_restricted: "Your club participation is restricted. Reason: %{reason}"
   comments:
     moderation:

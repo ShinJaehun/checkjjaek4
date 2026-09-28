@@ -7,6 +7,8 @@
         <% record = entry.fetch(:record) %>
         <% if entry.fetch(:source) == :moderation && record.action_type.in?(%w[suspend_activity restore_activity]) %>
           <%= render "group_members/activity_moderation_history_entry", record:, user: entry.fetch(:user) %>
+        <% elsif entry.fetch(:source) == :moderation && record.action_type.in?(%w[ban_from_group unban_from_group]) %>
+          <%= render "group_members/ban_moderation_history_entry", record:, user: entry.fetch(:user) %>
         <% else %>
           <article class="py-4 text-sm text-stone-600">
             <time datetime="<%= record.created_at.iso8601 %>" class="text-xs text-stone-500"><%= l(record.created_at, format: :short) %></time>
