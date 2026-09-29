@@ -420,6 +420,7 @@ ko:
         restore: "계정 복구"
       moderation:
         title: "계정 관리"
+        cancel: "사용자 운영 상세로 돌아가기"
         status: "현재 상태"
         platform_authority: "시스템 관리자"
         current_suspension: "현재 정지 정보"
@@ -429,10 +430,12 @@ ko:
         performed_by: "%{actor} · %{time}"
         forms:
           suspend:
+            description: "사용자의 서비스 이용을 정지하고 계정 운영 이력을 남깁니다."
             public_reason: "정지 사유"
             public_reason_hint: "정지된 사용자에게 표시됩니다."
             reason_prompt: "정지 사유를 선택하세요"
           restore:
+            description: "계정 정지를 해제하고 복구 사유를 기록합니다."
             public_reason: "복구 사유"
             public_reason_hint: "계정 운영 이력에 기록됩니다."
       account_history:

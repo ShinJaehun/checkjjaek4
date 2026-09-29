@@ -353,6 +353,8 @@ group-origin 이력·메모만 본다. 작성자와 일반 사용자는 현재 �
 
 global admin은 다른 active User를 명시적인 `suspend?` action으로 정지하고 suspended User를 `restore?` action으로 복구할 수 있다.
 자기 자신 정지와 withdrawn User의 정지·복구는 허용하지 않으며 일반 User와 group admin에게 이 권한을 부여하지 않는다.
+admin User 상세의 action button, 계정 정지 action page의 GET/POST는 모두 `UserPolicy#suspend?`를 사용하고,
+계정 복구 action button과 action page의 GET/POST는 모두 `UserPolicy#restore?`를 사용한다.
 정지·복구 권한은 타인을 대신한 일반 작성·수정·삭제·reaction 권한으로 이어지지 않는다.
 이 User 권한의 UI 용어는 **계정 정지 / 계정 복구**이며 서비스 전체 로그인과 신규 mutation에 적용된다.
 group admin은 일반 active 회원의 `GroupMembership`에만 적용되는 **동아리 활동 정지 / 동아리 활동 복구**와 현재 membership을 종료하고 재참여를 막는 **동아리 이용 제한 / 해제** 권한을 가진다. global admin은 모든 Group의 회원·제한·감사 이력을 조사하지만 Group membership moderation을 실행하지 않는다. service-wide 제재는 별도 User 계정 정지·복구를 사용한다.

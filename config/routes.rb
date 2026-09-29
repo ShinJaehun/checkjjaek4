@@ -19,8 +19,8 @@ Rails.application.routes.draw do
     end
     resources :users, only: %i[index show] do
       get :content, on: :member
-      patch :suspend, on: :member
-      patch :restore, on: :member
+      resources :account_suspensions, only: %i[new create], controller: "user_account_suspensions"
+      resources :account_restorations, only: %i[new create], controller: "user_account_restorations"
     end
     resources :groups, only: %i[index show] do
       get :content, on: :member

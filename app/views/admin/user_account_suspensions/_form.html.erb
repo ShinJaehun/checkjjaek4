@@ -1,0 +1,33 @@
+<%= form_with model: @moderation_action,
+              scope: :moderation_action,
+              url: admin_user_account_suspensions_path(@user),
+              method: :post,
+              class: "mt-6 space-y-4" do |form| %>
+  <div class="space-y-2">
+    <%= form.label :public_reason,
+                   t("admin.users.moderation.forms.suspend.public_reason"),
+                   class: "block text-sm font-medium text-stone-800" %>
+    <%= form.select :public_reason,
+                    options_for_select(User::SUSPENSION_REASONS.map { |reason| [ User.suspension_reason_label(reason), reason ] }, @moderation_action.public_reason),
+                    { prompt: t("admin.users.moderation.forms.suspend.reason_prompt") },
+                    required: true,
+                    aria: { describedby: "account_public_reason_hint" },
+                    class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2" %>
+    <p id="account_public_reason_hint" class="text-xs text-stone-500">
+      <%= t("admin.users.moderation.forms.suspend.public_reason_hint") %>
+    </p>
+  </div>
+
+  <div class="space-y-2">
+    <%= form.label :internal_note, t("admin.users.moderation.internal_note"), class: "block text-sm font-medium text-stone-800" %>
+    <%= form.text_area :internal_note,
+                       rows: 3,
+                       aria: { describedby: "account_internal_note_hint" },
+                       class: "w-full rounded-xl border border-stone-300 px-3 py-2" %>
+    <p id="account_internal_note_hint" class="text-xs text-stone-500">
+      <%= t("admin.users.moderation.internal_note_hint") %>
+    </p>
+  </div>
+
+  <%= form.submit t("admin.users.actions.suspend"), class: "rounded-full bg-amber-800 px-5 py-2.5 text-sm font-medium text-white" %>
+<% end %>

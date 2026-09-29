@@ -393,6 +393,7 @@ en:
         restore: "Restore account"
       moderation:
         title: "Account management"
+        cancel: "Back to user details"
         status: "Current status"
         platform_authority: "System admin"
         current_suspension: "Current suspension"
@@ -402,10 +403,12 @@ en:
         performed_by: "%{actor} · %{time}"
         forms:
           suspend:
+            description: "Suspend the user's service access and record the account action."
             public_reason: "Suspension reason"
             public_reason_hint: "Shown to the suspended user."
             reason_prompt: "Select a suspension reason"
           restore:
+            description: "Lift the account suspension and record the restoration reason."
             public_reason: "Restoration reason"
             public_reason_hint: "Recorded in the account operations history."
       account_history:

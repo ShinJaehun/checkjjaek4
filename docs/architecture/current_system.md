@@ -296,7 +296,8 @@
 - global admin은 다른 active User를 정지하고 suspended User를 복구할 수 있으며 자기 자신 정지는 허용하지 않음
 - Group 운영 정지·복구는 User 계정 정지 및 GroupMemberBan과 서로 자동 전파되지 않음
 - User 정지·복구는 User row lock 안에서 `suspended_at` 변경과 suspend/restore 감사 row 생성을 한 transaction으로 처리함
-- admin User 상세의 계정 운영 이력은 가입 시각, 전체 suspend/restore 감사 row와 탈퇴 시각을 오래된 순으로 표시함
+- admin User 상세는 현재 허용된 계정 정지 또는 복구 action link만 표시하고, 사유 입력과 실행은 `/admin/users/:user_id/account_suspensions/new`와 `/admin/users/:user_id/account_restorations/new`의 독립 page에서 각각 기존 policy와 service로 처리함
+- admin User 상세의 계정 운영 이력은 가입 시각, 전체 suspend/restore 감사 row와 탈퇴 시각을 오래된 순으로 표시하며 복구 action page의 현재 정지 조치도 같은 감사 항목 표현을 사용함
 - 정지 시 기존 콘텐츠·관계·서재·Group membership과 관리자 연결을 보존하고 콘텐츠 visibility나 Group lifecycle을 변경하지 않음
 - 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
 - Group membership 활동 정지·이용 제한은 group admin만 실행하며 global admin은 현재 회원·제한·감사 이력을 조사하고 service-wide 제재에는 User 계정 정지·복구를 사용함

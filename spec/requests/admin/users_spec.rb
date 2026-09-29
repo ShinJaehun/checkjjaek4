@@ -111,7 +111,9 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(group_relationships.at_css("#joined_groups a[href='#{admin_group_path(membership_group)}']").text.strip).to eq(membership_group.name)
     expect(group_relationships.at_css("#joined_groups a[href='#{admin_group_path(managed_group)}']").text.strip).to eq(managed_group.name)
     expect(group_relationships.at_css("[data-membership-status]")).to be_nil
-    expect(document.at_css(%(form[action="#{suspend_admin_user_path(reader)}"]))).to be_present
+    expect(document.at_css("a[href='#{new_admin_user_account_suspension_path(reader)}']").text.strip).to eq("계정 정지")
+    expect(document.at_css("form[action*='account_suspensions']")).to be_nil
+    expect(document.at_css("textarea[name='moderation_action[internal_note]']")).to be_nil
     expect(document.at_css("#account_history [data-account-event='joined']")).to be_present
 
     get content_admin_user_path(reader)
@@ -237,130 +239,6 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get admin_users_path, params: { status: "active" }
     expect(listed_ids).to contain_exactly(admin.id)
-  end
-
-  it "suspends and restores a user with linked audit actions from the admin detail" do
-    sign_in admin
-    get admin_user_path(reader)
-    expect(response.body).to include(
-      I18n.t("admin.users.actions.suspend"),
-      I18n.t("admin.users.moderation.forms.suspend.public_reason"),
-      I18n.t("admin.users.moderation.forms.suspend.public_reason_hint"),
-      I18n.t("admin.users.moderation.internal_note"),
-      I18n.t("admin.users.moderation.internal_note_hint"),
-      I18n.t("admin.users.account_history.title"),
-      I18n.t("admin.users.account_history.events.joined.title")
-    )
-    reason_select = Nokogiri::HTML(response.body).at_css("select[name='moderation_action[public_reason]']")
-    expect(reason_select.css("option").map { |option| option["value"] }).to include(*User::SUSPENSION_REASONS)
-    expect(Nokogiri::HTML(response.body).at_css("textarea[name='moderation_action[public_reason]']")).to be_nil
-
-    expect {
-      patch suspend_admin_user_path(reader), params: {
-        moderation_action: { public_reason: "repeated_policy_violations", internal_note: "ADMIN_INTERNAL_NOTE" }
-      }
-    }.to change(ModerationAction, :count).by(1)
-
-    suspension = ModerationAction.last
-    expect(reader.reload).to be_suspended
-    expect(suspension).to be_action_type_suspend
-    expect(suspension.actor).to eq(admin)
-    expect(response).to redirect_to(admin_user_path(reader))
-
-    get admin_user_path(reader)
-    suspended_document = Nokogiri::HTML(response.body)
-    expect(response.body).to include(
-      I18n.t("admin.users.statuses.suspended"),
-      I18n.t("users.suspension_reasons.repeated_policy_violations"),
-      "ADMIN_INTERNAL_NOTE",
-      I18n.t("admin.users.actions.restore"),
-      I18n.t("admin.users.moderation.forms.restore.public_reason"),
-      I18n.t("admin.users.moderation.forms.restore.public_reason_hint"),
-      I18n.t("admin.users.moderation.internal_note_hint"),
-      admin.name
-    )
-    expect(suspended_document.at_css("#admin_user_identity [data-field='suspended-at']").text).to include(
-      I18n.l(reader.suspended_at, format: :short)
-    )
-    expect(suspended_document.at_css("#admin_user_identity [data-field='withdrawn-at']")).to be_nil
-    expect(response.body).not_to include("repeated_policy_violations")
-
-    get content_admin_user_path(reader)
-    suspended_activity_identity = Nokogiri::HTML(response.body).at_css("#admin_user_identity")
-    expect(suspended_activity_identity.at_css("[data-field='account-status']").text.strip).to eq("운영 정지")
-    expect(suspended_activity_identity.at_css("[data-field='suspended-at']").text).to include(
-      I18n.l(reader.suspended_at, format: :short)
-    )
-
-    expect {
-      patch restore_admin_user_path(reader), params: {
-        moderation_action: { public_reason: "ADMIN_RESTORE_REASON", internal_note: "RESTORE_NOTE" }
-      }
-    }.to change(ModerationAction, :count).by(1)
-
-    restore = ModerationAction.last
-    expect(reader.reload).not_to be_suspended
-    expect(restore).to be_action_type_restore
-    expect(restore.reversal_of).to eq(suspension)
-
-    get admin_user_path(reader)
-    history = Nokogiri::HTML(response.body).at_css("#account_history")
-    expect(history.text).to include(
-      I18n.t("admin.users.account_history.events.suspended.title"),
-      I18n.t("users.suspension_reasons.repeated_policy_violations"),
-      "ADMIN_INTERNAL_NOTE",
-      I18n.t("admin.users.account_history.events.restored.title"),
-      "ADMIN_RESTORE_REASON",
-      "RESTORE_NOTE",
-      admin.name
-    )
-    expect(history.css("[data-account-event]").map { |entry| entry["data-account-event"] }).to eq(
-      %w[joined suspended restored]
-    )
-  end
-
-  it "rejects undefined suspension reasons in direct requests" do
-    sign_in admin
-
-    [ "ADMIN_PUBLIC_REASON", "undefined_reason", "" ].each do |reason|
-      expect {
-        patch suspend_admin_user_path(reader), params: { moderation_action: { public_reason: reason } }
-      }.not_to change(ModerationAction, :count)
-
-      expect(response).to redirect_to(admin_user_path(reader))
-      expect(reader.reload).not_to be_suspended
-    end
-  end
-
-  it "keeps legacy suspension reasons verbatim and leaves restore reasons as free text" do
-    reader.update!(suspended_at: Time.current)
-    ModerationAction.create!(target: reader, actor: admin, action_type: :suspend, public_reason: "LEGACY_FREE_TEXT_REASON")
-    sign_in admin
-
-    get admin_user_path(reader)
-    expect(response.body).to include("LEGACY_FREE_TEXT_REASON")
-    expect(Nokogiri::HTML(response.body).at_css("#account_history [data-account-event='suspended']").text).to include("LEGACY_FREE_TEXT_REASON")
-
-    patch restore_admin_user_path(reader), params: { moderation_action: { public_reason: "other" } }
-    expect(reader.reload).not_to be_suspended
-    expect(reader.current_suspension_action).to be_nil
-
-    get admin_user_path(reader)
-    restored_entry = Nokogiri::HTML(response.body).at_css("#account_history [data-account-event='restored']")
-    expect(restored_entry.text).to include("other")
-    expect(restored_entry.text).not_to include(I18n.t("users.suspension_reasons.other"))
-  end
-
-  it "blocks non-admin moderation endpoints and hides self-suspension UI" do
-    sign_in reader
-    expect {
-      patch suspend_admin_user_path(admin), params: { moderation_action: { public_reason: "Blocked" } }
-    }.not_to change(ModerationAction, :count)
-    expect(response).to redirect_to(root_path)
-
-    sign_in admin
-    get admin_user_path(admin)
-    expect(response.body).not_to include(suspend_admin_user_path(admin))
   end
 
   it "filters non-exclusive global admin and group admin roles and regular users" do

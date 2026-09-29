@@ -16,7 +16,6 @@ module Admin
       @user = User.find(params[:id])
       authorize @user, :view_admin_inventory?
       prepare_user_identity
-      @current_suspension_action = @user.current_suspension_action
       @can_suspend = policy(@user).suspend?
       @can_restore = policy(@user).restore?
       @account_history_entries = UserAccountHistoryQuery.new(@user).call
@@ -46,35 +45,11 @@ module Admin
       @timeline_items = @timeline_page.records
     end
 
-    def suspend
-      user = User.find(params[:id])
-      authorize user, :suspend?
-      Users::SuspendAccount.new(user, actor: current_user, **moderation_action_params).call!
-
-      redirect_to admin_user_path(user), notice: t("admin.users.notices.suspended")
-    rescue Users::SuspendAccount::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
-      redirect_to admin_user_path(user), alert: t("admin.users.alerts.suspend_failed")
-    end
-
-    def restore
-      user = User.find(params[:id])
-      authorize user, :restore?
-      Users::RestoreAccount.new(user, actor: current_user, **moderation_action_params).call!
-
-      redirect_to admin_user_path(user), notice: t("admin.users.notices.restored")
-    rescue Users::RestoreAccount::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
-      redirect_to admin_user_path(user), alert: t("admin.users.alerts.restore_failed")
-    end
-
     private
 
     def prepare_user_identity
       @account_status = @user.moderation_status
       @has_administered_groups = @user.administered_groups.exists?
-    end
-
-    def moderation_action_params
-      params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
     end
 
     def permitted_content_section

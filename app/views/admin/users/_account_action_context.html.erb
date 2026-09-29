@@ -1,0 +1,19 @@
+<div class="mt-5 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950" data-account-action-context>
+  <p class="font-semibold"><%= user.name %></p>
+  <p class="mt-2" data-field="email"><%= t("admin.users.fields.email") %>: <%= user.email %></p>
+  <p class="mt-2" data-field="account-status">
+    <%= t("admin.users.fields.status") %>: <%= t("admin.users.statuses.#{user.moderation_status}") %>
+  </p>
+  <div class="mt-2 flex flex-wrap items-center gap-2" data-field="role">
+    <span><%= t("admin.users.fields.role") %>:</span>
+    <% if user.global_admin? %>
+      <span><%= t("admin.users.roles.global_admin") %></span>
+    <% end %>
+    <% if has_administered_groups %>
+      <span><%= t("admin.users.roles.group_admin") %></span>
+    <% end %>
+    <% unless user.global_admin? || has_administered_groups %>
+      <span><%= t("admin.users.roles.regular") %></span>
+    <% end %>
+  </div>
+</div>

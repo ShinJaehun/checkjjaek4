@@ -4,20 +4,16 @@
   <ol class="mt-3">
     <% entries.each do |entry| %>
       <li class="border-t border-amber-200 py-3 first:border-t-0 first:pt-0 last:pb-0" data-account-event="<%= entry.event_type %>">
-        <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span class="font-semibold"><%= t("admin.users.account_history.events.#{entry.event_type}.title") %></span>
-          <% if entry.action %>
-            <span class="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800"><%= t("admin.users.moderation.platform_authority") %></span>
-            <span><%= entry.action.actor.name %></span>
-          <% end %>
-          <span class="font-semibold">· <%= l(entry.occurred_at, format: :short) %></span>
-        </p>
-
         <% if entry.action %>
-          <p class="mt-1 whitespace-pre-wrap"><%= t("admin.users.account_history.reason") %>: <%= entry.action.action_type_suspend? ? User.suspension_reason_label(entry.action.public_reason) : entry.action.public_reason %></p>
-          <% if entry.action.internal_note.present? %>
-            <p class="mt-1 whitespace-pre-wrap"><%= t("admin.users.account_history.memo") %>: <%= entry.action.internal_note %></p>
-          <% end %>
+          <%= render "admin/users/account_moderation_history_entry",
+                     action: entry.action,
+                     event_type: entry.event_type,
+                     occurred_at: entry.occurred_at %>
+        <% else %>
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="font-semibold"><%= t("admin.users.account_history.events.#{entry.event_type}.title") %></span>
+            <span class="font-semibold">· <%= l(entry.occurred_at, format: :short) %></span>
+          </p>
         <% end %>
       </li>
     <% end %>

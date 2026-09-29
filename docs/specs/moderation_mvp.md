@@ -49,6 +49,10 @@ Classroom의 실제 교사·학생 사용 전에 운영자가 검색·제한·�
 - global admin의 정지·복구는 User row lock 안에서 상태 변경과 append-only `ModerationAction` 생성을 한 transaction으로 처리한다.
 - 복구 감사 row는 현재 미복구 suspend row를 `reversal_of`로 참조한다.
 - admin User 상세의 계정 운영 이력은 가입, 모든 정지·복구 감사 row와 탈퇴를 오래된 순으로 보존해 보여준다.
+- admin User 상세는 현재 허용된 계정 정지 또는 복구 action link만 제공하고, 공개 사유와 내부 메모는
+  `/admin/users/:user_id/account_suspensions/new` 또는 `/admin/users/:user_id/account_restorations/new`의
+  독립 page에서 입력한다. button 노출, action page GET, 실행 POST는 각각 같은
+  `UserPolicy#suspend?` 또는 `UserPolicy#restore?`를 사용한다.
 
 #### 계정 정지 공개 사유
 
