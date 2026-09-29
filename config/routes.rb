@@ -12,9 +12,9 @@ Rails.application.routes.draw do
     resources :jjaeks, only: [] do
       resources :hides, only: %i[new create], controller: "jjaek_hides"
       resources :restorations, only: %i[new create], controller: "jjaek_restorations"
-      resources :comments, only: [], controller: "comments" do
-        patch :hide, on: :member
-        patch :restore, on: :member
+      resources :comments, only: [] do
+        resources :hides, only: %i[new create], controller: "comment_hides"
+        resources :restorations, only: %i[new create], controller: "comment_restorations"
       end
     end
     resources :users, only: %i[index show] do
@@ -70,8 +70,8 @@ Rails.application.routes.draw do
     resources :group_restorations, only: %i[new create], module: :jjaeks
     resources :requotes, only: :index
     resources :comments, only: %i[index create update destroy] do
-      patch :hide, on: :member
-      patch :restore, on: :member
+      resources :group_hides, only: %i[new create], module: :comments
+      resources :group_restorations, only: %i[new create], module: :comments
     end
     resource :like, only: %i[create destroy]
   end

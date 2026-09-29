@@ -664,9 +664,27 @@ en:
       access_restricted: "Your club participation is restricted. Reason: %{reason}"
   comments:
     moderation:
+      hide_title: "Hide comment"
+      hide_description: "Hide the comment content and record the moderation action."
+      restore_title: "Restore comment"
+      restore_description: "Lift the current hide and record a separate restoration reason."
+      current_hide: "Current hide action"
+      target_comment: "Target comment"
+      parent_jjaek: "Parent Jjaek"
+      parent_status: "Parent status"
+      cancel: "Back to the comment"
       hidden_by_platform: "This comment was hidden by a system admin."
       hidden_by_group: "This comment was hidden by a group admin."
       reason: "Reason for hiding"
+      restore_reason: "Restore reason"
+      internal_note: "Internal note"
+      internal_note_hint: "Optional · Not shown to the author or ordinary users."
+      group_admin:
+        hide_title: "Hide group comment"
+        hide_description: "Hide the group comment content and record the moderation action."
+        restore_title: "Restore group comment"
+        restore_description: "Lift the current hide and record a separate restoration reason."
+        internal_note_hint: "Optional · Shown only to club operators."
       notices:
         hidden: "Comment hidden."
         restored: "Comment restored."

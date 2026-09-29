@@ -14,7 +14,7 @@ RSpec.describe "Comment moderation display", type: :request do
 
     get jjaek_path(jjaek)
     expect(response.body).to include("시스템 관리자에 의해 숨겨진 댓글입니다.", "숨김 사유", "기타", "댓글 1개")
-    expect(response.body).not_to include("HIDDEN COMMENT SECRET", "PRIVATE NOTE", hide_admin_jjaek_comment_path(jjaek, comment))
+    expect(response.body).not_to include("HIDDEN COMMENT SECRET", "PRIVATE NOTE", new_admin_jjaek_comment_restoration_path(jjaek, comment))
 
     get jjaek_comments_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
     expect(response.body).to include("시스템 관리자에 의해 숨겨진 댓글입니다.", "기타")
@@ -29,11 +29,11 @@ RSpec.describe "Comment moderation display", type: :request do
 
     expect(response.body).to include("HIDDEN COMMENT SECRET", "시스템 관리자에 의해 숨겨진 댓글입니다.", "기타")
     expect(response.body).to include(jjaek_comment_path(jjaek, comment))
-    expect(response.body).not_to include("PRIVATE NOTE", hide_admin_jjaek_comment_path(jjaek, comment), restore_admin_jjaek_comment_path(jjaek, comment))
-    expect(response.body).not_to include(hide_jjaek_comment_path(jjaek, comment), restore_jjaek_comment_path(jjaek, comment))
+    expect(response.body).not_to include("PRIVATE NOTE", new_admin_jjaek_comment_restoration_path(jjaek, comment))
+    expect(response.body).not_to include(new_jjaek_comment_group_restoration_path(jjaek, comment))
   end
 
-  it "shows Group hide and restore forms only to the current Group admin" do
+  it "shows Group hide and restore Action links only to the current Group admin" do
     group = Group.create!(lifecycle_status: :active, group_admin:, name: "Display group", group_type: :private_group)
     group.group_memberships.create!(user: author, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group parent")
@@ -41,21 +41,21 @@ RSpec.describe "Comment moderation display", type: :request do
     sign_in group_admin
 
     get jjaek_path(group_jjaek)
-    expect(response.body).to include(%(action="#{hide_jjaek_comment_path(group_jjaek, group_comment)}"))
-    expect(response.body).to include(%(name="moderation_action[public_reason]"), %(name="moderation_action[internal_note]"))
-    expect(response.body).not_to include(hide_admin_jjaek_comment_path(group_jjaek, group_comment))
+    expect(response.body).to include(%(href="#{new_jjaek_comment_group_hide_path(group_jjaek, group_comment)}"))
+    expect(response.body).not_to include(%(name="moderation_action[public_reason]"), %(name="moderation_action[internal_note]"))
+    expect(response.body).not_to include(new_admin_jjaek_comment_hide_path(group_jjaek, group_comment))
 
     Comments::Hide.new(group_comment, actor: admin, public_reason: "other", internal_note: "PLATFORM NOTE").call!
     get jjaek_path(group_jjaek)
     expect(response.body).to include("GROUP COMMENT SECRET", "시스템 관리자에 의해 숨겨진 댓글입니다.", "기타")
-    expect(response.body).not_to include("PLATFORM NOTE", restore_jjaek_comment_path(group_jjaek, group_comment))
+    expect(response.body).not_to include("PLATFORM NOTE", new_jjaek_comment_group_restoration_path(group_jjaek, group_comment))
 
     Comments::Restore.new(group_comment, actor: admin, public_reason: "Resolved").call!
     Comments::Hide.new(group_comment, actor: group_admin, public_reason: "other").call!
     get jjaek_path(group_jjaek)
     expect(response.body).to include("GROUP COMMENT SECRET", "동아리 관리자에 의해 숨겨진 댓글입니다.")
-    expect(response.body).to include(%(action="#{restore_jjaek_comment_path(group_jjaek, group_comment)}"))
-    expect(response.body).not_to include(restore_admin_jjaek_comment_path(group_jjaek, group_comment))
+    expect(response.body).to include(%(href="#{new_jjaek_comment_group_restoration_path(group_jjaek, group_comment)}"))
+    expect(response.body).not_to include(new_admin_jjaek_comment_restoration_path(group_jjaek, group_comment))
   end
 
   it "shows platform controls for another user's comment but author-first for an admin's own comment" do
@@ -63,16 +63,16 @@ RSpec.describe "Comment moderation display", type: :request do
     sign_in admin
 
     get jjaek_path(jjaek)
-    expect(response.body).to include(%(action="#{hide_admin_jjaek_comment_path(jjaek, comment)}"))
-    expect(response.body).not_to include(hide_admin_jjaek_comment_path(jjaek, own_comment))
+    expect(response.body).to include(%(href="#{new_admin_jjaek_comment_hide_path(jjaek, comment)}"))
+    expect(response.body).not_to include(new_admin_jjaek_comment_hide_path(jjaek, own_comment))
 
     group_admin.update!(global_admin: true)
     Comments::Hide.new(comment, actor: group_admin, public_reason: "other").call!
     Comments::Hide.new(own_comment, actor: group_admin, public_reason: "other").call!
     get jjaek_path(jjaek)
-    expect(response.body).to include("HIDDEN COMMENT SECRET", %(action="#{restore_admin_jjaek_comment_path(jjaek, comment)}"))
+    expect(response.body).to include("HIDDEN COMMENT SECRET", %(href="#{new_admin_jjaek_comment_restoration_path(jjaek, comment)}"))
     expect(response.body).to include("ADMIN OWN SECRET")
-    expect(response.body).not_to include(restore_admin_jjaek_comment_path(jjaek, own_comment))
+    expect(response.body).not_to include(new_admin_jjaek_comment_restoration_path(jjaek, own_comment))
   end
 
   it "keeps visible and hidden comments separate from the parent hide state" do
@@ -106,7 +106,8 @@ RSpec.describe "Comment moderation display", type: :request do
     comment_article = document.at_css("#comment_#{comment.id}")
     history = comment_article.at_css("#moderation_history_comment_#{comment.id}")
     expect(history).to be_present
-    expect(comment_article.at_css(%(form[action="#{hide_admin_jjaek_comment_path(jjaek, comment)}"]))).to be_present
+    expect(comment_article.at_css(%(a[href="#{new_admin_jjaek_comment_hide_path(jjaek, comment)}"]))).to be_present
+    expect(comment_article.at_css("[data-comment-moderation-state] form")).to be_nil
     expect(history.css("li").map { |entry| entry["data-moderation-action-id"].to_i }).to eq(comment.moderation_actions.order(:created_at, :id).ids)
     expect(history.text).to include("Admin", "시스템 관리자", "PLATFORM HIDE NOTE", "Platform restored", "PLATFORM RESTORE NOTE")
     expect(history.text).to include(I18n.l(comment.moderation_actions.first.created_at, format: :short))
@@ -180,48 +181,29 @@ RSpec.describe "Comment moderation display", type: :request do
     expect(jjaek.comments.count).to eq(0)
   end
 
-  it "updates the Comment, controls, reason, and history in Turbo hide and restore responses" do
+  it "renders platform Action links without inline moderation forms in the Turbo comments panel" do
     sign_in admin
-    stream_headers = { "Accept" => "text/vnd.turbo-stream.html" }
-
-    patch hide_admin_jjaek_comment_path(jjaek, comment),
-          params: { moderation_action: { public_reason: "other", internal_note: "ADMIN HISTORY NOTE" } },
-          headers: stream_headers
+    get jjaek_comments_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(response.body).to include(%(action="replace" target="comment_#{comment.id}"), "시스템 관리자에 의해 숨겨진 댓글입니다.", "기타")
-    expect(response.body).to include(%(action="#{restore_admin_jjaek_comment_path(jjaek, comment)}"), "ADMIN HISTORY NOTE")
-    expect(response.body).not_to include(%(action="#{hide_admin_jjaek_comment_path(jjaek, comment)}"))
-
-    patch restore_admin_jjaek_comment_path(jjaek, comment),
-          params: { moderation_action: { public_reason: "Resolved" } },
-          headers: stream_headers
-
-    expect(response.body).to include(%(action="replace" target="comment_#{comment.id}"), "HIDDEN COMMENT SECRET")
-    expect(response.body).to include(%(action="#{hide_admin_jjaek_comment_path(jjaek, comment)}"), "Resolved")
-    expect(response.body).not_to include(%(action="#{restore_admin_jjaek_comment_path(jjaek, comment)}"))
-
-    patch hide_admin_jjaek_comment_path(jjaek, comment), params: { moderation_action: { public_reason: "" } }, headers: stream_headers
-    expect(response.body).to include(%(action="#{hide_admin_jjaek_comment_path(jjaek, comment)}"), I18n.t("comments.moderation.alerts.hide_failed"))
-    expect(comment.reload).not_to be_hidden
+    expect(response.body).to include(
+      %(action="replace" target="comments_panel_home_jjaek_#{jjaek.id}"),
+      %(href="#{new_admin_jjaek_comment_hide_path(jjaek, comment)}")
+    )
+    expect(response.body).not_to include(%(name="moderation_action[public_reason]"))
   end
 
-  it "updates Group controls through Turbo and preserves HTML redirects" do
+  it "renders Group Action links without inline moderation forms in the Turbo comments panel" do
     group = Group.create!(lifecycle_status: :active, group_admin:, name: "Turbo group", group_type: :private_group)
     group_jjaek = author.jjaeks.create!(group:, content: "Turbo group parent")
     group_comment = group_jjaek.comments.create!(user: author, content: "Turbo group comment")
     sign_in group_admin
 
-    patch hide_jjaek_comment_path(group_jjaek, group_comment),
-          params: { moderation_action: { public_reason: "other" } },
-          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    get jjaek_comments_path(group_jjaek),
+        params: { comments_context: :group },
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
-    expect(response.body).to include(%(action="replace" target="comment_#{group_comment.id}"), "동아리 관리자에 의해 숨겨진 댓글입니다.")
-    expect(response.body).to include(%(action="#{restore_jjaek_comment_path(group_jjaek, group_comment)}"))
-    expect(response.body).not_to include(hide_jjaek_comment_path(group_jjaek, group_comment))
-
-    patch restore_jjaek_comment_path(group_jjaek, group_comment), params: { moderation_action: { public_reason: "Resolved" } }
-    expect(response).to redirect_to(jjaek_path(group_jjaek))
-    expect(group_comment.reload).not_to be_hidden
+    expect(response.body).to include(%(href="#{new_jjaek_comment_group_hide_path(group_jjaek, group_comment)}"))
+    expect(response.body).not_to include(%(name="moderation_action[public_reason]"))
   end
 end

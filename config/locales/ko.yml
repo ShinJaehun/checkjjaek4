@@ -668,9 +668,27 @@ ko:
       access_restricted: "동아리 이용이 제한되었습니다. 사유: %{reason}"
   comments:
     moderation:
+      hide_title: "댓글 숨김"
+      hide_description: "댓글 원문을 숨기고 운영 조치 이력을 남깁니다."
+      restore_title: "댓글 숨김 해제"
+      restore_description: "현재 숨김을 해제하고 별도의 복구 사유를 기록합니다."
+      current_hide: "현재 숨김 조치"
+      target_comment: "대상 댓글"
+      parent_jjaek: "부모 Jjaek"
+      parent_status: "부모 상태"
+      cancel: "댓글 위치로 돌아가기"
       hidden_by_platform: "시스템 관리자에 의해 숨겨진 댓글입니다."
       hidden_by_group: "동아리 관리자에 의해 숨겨진 댓글입니다."
       reason: "숨김 사유"
+      restore_reason: "복구 사유"
+      internal_note: "내부 운영 메모"
+      internal_note_hint: "선택 입력 · 작성자와 일반 사용자에게 표시되지 않습니다."
+      group_admin:
+        hide_title: "동아리 댓글 숨김"
+        hide_description: "동아리 댓글 원문을 숨기고 운영 조치 이력을 남깁니다."
+        restore_title: "동아리 댓글 복구"
+        restore_description: "현재 숨김을 해제하고 별도의 복구 사유를 기록합니다."
+        internal_note_hint: "선택 입력 · 동아리 운영자에게만 표시됩니다."
       notices:
         hidden: "댓글을 숨겼습니다."
         restored: "댓글의 숨김을 해제했습니다."

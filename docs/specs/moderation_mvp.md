@@ -499,13 +499,13 @@ Classroom 역할, 새로운 moderation framework와 작성자 삭제 lifecycle �
 
 ### 상태와 재사용 기준
 
-Comment moderation의 상태·권한·표시·HTTP/Turbo 흐름은 구현되어 있으며 이 절을 현재 불변 조건의 canonical 기준으로 삼는다.
+Comment moderation의 상태·권한·표시·Action page와 기존 Comment CRUD/Turbo 흐름은 구현되어 있으며 이 절을 현재 불변 조건의 canonical 기준으로 삼는다.
 
 - 현재 Comment는 Jjaek·작성자 연결과 본문을 가지며 일반 삭제는 hard delete다. 읽기는 부모 Jjaek 권한을 따르고,
   hidden 부모에서는 기존 댓글 읽기와 자기 삭제만 유지하며 새 작성·기존 댓글 수정은 차단한다.
   deleted parent의 tombstone에서도 원래 Jjaek context의 read boundary 안에서 기존 댓글을 읽을 수 있지만
   새 작성과 기존 댓글 수정은 금지하고 Comment 작성자의 자기 삭제는 유지한다.
-- `CommentPolicy`, global admin과 Group admin의 Comment HTTP action, `Comments::Hide`/`Comments::Restore`와
+- `CommentPolicy`, global admin과 Group admin의 Comment Action page, `Comments::Hide`/`Comments::Restore`와
   `ModerationAction`이 권한 재검사·상태 전이·감사를 담당한다. Jjaek의 transaction/lock 패턴을 재사용한다.
 - Comment hide/restore에는 Jjaek과 같은 predefined hide reason과 `moderation_authority` 검증이 적용된다.
 - comments panel은 detail/home/profile/book/group의 HTML·Turbo 흐름을 공유하며, 댓글도 작성 권한도 없으면
@@ -622,13 +622,17 @@ global admin의 운영 조사는 기존 별도 권한을 사용하되 자기 Com
 
 - detail과 home/profile/book/group inline panel 모두 동일한 정보 경계를 적용한다.
   hidden 부모 안에서도 기존 댓글과 hidden Comment placeholder를 읽을 수 있어야 한다.
-- 각 Comment의 허용된 운영 action 진입점을 제공한다. 원문 조사, 콘텐츠 관리와 운영 이력은 기존 부모 상세·댓글 문맥에 연결하며
-  별도 moderation dashboard나 history 전용 page/route를 만들지 않는다. action route는 기존 패턴을 따른다.
-- Jjaek UI처럼 현재 상태·현재 가능한 form은 `콘텐츠 관리`, 과거 조치는 별도 `운영 이력`으로 구분한다.
+- 각 Comment의 허용된 운영 Action 진입점을 제공한다. 원문 조사, 콘텐츠 관리와 운영 이력은 기존 부모 상세·댓글 문맥에 연결하며
+  별도 moderation dashboard나 history 전용 page/route를 만들지 않는다. platform과 Group authority는 독립 Action route를 사용한다.
+- Jjaek UI처럼 현재 상태·현재 가능한 Action link는 `콘텐츠 관리`, 과거 조치는 별도 `운영 이력`으로 구분한다.
   상태는 `공개`/`숨김`, 버튼은 `숨김`/`숨김 해제`, 이력은 `숨김`/`복구`를 재사용한다.
   여기서 `공개`는 비숨김 상태를 나타내며 부모 visibility를 넓히지 않는다.
-- hide reason 선택과 restore reason 입력, 선택적 `내부 메모`를 구분한다. 내부 메모는 공개 사유와 이어 붙이지 않고
-  기존 memo 표현을 사용한다. 권한 있는 작성자·운영자에게만 필요한 hidden 원문 열람을 제공한다.
+- Action link·GET·POST는 platform의 `hide?`/`restore?`, Group authority의
+  `hide_as_group_admin?`/`restore_as_group_admin?`를 각각 동일하게 사용한다. Action page는 댓글과 부모 Jjaek 문맥을 표시한다.
+- hide reason 선택과 restore reason 입력, 선택적 `내부 메모`를 Action page에서 구분한다. 내부 메모는 공개 사유와 이어 붙이지 않고
+  기존 memo 표현을 사용한다. restore page의 현재 hide는 전체 이력과 같은 entry partial을 재사용하며 기존 authority별 가시성을 유지한다.
+- moderation mutation은 Action page의 HTML POST로 처리하고 댓글 위치 anchor로 복귀한다. comments panel의
+  index/create/update/destroy와 inline open/close Turbo 흐름은 그대로 유지한다.
 - **표시할 댓글이 하나도 없고 현재 사용자가 새 댓글을 작성할 수도 없으면 빈 comments panel을 표시하지 않는다.**
   제목·테두리·여백만 있는 panel을 남기지 않는다. Turbo 갱신에 필요한 보이지 않는 target은 유지할 수 있다.
 - 댓글이 없지만 작성할 수 있으면 작성 panel을, 댓글 또는 hidden placeholder가 있으면 읽기 panel을 유지한다.

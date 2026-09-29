@@ -11,20 +11,20 @@ RSpec.describe "Group Comment moderation", type: :request do
   before { sign_in group_admin }
 
   it "hides and restores another user's comment with group audit actions" do
-    patch hide_jjaek_comment_path(jjaek, comment), params: {
+    post jjaek_comment_group_hides_path(jjaek, comment), params: {
       moderation_action: { public_reason: "other", internal_note: "Group hide note" }
     }
 
-    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(response).to redirect_to(jjaek_path(jjaek, anchor: ActionView::RecordIdentifier.dom_id(comment)))
     expect(comment.reload).to be_hidden
     hide = comment.current_hide_action
     expect(hide).to have_attributes(actor: group_admin, moderation_authority: "group", internal_note: "Group hide note")
 
-    patch restore_jjaek_comment_path(jjaek, comment), params: {
+    post jjaek_comment_group_restorations_path(jjaek, comment), params: {
       moderation_action: { public_reason: "Resolved", internal_note: "Group restore note" }
     }
 
-    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(response).to redirect_to(jjaek_path(jjaek, anchor: ActionView::RecordIdentifier.dom_id(comment)))
     expect(comment.reload).not_to be_hidden
     expect(comment.moderation_actions.action_type_restore.sole).to have_attributes(
       actor: group_admin, moderation_authority: "group", reversal_of: hide,
@@ -43,14 +43,14 @@ RSpec.describe "Group Comment moderation", type: :request do
 
     [ [ jjaek, own ], [ personal_jjaek, personal ], [ other_jjaek, other ], [ jjaek, admin_comment ] ].each do |parent, target|
       expect {
-        patch hide_jjaek_comment_path(parent, target), params: { moderation_action: { public_reason: "other" } }
+        post jjaek_comment_group_hides_path(parent, target), params: { moderation_action: { public_reason: "other" } }
       }.not_to change(ModerationAction, :count)
       expect(target.reload).not_to be_hidden
     end
 
     Comments::Hide.new(own, actor: global_admin, public_reason: "other").call!
     expect {
-      patch restore_jjaek_comment_path(jjaek, own), params: { moderation_action: { public_reason: "Self restore" } }
+      post jjaek_comment_group_restorations_path(jjaek, own), params: { moderation_action: { public_reason: "Self restore" } }
     }.not_to change(ModerationAction, :count)
     expect(own.reload).to be_hidden
   end
@@ -61,12 +61,12 @@ RSpec.describe "Group Comment moderation", type: :request do
 
     sign_in author
     expect {
-      patch restore_admin_jjaek_comment_path(jjaek, comment), params: { moderation_action: { public_reason: "Self restore" } }
+      post admin_jjaek_comment_restorations_path(jjaek, comment), params: { moderation_action: { public_reason: "Self restore" } }
     }.not_to change(ModerationAction, :count)
     expect(comment.reload).to be_hidden
 
     sign_in group_admin
-    patch restore_jjaek_comment_path(jjaek, comment), params: { moderation_action: { public_reason: "Resolved" } }
+    post jjaek_comment_group_restorations_path(jjaek, comment), params: { moderation_action: { public_reason: "Resolved" } }
     expect(comment.reload).not_to be_hidden
     expect(comment.moderation_actions.action_type_restore.sole).to have_attributes(moderation_authority: "group", reversal_of: hide)
     expect(hide.reload).to be_group_authority
@@ -74,20 +74,20 @@ RSpec.describe "Group Comment moderation", type: :request do
 
   it "rejects platform-origin restore and invalid reasons without changing state or audit" do
     expect {
-      patch hide_jjaek_comment_path(jjaek, comment), params: { moderation_action: { public_reason: "undefined" } }
+      post jjaek_comment_group_hides_path(jjaek, comment), params: { moderation_action: { public_reason: "undefined" } }
     }.not_to change(ModerationAction, :count)
     expect(comment.reload).not_to be_hidden
 
     Comments::Hide.new(comment, actor: group_admin, public_reason: "other").call!
     expect {
-      patch restore_jjaek_comment_path(jjaek, comment), params: { moderation_action: { public_reason: "" } }
+      post jjaek_comment_group_restorations_path(jjaek, comment), params: { moderation_action: { public_reason: "" } }
     }.not_to change(ModerationAction, :count)
     expect(comment.reload).to be_hidden
 
     Comments::Restore.new(comment, actor: group_admin, public_reason: "Resolved").call!
     Comments::Hide.new(comment, actor: global_admin, public_reason: "other").call!
     expect {
-      patch restore_jjaek_comment_path(jjaek, comment), params: { moderation_action: { public_reason: "Blocked" } }
+      post jjaek_comment_group_restorations_path(jjaek, comment), params: { moderation_action: { public_reason: "Blocked" } }
     }.not_to change(ModerationAction, :count)
     expect(comment.reload).to be_hidden
   end
@@ -99,11 +99,11 @@ RSpec.describe "Group Comment moderation", type: :request do
     group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
 
     expect {
-      patch hide_jjaek_comment_path(jjaek, new_target), params: { moderation_action: { public_reason: "other" } }
+      post jjaek_comment_group_hides_path(jjaek, new_target), params: { moderation_action: { public_reason: "other" } }
     }.not_to change(ModerationAction, :count)
     expect(new_target.reload).not_to be_hidden
 
-    patch restore_jjaek_comment_path(jjaek, hidden_before_closure), params: {
+    post jjaek_comment_group_restorations_path(jjaek, hidden_before_closure), params: {
       moderation_action: { public_reason: "Resolved" }
     }
     expect(hidden_before_closure.reload).not_to be_hidden
@@ -117,14 +117,14 @@ RSpec.describe "Group Comment moderation", type: :request do
       parent = author.jjaeks.create!(group: target_group, content: "Restricted parent")
       target = parent.comments.create!(user: author, content: "Restricted comment")
       expect {
-        patch hide_jjaek_comment_path(parent, target), params: { moderation_action: { public_reason: "other" } }
+        post jjaek_comment_group_hides_path(parent, target), params: { moderation_action: { public_reason: "other" } }
       }.not_to change(ModerationAction, :count)
       expect(target.reload).not_to be_hidden
 
       target.update!(hidden_at: Time.current)
       ModerationAction.create!(target:, actor: group_admin, action_type: :hide, public_reason: "other", moderation_authority: "group")
       expect {
-        patch restore_jjaek_comment_path(parent, target), params: { moderation_action: { public_reason: "Blocked" } }
+        post jjaek_comment_group_restorations_path(parent, target), params: { moderation_action: { public_reason: "Blocked" } }
       }.not_to change(ModerationAction, :count)
       expect(target.reload).to be_hidden
     end
@@ -137,12 +137,12 @@ RSpec.describe "Group Comment moderation", type: :request do
     group.transfer_admin_to!(new_admin, by: group_admin)
 
     expect {
-      patch restore_jjaek_comment_path(jjaek, comment), params: { moderation_action: { public_reason: "Blocked" } }
+      post jjaek_comment_group_restorations_path(jjaek, comment), params: { moderation_action: { public_reason: "Blocked" } }
     }.not_to change(ModerationAction, :count)
     expect(comment.reload).to be_hidden
 
     sign_in new_admin
-    patch restore_jjaek_comment_path(jjaek, comment), params: { moderation_action: { public_reason: "Resolved" } }
+    post jjaek_comment_group_restorations_path(jjaek, comment), params: { moderation_action: { public_reason: "Resolved" } }
     expect(comment.reload).not_to be_hidden
     expect(comment.moderation_actions.action_type_restore.sole).to have_attributes(actor: new_admin, moderation_authority: "group", reversal_of: hide)
   end
@@ -152,7 +152,7 @@ RSpec.describe "Group Comment moderation", type: :request do
     other_comment = other_jjaek.comments.create!(user: author, content: "Other comment")
 
     expect {
-      patch hide_jjaek_comment_path(jjaek, other_comment), params: { moderation_action: { public_reason: "other" } }
+      post jjaek_comment_group_hides_path(jjaek, other_comment), params: { moderation_action: { public_reason: "other" } }
     }.not_to change(ModerationAction, :count)
     expect(response).to have_http_status(:not_found)
     expect(other_comment.reload).not_to be_hidden
@@ -164,7 +164,7 @@ RSpec.describe "Group Comment moderation", type: :request do
     Comments::Hide.new(other_comment, actor: group_admin, public_reason: "other").call!
 
     expect {
-      patch restore_jjaek_comment_path(jjaek, other_comment), params: { moderation_action: { public_reason: "Resolved" } }
+      post jjaek_comment_group_restorations_path(jjaek, other_comment), params: { moderation_action: { public_reason: "Resolved" } }
     }.not_to change(ModerationAction, :count)
     expect(response).to have_http_status(:not_found)
     expect(other_comment.reload).to be_hidden

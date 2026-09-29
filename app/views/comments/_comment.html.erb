@@ -8,6 +8,10 @@
 <% displayed_content = editing ? comment.content_in_database : comment.content %>
 <% comment_policy = policy(comment) %>
 <% current_hide_action = comment.current_hide_action if comment.hidden? %>
+<% platform_hide_available = comment_policy.hide? %>
+<% platform_restore_available = comment_policy.restore? %>
+<% group_hide_available = comment_policy.hide_as_group_admin? %>
+<% group_restore_available = comment_policy.restore_as_group_admin? %>
 
 <article id="<%= dom_id(comment) %>" class="rounded-2xl bg-stone-50 px-4 py-3" data-controller="comment-edit">
   <div class="flex items-center justify-between gap-3">
@@ -52,36 +56,30 @@
     </div>
   <% end %>
 
-  <% if comment_policy.hide? || comment_policy.hide_as_group_admin? || comment_policy.restore? || comment_policy.restore_as_group_admin? %>
-    <section class="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-950">
+  <% if platform_hide_available || platform_restore_available || group_hide_available || group_restore_available %>
+    <section class="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-950" data-comment-moderation-state>
       <h3 class="font-semibold"><%= t("admin.jjaeks.moderation.title") %></h3>
       <p class="mt-2 font-medium">
         <%= t("admin.jjaeks.moderation.status") %>:
         <%= t("admin.jjaeks.moderation.#{comment.hidden? ? :hidden : :visible}") %>
       </p>
 
-      <% if comment_policy.hide? || comment_policy.hide_as_group_admin? %>
-        <% hide_path = comment_policy.hide? ? hide_admin_jjaek_comment_path(jjaek, comment) : hide_jjaek_comment_path(jjaek, comment) %>
-        <%= form_with url: hide_path, method: :patch, scope: :moderation_action, class: "mt-3 space-y-3" do |form| %>
-          <%= form.label :public_reason, t("jjaeks.moderation.reason"), class: "block font-medium" %>
-          <%= form.select :public_reason,
-                          options_for_select(jjaek_hide_reason_options),
-                          { prompt: t("admin.jjaeks.moderation.reason_prompt") },
-                          required: true,
-                          class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-          <%= form.label :internal_note, t("admin.jjaeks.moderation.internal_note"), class: "block font-medium" %>
-          <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-          <%= form.submit t("admin.jjaeks.actions.hide"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-        <% end %>
-      <% else %>
-        <% restore_path = comment_policy.restore? ? restore_admin_jjaek_comment_path(jjaek, comment) : restore_jjaek_comment_path(jjaek, comment) %>
-        <%= form_with url: restore_path, method: :patch, scope: :moderation_action, class: "mt-3 space-y-3" do |form| %>
-          <%= form.label :public_reason, t("admin.jjaeks.moderation.restore_reason"), class: "block font-medium" %>
-          <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-          <%= form.label :internal_note, t("admin.jjaeks.moderation.internal_note"), class: "block font-medium" %>
-          <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-          <%= form.submit t("admin.jjaeks.actions.restore"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-        <% end %>
+      <% if platform_hide_available %>
+        <%= link_to t("admin.jjaeks.actions.hide"),
+                    new_admin_jjaek_comment_hide_path(jjaek, comment),
+                    class: "mt-3 inline-flex rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+      <% elsif platform_restore_available %>
+        <%= link_to t("admin.jjaeks.actions.restore"),
+                    new_admin_jjaek_comment_restoration_path(jjaek, comment),
+                    class: "mt-3 inline-flex rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+      <% elsif group_hide_available %>
+        <%= link_to t("admin.jjaeks.actions.hide"),
+                    new_jjaek_comment_group_hide_path(jjaek, comment),
+                    class: "mt-3 inline-flex rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+      <% elsif group_restore_available %>
+        <%= link_to t("admin.jjaeks.actions.restore"),
+                    new_jjaek_comment_group_restoration_path(jjaek, comment),
+                    class: "mt-3 inline-flex rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
       <% end %>
     </section>
   <% end %>

@@ -1,0 +1,36 @@
+module Admin
+  class CommentHidesController < ApplicationController
+    before_action :prepare_page
+
+    def new; end
+
+    def create
+      action_params = moderation_action_params
+      @moderation_action.assign_attributes(action_params)
+      Comments::Hide.new(@comment, actor: current_user, **action_params).call!
+
+      redirect_to return_path, notice: t("comments.moderation.notices.hidden")
+    rescue Comments::Hide::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+      @comment.reload
+      @error_message = t("comments.moderation.alerts.hide_failed")
+      render :new, status: :unprocessable_content
+    end
+
+    private
+
+    def prepare_page
+      @jjaek = Jjaek.find(params[:jjaek_id])
+      @comment = @jjaek.comments.find(params[:comment_id])
+      authorize @comment, :hide?
+      @moderation_action = ModerationAction.new
+    end
+
+    def moderation_action_params
+      params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
+    end
+
+    def return_path
+      jjaek_path(@jjaek, anchor: ActionView::RecordIdentifier.dom_id(@comment))
+    end
+  end
+end
