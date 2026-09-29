@@ -1,0 +1,25 @@
+<%= form_with model: @moderation_action,
+              scope: :moderation_action,
+              url: admin_jjaek_hides_path(@jjaek),
+              method: :post,
+              class: "mt-6 space-y-4" do |form| %>
+  <div class="space-y-2">
+    <%= form.label :public_reason, t("admin.jjaeks.moderation.reason"), class: "block text-sm font-medium text-stone-800" %>
+    <%= form.select :public_reason,
+                    options_for_select(jjaek_hide_reason_options, @moderation_action.public_reason),
+                    { prompt: t("admin.jjaeks.moderation.reason_prompt") },
+                    required: true,
+                    class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2" %>
+  </div>
+
+  <div class="space-y-2">
+    <%= form.label :internal_note, t("admin.jjaeks.moderation.internal_note"), class: "block text-sm font-medium text-stone-800" %>
+    <%= form.text_area :internal_note,
+                       rows: 3,
+                       aria: { describedby: "platform_internal_note_hint" },
+                       class: "w-full rounded-xl border border-stone-300 px-3 py-2" %>
+    <p id="platform_internal_note_hint" class="text-xs text-stone-500"><%= t("admin.jjaeks.moderation.internal_note_hint") %></p>
+  </div>
+
+  <%= form.submit t("admin.jjaeks.actions.hide"), class: "rounded-full bg-amber-800 px-5 py-2.5 text-sm font-medium text-white" %>
+<% end %>

@@ -10,29 +10,15 @@
       </span>
     </p>
 
-    <% if jjaek_policy.hide_as_group_admin? %>
-      <%= form_with url: hide_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
-        <%= form.label :public_reason, t("jjaeks.moderation.reason"), class: "block font-medium" %>
-        <%= form.select :public_reason,
-                        options_for_select(jjaek_hide_reason_options),
-                        { prompt: t("jjaeks.moderation.group_admin.reason_prompt") },
-                        required: true,
-                        class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-        <%= form.label :internal_note, t("jjaeks.moderation.group_admin.internal_note"), class: "block font-medium" %>
-        <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-        <p class="text-xs text-amber-800"><%= t("jjaeks.moderation.group_admin.internal_note_hint") %></p>
-        <%= form.submit t("admin.jjaeks.actions.hide"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-      <% end %>
-    <% elsif jjaek_policy.restore_as_group_admin? %>
-      <%= form_with url: restore_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
-        <%= form.label :public_reason, t("jjaeks.moderation.group_admin.restore_reason"), class: "block font-medium" %>
-        <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-        <%= form.label :internal_note, t("jjaeks.moderation.group_admin.internal_note"), class: "block font-medium" %>
-        <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-        <p class="text-xs text-amber-800"><%= t("jjaeks.moderation.group_admin.internal_note_hint") %></p>
-        <%= form.submit t("admin.jjaeks.actions.restore"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-      <% end %>
-    <% end %>
+    <% action_path = if jjaek_policy.hide_as_group_admin?
+      new_jjaek_group_hide_path(jjaek)
+    else
+      new_jjaek_group_restoration_path(jjaek)
+    end %>
+    <% action_label = jjaek_policy.hide_as_group_admin? ? t("admin.jjaeks.actions.hide") : t("admin.jjaeks.actions.restore") %>
+    <%= link_to action_label,
+                action_path,
+                class: "mt-4 inline-flex rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
   </section>
 <% end %>
 

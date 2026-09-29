@@ -257,17 +257,39 @@ en:
     jjaeks:
       actions:
         hide: "Hide"
+        restore: "Restore"
       moderation:
         title: "Moderation"
+        hide_title: "Hide content"
+        hide_description: "Hide the Jjaek content and record the moderation action."
+        restore_title: "Restore content"
+        restore_description: "Lift the current hide and record a separate restoration reason."
+        current_hide: "Current hide action"
+        cancel: "Back to Jjaek details"
+        status: "Current status"
         hidden: "Hidden by moderation"
+        visible: "Visible"
         reason: "Hide reason"
         reason_prompt: "Select a reason"
+        restore_reason: "Restore reason"
         internal_note: "Internal note"
+        internal_note_hint: "Optional · Not shown to the author or ordinary users."
+        memo: "Memo"
+        history: "Moderation history"
+        authority: "Authority"
+        authorities:
+          platform: "System admin"
+          group: "Club admin"
+        actions:
+          hide: "Hide"
+          restore: "Restore"
         performed_by: "%{actor} · %{time}"
       notices:
         hidden: "The post was hidden."
+        restored: "The post was restored."
       alerts:
         hide_failed: "The post could not be hidden."
+        restore_failed: "The post could not be restored."
     user_content:
       title: "User activity"
       description: "Review this user's Jjaeks and comments by area and type."
@@ -995,6 +1017,12 @@ en:
       reason: "Hide reason"
       group_admin:
         title: "Group content moderation"
+        hide_title: "Hide group content"
+        hide_description: "Hide the group Jjaek content and record the moderation action."
+        restore_title: "Restore group content"
+        restore_description: "Lift the current hide and record a separate restoration reason."
+        current_hide: "Current hide action"
+        cancel: "Back to Jjaek details"
         reason_prompt: "Select a hide reason"
         hide: "Hide"
         restore_reason: "Restore reason"

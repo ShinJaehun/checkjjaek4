@@ -10,8 +10,8 @@ Rails.application.routes.draw do
   resources :notifications, only: :index
   namespace :admin do
     resources :jjaeks, only: [] do
-      patch :hide, on: :member
-      patch :restore, on: :member
+      resources :hides, only: %i[new create], controller: "jjaek_hides"
+      resources :restorations, only: %i[new create], controller: "jjaek_restorations"
       resources :comments, only: [], controller: "comments" do
         patch :hide, on: :member
         patch :restore, on: :member
@@ -66,8 +66,8 @@ Rails.application.routes.draw do
     patch :move_down, on: :member
   end
   resources :jjaeks, only: %i[new show create edit update destroy] do
-    patch :hide, on: :member
-    patch :restore, on: :member
+    resources :group_hides, only: %i[new create], module: :jjaeks
+    resources :group_restorations, only: %i[new create], module: :jjaeks
     resources :requotes, only: :index
     resources :comments, only: %i[index create update destroy] do
       patch :hide, on: :member

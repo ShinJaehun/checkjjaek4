@@ -9,27 +9,25 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     jjaek = author.jjaeks.create!(content: "ADMIN_HIDE_TARGET")
     sign_in viewer
 
-    patch hide_admin_jjaek_path(jjaek), params: { moderation_action: { public_reason: "other" } }
+    post admin_jjaek_hides_path(jjaek), params: { moderation_action: { public_reason: "other" } }
     expect(jjaek.reload).not_to be_hidden
 
     sign_in admin
     get jjaek_path(jjaek)
     document = Nokogiri::HTML(response.body)
-    reason_select = document.at_css("select[name='moderation_action[public_reason]']")
     jjaek_article = document.at_css("#jjaek_#{jjaek.id}")
     expect(document.at_css("#admin_moderation_state").text.squish).to include("콘텐츠 관리", "현재 상태: 공개")
     expect(jjaek_article.at_css("#admin_moderation_state")).to be_present
     expect(response.body.index(%(id="admin_moderation_state"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
-    expect(response.body).to include("숨김")
-    expect(reason_select.css("option").map { |option| option["value"] }).to include(*Jjaek::MODERATION_HIDE_REASONS)
-    expect(document.at_css("textarea[name='moderation_action[public_reason]']")).to be_nil
+    expect(document.at_css("#admin_moderation_state a[href='#{new_admin_jjaek_hide_path(jjaek)}']").text.strip).to eq("숨김")
+    expect(document.at_css("#admin_moderation_state form")).to be_nil
 
     expect {
-      patch hide_admin_jjaek_path(jjaek), params: { moderation_action: { public_reason: "undefined_reason" } }
+      post admin_jjaek_hides_path(jjaek), params: { moderation_action: { public_reason: "undefined_reason" } }
     }.not_to change(ModerationAction, :count)
     expect(jjaek.reload).not_to be_hidden
 
-    patch hide_admin_jjaek_path(jjaek), params: {
+    post admin_jjaek_hides_path(jjaek), params: {
       moderation_action: { public_reason: "personal_information", internal_note: "INTERNAL HIDE NOTE" }
     }
 
@@ -51,10 +49,11 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(hidden_article.at_css("#admin_moderation_history_section")).to be_present
     expect(response.body.index(%(id="admin_moderation_state"))).to be < response.body.index(%(id="admin_moderation_history_section"))
     expect(response.body.index(%(id="admin_moderation_history_section"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
-    expect(response.body).not_to include(%(action="#{hide_admin_jjaek_path(jjaek)}"))
+    expect(document.at_css("#admin_moderation_state a[href='#{new_admin_jjaek_hide_path(jjaek)}']")).to be_nil
+    expect(document.at_css("#admin_moderation_state a[href='#{new_admin_jjaek_restoration_path(jjaek)}']")).to be_present
 
     expect {
-      patch hide_admin_jjaek_path(jjaek), params: { moderation_action: { public_reason: "other" } }
+      post admin_jjaek_hides_path(jjaek), params: { moderation_action: { public_reason: "other" } }
     }.not_to change(ModerationAction, :count)
   end
 
@@ -73,8 +72,8 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(jjaek_article.text).to include(I18n.t("jjaeks.labels.deleted"), "운영 이력", "PRESERVED HIDE NOTE")
     expect(jjaek_article.at_css("#admin_moderation_state")).to be_nil
     expect(jjaek_article.at_css("#admin_moderation_history_section")).to be_present
-    expect(response.body).not_to include(%(action="#{restore_admin_jjaek_path(jjaek)}"))
-    expect(response.body).not_to include(%(action="#{hide_admin_jjaek_path(jjaek)}"))
+    expect(jjaek_article.at_css("a[href='#{new_admin_jjaek_restoration_path(jjaek)}']")).to be_nil
+    expect(jjaek_article.at_css("a[href='#{new_admin_jjaek_hide_path(jjaek)}']")).to be_nil
     expect(response.body.index(%(id="admin_moderation_history_section"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
   end
 
@@ -83,10 +82,10 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     sign_in admin
 
     get jjaek_path(own_jjaek)
-    expect(response.body).not_to include(%(action="#{hide_admin_jjaek_path(own_jjaek)}"))
+    expect(response.body).not_to include(%(href="#{new_admin_jjaek_hide_path(own_jjaek)}"))
 
     expect {
-      patch hide_admin_jjaek_path(own_jjaek), params: { moderation_action: { public_reason: "other" } }
+      post admin_jjaek_hides_path(own_jjaek), params: { moderation_action: { public_reason: "other" } }
     }.not_to change(ModerationAction, :count)
 
     other_admin = User.create!(name: "Other admin", email: "other-admin-hide@example.com", password: "password123!", global_admin: true)
@@ -95,10 +94,10 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     get jjaek_path(own_jjaek)
     expect(response.body).to include("ADMIN OWN MODERATION TARGET", "시스템 관리자에 의해 숨겨진 짹입니다.", "기타", "좋아요 0개", "댓글 0개")
     expect(response.body).not_to include("댓글 보기", "글 보기")
-    expect(response.body).not_to include("ADMIN ONLY", "운영 이력", %(action="#{restore_admin_jjaek_path(own_jjaek)}"))
+    expect(response.body).not_to include("ADMIN ONLY", "운영 이력", %(href="#{new_admin_jjaek_restoration_path(own_jjaek)}"))
 
     expect {
-      patch restore_admin_jjaek_path(own_jjaek), params: { moderation_action: { public_reason: "Self restore" } }
+      post admin_jjaek_restorations_path(own_jjaek), params: { moderation_action: { public_reason: "Self restore" } }
     }.not_to change(ModerationAction, :count)
     expect(own_jjaek.reload).to be_hidden
   end
@@ -114,14 +113,15 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     sign_in admin
 
     get jjaek_path(jjaek)
-    expect(response.body).to include(%(action="#{restore_admin_jjaek_path(jjaek)}"), "복구 사유", "HIDE INTERNAL")
+    expect(response.body).to include(%(href="#{new_admin_jjaek_restoration_path(jjaek)}"), "HIDE INTERNAL")
+    expect(response.body).not_to include("복구 사유")
 
     expect {
-      patch restore_admin_jjaek_path(jjaek), params: { moderation_action: { public_reason: "" } }
+      post admin_jjaek_restorations_path(jjaek), params: { moderation_action: { public_reason: "" } }
     }.not_to change(ModerationAction, :count)
     expect(jjaek.reload).to be_hidden
 
-    patch restore_admin_jjaek_path(jjaek), params: {
+    post admin_jjaek_restorations_path(jjaek), params: {
       moderation_action: { public_reason: "검토 결과 공개 가능", internal_note: "RESTORE INTERNAL" }
     }
 
@@ -369,7 +369,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     get jjaek_path(jjaek)
     expect(response.body).to include("GROUP ADMIN HIDDEN SOURCE", "서비스 운영 방해", "좋아요 0개", "댓글 0개")
     expect(response.body).not_to include("댓글 보기", "글 보기")
-    expect(response.body).not_to include("GLOBAL ADMIN INTERNAL", %(id="admin_moderation_history"), %(action="#{restore_admin_jjaek_path(jjaek)}"))
+    expect(response.body).not_to include("GLOBAL ADMIN INTERNAL", %(id="admin_moderation_history"), %(href="#{new_admin_jjaek_restoration_path(jjaek)}"))
   end
 
   it "blocks new interactions and hidden-source disclosure without changing existing rows" do

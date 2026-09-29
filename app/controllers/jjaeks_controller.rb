@@ -1,6 +1,5 @@
 class JjaeksController < ApplicationController
   before_action :set_jjaek, only: %i[show edit update]
-  before_action :set_group_moderation_jjaek, only: %i[hide restore]
   before_action :set_destroy_jjaek, only: :destroy
   before_action :build_new_jjaek, only: %i[new create]
 
@@ -29,7 +28,10 @@ class JjaeksController < ApplicationController
       prepare_comments
       return render :hidden
     end
-    return render :hidden if @jjaek.hidden? && !policy(@jjaek).view_admin_inventory?
+   if @jjaek.hidden? && !policy(@jjaek).view_admin_inventory?
+     prepare_comments
+     return render :hidden
+   end
 
     prepare_comments
     prepare_visible_requote_counts_for([ @jjaek ])
@@ -77,22 +79,6 @@ class JjaeksController < ApplicationController
     end
   end
 
-  def hide
-    authorize @jjaek, :hide_as_group_admin?
-    Jjaeks::Hide.new(@jjaek, actor: current_user, **group_moderation_params).call!
-    redirect_to jjaek_path(@jjaek), notice: t("jjaeks.moderation.notices.hidden")
-  rescue Jjaeks::Hide::Error, ActiveRecord::RecordInvalid
-    redirect_to jjaek_path(@jjaek), alert: t("jjaeks.moderation.alerts.hide_failed")
-  end
-
-  def restore
-    authorize @jjaek, :restore_as_group_admin?
-    Jjaeks::Restore.new(@jjaek, actor: current_user, **group_moderation_params).call!
-    redirect_to jjaek_path(@jjaek), notice: t("jjaeks.moderation.notices.restored")
-  rescue Jjaeks::Restore::Error, ActiveRecord::RecordInvalid
-    redirect_to jjaek_path(@jjaek), alert: t("jjaeks.moderation.alerts.restore_failed")
-  end
-
   def destroy
     group = @jjaek.group
     @jjaek.destroy_or_tombstone!
@@ -113,14 +99,6 @@ class JjaeksController < ApplicationController
   def set_destroy_jjaek
     @jjaek = Jjaek.find(params[:id])
     authorize @jjaek, :destroy?
-  end
-
-  def set_group_moderation_jjaek
-    @jjaek = Jjaek.find(params[:id])
-  end
-
-  def group_moderation_params
-    params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
   end
 
   def build_new_jjaek

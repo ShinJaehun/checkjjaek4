@@ -353,7 +353,7 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
   다른 Group의 메모, platform-origin internal moderation note와 platform 전체 moderation audit는 노출하지 않는다.
 - 대상 작성자가 아닌 global admin은 기존 운영 조사 권한으로 원문, 실제 actor, 공개 사유,
   platform-origin과 group-origin 내부 메모 및 전체 감사 이력을 확인할 수 있다.
-- 목표 정책의 Group admin hide/restore form에는 공개 사유와 명확히 구분된 선택적 `내부 메모` 필드를 제공한다.
+- Group admin hide/restore의 독립 Action page에는 공개 사유와 명확히 구분된 선택적 `내부 메모` 필드를 제공한다.
   이 메모는 작성자와 일반 회원에게 노출하지 않는다.
 - Group admin이 숨긴 일반 짹은 `동아리 관리자에 의해 숨겨진 짹입니다.`로 표시한다.
 - Group admin이 숨긴 책짹은 `동아리 관리자에 의해 숨겨진 책짹입니다.`로 표시한다.
@@ -436,7 +436,14 @@ Acceptance criteria:
 
 - 같은 Jjaek moderation 개념은 운영자 종류와 관계없이 동일한 정보 구조와 시각적 문법을 사용한다.
 - 현재 상태와 현재 가능한 조치는 `콘텐츠 관리` 카드에 표시하고 과거 조치 정보는 중복 표시하지 않는다.
-  카드에는 현재 상태(`공개`/`숨김`), 현재 가능한 action form, `public_reason`, 선택적 `internal_note`, action button을 둔다.
+  카드에는 현재 상태(`공개`/`숨김`)와 현재 허용된 Action page link만 두고, `public_reason`과 선택적
+  `internal_note`는 독립 Action page에서 입력한다.
+- platform Action page는 `/admin/jjaeks/:jjaek_id/hides/new`와 `/admin/jjaeks/:jjaek_id/restorations/new`,
+  Group authority Action page는 `/jjaeks/:jjaek_id/group_hides/new`와
+  `/jjaeks/:jjaek_id/group_restorations/new`를 사용한다. 각 상세 link·GET·POST는 authority별 기존
+  `hide?`/`restore?` 또는 `hide_as_group_admin?`/`restore_as_group_admin?` predicate를 동일하게 사용한다.
+- restore Action page의 현재 hide는 상세의 전체 moderation history와 같은 entry 표현을 재사용하되,
+  기존 authority별 internal note 열람 경계를 넓히지 않는다.
 - 상태 용어는 `공개`/`숨김`, action button은 `숨김`/`숨김 해제`, 운영 이력의 action은 `숨김`/`복구`로 구분한다.
 - 과거 조치는 별도 `운영 이력` 카드에 `created_at ASC, id ASC` 순서로 표시하고 반복 hide/restore cycle을 모두 보존한다.
 - Group admin과 global admin의 각 history entry는 authority source(`시스템 관리자`/`동아리 관리자`),

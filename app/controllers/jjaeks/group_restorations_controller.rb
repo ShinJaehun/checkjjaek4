@@ -1,0 +1,33 @@
+module Jjaeks
+  class GroupRestorationsController < ApplicationController
+    before_action :prepare_page
+
+    def new; end
+
+    def create
+      action_params = moderation_action_params
+      @moderation_action.assign_attributes(action_params)
+      Jjaeks::Restore.new(@jjaek, actor: current_user, **action_params).call!
+
+      redirect_to jjaek_path(@jjaek), notice: t("jjaeks.moderation.notices.restored")
+    rescue Jjaeks::Restore::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+      @jjaek.reload
+      @current_hide_action = @jjaek.current_hide_action
+      @error_message = t("jjaeks.moderation.alerts.restore_failed")
+      render :new, status: :unprocessable_content
+    end
+
+    private
+
+    def prepare_page
+      @jjaek = Jjaek.find(params[:jjaek_id])
+      authorize @jjaek, :restore_as_group_admin?
+      @current_hide_action = @jjaek.current_hide_action
+      @moderation_action = ModerationAction.new
+    end
+
+    def moderation_action_params
+      params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
+    end
+  end
+end

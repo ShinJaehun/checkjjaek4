@@ -16,27 +16,15 @@
           </span>
         </p>
 
-        <% if jjaek_policy.restore? %>
-          <%= form_with url: restore_admin_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
-            <%= form.label :public_reason, t("admin.jjaeks.moderation.restore_reason"), class: "block font-medium" %>
-            <%= form.text_area :public_reason, rows: 2, required: true, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-            <%= form.label :internal_note, t("admin.jjaeks.moderation.internal_note"), class: "block font-medium" %>
-            <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-            <%= form.submit t("admin.jjaeks.actions.restore"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-          <% end %>
-        <% else %>
-          <%= form_with url: hide_admin_jjaek_path(jjaek), method: :patch, scope: :moderation_action, class: "mt-4 space-y-3" do |form| %>
-            <%= form.label :public_reason, t("admin.jjaeks.moderation.reason"), class: "block font-medium" %>
-            <%= form.select :public_reason,
-                            options_for_select(jjaek_hide_reason_options),
-                            { prompt: t("admin.jjaeks.moderation.reason_prompt") },
-                            required: true,
-                            class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-            <%= form.label :internal_note, t("admin.jjaeks.moderation.internal_note"), class: "block font-medium" %>
-            <%= form.text_area :internal_note, rows: 3, class: "w-full rounded-xl border border-amber-200 bg-white px-3 py-2" %>
-            <%= form.submit t("admin.jjaeks.actions.hide"), class: "rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
-          <% end %>
-        <% end %>
+        <% action_path = if jjaek_policy.hide?
+          new_admin_jjaek_hide_path(jjaek)
+        else
+          new_admin_jjaek_restoration_path(jjaek)
+        end %>
+        <% action_label = jjaek_policy.hide? ? t("admin.jjaeks.actions.hide") : t("admin.jjaeks.actions.restore") %>
+        <%= link_to action_label,
+                    action_path,
+                    class: "mt-4 inline-flex rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
       </section>
     <% end %>
 

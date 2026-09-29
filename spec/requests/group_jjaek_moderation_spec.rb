@@ -22,13 +22,10 @@ RSpec.describe "Group Jjaek moderation", type: :request do
       get jjaek_path(jjaek)
       state = Nokogiri::HTML(response.body).at_css("#group_moderation_state")
       expect(state.text.squish).to include("콘텐츠 관리", "현재 상태: 공개")
-      expect(response.body).to include(
-        %(action="#{hide_jjaek_path(jjaek)}"),
-        "내부 메모",
-        "선택 입력 · 동아리 운영자에게만 표시됩니다."
-      )
+      expect(state.at_css("a[href='#{new_jjaek_group_hide_path(jjaek)}']").text.strip).to eq("숨김")
+      expect(state.at_css("form")).to be_nil
 
-      patch hide_jjaek_path(jjaek), params: {
+      post jjaek_group_hides_path(jjaek), params: {
         moderation_action: { public_reason: "other", internal_note: "Not accepted" }
       }
 
@@ -42,7 +39,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
 
       get jjaek_path(jjaek)
       expected_title = jjaek.book.present? ? "동아리 관리자에 의해 숨겨진 책짹입니다." : "동아리 관리자에 의해 숨겨진 짹입니다."
-      expect(response.body).to include(expected_title, "기타", "내부 메모", "Not accepted", %(action="#{restore_jjaek_path(jjaek)}"), %(id="group_moderation_history"))
+      expect(response.body).to include(expected_title, "기타", "Not accepted", %(href="#{new_jjaek_group_restoration_path(jjaek)}"), %(id="group_moderation_history"))
       detail = Nokogiri::HTML(response.body)
       hidden_article = detail.at_css("#jjaek_#{jjaek.id}")
       expect(detail.at_css("#group_moderation_state").text.squish).to include("현재 상태: 숨김")
@@ -53,10 +50,9 @@ RSpec.describe "Group Jjaek moderation", type: :request do
       expect(hidden_article.at_css("#group_moderation_state")).to be_present
       expect(hidden_article.at_css("#group_moderation_history")).to be_present
       expect(response.body.index(%(id="group_moderation_state"))).to be < response.body.index(%(id="group_moderation_history"))
-      expect(response.body.index(%(id="group_moderation_history"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
       expect(detail.css('#group_moderation_history [data-role="internal-note"]').map(&:text).join).to include("Not accepted")
       expect(detail.text.scan("Not accepted").size).to eq(1)
-      expect(detail.at_css(%(form[action="#{restore_jjaek_path(jjaek)}"] textarea[name="moderation_action[internal_note]"]))).to be_present
+      expect(detail.at_css("#group_moderation_state form")).to be_nil
     end
   end
 
@@ -80,10 +76,10 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     expect(entries.size).to eq(4)
     entry_texts = entries.map(&:text).map(&:squish)
     group_actions = target.moderation_actions.where(moderation_authority: "group").order(created_at: :asc, id: :asc)
-    expect(entry_texts[0]).to include("숨김 동아리 관리자 Group admin · #{I18n.l(group_actions[0].created_at, format: :short)}", "사유: 기타", "메모: FIRST GROUP NOTE")
-    expect(entry_texts[1]).to include("복구 동아리 관리자 Group admin · #{I18n.l(group_actions[1].created_at, format: :short)}", "사유: First restore")
-    expect(entry_texts[2]).to include("숨김 동아리 관리자 Group admin · #{I18n.l(group_actions[2].created_at, format: :short)}", "사유: 스팸·광고", "메모: SECOND GROUP NOTE")
-    expect(entry_texts[3]).to include("복구 동아리 관리자 Group admin · #{I18n.l(group_actions[3].created_at, format: :short)}", "사유: Second restore", "메모: RESTORE GROUP NOTE")
+    expect(entry_texts[0]).to include("숨김 동아리 관리자 Group admin · #{I18n.l(group_actions[0].created_at, format: :short)}", "사유 기타", "메모 FIRST GROUP NOTE")
+    expect(entry_texts[1]).to include("복구 동아리 관리자 Group admin · #{I18n.l(group_actions[1].created_at, format: :short)}", "사유 First restore")
+    expect(entry_texts[2]).to include("숨김 동아리 관리자 Group admin · #{I18n.l(group_actions[2].created_at, format: :short)}", "사유 스팸·광고", "메모 SECOND GROUP NOTE")
+    expect(entry_texts[3]).to include("복구 동아리 관리자 Group admin · #{I18n.l(group_actions[3].created_at, format: :short)}", "사유 Second restore", "메모 RESTORE GROUP NOTE")
     expect(history.text).not_to include("조치 주체:", "실제 처리자:", "처리 시각:")
     expect(entries[0].at_css('[data-role="internal-note"]')).to be_present
     expect(entries[1].at_css('[data-role="internal-note"]')).to be_nil
@@ -173,8 +169,8 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     jjaek_article = detail.at_css("#jjaek_#{target.id}")
     expect(jjaek_article.at_css("#group_moderation_state")).to be_nil
     expect(jjaek_article.at_css("#group_moderation_history")).to be_present
-    expect(response.body).not_to include(%(action="#{restore_jjaek_path(target)}"))
-    expect(response.body).not_to include(%(action="#{hide_jjaek_path(target)}"))
+    expect(response.body).not_to include(%(href="#{new_jjaek_group_restoration_path(target)}"))
+    expect(response.body).not_to include(%(href="#{new_jjaek_group_hide_path(target)}"))
     expect(response.body.index(%(id="group_moderation_history"))).to be < response.body.index(%(id="comments_panel_jjaek_#{target.id}"))
 
     sign_in member
@@ -228,11 +224,11 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
 
     expect {
-      patch hide_jjaek_path(new_target), params: { moderation_action: { public_reason: "other" } }
+      post jjaek_group_hides_path(new_target), params: { moderation_action: { public_reason: "other" } }
     }.not_to change(ModerationAction, :count)
     expect(new_target.reload).not_to be_hidden
 
-    patch restore_jjaek_path(hidden_before_closure), params: { moderation_action: { public_reason: "Resolved" } }
+    post jjaek_group_restorations_path(hidden_before_closure), params: { moderation_action: { public_reason: "Resolved" } }
     expect(hidden_before_closure.reload).not_to be_hidden
   end
 
@@ -251,7 +247,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
 
     targets.each do |target|
       expect {
-        patch hide_jjaek_path(target), params: { moderation_action: { public_reason: "other" } }
+        post jjaek_group_hides_path(target), params: { moderation_action: { public_reason: "other" } }
       }.not_to change(ModerationAction, :count)
       expect(target.reload).not_to be_hidden
     end
@@ -272,15 +268,15 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     expect(response.body).not_to include("Transferred moderation")
     expect(response.body).not_to include("Previous admin note")
     expect(response.body).not_to include(%(id="group_moderation_history"))
-    expect(response.body).not_to include(%(action="#{restore_jjaek_path(target)}"))
+    expect(response.body).not_to include(%(href="#{new_jjaek_group_restoration_path(target)}"))
 
     sign_in current_admin
 
     get jjaek_path(target)
-    expect(response.body).to include("동아리 관리자에 의해 숨겨진 짹입니다.", "Previous admin note", %(action="#{restore_jjaek_path(target)}"))
+    expect(response.body).to include("동아리 관리자에 의해 숨겨진 짹입니다.", "Previous admin note", %(href="#{new_jjaek_group_restoration_path(target)}"))
     expect(hide.reload).to be_group_authority
 
-    patch restore_jjaek_path(target), params: {
+    post jjaek_group_restorations_path(target), params: {
       moderation_action: { public_reason: "Resolved", internal_note: "Not accepted" }
     }
 
@@ -329,7 +325,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     expect(response.body).not_to include(%(id="group_moderation_history"))
 
     sign_in group_admin
-    patch restore_jjaek_path(target), params: { moderation_action: { public_reason: "Visible again" } }
+    post jjaek_group_restorations_path(target), params: { moderation_action: { public_reason: "Visible again" } }
 
     sign_in author
     get jjaek_path(target)
@@ -350,7 +346,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
 
     get jjaek_path(global_hide)
     expect(response.body).to include("시스템 관리자에 의해 숨겨진 짹입니다.")
-    expect(response.body).not_to include(%(action="#{restore_jjaek_path(global_hide)}"))
+    expect(response.body).not_to include(%(href="#{new_jjaek_group_restoration_path(global_hide)}"))
     expect(global_hide.current_hide_action).to be_platform_authority
 
     other_group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Other restore group", group_type: :public_group)
@@ -368,7 +364,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
 
     [ global_hide, own_target, other_target, pending_target, suspended_target ].each do |target|
       expect {
-        patch restore_jjaek_path(target), params: { moderation_action: { public_reason: "Blocked" } }
+        post jjaek_group_restorations_path(target), params: { moderation_action: { public_reason: "Blocked" } }
       }.not_to change(ModerationAction, :count)
       expect(target.reload).to be_hidden
     end
@@ -378,13 +374,13 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     target = author.jjaeks.create!(group:, content: "Reason target")
 
     expect {
-      patch hide_jjaek_path(target), params: { moderation_action: { public_reason: "" } }
+      post jjaek_group_hides_path(target), params: { moderation_action: { public_reason: "" } }
     }.not_to change(ModerationAction, :count)
     expect(target.reload).not_to be_hidden
 
     Jjaeks::Hide.new(target, actor: group_admin, public_reason: "other").call!
     expect {
-      patch restore_jjaek_path(target), params: { moderation_action: { public_reason: "" } }
+      post jjaek_group_restorations_path(target), params: { moderation_action: { public_reason: "" } }
     }.not_to change(ModerationAction, :count)
     expect(target.reload).to be_hidden
   end
