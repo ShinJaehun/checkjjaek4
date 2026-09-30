@@ -677,6 +677,7 @@ ko:
     alerts:
       ban_failed: "동아리 이용을 제한할 수 없습니다."
       unban_failed: "동아리 이용 제한을 해제할 수 없습니다."
+      stale_restoration: "이미 해제되었거나 존재하지 않는 이용 제한입니다."
       access_restricted: "동아리 이용이 제한되었습니다. 사유: %{reason}"
   comments:
     moderation:

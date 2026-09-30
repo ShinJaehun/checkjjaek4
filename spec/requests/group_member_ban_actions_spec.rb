@@ -97,6 +97,20 @@ RSpec.describe "Group member ban actions", type: :request do
     history = Nokogiri::HTML(response.body).at_css("#membership-operations-history")
     expect(history.at_css("[data-ban-history-entry='ban_from_group']")).to be_present
     expect(history.at_css("[data-ban-history-entry='unban_from_group']")).to be_present
+
+    moderation_action_count = ModerationAction.count
+
+    get new_group_group_member_ban_restoration_path(group, ban)
+    expect(response).to redirect_to(group_members_path(group))
+    expect(flash[:alert]).to eq(I18n.t("group_member_bans.alerts.stale_restoration"))
+
+    post group_group_member_ban_restorations_path(group, ban), params: {
+      moderation_action: { public_reason: "Duplicate restoration" }
+    }
+    expect(response).to redirect_to(group_members_path(group))
+    expect(flash[:alert]).to eq(I18n.t("group_member_bans.alerts.stale_restoration"))
+    expect(GroupMemberBan.exists?(ban.id)).to be(false)
+    expect(ModerationAction.count).to eq(moderation_action_count)
   end
 
   it "denies ban and unban pages and mutations to users who are not this group's admin" do

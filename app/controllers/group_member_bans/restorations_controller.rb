@@ -25,7 +25,12 @@ module GroupMemberBans
     def prepare_page
       @group = policy_scope(Group).find(params[:group_id])
       authorize @group, :view_members?
-      @ban = @group.group_member_bans.includes(:user).find(params[:group_member_ban_id])
+      @ban = @group.group_member_bans.includes(:user).find_by(id: params[:group_member_ban_id])
+      unless @ban
+        redirect_to group_members_path(@group), alert: t("group_member_bans.alerts.stale_restoration")
+        return
+      end
+
       authorize @ban, :unban?
       @current_ban_action = @ban.current_ban_action
       @moderation_action = ModerationAction.new
