@@ -1,3 +1,5 @@
+<% show_actions = local_assigns.fetch(:show_actions, true) %>
+
 <div class="flex items-start justify-between gap-3">
   <div class="flex min-w-0 items-start gap-3">
     <%= user_avatar_image(jjaek.user, size: 128, alt: jjaek.user.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
@@ -31,7 +33,7 @@
     </div>
   </div>
 
-  <% if policy(jjaek).update? || policy(jjaek).destroy? %>
+  <% if show_actions && (policy(jjaek).update? || policy(jjaek).destroy?) %>
     <div class="flex items-center gap-2 text-xs text-stone-500">
       <%= link_to t("jjaeks.actions.edit"), edit_jjaek_path(jjaek) if policy(jjaek).update? %>
       <%= button_to t("jjaeks.actions.delete"), jjaek_path(jjaek), method: :delete, form: { data: { turbo_confirm: t("jjaeks.confirmations.destroy") } }, class: "text-red-600" if policy(jjaek).destroy? %>

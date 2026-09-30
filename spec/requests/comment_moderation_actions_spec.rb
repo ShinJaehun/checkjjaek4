@@ -39,6 +39,7 @@ RSpec.describe "Comment moderation actions", type: :request do
     sign_in admin
     hide_new_path = new_admin_jjaek_comment_hide_path(jjaek, comment)
     hide_create_path = admin_jjaek_comment_hides_path(jjaek, comment)
+    other_comment = jjaek.comments.create!(user: member, content: "COMMENT ACTION SIBLING")
 
     get jjaek_path(jjaek)
     card = Nokogiri::HTML(response.body).at_css("#comment_#{comment.id}")
@@ -48,16 +49,26 @@ RSpec.describe "Comment moderation actions", type: :request do
     get hide_new_path
     page = Nokogiri::HTML(response.body)
     context = page.at_css("[data-comment-moderation-context]")
-    expect(context.text.squish).to include(
-      comment_author.name,
-      "COMMENT ACTION TARGET",
-      I18n.l(comment.created_at, format: :short),
+    jjaek_context = context.at_css("[data-comment-moderation-jjaek]")
+    target_context = context.at_css("[data-comment-moderation-target]")
+    expect(context.xpath("./*[@data-comment-moderation-jjaek or @data-comment-moderation-target]").to_a).to eq(
+      [ jjaek_context, target_context ]
+    )
+    expect(context.css("[data-comment-moderation-target]").size).to eq(1)
+    expect(context.at_css("[data-comment-moderation-jjaek-status]").text.strip).to eq("공개")
+    expect(jjaek_context.text.squish).to include(
       parent_author.name,
       group.name,
       book.title,
-      "COMMENT ACTION PARENT",
-      "부모 상태: 공개"
+      "COMMENT ACTION PARENT"
     )
+    expect(target_context.text.squish).to include(
+      "숨길 댓글",
+      comment_author.name,
+      I18n.l(comment.created_at, format: :short),
+      "COMMENT ACTION TARGET"
+    )
+    expect(context.text).not_to include(other_comment.content)
     reason_select = page.at_css("form[action='#{hide_create_path}'] select[name='moderation_action[public_reason]']")
     expect(reason_select.css("option").map { |option| option["value"] }).to include(*Comment::MODERATION_HIDE_REASONS)
     expect(page.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
@@ -90,8 +101,20 @@ RSpec.describe "Comment moderation actions", type: :request do
     restore_create_path = admin_jjaek_comment_restorations_path(jjaek, comment)
     get restore_new_path
     page = Nokogiri::HTML(response.body)
+    context = page.at_css("[data-comment-moderation-context]")
+    jjaek_context = context.at_css("[data-comment-moderation-jjaek]")
+    target_context = context.at_css("[data-comment-moderation-target]")
     current_hide = page.at_css("[data-current-hide-action-id='#{hide.id}']")
+    expect(context.xpath("./*[@data-comment-moderation-jjaek or @data-comment-moderation-target]").to_a).to eq(
+      [ jjaek_context, target_context ]
+    )
+    expect(jjaek_context.text).to include("COMMENT ACTION PARENT")
+    expect(target_context.text).to include("복구할 댓글", "COMMENT ACTION TARGET")
+    expect(context.text).not_to include(other_comment.content)
     expect(current_hide).to be_present
+    expect(page.xpath("//*[@data-comment-moderation-context] | //*[@data-current-hide-action-id='#{hide.id}']").to_a).to eq(
+      [ context, current_hide ]
+    )
     expect(current_hide.text).to include(
       "숨김",
       "시스템 관리자",
@@ -135,9 +158,15 @@ RSpec.describe "Comment moderation actions", type: :request do
 
     get hide_new_path
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("[data-comment-moderation-context]").text).to include(
+    context = page.at_css("[data-comment-moderation-context]")
+    target_context = context.at_css("[data-comment-moderation-target]")
+    expect(context.at_css("[data-comment-moderation-jjaek]")).to be_present
+    expect(target_context.text).to include(
+      "숨길 댓글",
       comment_author.name,
-      "COMMENT ACTION TARGET",
+      "COMMENT ACTION TARGET"
+    )
+    expect(context.text).to include(
       parent_author.name,
       group.name,
       book.title,
@@ -171,6 +200,8 @@ RSpec.describe "Comment moderation actions", type: :request do
     restore_create_path = jjaek_comment_group_restorations_path(jjaek, comment)
     get restore_new_path
     page = Nokogiri::HTML(response.body)
+    context = page.at_css("[data-comment-moderation-context]")
+    expect(context.at_css("[data-comment-moderation-target]").text).to include("복구할 댓글", "COMMENT ACTION TARGET")
     current_hide = page.at_css("[data-current-hide-action-id='#{hide.id}']")
     expect(current_hide.text).to include("숨김", "동아리 관리자", group_admin.name, "기타", "Group comment hide note")
     expect(current_hide.at_css("[data-moderation-detail='reason']")).to be_present
@@ -196,11 +227,14 @@ RSpec.describe "Comment moderation actions", type: :request do
 
   it "lets platform authority restore a group-origin hide without changing the hide snapshot" do
     hide = create_hide!(comment, actor: group_admin, authority: "group", internal_note: "Group-only comment note")
+    create_hide!(jjaek, actor: other_admin, authority: "platform")
     sign_in admin
 
     get new_admin_jjaek_comment_restoration_path(jjaek, comment)
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("동아리 관리자", "Group-only comment note")
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("[data-comment-moderation-jjaek-status]").text.strip).to eq("숨김")
+    expect(page.text).to include("동아리 관리자", "Group-only comment note")
 
     post admin_jjaek_comment_restorations_path(jjaek, comment), params: {
       moderation_action: { public_reason: "Platform override" }

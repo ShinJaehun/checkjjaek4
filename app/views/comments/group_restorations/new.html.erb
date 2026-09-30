@@ -2,7 +2,10 @@
   <h1 class="text-2xl font-semibold text-stone-900"><%= t("comments.moderation.group_admin.restore_title") %></h1>
   <p class="mt-2 text-sm text-stone-600"><%= t("comments.moderation.group_admin.restore_description") %></p>
 
-  <%= render "comments/moderation_action_context", comment: @comment, jjaek: @jjaek %>
+  <%= render "comments/moderation_action_context",
+             comment: @comment,
+             jjaek: @jjaek,
+             comment_label: t("comments.moderation.comment_to_restore") %>
 
   <section class="mt-6">
     <h2 class="mb-3 text-lg font-semibold text-stone-900"><%= t("comments.moderation.current_hide") %></h2>
