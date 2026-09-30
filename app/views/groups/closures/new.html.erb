@@ -1,0 +1,22 @@
+<section class="mx-auto w-full max-w-2xl rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
+  <h1 class="text-2xl font-semibold text-stone-900"><%= t("groups.management.close_title") %></h1>
+  <p class="mt-2 text-sm text-stone-600"><%= t("groups.management.close_description") %></p>
+
+  <%= render "groups/lifecycle_action_context", group: @group %>
+
+  <% if @error_message.present? %>
+    <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @error_message %></p>
+  <% elsif @group.errors.any? %>
+    <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @group.errors.full_messages.to_sentence %></p>
+  <% end %>
+
+  <%= form_with url: group_closures_path(@group), method: :post, scope: :group, class: "mt-6 space-y-4" do |form| %>
+    <div>
+      <%= form.label :closure_reason, t("groups.form.closure_reason"), class: "mb-2 block text-sm font-medium text-stone-800" %>
+      <%= form.text_area :closure_reason, value: @closure_reason_input, rows: 4, maxlength: 500, required: true, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+    </div>
+    <%= form.submit t("groups.actions.close"), class: "rounded-full bg-red-700 px-5 py-2.5 text-sm font-medium text-white" %>
+  <% end %>
+
+  <%= link_to t("groups.actions.cancel"), edit_group_path(@group), class: "mt-5 inline-block text-sm font-medium text-stone-600 underline" %>
+</section>

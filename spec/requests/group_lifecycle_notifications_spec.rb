@@ -27,7 +27,7 @@ RSpec.describe "Group lifecycle notification scheduling", type: :request do
       expect(recipient_ids).to eq([ group_admin.id ])
     end
 
-    patch approve_admin_group_path(group)
+    post admin_group_approvals_path(group)
     expect(group.reload).to be_active
   end
 
@@ -45,7 +45,7 @@ RSpec.describe "Group lifecycle notification scheduling", type: :request do
       expect(recipient_ids).to contain_exactly(group_admin.id, active.id)
     end
 
-    patch close_group_path(group), params: { group: { closure_reason: "Private closure reason" } }
+    post group_closures_path(group), params: { group: { closure_reason: "Private closure reason" } }
     expect(group.reload).to be_inactive
   end
 
@@ -58,7 +58,7 @@ RSpec.describe "Group lifecycle notification scheduling", type: :request do
       expect(recipient_ids).to contain_exactly(platform_admin.id)
     end
 
-    patch request_reactivation_group_path(group)
+    post group_reactivation_requests_path(group)
     expect(group.reload).to be_pending_approval
   end
 
@@ -76,7 +76,7 @@ RSpec.describe "Group lifecycle notification scheduling", type: :request do
       expect(recipient_ids).to contain_exactly(group_admin.id, member.id)
     end
 
-    patch approve_admin_group_path(group)
+    post admin_group_approvals_path(group)
     expect(group.reload).to be_active
   end
 
@@ -88,7 +88,7 @@ RSpec.describe "Group lifecycle notification scheduling", type: :request do
     scheduled = []
     allow(Notifications::GroupLifecycleNotifier).to receive(:schedule) { |event:, recipient_ids:| scheduled << [ event, recipient_ids ] }
 
-    patch transfer_admin_group_path(group), params: { new_admin_id: new_admin.id }
+    post group_admin_transfers_path(group), params: { new_admin_id: new_admin.id }
 
     expect(scheduled.map { |event, ids| [ event.event_type, event.user_id, ids ] }).to contain_exactly(
       [ "admin_role_revoked", group_admin.id, [ group_admin.id ] ],

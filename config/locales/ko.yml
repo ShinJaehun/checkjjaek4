@@ -198,7 +198,7 @@ ko:
       cancel: "취소"
       back: "동아리 목록으로"
       close: "동아리 운영 종료"
-      request_reactivation: "재활성화 요청"
+      request_reactivation: "재운영 요청"
     management:
       close_title: "동아리 운영 종료"
       close_description: "운영 종료 후에는 새 가입, 초대와 새 콘텐츠 작성을 할 수 없습니다."
@@ -206,8 +206,13 @@ ko:
       inactive_title: "운영 종료 정보"
       closed_at: "종료: %{time}"
       reactivation_description: "다시 운영하려면 관리자 승인이 필요합니다."
+    reactivation_request:
+      title: "동아리 재운영 요청"
+      description: "현재 운영 종료 정보와 요청할 동아리를 확인해 주세요. 요청 후 시스템 관리자 승인이 필요합니다."
     admin_transfer:
       title: "동아리 관리자"
+      action_title: "동아리 관리자 이전"
+      description: "관리자 권한을 넘길 활동 회원을 선택해 주세요. 이전 후 현재 관리자는 일반 회원이 됩니다."
       current: "현재 관리자: %{name}"
       target: "관리자 권한을 이전할 회원"
       submit: "관리자 권한 이전"
@@ -253,6 +258,8 @@ ko:
       updated: "동아리를 수정했습니다."
       admin_transferred: "동아리 관리자 권한을 이전했습니다."
     alerts:
+      close_failed: "동아리 운영을 종료할 수 없습니다."
+      reactivation_request_failed: "동아리 재운영을 요청할 수 없습니다."
       admin_transfer_failed: "동아리 관리자 권한을 이전할 수 없습니다."
     jjaeks:
       tabs:
@@ -556,13 +563,17 @@ ko:
       request_types:
         initial: "개설 신청"
         reactivation: "재활성화 요청"
+      approval:
+        title: "동아리 운영 승인"
+        description: "신청 내용과 현재 운영 상태를 확인한 뒤 승인해 주세요."
       notices:
+        approved: "동아리 운영을 승인했습니다."
         operation_suspended: "동아리 운영을 정지했습니다."
         operation_restored: "동아리 운영을 복구했습니다."
       alerts:
+        approval_failed: "동아리 운영을 승인할 수 없습니다."
         operation_suspend_failed: "동아리 운영을 정지할 수 없습니다."
         operation_restore_failed: "동아리 운영을 복구할 수 없습니다."
-        approved: "동아리 운영을 승인했습니다."
   group_memberships:
     statuses:
       group_admin: "동아리 관리자"

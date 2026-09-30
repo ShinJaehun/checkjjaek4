@@ -211,12 +211,12 @@
 - 새 동아리는 승인 대기로 생성되며 global admin 승인 후 active로 운영됨
 - 신규 신청은 일반 소개와 별도의 개설 목적을 제출하고 global admin 승인 목록에서 확인함
 - active 동아리 관리자는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
-- 운영 종료는 동아리 관리 화면에서 사유와 종료 시각을 기록하며, 재활성화 요청도 같은 화면에서 수행함
+- 운영 종료와 재활성화 요청은 동아리 관리 화면에서 전용 Action page로 진입해 확인·입력 후 수행함
 - Group 상세는 콘텐츠와 사용자의 참여 상태에 집중하고, `/groups/:id/members`는 동아리 관리자의 회원 관리 및 global admin의 회원 조사 화면으로 사용함
-- `/groups/:id/edit`는 기본 설정과 운영 lifecycle·이력에 집중하며 관리자 이전은 회원 관리 화면에서 수행함
+- `/groups/:id/edit`는 기본 설정과 운영 lifecycle·이력에 집중하며 관리자 이전은 회원 관리 화면에서 전용 Action page로 진입해 수행함
 - global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·기본 상태/역할/종류 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음. Group은 lifecycle 상태, 재활성화 대기와 platform 운영 정지를 하나의 현재 상태 필터로 제공하며 운영 정지가 다른 lifecycle 표시보다 우선함. 가입·생성 기간 필터는 아직 없음
 - User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
-- Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 기존 승인 동작으로 연결함
+- Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 전용 승인 Action page로 연결함
 - lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·종료·재활성화·재승인 순서로 누적되며 개설 목적과 종료 사유 snapshot을 보존함
 - 동아리 관리자는 동아리 관리에서 `GroupLifecycleEvent`와 Group 대상 `ModerationAction`을 실제 event 단위의 최신순 운영 이력으로 확인하며 platform 내부 메모는 볼 수 없음
 - global admin은 admin 전용 show에서 lifecycle과 platform moderation을 반영한 통합 현재 상태, 목적·사유·내부 메모를 포함한 전체 운영 이력과 내부 콘텐츠를 조사함. 목록 query parameter를 보존한 돌아가기 경로도 제공함

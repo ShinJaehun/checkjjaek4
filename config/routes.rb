@@ -24,16 +24,16 @@ Rails.application.routes.draw do
     end
     resources :groups, only: %i[index show] do
       get :content, on: :member
-      patch :approve, on: :member
+      resources :approvals, only: %i[new create], controller: "group_approvals"
       resources :operation_suspensions, only: %i[new create], controller: "group_operation_suspensions"
       resources :operation_restorations, only: %i[new create], controller: "group_operation_restorations"
     end
   end
   resources :groups, only: %i[index show new create edit update] do
     resources :members, only: :index, controller: "group_members"
-    patch :close, on: :member
-    patch :request_reactivation, on: :member
-    patch :transfer_admin, on: :member
+    resources :closures, only: %i[new create], module: :groups
+    resources :reactivation_requests, only: %i[new create], module: :groups
+    resources :admin_transfers, only: %i[new create], module: :groups
     resources :group_memberships, only: %i[create update destroy] do
       post :invite, on: :collection
       patch :accept, on: :member

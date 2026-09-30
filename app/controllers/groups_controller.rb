@@ -1,5 +1,5 @@
 class GroupsController < ApplicationController
-  before_action :set_group, only: %i[show edit update close request_reactivation transfer_admin]
+  before_action :set_group, only: %i[show edit update]
 
   def index
     authorize Group
@@ -86,60 +86,6 @@ class GroupsController < ApplicationController
     end
   end
 
-  def close
-    authorize @group, :close?
-    @closure_reason_input = close_group_params[:closure_reason]
-
-    closed = @group.with_lock do
-      authorize @group, :close?
-      recipient_ids = @group.group_memberships.active.distinct.pluck(:user_id)
-      next false unless @group.update(
-        lifecycle_status: :inactive,
-        closure_reason: @closure_reason_input,
-        closed_at: Time.current
-      )
-
-      event = GroupLifecycleEvent.create!(
-        group: @group,
-        actor: current_user,
-        event_type: :operations_closed,
-        detail: @closure_reason_input
-      )
-      Notifications::GroupLifecycleNotifier.schedule(event:, recipient_ids:)
-      true
-    end
-
-    if closed
-      redirect_to @group, notice: t("groups.notices.closed")
-    else
-      @group.restore_attributes(%w[lifecycle_status closed_at])
-      prepare_lifecycle_history
-      render :edit, status: :unprocessable_content
-    end
-  end
-
-  def request_reactivation
-    authorize @group, :request_reactivation?
-    Group.transaction do
-      @group.pending_approval!
-      event = GroupLifecycleEvent.create!(group: @group, actor: current_user, event_type: :reactivation_requested)
-      Notifications::GroupLifecycleNotifier.schedule(event:, recipient_ids: eligible_global_admin_ids)
-      event
-    end
-
-    redirect_to @group, notice: t("groups.notices.reactivation_requested")
-  end
-
-  def transfer_admin
-    authorize @group, :transfer_admin?
-    new_admin = @group.group_memberships.active.includes(:user).find_by(user_id: params[:new_admin_id])&.user
-    @group.transfer_admin_to!(new_admin, by: current_user)
-
-    redirect_to group_transfer_redirect_path, notice: t("groups.notices.admin_transferred")
-  rescue ActiveRecord::RecordInvalid
-    redirect_to group_transfer_redirect_path, alert: t("groups.alerts.admin_transfer_failed")
-  end
-
   private
 
   def eligible_global_admin_ids
@@ -163,10 +109,6 @@ class GroupsController < ApplicationController
     redirect_to groups_path, alert: t("group_memberships.alerts.removed")
   end
 
-  def group_transfer_redirect_path
-    policy(@group).view_admin_details? ? admin_group_path(@group) : group_path(@group)
-  end
-
   def create_group_params
     params.fetch(:group, {}).permit(:name, :description, :group_type, :application_purpose)
   end
@@ -175,10 +117,6 @@ class GroupsController < ApplicationController
     permitted = %i[name description]
     permitted << :application_purpose if @group.pending_approval?
     params.fetch(:group, {}).permit(*permitted)
-  end
-
-  def close_group_params
-    params.fetch(:group, {}).permit(:closure_reason)
   end
 
   def prepare_jjaek_context

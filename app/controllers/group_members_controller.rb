@@ -16,23 +16,11 @@ class GroupMembersController < ApplicationController
     end
     @group_member_bans = @group.group_member_bans.includes(:user).order(created_at: :desc)
     @ban_actions_by_id = ban_actions_by_id
-    @admin_transfer_candidates = admin_transfer_candidates
     @current_activity_suspensions_by_membership_id = current_activity_suspensions_by_membership_id
     @membership_history = membership_history
   end
 
   private
-
-  def admin_transfer_candidates
-    return User.none unless policy(@group).transfer_admin?
-
-    @group.active_group_memberships
-      .moderation_status_normal
-      .where.not(user_id: @group.group_admin_id)
-      .includes(:user)
-      .map(&:user)
-      .sort_by(&:name)
-  end
 
   def current_activity_suspensions_by_membership_id
     membership_ids = @active_memberships.select(&:activity_suspended?).map(&:id)

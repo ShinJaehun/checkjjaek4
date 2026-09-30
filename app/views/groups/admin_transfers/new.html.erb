@@ -1,0 +1,26 @@
+<section class="mx-auto w-full max-w-2xl rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
+  <h1 class="text-2xl font-semibold text-stone-900"><%= t("groups.admin_transfer.action_title") %></h1>
+  <p class="mt-2 text-sm text-stone-600"><%= t("groups.admin_transfer.description") %></p>
+
+  <%= render "groups/lifecycle_action_context", group: @group %>
+
+  <% if @error_message.present? %>
+    <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @error_message %></p>
+  <% end %>
+
+  <% if @admin_transfer_candidates.any? %>
+    <%= form_with url: group_admin_transfers_path(@group), method: :post, class: "mt-6 space-y-4" do %>
+      <div>
+        <%= label_tag :new_admin_id, t("groups.admin_transfer.target"), class: "mb-2 block text-sm font-medium text-stone-700" %>
+        <%= select_tag :new_admin_id,
+                       options_from_collection_for_select(@admin_transfer_candidates, :id, :name, @selected_admin_id),
+                       class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+      </div>
+      <%= submit_tag t("groups.admin_transfer.submit"), class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
+    <% end %>
+  <% else %>
+    <p class="mt-5 text-sm text-stone-500"><%= t("groups.admin_transfer.no_candidates") %></p>
+  <% end %>
+
+  <%= link_to t("groups.actions.cancel"), group_members_path(@group), class: "mt-5 inline-block text-sm font-medium text-stone-600 underline" %>
+</section>

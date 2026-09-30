@@ -1,0 +1,5 @@
+<div class="mt-5 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950" data-group-lifecycle-action-context>
+  <p class="font-semibold"><%= group.name %></p>
+  <p class="mt-2"><%= t("admin.groups.current_status_label") %>: <%= t("groups.lifecycle_statuses.#{group.lifecycle_status}") %></p>
+  <p class="mt-2"><%= t("groups.admin_transfer.current", name: group.group_admin.name) %></p>
+</div>

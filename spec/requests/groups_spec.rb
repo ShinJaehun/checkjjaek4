@@ -327,8 +327,12 @@ RSpec.describe "Groups", type: :request do
     sign_in group_admin
 
     patch group_path(group), params: { group: { name: "Changed" } }
-    patch close_group_path(group), params: { group: { closure_reason: "Closed" } }
-    patch transfer_admin_group_path(group), params: { new_admin_id: replacement.id }
+    get new_group_closure_path(group)
+    expect(response).to redirect_to(root_path)
+    post group_closures_path(group), params: { group: { closure_reason: "Closed" } }
+    get new_group_admin_transfer_path(group)
+    expect(response).to redirect_to(root_path)
+    post group_admin_transfers_path(group), params: { new_admin_id: replacement.id }
 
     expect(group.reload).to have_attributes(name: "Original name", lifecycle_status: "active", group_admin: group_admin)
   end
@@ -576,7 +580,7 @@ RSpec.describe "Groups", type: :request do
       get group_path(group)
       expect(response.body).to include("회원 관리", "동아리 관리")
       expect(response.body).not_to include(member.name, "활동 회원")
-      expect(response.body).not_to include("동아리 운영 종료", "재활성화 요청")
+      expect(response.body).not_to include("동아리 운영 종료", "재운영 요청")
       expect(response.body).not_to include("운영 이력")
       expect(response.body).not_to include("내보내기")
 
@@ -593,28 +597,38 @@ RSpec.describe "Groups", type: :request do
       jjaek = user.jjaeks.create!(group: group, content: "Existing group content")
       sign_in member
 
-      patch close_group_path(group)
+      get new_group_closure_path(group)
+      expect(response).to redirect_to(root_path)
+      post group_closures_path(group)
       expect(response).to redirect_to(root_path)
       expect(group.reload).to be_active
 
       sign_in user
       get edit_group_path(group)
-      expect(response.body).to include("동아리 운영 종료", "운영 종료 사유", "data-turbo-confirm")
+      edit_page = Nokogiri::HTML(response.body)
+      expect(edit_page.at_css(%(a[href="#{new_group_closure_path(group)}"]))).to be_present
+      expect(edit_page.at_css(%(form[action="#{group_closures_path(group)}"]))).to be_nil
 
-      patch close_group_path(group), params: { group: { closure_reason: "" } }
+      get new_group_closure_path(group)
+      close_page = Nokogiri::HTML(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(close_page.at_css("[data-group-lifecycle-action-context]").text).to include(group.name, user.name, "운영 중")
+      expect(close_page.at_css(%(form[action="#{group_closures_path(group)}"] textarea[name="group[closure_reason]"]))).to be_present
+
+      post group_closures_path(group), params: { group: { closure_reason: "" } }
       expect(response).to have_http_status(:unprocessable_content)
       expect(group.reload).to be_active
       expect(group.closure_reason).to be_nil
       expect(group.closed_at).to be_nil
 
       invalid_reason = "a" * 501
-      patch close_group_path(group), params: { group: { closure_reason: invalid_reason } }
+      post group_closures_path(group), params: { group: { closure_reason: invalid_reason } }
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(invalid_reason)
       expect(group.reload).to be_active
 
       expect {
-        patch close_group_path(group), params: { group: { closure_reason: "The reading program finished" } }
+        post group_closures_path(group), params: { group: { closure_reason: "The reading program finished" } }
       }.not_to change(Group, :count)
       expect(group.reload).to be_inactive
       expect(group.closure_reason).to eq("The reading program finished")
@@ -626,14 +640,26 @@ RSpec.describe "Groups", type: :request do
       expect(first_close.detail).to eq("The reading program finished")
 
       get edit_group_path(group)
-      expect(response.body).to include("운영 종료", "종료", "재활성화 요청", "운영 이력")
+      expect(response.body).to include("운영 종료", "종료", "재운영 요청", "운영 이력")
       expect(response.body).to include("The reading program finished", "운영 종료 사유")
 
       get group_path(group)
       expect(response.body).not_to include("운영 이력", "The reading program finished")
 
       closed_at = group.closed_at
-      patch request_reactivation_group_path(group)
+      sign_in member
+      get new_group_reactivation_request_path(group)
+      expect(response).to redirect_to(root_path)
+
+      sign_in user
+      get new_group_reactivation_request_path(group)
+      reactivation_page = Nokogiri::HTML(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(reactivation_page.at_css("[data-group-lifecycle-action-context]").text).to include(group.name, user.name, "운영 종료")
+      expect(response.body).to include("The reading program finished")
+      expect(reactivation_page.at_css(%(form[action="#{group_reactivation_requests_path(group)}"]))).to be_present
+
+      post group_reactivation_requests_path(group)
       expect(group.reload).to be_pending_approval
       expect(group.closure_reason).to eq("The reading program finished")
       expect(group.closed_at).to eq(closed_at)
@@ -643,11 +669,6 @@ RSpec.describe "Groups", type: :request do
 
       group.active!
       get edit_group_path(group)
-      closure_reason_field =
-        Nokogiri::HTML(response.body).at_css('textarea[name="group[closure_reason]"]')
-
-      expect(closure_reason_field).to be_present
-      expect(closure_reason_field.text).to be_blank
       expect(response.body).to include("The reading program finished")
       lifecycle_history =
         Nokogiri::HTML(response.body).css("section").find do |section|
@@ -656,6 +677,13 @@ RSpec.describe "Groups", type: :request do
 
       expect(lifecycle_history).to be_present
       expect(lifecycle_history.text).to include("운영 종료 사유", "The reading program finished")
+
+      get new_group_closure_path(group)
+      closure_reason_field =
+        Nokogiri::HTML(response.body).at_css('textarea[name="group[closure_reason]"]')
+
+      expect(closure_reason_field).to be_present
+      expect(closure_reason_field.text).to be_blank
     end
 
     it "shows lifecycle and public platform operation events in one chronology" do
@@ -788,21 +816,34 @@ RSpec.describe "Groups", type: :request do
       )
       expect(admin_signatures).to eq(group_admin_signatures)
       expect(admin_history.text).to include("ADMIN_ONLY_SUSPEND_NOTE", "ADMIN_ONLY_RESTORE_NOTE")
-      expect(admin_page.at_css(%(form[action="#{close_group_path(group)}"]))).to be_nil
-      expect(admin_page.at_css(%(form[action="#{request_reactivation_group_path(group)}"]))).to be_nil
+      expect(admin_page.at_css(%(a[href="#{new_group_closure_path(group)}"]))).to be_nil
+      expect(admin_page.at_css(%(a[href="#{new_group_reactivation_request_path(group)}"]))).to be_nil
     end
 
     it "rolls back a close when lifecycle event creation fails" do
       sign_in user
       allow(GroupLifecycleEvent).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(GroupLifecycleEvent.new))
       event_count = GroupLifecycleEvent.count
-      patch close_group_path(group), params: {
+      post group_closures_path(group), params: {
         group: { closure_reason: "Close atomically" }
       }
       expect(response).to have_http_status(:unprocessable_content)
       expect(group.reload).to be_active
       expect(group.closed_at).to be_nil
       expect(group.closure_reason).to be_nil
+      expect(GroupLifecycleEvent.count).to eq(event_count)
+    end
+
+    it "rolls back a reactivation request when lifecycle event creation fails" do
+      group.update!(lifecycle_status: :inactive, closure_reason: "Completed", closed_at: Time.current)
+      sign_in user
+      allow(GroupLifecycleEvent).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(GroupLifecycleEvent.new))
+      event_count = GroupLifecycleEvent.count
+
+      post group_reactivation_requests_path(group)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(group.reload).to be_inactive
       expect(GroupLifecycleEvent.count).to eq(event_count)
     end
   end
@@ -818,12 +859,21 @@ RSpec.describe "Groups", type: :request do
       sign_in user
 
       get group_members_path(group)
-      expect(response.body).to include("동아리 관리자", "현재 관리자: #{user.name}", new_admin.name, "data-turbo-confirm")
+      members_page = Nokogiri::HTML(response.body)
+      expect(response.body).to include("동아리 관리자", "현재 관리자: #{user.name}")
+      expect(members_page.at_css(%(a[href="#{new_group_admin_transfer_path(group)}"]))).to be_present
+      expect(members_page.at_css(%(form[action="#{group_admin_transfers_path(group)}"]))).to be_nil
+
+      get new_group_admin_transfer_path(group)
+      transfer_page = Nokogiri::HTML(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(transfer_page.at_css("[data-group-lifecycle-action-context]").text).to include(group.name, user.name)
+      expect(transfer_page.at_css(%(form[action="#{group_admin_transfers_path(group)}"] select[name="new_admin_id"] option[value="#{new_admin.id}"]))).to be_present
 
       get edit_group_path(group)
       expect(response.body).not_to include("현재 관리자: #{user.name}", new_admin.name, "관리자 권한 이전")
 
-      patch transfer_admin_group_path(group), params: { new_admin_id: new_admin.id }
+      post group_admin_transfers_path(group), params: { new_admin_id: new_admin.id }
 
       expect(response).to redirect_to(group_path(group))
       expect(group.reload.group_admin).to eq(new_admin)
@@ -862,7 +912,11 @@ RSpec.describe "Groups", type: :request do
       group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
       sign_in global_admin
 
-      patch transfer_admin_group_path(group), params: { new_admin_id: new_admin.id }
+      get new_group_admin_transfer_path(group)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(group.name, new_admin.name)
+
+      post group_admin_transfers_path(group), params: { new_admin_id: new_admin.id }
 
       expect(response).to redirect_to(admin_group_path(group))
       expect(group.reload.group_admin).to eq(new_admin)
@@ -874,14 +928,16 @@ RSpec.describe "Groups", type: :request do
       outsider = User.create!(name: "Outsider", email: "request-outsider-admin@example.com", password: "password123!", password_confirmation: "password123!")
 
       sign_in active_member
-      patch transfer_admin_group_path(group), params: { new_admin_id: active_member.id }
+      get new_group_admin_transfer_path(group)
+      expect(response).to redirect_to(root_path)
+      post group_admin_transfers_path(group), params: { new_admin_id: active_member.id }
       expect(response).to redirect_to(root_path)
       expect(group.reload.group_admin).to eq(user)
 
       sign_in user
       [ outsider ].each do |target|
-        patch transfer_admin_group_path(group), params: { new_admin_id: target.id }
-        expect(response).to redirect_to(group_path(group))
+        post group_admin_transfers_path(group), params: { new_admin_id: target.id }
+        expect(response).to have_http_status(:unprocessable_content)
         expect(group.reload.group_admin).to eq(user)
       end
 
@@ -889,7 +945,9 @@ RSpec.describe "Groups", type: :request do
       pending_group.group_memberships.create!(user: active_member, status: :active)
       get edit_group_path(pending_group)
       expect(response.body).not_to include("관리자 권한 이전")
-      patch transfer_admin_group_path(pending_group), params: { new_admin_id: active_member.id }
+      get new_group_admin_transfer_path(pending_group)
+      expect(response).to redirect_to(root_path)
+      post group_admin_transfers_path(pending_group), params: { new_admin_id: active_member.id }
       expect(response).to redirect_to(root_path)
       expect(pending_group.reload.group_admin).to eq(user)
     end

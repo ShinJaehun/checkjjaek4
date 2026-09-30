@@ -203,8 +203,13 @@ en:
       inactive_title: "Closure information"
       closed_at: "Closed at: %{time}"
       reactivation_description: "Administrator approval is required to operate again."
+    reactivation_request:
+      title: "Request club reactivation"
+      description: "Review the closed club before submitting. A system administrator must approve the request."
     admin_transfer:
       title: "Club admin"
+      action_title: "Transfer club admin rights"
+      description: "Choose an active member to become the club admin. The current admin will remain as a regular member."
       current: "Current admin: %{name}"
       target: "Member to become admin"
       submit: "Transfer admin rights"
@@ -248,6 +253,8 @@ en:
       updated: "Club updated."
       admin_transferred: "Club admin rights were transferred."
     alerts:
+      close_failed: "The club could not be closed."
+      reactivation_request_failed: "Club reactivation could not be requested."
       admin_transfer_failed: "Club admin rights could not be transferred."
   admin:
     actions:
@@ -544,13 +551,17 @@ en:
       request_types:
         initial: "Opening application"
         reactivation: "Reactivation request"
+      approval:
+        title: "Approve club operations"
+        description: "Review the request and current operation status before approving it."
       notices:
+        approved: "The club was approved."
         operation_suspended: "Club operation was suspended."
         operation_restored: "Club operation was restored."
       alerts:
+        approval_failed: "The club could not be approved."
         operation_suspend_failed: "Club operation could not be suspended."
         operation_restore_failed: "Club operation could not be restored."
-        approved: "The club was approved."
     jjaeks:
       tabs:
         general: "Jjaek"

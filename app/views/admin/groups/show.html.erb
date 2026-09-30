@@ -35,10 +35,9 @@
                       content_admin_group_path(@group, @return_params),
                       class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
           <% if policy(@group).approve? %>
-            <%= button_to t("admin.groups.actions.approve"),
-                          approve_admin_group_path(@group),
-                          method: :patch,
-                          class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+            <%= link_to t("admin.groups.actions.approve"),
+                        new_admin_group_approval_path(@group, @return_params),
+                        class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
           <% end %>
         </div>
       </div>

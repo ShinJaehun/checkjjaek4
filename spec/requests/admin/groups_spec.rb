@@ -15,6 +15,8 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response).to redirect_to(new_user_session_path)
     get content_admin_group_path(group)
     expect(response).to redirect_to(new_user_session_path)
+    get new_admin_group_approval_path(group)
+    expect(response).to redirect_to(new_user_session_path)
   end
 
   it "blocks a non-admin from the approval list and approve action" do
@@ -29,7 +31,9 @@ RSpec.describe "Admin group approvals", type: :request do
     get content_admin_group_path(group)
     expect(response).to redirect_to(root_path)
 
-    patch approve_admin_group_path(group)
+    get new_admin_group_approval_path(group)
+    expect(response).to redirect_to(root_path)
+    post admin_group_approvals_path(group)
     expect(response).to redirect_to(root_path)
     expect(group.reload).to be_pending_approval
   end
@@ -54,6 +58,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response.body).to include(group.name, group_admin.name, "승인 대기", "운영 승인", "세부 정보")
     expect(document.at_css("#group_#{group.id} a[href='#{admin_group_path(group)}']").text.strip).to eq("세부 정보")
     expect(document.at_css("#group_#{group.id} a[href='#{content_admin_group_path(group)}']").text.strip).to eq("사용자 활동")
+    expect(document.at_css("#group_#{group.id} a[href='#{new_admin_group_approval_path(group, return_to: "inventory") }']")).to be_present
     expect(response.body).not_to include("운영 이력", "Create a reading circle")
     expect(response.body).not_to include("신청 정보 갱신")
 
@@ -62,13 +67,22 @@ RSpec.describe "Admin group approvals", type: :request do
     opening_card = detail_page.at_css("[data-history-entry='opening_requested']")
     expect(response.body).to include("승인 대기", "운영 이력")
     expect(response.body).to include("콘텐츠")
-    expect(detail_page.at_css(%(#admin_group_identity form[action="#{approve_admin_group_path(group)}"]))).to be_present
+    expect(detail_page.at_css(%(#admin_group_identity a[href="#{new_admin_group_approval_path(group)}"]))).to be_present
     expect(detail_page.at_css("#group_operation_moderation")).to be_present
     expect(detail_page.at_css("#group_operation_moderation a[href*='operation_suspensions'], #group_operation_moderation a[href*='operation_restorations']")).to be_nil
     expect(opening_card.text).to include("개설 목적", "Create a reading circle", "신청", I18n.l(opening_event.created_at, format: :short))
     expect(opening_card.text).not_to include("승인")
 
-    patch approve_admin_group_path(group)
+    get new_admin_group_approval_path(group), params: { q: "Pending", page: 2 }
+    approval_page = Nokogiri::HTML(response.body)
+    expect(response).to have_http_status(:ok)
+    expect(approval_page.at_css("[data-group-lifecycle-action-context]").text).to include(group.name, group_admin.name, "승인 대기")
+    expect(approval_page.at_css("[data-group-approval-request-context]").text).to include("개설 신청", "Create a reading circle")
+    expect(approval_page.at_css(%(form[action="#{admin_group_approvals_path(group, q: "Pending", page: 2)}"]))).to be_present
+    expect(approval_page.at_css(%(a[href="#{admin_group_path(group, q: "Pending", page: 2)}"]))).to be_present
+
+    post admin_group_approvals_path(group), params: { q: "Pending", page: 2 }
+    expect(response).to redirect_to(admin_group_path(group, q: "Pending", page: 2))
     expect(group.reload).to be_active
     approval = group.lifecycle_events.opening_approved.sole
     expect(approval.actor).to eq(admin)
@@ -133,7 +147,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(reactivation_card.text).to include("신청")
     expect(reactivation_card.text).not_to include("승인")
 
-    patch approve_admin_group_path(legacy_group)
+    post admin_group_approvals_path(legacy_group)
     expect(legacy_group.reload).to be_active
     reapproval = legacy_group.lifecycle_events.reactivation_approved.sole
     expect(reapproval.actor).to eq(admin)
@@ -184,7 +198,7 @@ RSpec.describe "Admin group approvals", type: :request do
     legacy_group = Group.create!(group_admin: group_admin, name: "Legacy approval", group_type: :public_group, application_purpose: "Legacy purpose")
     sign_in admin
 
-    patch approve_admin_group_path(legacy_group)
+    post admin_group_approvals_path(legacy_group)
     approval = legacy_group.lifecycle_events.opening_approved.sole
     get admin_group_path(legacy_group)
     page = Nokogiri::HTML(response.body)
@@ -589,9 +603,13 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response).to redirect_to(root_path)
     patch group_path(active_group), params: { group: { name: "Admin edit" } }
     expect(response).to redirect_to(root_path)
-    patch close_group_path(active_group), params: { group: { closure_reason: "Admin close" } }
+    get new_group_closure_path(active_group)
     expect(response).to redirect_to(root_path)
-    patch request_reactivation_group_path(inactive_group)
+    post group_closures_path(active_group), params: { group: { closure_reason: "Admin close" } }
+    expect(response).to redirect_to(root_path)
+    get new_group_reactivation_request_path(inactive_group)
+    expect(response).to redirect_to(root_path)
+    post group_reactivation_requests_path(inactive_group)
     expect(response).to redirect_to(root_path)
 
     expect(active_group.reload.name).to eq("Group admin only")
@@ -903,21 +921,21 @@ RSpec.describe "Admin group approvals", type: :request do
 
   it "preserves every close event across repeated operations cycles" do
     sign_in admin
-    patch approve_admin_group_path(group)
+    post admin_group_approvals_path(group)
 
     sign_in group_admin
-    patch close_group_path(group), params: { group: { closure_reason: "First season ended" } }
-    patch request_reactivation_group_path(group)
+    post group_closures_path(group), params: { group: { closure_reason: "First season ended" } }
+    post group_reactivation_requests_path(group)
 
     sign_in admin
-    patch approve_admin_group_path(group)
+    post admin_group_approvals_path(group)
 
     sign_in group_admin
-    patch close_group_path(group), params: { group: { closure_reason: "Second season ended" } }
-    patch request_reactivation_group_path(group)
+    post group_closures_path(group), params: { group: { closure_reason: "Second season ended" } }
+    post group_reactivation_requests_path(group)
 
     sign_in admin
-    patch approve_admin_group_path(group)
+    post admin_group_approvals_path(group)
 
     expect(group.lifecycle_events.operations_closed.order(:created_at, :id).pluck(:detail)).to eq([ "First season ended", "Second season ended" ])
     expect(group.lifecycle_events.reactivation_requested.count).to eq(2)
@@ -949,9 +967,23 @@ RSpec.describe "Admin group approvals", type: :request do
     group.active!
     sign_in admin
 
-    patch approve_admin_group_path(group)
+    get new_admin_group_approval_path(group)
+    expect(response).to redirect_to(root_path)
+    post admin_group_approvals_path(group)
 
     expect(response).to redirect_to(root_path)
     expect(group.reload).to be_active
+  end
+
+  it "rolls back approval when lifecycle event creation fails" do
+    sign_in admin
+    allow(GroupLifecycleEvent).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(GroupLifecycleEvent.new))
+    event_count = GroupLifecycleEvent.count
+
+    post admin_group_approvals_path(group)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(group.reload).to be_pending_approval
+    expect(GroupLifecycleEvent.count).to eq(event_count)
   end
 end
