@@ -16,11 +16,11 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     get jjaek_path(jjaek)
     document = Nokogiri::HTML(response.body)
     jjaek_article = document.at_css("#jjaek_#{jjaek.id}")
-    expect(document.at_css("#admin_moderation_state").text.squish).to include("콘텐츠 관리", "현재 상태: 공개")
-    expect(jjaek_article.at_css("#admin_moderation_state")).to be_present
-    expect(response.body.index(%(id="admin_moderation_state"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
-    expect(document.at_css("#admin_moderation_state a[href='#{new_admin_jjaek_hide_path(jjaek)}']").text.strip).to eq("숨김")
-    expect(document.at_css("#admin_moderation_state form")).to be_nil
+    action = jjaek_article.at_css("[data-jjaek-moderation-action]")
+    expect(action["href"]).to eq(new_admin_jjaek_hide_path(jjaek))
+    expect(action.text.strip).to eq("숨김")
+    expect(jjaek_article.at_css("[data-jjaek-moderation-history]")).to be_nil
+    expect(jjaek_article.text).not_to include("콘텐츠 관리", "현재 상태")
 
     expect {
       post admin_jjaek_hides_path(jjaek), params: { moderation_action: { public_reason: "undefined_reason" } }
@@ -42,15 +42,16 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(hidden_article.at_css("#comment_action_jjaek_#{jjaek.id}")).to be_present
     expect(hidden_article.text).to include("좋아요 0개", "댓글 0개")
     expect(hidden_article.text).not_to include("댓글 보기", "글 보기")
-    expect(document.at_css("#admin_moderation_state").text.squish).to include("현재 상태: 숨김")
-    expect(document.at_css("#admin_moderation_state #admin_moderation_history")).to be_nil
     expect(document.at_css("#admin_moderation_history_section [data-role='internal-note']")).to be_present
-    expect(hidden_article.at_css("#admin_moderation_state")).to be_present
+    action = hidden_article.at_css("[data-jjaek-moderation-action]")
+    expect(action["href"]).to eq(new_admin_jjaek_restoration_path(jjaek))
+    expect(action.text.strip).to eq("숨김 해제")
+    expect(hidden_article.at_css("[data-jjaek-moderation-history]")).to be_present
     expect(hidden_article.at_css("#admin_moderation_history_section")).to be_present
-    expect(response.body.index(%(id="admin_moderation_state"))).to be < response.body.index(%(id="admin_moderation_history_section"))
+    expect(hidden_article.text).not_to include("콘텐츠 관리", "현재 상태")
+    expect(response.body.index(%(data-jjaek-moderation-action))).to be < response.body.index(%(id="admin_moderation_history_section"))
     expect(response.body.index(%(id="admin_moderation_history_section"))).to be < response.body.index(%(id="comments_panel_jjaek_#{jjaek.id}"))
-    expect(document.at_css("#admin_moderation_state a[href='#{new_admin_jjaek_hide_path(jjaek)}']")).to be_nil
-    expect(document.at_css("#admin_moderation_state a[href='#{new_admin_jjaek_restoration_path(jjaek)}']")).to be_present
+    expect(hidden_article.at_css("[data-jjaek-moderation-action][href='#{new_admin_jjaek_hide_path(jjaek)}']")).to be_nil
 
     expect {
       post admin_jjaek_hides_path(jjaek), params: { moderation_action: { public_reason: "other" } }
@@ -70,7 +71,8 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     jjaek_article = document.at_css("#jjaek_#{jjaek.id}")
     expect(jjaek_article).to be_present
     expect(jjaek_article.text).to include(I18n.t("jjaeks.labels.deleted"), "운영 이력", "PRESERVED HIDE NOTE")
-    expect(jjaek_article.at_css("#admin_moderation_state")).to be_nil
+    expect(jjaek_article.at_css("[data-jjaek-moderation-action]")).to be_nil
+    expect(jjaek_article.at_css("[data-jjaek-moderation-history]")).to be_present
     expect(jjaek_article.at_css("#admin_moderation_history_section")).to be_present
     expect(jjaek_article.at_css("a[href='#{new_admin_jjaek_restoration_path(jjaek)}']")).to be_nil
     expect(jjaek_article.at_css("a[href='#{new_admin_jjaek_hide_path(jjaek)}']")).to be_nil

@@ -35,8 +35,11 @@ RSpec.describe "Jjaek moderation actions", type: :request do
 
     get jjaek_path(jjaek)
     detail = Nokogiri::HTML(response.body)
-    expect(detail.at_css("#admin_moderation_state a[href='#{hide_new_path}']").text.strip).to eq("숨김")
-    expect(detail.at_css("#admin_moderation_state form")).to be_nil
+    action = detail.at_css("[data-jjaek-moderation-action]")
+    expect(action["href"]).to eq(hide_new_path)
+    expect(action.text.strip).to eq("숨김")
+    expect(detail.at_css("#admin_moderation_history_section")).to be_nil
+    expect(detail.text).not_to include("콘텐츠 관리", "현재 상태")
 
     get hide_new_path
     page = Nokogiri::HTML(response.body)
@@ -121,8 +124,11 @@ RSpec.describe "Jjaek moderation actions", type: :request do
 
     get jjaek_path(jjaek)
     detail = Nokogiri::HTML(response.body)
-    expect(detail.at_css("#group_moderation_state a[href='#{hide_new_path}']").text.strip).to eq("숨김")
-    expect(detail.at_css("#group_moderation_state form")).to be_nil
+    action = detail.at_css("[data-jjaek-moderation-action]")
+    expect(action["href"]).to eq(hide_new_path)
+    expect(action.text.strip).to eq("숨김")
+    expect(detail.at_css("#group_moderation_history")).to be_nil
+    expect(detail.text).not_to include("콘텐츠 관리", "현재 상태")
 
     get hide_new_path
     page = Nokogiri::HTML(response.body)

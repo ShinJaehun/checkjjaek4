@@ -13,8 +13,11 @@ RSpec.describe "Comment moderation display", type: :request do
     sign_in viewer
 
     get jjaek_path(jjaek)
+    comment_article = Nokogiri::HTML(response.body).at_css("#comment_#{comment.id}")
     expect(response.body).to include("시스템 관리자에 의해 숨겨진 댓글입니다.", "숨김 사유", "기타", "댓글 1개")
     expect(response.body).not_to include("HIDDEN COMMENT SECRET", "PRIVATE NOTE", new_admin_jjaek_comment_restoration_path(jjaek, comment))
+    expect(comment_article.at_css("[data-comment-moderation-action]")).to be_nil
+    expect(comment_article.text).not_to include("콘텐츠 관리", "현재 상태")
 
     get jjaek_comments_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
     expect(response.body).to include("시스템 관리자에 의해 숨겨진 댓글입니다.", "기타")
@@ -26,11 +29,14 @@ RSpec.describe "Comment moderation display", type: :request do
     sign_in author
 
     get jjaek_path(jjaek)
+    comment_article = Nokogiri::HTML(response.body).at_css("#comment_#{comment.id}")
 
     expect(response.body).to include("HIDDEN COMMENT SECRET", "시스템 관리자에 의해 숨겨진 댓글입니다.", "기타")
     expect(response.body).to include(jjaek_comment_path(jjaek, comment))
     expect(response.body).not_to include("PRIVATE NOTE", new_admin_jjaek_comment_restoration_path(jjaek, comment))
     expect(response.body).not_to include(new_jjaek_comment_group_restoration_path(jjaek, comment))
+    expect(comment_article.at_css("[data-comment-moderation-action]")).to be_nil
+    expect(comment_article.text).not_to include("콘텐츠 관리", "현재 상태")
   end
 
   it "shows Group hide and restore Action links only to the current Group admin" do
@@ -41,20 +47,29 @@ RSpec.describe "Comment moderation display", type: :request do
     sign_in group_admin
 
     get jjaek_path(group_jjaek)
-    expect(response.body).to include(%(href="#{new_jjaek_comment_group_hide_path(group_jjaek, group_comment)}"))
+    comment_article = Nokogiri::HTML(response.body).at_css("#comment_#{group_comment.id}")
+    action = comment_article.at_css("[data-comment-moderation-action]")
+    expect(action["href"]).to eq(new_jjaek_comment_group_hide_path(group_jjaek, group_comment))
+    expect(action.text.strip).to eq("숨김")
+    expect(comment_article.text).not_to include("콘텐츠 관리", "현재 상태")
     expect(response.body).not_to include(%(name="moderation_action[public_reason]"), %(name="moderation_action[internal_note]"))
     expect(response.body).not_to include(new_admin_jjaek_comment_hide_path(group_jjaek, group_comment))
 
     Comments::Hide.new(group_comment, actor: admin, public_reason: "other", internal_note: "PLATFORM NOTE").call!
     get jjaek_path(group_jjaek)
+    comment_article = Nokogiri::HTML(response.body).at_css("#comment_#{group_comment.id}")
     expect(response.body).to include("GROUP COMMENT SECRET", "시스템 관리자에 의해 숨겨진 댓글입니다.", "기타")
     expect(response.body).not_to include("PLATFORM NOTE", new_jjaek_comment_group_restoration_path(group_jjaek, group_comment))
+    expect(comment_article.at_css("[data-comment-moderation-action]")).to be_nil
 
     Comments::Restore.new(group_comment, actor: admin, public_reason: "Resolved").call!
     Comments::Hide.new(group_comment, actor: group_admin, public_reason: "other").call!
     get jjaek_path(group_jjaek)
+    comment_article = Nokogiri::HTML(response.body).at_css("#comment_#{group_comment.id}")
+    action = comment_article.at_css("[data-comment-moderation-action]")
     expect(response.body).to include("GROUP COMMENT SECRET", "동아리 관리자에 의해 숨겨진 댓글입니다.")
-    expect(response.body).to include(%(href="#{new_jjaek_comment_group_restoration_path(group_jjaek, group_comment)}"))
+    expect(action["href"]).to eq(new_jjaek_comment_group_restoration_path(group_jjaek, group_comment))
+    expect(action.text.strip).to eq("숨김 해제")
     expect(response.body).not_to include(new_admin_jjaek_comment_restoration_path(group_jjaek, group_comment))
   end
 
@@ -63,15 +78,24 @@ RSpec.describe "Comment moderation display", type: :request do
     sign_in admin
 
     get jjaek_path(jjaek)
-    expect(response.body).to include(%(href="#{new_admin_jjaek_comment_hide_path(jjaek, comment)}"))
+    document = Nokogiri::HTML(response.body)
+    action = document.at_css("#comment_#{comment.id} [data-comment-moderation-action]")
+    expect(action["href"]).to eq(new_admin_jjaek_comment_hide_path(jjaek, comment))
+    expect(action.text.strip).to eq("숨김")
+    expect(document.at_css("#comment_#{own_comment.id} [data-comment-moderation-action]")).to be_nil
     expect(response.body).not_to include(new_admin_jjaek_comment_hide_path(jjaek, own_comment))
 
     group_admin.update!(global_admin: true)
     Comments::Hide.new(comment, actor: group_admin, public_reason: "other").call!
     Comments::Hide.new(own_comment, actor: group_admin, public_reason: "other").call!
     get jjaek_path(jjaek)
+    document = Nokogiri::HTML(response.body)
+    action = document.at_css("#comment_#{comment.id} [data-comment-moderation-action]")
     expect(response.body).to include("HIDDEN COMMENT SECRET", %(href="#{new_admin_jjaek_comment_restoration_path(jjaek, comment)}"))
+    expect(action["href"]).to eq(new_admin_jjaek_comment_restoration_path(jjaek, comment))
+    expect(action.text.strip).to eq("숨김 해제")
     expect(response.body).to include("ADMIN OWN SECRET")
+    expect(document.at_css("#comment_#{own_comment.id} [data-comment-moderation-action]")).to be_nil
     expect(response.body).not_to include(new_admin_jjaek_comment_restoration_path(jjaek, own_comment))
   end
 
@@ -106,8 +130,9 @@ RSpec.describe "Comment moderation display", type: :request do
     comment_article = document.at_css("#comment_#{comment.id}")
     history = comment_article.at_css("#moderation_history_comment_#{comment.id}")
     expect(history).to be_present
-    expect(comment_article.at_css(%(a[href="#{new_admin_jjaek_comment_hide_path(jjaek, comment)}"]))).to be_present
-    expect(comment_article.at_css("[data-comment-moderation-state] form")).to be_nil
+    action = comment_article.at_css("[data-comment-moderation-action]")
+    expect(action["href"]).to eq(new_admin_jjaek_comment_hide_path(jjaek, comment))
+    expect(comment_article.text).not_to include("콘텐츠 관리", "현재 상태")
     expect(history.css("li").map { |entry| entry["data-moderation-action-id"].to_i }).to eq(comment.moderation_actions.order(:created_at, :id).ids)
     expect(history.text).to include("Admin", "시스템 관리자", "PLATFORM HIDE NOTE", "Platform restored", "PLATFORM RESTORE NOTE")
     expect(history.text).to include(I18n.l(comment.moderation_actions.first.created_at, format: :short))

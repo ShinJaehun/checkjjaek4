@@ -20,10 +20,12 @@ RSpec.describe "Group Jjaek moderation", type: :request do
 
     jjaeks.each do |jjaek|
       get jjaek_path(jjaek)
-      state = Nokogiri::HTML(response.body).at_css("#group_moderation_state")
-      expect(state.text.squish).to include("콘텐츠 관리", "현재 상태: 공개")
-      expect(state.at_css("a[href='#{new_jjaek_group_hide_path(jjaek)}']").text.strip).to eq("숨김")
-      expect(state.at_css("form")).to be_nil
+      detail = Nokogiri::HTML(response.body)
+      action = detail.at_css("[data-jjaek-moderation-action]")
+      expect(action["href"]).to eq(new_jjaek_group_hide_path(jjaek))
+      expect(action.text.strip).to eq("숨김")
+      expect(detail.at_css("[data-jjaek-moderation-history]")).to be_nil
+      expect(detail.text).not_to include("콘텐츠 관리", "현재 상태")
 
       post jjaek_group_hides_path(jjaek), params: {
         moderation_action: { public_reason: "other", internal_note: "Not accepted" }
@@ -42,17 +44,17 @@ RSpec.describe "Group Jjaek moderation", type: :request do
       expect(response.body).to include(expected_title, "기타", "Not accepted", %(href="#{new_jjaek_group_restoration_path(jjaek)}"), %(id="group_moderation_history"))
       detail = Nokogiri::HTML(response.body)
       hidden_article = detail.at_css("#jjaek_#{jjaek.id}")
-      expect(detail.at_css("#group_moderation_state").text.squish).to include("현재 상태: 숨김")
-      expect(detail.at_css("#group_moderation_state #group_moderation_history_list")).to be_nil
+      action = hidden_article.at_css("[data-jjaek-moderation-action]")
+      expect(action["href"]).to eq(new_jjaek_group_restoration_path(jjaek))
+      expect(action.text.strip).to eq("숨김 해제")
       expect(hidden_article.at_css("#comment_action_jjaek_#{jjaek.id}")).to be_present
       expect(hidden_article.text).to include("좋아요 0개", "댓글 0개")
-      expect(hidden_article.text).not_to include("댓글 보기", "글 보기")
-      expect(hidden_article.at_css("#group_moderation_state")).to be_present
+      expect(hidden_article.text).not_to include("댓글 보기", "글 보기", "콘텐츠 관리", "현재 상태")
+      expect(hidden_article.at_css("[data-jjaek-moderation-history]")).to be_present
       expect(hidden_article.at_css("#group_moderation_history")).to be_present
-      expect(response.body.index(%(id="group_moderation_state"))).to be < response.body.index(%(id="group_moderation_history"))
+      expect(response.body.index(%(data-jjaek-moderation-action))).to be < response.body.index(%(id="group_moderation_history"))
       expect(detail.css('#group_moderation_history [data-role="internal-note"]').map(&:text).join).to include("Not accepted")
       expect(detail.text.scan("Not accepted").size).to eq(1)
-      expect(detail.at_css("#group_moderation_state form")).to be_nil
     end
   end
 
@@ -167,7 +169,8 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     get jjaek_path(target)
     detail = Nokogiri::HTML(response.body)
     jjaek_article = detail.at_css("#jjaek_#{target.id}")
-    expect(jjaek_article.at_css("#group_moderation_state")).to be_nil
+    expect(jjaek_article.at_css("[data-jjaek-moderation-action]")).to be_nil
+    expect(jjaek_article.at_css("[data-jjaek-moderation-history]")).to be_present
     expect(jjaek_article.at_css("#group_moderation_history")).to be_present
     expect(response.body).not_to include(%(href="#{new_jjaek_group_restoration_path(target)}"))
     expect(response.body).not_to include(%(href="#{new_jjaek_group_hide_path(target)}"))

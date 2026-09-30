@@ -43,8 +43,10 @@ RSpec.describe "Comment moderation actions", type: :request do
 
     get jjaek_path(jjaek)
     card = Nokogiri::HTML(response.body).at_css("#comment_#{comment.id}")
-    expect(card.at_css("[data-comment-moderation-state] a[href='#{hide_new_path}']").text.strip).to eq("숨김")
-    expect(card.at_css("[data-comment-moderation-state] form")).to be_nil
+    action = card.at_css("[data-comment-moderation-action]")
+    expect(action["href"]).to eq(hide_new_path)
+    expect(action.text.strip).to eq("숨김")
+    expect(card.text).not_to include("콘텐츠 관리", "현재 상태")
 
     get hide_new_path
     page = Nokogiri::HTML(response.body)
@@ -153,8 +155,10 @@ RSpec.describe "Comment moderation actions", type: :request do
 
     get jjaek_path(jjaek)
     card = Nokogiri::HTML(response.body).at_css("#comment_#{comment.id}")
-    expect(card.at_css("[data-comment-moderation-state] a[href='#{hide_new_path}']").text.strip).to eq("숨김")
-    expect(card.at_css("[data-comment-moderation-state] form")).to be_nil
+    action = card.at_css("[data-comment-moderation-action]")
+    expect(action["href"]).to eq(hide_new_path)
+    expect(action.text.strip).to eq("숨김")
+    expect(card.text).not_to include("콘텐츠 관리", "현재 상태")
 
     get hide_new_path
     page = Nokogiri::HTML(response.body)

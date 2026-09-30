@@ -4,6 +4,15 @@
 <% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
 <% inline_comments_book = local_assigns[:inline_comments_book] %>
 <% detail_context = local_assigns.fetch(:detail_context, false) %>
+<% header_moderation_action = if detail_context && jjaek_policy.hide?
+  { path: new_admin_jjaek_hide_path(jjaek), label: t("admin.jjaeks.actions.hide") }
+elsif detail_context && jjaek_policy.restore?
+  { path: new_admin_jjaek_restoration_path(jjaek), label: t("admin.jjaeks.actions.restore") }
+elsif detail_context && jjaek_policy.hide_as_group_admin?
+  { path: new_jjaek_group_hide_path(jjaek), label: t("admin.jjaeks.actions.hide") }
+elsif detail_context && jjaek_policy.restore_as_group_admin?
+  { path: new_jjaek_group_restoration_path(jjaek), label: t("admin.jjaeks.actions.restore") }
+end %>
 
 <% wrapper_class = if jjaek.hidden?
   "rounded-3xl border border-red-200 bg-red-50/60 p-5 text-red-900 shadow-sm"
@@ -18,7 +27,11 @@ end %>
 
   <% if content_visible %>
     <div class="<%= "mt-4 rounded-2xl border border-red-100 bg-white p-5 text-stone-900" if jjaek.hidden? %>">
-      <%= render "jjaeks/jjaek_header", jjaek: jjaek %>
+      <% if detail_context %>
+        <%= render "jjaeks/jjaek_header", jjaek: jjaek, moderation_action: header_moderation_action %>
+      <% else %>
+        <%= render "jjaeks/jjaek_header", jjaek: jjaek %>
+      <% end %>
       <%= render "jjaeks/jjaek_body", jjaek: jjaek %>
 
       <% unless jjaek.hidden? %>
