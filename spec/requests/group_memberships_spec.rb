@@ -229,7 +229,8 @@ RSpec.describe "Group memberships", type: :request do
     delete group_group_membership_path(private_group, invitation)
     expect(GroupMembershipRemoval.exists?(group: private_group, user: member)).to be(false)
     get group_path(private_group)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
   end
 
   it "does not let the group_admin leave" do
@@ -272,7 +273,8 @@ RSpec.describe "Group memberships", type: :request do
 
       sign_in member
       get group_path(group)
-      expect(response).to have_http_status(:not_found)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
     end
 
     it "omits opted-out users from profile invitations and blocks direct invitations" do

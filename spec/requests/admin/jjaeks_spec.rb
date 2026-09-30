@@ -249,9 +249,10 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     sign_in viewer
 
     get group_path(private_group)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
     get jjaek_path(jjaek)
-    expect(response).to have_http_status(:redirect)
+    expect(response).to have_http_status(:not_found)
   end
 
   it "returns a restored platform-hidden jjaek to ordinary visibility" do

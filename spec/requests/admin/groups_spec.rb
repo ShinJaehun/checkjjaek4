@@ -590,7 +590,8 @@ RSpec.describe "Admin group approvals", type: :request do
 
     sign_in ordinary_user
     get group_path(private_group)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
   end
 
   it "does not grant group_admin lifecycle actions through global admin status" do

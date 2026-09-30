@@ -104,9 +104,12 @@ class GroupsController < ApplicationController
       return
     end
 
-    raise unless GroupMembershipRemoval.exists?(group_id: params[:id], user: current_user)
+    if GroupMembershipRemoval.exists?(group_id: params[:id], user: current_user)
+      redirect_to groups_path, alert: t("group_memberships.alerts.removed")
+      return
+    end
 
-    redirect_to groups_path, alert: t("group_memberships.alerts.removed")
+    redirect_to groups_path, alert: t("groups.alerts.not_found_or_inaccessible")
   end
 
   def create_group_params

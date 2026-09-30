@@ -253,6 +253,7 @@ en:
       updated: "Club updated."
       admin_transferred: "Club admin rights were transferred."
     alerts:
+      not_found_or_inaccessible: "The club could not be found or accessed."
       close_failed: "The club could not be closed."
       reactivation_request_failed: "Club reactivation could not be requested."
       admin_transfer_failed: "Club admin rights could not be transferred."

@@ -81,7 +81,8 @@ RSpec.describe "Groups", type: :request do
     get groups_path
     expect(response.body).not_to include(group.name)
     get group_path(group)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
   end
 
   it "allows private group creation with an group_admin membership" do
@@ -187,7 +188,8 @@ RSpec.describe "Groups", type: :request do
 
     get group_path(private_group)
 
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
   end
 
   it "redirects a removed private group member's stale URL with an explanation" do
@@ -347,7 +349,8 @@ RSpec.describe "Groups", type: :request do
     expect(GroupMembershipRemoval.where(group: private_group, user:)).to be_empty
     get group_path(private_group)
 
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
   end
 
   it "keeps a nonexistent group indistinguishable from an unauthorized group" do
@@ -355,7 +358,8 @@ RSpec.describe "Groups", type: :request do
 
     get group_path(Group.maximum(:id).to_i + 1)
 
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
   end
 
   it "keeps public and approval group details visible after membership ends" do

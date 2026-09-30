@@ -195,9 +195,10 @@ RSpec.describe "Group Jjaek moderation", type: :request do
 
     sign_in outsider
     get group_path(group)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(groups_path)
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
     get jjaek_path(group_hidden)
-    expect(response).to have_http_status(:redirect)
+    expect(response).to have_http_status(:not_found)
 
     member = User.create!(name: "Member", email: "hidden-platform-member@example.com", password: "password123!")
     group.group_memberships.create!(user: member, status: :active)
