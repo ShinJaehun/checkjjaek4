@@ -19,7 +19,12 @@ module Admin
     private
 
     def prepare_page
-      @jjaek = Jjaek.find(params[:jjaek_id])
+      @jjaek = Jjaek.find_by(id: params[:jjaek_id])
+      unless @jjaek && policy(@jjaek).show?
+        redirect_to root_path, alert: t("jjaeks.alerts.not_found_or_inaccessible")
+        return
+      end
+
       authorize @jjaek, :hide?
       @moderation_action = ModerationAction.new
     end

@@ -1091,6 +1091,8 @@ ko:
       created: "Jjaek을 게시했습니다."
       destroyed: "Jjaek을 삭제했습니다."
       updated: "Jjaek을 수정했습니다."
+    alerts:
+      not_found_or_inaccessible: "짹을 찾을 수 없거나 더 이상 접근할 수 없습니다."
     visibility:
       public_jjaek: "전체 공개"
       book_friends: "책친구 공개"

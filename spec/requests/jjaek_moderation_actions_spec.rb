@@ -27,6 +27,26 @@ RSpec.describe "Jjaek moderation actions", type: :request do
     )
   end
 
+  def expect_stale_jjaek_action(new_path:, create_path:, jjaek_id:)
+    jjaek_count = Jjaek.count
+    moderation_action_count = ModerationAction.count
+    notification_count = Notification.count
+    allow(Notifications::ModerationNotifier).to receive(:schedule)
+
+    get new_path
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+
+    post create_path, params: { moderation_action: { public_reason: "Stale action" } }
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+    expect(Jjaek.count).to eq(jjaek_count)
+    expect(Jjaek.exists?(jjaek_id)).to be(false)
+    expect(ModerationAction.count).to eq(moderation_action_count)
+    expect(Notification.count).to eq(notification_count)
+    expect(Notifications::ModerationNotifier).not_to have_received(:schedule)
+  end
+
   it "uses platform Action pages for hide and restore while preserving audit and notification semantics" do
     jjaek = author.jjaeks.create!(group:, book:, content: "PLATFORM ACTION TARGET")
     sign_in admin
@@ -116,6 +136,31 @@ RSpec.describe "Jjaek moderation actions", type: :request do
     expect(response).to redirect_to(jjaek_path(jjaek))
   end
 
+  it "safely redirects stale platform hide pages and submissions" do
+    jjaek = author.jjaeks.create!(content: "STALE PLATFORM HIDE TARGET")
+    jjaek_id = jjaek.id
+    new_path = new_admin_jjaek_hide_path(jjaek)
+    create_path = admin_jjaek_hides_path(jjaek)
+    jjaek.destroy_or_tombstone!
+    sign_in admin
+
+    expect_stale_jjaek_action(new_path:, create_path:, jjaek_id:)
+  end
+
+  it "safely redirects stale platform restoration pages and submissions" do
+    jjaek = author.jjaeks.create!(content: "STALE PLATFORM RESTORE TARGET")
+    hide = create_hide!(jjaek, actor: admin, authority: "platform")
+    jjaek_id = jjaek.id
+    new_path = new_admin_jjaek_restoration_path(jjaek)
+    create_path = admin_jjaek_restorations_path(jjaek)
+    jjaek.destroy_or_tombstone!
+    sign_in admin
+
+    expect_stale_jjaek_action(new_path:, create_path:, jjaek_id:)
+    expect(hide.reload).to be_persisted
+    expect(ModerationAction.where(reversal_of: hide)).to be_empty
+  end
+
   it "uses Group Action pages for hide and restore with group authority" do
     jjaek = author.jjaeks.create!(group:, book:, content: "GROUP ACTION TARGET")
     sign_in group_admin
@@ -195,6 +240,92 @@ RSpec.describe "Jjaek moderation actions", type: :request do
     expect(response).to redirect_to(jjaek_path(jjaek))
   end
 
+  it "safely redirects stale Group hide pages and submissions" do
+    jjaek = author.jjaeks.create!(group:, content: "STALE GROUP HIDE TARGET")
+    jjaek_id = jjaek.id
+    new_path = new_jjaek_group_hide_path(jjaek)
+    create_path = jjaek_group_hides_path(jjaek)
+    jjaek.destroy_or_tombstone!
+    sign_in group_admin
+
+    expect_stale_jjaek_action(new_path:, create_path:, jjaek_id:)
+  end
+
+  it "safely redirects stale Group restoration pages and submissions" do
+    jjaek = author.jjaeks.create!(group:, content: "STALE GROUP RESTORE TARGET")
+    hide = create_hide!(jjaek, actor: group_admin, authority: "group")
+    jjaek_id = jjaek.id
+    new_path = new_jjaek_group_restoration_path(jjaek)
+    create_path = jjaek_group_restorations_path(jjaek)
+    jjaek.destroy_or_tombstone!
+    sign_in group_admin
+
+    expect_stale_jjaek_action(new_path:, create_path:, jjaek_id:)
+    expect(hide.reload).to be_persisted
+    expect(ModerationAction.where(reversal_of: hide)).to be_empty
+  end
+
+  it "uses the same generic response for missing and inaccessible Jjaeks" do
+    missing = author.jjaeks.create!(group:, content: "MISSING RESPONSE TARGET")
+    missing_path = new_jjaek_group_hide_path(missing)
+    missing_create_path = jjaek_group_hides_path(missing)
+    missing.destroy_or_tombstone!
+
+    inaccessible_admin = User.create!(
+      name: "Inaccessible group admin",
+      email: "jjaek-action-inaccessible-admin@example.com",
+      password: "password123!"
+    )
+    inaccessible_group = Group.create!(
+      lifecycle_status: :active,
+      group_admin: inaccessible_admin,
+      name: "Inaccessible action group",
+      group_type: :private_group
+    )
+    inaccessible = author.jjaeks.create!(group: inaccessible_group, content: "INACCESSIBLE ACTION TARGET")
+    sign_in group_admin
+
+    get missing_path
+    missing_response = [ response.status, response.location, flash[:alert] ]
+
+    get new_jjaek_group_hide_path(inaccessible)
+    expect([ response.status, response.location, flash[:alert] ]).to eq(missing_response)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+
+    moderation_action_count = ModerationAction.count
+    notification_count = Notification.count
+    allow(Notifications::ModerationNotifier).to receive(:schedule)
+
+    post missing_create_path, params: { moderation_action: { public_reason: "Missing" } }
+    missing_create_response = [ response.status, response.location, flash[:alert] ]
+
+    post jjaek_group_hides_path(inaccessible), params: { moderation_action: { public_reason: "Inaccessible" } }
+    expect([ response.status, response.location, flash[:alert] ]).to eq(missing_create_response)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+    expect(inaccessible.reload).not_to be_hidden
+    expect(ModerationAction.count).to eq(moderation_action_count)
+    expect(Notification.count).to eq(notification_count)
+    expect(Notifications::ModerationNotifier).not_to have_received(:schedule)
+  end
+
+  it "keeps existing Pundit authorization for visible Jjaeks without moderation permission" do
+    jjaek = author.jjaeks.create!(group:, content: "VISIBLE BUT NOT MODERATABLE")
+    sign_in member
+
+    get new_jjaek_group_hide_path(jjaek)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+
+    expect {
+      post jjaek_group_hides_path(jjaek), params: { moderation_action: { public_reason: "other" } }
+    }.not_to change(ModerationAction, :count)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+    expect(jjaek.reload).not_to be_hidden
+  end
+
   it "lets platform authority restore a group-origin hide without changing the hide snapshot" do
     jjaek = author.jjaeks.create!(group:, content: "PLATFORM OVERRIDE TARGET")
     hide = create_hide!(jjaek, actor: group_admin, authority: "group", internal_note: "Group-only note")
@@ -260,12 +391,16 @@ RSpec.describe "Jjaek moderation actions", type: :request do
 
     get new_admin_jjaek_hide_path(deleted)
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
     post admin_jjaek_hides_path(deleted), params: { moderation_action: { public_reason: "other" } }
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
     get new_admin_jjaek_restoration_path(hidden_deleted)
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
     post admin_jjaek_restorations_path(hidden_deleted), params: { moderation_action: { public_reason: "Blocked" } }
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
   end
 
   it "keeps Group Action URLs inside the existing actor, author, and authority boundaries" do
