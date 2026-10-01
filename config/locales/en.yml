@@ -708,6 +708,7 @@ en:
       alerts:
         hide_failed: "Could not hide the comment."
         restore_failed: "Could not restore the comment."
+        stale_action: "This comment has already been handled or no longer exists."
     actions:
       close_inline: "Close"
       delete: "Delete"

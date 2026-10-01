@@ -35,6 +35,26 @@ RSpec.describe "Comment moderation actions", type: :request do
     jjaek_path(target.jjaek, anchor: ActionView::RecordIdentifier.dom_id(target))
   end
 
+  def expect_stale_comment_action(new_path:, create_path:)
+    moderation_action_count = ModerationAction.count
+    notification_count = Notification.count
+    comment_count = Comment.count
+    allow(Notifications::ModerationNotifier).to receive(:schedule)
+
+    get new_path
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.moderation.alerts.stale_action"))
+
+    post create_path, params: { moderation_action: { public_reason: "Stale action" } }
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.moderation.alerts.stale_action"))
+    expect(Comment.count).to eq(comment_count)
+    expect(Comment.exists?(comment.id)).to be(false)
+    expect(ModerationAction.count).to eq(moderation_action_count)
+    expect(Notification.count).to eq(notification_count)
+    expect(Notifications::ModerationNotifier).not_to have_received(:schedule)
+  end
+
   it "uses platform Action pages for hide and restore while preserving audit and notification semantics" do
     sign_in admin
     hide_new_path = new_admin_jjaek_comment_hide_path(jjaek, comment)
@@ -148,6 +168,29 @@ RSpec.describe "Comment moderation actions", type: :request do
     expect(response).to redirect_to(anchored_jjaek_path(comment))
   end
 
+  it "safely redirects stale platform hide pages and submissions" do
+    comment.destroy!
+    sign_in admin
+
+    expect_stale_comment_action(
+      new_path: new_admin_jjaek_comment_hide_path(jjaek, comment),
+      create_path: admin_jjaek_comment_hides_path(jjaek, comment)
+    )
+  end
+
+  it "safely redirects stale platform restoration pages and submissions" do
+    hide = create_hide!(comment, actor: admin, authority: "platform")
+    comment.destroy!
+    sign_in admin
+
+    expect_stale_comment_action(
+      new_path: new_admin_jjaek_comment_restoration_path(jjaek, comment),
+      create_path: admin_jjaek_comment_restorations_path(jjaek, comment)
+    )
+    expect(hide.reload).to be_persisted
+    expect(ModerationAction.where(reversal_of: hide)).to be_empty
+  end
+
   it "uses Group Action pages for hide and restore with group authority" do
     sign_in group_admin
     hide_new_path = new_jjaek_comment_group_hide_path(jjaek, comment)
@@ -227,6 +270,84 @@ RSpec.describe "Comment moderation actions", type: :request do
     )
     expect(scheduled.last).to eq([ restoration, [ comment_author.id ] ])
     expect(response).to redirect_to(anchored_jjaek_path(comment))
+  end
+
+  it "safely redirects stale Group hide pages and submissions" do
+    comment.destroy!
+    sign_in group_admin
+
+    expect_stale_comment_action(
+      new_path: new_jjaek_comment_group_hide_path(jjaek, comment),
+      create_path: jjaek_comment_group_hides_path(jjaek, comment)
+    )
+  end
+
+  it "safely redirects stale Group restoration pages and submissions" do
+    hide = create_hide!(comment, actor: group_admin, authority: "group")
+    comment.destroy!
+    sign_in group_admin
+
+    expect_stale_comment_action(
+      new_path: new_jjaek_comment_group_restoration_path(jjaek, comment),
+      create_path: jjaek_comment_group_restorations_path(jjaek, comment)
+    )
+    expect(hide.reload).to be_persisted
+    expect(ModerationAction.where(reversal_of: hide)).to be_empty
+  end
+
+  it "returns the same stale response for deleted and other-parent Comment IDs" do
+    deleted_comment_id = comment.id
+    comment.destroy!
+    sign_in admin
+
+    get new_admin_jjaek_comment_hide_path(jjaek, deleted_comment_id)
+    deleted_response = [ response.status, response.location, flash[:alert] ]
+
+    other_jjaek = parent_author.jjaeks.create!(group:, content: "OTHER COMMENT ACTION PARENT")
+    other_comment = other_jjaek.comments.create!(user: comment_author, content: "OTHER COMMENT ACTION TARGET")
+    get new_admin_jjaek_comment_hide_path(jjaek, other_comment)
+
+    expect([ response.status, response.location, flash[:alert] ]).to eq(deleted_response)
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.moderation.alerts.stale_action"))
+  end
+
+  it "does not treat a missing parent Jjaek as a stale comment" do
+    missing_jjaek_id = Jjaek.maximum(:id).to_i + 1
+    sign_in group_admin
+
+    get new_jjaek_comment_group_hide_path(missing_jjaek_id, comment)
+    expect(response).to have_http_status(:not_found)
+    expect(flash[:alert]).not_to eq(I18n.t("comments.moderation.alerts.stale_action"))
+  end
+
+  it "does not treat an inaccessible parent Jjaek as a stale comment" do
+    inaccessible_admin = User.create!(
+      name: "Inaccessible group admin",
+      email: "comment-action-inaccessible-admin@example.com",
+      password: "password123!"
+    )
+    inaccessible_group = Group.create!(
+      lifecycle_status: :active,
+      group_admin: inaccessible_admin,
+      name: "Inaccessible comment action group",
+      group_type: :private_group
+    )
+    inaccessible_jjaek = parent_author.jjaeks.create!(
+      group: inaccessible_group,
+      content: "INACCESSIBLE COMMENT ACTION PARENT"
+    )
+    inaccessible_comment = inaccessible_jjaek.comments.create!(
+      user: comment_author,
+      content: "INACCESSIBLE COMMENT ACTION TARGET"
+    )
+    inaccessible_comment.destroy!
+
+    sign_in group_admin
+
+    get new_jjaek_comment_group_hide_path(inaccessible_jjaek, inaccessible_comment)
+    expect(response).to have_http_status(:not_found)
+    expect(flash[:alert]).not_to eq(I18n.t("comments.moderation.alerts.stale_action"))
   end
 
   it "lets platform authority restore a group-origin hide without changing the hide snapshot" do

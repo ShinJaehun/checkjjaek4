@@ -86,18 +86,19 @@ RSpec.describe "Admin Comment moderation", type: :request do
     expect(response.body).to include(I18n.t("comments.moderation.alerts.restore_failed"))
   end
 
-  it "rejects a comment ID from another parent on hide" do
+  it "treats a comment ID from another parent as stale on hide" do
     other_jjaek = author.jjaeks.create!(content: "Other parent")
     comment = other_jjaek.comments.create!(user: author, content: "Other comment")
 
     expect {
       post admin_jjaek_comment_hides_path(jjaek, comment), params: { moderation_action: { public_reason: "other" } }
     }.not_to change(ModerationAction, :count)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.moderation.alerts.stale_action"))
     expect(comment.reload).not_to be_hidden
   end
 
-  it "rejects a comment ID from another parent on restore" do
+  it "treats a comment ID from another parent as stale on restore" do
     other_jjaek = author.jjaeks.create!(content: "Other parent")
     comment = other_jjaek.comments.create!(user: author, content: "Other comment")
     Comments::Hide.new(comment, actor: admin, public_reason: "other").call!
@@ -105,7 +106,8 @@ RSpec.describe "Admin Comment moderation", type: :request do
     expect {
       post admin_jjaek_comment_restorations_path(jjaek, comment), params: { moderation_action: { public_reason: "Resolved" } }
     }.not_to change(ModerationAction, :count)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.moderation.alerts.stale_action"))
     expect(comment.reload).to be_hidden
   end
 end

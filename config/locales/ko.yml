@@ -712,6 +712,7 @@ ko:
       alerts:
         hide_failed: "댓글을 숨길 수 없습니다."
         restore_failed: "댓글의 숨김을 해제할 수 없습니다."
+        stale_action: "이미 처리되었거나 더 이상 존재하지 않는 댓글입니다."
     actions:
       close_inline: "닫기"
       delete: "삭제"

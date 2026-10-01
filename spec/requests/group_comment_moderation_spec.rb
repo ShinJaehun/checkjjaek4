@@ -147,26 +147,36 @@ RSpec.describe "Group Comment moderation", type: :request do
     expect(comment.moderation_actions.action_type_restore.sole).to have_attributes(actor: new_admin, moderation_authority: "group", reversal_of: hide)
   end
 
-  it "rejects a comment ID from another parent on hide" do
+  it "treats a comment ID from another parent as stale on hide without changing state" do
     other_jjaek = author.jjaeks.create!(group:, content: "Other parent")
     other_comment = other_jjaek.comments.create!(user: author, content: "Other comment")
+    notification_count = Notification.count
+    comment_count = Comment.count
 
     expect {
       post jjaek_comment_group_hides_path(jjaek, other_comment), params: { moderation_action: { public_reason: "other" } }
     }.not_to change(ModerationAction, :count)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.moderation.alerts.stale_action"))
+    expect(Notification.count).to eq(notification_count)
+    expect(Comment.count).to eq(comment_count)
     expect(other_comment.reload).not_to be_hidden
   end
 
-  it "rejects a comment ID from another parent on restore" do
+  it "treats a comment ID from another parent as stale on restore without changing state" do
     other_jjaek = author.jjaeks.create!(group:, content: "Other parent")
     other_comment = other_jjaek.comments.create!(user: author, content: "Other comment")
     Comments::Hide.new(other_comment, actor: group_admin, public_reason: "other").call!
+    notification_count = Notification.count
+    comment_count = Comment.count
 
     expect {
       post jjaek_comment_group_restorations_path(jjaek, other_comment), params: { moderation_action: { public_reason: "Resolved" } }
     }.not_to change(ModerationAction, :count)
-    expect(response).to have_http_status(:not_found)
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.moderation.alerts.stale_action"))
+    expect(Notification.count).to eq(notification_count)
+    expect(Comment.count).to eq(comment_count)
     expect(other_comment.reload).to be_hidden
   end
 end
