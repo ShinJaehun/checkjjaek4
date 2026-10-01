@@ -21,6 +21,7 @@ RSpec.describe "Admin group approvals", type: :request do
 
   it "blocks a non-admin from the approval list and approve action" do
     sign_in group_admin
+    missing_group_id = Group.maximum(:id).to_i + 1
 
     get admin_groups_path
     expect(response).to redirect_to(root_path)
@@ -33,9 +34,66 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get new_admin_group_approval_path(group)
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+
+    get new_admin_group_approval_path(missing_group_id)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+
     post admin_group_approvals_path(group)
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+
+    post admin_group_approvals_path(missing_group_id)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
     expect(group.reload).to be_pending_approval
+  end
+
+  it "redirects a stale approval page to the filtered admin inventory" do
+    stale_group_id = group.id
+    group.cancel_pending_application_for_withdrawal!
+    sign_in admin
+
+    filters = {
+      q: "Pending",
+      group_type: "public_group",
+      status: "pending_approval",
+      operation_status: "normal",
+      sort: "oldest",
+      page: 2
+    }
+    get new_admin_group_approval_path(stale_group_id), params: filters
+
+    expect(response).to redirect_to(admin_groups_path(filters))
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
+  end
+
+  it "redirects a stale approval submission without creating lifecycle effects" do
+    stale_group_id = group.id
+    group.cancel_pending_application_for_withdrawal!
+    sign_in admin
+    allow(Notifications::GroupLifecycleNotifier).to receive(:schedule)
+    group_count = Group.count
+    lifecycle_event_count = GroupLifecycleEvent.count
+    notification_count = Notification.count
+    filters = {
+      q: "Pending",
+      group_type: "public_group",
+      status: "pending_approval",
+      operation_status: "normal",
+      sort: "oldest",
+      page: 2
+    }
+
+    post admin_group_approvals_path(stale_group_id), params: filters
+
+    expect(response).to redirect_to(admin_groups_path(filters))
+    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
+    expect(Group.count).to eq(group_count)
+    expect(GroupLifecycleEvent.count).to eq(lifecycle_event_count)
+    expect(Notification.count).to eq(notification_count)
+    expect(Notifications::GroupLifecycleNotifier).not_to have_received(:schedule)
   end
 
   it "lets a global admin list and approve pending groups" do

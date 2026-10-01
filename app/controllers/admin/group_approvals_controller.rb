@@ -29,9 +29,16 @@ module Admin
     private
 
     def prepare_page
-      @group = Group.find(params[:group_id])
-      authorize @group, :approve?
+      authorize Group, :manage_approvals?
       @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
+      @group = Group.find_by(id: params[:group_id])
+
+      unless @group
+        redirect_to admin_groups_path(@return_params), alert: t("groups.alerts.not_found_or_inaccessible")
+        return
+      end
+
+      authorize @group, :approve?
       @action_params = @return_params.to_h
       @action_params[:return_to] = "inventory" if params[:return_to] == "inventory"
       @approval_return_path = if params[:return_to] == "inventory"
