@@ -125,6 +125,44 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
+    it "redirects stale requote submissions without creating a regular jjaek" do
+      hard_deleted_source = original_author.jjaeks.create!(content: "HARD_DELETED_REQUOTE_SOURCE")
+      hard_deleted_source_id = hard_deleted_source.id
+      hard_deleted_source.destroy!
+      out_of_scope_source = original
+      friendship.destroy!
+      sign_in viewer
+      jjaek_count = Jjaek.count
+      notification_count = Notification.count
+
+      post jjaeks_path, params: {
+        jjaek: {
+          quoted_jjaek_id: hard_deleted_source_id,
+          content: "HARD_DELETED_SOURCE_REQUOTE",
+          visibility: :public_jjaek
+        }
+      }
+      hard_deleted_response = [ response.status, response.location, flash[:alert] ]
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.requote_source_unavailable"))
+      expect(Jjaek.count).to eq(jjaek_count)
+      expect(Notification.count).to eq(notification_count)
+
+      post jjaeks_path, params: {
+        jjaek: {
+          quoted_jjaek_id: out_of_scope_source.id,
+          content: "OUT_OF_SCOPE_SOURCE_REQUOTE",
+          visibility: :public_jjaek
+        }
+      }
+
+      expect([ response.status, response.location, flash[:alert] ]).to eq(hard_deleted_response)
+      expect(Jjaek.count).to eq(jjaek_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(Jjaek.where(content: %w[HARD_DELETED_SOURCE_REQUOTE OUT_OF_SCOPE_SOURCE_REQUOTE])).to be_empty
+    end
+
     it "creates a personal requote from an active public group original for a non-member" do
       group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Public requote source", group_type: :public_group)
       group_jjaek = original_author.jjaeks.create!(group:, book:, content: "PUBLIC_GROUP_REQUOTE_SOURCE")
@@ -156,6 +194,8 @@ RSpec.describe "Jjaeks", type: :request do
         expect {
           post jjaeks_path, params: { jjaek: { quoted_jjaek_id: group_jjaek.id, content: "BLOCKED_REQUOTE" } }
         }.not_to change(Jjaek, :count)
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
       end
     end
 
@@ -169,6 +209,8 @@ RSpec.describe "Jjaeks", type: :request do
       expect {
         post jjaeks_path, params: { jjaek: { quoted_jjaek_id: group_jjaek.id, content: "BLOCKED_INACTIVE_REQUOTE" } }
       }.not_to change(Jjaek, :count)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
     end
 
     it "does not create a duplicate requote for the same user and original" do
@@ -312,7 +354,90 @@ RSpec.describe "Jjaeks", type: :request do
     end
   end
 
+  describe "editing Jjaeks" do
+    it "redirects a stale edit page with the generic Jjaek alert" do
+      stale_jjaek = viewer.jjaeks.create!(content: "STALE_EDIT_SOURCE")
+      stale_jjaek_id = stale_jjaek.id
+      stale_jjaek.destroy!
+      sign_in viewer
+
+      get edit_jjaek_path(stale_jjaek_id)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+    end
+
+    it "redirects a stale update without changing Jjaeks or notifications" do
+      stale_jjaek = viewer.jjaeks.create!(content: "STALE_UPDATE_SOURCE")
+      stale_jjaek_id = stale_jjaek.id
+      stale_jjaek.destroy!
+      sign_in viewer
+      jjaek_count = Jjaek.count
+      jjaek_state = Jjaek.order(:id).pluck(:id, :content, :visibility, :updated_at)
+      notification_count = Notification.count
+
+      patch jjaek_path(stale_jjaek_id), params: {
+        jjaek: { content: "SHOULD_NOT_BE_CREATED", visibility: :public_jjaek }
+      }
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+      expect(Jjaek.count).to eq(jjaek_count)
+      expect(Jjaek.order(:id).pluck(:id, :content, :visibility, :updated_at)).to eq(jjaek_state)
+      expect(Jjaek.exists?(stale_jjaek_id)).to be(false)
+      expect(Notification.count).to eq(notification_count)
+    end
+
+    it "keeps Pundit authorization for visible Jjaeks owned by another user" do
+      visible_jjaek = original_author.jjaeks.create!(content: "VISIBLE_UNEDITABLE_TARGET")
+      sign_in viewer
+
+      get edit_jjaek_path(visible_jjaek)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+
+      patch jjaek_path(visible_jjaek), params: { jjaek: { content: "UNAUTHORIZED_UPDATE" } }
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+      expect(visible_jjaek.reload.content).to eq("VISIBLE_UNEDITABLE_TARGET")
+    end
+
+    it "updates an editable live Jjaek normally" do
+      editable_jjaek = viewer.jjaeks.create!(content: "BEFORE_NORMAL_UPDATE")
+      sign_in viewer
+
+      patch jjaek_path(editable_jjaek), params: {
+        jjaek: { content: "AFTER_NORMAL_UPDATE", visibility: :book_friends }
+      }
+
+      expect(response).to redirect_to(jjaek_path(editable_jjaek))
+      expect(editable_jjaek.reload).to have_attributes(
+        content: "AFTER_NORMAL_UPDATE",
+        visibility: "book_friends"
+      )
+    end
+  end
+
   describe "GET /jjaeks/:id" do
+    it "keeps missing and inaccessible Group Jjaek show requests as not found" do
+      private_group = Group.create!(
+        lifecycle_status: :active,
+        group_admin: original_author,
+        name: "Inaccessible show group",
+        group_type: :private_group
+      )
+      inaccessible_jjaek = original_author.jjaeks.create!(group: private_group, content: "INACCESSIBLE_SHOW_TARGET")
+      missing_jjaek_id = Jjaek.maximum(:id).to_i + 1
+      sign_in viewer
+
+      get jjaek_path(missing_jjaek_id)
+      expect(response).to have_http_status(:not_found)
+
+      sign_in viewer
+      get jjaek_path(inaccessible_jjaek)
+      expect(response).to have_http_status(:not_found)
+    end
+
     it "shows the requote action on an active public group original for a non-member" do
       group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Public detail source", group_type: :public_group)
       group_jjaek = original_author.jjaeks.create!(group:, content: "PUBLIC_GROUP_DETAIL_SOURCE")
@@ -572,6 +697,8 @@ RSpec.describe "Jjaeks", type: :request do
       expect {
         post jjaeks_path, params: { jjaek: { content: "Blocked", quoted_jjaek_id: original.id } }
       }.not_to change(Jjaek, :count)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
     end
 
     it "does not show a requote entry for a private jjaek" do
@@ -699,6 +826,25 @@ RSpec.describe "Jjaeks", type: :request do
   end
 
   describe "GET /jjaeks/new" do
+    it "uses the same stale response for hard-deleted and out-of-scope requote sources" do
+      hard_deleted_source = original_author.jjaeks.create!(content: "HARD_DELETED_REQUOTE_FORM_SOURCE")
+      hard_deleted_source_id = hard_deleted_source.id
+      hard_deleted_source.destroy!
+      out_of_scope_source = original
+      friendship.destroy!
+      sign_in viewer
+
+      get new_jjaek_path, params: { quoted_jjaek_id: hard_deleted_source_id }
+      hard_deleted_response = [ response.status, response.location, flash[:alert] ]
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.requote_source_unavailable"))
+
+      get new_jjaek_path, params: { quoted_jjaek_id: out_of_scope_source.id }
+
+      expect([ response.status, response.location, flash[:alert] ]).to eq(hard_deleted_response)
+    end
+
     it "limits requote visibility options for a book-friends original" do
       sign_in viewer
       original

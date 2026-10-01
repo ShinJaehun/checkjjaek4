@@ -415,11 +415,15 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(jjaek.reload.content).to eq("Before")
   end
 
-  it "returns not found when a former author tries to update" do
+  it "returns not found when a former author tries to edit or update" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     jjaek = member.jjaeks.create!(group:, content: "Before")
     sign_in member
 
+    get edit_jjaek_path(jjaek)
+    expect(response).to have_http_status(:not_found)
+
+    sign_in member
     patch jjaek_path(jjaek), params: { jjaek: { content: "Former change" } }
 
     expect(response).to have_http_status(:not_found)

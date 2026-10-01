@@ -1,5 +1,6 @@
 class JjaeksController < ApplicationController
-  before_action :set_jjaek, only: %i[show edit update]
+  before_action :set_jjaek, only: :show
+  before_action :set_editable_jjaek, only: %i[edit update]
   before_action :set_destroy_jjaek, only: :destroy
   before_action :build_new_jjaek, only: %i[new create]
 
@@ -96,6 +97,20 @@ class JjaeksController < ApplicationController
     authorize @jjaek
   end
 
+  def set_editable_jjaek
+    @jjaek = Jjaek.find_by(id: params[:id])
+
+    unless @jjaek
+      redirect_to root_path, alert: t("jjaeks.alerts.not_found_or_inaccessible")
+      return
+    end
+
+    if @jjaek.group_id.present? && !policy(@jjaek).show?
+      raise ActiveRecord::RecordNotFound
+    end
+    authorize @jjaek
+  end
+
   def set_destroy_jjaek
     @jjaek = Jjaek.find(params[:id])
     authorize @jjaek, :destroy?
@@ -105,6 +120,8 @@ class JjaeksController < ApplicationController
     @group = find_jjaek_group
     @book = find_jjaek_book
     @quoted_jjaek = find_quoted_jjaek
+    return if performed?
+
     @jjaek_visibility_options = jjaek_visibility_options_for(@quoted_jjaek)
     @jjaek = Jjaek.new(
       user: current_user,
@@ -183,7 +200,11 @@ class JjaeksController < ApplicationController
   def find_quoted_jjaek
     return unless jjaek_quoted_id.present?
 
-    policy_scope(Jjaek).find(jjaek_quoted_id)
+    quoted_jjaek = policy_scope(Jjaek).find_by(id: jjaek_quoted_id)
+    return quoted_jjaek if quoted_jjaek
+
+    redirect_to root_path, alert: t("jjaeks.alerts.requote_source_unavailable")
+    nil
   end
 
   def render_book_create_failure

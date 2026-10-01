@@ -1091,6 +1091,7 @@ en:
       updated: "Jjaek updated."
     alerts:
       not_found_or_inaccessible: "This Jjaek could not be found or is no longer accessible."
+      requote_source_unavailable: "The original Jjaek could not be found or can no longer be requoted."
     visibility:
       public_jjaek: "Public"
       book_friends: "Book friends"
