@@ -58,6 +58,38 @@ RSpec.describe "Group member ban actions", type: :request do
     expect(page.at_css("#membership-operations-history [data-ban-history-entry='ban_from_group']")).to be_present
   end
 
+  it "safely redirects stale ban pages and submissions after the membership is gone" do
+    ban = GroupMemberBans::Ban.new(
+      membership,
+      actor: group_admin,
+      public_reason: "Original reason"
+    ).call!
+    sign_in group_admin
+
+    moderation_action_count = ModerationAction.count
+    notification_count = Notification.count
+    membership_count = GroupMembership.count
+    ban_count = GroupMemberBan.count
+
+    get new_group_group_membership_member_ban_path(group, membership)
+    expect(response).to redirect_to(group_members_path(group))
+    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+    follow_redirect!
+    expect(response).to have_http_status(:ok)
+
+    post group_group_membership_member_bans_path(group, membership), params: {
+      moderation_action: { public_reason: "Duplicate restriction" }
+    }
+    expect(response).to redirect_to(group_members_path(group))
+    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+    expect(GroupMembership.count).to eq(membership_count)
+    expect(GroupMembership.exists?(membership.id)).to be(false)
+    expect(GroupMemberBan.count).to eq(ban_count)
+    expect(ban.reload).to be_persisted
+    expect(ModerationAction.count).to eq(moderation_action_count)
+    expect(Notification.count).to eq(notification_count)
+  end
+
   it "shows the current ban on restoration and creates a linked reversal without restoring membership" do
     ban = GroupMemberBans::Ban.new(
       membership,

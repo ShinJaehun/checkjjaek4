@@ -47,6 +47,29 @@ RSpec.describe "Group membership activity actions", type: :request do
     expect(member_card.at_css("[data-member-action='suspend_activity']")).to be_nil
   end
 
+  it "safely redirects stale suspension pages and submissions after the membership is gone" do
+    membership.destroy!
+    sign_in group_admin
+
+    moderation_action_count = ModerationAction.count
+    notification_count = Notification.count
+    membership_count = GroupMembership.count
+
+    get new_group_group_membership_activity_suspension_path(group, membership)
+    expect(response).to redirect_to(group_members_path(group))
+    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+
+    post group_group_membership_activity_suspensions_path(group, membership), params: {
+      moderation_action: { public_reason: "Stale suspension" }
+    }
+    expect(response).to redirect_to(group_members_path(group))
+    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+    expect(GroupMembership.count).to eq(membership_count)
+    expect(GroupMembership.exists?(membership.id)).to be(false)
+    expect(ModerationAction.count).to eq(moderation_action_count)
+    expect(Notification.count).to eq(notification_count)
+  end
+
   it "shows the current suspension on restoration and creates a linked reversal" do
     GroupMemberships::SuspendActivity.new(membership, actor: group_admin, public_reason: "Original reason", internal_note: "Original note").call!
     suspension = membership.current_activity_suspension_action
@@ -70,6 +93,34 @@ RSpec.describe "Group membership activity actions", type: :request do
     restoration = ModerationAction.find_by!(reversal_of: suspension)
     expect(restoration).to have_attributes(target: membership, actor: group_admin, action_type: "restore_activity", public_reason: "Reviewed", internal_note: "Resolved")
     expect(Notification.find_by!(notifiable: restoration, action: :group_member_activity_restored)).to have_attributes(recipient: member)
+  end
+
+  it "safely redirects stale restoration pages and submissions after the membership is gone" do
+    GroupMemberships::SuspendActivity.new(
+      membership,
+      actor: group_admin,
+      public_reason: "Original reason"
+    ).call!
+    membership.destroy!
+    sign_in group_admin
+
+    moderation_action_count = ModerationAction.count
+    notification_count = Notification.count
+    membership_count = GroupMembership.count
+
+    get new_group_group_membership_activity_restoration_path(group, membership)
+    expect(response).to redirect_to(group_members_path(group))
+    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+
+    post group_group_membership_activity_restorations_path(group, membership), params: {
+      moderation_action: { public_reason: "Stale restoration" }
+    }
+    expect(response).to redirect_to(group_members_path(group))
+    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+    expect(GroupMembership.count).to eq(membership_count)
+    expect(GroupMembership.exists?(membership.id)).to be(false)
+    expect(ModerationAction.count).to eq(moderation_action_count)
+    expect(Notification.count).to eq(notification_count)
   end
 
   it "denies new and create to users who are not this group's admin" do

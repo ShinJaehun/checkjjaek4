@@ -25,7 +25,12 @@ module GroupMemberships
     def prepare_page
       @group = policy_scope(Group).find(params[:group_id])
       authorize @group, :view_members?
-      @membership = @group.group_memberships.includes(:user).find(params[:group_membership_id])
+      @membership = @group.group_memberships.includes(:user).find_by(id: params[:group_membership_id])
+      unless @membership
+        redirect_to group_members_path(@group), alert: t("group_memberships.alerts.stale_action")
+        return
+      end
+
       authorize @membership, :ban_from_group?
       @moderation_action = ModerationAction.new
     end

@@ -605,6 +605,7 @@ en:
       activity_restored: "Club activity was restored."
     alerts:
       removed: "You were removed from the club."
+      stale_action: "This club membership has already been handled or no longer exists."
       suspend_activity_failed: "Club activity could not be suspended."
       restore_activity_failed: "Club activity could not be restored."
     management:
