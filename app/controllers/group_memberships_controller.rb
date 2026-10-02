@@ -1,7 +1,8 @@
 class GroupMembershipsController < ApplicationController
   before_action :set_group, except: %i[accept decline]
   before_action :authorize_group_access, only: %i[update destroy reject revoke remove]
-  before_action :set_membership, only: %i[update destroy reject revoke remove]
+  before_action :set_membership, only: :destroy
+  before_action :set_membership_for_management_action, only: %i[update reject revoke remove]
   before_action :set_own_invitation, only: %i[accept decline]
 
   def create
@@ -40,7 +41,7 @@ class GroupMembershipsController < ApplicationController
       event
     end
 
-    redirect_to group_members_path(@group), notice: t("group_memberships.notices.approved")
+    redirect_to group_members_path(@group), notice: t("group_memberships.notices.approved"), status: :see_other
   end
 
   def invite
@@ -163,6 +164,13 @@ class GroupMembershipsController < ApplicationController
 
   def set_membership
     @membership = @group.group_memberships.find(params[:id])
+  end
+
+  def set_membership_for_management_action
+    @membership = @group.group_memberships.find_by(id: params[:id])
+    return if @membership
+
+    redirect_to group_members_path(@group), alert: t("group_memberships.alerts.stale_action"), status: :see_other
   end
 
   def set_own_invitation

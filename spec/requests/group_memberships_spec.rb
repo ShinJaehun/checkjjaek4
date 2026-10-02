@@ -100,6 +100,7 @@ RSpec.describe "Group memberships", type: :request do
     patch group_group_membership_path(group, membership)
 
     expect(response).to have_http_status(:not_found)
+    expect(flash[:alert]).not_to eq(I18n.t("group_memberships.alerts.stale_action"))
     expect(membership.reload).to be_pending
   end
 
@@ -124,6 +125,7 @@ RSpec.describe "Group memberships", type: :request do
     patch group_group_membership_path(group, membership)
 
     expect(membership.reload).to be_active
+    expect(response).to have_http_status(:see_other)
     expect(response).to redirect_to(group_members_path(group))
   end
 
@@ -138,6 +140,7 @@ RSpec.describe "Group memberships", type: :request do
 
     expect(membership.reload).to be_pending
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
   end
 
   it "does not approve an active membership again" do
@@ -149,6 +152,123 @@ RSpec.describe "Group memberships", type: :request do
 
     expect(response).to redirect_to(root_path)
     expect(membership.reload).to be_active
+  end
+
+  describe "stale membership management mutations" do
+    it "redirects a stale approval without side effects" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Stale approval", group_type: :approval_group)
+      membership = group.group_memberships.create!(user: member, status: :pending)
+      membership_id = membership.id
+      membership.destroy!
+      sign_in group_admin
+
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+      removal_count = GroupMembershipRemoval.count
+      membership_count = GroupMembership.count
+
+      patch group_group_membership_path(group, membership_id)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(group_members_path(group))
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(GroupMembershipRemoval.count).to eq(removal_count)
+      expect(GroupMembership.count).to eq(membership_count)
+    end
+
+    it "redirects a stale rejection without side effects" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Stale rejection", group_type: :approval_group)
+      membership = group.group_memberships.create!(user: member, status: :pending)
+      membership_id = membership.id
+      membership.destroy!
+      sign_in group_admin
+
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+      removal_count = GroupMembershipRemoval.count
+      membership_count = GroupMembership.count
+
+      delete reject_group_group_membership_path(group, membership_id)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(group_members_path(group))
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(GroupMembershipRemoval.count).to eq(removal_count)
+      expect(GroupMembership.count).to eq(membership_count)
+    end
+
+    it "redirects a stale revocation to member management without restoring profile context or creating side effects" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Stale revocation", group_type: :private_group)
+      membership = group.group_memberships.create!(user: member, status: :invited)
+      membership_id = membership.id
+      membership.destroy!
+      sign_in group_admin
+
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+      removal_count = GroupMembershipRemoval.count
+      membership_count = GroupMembership.count
+
+      delete revoke_group_group_membership_path(group, membership_id), params: { return_context: "profile" }
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(group_members_path(group))
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(GroupMembershipRemoval.count).to eq(removal_count)
+      expect(GroupMembership.count).to eq(membership_count)
+    end
+
+    it "redirects a stale removal without side effects" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Stale removal", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      membership_id = membership.id
+      membership.destroy!
+      sign_in group_admin
+
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+      removal_count = GroupMembershipRemoval.count
+      membership_count = GroupMembership.count
+
+      delete remove_group_group_membership_path(group, membership_id)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(group_members_path(group))
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(GroupMembershipRemoval.count).to eq(removal_count)
+      expect(GroupMembership.count).to eq(membership_count)
+    end
+
+    it "treats a membership ID from another group as stale without mutating it" do
+      group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Current group", group_type: :public_group)
+      other_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Other group", group_type: :public_group)
+      other_membership = other_group.group_memberships.create!(user: member, status: :active)
+      sign_in group_admin
+
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+      removal_count = GroupMembershipRemoval.count
+      membership_count = GroupMembership.count
+
+      delete remove_group_group_membership_path(group, other_membership)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(group_members_path(group))
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+      expect(other_membership.reload).to be_active
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(GroupMembershipRemoval.count).to eq(removal_count)
+      expect(GroupMembership.count).to eq(membership_count)
+    end
   end
 
   it "lets a user cancel their own pending request" do
@@ -571,7 +691,9 @@ RSpec.describe "Group memberships", type: :request do
       expect(response).to redirect_to(group_members_path(group))
 
       delete reject_group_group_membership_path(group, membership)
-      expect(response).to have_http_status(:not_found)
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(group_members_path(group))
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
 
       sign_in member
       expect {
