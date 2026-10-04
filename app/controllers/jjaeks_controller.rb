@@ -112,7 +112,12 @@ class JjaeksController < ApplicationController
   end
 
   def set_destroy_jjaek
-    @jjaek = Jjaek.find(params[:id])
+    @jjaek = Jjaek.find_by(id: params[:id])
+    unless @jjaek
+      redirect_to root_path, alert: t("jjaeks.alerts.not_found_or_inaccessible"), status: :see_other
+      return
+    end
+
     authorize @jjaek, :destroy?
   end
 

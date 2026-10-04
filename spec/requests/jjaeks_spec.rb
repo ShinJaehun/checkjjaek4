@@ -418,6 +418,84 @@ RSpec.describe "Jjaeks", type: :request do
     end
   end
 
+  describe "destroying Jjaeks" do
+    it "redirects a stale hard-deleted Jjaek without changing other records" do
+      remaining_jjaek = viewer.jjaeks.create!(content: "REMAINING_JJAEK")
+      stale_jjaek = viewer.jjaeks.create!(content: "STALE_DESTROY_SOURCE")
+      stale_jjaek_id = stale_jjaek.id
+      stale_jjaek.destroy!
+      sign_in viewer
+      jjaek_count = Jjaek.count
+      like_count = Like.count
+      comment_count = Comment.count
+      notification_count = Notification.count
+      jjaek_state = Jjaek.order(:id).pluck(:id, :content, :deleted_at, :updated_at)
+
+      delete jjaek_path(stale_jjaek_id)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+      expect(Jjaek.count).to eq(jjaek_count)
+      expect(Like.count).to eq(like_count)
+      expect(Comment.count).to eq(comment_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(Jjaek.order(:id).pluck(:id, :content, :deleted_at, :updated_at)).to eq(jjaek_state)
+      expect(remaining_jjaek.reload.content).to eq("REMAINING_JJAEK")
+    end
+
+    it "keeps Pundit authorization for another user's live Jjaek" do
+      other_jjaek = original_author.jjaeks.create!(content: "OTHER_LIVE_JJAEK")
+      updated_at = other_jjaek.updated_at
+      sign_in viewer
+
+      delete jjaek_path(other_jjaek)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+      expect(flash[:alert]).not_to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+      expect(other_jjaek.reload.content).to eq("OTHER_LIVE_JJAEK")
+      expect(other_jjaek.updated_at).to eq(updated_at)
+    end
+
+    it "keeps Pundit authorization for an existing deleted tombstone" do
+      tombstone = viewer.jjaeks.create!(content: "BEFORE_TOMBSTONE")
+      preserved_comment = tombstone.comments.create!(user: original_author, content: "PRESERVED_COMMENT")
+      tombstone.destroy_or_tombstone!
+      tombstone.reload
+      tombstone_state = tombstone.attributes.slice("content", "deleted_at", "updated_at")
+      sign_in viewer
+      jjaek_count = Jjaek.count
+      comment_count = Comment.count
+
+      delete jjaek_path(tombstone)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+      expect(flash[:alert]).not_to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+      expect(tombstone.reload).to be_deleted
+      expect(tombstone.attributes.slice("content", "deleted_at", "updated_at")).to eq(tombstone_state)
+      expect(Comment.exists?(preserved_comment.id)).to be(true)
+      expect(Jjaek.count).to eq(jjaek_count)
+      expect(Comment.count).to eq(comment_count)
+    end
+
+    it "hard-deletes a live own Jjaek without comments" do
+      own_jjaek = viewer.jjaeks.create!(content: "LIVE_DESTROY_SOURCE")
+      own_jjaek_id = own_jjaek.id
+      sign_in viewer
+
+      expect {
+        delete jjaek_path(own_jjaek)
+      }.to change(Jjaek, :count).by(-1)
+
+      expect(Jjaek.exists?(own_jjaek_id)).to be(false)
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:notice]).to eq(I18n.t("jjaeks.notices.destroyed"))
+    end
+  end
+
   describe "GET /jjaeks/:id" do
     it "keeps missing and inaccessible Group Jjaek show requests as not found" do
       private_group = Group.create!(
