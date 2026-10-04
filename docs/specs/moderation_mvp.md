@@ -81,6 +81,9 @@ suspend의 `internal_note`는 선택이다. restore에는 정지 사유와 별�
 동아리 활동 정지·복구는 별도 `moderation_status`와 `GroupMembership` 대상 append-only 감사 row로 구현되어 있으며 이번 closure에서 완료된 기반으로 유지한다. 동아리 이용 제한은 `GroupMemberBan` 현재 marker와 ban/unban 감사 row로 구현하며 membership을 종료하고 재참여를 차단한다. 해제는 membership을 복구하지 않는다. 일반 membership의 탈퇴·내보내기와 Group의 자발적 운영 종료 lifecycle을 moderation 상태로 해석하지 않는다.
 활동 정지는 현재 GroupMembership에만 적용된다. 자발적 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 현재 정지 상태도 종료되며 감사 row는 보존한다. global admin은 Group membership moderation을 실행하지 않고 전체 이력을 조사하며 service-wide 제재는 User 계정 정지·복구로 수행한다.
 계정 정지, 동아리 활동 정지와 동아리 운영 정지는 서로 자동 전파되지 않는다.
+운영 정지되지 않은 `active` Group에서는 새 회원 활동 정지·이용 제한과 기존 조치의 복구·해제를 허용한다.
+자발적으로 운영 종료된 `inactive` Group에서는 새 회원 moderation을 시작하지 않고 기존 활동 정지의 복구와 이용 제한 해제만 허용한다.
+`pending_approval` 또는 operation suspended Group에서는 Group admin의 회원 moderation을 차단한다.
 
 회원 관리 화면에서는 현재 활동 상태·공개 사유와 허용된 활동 정지 또는 복구 버튼을 표시하고,
 사유 입력은 각각 독립된 canonical action page에서 수행한다. 버튼 노출, action page GET과
@@ -120,7 +123,8 @@ Group 개설·자발적 운영 종료·재운영은 `GroupLifecycleEvent`의 lif
 operation suspend/restore는 Group 대상 `ModerationAction`의 platform moderation history다.
 admin Group 상세에서는 두 의미를 합치지 않으면서 lifecycle event와 platform moderation action을
 하나의 최신순 운영 이력으로 표시한다. 각 항목에는 action, 실제 actor, 공개 사유, 선택적 내부 메모, 시각을 표시한다.
-일반 Group admin과 회원에게는 현재 운영 정지 상태와 공개 사유만 제공하고 platform 내부 메모·전체 이력은 노출하지 않는다.
+현재 Group admin은 동아리 관리 화면에서 lifecycle event와 과거 platform operation suspend/restore의 공개 이력·공개 사유를 확인하지만 platform 내부 메모는 볼 수 없다.
+일반 회원에게는 허용된 현재 운영 정지 상태와 공개 사유만 제공하며 과거 전체 운영 이력은 노출하지 않는다.
 
 Group 운영 정지·복구의 admin inventory/detail에서는 현재 허용되는 action button만 제공하고,
 실제 공개 사유와 내부 메모는 독립된 canonical action page에서 입력한다.
@@ -304,9 +308,10 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
 
 #### Group lifecycle과 운영 정지
 
-- Group lifecycle이 `active` 또는 `inactive`이고, 별도의 Group operation 상태가 active(운영 정지되지 않은 상태)일 때
-  현재 Group admin은 숨김과 복구를 수행할 수 있다.
-- `inactive`는 과거 콘텐츠의 읽기와 관리 책임을 보존하는 자발적 lifecycle이므로, 기존 콘텐츠 moderation도 유지한다.
+- Group lifecycle이 `active`이고 별도의 Group operation 상태가 active(운영 정지되지 않은 상태)일 때
+  현재 Group admin은 새 숨김과 기존 group-origin hide의 복구를 수행할 수 있다.
+- `inactive`는 과거 콘텐츠의 읽기와 관리 책임을 보존하는 자발적 lifecycle이다. Group operation 상태가 active이면
+  새 숨김은 시작하지 않고 종료 전에 발생한 group-origin hide의 복구만 허용한다.
 - lifecycle이 `pending_approval`이거나 operation suspended 상태이면 Group admin의 숨김과 복구를 모두 차단한다.
 - 콘텐츠 moderation은 새 Jjaek·Comment 같은 사용자 활동과는 구분하지만 Group 상태를 바꾸는 운영 mutation이다.
   따라서 global admin의 운영 정지가 유지되는 동안에는 작성자 삭제 같은 기존 cleanup 경계만 유지하고,
@@ -361,7 +366,7 @@ interaction 경계를 재사용하되, Group admin에게는 자기 Group 안의 
 
 #### Acceptance criteria
 
-1. 현재 Group admin은 lifecycle이 `active` 또는 `inactive`이고 operation 상태가 active인 자기 Group의 허용된 타인 짹·책짹만 숨길 수 있다.
+1. 현재 Group admin은 lifecycle이 `active`이고 operation 상태가 active인 자기 Group의 허용된 타인 짹·책짹만 새로 숨길 수 있다. `inactive`에서는 새 숨김을 거부하되 기존 group-origin hide의 복구는 허용한다.
 2. 자기 글, personal Jjaek, 다른 Group Jjaek, lifecycle이 `pending_approval`이거나 operation suspended인 Group Jjaek은 direct request에서도 거부한다.
 3. global admin 작성 Group Jjaek의 신규 Group hide는 direct request에서도 거부한다.
    일반 사용자일 때 적법하게 발생한 group hide는 승격 후에도 현재 Group admin이 복구할 수 있으며,
@@ -551,7 +556,8 @@ Comment moderation의 상태·권한·표시·Action page와 기존 Comment CRUD
 - Group moderation 대상은 **부모 Jjaek이 자신이 현재 관리하는 Group에 속한 Comment**다.
   댓글 작성자의 현재 소속 Group으로 판단하지 않는다. 탈퇴한 회원의 기존 댓글도 같은 경계를 따른다.
 - 개인 Jjaek의 Comment, 다른 Group의 Comment, 자기 Comment는 group admin moderation 대상이 아니다.
-  Group lifecycle이 `active` 또는 `inactive`이고 별도의 Group operation 상태가 active여야 한다.
+  Group lifecycle이 `active`이고 별도의 Group operation 상태가 active일 때만 새 hide를 허용한다.
+  `inactive`이고 Group operation 상태가 active이면 종료 전에 발생한 group-origin hide의 restore만 허용한다.
   lifecycle이 `pending_approval`이거나 operation suspended 상태이면 Group admin hide/restore 모두 거부한다.
   읽기·원문 조사·이력 권한은 기존 Group read 경계를 따르며 조치 가능 여부와 별개다.
 - group admin은 현재 global admin인 사용자의 Comment를 새로 숨길 수 없다.
@@ -653,7 +659,7 @@ global admin의 운영 조사는 기존 별도 권한을 사용하되 자기 Com
    운영 목적의 private 부모·private/inactive Group 조사도 유지하되 일반 interaction 권한은 늘리지 않는다.
 2. global admin 자신의 Comment는 self-hide/self-restore를 거부한다. 다른 운영자가 숨긴 자기 댓글에서도
    원문·현재 공개 사유만 확인하고 내부 메모·전체 이력·수정은 차단하며 작성자 삭제는 유지한다. group admin 자신에게도 같은 author-first를 적용한다.
-3. 현재 group admin은 lifecycle이 `active` 또는 `inactive`이고 operation 상태가 active인 자기 Group 부모의 허용된 타인 Comment만 moderation한다.
+3. 현재 group admin은 lifecycle이 `active`이고 operation 상태가 active인 자기 Group 부모의 허용된 타인 Comment만 새로 숨긴다. `inactive`이고 operation 상태가 active이면 기존 group-origin hide의 복구만 허용한다.
    개인·다른 Group·자기 Comment, lifecycle이 `pending_approval`이거나 operation suspended인 Group,
    부모/댓글 ID 바꿔치기는 direct request에서도 거부한다.
 4. group admin의 현재 global admin 작성 Comment 신규 hide는 거부한다. 일반 사용자일 때 적법하게 발생한 group hide는
@@ -736,9 +742,11 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 가역적 moderation은 현재 상태만 저장하지 않는다. 모든 제재와 복구를 append-only history로 보존하고,
 현재 유효한 상태와 과거 전체 audit를 구분한다. 대상 당사자에게는 기본적으로 현재 상태와 공개 사유만 제공한다.
 내부 운영 메모와 과거 전체 audit는 허용된 운영 권한자에게만 제공한다. global admin은 전체 platform moderation
-audit를 조사하고, 현재 Group admin은 자기 Group에 위임된 group-origin moderation history만 조사한다.
-Group 자체의 platform operation suspension 전체 audit는 global admin 전용이며 Group admin과 일반 회원에게는
-현재 운영 정지 상태와 공개 사유만 제공한다. Group 전체 이력 UI도 이 권한 경계를 유지한다.
+audit를 조사하고, 현재 Group admin은 자기 Group 콘텐츠에 위임된 group-origin moderation history만 조사한다.
+Group 자체의 운영 이력은 이 콘텐츠 moderation 이력과 별개다. global admin은 lifecycle event와 Group 대상
+platform operation suspend/restore의 전체 이력·내부 메모를 조사한다. 현재 Group admin은 동아리 관리 화면에서
+lifecycle event와 과거 platform operation suspend/restore의 공개 이력·공개 사유를 보되 platform 내부 메모는 볼 수 없다.
+일반 회원에게는 허용된 현재 운영 정지 상태와 공개 사유만 제공하고 과거 전체 운영 이력은 노출하지 않는다.
 
 정지·숨김 row는 복구 연결을 갖지 않으며 같은 원 조치를 두 번 복구할 수 없다.
 이미 저장된 감사 row는 수정·삭제할 수 없고 대상이 hard delete되더라도 target type/ID와 감사 정보는 보존한다.

@@ -341,8 +341,10 @@ BookshelfEntry와 BookActivity도 profile 전용 scope를 통해 대상 사용�
 이 권한은 full Library 접근이나 Bookshelf·BookshelfEntry mutation 권한을 부여하지 않는다.
 일반 Jjaek scope와 홈 `FeedScope`에는 global admin 우회를 추가하지 않는다.
 운영 조사 권한은 Comment·Like·ReJjaek 등 일반 사용자 상호작용 권한으로 이어지지 않는다.
-group admin은 운영 정지되지 않은 active/inactive 자기 Group의 타인 짹·책짹·Comment만 숨김·복구하고,
-같은 Group authority의 hide는 현재 관리자가 복구할 수 있지만 global admin hide는 복구할 수 없다.
+group admin은 운영 정지되지 않은 active 자기 Group의 타인 짹·책짹·Comment만 새로 숨길 수 있고,
+inactive 자기 Group에서는 새 숨김 없이 기존 group-origin hide의 복구만 허용한다. 같은 Group authority의 hide는
+현재 관리자가 복구할 수 있지만 global admin hide는 복구할 수 없다. pending 또는 operation suspended Group에서는
+새 숨김과 복구를 모두 거부한다.
 현재 global admin 작성 콘텐츠의 신규 Group hide와 자기 콘텐츠의 hide/restore는 direct request에서도 거부한다.
 Comment의 author-first는 부모 Jjaek 작성자가 아니라 Comment 작성자를 기준으로 한다. 작성자가 나중에 global admin으로
 승격되어도 기존의 적법한 group-origin hide는 현재 Group admin이 복구할 수 있으며 작성자 self-restore는 허용하지 않는다.
@@ -363,7 +365,7 @@ group admin은 일반 active 회원의 `GroupMembership`에만 적용되는 **�
 global admin은 active Group을 **동아리 운영 정지 / 동아리 운영 복구**할 수 있다. 이는 회원 제한 및 group admin의 자발적 `inactive` 운영 종료와 별도이며, 읽기와 기존 데이터는 유지하고 새 콘텐츠·membership·회원 moderation·Group lifecycle mutation만 차단한다.
 세 상태는 서로 자동 전파되지 않는다.
 
-Group 자체의 platform operation suspend/restore 전체 audit와 내부 메모는 global admin만 조사한다.
+Group 자체의 platform operation suspend/restore 이력 중 내부 메모 등 비공개 감사 정보는 global admin만 조사한다.
 admin Group 상세는 `GroupLifecycleEvent`와 Group 대상 `ModerationAction` 전체를 실제 event 단위의 시간순 운영 이력으로
 표시한다. Group admin의 동아리 관리 화면도 같은 두 종류의 event와 platform 공개 사유를 표시하지만 내부 메모는 제외하며,
 일반 회원에게는 현재 운영 정지 상태와 공개 사유만 제공한다. 이 경계는 기존 회원 단위의 group-origin moderation 이력

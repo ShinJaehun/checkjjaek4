@@ -239,10 +239,11 @@
 - `invited` 상태는 동아리 및 내부 콘텐츠 접근 권한을 부여하지 않고, 수락 후 `active`가 되면 권한을 얻음
 - 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
 - 동아리 관리자는 회원 관리 화면에서 active 일반 회원을 직접 내보낼 수 있음
-- group admin은 일반 active 회원을 별도 `moderation_status`로 동아리 활동 정지·복구할 수 있음. 회원 관리 화면은 현재 정지 상태·공개 사유와 허용된 action 링크를 보여주고, 사유 입력·실행은 `/groups/:group_id/group_memberships/:group_membership_id/activity_suspensions/new` 또는 `activity_restorations/new`의 독립 page에서 처리함
+- group admin은 운영 정지되지 않은 active 동아리의 일반 active 회원을 별도 `moderation_status`로 새로 활동 정지하거나 기존 정지를 복구할 수 있고, inactive 동아리에서는 기존 활동 정지만 복구할 수 있음. 회원 관리 화면은 현재 정지 상태·공개 사유와 허용된 action 링크를 보여주고, 사유 입력·실행은 `/groups/:group_id/group_memberships/:group_membership_id/activity_suspensions/new` 또는 `activity_restorations/new`의 독립 page에서 처리함
 - 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
 - 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함
 - `GroupMemberBan`은 active membership에 적용하는 현재 Group/User 이용 제한 상태로 membership을 종료하고 재가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음. pending 가입 신청은 승인·거절 심사만 제공함. 회원 관리 화면은 현재 제한 상태·원래 공개 사유와 허용된 action 링크만 표시함. Ban은 삭제 전 `GroupMembership`을 target으로 하는 `/groups/:group_id/group_memberships/:group_membership_id/member_bans/new`에서 `GroupMemberships::MemberBansController`가 처리하고, Unban은 현재 `GroupMemberBan`을 target으로 하는 `/groups/:group_id/group_member_bans/:group_member_ban_id/restorations/new`에서 `GroupMemberBans::RestorationsController`가 처리함. 두 route는 의도적으로 비대칭이며 각 button·GET·POST는 같은 action policy predicate를 사용함
+- 새 이용 제한과 기존 제한 해제는 운영 정지되지 않은 active 동아리에서 허용하고, inactive 동아리에서는 기존 이용 제한의 해제만 허용함
 - global admin의 Group 운영 정지는 `operation_suspended_at`과 Group 대상 `ModerationAction`으로 lifecycle `inactive`와 분리되며, 기존 visibility 읽기와 cleanup은 유지하고 새 콘텐츠·membership·회원 moderation·Group 운영 mutation을 복구 전까지 차단함
 - Group 개설·자발적 종료·재운영은 `GroupLifecycleEvent`에, platform operation 정지·복구는 `ModerationAction`에 별도로 기록하며 두 기록을 하나의 최신순 운영 이력에서 event 단위로 표시함. global admin은 전체 suspend/restore 이력과 내부 메모를 보고, Group admin은 동아리 관리 화면에서 platform 공개 사유를 포함한 이력을 보되 내부 메모는 볼 수 없음. 일반 회원에게는 현재 운영 정지 상태와 공개 사유만 표시함
 - admin Group 상세의 운영 관리 card는 현재 운영 상태와 허용된 운영 정지 또는 복구 action page 링크만 표시하며, 공개 사유와 내부 메모는 운영 이력에 표시함. 복구 action page의 현재 정지 조치도 같은 이력 card를 사용함. 사유 입력과 실행은 `/admin/groups/:group_id/operation_suspensions/new`와 `/admin/groups/:group_id/operation_restorations/new`에서 각각 `Admin::GroupOperationSuspensionsController`, `Admin::GroupOperationRestorationsController`가 기존 정책·서비스로 처리함
@@ -277,7 +278,7 @@
 - platform-origin 숨겨진 Jjaek은 기존 feed/profile/Book/Group read boundary 안의 목록·단건 상세에서 원문 body 대신 시스템 관리자 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기를 유지하되 새 interaction은 차단함. 이를 원문으로 참조하는 ReJjaek row와 관계는 보존하되 일반 조회에서 제외하며, source restore 뒤에는 현재 접근 권한을 다시 적용함
 - group-origin 숨겨진 Jjaek은 기존 Group read 경계 안의 Group 목록·단건 상세에서 원문 body 대신 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기 맥락을 유지하되 새 interaction은 차단함. 작성자는 자기 원문·숨김 주체·공개 사유를 확인하고 자기 삭제만 수행하며, group admin은 자기 Group의 숨겨진 원문·공개 사유를 조사함
 - 대상 Jjaek의 작성자인 global admin에게는 작성자 권한이 우선하여 내부 메모·전체 감사·hide/restore 권한을 제공하지 않고, 작성자가 아닌 global admin은 원문과 전체 hide/restore 감사를 조사함
-- group admin은 운영 정지되지 않은 active/inactive 자기 동아리에서 타인의 짹·책짹을 숨김·복구할 수 있음.
+- group admin은 운영 정지되지 않은 active 자기 동아리에서 타인의 짹·책짹을 새로 숨기거나 기존 group-origin hide를 복구할 수 있음. inactive 자기 동아리에서는 새 숨김 없이 기존 group-origin hide의 복구만 허용함.
   같은 Group authority의 hide는 현재 관리자가 복구하고 global admin hide와 global admin 작성 글은 대상에서 제외함
 - group admin도 hide/restore 시 선택적 내부 메모를 저장함.
   global admin은 platform/group-origin 메모를 모두 열람하고, 현재 group admin은 자기 Group의 group-origin 메모만 관리자 변경과 관계없이 열람하며 작성자·일반 회원과 권한을 잃은 이전 관리자는 열람하지 못함
@@ -286,6 +287,7 @@
 - platform/Group restore Action page의 현재 hide 조치는 상세 운영 이력과 같은 entry 표현을 재사용하며, authority별 internal note 열람 경계를 유지함
 - platform-origin hidden Jjaek의 일반 사용자 placeholder/detail에서도 새 Like·Comment·ReJjaek 등 hidden mutation, internal note/history 노출과 기존 visibility/Group boundary 확대는 허용하지 않음
 - Comment hide/restore는 global admin과 현재 Group admin의 권한 경계, author-first, 조치 시점 `platform`/`group` authority snapshot, Jjaek과 같은 predefined hide reason 및 별도 자유 텍스트 restore reason으로 구현됨
+- group admin의 새 Comment hide는 운영 정지되지 않은 active 자기 동아리에서만 허용하고, inactive에서는 기존 group-origin Comment hide의 복구만 허용함. pending 또는 operation suspended 상태에서는 두 조치 모두 차단함
 - Comment 카드의 콘텐츠 관리 영역은 authority별 policy가 허용한 숨김 또는 복구 Action link만 표시함. platform 입력·실행은 `/admin/jjaeks/:jjaek_id/comments/:comment_id/hides/new`와 `/admin/jjaeks/:jjaek_id/comments/:comment_id/restorations/new`, Group authority 입력·실행은 `/jjaeks/:jjaek_id/comments/:comment_id/group_hides/new`와 `/jjaeks/:jjaek_id/comments/:comment_id/group_restorations/new`의 독립 page에서 기존 policy와 service로 처리하고 댓글 위치 anchor로 복귀함
 - hidden Comment는 부모 Jjaek의 기존 read boundary 안에서 authority placeholder와 현재 공개 사유를 표시하고, 작성자·허용된 운영자에게만 원문을 보여줌. 작성자 hard delete는 유지하며 부모와 Comment의 hidden 상태는 독립됨. deleted parent에서도 원래 Jjaek context의 read boundary 안에서 tombstone과 기존 댓글을 읽되 새 댓글 작성·기존 댓글 수정은 금지하고, Comment 작성자 삭제와 살아 있는 Comment의 hide/restore는 유지함
 - Comment 전체 hide/restore 이력과 internal note는 대상 작성자가 아닌 global admin에게, group-origin 이력·메모는 현재 Group admin에게만 표시함. 일반 사용자·작성자·이전 관리자는 전체 이력과 메모를 볼 수 없음. restore Action page의 현재 hide도 같은 moderation history entry 표현을 재사용함
