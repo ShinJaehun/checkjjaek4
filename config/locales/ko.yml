@@ -681,6 +681,8 @@ ko:
       stale_restoration: "이미 해제되었거나 존재하지 않는 이용 제한입니다."
       access_restricted: "동아리 이용이 제한되었습니다. 사유: %{reason}"
   comments:
+    alerts:
+      stale_action: "이미 처리되었거나 더 이상 존재하지 않는 댓글입니다."
     moderation:
       hide_title: "댓글 숨김"
       hide_description: "댓글 원문을 숨기고 운영 조치 이력을 남깁니다."

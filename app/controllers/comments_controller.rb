@@ -4,7 +4,8 @@ class CommentsController < ApplicationController
   before_action :set_readable_jjaek, except: :destroy
   before_action :set_destroy_jjaek, only: :destroy
   before_action :set_comments_context, only: %i[index create update destroy]
-  before_action :set_comment, only: %i[update destroy]
+  before_action :set_update_comment, only: :update
+  before_action :set_destroy_comment, only: :destroy
 
   def index
     @comments_panel_closed = inline_comments_context? && params[:panel_state] == "closed"
@@ -111,8 +112,19 @@ class CommentsController < ApplicationController
     @jjaek = Jjaek.find(params[:jjaek_id])
   end
 
-  def set_comment
-    @comment = @jjaek.comments.find(params[:id])
+  def set_update_comment
+    @comment = @jjaek.comments.find_by(id: params[:id])
+    return if @comment
+
+    redirect_to jjaek_path(@jjaek), alert: t("comments.alerts.stale_action"), status: :see_other
+  end
+
+  def set_destroy_comment
+    @comment = @jjaek.comments.find_by(id: params[:id])
+    return if @comment
+
+    redirect_path = policy(@jjaek).show? ? jjaek_path(@jjaek) : groups_path
+    redirect_to redirect_path, alert: t("comments.alerts.stale_action"), status: :see_other
   end
 
   def set_comments_context

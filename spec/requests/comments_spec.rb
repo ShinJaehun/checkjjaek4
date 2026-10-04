@@ -362,6 +362,37 @@ RSpec.describe "Comments", type: :request do
     patch jjaek_comment_path(jjaek, comment), params: { comment: { content: "Hijacked" } }
 
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).not_to eq(I18n.t("comments.alerts.stale_action"))
+    expect(comment.reload.content).to eq("My comment")
+  end
+
+  it "redirects a stale update for a deleted personal comment without side effects" do
+    comment_id = comment.id
+    comment.destroy!
+    sign_in user
+    notification_count = Notification.count
+
+    expect {
+      patch jjaek_comment_path(jjaek, comment_id), params: { comment: { content: "Too late" } }
+    }.not_to change(Comment, :count)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.alerts.stale_action"))
+    expect(Notification.count).to eq(notification_count)
+  end
+
+  it "treats a comment ID from another jjaek as a stale update" do
+    other_jjaek = user.jjaeks.create!(content: "Other personal jjaek")
+    sign_in user
+
+    expect {
+      patch jjaek_comment_path(other_jjaek, comment), params: { comment: { content: "Wrong parent" } }
+    }.not_to change(Comment, :count)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(jjaek_path(other_jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.alerts.stale_action"))
     expect(comment.reload.content).to eq("My comment")
   end
 
@@ -377,12 +408,70 @@ RSpec.describe "Comments", type: :request do
     expect(own_comment.reload.content).to eq("Before moderation")
   end
 
+  it "keeps inaccessible group jjaeks hidden before looking up a stale update" do
+    %i[approval_group private_group].each do |group_type|
+      group = Group.create!(lifecycle_status: :active, group_admin: author, name: "#{group_type} update", group_type:)
+      group_jjaek = author.jjaeks.create!(group:, content: "Inaccessible source")
+      deleted_comment = group_jjaek.comments.create!(user: author, content: "Deleted comment")
+      comment_id = deleted_comment.id
+      deleted_comment.destroy!
+      sign_in user
+
+      patch jjaek_comment_path(group_jjaek, comment_id), params: { comment: { content: "Blocked" } }
+
+      expect(response).to have_http_status(:not_found)
+      expect(flash[:alert]).not_to eq(I18n.t("comments.alerts.stale_action"))
+    end
+  end
+
   it "deletes the current user's comment" do
     sign_in user
 
     expect {
       delete jjaek_comment_path(jjaek, comment)
     }.to change(Comment, :count).by(-1)
+  end
+
+  it "redirects a stale destroy for a deleted personal comment without side effects" do
+    comment_id = comment.id
+    comment.destroy!
+    sign_in user
+    notification_count = Notification.count
+
+    expect {
+      delete jjaek_comment_path(jjaek, comment_id)
+    }.not_to change(Comment, :count)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(jjaek_path(jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.alerts.stale_action"))
+    expect(Notification.count).to eq(notification_count)
+  end
+
+  it "treats a comment ID from another jjaek as a stale destroy" do
+    other_jjaek = user.jjaeks.create!(content: "Other personal jjaek")
+    sign_in user
+
+    expect {
+      delete jjaek_comment_path(other_jjaek, comment)
+    }.not_to change(Comment, :count)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(jjaek_path(other_jjaek))
+    expect(flash[:alert]).to eq(I18n.t("comments.alerts.stale_action"))
+    expect(comment.reload.content).to eq("My comment")
+  end
+
+  it "keeps Pundit handling for another user's live comment destroy" do
+    sign_in author
+
+    expect {
+      delete jjaek_comment_path(jjaek, comment)
+    }.not_to change(Comment, :count)
+
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).not_to eq(I18n.t("comments.alerts.stale_action"))
+    expect(comment.reload.content).to eq("My comment")
   end
 
   it "keeps the html fallback redirect when deleting a comment" do
@@ -595,6 +684,25 @@ RSpec.describe "Comments", type: :request do
         delete jjaek_comment_path(group_jjaek, former_comment)
       }.to change(Comment, :count).by(-1)
       expect(response).to redirect_to(groups_path)
+    end
+
+    it "redirects a former member's stale old comment destroy to groups" do
+      group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Deleted old comment", group_type: :private_group)
+      membership = group.group_memberships.create!(user:, status: :active)
+      group_jjaek = author.jjaeks.create!(group:, content: "Private source")
+      own_comment = group_jjaek.comments.create!(user:, content: "Old comment")
+      comment_id = own_comment.id
+      membership.destroy!
+      own_comment.destroy!
+      sign_in user
+
+      expect {
+        delete jjaek_comment_path(group_jjaek, comment_id)
+      }.not_to change(Comment, :count)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("comments.alerts.stale_action"))
     end
 
     it "shows comments but not likes or requotes on a group Jjaek card" do

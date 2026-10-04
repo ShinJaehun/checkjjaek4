@@ -677,6 +677,8 @@ en:
       stale_restoration: "This restriction has already been lifted or does not exist."
       access_restricted: "Your club participation is restricted. Reason: %{reason}"
   comments:
+    alerts:
+      stale_action: "This comment has already been handled or no longer exists."
     moderation:
       hide_title: "Hide comment"
       hide_description: "Hide the comment content and record the moderation action."
