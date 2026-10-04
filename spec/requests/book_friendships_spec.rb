@@ -87,6 +87,74 @@ RSpec.describe "BookFriendships", type: :request do
     expect(BookFriendship.last).to be_accepted
   end
 
+  it "redirects a deleted received request from the profile without side effects" do
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
+    friendship.destroy!
+    sign_in other_user
+    friendship_count = BookFriendship.count
+    notification_count = Notification.count
+
+    patch user_book_friendship_path(user)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(user_path(user))
+    expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.stale_action"))
+    expect(BookFriendship.count).to eq(friendship_count)
+    expect(Notification.count).to eq(notification_count)
+  end
+
+  it "redirects a deleted received request to relationships without side effects" do
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
+    friendship.destroy!
+    sign_in other_user
+    friendship_count = BookFriendship.count
+    notification_count = Notification.count
+
+    patch user_book_friendship_path(user), params: { return_to: "relationships" }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(account_relationships_path)
+    expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.stale_action"))
+    expect(BookFriendship.count).to eq(friendship_count)
+    expect(Notification.count).to eq(notification_count)
+  end
+
+  it "does not accept a reverse pending request through an old received request URL" do
+    old_request = BookFriendship.create!(requester: user, addressee: other_user)
+    old_request.destroy!
+    reverse_request = BookFriendship.create!(requester: other_user, addressee: user)
+    sign_in other_user
+    friendship_count = BookFriendship.count
+    notification_count = Notification.count
+
+    patch user_book_friendship_path(user)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(user_path(user))
+    expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.stale_action"))
+    expect(reverse_request.reload).to be_pending
+    expect(BookFriendship.count).to eq(friendship_count)
+    expect(Notification.count).to eq(notification_count)
+  end
+
+  it "uses Pundit for an already accepted received friendship without updating it" do
+    friendship = BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    updated_at = friendship.updated_at
+    sign_in other_user
+    friendship_count = BookFriendship.count
+    notification_count = Notification.count
+
+    patch user_book_friendship_path(user)
+
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+    expect(flash[:alert]).not_to eq(I18n.t("book_friendships.alerts.stale_action"))
+    expect(friendship.reload).to be_accepted
+    expect(friendship.updated_at).to eq(updated_at)
+    expect(BookFriendship.count).to eq(friendship_count)
+    expect(Notification.count).to eq(notification_count)
+  end
+
   it "notifies the original requester when the addressee accepts the same friendship" do
     sign_in user
     post user_book_friendship_path(other_user)

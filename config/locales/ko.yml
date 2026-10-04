@@ -769,6 +769,7 @@ ko:
     alerts:
       already_exists: "이미 책친구 관계 또는 요청이 있습니다."
       not_found: "책친구 관계를 찾을 수 없습니다."
+      stale_action: "이미 처리되었거나 더 이상 존재하지 않는 책친구 요청입니다."
     notices:
       accepted: "책친구 신청을 수락했습니다."
       cancelled: "책친구 신청을 취소했습니다."

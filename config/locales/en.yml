@@ -765,6 +765,7 @@ en:
     alerts:
       already_exists: "A book friendship or request already exists."
       not_found: "Book friendship was not found."
+      stale_action: "This book friend request has already been handled or no longer exists."
     notices:
       accepted: "Book friendship accepted."
       cancelled: "Book friend request cancelled."

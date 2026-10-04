@@ -6,7 +6,7 @@ class BookFriendshipPolicy < ApplicationPolicy
   end
 
   def accept?
-    user.present? && record.addressee_id == user.id
+    user.present? && record.addressee_id == user.id && record.pending?
   end
 
   def destroy?

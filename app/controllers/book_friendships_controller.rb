@@ -21,7 +21,12 @@ class BookFriendshipsController < ApplicationController
   end
 
   def update
-    friendship = current_user.received_book_friendships.find_by!(requester: @user)
+    friendship = current_user.received_book_friendships.find_by(requester: @user)
+    unless friendship
+      redirect_to redirect_target, alert: t("book_friendships.alerts.stale_action"), status: :see_other
+      return
+    end
+
     authorize friendship, :accept?
 
     friendship.accepted!
