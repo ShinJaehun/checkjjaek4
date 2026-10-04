@@ -21,10 +21,10 @@ module Admin
 
     def prepare_page
       @jjaek = Jjaek.find(params[:jjaek_id])
+      authorize @jjaek, :show?
+
       @comment = @jjaek.comments.find_by(id: params[:comment_id])
       unless @comment
-        raise ActiveRecord::RecordNotFound unless policy(@jjaek).show?
-
         redirect_to jjaek_path(@jjaek), alert: t("comments.moderation.alerts.stale_action")
         return
       end

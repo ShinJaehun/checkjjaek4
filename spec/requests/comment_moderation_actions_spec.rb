@@ -321,7 +321,7 @@ RSpec.describe "Comment moderation actions", type: :request do
     expect(flash[:alert]).not_to eq(I18n.t("comments.moderation.alerts.stale_action"))
   end
 
-  it "does not treat an inaccessible parent Jjaek as a stale comment" do
+  it "does not disclose live or missing Comments through inaccessible parent Action pages" do
     inaccessible_admin = User.create!(
       name: "Inaccessible group admin",
       email: "comment-action-inaccessible-admin@example.com",
@@ -337,17 +337,74 @@ RSpec.describe "Comment moderation actions", type: :request do
       group: inaccessible_group,
       content: "INACCESSIBLE COMMENT ACTION PARENT"
     )
-    inaccessible_comment = inaccessible_jjaek.comments.create!(
+    visible_comment = inaccessible_jjaek.comments.create!(
       user: comment_author,
-      content: "INACCESSIBLE COMMENT ACTION TARGET"
+      content: "INACCESSIBLE VISIBLE COMMENT"
     )
-    inaccessible_comment.destroy!
+    hidden_comment = inaccessible_jjaek.comments.create!(
+      user: comment_author,
+      content: "INACCESSIBLE HIDDEN COMMENT"
+    )
+    create_hide!(hidden_comment, actor: inaccessible_admin, authority: "group")
+    missing_comment_id = Comment.maximum(:id).to_i + 1
 
     sign_in group_admin
+    visible_attributes = visible_comment.reload.attributes
+    hidden_attributes = hidden_comment.reload.attributes
+    comment_count = Comment.count
+    moderation_action_count = ModerationAction.count
+    notification_count = Notification.count
+    allow(Notifications::ModerationNotifier).to receive(:schedule)
 
-    get new_jjaek_comment_group_hide_path(inaccessible_jjaek, inaccessible_comment)
-    expect(response).to have_http_status(:not_found)
-    expect(flash[:alert]).not_to eq(I18n.t("comments.moderation.alerts.stale_action"))
+    paths = [
+      [
+        new_jjaek_comment_group_hide_path(inaccessible_jjaek, visible_comment),
+        jjaek_comment_group_hides_path(inaccessible_jjaek, visible_comment),
+        new_jjaek_comment_group_hide_path(inaccessible_jjaek, missing_comment_id),
+        jjaek_comment_group_hides_path(inaccessible_jjaek, missing_comment_id)
+      ],
+      [
+        new_jjaek_comment_group_restoration_path(inaccessible_jjaek, hidden_comment),
+        jjaek_comment_group_restorations_path(inaccessible_jjaek, hidden_comment),
+        new_jjaek_comment_group_restoration_path(inaccessible_jjaek, missing_comment_id),
+        jjaek_comment_group_restorations_path(inaccessible_jjaek, missing_comment_id)
+      ],
+      [
+        new_admin_jjaek_comment_hide_path(inaccessible_jjaek, visible_comment),
+        admin_jjaek_comment_hides_path(inaccessible_jjaek, visible_comment),
+        new_admin_jjaek_comment_hide_path(inaccessible_jjaek, missing_comment_id),
+        admin_jjaek_comment_hides_path(inaccessible_jjaek, missing_comment_id)
+      ],
+      [
+        new_admin_jjaek_comment_restoration_path(inaccessible_jjaek, hidden_comment),
+        admin_jjaek_comment_restorations_path(inaccessible_jjaek, hidden_comment),
+        new_admin_jjaek_comment_restoration_path(inaccessible_jjaek, missing_comment_id),
+        admin_jjaek_comment_restorations_path(inaccessible_jjaek, missing_comment_id)
+      ]
+    ]
+
+    paths.each do |live_new_path, live_create_path, missing_new_path, missing_create_path|
+      [ live_new_path, missing_new_path ].each do |path|
+        get path
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+        expect(flash[:alert]).not_to eq(I18n.t("comments.moderation.alerts.stale_action"))
+      end
+
+      [ live_create_path, missing_create_path ].each do |path|
+        post path, params: { moderation_action: { public_reason: "other" } }
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+        expect(flash[:alert]).not_to eq(I18n.t("comments.moderation.alerts.stale_action"))
+      end
+    end
+
+    expect(visible_comment.reload.attributes).to eq(visible_attributes)
+    expect(hidden_comment.reload.attributes).to eq(hidden_attributes)
+    expect(Comment.count).to eq(comment_count)
+    expect(ModerationAction.count).to eq(moderation_action_count)
+    expect(Notification.count).to eq(notification_count)
+    expect(Notifications::ModerationNotifier).not_to have_received(:schedule)
   end
 
   it "lets platform authority restore a group-origin hide without changing the hide snapshot" do
