@@ -48,7 +48,12 @@ class LikesController < ApplicationController
   private
 
   def set_jjaek
-    @jjaek = Jjaek.find(params[:jjaek_id])
+    @jjaek = Jjaek.find_by(id: params[:jjaek_id])
+    unless @jjaek
+      redirect_to root_path, alert: t("jjaeks.alerts.not_found_or_inaccessible"), status: :see_other
+      return
+    end
+
     return if action_name == "destroy" && @jjaek.hidden?
 
     authorize @jjaek, :show?

@@ -52,6 +52,27 @@ RSpec.describe "Likes", type: :request do
     }.not_to change(Like, :count)
   end
 
+  it "redirects a stale like for a hard-deleted jjaek without side effects" do
+    remaining_like = jjaek.likes.create!(user: author)
+    stale_jjaek = author.jjaeks.create!(content: "Deleted before like")
+    stale_jjaek_id = stale_jjaek.id
+    stale_jjaek.destroy!
+    sign_in user
+    like_state = Like.order(:id).pluck(:id, :jjaek_id, :user_id, :updated_at)
+    jjaek_state = Jjaek.order(:id).pluck(:id, :content, :updated_at)
+    notification_count = Notification.count
+
+    post jjaek_like_path(stale_jjaek_id), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+    expect(Like.order(:id).pluck(:id, :jjaek_id, :user_id, :updated_at)).to eq(like_state)
+    expect(Jjaek.order(:id).pluck(:id, :content, :updated_at)).to eq(jjaek_state)
+    expect(Notification.count).to eq(notification_count)
+    expect(remaining_like.reload).to be_persisted
+  end
+
   it "lets the user remove their like" do
     sign_in user
     jjaek.likes.create!(user:)
@@ -59,6 +80,29 @@ RSpec.describe "Likes", type: :request do
     expect {
       delete jjaek_like_path(jjaek)
     }.to change(Like, :count).by(-1)
+  end
+
+  it "redirects a stale unlike after the parent and its like were hard-deleted" do
+    remaining_like = jjaek.likes.create!(user: author)
+    stale_jjaek = author.jjaeks.create!(content: "Deleted before unlike")
+    stale_like = stale_jjaek.likes.create!(user: user)
+    stale_jjaek_id = stale_jjaek.id
+    stale_jjaek.destroy!
+    expect(Like.exists?(stale_like.id)).to be(false)
+    sign_in user
+    like_state = Like.order(:id).pluck(:id, :jjaek_id, :user_id, :updated_at)
+    jjaek_state = Jjaek.order(:id).pluck(:id, :content, :updated_at)
+    notification_count = Notification.count
+
+    delete jjaek_like_path(stale_jjaek_id)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+    expect(Like.order(:id).pluck(:id, :jjaek_id, :user_id, :updated_at)).to eq(like_state)
+    expect(Jjaek.order(:id).pluck(:id, :content, :updated_at)).to eq(jjaek_state)
+    expect(Notification.count).to eq(notification_count)
+    expect(remaining_like.reload).to be_persisted
   end
 
   it "lets the user remove their existing like from a tombstoned jjaek" do
@@ -208,6 +252,10 @@ RSpec.describe "Likes", type: :request do
     sign_in user
 
     expect { delete jjaek_like_path(group_jjaek) }.not_to change(Like, :count)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+    expect(flash[:alert]).not_to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+    expect(group_jjaek.reload).to be_persisted
     expect(like.reload).to be_persisted
   end
 
