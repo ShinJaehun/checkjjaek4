@@ -163,7 +163,10 @@ class GroupMembershipsController < ApplicationController
   end
 
   def set_membership
-    @membership = @group.group_memberships.find(params[:id])
+    @membership = @group.group_memberships.find_by(id: params[:id])
+    return if @membership
+
+    redirect_to groups_path, alert: t("group_memberships.alerts.stale_action"), status: :see_other
   end
 
   def set_membership_for_management_action

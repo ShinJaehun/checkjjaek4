@@ -271,6 +271,90 @@ RSpec.describe "Group memberships", type: :request do
     end
   end
 
+  describe "stale membership destroy" do
+    it "redirects a deleted pending request without side effects" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Stale request", group_type: :approval_group)
+      membership = group.group_memberships.create!(user: member, status: :pending)
+      membership_id = membership.id
+      membership.destroy!
+      sign_in member
+
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+      removal_count = GroupMembershipRemoval.count
+      membership_count = GroupMembership.count
+
+      delete group_group_membership_path(group, membership_id)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(GroupMembershipRemoval.count).to eq(removal_count)
+      expect(GroupMembership.count).to eq(membership_count)
+    end
+
+    it "redirects a deleted active membership without side effects" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Stale public membership", group_type: :public_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      membership_id = membership.id
+      membership.destroy!
+      sign_in member
+
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+      removal_count = GroupMembershipRemoval.count
+      membership_count = GroupMembership.count
+
+      delete group_group_membership_path(group, membership_id)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(GroupMembershipRemoval.count).to eq(removal_count)
+      expect(GroupMembership.count).to eq(membership_count)
+    end
+
+    it "treats another group's membership ID as stale without mutating it" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Current public group", group_type: :public_group)
+      other_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Other public group", group_type: :public_group)
+      other_membership = other_group.group_memberships.create!(user: member, status: :active)
+      sign_in member
+
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+      removal_count = GroupMembershipRemoval.count
+      membership_count = GroupMembership.count
+
+      delete group_group_membership_path(group, other_membership)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_action"))
+      expect(other_membership.reload).to be_active
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(GroupMembershipRemoval.count).to eq(removal_count)
+      expect(GroupMembership.count).to eq(membership_count)
+    end
+
+    it "keeps a private group outside the policy scope after membership deletion" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Stale private group", group_type: :private_group)
+      membership = group.group_memberships.create!(user: member, status: :active)
+      membership_id = membership.id
+      membership.destroy!
+      sign_in member
+
+      delete group_group_membership_path(group, membership_id)
+
+      expect(response).to have_http_status(:not_found)
+      expect(flash[:alert]).not_to eq(I18n.t("group_memberships.alerts.stale_action"))
+    end
+  end
+
   it "lets a user cancel their own pending request" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     membership = group.group_memberships.create!(user: member, status: :pending)
