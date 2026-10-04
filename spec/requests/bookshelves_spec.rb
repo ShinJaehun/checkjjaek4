@@ -125,8 +125,28 @@ RSpec.describe "Bookshelves", type: :request do
     patch bookshelf_path(bookshelf), params: { bookshelf: { name: "가로챈 이름", visibility: "private" } }
 
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).not_to eq(I18n.t("bookshelves.alerts.stale_action"))
     expect(bookshelf.reload.name).to eq("남의 책장")
     expect(bookshelf.visibility).to eq("public")
+  end
+
+  it "redirects a stale update without changing remaining bookshelves" do
+    remaining = user.bookshelves.create!(name: "남은 책장", visibility: :public)
+    deleted = user.bookshelves.create!(name: "삭제된 수정 대상", visibility: :private)
+    deleted_id = deleted.id
+    deleted.destroy!
+    bookshelves_before = user.bookshelves.order(:id).pluck(:id, :name, :visibility, :color_key, :position)
+    sign_in user
+
+    expect {
+      patch bookshelf_path(deleted_id), params: { bookshelf: { name: "늦은 수정", visibility: "book_friends" } }
+    }.not_to change { [ Bookshelf.count, BookshelfEntry.count, BookActivity.count ] }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(user_library_path(user))
+    expect(flash[:alert]).to eq(I18n.t("bookshelves.alerts.stale_action"))
+    expect(user.bookshelves.order(:id).pluck(:id, :name, :visibility, :color_key, :position)).to eq(bookshelves_before)
+    expect(remaining.reload.name).to eq("남은 책장")
   end
 
   it "rerenders the library bookshelf section when update validation fails" do
@@ -181,6 +201,21 @@ RSpec.describe "Bookshelves", type: :request do
     expect(flash[:notice]).to include("빈 책장")
   end
 
+  it "redirects a stale destroy without another deletion" do
+    deleted = user.bookshelves.create!(name: "이미 삭제된 빈 책장")
+    deleted_id = deleted.id
+    deleted.destroy!
+    sign_in user
+
+    expect {
+      delete bookshelf_path(deleted_id)
+    }.not_to change { [ Bookshelf.count, BookshelfEntry.count, BookActivity.count ] }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(user_library_path(user))
+    expect(flash[:alert]).to eq(I18n.t("bookshelves.alerts.stale_action"))
+  end
+
   it "renders a destroy confirmation for an empty regular bookshelf" do
     bookshelf = user.bookshelves.create!(name: "삭제 확인 책장", visibility: :private)
     sign_in user
@@ -215,6 +250,7 @@ RSpec.describe "Bookshelves", type: :request do
     }.not_to change(Bookshelf, :count)
 
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).not_to eq(I18n.t("bookshelves.alerts.stale_action"))
     expect(Bookshelf.exists?(bookshelf.id)).to be(true)
   end
 
@@ -271,6 +307,44 @@ RSpec.describe "Bookshelves", type: :request do
     expect(ordered_regular_bookshelves(user)).to eq([ second, first ])
   end
 
+  it "redirects a stale move up without changing the remaining order" do
+    user.bookshelves.create!(name: "첫 일반")
+    deleted = user.bookshelves.create!(name: "삭제된 둘째 일반")
+    user.bookshelves.create!(name: "셋째 일반")
+    deleted_id = deleted.id
+    deleted.destroy!
+    remaining_order = ordered_regular_bookshelves(user).map { |bookshelf| [ bookshelf.id, bookshelf.position ] }
+    sign_in user
+
+    expect {
+      patch move_up_bookshelf_path(deleted_id)
+    }.not_to change { [ Bookshelf.count, BookshelfEntry.count, BookActivity.count ] }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(user_library_path(user))
+    expect(flash[:alert]).to eq(I18n.t("bookshelves.alerts.stale_action"))
+    expect(ordered_regular_bookshelves(user).map { |bookshelf| [ bookshelf.id, bookshelf.position ] }).to eq(remaining_order)
+  end
+
+  it "redirects a stale move down without changing the remaining order" do
+    user.bookshelves.create!(name: "첫 일반")
+    deleted = user.bookshelves.create!(name: "삭제된 둘째 일반")
+    user.bookshelves.create!(name: "셋째 일반")
+    deleted_id = deleted.id
+    deleted.destroy!
+    remaining_order = ordered_regular_bookshelves(user).map { |bookshelf| [ bookshelf.id, bookshelf.position ] }
+    sign_in user
+
+    expect {
+      patch move_down_bookshelf_path(deleted_id)
+    }.not_to change { [ Bookshelf.count, BookshelfEntry.count, BookActivity.count ] }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(user_library_path(user))
+    expect(flash[:alert]).to eq(I18n.t("bookshelves.alerts.stale_action"))
+    expect(ordered_regular_bookshelves(user).map { |bookshelf| [ bookshelf.id, bookshelf.position ] }).to eq(remaining_order)
+  end
+
   it "does not move the default bookshelf" do
     bookshelf = user.default_bookshelf
     sign_in user
@@ -288,6 +362,7 @@ RSpec.describe "Bookshelves", type: :request do
     patch move_up_bookshelf_path(bookshelf)
 
     expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).not_to eq(I18n.t("bookshelves.alerts.stale_action"))
     expect(ordered_regular_bookshelves(other_user)).to eq([ bookshelf ])
   end
 

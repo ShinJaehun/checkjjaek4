@@ -951,6 +951,7 @@ en:
       default_destroy_denied: "The default bookshelf cannot be deleted."
       destroy_failed: "Bookshelf could not be deleted."
       not_empty: "You cannot delete a bookshelf that still has books. Move the books to another shelf first."
+      stale_action: "This bookshelf has already been handled or no longer exists."
     color_keys:
       stone: "Default"
       red: "Red"

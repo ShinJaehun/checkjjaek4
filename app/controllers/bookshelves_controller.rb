@@ -74,7 +74,10 @@ class BookshelvesController < ApplicationController
   private
 
   def set_bookshelf
-    @bookshelf = Bookshelf.find(params[:id])
+    @bookshelf = Bookshelf.find_by(id: params[:id])
+    return if @bookshelf
+
+    redirect_to user_library_path(current_user), alert: t("bookshelves.alerts.stale_action"), status: :see_other
   end
 
   def bookshelf_params
