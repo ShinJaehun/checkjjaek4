@@ -610,6 +610,7 @@ ko:
     alerts:
       removed: "동아리에서 내보내졌습니다."
       stale_action: "이미 처리되었거나 더 이상 존재하지 않는 동아리 회원입니다."
+      stale_invitation: "이미 처리되었거나 더 이상 존재하지 않는 동아리 초대입니다."
       suspend_activity_failed: "동아리 활동을 정지할 수 없습니다."
       restore_activity_failed: "동아리 활동을 복구할 수 없습니다."
     management:

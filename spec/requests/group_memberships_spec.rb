@@ -528,10 +528,93 @@ RSpec.describe "Group memberships", type: :request do
       invitation = group.group_memberships.create!(user: member, status: :invited)
       other = User.create!(name: "Other invitee", email: "other-invitee@example.com", password: "password123!", password_confirmation: "password123!")
       sign_in other
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
 
       patch accept_group_group_membership_path(group, invitation)
-      expect(response).to have_http_status(:not_found)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_invitation"))
       expect(invitation.reload).to be_invited
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+    end
+
+    it "redirects a deleted invitation accept without side effects" do
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      invitation_id = invitation.id
+      invitation.destroy!
+      sign_in member
+      membership_count = GroupMembership.count
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+
+      patch accept_group_group_membership_path(group, invitation_id)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_invitation"))
+      expect(GroupMembership.count).to eq(membership_count)
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+    end
+
+    it "redirects a deleted invitation decline without side effects" do
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      invitation_id = invitation.id
+      invitation.destroy!
+      sign_in member
+      membership_count = GroupMembership.count
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+
+      delete decline_group_group_membership_path(group, invitation_id)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_invitation"))
+      expect(GroupMembership.count).to eq(membership_count)
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+    end
+
+    it "uses Pundit for an already accepted invitation" do
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      invitation.update!(status: :active)
+      updated_at = invitation.updated_at
+      sign_in member
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+
+      patch accept_group_group_membership_path(group, invitation)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+      expect(flash[:alert]).not_to eq(I18n.t("group_memberships.alerts.stale_invitation"))
+      expect(invitation.reload).to be_active
+      expect(invitation.updated_at).to eq(updated_at)
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+    end
+
+    it "uses Pundit for declining an already accepted invitation" do
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      invitation.update!(status: :active)
+      sign_in member
+      membership_count = GroupMembership.count
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+
+      delete decline_group_group_membership_path(group, invitation)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+      expect(flash[:alert]).not_to eq(I18n.t("group_memberships.alerts.stale_invitation"))
+      expect(invitation.reload).to be_active
+      expect(GroupMembership.count).to eq(membership_count)
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
     end
 
     it "does not grant Jjaek access before an invitation is accepted" do
@@ -569,6 +652,9 @@ RSpec.describe "Group memberships", type: :request do
       expect {
         delete decline_group_group_membership_path(group, invitation)
       }.not_to change(GroupMembership, :count)
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_invitation"))
 
       sign_in member
       expect {

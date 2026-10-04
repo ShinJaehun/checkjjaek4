@@ -177,7 +177,10 @@ class GroupMembershipsController < ApplicationController
   end
 
   def set_own_invitation
-    @membership = current_user.group_memberships.invited.find_by!(id: params[:id], group_id: params[:group_id])
+    @membership = current_user.group_memberships.find_by(id: params[:id], group_id: params[:group_id])
+    return if @membership
+
+    redirect_to groups_path, alert: t("group_memberships.alerts.stale_invitation"), status: :see_other
   end
 
   def authorize_group_access
