@@ -27,12 +27,6 @@ RSpec.describe "Relationships", type: :request do
     Nokogiri::HTML.parse(response.body)
   end
 
-  def relationship_nav_link
-    parse_html.css("a").find do |link|
-      link.text.include?(I18n.t("relationships.nav"))
-    end
-  end
-
   it "redirects guests to sign in" do
     get account_relationships_path
 
@@ -66,22 +60,30 @@ RSpec.describe "Relationships", type: :request do
     expect(parse_html.at_css("#relationship-notification-badge")).to be_nil
   end
 
-  it "links the relationships navigation to the relationship hub" do
+  it "keeps account actions out of the navigation and links the current user to their profile" do
     sign_in viewer
 
     get root_path
 
-    expect(relationship_nav_link&.[]("href")).to eq(account_relationships_path)
+    nav = parse_html.at_css("nav")
+    expect(nav.at_css(%(a[href="#{account_relationships_path}"]))).to be_nil
+    expect(nav.at_css(%(a[href="#{account_settings_path}"]))).to be_nil
+    profile_link = nav.at_css(%(a[href="#{user_path(viewer)}"]))
+    expect(profile_link).to be_present
+    expect(profile_link.at_css(%(img[alt="#{viewer.name}"]))).to be_present
+    expect(profile_link.text).to include(viewer.name)
   end
 
-  it "keeps the relationships navigation stable when the current user has no pending received requests" do
+  it "keeps account actions out of the navigation when there are no pending received requests" do
     BookFriendship.where(addressee: viewer, status: :pending).delete_all
     sign_in viewer
 
     get root_path
 
     expect(parse_html.at_css("#relationship-notification-badge")).to be_nil
-    expect(relationship_nav_link&.[]("href")).to eq(account_relationships_path)
+    nav = parse_html.at_css("nav")
+    expect(nav.at_css(%(a[href="#{account_relationships_path}"]))).to be_nil
+    expect(nav.at_css(%(a[href="#{account_settings_path}"]))).to be_nil
   end
 
   it "shows received book-friend requests to the addressee" do

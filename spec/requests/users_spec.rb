@@ -30,6 +30,9 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
+      profile_header = Nokogiri::HTML(response.body).at_css("#profile-header")
+      expect(profile_header.at_css(%(a[href="#{account_relationships_path}"]))).to be_nil
+      expect(profile_header.at_css(%(a[href="#{account_settings_path}"]))).to be_nil
       expect(response.body).to include("user_profile_")
       expect(response.body).to include("_512")
       expect(response.body).to include(%(alt="#{viewer.name}"))
@@ -167,6 +170,9 @@ RSpec.describe "Users", type: :request do
 
       get user_path(viewer)
 
+      profile_header = Nokogiri::HTML(response.body).at_css("#profile-header")
+      expect(profile_header.at_css(%(a[href="#{account_relationships_path}"]))).to be_present
+      expect(profile_header.at_css(%(a[href="#{account_settings_path}"]))).to be_present
       expect(response.body).to include("내 책")
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
       expect(response.body).to include("OWN_PROFILE_SHELF_STICKER")

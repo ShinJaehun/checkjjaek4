@@ -29,8 +29,8 @@ RSpec.describe "Settings", type: :request do
     end
     expect(interaction_form.at_css("input[name='user[name]']")).to be_nil
     expect(page.at_css("#account-management a[href='#{account_withdrawal_path}']")).to be_present
-    expect(page.at_css("nav a[href='#{account_settings_path}']")).to be_present
-    expect(page.at_css("nav a[href='#{account_relationships_path}']")).to be_present
+    expect(page.at_css("nav a[href='#{account_settings_path}']")).to be_nil
+    expect(page.at_css("nav a[href='#{account_relationships_path}']")).to be_nil
     expect(page.at_css("nav a[href='#{user_path(user)}']")).to be_present
     expect(page.at_css("nav a[href='#{account_withdrawal_path}']")).to be_nil
   end
