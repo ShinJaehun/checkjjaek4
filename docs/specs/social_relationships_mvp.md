@@ -135,8 +135,10 @@ soft rejection 원칙:
 
 다만 원칙:
 - “프로필에서 볼 수 있음”과 “홈 피드에 들어옴”은 다르다.
-- 관계 없는 사용자의 `public_jjaek`이 홈 피드에 자동으로 들어오지는 않는다.
-- 홈 피드 편입 기준은 `Follow`, `BookFriendship`, 그리고 명시된 피드 규칙이다.
+- 홈에서 `Follow`는 구독 기준이고, accepted `BookFriendship`은 구독한 사람의 `book_friends` Jjaek과 BookActivity에 대한 추가 접근 기준이다.
+- 관계 없음 또는 책친구만 있는 사용자의 일반 Jjaek·BookActivity는 홈 피드에 자동으로 들어오지 않는다.
+- 소식받기만 하면 상대의 `public_jjaek`이, 소식받기와 accepted 책친구 관계가 모두 있으면 상대의 `public_jjaek`·`book_friends` Jjaek·BookActivity가 들어온다.
+- 현재 사용자를 대상으로 한 non-private profile-context Jjaek은 Follow 여부와 관계없이 홈에 들어온다.
 - 즉, 화면별 읽기 가능 범위와 홈 피드 편입 기준은 구분한다.
 
 현재 유지하는 별도 규칙:

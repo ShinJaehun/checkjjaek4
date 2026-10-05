@@ -358,12 +358,12 @@ ReJjaek은 새 Jjaek이지만,
 초기 MVP의 피드는 아래를 우선 대상으로 한다.
 
 - 소식받는 사람의 전체 공개 Jjaek
-- 책친구의 책친구 공개 Jjaek
+- 소식받는 책친구의 책친구 공개 Jjaek
 
 후속 확장에서는 아래를 추가할 수 있다.
 
 - 소식받는 사람의 전체 공개 책활동
-- 책친구의 책친구 공개 책활동
+- 소식받는 책친구의 책활동
 
 원칙:
 - 피드는 `Post` 단일 테이블 중심으로 설계하지 않는다.
@@ -382,8 +382,8 @@ ReJjaek은 새 Jjaek이지만,
 - 초기 홈에는 아래만 우선 포함한다.
   - 내가 남긴 짹
   - 소식받는 사람의 전체 공개 짹
-  - 책친구의 책친구 공개 짹
-  - 사람 문맥에서 남긴 visible `profile-context Jjaek`
+  - 소식받는 책친구의 책친구 공개 짹
+  - 현재 사용자를 대상으로 한 visible `profile-context Jjaek`
   - 일반 `짹` 입력창
   - 책 검색 진입
   - 내 서재 보기 진입
@@ -508,7 +508,8 @@ ReJjaek은 새 Jjaek이지만,
 - 현재 홈 피드는 Jjaek과 BookActivity를 함께 보여준다.
 - 현재 `BookActivity`는 `BookshelfEntry` 생성/변경/스티커 변경을
   본문 글과 분리된 이벤트로 기록하고, 홈 피드와 프로필의 최근 활동 타임라인에 노출한다.
-- 홈 피드의 BookActivity 노출 범위는 현재 사용자와 accepted book_friend로 제한한다.
+- 홈 피드의 BookActivity 노출 범위는 현재 사용자와 소식받는 accepted book_friend로 제한한다.
+- 책친구 관계만으로는 상대의 Jjaek과 BookActivity가 홈에 자동 편입되지 않는다.
 - follow-only / stranger의 BookActivity는 여러 책장/공개 범위가 정리되기 전까지 홈 피드에 노출하지 않는다.
 - `BookActivity`는 `BookshelfEntry`, `BookshelfEntrySticker`, `Jjaek`의
   source of truth를 대체하지 않는다.

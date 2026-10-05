@@ -223,9 +223,9 @@ Library 안에서 볼 수 있는 책장:
 
 - 홈 피드는 일반 조회 scope와 별도 규칙으로 계산된다
 - 내 Jjaek
-- 현재 사용자를 대상으로 한 profile-context Jjaek
+- 현재 사용자를 대상으로 한 non-private profile-context Jjaek
 - 소식받는 사용자의 공개 Jjaek
-- 책친구 공개 Jjaek
+- 소식받는 accepted 책친구의 책친구 공개 Jjaek
 - 동아리 Jjaek은 현재 FeedScope에서 제외한다
 
 이 scope는 프로필 조회 권한과 분리해서 읽어야 한다.

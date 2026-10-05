@@ -229,7 +229,8 @@ Jjaek과 함께 합성한다.
 현재 구현:
 
 - 내 BookActivity
-- accepted book_friend의 BookActivity
+- 소식받는 accepted book_friend의 BookActivity
+- 책친구만인 사용자의 BookActivity는 노출하지 않는다.
 - follow-only 사용자의 BookActivity는 노출하지 않는다.
 - stranger의 BookActivity는 노출하지 않는다.
 
@@ -493,7 +494,7 @@ metadata 후보:
 - accepted book_friend의 BookActivity를 볼 수 있다.
 - 관계 없는 사용자와 follow-only 사용자는 BookActivity를 볼 수 없다.
 - 관계 없는 사용자의 비공개/책친구 범위 BookActivity는 볼 수 없다.
-- home feed용 scope와 profile용 scope를 혼동하지 않는다.
+- home feed용 `FeedScope`는 소식받는 accepted 책친구만 포함하고, profile용 scope는 기존 accepted 책친구 접근을 유지한다.
 
 ### Request spec
 
@@ -532,7 +533,8 @@ metadata 후보:
 
 ### Step 4. home feed 합성 `완료`
 
-- 현재 사용자와 accepted book_friend의 BookActivity를 Jjaek과 함께 표시
+- 현재 사용자와 소식받는 accepted book_friend의 BookActivity를 Jjaek과 함께 표시
+- 책친구만인 사용자의 BookActivity는 홈에 자동 편입하지 않음
 - follow-only / stranger의 BookActivity는 표시하지 않음
 - Jjaek과 BookActivity를 `created_at` 기준으로 함께 정렬
 

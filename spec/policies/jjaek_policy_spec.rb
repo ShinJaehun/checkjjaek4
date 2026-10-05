@@ -589,8 +589,9 @@ RSpec.describe JjaekPolicy do
       expect(resolved).not_to include(unfollowed_public_jjaek)
     end
 
-    it "includes book-friends jjaeks from accepted book friends in the home feed" do
+    it "includes book-friends jjaeks from followed accepted book friends in the home feed" do
       BookFriendship.create!(requester: viewer, addressee: book_friend_author, status: :accepted)
+      viewer.active_follows.create!(followee: book_friend_author)
       book_friend_jjaek = book_friend_author.jjaeks.create!(
         content: "BOOK_FRIENDS_FEED_JJAEK",
         visibility: :book_friends
@@ -599,6 +600,28 @@ RSpec.describe JjaekPolicy do
       resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
 
       expect(resolved).to include(book_friend_jjaek)
+    end
+
+    it "does not include public or book-friends jjaeks from an unfollowed book friend" do
+      BookFriendship.create!(requester: viewer, addressee: book_friend_author, status: :accepted)
+      public_jjaek = book_friend_author.jjaeks.create!(content: "UNFOLLOWED_FRIEND_PUBLIC", visibility: :public_jjaek)
+      friends_jjaek = book_friend_author.jjaeks.create!(content: "UNFOLLOWED_FRIEND_ONLY", visibility: :book_friends)
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).not_to include(public_jjaek, friends_jjaek)
+      expect(JjaekPolicy::ProfileScope.new(viewer, book_friend_author.jjaeks).resolve).to include(public_jjaek, friends_jjaek)
+    end
+
+    it "includes only public jjaeks from a follow-only user" do
+      viewer.active_follows.create!(followee: followed_author)
+      public_jjaek = followed_author.jjaeks.create!(content: "FOLLOW_ONLY_PUBLIC", visibility: :public_jjaek)
+      friends_jjaek = followed_author.jjaeks.create!(content: "FOLLOW_ONLY_FRIENDS", visibility: :book_friends)
+
+      resolved = JjaekPolicy::FeedScope.new(viewer, Jjaek.all).resolve
+
+      expect(resolved).to include(public_jjaek)
+      expect(resolved).not_to include(friends_jjaek)
     end
 
     it "does not include book-friends jjaeks from unrelated users in the home feed" do

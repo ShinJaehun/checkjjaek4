@@ -272,13 +272,13 @@ class JjaekPolicy < ApplicationPolicy
 
     def feed_records(visible_scope)
       followee_ids = user.followee_ids
-      friend_ids = BookFriendship.connected_ids_for(user)
+      followed_friend_ids = followee_ids & BookFriendship.connected_ids_for(user)
 
       personal_records = visible_scope
         .where(group_id: nil, user_id: user.id)
         .or(visible_scope.where(group_id: nil, target_user_id: user.id).where.not(visibility: Jjaek.visibilities[:private_jjaek]))
         .or(visible_scope.where(group_id: nil, user_id: followee_ids, visibility: Jjaek.visibilities[:public_jjaek]))
-        .or(visible_scope.where(group_id: nil, user_id: friend_ids, visibility: Jjaek.visibilities[:book_friends]))
+        .or(visible_scope.where(group_id: nil, user_id: followed_friend_ids, visibility: Jjaek.visibilities[:book_friends]))
 
       personal_records
     end

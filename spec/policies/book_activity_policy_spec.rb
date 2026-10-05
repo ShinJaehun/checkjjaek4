@@ -11,6 +11,7 @@ RSpec.describe BookActivityPolicy do
 
     expect(described_class.new(viewer, own_activity).show?).to be(true)
     expect(Pundit.policy_scope!(viewer, BookActivity)).to include(own_activity)
+    expect(described_class::FeedScope.new(viewer, BookActivity.all).resolve).to include(own_activity)
   end
 
   it "allows an accepted book friend to see book activity" do
@@ -18,11 +19,21 @@ RSpec.describe BookActivityPolicy do
 
     expect(described_class.new(viewer, activity).show?).to be(true)
     expect(Pundit.policy_scope!(viewer, BookActivity)).to include(activity)
+    expect(described_class::ProfileScope.new(viewer, profile_user.book_activities).resolve).to include(activity)
+    expect(described_class::FeedScope.new(viewer, BookActivity.all).resolve).not_to include(activity)
+  end
+
+  it "includes an accepted book friend's activity in the feed when followed" do
+    BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+    viewer.active_follows.create!(followee: profile_user)
+
+    expect(described_class::FeedScope.new(viewer, BookActivity.all).resolve).to include(activity)
   end
 
   it "does not allow a stranger to see book activity" do
     expect(described_class.new(viewer, activity).show?).to be(false)
     expect(Pundit.policy_scope!(viewer, BookActivity)).not_to include(activity)
+    expect(described_class::FeedScope.new(viewer, BookActivity.all).resolve).not_to include(activity)
   end
 
   it "does not allow a follow-only user to see book activity" do
@@ -30,6 +41,7 @@ RSpec.describe BookActivityPolicy do
 
     expect(described_class.new(viewer, activity).show?).to be(false)
     expect(Pundit.policy_scope!(viewer, BookActivity)).not_to include(activity)
+    expect(described_class::FeedScope.new(viewer, BookActivity.all).resolve).not_to include(activity)
   end
 
   it "includes the investigated user's activity in profile scope for a global admin" do
@@ -37,6 +49,7 @@ RSpec.describe BookActivityPolicy do
 
     expect(described_class::ProfileScope.new(global_admin, profile_user.book_activities).resolve).to include(activity)
     expect(described_class::Scope.new(global_admin, BookActivity.all).resolve).not_to include(activity)
+    expect(described_class::FeedScope.new(global_admin, BookActivity.all).resolve).not_to include(activity)
   end
 
   it "keeps a stranger's profile activity hidden from an unrelated user" do

@@ -14,6 +14,15 @@ class BookActivityPolicy < ApplicationPolicy
     end
   end
 
+  class FeedScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      followed_friend_ids = user.followee_ids & BookFriendship.connected_ids_for(user)
+      scope.where(user_id: [ user.id, *followed_friend_ids ])
+    end
+  end
+
   class ProfileScope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?

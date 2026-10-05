@@ -45,33 +45,60 @@ RSpec.describe "Homes", type: :request do
       expect(response.body).to include(CGI.escapeHTML(user_library_path(viewer)))
     end
 
-    it "shows an accepted book friend's BookActivity in the home feed" do
+    it "keeps an unfollowed book friend's Jjaeks and BookActivity off the home feed while preserving profile access" do
       BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
+      book_friend.jjaeks.create!(content: "FRIEND_ONLY_PUBLIC_JJAEK", visibility: :public_jjaek)
+      book_friend.jjaeks.create!(book: friend_book, content: "FRIEND_ONLY_BOOK_JJAEK", visibility: :book_friends)
       BookActivity.create!(user: book_friend, book: friend_book, action: :added_to_shelf)
       sign_in viewer
 
       get root_path
 
+      expect(response.body).not_to include("FRIEND_ONLY_PUBLIC_JJAEK", "FRIEND_ONLY_BOOK_JJAEK")
+      expect(page_text).not_to include("Book Friend님이 『책친구 활동 책』를 서재에 담았습니다.")
+
+      get user_path(book_friend)
+
+      expect(response.body).to include("FRIEND_ONLY_PUBLIC_JJAEK", "FRIEND_ONLY_BOOK_JJAEK")
       expect(page_text).to include("Book Friend님이 『책친구 활동 책』를 서재에 담았습니다.")
     end
 
-    it "does not show a follow-only user's BookActivity in the home feed" do
+    it "shows only public Jjaeks from a follow-only user in the home feed" do
       viewer.active_follows.create!(followee:)
+      followee.jjaeks.create!(content: "FOLLOW_ONLY_PUBLIC_JJAEK", visibility: :public_jjaek)
+      followee.jjaeks.create!(book: followee_book, content: "FOLLOW_ONLY_BOOK_FRIENDS_JJAEK", visibility: :book_friends)
       BookActivity.create!(user: followee, book: followee_book, action: :added_to_shelf)
       sign_in viewer
 
       get root_path
 
-      expect(response.body).not_to include("소식받기 활동 책")
+      expect(response.body).to include("FOLLOW_ONLY_PUBLIC_JJAEK")
+      expect(response.body).not_to include("FOLLOW_ONLY_BOOK_FRIENDS_JJAEK", "소식받기 활동 책")
     end
 
-    it "does not show a stranger's BookActivity in the home feed" do
+    it "shows public and book-friends Jjaeks and BookActivity from a followed book friend" do
+      viewer.active_follows.create!(followee: book_friend)
+      BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
+      book_friend.jjaeks.create!(content: "FOLLOWED_FRIEND_PUBLIC_JJAEK", visibility: :public_jjaek)
+      book_friend.jjaeks.create!(book: friend_book, content: "FOLLOWED_FRIEND_BOOK_JJAEK", visibility: :book_friends)
+      BookActivity.create!(user: book_friend, book: friend_book, action: :added_to_shelf)
+      sign_in viewer
+
+      get root_path
+
+      expect(response.body).to include("FOLLOWED_FRIEND_PUBLIC_JJAEK", "FOLLOWED_FRIEND_BOOK_JJAEK")
+      expect(page_text).to include("Book Friend님이 『책친구 활동 책』를 서재에 담았습니다.")
+    end
+
+    it "does not show a stranger's Jjaeks or BookActivity in the home feed" do
+      stranger.jjaeks.create!(content: "STRANGER_PUBLIC_JJAEK", visibility: :public_jjaek)
+      stranger.jjaeks.create!(book: stranger_book, content: "STRANGER_BOOK_FRIENDS_JJAEK", visibility: :book_friends)
       BookActivity.create!(user: stranger, book: stranger_book, action: :added_to_shelf)
       sign_in viewer
 
       get root_path
 
-      expect(response.body).not_to include("낯선 활동 책")
+      expect(response.body).not_to include("STRANGER_PUBLIC_JJAEK", "STRANGER_BOOK_FRIENDS_JJAEK", "낯선 활동 책")
     end
 
     it "still shows existing Jjaeks in the home feed" do

@@ -755,8 +755,9 @@ RSpec.describe "Users", type: :request do
       expect(activity_index).to be < older_index
     end
 
-    it "shows an accepted book friend's BookActivity in the home feed" do
+    it "shows a followed accepted book friend's BookActivity in the home feed" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      viewer.active_follows.create!(followee: profile_user)
       BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
       sign_in viewer
 
