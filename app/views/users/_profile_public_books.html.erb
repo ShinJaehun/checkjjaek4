@@ -1,20 +1,46 @@
 <% bookshelf_entries = Array(local_assigns[:bookshelf_entries]) %>
 <% show_status = local_assigns.fetch(:show_status, false) %>
+<% book_pages = bookshelf_entries.each_slice(4).to_a %>
 
-<section class="space-y-4">
+<section class="space-y-4" data-profile-books-summary>
   <div>
     <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.public_books_title") %></h2>
   </div>
 
   <% if bookshelf_entries.any? %>
-    <div class="grid gap-3 sm:grid-cols-2">
-      <% bookshelf_entries.each do |bookshelf_entry| %>
-        <%= render "bookshelf_entries/profile_bookshelf_entry",
-                   bookshelf_entry:,
-                   show_status: show_status,
-                   show_move_control: false,
-                   move_target_bookshelves: [],
-                   return_to: "profile" %>
+    <div data-controller="profile-books-carousel">
+      <div class="space-y-3">
+        <% book_pages.each_with_index do |book_page, page_index| %>
+          <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2"
+               data-profile-books-carousel-target="page"
+               style="<%= "display: none;" unless page_index.zero? %>">        
+            <% book_page.each do |bookshelf_entry| %>
+              <%= render "bookshelf_entries/profile_bookshelf_entry",
+                         bookshelf_entry:,
+                         show_status: show_status,
+                         profile_summary: true,
+                         show_move_control: false,
+                         move_target_bookshelves: [],
+                         return_to: "profile" %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <% if book_pages.size > 1 %>
+        <div class="mt-4 flex items-center justify-center gap-4" role="group" aria-label="<%= t("users.profile.books_carousel.label") %>">
+          <button type="button" class="rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-40"
+                  data-profile-books-carousel-target="previous" data-action="click->profile-books-carousel#previous">
+            <%= t("users.profile.books_carousel.previous") %>
+          </button>
+          <span class="min-w-12 text-center text-sm text-stone-600" aria-live="polite" data-profile-books-carousel-target="position">
+            <%= t("users.profile.books_carousel.position", current: 1, total: book_pages.size) %>
+          </span>
+          <button type="button" class="rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-40"
+                  data-profile-books-carousel-target="next" data-action="click->profile-books-carousel#next">
+            <%= t("users.profile.books_carousel.next") %>
+          </button>
+        </div>
       <% end %>
     </div>
   <% else %>

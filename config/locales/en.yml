@@ -1163,12 +1163,18 @@ en:
       bookshelf_scroll:
         next: "Next bookshelf"
         previous: "Previous bookshelf"
+      books_carousel:
+        label: "Book list pages"
+        previous: "Previous"
+        next: "Next"
+        position: "%{current} / %{total}"
       bookshelf_tabs: "Bookshelves"
       bookshelf_title: "Bookshelf"
       empty_activity: "No recent activity yet."
       empty_bookshelf: "No visible books yet."
       empty_public_books: "No books to display yet."
       new_jjaek_title: "Jjaek"
+      no_reading_status: "No status"
       public_books_title: "Book list"
       stats: "%{followers} followers · %{following} following"
       view_library: "View library"

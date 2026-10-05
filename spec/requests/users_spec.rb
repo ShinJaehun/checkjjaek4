@@ -188,6 +188,72 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include('name="jjaek[target_user_id]"')
     end
 
+    it "shows up to four profile books without carousel controls" do
+      books = 4.times.map do |index|
+        Book.create!(title: "PROFILE_SUMMARY_BOOK_#{index}", authors_text: "Author")
+      end
+      books.each { |book| viewer.bookshelf_entries.create!(book:) }
+      sign_in viewer
+
+      get user_path(viewer)
+
+      page = Nokogiri::HTML(response.body)
+      summary = page.at_css("[data-profile-books-summary]")
+      expect(summary.css("[data-profile-books-carousel-target='page']").size).to eq(1)
+      expect(summary.css("[data-bookshelf-entry-id]").size).to eq(4)
+      expect(summary.at_css("[data-profile-books-carousel-target='previous']")).to be_nil
+      expect(summary.at_css("[data-profile-books-carousel-target='next']")).to be_nil
+      expect(summary.text).to include(I18n.t("users.profile.no_reading_status"))
+      books.each do |book|
+        expect(summary.at_css(%(a[href="#{book_path(book)}"]))).to be_present
+      end
+      expect(page.at_css(%(a[href="#{user_library_path(viewer)}"]))).to be_present
+    end
+
+    it "groups more than four profile books into carousel pages" do
+      5.times do |index|
+        viewer.bookshelf_entries.create!(book: Book.create!(title: "CAROUSEL_BOOK_#{index}", authors_text: "Author"))
+      end
+      sign_in viewer
+
+      get user_path(viewer)
+
+      summary = Nokogiri::HTML(response.body).at_css("[data-profile-books-summary]")
+      pages = summary.css("[data-profile-books-carousel-target='page']")
+      expect(pages.map { |page| page.css("[data-bookshelf-entry-id]").size }).to eq([ 4, 1 ])
+      expect(summary.at_css("[data-profile-books-carousel-target='previous']")).to be_present
+      expect(summary.at_css("[data-profile-books-carousel-target='next']")).to be_present
+      expect(summary.at_css("[data-profile-books-carousel-target='position']").text).to include("1 / 2")
+    end
+
+    it "summarizes extra profile stickers in a keyboard-accessible details control" do
+      book = Book.create!(title: "STICKER_OVERFLOW_BOOK", authors_text: "Author")
+      entry = viewer.bookshelf_entries.create!(book:, status: :reading)
+      stickers = 7.times.map do |index|
+        StickerDefinition.create!(key: "profile_overflow_#{index}", name: "OVERFLOW_STICKER_#{index}")
+      end
+      entry.sticker_definitions << stickers
+      sign_in viewer
+
+      get user_path(viewer)
+
+      card = Nokogiri::HTML(response.body).at_css("[data-profile-books-summary] [data-bookshelf-entry-id='#{entry.id}']")
+      expect(card.text).to include(
+        I18n.t("bookshelf_entries.statuses.reading"),
+        stickers[0].name,
+        stickers[1].name,
+        stickers[2].name,
+        stickers[3].name,
+        stickers[4].name
+      )
+      expect(card.at_css("details summary").text.strip).to eq("+2")
+      expect(card.at_css("details").text).to include(
+        stickers[5].name,
+        stickers[6].name
+      )
+      expect(card.at_css(%(a[href="#{book_path(book)}"]))).to be_present
+    end
+
     it "shows an empty public books message to unrelated users without library controls" do
       profile_user.bookshelf_entries.destroy_all
       sign_in viewer

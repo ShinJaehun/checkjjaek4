@@ -99,6 +99,7 @@
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
 - stranger / follow-only는 프로필에서 `public` 책 목록을 flat summary 형태로 볼 수 있다
 - self / accepted book_friend는 프로필에서 접근 가능한 책 목록 요약을 볼 수 있다
+- 프로필 책 목록 요약은 현재 조회 순서를 유지한 채 4권씩 2열·2행 carousel page로 표시하고, 추가 스티커는 펼칠 수 있는 `+N`으로 묶는다. 전체 서재 화면의 책장·정렬·관리 흐름은 그대로 둔다
 - 프로필에서는 누구에게도 책장 탭, 책장 정렬 UI, 책장 관리 UI, 책 이동 UI를 보여주지 않는다
 - stranger / follow-only는 Library 링크를 볼 수 없다
 - self / accepted book_friend는 프로필에서 Library 링크를 볼 수 있다
