@@ -13,27 +13,11 @@
                          placeholder: t("admin.filters.search"),
                          class: "min-w-0 rounded-xl border border-stone-200 px-3 py-2 lg:flex-1" %>
       <%= f.select :status,
-                   options_for_select(
-                     [
-                       [t("admin.filters.all"), ""],
-                       [t("admin.users.statuses.active"), "active"],
-                       [t("admin.users.statuses.suspended"), "suspended"],
-                       [t("admin.users.statuses.withdrawn"), "withdrawn"]
-                     ],
-                     params[:status]
-                   ),
+                   options_for_select([[t("admin.filters.all"), ""]] + admin_user_status_filter_options, params[:status]),
                    {},
                    class: "rounded-xl border border-stone-200 px-3 py-2" %>
       <%= f.select :role,
-                   options_for_select(
-                     [
-                       [t("admin.filters.all"), ""],
-                       [t("admin.users.roles.global_admin"), "global_admin"],
-                       [t("admin.users.roles.group_admin"), "group_admin"],
-                       [t("admin.users.roles.regular"), "regular"]
-                     ],
-                     params[:role]
-                   ),
+                   options_for_select([[t("admin.filters.all"), ""]] + admin_user_role_filter_options, params[:role]),
                    {},
                    class: "rounded-xl border border-stone-200 px-3 py-2",
                    aria: { label: t("admin.users.fields.role") } %>
@@ -83,20 +67,14 @@
               </div>
             </td>
             <td class="px-4 py-3.5 whitespace-nowrap">
-              <span class="rounded-full px-2 py-1 text-xs <%= user.withdrawn? ? 'bg-stone-200 text-stone-700' : 'bg-stone-100' %>">
-                <%= t("admin.users.statuses.#{account_status}") %>
+              <span class="rounded-full px-2 py-1 text-xs <%= admin_user_status_badge_classes(account_status) %>" data-field="account-status">
+                <%= admin_user_status_label(account_status) %>
               </span>
             </td>
             <td class="px-4 py-3.5">
               <div class="flex flex-wrap gap-1">
-                <% if user.global_admin? %>
-                  <span class="rounded-full bg-amber-100 px-2 py-1 text-xs"><%= t("admin.users.roles.global_admin") %></span>
-                <% end %>
-                <% if user.administered_groups_count.to_i.positive? %>
-                  <span class="rounded-full bg-sky-100 px-2 py-1 text-xs"><%= t("admin.users.roles.group_admin") %></span>
-                <% end %>
-                <% unless user.global_admin? || user.administered_groups_count.to_i.positive? %>
-                  <span class="rounded-full bg-stone-100 px-2 py-1 text-xs"><%= t("admin.users.roles.regular") %></span>
+                <% admin_user_role_keys(user, has_administered_groups: user.administered_groups_count.to_i.positive?).each do |role| %>
+                  <span class="rounded-full px-2 py-1 text-xs <%= admin_user_role_badge_classes(role) %>" data-role="<%= role.tr("_", "-") %>"><%= admin_user_role_label(role) %></span>
                 <% end %>
               </div>
             </td>
@@ -104,7 +82,7 @@
               <% if latest_activity %>
                 <% activity_path = latest_activity.comment? ? jjaek_path(latest_activity.record.jjaek, anchor: dom_id(latest_activity.record)) : jjaek_path(latest_activity.record) %>
                 <%= link_to activity_path, class: "inline-flex items-center gap-2 whitespace-nowrap underline-offset-2 hover:underline" do %>
-                  <span class="rounded-full bg-stone-100 px-2 py-1 text-xs text-stone-700"><%= t("admin.user_content.kinds.#{latest_activity.kind}") %></span>
+                  <span class="rounded-full px-2 py-1 text-xs <%= admin_content_kind_badge_classes(latest_activity.kind) %>" data-activity-kind="<%= latest_activity.kind %>"><%= admin_content_kind_label(latest_activity.kind) %></span>
                   <span class="text-sm text-stone-500"><%= l(latest_activity.created_at, format: :short) %></span>
                 <% end %>
               <% else %>

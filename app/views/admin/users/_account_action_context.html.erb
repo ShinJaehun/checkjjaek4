@@ -2,18 +2,12 @@
   <p class="font-semibold"><%= user.name %></p>
   <p class="mt-2" data-field="email"><%= t("admin.users.fields.email") %>: <%= user.email %></p>
   <p class="mt-2" data-field="account-status">
-    <%= t("admin.users.fields.status") %>: <%= t("admin.users.statuses.#{user.moderation_status}") %>
+    <%= t("admin.users.fields.status") %>: <%= admin_user_status_label(user.moderation_status) %>
   </p>
   <div class="mt-2 flex flex-wrap items-center gap-2" data-field="role">
     <span><%= t("admin.users.fields.role") %>:</span>
-    <% if user.global_admin? %>
-      <span><%= t("admin.users.roles.global_admin") %></span>
-    <% end %>
-    <% if has_administered_groups %>
-      <span><%= t("admin.users.roles.group_admin") %></span>
-    <% end %>
-    <% unless user.global_admin? || has_administered_groups %>
-      <span><%= t("admin.users.roles.regular") %></span>
+    <% admin_user_role_keys(user, has_administered_groups:).each do |role| %>
+      <span><%= admin_user_role_label(role) %></span>
     <% end %>
   </div>
 </div>

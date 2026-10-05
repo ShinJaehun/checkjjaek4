@@ -74,9 +74,9 @@
                    options_for_select(
                      [
                        [t("admin.user_content.filters.all"), ""],
-                       [t("admin.user_content.statuses.active"), "active"],
-                       [t("admin.user_content.statuses.hidden"), "hidden"],
-                       [t("admin.user_content.statuses.deleted"), "deleted"]
+                       [admin_content_status_label(:active), "active"],
+                       [admin_content_status_label(:hidden), "hidden"],
+                       [admin_content_status_label(:deleted), "deleted"]
                      ],
                      params[:content_status]
                    ),

@@ -17,7 +17,7 @@ en:
       completed: "Your account has been withdrawn."
     errors:
       invalid_password: "The current password is incorrect."
-      global_admin: "A global admin account cannot be withdrawn here."
+      global_admin: "A system admin account cannot be withdrawn here."
       active_group_admin: "Transfer admin rights or close these clubs first: %{groups}"
       pending_group_content: "Withdrawal is blocked because a pending club contains unexpected content."
       suspended: "A suspended account cannot be withdrawn."
@@ -400,7 +400,7 @@ en:
         suspended: "Suspended"
         withdrawn: "Withdrawn by user"
       roles:
-        global_admin: "Global admin"
+        global_admin: "System admin"
         group_admin: "Club admin"
         regular: "Regular user"
       sections:

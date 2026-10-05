@@ -17,6 +17,7 @@
           <% record = item.record %>
           <% source_jjaek = item.kind == "comments" ? record.jjaek : record.quoted_jjaek %>
           <% group = item.kind == "comments" ? record.jjaek.group : record.group %>
+          <% kind_key = admin_content_kind_key(item.kind, context: group.present? ? :group : nil) %>
           <%
             body = if item.record_type == "Jjaek" && record.deleted?
               "-"
@@ -28,8 +29,8 @@
               class="border-b border-stone-100 align-middle hover:bg-stone-50/60 last:border-b-0"
               data-content-kind="<%= item.kind %>">
             <td class="px-4 py-3.5 align-middle whitespace-nowrap">
-              <span class="whitespace-nowrap rounded-full bg-stone-100 px-2 py-1 text-xs text-stone-700">
-                <%= t("admin.user_content.kinds.#{item.kind}") %>
+              <span class="whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium <%= admin_content_kind_badge_classes(kind_key) %>" data-activity-kind="<%= item.kind %>">
+                <%= admin_content_kind_label(kind_key) %>
               </span>
             </td>
             <td class="px-4 py-3.5 align-middle" data-field="location">
@@ -76,12 +77,12 @@
             </td>
             <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
               <% if item.record_type == "Jjaek" && record.deleted? %>
-                <span class="rounded-full bg-stone-200 px-2 py-1 text-xs text-stone-700">
-                  <%= t("admin.user_content.statuses.deleted") %>
+                <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:deleted) %>">
+                  <%= admin_content_status_label(:deleted) %>
                 </span>
               <% elsif record.hidden? %>
-                <span class="rounded-full bg-red-100 px-2 py-1 text-xs text-red-800">
-                  <%= t("admin.user_content.statuses.hidden") %>
+                <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:hidden) %>">
+                  <%= admin_content_status_label(:hidden) %>
                 </span>
               <% else %>
                 -

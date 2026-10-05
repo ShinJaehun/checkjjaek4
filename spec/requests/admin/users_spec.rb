@@ -102,6 +102,8 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(identity.at_css("[data-field='suspended-at']")).to be_nil
     expect(identity.at_css("[data-field='withdrawn-at']")).to be_nil
     expect(identity.at_css("[data-role='group-admin']")).to be_present
+    expect(identity.at_css("[data-role='group-admin']")["class"]).to include("bg-sky-100")
+    expect(identity.at_css("[data-field='account-status']")["class"]).to include("bg-emerald-100")
     expect(identity.at_css("[data-role='regular']")).to be_nil
     expect(identity.at_css("a[href='#{content_admin_user_path(reader)}']")).to be_present
     expect(identity.at_css("a[href='#{content_admin_user_path(reader)}']").text.strip).to eq("사용자 활동")
@@ -131,6 +133,8 @@ RSpec.describe "Admin user inventory", type: :request do
     get admin_user_path(admin)
     admin_identity = Nokogiri::HTML(response.body).at_css("#admin_user_identity")
     expect(admin_identity.at_css("[data-role='global-admin']")).to be_present
+    expect(admin_identity.at_css("[data-role='global-admin']").text.strip).to eq("시스템 관리자")
+    expect(admin_identity.at_css("[data-role='global-admin']")["class"]).to include("bg-amber-100")
     expect(admin_identity.at_css("[data-role='group-admin']")).to be_present
 
     get content_admin_user_path(admin)
@@ -141,6 +145,8 @@ RSpec.describe "Admin user inventory", type: :request do
     get admin_user_path(withdrawn)
     withdrawn_document = Nokogiri::HTML(response.body)
     expect(withdrawn_document.at_css("#admin_user_identity [data-role='regular']")).to be_present
+    expect(withdrawn_document.at_css("#admin_user_identity [data-role='regular']")["class"]).to include("bg-stone-100")
+    expect(withdrawn_document.at_css("#admin_user_identity [data-field='account-status']")["class"]).to include("bg-stone-200")
     expect(withdrawn_document.at_css("#administered_groups").text).to include("관리 중인 동아리가 없습니다.")
     expect(withdrawn_document.at_css("#joined_groups").text).to include("참여 중인 동아리가 없습니다.")
 
@@ -209,6 +215,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(controls.at_css("h1")).to be_nil
     expect(controls.at_css("input[type='submit']")["value"]).to eq("검색")
     expect(controls.css("a").map { |link| link.text.strip }).to include("조건 초기화")
+    expect(controls.at_css("select[name='role'] option[value='global_admin']").text).to eq("시스템 관리자")
     expect(document.at_css("#admin_user_inventory_table")).to be_present
     expect(document.css("#admin_user_inventory_table th").map { |header| header.text.strip }).to eq(
       [ "사용자", "계정 상태", "권한", "최근 활동", "가입 시각", "작업" ]
@@ -218,15 +225,19 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(identity.at_css("img")['alt']).to eq(reader.name)
     expect(document.at_css("#user_#{withdrawn.id} [data-field='user'] [data-field='email']").text.strip).to eq("-")
     expect(document.at_css("#user_#{withdrawn.id} [data-field='latest-activity']").text.strip).to eq("-")
+    expect(document.at_css("#user_#{reader.id} [data-field='account-status']")["class"]).to include("bg-emerald-100")
+    expect(document.at_css("#user_#{withdrawn.id} [data-field='account-status']")["class"]).to include("bg-stone-200")
     expect(document.at_css("#user_#{reader.id} a[href='#{admin_user_path(reader)}']")).to be_present
     expect(document.at_css("#user_#{reader.id} a[href='#{admin_user_path(reader)}']").text.strip).to eq("상세 보기")
     expect(document.at_css("#user_#{reader.id} a[href='#{content_admin_user_path(reader)}']").text.strip).to eq("사용자 활동")
 
+    expected_kind_colors = %w[bg-sky-100 bg-emerald-100 bg-violet-100 bg-sky-100 bg-emerald-100 bg-amber-100]
     activities.each_with_index do |(author, activity), index|
       cell = document.at_css("#user_#{author.id} [data-field='latest-activity']")
       expected_path = activity.is_a?(Comment) ? jjaek_path(activity.jjaek, anchor: "comment_#{activity.id}") : jjaek_path(activity)
       expect(cell.text).to include(expected_kinds[index], I18n.l(activity.created_at, format: :short))
       expect(cell.at_css("a")['href']).to eq(expected_path)
+      expect(cell.at_css("[data-activity-kind]")["class"]).to include(expected_kind_colors[index])
     end
   end
 
@@ -236,6 +247,12 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get admin_users_path, params: { status: "suspended" }
     expect(listed_ids).to eq([ reader.id ])
+    expect(Nokogiri::HTML(response.body).at_css("#user_#{reader.id} [data-field='account-status']")["class"]).to include("bg-red-100")
+
+    get admin_user_path(reader)
+    detail = Nokogiri::HTML(response.body)
+    expect(detail.at_css("#admin_user_identity [data-field='account-status']")["class"]).to include("bg-red-100")
+    expect(detail.at_css("section.border-amber-200 span.rounded-full")["class"]).to include("bg-red-100")
 
     get admin_users_path, params: { status: "active" }
     expect(listed_ids).to contain_exactly(admin.id)
@@ -248,11 +265,11 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get admin_users_path, params: { role: "global_admin" }
     expect(listed_ids).to contain_exactly(admin.id)
-    expect(Nokogiri::HTML(response.body).at_css("#user_#{admin.id}").text).to include("Global admin")
+    expect(Nokogiri::HTML(response.body).at_css("#user_#{admin.id}").text).to include("시스템 관리자")
 
     get admin_users_path, params: { role: "group_admin" }
     expect(listed_ids).to contain_exactly(admin.id, reader.id)
-    expect(Nokogiri::HTML(response.body).at_css("#user_#{admin.id}").text).to include("Global admin", "동아리 관리자")
+    expect(Nokogiri::HTML(response.body).at_css("#user_#{admin.id}").text).to include("시스템 관리자", "동아리 관리자")
 
     get admin_users_path, params: { role: "regular" }
     expect(listed_ids).to contain_exactly(withdrawn.id)
@@ -393,6 +410,12 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(group_location.at_css("a[href='#{admin_group_path(group)}']").text.strip).to eq(group.name)
     expect(group_location.text).not_to include("·")
     expect(book_row.at_css("[data-field='reference']").text).to include("책", book.title)
+    expect(personal_row.at_css("[data-activity-kind='general']")["class"]).to include("bg-sky-100")
+    expect(book_row.at_css("[data-activity-kind='book']")["class"]).to include("bg-emerald-100")
+    expect(requote_row.at_css("[data-activity-kind='requote']")["class"]).to include("bg-violet-100")
+    expect(group_row.at_css("[data-activity-kind='general']").text.strip).to eq("동아리짹")
+    expect(timeline.at_css("#timeline_jjaek_#{group_book_jjaek.id} [data-activity-kind='book']").text.strip).to eq("동아리책짹")
+    expect(comment_row.at_css("[data-activity-kind='comments']")["class"]).to include("bg-amber-100")
     expect(book_row.at_css("a[href='#{book_path(book)}']")).to be_present
     expect(requote_row.at_css("[data-field='reference']").text).to include("원문", group_admin.name, source.content)
     expect(requote_row.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
@@ -401,7 +424,9 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(comment_row.at_css("[data-field='reference']").text).not_to include("짹 ·", "책짹 ·", "다시짹 ·")
     expect(deleted_comment_source_row.at_css("[data-field='reference']").text).to include(group_admin.name, "-")
     expect(timeline.at_css("#timeline_jjaek_#{deleted_jjaek.id} [data-field='status']").text.strip).to eq("삭제")
+    expect(timeline.at_css("#timeline_jjaek_#{deleted_jjaek.id} [data-field='status'] span")["class"]).to include("bg-stone-200")
     expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status']").text.strip).to eq("숨김")
+    expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status'] span")["class"]).to include("bg-red-100")
     expect(timeline.at_css("#timeline_comment_#{hidden_comment.id} [data-field='status']").text.strip).to eq("숨김")
     expect(personal_row.at_css("[data-field='status']").text.strip).to eq("-")
     expect(personal_row.at_css("[data-field='actions'] a").text.strip).to eq("바로가기")

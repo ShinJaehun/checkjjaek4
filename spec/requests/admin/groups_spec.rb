@@ -178,11 +178,13 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(comment_cell.text).to include("댓글", I18n.l(comment.created_at, format: :short))
     expect(comment_cell.at_css("a")['href']).to eq(jjaek_path(general, anchor: "comment_#{comment.id}"))
     expect(comment_cell.at_css("[data-activity-kind='comments']")).to be_present
+    expect(comment_cell.at_css("[data-activity-kind='comments']")["class"]).to include("bg-amber-100")
 
     book_cell = document.at_css("#group_#{book_group.id} [data-field='latest-activity']")
     expect(book_cell.text).to include("동아리책짹", I18n.l(group_book.created_at, format: :short))
     expect(book_cell.at_css("a")['href']).to eq(jjaek_path(group_book))
     expect(book_cell.at_css("[data-activity-kind='group_book']")).to be_present
+    expect(book_cell.at_css("[data-activity-kind='group_book']")["class"]).to include("bg-emerald-100")
 
     expect(document.at_css("#group_#{group.id} [data-field='latest-activity']").text.strip).to eq("-")
   end
@@ -805,17 +807,22 @@ RSpec.describe "Admin group approvals", type: :request do
     end
     expect(general_row.at_css("[data-field='reference']").text.strip).to eq("-")
     expect(general_row.at_css("[data-activity-kind='general']").text.strip).to eq("동아리짹")
+    expect(general_row.at_css("[data-activity-kind='general']")["class"]).to include("bg-sky-100")
     expect(general_row.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
     expect(book_row.at_css("[data-activity-kind='book']").text.strip).to eq("동아리책짹")
+    expect(book_row.at_css("[data-activity-kind='book']")["class"]).to include("bg-emerald-100")
     expect(book_row.at_css("[data-field='reference']").text).to include("책", book.title)
     expect(book_row.at_css("a[href='#{book_path(book)}']")).to be_present
     expect(book_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
     expect(comment_row.at_css("[data-field='reference']").text).to include("원문", group_admin.name, general.content)
     expect(comment_row.at_css("[data-activity-kind='comments']").text.strip).to eq("댓글")
+    expect(comment_row.at_css("[data-activity-kind='comments']")["class"]).to include("bg-amber-100")
     expect(comment_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
     expect(deleted_row.at_css("[data-field='body']").text.strip).to eq("-")
     expect(deleted_row.at_css("[data-field='status']").text.strip).to eq("삭제")
+    expect(deleted_row.at_css("[data-field='status'] span")["class"]).to include("bg-stone-200")
     expect(timeline.at_css("#group_timeline_jjaek_#{hidden.id} [data-field='status']").text.strip).to eq("숨김")
+    expect(timeline.at_css("#group_timeline_jjaek_#{hidden.id} [data-field='status'] span")["class"]).to include("bg-red-100")
     expect(timeline.at_css("#group_timeline_comment_#{hidden_comment.id} [data-field='status']").text.strip).to eq("숨김")
     expect(deleted_comment_row.at_css("[data-field='reference']").text).to include(member.name, "-")
     expect(timeline.text).not_to include(other_jjaek.content)
