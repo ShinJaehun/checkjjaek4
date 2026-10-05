@@ -59,7 +59,7 @@
           <% end %>
         </div>
       <% elsif local_assigns.fetch(:show_status, false) && (bookshelf_entry.status.present? || bookshelf_entry.sticker_definitions.any?) %>
-        <div class="mt-2 flex h-[3.25rem] min-w-0 flex-wrap content-start items-start gap-1.5 overflow-hidden">        
+        <div class="mt-2 flex h-[3.25rem] min-w-0 flex-wrap content-start items-start gap-1.5 overflow-hidden">
           <% if bookshelf_entry.status.present? %>
             <span class="max-w-full truncate rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"><%= t("bookshelf_entries.statuses.#{bookshelf_entry.status}") %></span>
           <% end %>

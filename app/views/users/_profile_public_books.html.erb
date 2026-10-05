@@ -13,7 +13,7 @@
         <% book_pages.each_with_index do |book_page, page_index| %>
           <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2"
                data-profile-books-carousel-target="page"
-               style="<%= "display: none;" unless page_index.zero? %>">        
+               style="<%= "display: none;" unless page_index.zero? %>">
             <% book_page.each do |bookshelf_entry| %>
               <%= render "bookshelf_entries/profile_bookshelf_entry",
                          bookshelf_entry:,
