@@ -405,6 +405,16 @@ RSpec.describe JjaekPolicy do
       expect(described_class.new(viewer, jjaek).create?).to be(true)
     end
 
+    it "does not allow creating a profile-context jjaek targeted at oneself" do
+      jjaek = viewer.jjaeks.build(
+        target_user: viewer,
+        content: "SELF_TARGETED_NEW_JJAEK",
+        visibility: :public_jjaek
+      )
+
+      expect(described_class.new(viewer, jjaek).create?).to be(false)
+    end
+
     it "does not allow creating a profile-context jjaek for an unrelated user" do
       friendship.destroy!
       jjaek = viewer.jjaeks.build(

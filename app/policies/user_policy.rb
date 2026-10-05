@@ -64,7 +64,7 @@ class UserPolicy < ApplicationPolicy
   end
 
   def write_profile_jjaek?
-    record.active_account? && %i[self book_friend].include?(profile_access_level)
+    record.active_account? && profile_access_level == :book_friend
   end
 
   private

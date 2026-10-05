@@ -94,7 +94,7 @@
 
 - 관계에 따라 다른 데이터 노출
 - 프로필은 항상 공개 요약 화면으로 해석한다
-- profile-context Jjaek 작성 가능 여부도 관계에 따라 달라짐
+- accepted 책친구의 타인 프로필에서만 profile-context Jjaek을 작성할 수 있고, 자기 프로필의 일반 Jjaek 작성은 홈(`/`)에서 시작함
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
 - stranger / follow-only는 프로필에서 `public` 책 목록을 flat summary 형태로 볼 수 있다
 - self / accepted book_friend는 프로필에서 접근 가능한 책 목록 요약을 볼 수 있다
@@ -490,7 +490,7 @@ books/:id timeline에는 아직 합성하지 않는다.
 
 ## 작성 흐름
 
-### 1. 프로필에서 짹 작성
+### 1. accepted 책친구의 타인 프로필에서 짹 작성
 
 UsersController#show
 → Jjaek.new (profile_jjaek)

@@ -157,7 +157,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.visibility.book_friends"))
     end
 
-    it "shows the user's own summarized shelf, library link, private jjaeks, and profile-context form" do
+    it "shows the user's own summarized shelf, library link, and private jjaeks without a profile-context form" do
       own_book = Book.create!(title: "내 책", authors_text: "저자")
       own_sticker = StickerDefinition.create!(key: "users_spec_own_profile_shelf_sticker", name: "OWN_PROFILE_SHELF_STICKER")
       own_entry = viewer.bookshelf_entries.create!(book: own_book, status: :finished)
@@ -179,8 +179,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(I18n.t("users.profile.bookshelf_sort.label"))
       expect(response.body).not_to include(I18n.t("bookshelves.form.title"))
       expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
-      expect(response.body).to include('name="jjaek[target_user_id]"')
-      expect(response.body).to include(I18n.t("jjaeks.visibility.private_jjaek"))
+      expect(response.body).not_to include('name="jjaek[target_user_id]"')
     end
 
     it "shows an empty public books message to unrelated users without library controls" do

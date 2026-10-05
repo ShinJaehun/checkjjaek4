@@ -394,7 +394,7 @@ ReJjaek은 새 Jjaek이지만,
 
 ### 프로필
 - 프로필(`users/:id`)은 **관계 맺기 + 관계에 따라 그 사람의 책과 짹을 보는 화면**으로 둔다.
-- 프로필에는 해당 사람을 문맥으로 삼는 `profile-context Jjaek` 입력 진입을 둘 수 있다.
+- accepted 책친구의 타인 프로필에는 해당 사람을 문맥으로 삼는 `profile-context Jjaek` 입력 진입을 둔다. 자기 프로필의 일반 Jjaek은 홈(`/`)에서 작성한다.
 - 이 입력은 DM이 아니라, `target_user_id`를 가지는 공개/관계기반 `Jjaek` 작성이다.
 - 이 문맥의 `Jjaek`는 `A가 B에게 남긴 짹`처럼 표시할 수 있다.
 - 관계에 따라 아래 노출 범위를 다르게 둔다.
@@ -414,7 +414,7 @@ ReJjaek은 새 Jjaek이지만,
     - profile-context 입력창을 본다
   - 본인:
     - 자신의 전체 서재와 전체 짹을 본다
-    - profile-context 입력창을 포함한 모든 작성 진입을 사용할 수 있다
+    - 자기 프로필에는 profile-context 입력창을 두지 않는다
 
 ### 서재
 - 서재는 **내 독서 공간 전체**를 뜻한다.
@@ -464,7 +464,7 @@ ReJjaek은 새 Jjaek이지만,
 
 - 일반 `Jjaek`는 기본적으로 `짹`으로 표시할 수 있다.
 - `target_user_id`가 있는 `Jjaek`는 `A가 B에게 남긴 짹`처럼 표시할 수 있다.
-- 다만 작성자와 대상 사용자가 같은 self-target Jjaek은 일반 `A의 짹`처럼 표시한다.
+- 다만 기존에 저장된 작성자와 대상 사용자가 같은 self-target Jjaek은 일반 `A의 짹`처럼 표시한다.
 - `book_id`가 있는 `Jjaek`는 `A가 X에 대해 남긴 책짹`처럼 표시할 수 있다.
 - `quoted_jjaek_id`가 있는 `Jjaek`는 `A가 B의 짹을 다시짹`처럼 표시할 수 있다.
 - `target_user_id`와 `quoted_jjaek_id`가 함께 있는 경우에도, 1차 MVP에서는 `다시짹` 문맥을 우선해 표시할 수 있다.

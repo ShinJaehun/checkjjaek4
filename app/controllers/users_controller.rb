@@ -61,19 +61,9 @@ class UsersController < ApplicationController
     @profile_jjaek = Jjaek.new(
       user: current_user,
       target_user: @user,
-      visibility: profile_jjaek_default_visibility
+      visibility: :book_friends
     )
-    @profile_jjaek_visibility_options = profile_jjaek_visibility_options
-  end
-
-  def profile_jjaek_default_visibility
-    current_user == @user ? :public_jjaek : :book_friends
-  end
-
-  def profile_jjaek_visibility_options
-    options = %w[public_jjaek book_friends]
-    options << "private_jjaek" if current_user == @user
-    options
+    @profile_jjaek_visibility_options = %w[public_jjaek book_friends]
   end
 
   def resolve_profile_jjaeks

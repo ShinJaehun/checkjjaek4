@@ -250,18 +250,22 @@ RSpec.describe "Jjaeks", type: :request do
       expect(notification.notifiable).to eq(Jjaek.last)
     end
 
-    it "does not create a notification when writing on your own profile" do
+    it "does not create a self-targeted profile-context jjaek or notification" do
       sign_in viewer
+      jjaek_count = Jjaek.count
+      notification_count = Notification.count
 
-      expect {
-        post jjaeks_path, params: {
-          jjaek: {
-            target_user_id: viewer.id,
-            content: "SELF_PROFILE_NOTIFICATION_BODY",
-            visibility: :private_jjaek
-          }
+      post jjaeks_path, params: {
+        jjaek: {
+          target_user_id: viewer.id,
+          content: "SELF_PROFILE_NOTIFICATION_BODY",
+          visibility: :private_jjaek
         }
-      }.not_to change(Notification, :count)
+      }
+
+      expect(Jjaek.count).to eq(jjaek_count)
+      expect(Notification.count).to eq(notification_count)
+      expect(response).to redirect_to(root_path)
     end
 
     it "creates a notification when another user requotes your jjaek" do

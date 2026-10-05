@@ -59,14 +59,14 @@ RSpec.describe UserPolicy do
       expect(described_class.new(nil, other_user).show?).to be(false)
     end
 
-    it "lets a user view and write in their own profile context" do
+    it "lets a user view their own profile without a profile-context writing form" do
       policy = described_class.new(user, user)
 
       expect(policy.profile_access_level).to eq(:self)
       expect(policy.show_profile_bookshelf?).to be(true)
       expect(policy.show_profile_bookshelf_status?).to be(true)
       expect(policy.show_profile_jjaeks?).to be(true)
-      expect(policy.write_profile_jjaek?).to be(true)
+      expect(policy.write_profile_jjaek?).to be(false)
     end
 
     it "lets an accepted book friend view and write in the profile context" do

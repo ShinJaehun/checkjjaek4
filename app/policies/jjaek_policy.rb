@@ -342,7 +342,7 @@ class JjaekPolicy < ApplicationPolicy
 
   def target_user_context_allowed?
     return true if record.target_user_id.blank?
-    return true if record.target_user_id == user.id
+    return false if record.target_user_id == user.id
     return false if record.private_jjaek?
 
     UserPolicy.new(user, record.target_user).write_jjaek?

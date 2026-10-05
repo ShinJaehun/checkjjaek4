@@ -88,7 +88,7 @@ checkjjaek4의 서버측 권한 판단은 Pundit policy 중심으로 유지한�
 - `stranger / follow`는 프로필 책 목록에서 상태와 스티커를 볼 수 없다.
 - `self / accepted book_friend`는 프로필 책 목록에서 상태와 스티커를 볼 수 있다.
 - `self / accepted book_friend`는 프로필 최근 활동에서 BookActivity를 볼 수 있다.
-- `self / accepted book_friend`는 profile-context Jjaek 작성 진입을 사용할 수 있다.
+- accepted 책친구의 타인 프로필에서만 profile-context Jjaek 작성 진입을 사용할 수 있다. 자기 프로필에서는 일반 Jjaek을 홈(`/`)에서 작성한다.
 - Bookshelf 생성/수정/삭제/순서 변경은 Library에서 owner만 가능하며, 새 Bookshelf는 현재 사용자의 Bookshelf로만 생성한다.
 - 기본 Bookshelf는 수정/삭제/순서 변경할 수 없고, 책이 들어 있는 일반 Bookshelf는 삭제할 수 없다.
 - `BookshelfEntry`의 책장 이동은 Library에서 owner만 가능하며, 대상 Bookshelf도 현재 사용자의 Bookshelf여야 한다.
