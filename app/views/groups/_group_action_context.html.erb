@@ -1,0 +1,8 @@
+<div class="mt-5 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm text-stone-800" data-group-action-context>
+  <p class="font-semibold"><%= group.name %></p>
+  <div class="mt-3 flex flex-wrap gap-2">
+    <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
+    <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
+  </div>
+  <p class="mt-3 text-stone-600"><%= t("groups.group_admin_label") %>: <%= group.group_admin.name %></p>
+</div>

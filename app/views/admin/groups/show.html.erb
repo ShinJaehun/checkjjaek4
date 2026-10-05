@@ -2,31 +2,10 @@
   <div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
     <section id="admin_group_identity" class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
       <div class="flex flex-wrap items-start justify-between gap-5">
-        <div class="min-w-0">
-          <h1 class="truncate text-3xl font-semibold tracking-tight text-stone-900"><%= @group.name %></h1>
-          <div class="mt-3 flex flex-wrap items-center gap-2">
-            <span class="rounded-full bg-stone-100 px-2 py-1 text-xs text-stone-700" data-field="group-type">
-              <%= t("admin.groups.types.#{@group.group_type}") %>
-            </span>
-            <span class="inline-flex items-center gap-1 text-xs text-stone-500">
-              <%= t("admin.groups.current_status_label") %>:
-              <span class="rounded-full px-2 py-1 <%= admin_group_status_badge_classes(@group) %>" data-field="current-status">
-                <%= admin_group_current_status(@group) %>
-              </span>
-            </span>
-          </div>
-          <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-600">
-            <span data-field="group-admin">
-              <%= t("admin.groups.fields.group_admin") %>:
-              <%= link_to @group.group_admin.name,
-                          admin_user_path(@group.group_admin),
-                          class: "font-medium text-stone-800 underline" %>
-            </span>
-            <span data-field="created-at">
-              <%= t("admin.groups.fields.created") %>: <%= l(@group.created_at, format: :short) %>
-            </span>
-          </div>
-        </div>
+        <%= render "groups/identity_summary",
+                   group: @group,
+                   member_preview: @member_preview,
+                   active_member_count: @active_member_count %>
         <div class="flex flex-wrap gap-2">
           <%= link_to t("groups.members.management_title"),
                       group_members_path(@group),
@@ -43,7 +22,7 @@
       </div>
 
       <% if @group.description.present? %>
-        <p class="mt-5 whitespace-pre-wrap text-sm leading-6 text-stone-700"><%= @group.description %></p>
+        <p class="mt-4 whitespace-pre-wrap text-sm leading-6 text-stone-700"><%= @group.description %></p>
       <% end %>
     </section>
 
@@ -59,7 +38,7 @@
         <ul class="mt-4 flex flex-wrap gap-2">
           <% @membership_counts.each do |status, count| %>
             <li class="rounded-full bg-stone-100 px-3 py-1.5 text-sm text-stone-700" data-membership-status="<%= status %>">
-              <%= t("group_memberships.statuses.#{status}") %> <span class="font-semibold"><%= count %></span>
+              <%= t("group_memberships.statuses.#{status}") %> <span class="font-semibold"><%= status == "active" ? @active_member_count : count %></span>
             </li>
           <% end %>
         </ul>
@@ -70,9 +49,9 @@
 
     <section id="group_operation_moderation" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-950">
       <h2 class="font-semibold"><%= t("admin.groups.operation_moderation.title") %></h2>
-      <p class="mt-3">
-        <%= t("admin.groups.operation_moderation.status") %>:
-        <%= t("admin.groups.operation_moderation.#{@group.operation_suspended? ? "suspended_status" : "active_status"}") %>
+      <p class="mt-3 flex flex-wrap items-center gap-2">
+        <span><%= t("admin.groups.operation_moderation.status") %>:</span>
+        <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_status_badge_classes(@group) %>" data-field="operation-current-status"><%= group_current_status_label(@group) %></span>
       </p>
 
       <% if @can_suspend_operation %>

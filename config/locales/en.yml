@@ -107,9 +107,10 @@ en:
   groups:
     nav: "Clubs"
     group_admin: "Club admin: %{name}"
+    group_admin_label: "Club admin"
+    active_member_count: "Members %{count}"
     operation_suspension:
       invitation_accept_unavailable: "Invitations cannot be accepted while club operation is suspended."
-      label: "Operation suspended"
       status: "This club's operation is currently suspended."
     operation_suspension_reasons:
       repeated_policy_violations: "Repeated operation policy violations"
@@ -122,10 +123,12 @@ en:
       public_group: "Public club"
       approval_group: "Approval club"
       private_group: "Private club"
-    lifecycle_statuses:
+    current_statuses:
+      pending_approval: "Pending approval"
       active: "Active"
       inactive: "Closed"
-      pending_approval: "Pending approval"
+      reactivation_pending: "Reactivation approval pending"
+      suspended: "Operation suspended"
     lifecycle_messages:
       pending_approval: "This club is awaiting approval. Joining and club activity are unavailable until approval."
       inactive: "This club is closed. Only existing active members can read its past content."
@@ -210,7 +213,6 @@ en:
       title: "Club admin"
       action_title: "Transfer club admin rights"
       description: "Choose an active member to become the club admin. The current admin will remain as a regular member."
-      current: "Current admin: %{name}"
       target: "Member to become admin"
       submit: "Transfer admin rights"
       confirmation: "After the transfer, the current admin becomes a regular member."
@@ -473,24 +475,6 @@ en:
         restore_failed: "The user account could not be restored."
     groups:
       nav: "Club management"
-      types:
-        public_group: "Public"
-        approval_group: "Approval"
-        private_group: "Private"
-      lifecycle_statuses:
-        pending_approval: "Pending approval"
-        active: "Operating"
-        inactive: "Closed"
-      operation_statuses:
-        normal: "Operating normally"
-        suspended: "Operation suspended"
-      current_status_label: "Current status"
-      current_statuses:
-        pending_approval: "Pending approval"
-        active: "Operating normally"
-        inactive: "Closed"
-        reactivation_pending: "Reactivation approval pending"
-        suspended: "Operation suspended"
       membership_summary:
         title: "Membership summary"
         empty: "No membership relationships."
@@ -499,8 +483,6 @@ en:
         title: "Operation management"
         cancel: "Back to club details"
         status: "Current operation status"
-        active_status: "Normal"
-        suspended_status: "Suspended"
         current_suspension: "Current suspension action"
         public_reason: "Public reason"
         internal_note: "Internal note"
@@ -540,8 +522,6 @@ en:
         name: "Club"
         type: "Type"
         status: "Status"
-        operation_status: "Status"
-        group_admin: "Club admin"
         active_members: "Active members"
         latest_activity: "Latest activity"
         created: "Created"
@@ -577,7 +557,6 @@ en:
       book_search_context: "Find a book for a Book Jjaek in %{group_name}."
   group_memberships:
     statuses:
-      group_admin: "Club admin"
       pending: "Pending approval"
       active: "Member"
       invited: "Invited"

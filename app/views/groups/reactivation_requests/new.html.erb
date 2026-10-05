@@ -2,7 +2,7 @@
   <h1 class="text-2xl font-semibold text-stone-900"><%= t("groups.reactivation_request.title") %></h1>
   <p class="mt-2 text-sm text-stone-600"><%= t("groups.reactivation_request.description") %></p>
 
-  <%= render "groups/lifecycle_action_context", group: @group %>
+  <%= render "groups/group_action_context", group: @group %>
 
   <% if @group.closed_at.present? %>
     <p class="mt-4 text-sm text-stone-600"><%= t("groups.management.closed_at", time: l(@group.closed_at, format: :short)) %></p>

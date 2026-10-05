@@ -1,0 +1,26 @@
+<div class="min-w-0 flex-1" data-group-identity-summary>
+  <h1 class="truncate text-3xl font-semibold tracking-tight text-stone-900"><%= group.name %></h1>
+  <div class="mt-3 flex flex-wrap gap-2">
+    <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
+    <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
+  </div>
+  <div class="mt-3 flex min-w-0 flex-wrap items-center gap-3">
+    <%= link_to user_path(group.group_admin),
+                class: "shrink-0",
+                title: t("groups.group_admin", name: group.group_admin.name),
+                aria: { label: t("groups.group_admin", name: group.group_admin.name) },
+                data: { group_admin_avatar: true } do %>
+      <%= user_avatar_image(group.group_admin, size: 128, alt: group.group_admin.name, class: "h-9 w-9 rounded-full object-cover") %>
+    <% end %>
+    <% if member_preview.any? %>
+      <div class="flex -space-x-2" data-member-preview>
+        <% member_preview.each do |member| %>
+          <%= link_to user_path(member), class: "shrink-0", title: member.name, aria: { label: member.name } do %>
+            <%= user_avatar_image(member, size: 128, alt: member.name, title: member.name, class: "h-8 w-8 rounded-full object-cover ring-2 ring-white") %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+    <span class="whitespace-nowrap text-sm text-stone-600" data-field="active-member-count"><%= t("groups.active_member_count", count: active_member_count) %></span>
+  </div>
+</div>

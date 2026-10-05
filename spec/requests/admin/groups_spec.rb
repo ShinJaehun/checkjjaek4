@@ -127,6 +127,9 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response.body).to include("콘텐츠")
     expect(detail_page.at_css(%(#admin_group_identity a[href="#{new_admin_group_approval_path(group)}"]))).to be_present
     expect(detail_page.at_css("#group_operation_moderation")).to be_present
+    pending_status = detail_page.at_css("#group_operation_moderation [data-field='operation-current-status']")
+    expect(pending_status.text.strip).to eq(I18n.t("groups.current_statuses.pending_approval"))
+    expect(pending_status["class"]).to include("bg-amber-100")
     expect(detail_page.at_css("#group_operation_moderation a[href*='operation_suspensions'], #group_operation_moderation a[href*='operation_restorations']")).to be_nil
     expect(opening_card.text).to include("개설 목적", "Create a reading circle", "신청", I18n.l(opening_event.created_at, format: :short))
     expect(opening_card.text).not_to include("승인")
@@ -134,7 +137,11 @@ RSpec.describe "Admin group approvals", type: :request do
     get new_admin_group_approval_path(group), params: { q: "Pending", page: 2 }
     approval_page = Nokogiri::HTML(response.body)
     expect(response).to have_http_status(:ok)
-    expect(approval_page.at_css("[data-group-lifecycle-action-context]").text).to include(group.name, group_admin.name, "승인 대기")
+    approval_context = approval_page.at_css("[data-group-action-context]")
+    expect(approval_context.text).to include(group.name, "동아리 관리자", group_admin.name)
+    expect(approval_context.at_css("[data-group-type='public_group']").text.strip).to eq(I18n.t("groups.types.public_group"))
+    expect(approval_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.pending_approval"))
+    expect(approval_context.at_css("[data-field='current-status']")["class"]).to include("bg-amber-100")
     expect(approval_page.at_css("[data-group-approval-request-context]").text).to include("개설 신청", "Create a reading circle")
     expect(approval_page.at_css(%(form[action="#{admin_group_approvals_path(group, q: "Pending", page: 2)}"]))).to be_present
     expect(approval_page.at_css(%(a[href="#{admin_group_path(group, q: "Pending", page: 2)}"]))).to be_present
@@ -184,10 +191,15 @@ RSpec.describe "Admin group approvals", type: :request do
     legacy_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Returning club", group_type: :public_group)
     closed_at = Time.current
     legacy_group.update!(lifecycle_status: :inactive, closure_reason: "The first season ended", closed_at: closed_at)
+    sign_in admin
+    get admin_group_path(legacy_group)
+    inactive_status = Nokogiri::HTML(response.body).at_css("#group_operation_moderation [data-field='operation-current-status']")
+    expect(inactive_status.text.strip).to eq(I18n.t("groups.current_statuses.inactive"))
+    expect(inactive_status["class"]).to include("bg-stone-200")
+
     legacy_group.update!(lifecycle_status: :pending_approval)
     legacy_group.lifecycle_events.create!(actor: group_admin, event_type: :operations_closed, detail: "The first season ended", created_at: closed_at)
     legacy_group.lifecycle_events.create!(actor: group_admin, event_type: :reactivation_requested)
-    sign_in admin
 
     get admin_groups_path
 
@@ -201,9 +213,19 @@ RSpec.describe "Admin group approvals", type: :request do
     reactivation_card = page.at_css("#group_operation_history [data-history-entry='reactivation_requested']")
     expect(response.body).to include("재운영 승인 대기", "종료", "재운영 신청", "운영 이력")
     expect(identity.text).not_to include("The first season ended")
+    reactivation_status = page.at_css("#group_operation_moderation [data-field='operation-current-status']")
+    expect(reactivation_status.text.strip).to eq(I18n.t("groups.current_statuses.reactivation_pending"))
+    expect(reactivation_status["class"]).to include("bg-amber-100")
     expect(closure_entry.text).to include("The first season ended", I18n.l(closed_at, format: :short))
     expect(reactivation_card.text).to include("신청")
     expect(reactivation_card.text).not_to include("승인")
+
+    get new_admin_group_approval_path(legacy_group)
+    approval_page = Nokogiri::HTML(response.body)
+    approval_context = approval_page.at_css("[data-group-action-context]")
+    expect(approval_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.reactivation_pending"))
+    expect(approval_context.at_css("[data-field='current-status']")["class"]).to include("bg-amber-100")
+    expect(approval_page.at_css("[data-group-approval-request-context]").text).to include("The first season ended", I18n.l(closed_at, format: :short))
 
     post admin_group_approvals_path(legacy_group)
     expect(legacy_group.reload).to be_active
@@ -291,6 +313,11 @@ RSpec.describe "Admin group approvals", type: :request do
     )
     pending_user = User.create!(name: "Pending member", email: "pending-overview@example.com", password: "password123!")
     invited_user = User.create!(name: "Invited member", email: "invited-overview@example.com", password: "password123!")
+    active_members = 6.times.map do |index|
+      member = User.create!(name: "Active preview #{index}", email: "active-overview-#{index}@example.com", password: "password123!")
+      GroupMembership.create!(group: active_group, user: member, status: :active)
+      member
+    end
     GroupMembership.create!(group: active_group, user: pending_user, status: :pending)
     GroupMembership.create!(group: active_group, user: invited_user, status: :invited)
     sign_in admin
@@ -302,17 +329,37 @@ RSpec.describe "Admin group approvals", type: :request do
 
     expect(identity.text).to include(
       active_group.name,
-      "비공개",
-      "정상 운영",
-      group_admin.name,
-      I18n.l(active_group.created_at, format: :short)
+      "비공개 동아리",
+      "운영 중"
     )
-    expect(identity.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
+    type_badge = identity.at_css("[data-group-type='private_group']")
+    status_badge = identity.at_css("[data-field='current-status']")
+    expect(type_badge.text.strip).to eq(I18n.t("groups.types.private_group"))
+    expect(type_badge["class"]).to include("bg-violet-100")
+    expect(status_badge.text.strip).to eq(I18n.t("groups.current_statuses.active"))
+    expect(status_badge["class"]).to include("bg-emerald-100")
+    expect(identity.text).not_to include("현재 상태:")
+    admin_link = identity.at_css(%(a[data-group-admin-avatar][href="#{user_path(group_admin)}"]))
+    expect(admin_link.at_css(%(img[alt="#{group_admin.name}"]))).to be_present
+    expect(admin_link["title"]).to eq(I18n.t("groups.group_admin", name: group_admin.name))
+    expect(admin_link["aria-label"]).to eq(I18n.t("groups.group_admin", name: group_admin.name))
+    expect(identity.css("[data-group-identity-summary] img").first["alt"]).to eq(group_admin.name)
+    expect(identity.at_css("[data-group-identity-summary]").text).not_to include(group_admin.name)
+    preview_links = identity.css("[data-member-preview] a")
+    expect(preview_links.map { |link| link["href"] }).to eq(active_members.first(5).map { |member| user_path(member) })
+    preview_links.zip(active_members.first(5)).each do |link, member|
+      expect(link["title"]).to eq(member.name)
+      expect(link["aria-label"]).to eq(member.name)
+      expect(link.at_css("img")["alt"]).to eq(member.name)
+    end
+    expect(identity.at_css("[data-field='active-member-count']").text.strip).to eq("회원 6명")
     expect(identity.at_css("a[href='#{group_members_path(active_group)}']")).to be_present
     expect(identity.at_css("a[href='#{content_admin_group_path(active_group)}']")).to be_present
+    expect(identity.at_css("[data-field='created-at']")).to be_nil
+    expect(identity.text).not_to include("생성 시각", I18n.l(active_group.created_at, format: :short))
     expect(document.at_css("[data-field='group-id'], [data-field='updated-at']")).to be_nil
     expect(document.text).not_to include("수정 시각")
-    expect(membership_summary.at_css("[data-membership-status='active']").text.squish).to eq("참여 중 1")
+    expect(membership_summary.at_css("[data-membership-status='active']").text.squish).to eq("참여 중 6")
     expect(membership_summary.at_css("[data-membership-status='pending']").text.squish).to eq("승인 대기 1")
     expect(membership_summary.at_css("[data-membership-status='invited']").text.squish).to eq("초대됨 1")
     expect(document.at_css("#group_operation_moderation a[href='#{new_admin_group_operation_suspension_path(active_group)}']")).to be_present
@@ -333,10 +380,18 @@ RSpec.describe "Admin group approvals", type: :request do
     moderation = page.at_css("#group_operation_moderation")
     expect(moderation.at_css("a[href='#{new_admin_group_operation_suspension_path(active_group)}']")).to be_present
     expect(moderation.at_css("form")).to be_nil
-    expect(page.text.squish).to include("현재 상태: 정상 운영")
+    active_status = moderation.at_css("[data-field='operation-current-status']")
+    expect(active_status.text.strip).to eq(I18n.t("groups.current_statuses.active"))
+    expect(active_status["class"]).to include("bg-emerald-100")
 
     get new_admin_group_operation_suspension_path(active_group)
-    suspend_form = Nokogiri::HTML(response.body).at_css(%(form[action="#{admin_group_operation_suspensions_path(active_group)}"]))
+    suspension_page = Nokogiri::HTML(response.body)
+    suspension_context = suspension_page.at_css("[data-group-action-context]")
+    expect(suspension_context.text).to include(active_group.name, "동아리 관리자", group_admin.name)
+    expect(suspension_context.at_css("[data-group-type='public_group']")).to be_present
+    expect(suspension_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.active"))
+    expect(suspension_context.at_css("[data-field='current-status']")["class"]).to include("bg-emerald-100")
+    suspend_form = suspension_page.at_css(%(form[action="#{admin_group_operation_suspensions_path(active_group)}"]))
     reason_select = suspend_form.at_css('select[name="moderation_action[public_reason]"]')
     expect(reason_select.css("option").map { |option| option["value"] }.reject(&:blank?)).to eq(Group::SUSPENSION_REASONS)
     expect(reason_select.text).to include("반복적인 운영 정책 위반")
@@ -355,12 +410,18 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(moderation.at_css("a[href='#{new_admin_group_operation_suspension_path(active_group)}']")).to be_nil
     expect(moderation.at_css("form")).to be_nil
     expect(page.at_css("#admin_group_identity [data-field='current-status']").text.strip).to eq("운영 정지")
-    expect(page.text.squish).to include("현재 상태: 운영 정지")
+    suspended_status = moderation.at_css("[data-field='operation-current-status']")
+    expect(suspended_status.text.strip).to eq(I18n.t("groups.current_statuses.suspended"))
+    expect(suspended_status["class"]).to include("bg-red-50")
     expect(moderation.text).not_to include("반복적인 운영 정책 위반", "Internal review")
     expect(page.at_css("#group_operation_history").text).to include("반복적인 운영 정책 위반", "Internal review")
 
     get new_admin_group_operation_restoration_path(active_group)
-    restore_form = Nokogiri::HTML(response.body).at_css(%(form[action="#{admin_group_operation_restorations_path(active_group)}"]))
+    restoration_page = Nokogiri::HTML(response.body)
+    restoration_context = restoration_page.at_css("[data-group-action-context]")
+    expect(restoration_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.suspended"))
+    expect(restoration_context.at_css("[data-field='current-status']")["class"]).to include("bg-red-50")
+    restore_form = restoration_page.at_css(%(form[action="#{admin_group_operation_restorations_path(active_group)}"]))
     expect(restore_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_present
     expect(restore_form.at_css('select[name="moderation_action[public_reason]"]')).to be_nil
     expect(restore_form.at_css('label[for="moderation_action_public_reason"]').text).to eq("복구 사유")
@@ -508,7 +569,7 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get admin_groups_path, params: { q: group_admin.email, group_type: "private_group", status: "active" }
     expect(listed_group_ids).to eq([ private_group.id ])
-    expect(Nokogiri::HTML(response.body).at_css("#group_#{private_group.id}").text).to include("비공개", "정상 운영")
+    expect(Nokogiri::HTML(response.body).at_css("#group_#{private_group.id}").text).to include("비공개 동아리", "운영 중")
 
     get admin_groups_path, params: { q: "Pending club", status: "pending_approval" }
     expect(listed_group_ids).to eq([ group.id ])
@@ -523,12 +584,13 @@ RSpec.describe "Admin group approvals", type: :request do
     document = Nokogiri::HTML(response.body)
 
     {
-      group => [ "public_group", "공개" ],
-      approval_group => [ "approval_group", "승인" ],
-      private_group => [ "private_group", "비공개" ]
-    }.each do |record, (type, label)|
+      group => [ "public_group", "공개 동아리", "bg-sky-100" ],
+      approval_group => [ "approval_group", "승인 동아리", "bg-amber-100" ],
+      private_group => [ "private_group", "비공개 동아리", "bg-violet-100" ]
+    }.each do |record, (type, label, color)|
       badge = document.at_css("#group_#{record.id} [data-group-type='#{type}']")
       expect(badge.text.strip).to eq(label)
+      expect(badge["class"]).to include(color)
     end
   end
 
@@ -547,15 +609,21 @@ RSpec.describe "Admin group approvals", type: :request do
     document = Nokogiri::HTML(response.body)
     expect(document.at_css("select[name='operation_status']")).to be_nil
     expect(document.css("select[name='status'] option").map { |option| option.text.strip }).to eq(
-      [ "전체", "승인 대기", "정상 운영", "종료", "재운영 승인 대기", "운영 정지" ]
+      [ "전체", "승인 대기", "운영 중", "운영 종료", "재운영 승인 대기", "운영 정지" ]
     )
     expect(document.css("thead th").map { |header| header.text.strip }).to include("상태")
     expect(document.css("thead th").map { |header| header.text.strip }).not_to include("동아리 상태", "운영 제한")
-    expect(document.at_css("#group_#{normal_group.id} [data-field='current-status']").text.strip).to eq("정상 운영")
-    expect(document.at_css("#group_#{suspended_group.id} [data-field='current-status']").text.strip).to eq("운영 정지")
-    expect(document.at_css("#group_#{group.id} [data-field='current-status']").text.strip).to eq("승인 대기")
-    expect(document.at_css("#group_#{inactive_group.id} [data-field='current-status']").text.strip).to eq("종료")
-    expect(document.at_css("#group_#{reactivation_group.id} [data-field='current-status']").text.strip).to eq("재운영 승인 대기")
+    {
+      normal_group => [ "운영 중", "bg-emerald-100" ],
+      suspended_group => [ "운영 정지", "bg-red-50" ],
+      group => [ "승인 대기", "bg-amber-100" ],
+      inactive_group => [ "운영 종료", "bg-stone-200" ],
+      reactivation_group => [ "재운영 승인 대기", "bg-amber-100" ]
+    }.each do |record, (label, color)|
+      badge = document.at_css("#group_#{record.id} [data-field='current-status'] span")
+      expect(badge.text.strip).to eq(label)
+      expect(badge["class"]).to include(color)
+    end
   end
 
   it "filters groups by the unified current status" do
@@ -708,8 +776,8 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(identity).to be_present
     expect(controls).to be_present
     expect(identity.at_css("h1").text.strip).to eq(active_group.name)
-    expect(identity.at_css("[data-group-type='private_group']").text.strip).to eq("비공개")
-    expect(identity.at_css("[data-field='current-status']").text.strip).to eq("정상 운영")
+    expect(identity.at_css("[data-group-type='private_group']").text.strip).to eq("비공개 동아리")
+    expect(identity.at_css("[data-field='current-status']").text.strip).to eq("운영 중")
     expect(identity.text).to include(group_admin.name, I18n.l(active_group.created_at, format: :short))
     expect(identity.at_css("a[href='#{admin_group_path(active_group)}']").text.strip).to eq("세부 정보")
     expect(identity.at_css("a[href='#{admin_groups_path}']").text.strip).to eq("동아리 관리로")

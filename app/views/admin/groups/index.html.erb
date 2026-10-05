@@ -14,7 +14,7 @@
                          class: "min-w-0 rounded-xl border border-stone-200 px-3 py-2 lg:flex-1" %>
       <%= f.select :group_type,
                    options_for_select(
-                     [[t("admin.filters.all"), ""]] + Group.group_types.keys.map { |type| [t("admin.groups.types.#{type}"), type] },
+                     [[t("admin.filters.all"), ""]] + Group.group_types.keys.map { |type| [t("groups.types.#{type}"), type] },
                      params[:group_type]
                    ),
                    {},
@@ -49,7 +49,7 @@
         <tr class="border-b border-stone-200 text-left">
           <th class="px-4 py-3"><%= t("admin.groups.fields.name") %></th>
           <th class="px-4 py-3"><%= t("admin.groups.fields.status") %></th>
-          <th class="px-4 py-3"><%= t("admin.groups.fields.group_admin") %></th>
+          <th class="px-4 py-3"><%= t("groups.group_admin_label") %></th>
           <th class="px-4 py-3"><%= t("admin.groups.fields.active_members") %></th>
           <th class="px-4 py-3"><%= t("admin.groups.fields.latest_activity") %></th>
           <th class="px-4 py-3"><%= t("admin.groups.fields.created") %></th>
@@ -63,14 +63,14 @@
             <td class="px-4 py-3.5">
               <div class="flex items-center gap-2 whitespace-nowrap">
                 <span class="font-medium text-stone-900"><%= group.name %></span>
-                <span class="rounded-full px-2 py-1 text-xs font-medium <%= admin_group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>">
-                  <%= t("admin.groups.types.#{group.group_type}") %>
+                <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>">
+                  <%= group_type_label(group) %>
                 </span>
               </div>
             </td>
             <td class="px-4 py-3.5 whitespace-nowrap" data-field="current-status">
-              <span class="rounded-full px-2 py-1 <%= admin_group_status_badge_classes(group) %>">
-                <%= admin_group_current_status(group) %>
+              <span class="rounded-full px-2 py-1 <%= group_status_badge_classes(group) %>">
+                <%= group_current_status_label(group) %>
               </span>
             </td>
             <td class="px-4 py-3.5">

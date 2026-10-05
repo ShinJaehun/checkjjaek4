@@ -24,6 +24,10 @@ module Admin
       @can_suspend_operation = policy(@group).suspend_operation?
       @can_restore_operation = policy(@group).restore_operation?
       @membership_counts = @group.group_memberships.group(:status).count
+      admin_membership_active = @group.active_group_memberships.exists?(user_id: @group.group_admin_id)
+      @active_member_count = @membership_counts.fetch("active", 0) - (admin_membership_active ? 1 : 0)
+      @member_preview = @group.active_group_memberships.where.not(user_id: @group.group_admin_id)
+        .includes(:user).order(:created_at, :id).limit(5).map(&:user)
       @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
     end
 

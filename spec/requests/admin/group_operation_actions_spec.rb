@@ -51,7 +51,10 @@ RSpec.describe "Admin group operation actions", type: :request do
 
     get new_path
     page = Nokogiri::HTML(response.body)
-    expect(page.text).to include(group.name, group_admin.name, "정상 운영", "운영 정지")
+    expect(page.text).to include(group.name, group_admin.name, "운영 정지")
+    status_badge = page.at_css("[data-group-action-context] [data-field='current-status']")
+    expect(status_badge.text.strip).to eq(I18n.t("groups.current_statuses.active"))
+    expect(status_badge["class"]).to include("bg-emerald-100")
     expect(page.at_css("form[action='#{create_path}'] select[name='moderation_action[public_reason]']")).to be_present
     expect(page.at_css("a[href='#{detail_path}']")).to be_present
 

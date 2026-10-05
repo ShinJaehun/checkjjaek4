@@ -19,6 +19,9 @@ class GroupsController < ApplicationController
 
   def show
     authorize @group
+    active_member_scope = @group.active_group_memberships.where.not(user_id: @group.group_admin_id)
+    @member_preview = active_member_scope.includes(:user).order(:created_at, :id).limit(5).map(&:user)
+    @active_member_count = active_member_scope.count
     @membership = @group.group_memberships.find_by(user: current_user)
     @group_member_ban = @group.group_member_bans.find_by(user: current_user)
     @current_group_ban_action = @group_member_ban&.current_ban_action
