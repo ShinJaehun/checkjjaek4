@@ -463,7 +463,7 @@ RSpec.describe "Groups", type: :request do
       sign_in user
       get group_members_path(group)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("회원 관리", member.name, pending_user.name, "활동 회원", "동아리 관리자")
+      expect(response.body).to include("회원 관리", member.name, pending_user.name, "가입 승인 대기")
       expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{remove_group_group_membership_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
 
       global_admin = User.create!(name: "Global admin", email: "members-global-admin@example.com", password: "password123!", global_admin: true)
@@ -474,6 +474,9 @@ RSpec.describe "Groups", type: :request do
       page = Nokogiri::HTML(response.body)
       expect(page.at_css(%(form[action="#{remove_group_group_membership_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_nil
       expect(page.at_css(%(form[action="#{group_group_membership_path(group, pending_membership)}"]))).to be_nil
+      expect(page.at_css(%(a[href="#{new_group_admin_transfer_path(group)}"]))).to be_nil
+      expect(page.at_css(%(a[href="#{new_group_group_membership_activity_suspension_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_nil
+      expect(page.at_css(%(a[href="#{new_group_group_membership_member_ban_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_nil
 
       private_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Private members", group_type: :private_group)
       private_group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
@@ -493,6 +496,88 @@ RSpec.describe "Groups", type: :request do
       sign_in outsider
       get group_members_path(group)
       expect(response).to redirect_to(root_path)
+    end
+
+    it "shows group identity and compact member actions without repeated descriptions" do
+      sign_in user
+
+      get group_members_path(group)
+
+      page = Nokogiri::HTML(response.body)
+      header = page.at_css("section > section:first-child")
+      admin_row = page.at_css("#group_membership_#{group.group_memberships.find_by!(user: user).id}")
+      member_row = page.at_css("#group_membership_#{group.group_memberships.find_by!(user: member).id}")
+
+      expect(header.at_css("h1").text).to eq(group.name)
+      expect(header.text).to include("회원 관리", "승인 동아리", "운영 중", "현재 관리자", user.name)
+      expect(header.at_css(%(img[alt="#{user.name}"]))).to be_present
+      expect(admin_row.at_css(%(img[alt="#{user.name}"]))).to be_present
+      expect(admin_row.text).to include("관리자")
+      expect(admin_row.at_css(%(a[href="#{new_group_admin_transfer_path(group)}"]))).to be_present
+      expect(admin_row.at_css("[data-member-management]")).to be_nil
+      expect(member_row.at_css(%(img[alt="#{member.name}"]))).to be_present
+      expect(member_row.text).to include("회원", "활동 정지", "내보내기", "동아리 이용 제한")
+      expect(member_row.at_css(%(a[href="#{new_group_group_membership_activity_suspension_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
+      expect(member_row.at_css(%(form[action="#{remove_group_group_membership_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
+      expect(member_row.at_css(%(a[href="#{new_group_group_membership_member_ban_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
+      expect(page.css("h2").map(&:text)).not_to include("동아리 관리자")
+      expect(page.text).not_to include("회원 자격은 유지하고 동아리 활동만 정지합니다.", "동아리에서 내보냅니다. 다시 가입할 수 있습니다.")
+    end
+
+    it "hides empty pending and ban sections" do
+      sign_in user
+
+      get group_members_path(group)
+
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("h2").map(&:text)).not_to include("가입 승인 대기", "이용 제한 사용자")
+      expect(page.text).not_to include("대기 중인 가입 요청이 없습니다.", "현재 이용이 제한된 사용자가 없습니다.")
+    end
+
+    it "shows the operation suspension as the current group status" do
+      group.update!(operation_suspended_at: Time.current)
+      sign_in user
+
+      get group_members_path(group)
+
+      header = Nokogiri::HTML(response.body).at_css("section > section:first-child")
+      expect(header.text).to include(group.name, "승인 동아리", "운영 정지")
+      expect(header.text).not_to include("운영 중")
+    end
+
+    it "shows pending approval actions and the current ban reason with an unban link" do
+      pending_user = User.create!(name: "Pending member", email: "pending-ui@example.com", password: "password123!")
+      banned_user = User.create!(name: "Banned member", email: "banned-ui@example.com", password: "password123!")
+      pending_membership = group.group_memberships.create!(user: pending_user, status: :pending)
+      banned_membership = group.group_memberships.create!(user: banned_user, status: :active)
+      GroupMemberBans::Ban.new(banned_membership, actor: user, public_reason: "Current ban reason").call!
+      ban = group.group_member_bans.find_by!(user: banned_user)
+      sign_in user
+
+      get group_members_path(group)
+
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("h2").map(&:text)).to include("가입 승인 대기", "이용 제한 사용자")
+      expect(page.at_css(%(img[alt="#{pending_user.name}"]))).to be_present
+      expect(page.at_css(%(form[action="#{group_group_membership_path(group, pending_membership)}"]))).to be_present
+      expect(page.at_css(%(form[action="#{reject_group_group_membership_path(group, pending_membership)}"]))).to be_present
+      ban_row = page.at_css("#group_member_ban_#{ban.id}")
+      expect(ban_row.at_css(%(img[alt="#{banned_user.name}"]))).to be_present
+      expect(ban_row.text).to include("동아리 이용 제한", "Current ban reason")
+      expect(ban_row.element_children.first.at_css(%(a[data-member-action="unban_from_group"][href="#{new_group_group_member_ban_restoration_path(group, ban)}"]))).to be_present
+    end
+
+    it "shows a suspended member's current reason and restore action" do
+      membership = group.group_memberships.find_by!(user: member)
+      GroupMemberships::SuspendActivity.new(membership, actor: user, public_reason: "Current suspension reason").call!
+      sign_in user
+
+      get group_members_path(group)
+
+      member_row = Nokogiri::HTML(response.body).at_css("#group_membership_#{membership.id}")
+      expect(member_row.text).to include("활동 정지", "공개 사유", "Current suspension reason")
+      expect(member_row.at_css(%(a[href="#{new_group_group_membership_activity_restoration_path(group, membership)}"]))).to be_present
+      expect(member_row.at_css(%(a[href="#{new_group_group_membership_activity_suspension_path(group, membership)}"]))).to be_nil
     end
 
     it "keeps membership management off the group detail" do
@@ -864,8 +949,8 @@ RSpec.describe "Groups", type: :request do
 
       get group_members_path(group)
       members_page = Nokogiri::HTML(response.body)
-      expect(response.body).to include("동아리 관리자", "현재 관리자: #{user.name}")
-      expect(members_page.at_css(%(a[href="#{new_group_admin_transfer_path(group)}"]))).to be_present
+      expect(members_page.at_css("section > section:first-child").text).to include("현재 관리자", user.name)
+      expect(members_page.at_css("#group_membership_#{former_admin_membership.id} a[href='#{new_group_admin_transfer_path(group)}']")).to be_present
       expect(members_page.at_css(%(form[action="#{group_admin_transfers_path(group)}"]))).to be_nil
 
       get new_group_admin_transfer_path(group)

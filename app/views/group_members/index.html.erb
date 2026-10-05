@@ -1,86 +1,103 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
   <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-    <p class="text-xs font-semibold uppercase tracking-wider text-amber-700"><%= t("groups.types.#{@group.group_type}") %></p>
-    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= t("groups.members.management_title") %></h1>
-    <p class="mt-2 text-sm text-stone-600"><%= @group.name %> · <%= t("groups.lifecycle_statuses.#{@group.lifecycle_status}") %></p>
+    <p class="text-xs font-semibold uppercase tracking-wider text-amber-700"><%= t("groups.members.management_title") %></p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= @group.name %></h1>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"><%= t("groups.types.#{@group.group_type}") %></span>
+      <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">
+        <%= @group.active? && @group.operation_suspended? ? t("groups.operation_suspension.label") : t("groups.lifecycle_statuses.#{@group.lifecycle_status}") %>
+      </span>
+    </div>
+    <div class="mt-6 border-t border-stone-100 pt-4">
+      <p class="text-xs font-medium text-stone-500"><%= t("groups.members.current_admin") %></p>
+      <div class="mt-2 flex items-center gap-3">
+        <%= user_avatar_image(@group.group_admin, size: 128, alt: @group.group_admin.name, class: "h-10 w-10 rounded-full object-cover") %>
+        <span class="text-sm font-medium text-stone-800"><%= @group.group_admin.name %></span>
+        <span class="rounded-full bg-stone-100 px-2 py-1 text-xs font-medium text-stone-700"><%= t("groups.members.roles.admin") %></span>
+      </div>
+    </div>
   </section>
 
   <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-    <h2 class="text-xl font-semibold text-stone-900"><%= t("groups.members.active_title") %></h2>
+    <h2 class="text-xl font-semibold text-stone-900"><%= t("groups.members.management_title") %></h2>
     <div id="current-members" class="mt-4 divide-y divide-stone-100">
       <% @active_memberships.each do |membership| %>
         <% membership_policy = policy(membership) %>
         <% current_suspension = @current_activity_suspensions_by_membership_id[membership.id] %>
-        <div id="<%= dom_id(membership) %>" class="py-4">
-          <div>
-            <span class="text-sm font-medium text-stone-800"><%= membership.user.name %></span>
-            <span class="ml-2 text-xs text-stone-500"><%= t(membership.user_id == @group.group_admin_id ? "group_memberships.statuses.group_admin" : "groups.members.active_title") %></span>
-            <% if membership.activity_suspended? %>
-              <span class="ml-2 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700"><%= t("group_memberships.moderation.statuses.activity_suspended") %></span>
-            <% end %>
-          </div>
+        <div id="<%= dom_id(membership) %>" class="py-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-3">
+              <%= user_avatar_image(membership.user, size: 128, alt: membership.user.name, class: "h-10 w-10 rounded-full object-cover") %>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm font-medium text-stone-800"><%= membership.user.name %></span>
+                <span class="rounded-full bg-stone-100 px-2 py-1 text-xs font-medium text-stone-700"><%= t(membership.user_id == @group.group_admin_id ? "groups.members.roles.admin" : "groups.members.roles.member") %></span>
+                <% if membership.activity_suspended? %>
+                  <span class="rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700"><%= t("group_memberships.management.actions.suspend_activity") %></span>
+                <% end %>
+              </div>
+            </div>
 
-          <% if current_suspension.present? %>
-            <p class="mt-3 text-sm text-stone-600">
-              <span class="font-medium text-stone-800"><%= t("group_memberships.moderation.public_reason") %>:</span>
-              <span class="whitespace-pre-wrap"><%= current_suspension.public_reason %></span>
-            </p>
-          <% end %>
-
-          <% if membership_policy.suspend_activity? || membership_policy.restore_activity? || membership_policy.remove? || membership_policy.ban_from_group? %>
-            <section id="member-management-<%= membership.id %>" class="mt-4" data-member-management>
-              <h3 class="text-sm font-semibold text-stone-900"><%= t("groups.members.management_title") %></h3>
-              <div class="mt-2 grid gap-3 md:grid-cols-3">
+            <% if membership.user_id == @group.group_admin_id %>
+              <% if @group.group_admin?(current_user) && policy(@group).transfer_admin? %>
+                <%= link_to t("groups.admin_transfer.submit"),
+                            new_group_admin_transfer_path(@group),
+                            class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+              <% end %>
+            <% elsif membership_policy.suspend_activity? || membership_policy.restore_activity? || membership_policy.remove? || membership_policy.ban_from_group? %>
+              <div id="member-management-<%= membership.id %>" class="flex flex-wrap items-center gap-2" data-member-management>
                 <%= render "group_members/activity_moderation", membership:, membership_policy: %>
 
                 <% if membership_policy.remove? %>
-                  <div class="rounded-2xl border border-stone-200 p-4" data-member-action="remove">
-                    <h4 class="text-sm font-semibold text-stone-800"><%= t("group_memberships.management.actions.remove") %></h4>
-                    <p class="mt-3 text-sm text-stone-600"><%= t("group_memberships.management.descriptions.remove") %></p>
-                    <%= button_to t("group_memberships.actions.remove"),
-                                  remove_group_group_membership_path(@group, membership),
-                                  method: :delete,
-                                  class: "mt-3 rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700" %>
-                  </div>
+                  <%= button_to t("group_memberships.actions.remove"),
+                                remove_group_group_membership_path(@group, membership),
+                                method: :delete,
+                                class: "rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700",
+                                data: { member_action: "remove" } %>
                 <% end %>
 
                 <%= render "group_members/ban_action", membership:, membership_policy: %>
               </div>
-            </section>
+            <% end %>
+          </div>
+
+          <% if current_suspension.present? %>
+            <p class="mt-2 text-sm text-stone-600 sm:pl-[3.25rem]">
+              <span class="font-medium text-stone-800"><%= t("group_memberships.moderation.public_reason") %>:</span>
+              <span class="whitespace-pre-wrap"><%= current_suspension.public_reason %></span>
+            </p>
           <% end %>
         </div>
       <% end %>
     </div>
   </section>
 
-  <% if @group.approval_group? %>
+  <% if @pending_memberships.any? %>
     <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
       <h2 class="text-xl font-semibold text-stone-900"><%= t("groups.pending.title") %></h2>
-      <% if @pending_memberships.any? %>
-        <div class="mt-4 divide-y divide-stone-100">
-          <% @pending_memberships.each do |membership| %>
-            <div class="flex items-center justify-between gap-4 py-3">
+      <div class="mt-4 divide-y divide-stone-100">
+        <% @pending_memberships.each do |membership| %>
+          <div class="flex flex-wrap items-center justify-between gap-3 py-3">
+            <div class="flex items-center gap-3">
+              <%= user_avatar_image(membership.user, size: 128, alt: membership.user.name, class: "h-10 w-10 rounded-full object-cover") %>
               <span class="text-sm font-medium text-stone-800"><%= membership.user.name %></span>
-              <div class="flex gap-2">
-                <% if policy(membership).approve? %>
-                  <%= button_to t("group_memberships.actions.approve"),
-                                group_group_membership_path(@group, membership),
-                                method: :patch,
-                                class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
-                <% end %>
-                <% if policy(membership).reject? %>
-                  <%= button_to t("group_memberships.actions.reject"),
-                                reject_group_group_membership_path(@group, membership),
-                                method: :delete,
-                                class: "rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700" %>
-                <% end %>
-              </div>
             </div>
-          <% end %>
-        </div>
-      <% else %>
-        <p class="mt-4 text-sm text-stone-500"><%= t("groups.pending.empty") %></p>
-      <% end %>
+            <div class="flex flex-wrap gap-2">
+              <% if policy(membership).approve? %>
+                <%= button_to t("group_memberships.actions.approve"),
+                              group_group_membership_path(@group, membership),
+                              method: :patch,
+                              class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+              <% end %>
+              <% if policy(membership).reject? %>
+                <%= button_to t("group_memberships.actions.reject"),
+                              reject_group_group_membership_path(@group, membership),
+                              method: :delete,
+                              class: "rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700" %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
     </section>
   <% end %>
 
@@ -92,7 +109,10 @@
         <div class="mt-2 divide-y divide-stone-100">
           <% @sent_invitations.each do |membership| %>
             <div class="flex items-center justify-between gap-4 py-3">
-              <span class="text-sm font-medium text-stone-800"><%= membership.user.name %></span>
+              <div class="flex items-center gap-3">
+                <%= user_avatar_image(membership.user, size: 128, alt: membership.user.name, class: "h-10 w-10 rounded-full object-cover") %>
+                <span class="text-sm font-medium text-stone-800"><%= membership.user.name %></span>
+              </div>
               <% if @group.active? && policy(membership).revoke? %>
                 <%= button_to t("group_memberships.actions.revoke"),
                               revoke_group_group_membership_path(@group, membership),
@@ -108,43 +128,34 @@
     </section>
   <% end %>
 
-  <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-    <h2 class="text-xl font-semibold text-stone-900"><%= t("group_member_bans.title") %></h2>
-    <% if @group_member_bans.any? %>
+  <% if @group_member_bans.any? %>
+    <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-semibold text-stone-900"><%= t("group_member_bans.title") %></h2>
       <div class="mt-4 divide-y divide-stone-100">
         <% @group_member_bans.each do |ban| %>
           <% ban_action = @ban_actions_by_id[ban.id] %>
           <div id="<%= dom_id(ban) %>" class="py-4">
-            <div class="flex items-center justify-between gap-4">
-              <div>
-                <span class="text-sm font-medium text-stone-800"><%= ban.user.name %></span>
-                <span class="ml-2 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700"><%= t("group_member_bans.status") %></span>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex min-w-0 items-center gap-3">
+                <%= user_avatar_image(ban.user, size: 128, alt: ban.user.name, class: "h-10 w-10 rounded-full object-cover") %>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-sm font-medium text-stone-800"><%= ban.user.name %></span>
+                  <span class="rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700"><%= t("group_member_bans.status") %></span>
+                </div>
               </div>
+              <% if policy(ban).unban? %>
+                <%= link_to t("group_member_bans.moderation.unban.submit"),
+                            new_group_group_member_ban_restoration_path(@group, ban),
+                            class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700",
+                            data: { member_action: "unban_from_group" } %>
+              <% end %>
             </div>
             <% if ban_action.present? %>
-              <p class="mt-2 whitespace-pre-wrap text-sm text-stone-600"><%= t("group_memberships.moderation.public_reason") %>: <%= ban_action.public_reason %></p>
-            <% end %>
-            <% if policy(ban).unban? %>
-              <%= link_to t("group_member_bans.moderation.unban.submit"),
-                          new_group_group_member_ban_restoration_path(@group, ban),
-                          class: "mt-3 inline-block rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700",
-                          data: { member_action: "unban_from_group" } %>
+              <p class="mt-2 pl-[3.25rem] whitespace-pre-wrap text-sm text-stone-600"><%= t("group_memberships.moderation.public_reason") %>: <%= ban_action.public_reason %></p>
             <% end %>
           </div>
         <% end %>
       </div>
-    <% else %>
-      <p class="mt-4 text-sm text-stone-500"><%= t("group_member_bans.empty") %></p>
-    <% end %>
-  </section>
-
-  <% if policy(@group).transfer_admin? %>
-    <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-      <h2 class="text-xl font-semibold text-stone-900"><%= t("groups.admin_transfer.title") %></h2>
-      <p class="mt-2 text-sm text-stone-600"><%= t("groups.admin_transfer.current", name: @group.group_admin.name) %></p>
-      <%= link_to t("groups.admin_transfer.submit"),
-                  new_group_admin_transfer_path(@group),
-                  class: "mt-5 inline-block rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
     </section>
   <% end %>
 

@@ -681,11 +681,9 @@ RSpec.describe "Group memberships", type: :request do
       expect(management.css("[data-member-action]").map { |action| action["data-member-action"] }).to eq(
         %w[suspend_activity remove ban_from_group]
       )
-      expect(management.css("[data-member-action] > h4").map { |heading| heading.text.strip }).to eq(
-        [ "활동 정지", "내보내기", "이용 제한" ]
-      )
+      expect(management.text).to include("활동 정지", "내보내기", "동아리 이용 제한")
       expect(management.css("details, summary")).to be_empty
-      expect(management.text).to include(
+      expect(management.text).not_to include(
         "회원 자격은 유지하고 동아리 활동만 정지합니다.",
         "동아리에서 내보냅니다. 다시 가입할 수 있습니다.",
         "동아리에서 내보내고 제한을 해제하기 전까지 다시 가입할 수 없습니다."
@@ -709,8 +707,16 @@ RSpec.describe "Group memberships", type: :request do
       expect(response).to redirect_to(group_members_path(group))
 
       get group_members_path(group)
-      expect(response.body).to include("동아리 활동 정지", "Community rule", "Case 10", group_admin.name)
+      page = Nokogiri::HTML(response.body)
+      member_card = page.at_css("#group_membership_#{membership.id}")
+      history = page.at_css("#membership-operations-history")
 
+      expect(member_card.text).to include("활동 정지", "Community rule")
+      expect(history.text).to include(
+        "#{group_admin.name}님이 #{member.name}님의 동아리 활동을 정지했습니다.",
+        "Community rule",
+        "Case 10"
+      )
       sign_in group_admin
       post group_group_membership_activity_restorations_path(group, membership), params: {
         moderation_action: { public_reason: "Restored", internal_note: "Reviewed" }
@@ -1183,13 +1189,11 @@ RSpec.describe "Group memberships", type: :request do
       management = page.at_css("#group_membership_#{membership.id} [data-member-management]")
       history = page.at_css("#membership-operations-history")
 
-      expect(current_members.text).to include(member.name, "동아리 활동 정지", "Current public reason", "활동 복구")
+      expect(current_members.text).to include(member.name, "활동 정지", "Current public reason", "활동 복구")
       expect(management.css("[data-member-action]").map { |action| action["data-member-action"] }).to eq(
         %w[restore_activity remove ban_from_group]
       )
-      expect(management.css("[data-member-action] > h4").map { |heading| heading.text.strip }).to eq(
-        [ "활동 복구", "내보내기", "이용 제한" ]
-      )
+      expect(management.text).to include("활동 복구", "내보내기", "동아리 이용 제한")
       expect(management.css("details, summary")).to be_empty
       restore_link = management.at_css("a[href='#{new_group_group_membership_activity_restoration_path(group, membership)}']")
       ban_link = management.at_css("a[href='#{new_group_group_membership_member_ban_path(group, membership)}']")

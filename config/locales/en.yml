@@ -220,6 +220,10 @@ en:
       empty: "No join requests are pending."
     members:
       management_title: "Member management"
+      current_admin: "Current admin"
+      roles:
+        admin: "Admin"
+        member: "Member"
       active_title: "Active members"
       back: "Back to club"
       history:

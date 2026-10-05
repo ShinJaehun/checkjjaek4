@@ -41,7 +41,7 @@ RSpec.describe "Group membership activity actions", type: :request do
     get group_members_path(group)
     page = Nokogiri::HTML(response.body)
     member_card = page.at_css("#group_membership_#{membership.id}")
-    expect(member_card.text).to include("동아리 활동 정지", "Community rule")
+    expect(member_card.text).to include("활동 정지", "Community rule")
     expect(member_card.at_css("a[href='#{new_group_group_membership_activity_restoration_path(group, membership)}']")).to be_present
     expect(member_card.at_css("[data-member-action='restore_activity'] form")).to be_nil
     expect(member_card.at_css("[data-member-action='suspend_activity']")).to be_nil

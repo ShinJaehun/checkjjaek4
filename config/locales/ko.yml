@@ -223,6 +223,10 @@ ko:
       empty: "대기 중인 가입 요청이 없습니다."
     members:
       management_title: "회원 관리"
+      current_admin: "현재 관리자"
+      roles:
+        admin: "관리자"
+        member: "회원"
       active_title: "활동 회원"
       back: "동아리로 돌아가기"
       history:
