@@ -1,5 +1,7 @@
 module Admin
   module UsersHelper
+    include ::UsersHelper
+
     USER_STATUS_FILTERS = %w[active suspended withdrawn].freeze
     USER_ROLE_FILTERS = %w[global_admin group_admin regular].freeze
 
@@ -26,20 +28,8 @@ module Admin
       roles.presence || ["regular"]
     end
 
-    def admin_user_role_label(role)
-      t("admin.users.roles.#{role}")
-    end
-
-    def admin_user_role_badge_classes(role)
-      case role.to_s
-      when "global_admin" then "bg-amber-100 text-amber-900"
-      when "group_admin" then "bg-sky-100 text-sky-900"
-      else "bg-stone-100 text-stone-700"
-      end
-    end
-
     def admin_user_role_filter_options
-      USER_ROLE_FILTERS.map { |role| [admin_user_role_label(role), role] }
+      USER_ROLE_FILTERS.map { |role| [user_role_label(role), role] }
     end
   end
 end

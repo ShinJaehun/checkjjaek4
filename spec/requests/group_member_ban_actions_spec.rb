@@ -24,6 +24,10 @@ RSpec.describe "Group member ban actions", type: :request do
       "정상 활동",
       "회원을 동아리에서 내보내고 이용 제한을 해제하기 전까지 다시 참여하지 못하게 합니다."
     )
+    context = page.at_css("[data-member-action-context]")
+    expect(context.at_css(%(img[alt="#{member.name}"]))).to be_present
+    expect(context.at_css("[data-field='membership-status'] span")["class"]).to include("bg-emerald-100")
+    expect(context.at_css("[data-field='activity-status'] span")["class"]).to include("bg-emerald-100")
     form = page.at_css("form[action='#{group_group_membership_member_bans_path(group, membership)}']")
     expect(form.at_css("textarea[name='moderation_action[public_reason]'][required]")).to be_present
     expect(form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
@@ -103,6 +107,9 @@ RSpec.describe "Group member ban actions", type: :request do
     get new_group_group_member_ban_restoration_path(group, ban)
     page = Nokogiri::HTML(response.body)
     expect(page.text).to include(group.name, member.name, "동아리 이용 제한", "현재 이용 제한 조치")
+    context = page.at_css("[data-member-action-context]")
+    expect(context.at_css(%(img[alt="#{member.name}"]))).to be_present
+    expect(context.at_css("[data-field='restriction-status'] span")["class"]).to include("bg-red-50")
     ban_entry = page.at_css("[data-ban-history-entry='ban_from_group']")
     expect(ban_entry.text).to include(group_admin.name, member.name, "Original reason", "Original note")
     form = page.at_css("form[action='#{group_group_member_ban_restorations_path(group, ban)}']")

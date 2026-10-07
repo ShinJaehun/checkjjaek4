@@ -4,5 +4,11 @@
     <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
     <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
   </div>
-  <p class="mt-3 text-stone-600"><%= t("groups.group_admin_label") %>: <%= group.group_admin.name %></p>
+  <div class="mt-3">
+    <p class="text-xs font-medium text-stone-500"><%= t("groups.group_admin_label") %></p>
+    <div class="mt-2 flex items-center gap-2">
+      <%= user_avatar_image(group.group_admin, size: 128, alt: group.group_admin.name, class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
+      <span class="font-medium text-stone-800"><%= group.group_admin.name %></span>
+    </div>
+  </div>
 </div>

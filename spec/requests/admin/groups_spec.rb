@@ -169,6 +169,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(response).to have_http_status(:ok)
     approval_context = approval_page.at_css("[data-group-action-context]")
     expect(approval_context.text).to include(group.name, "동아리 관리자", group_admin.name)
+    expect(approval_context.at_css(%(img[alt="#{group_admin.name}"]))).to be_present
     expect(approval_context.at_css("[data-group-type='public_group']").text.strip).to eq(I18n.t("groups.types.public_group"))
     expect(approval_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.pending_approval"))
     expect(approval_context.at_css("[data-field='current-status']")["class"]).to include("bg-amber-100")
@@ -414,6 +415,7 @@ RSpec.describe "Admin group approvals", type: :request do
     suspension_page = Nokogiri::HTML(response.body)
     suspension_context = suspension_page.at_css("[data-group-action-context]")
     expect(suspension_context.text).to include(active_group.name, "동아리 관리자", group_admin.name)
+    expect(suspension_context.at_css(%(img[alt="#{group_admin.name}"]))).to be_present
     expect(suspension_context.at_css("[data-group-type='public_group']")).to be_present
     expect(suspension_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.active"))
     expect(suspension_context.at_css("[data-field='current-status']")["class"]).to include("bg-emerald-100")
@@ -445,6 +447,7 @@ RSpec.describe "Admin group approvals", type: :request do
     get new_admin_group_operation_restoration_path(active_group)
     restoration_page = Nokogiri::HTML(response.body)
     restoration_context = restoration_page.at_css("[data-group-action-context]")
+    expect(restoration_context.at_css(%(img[alt="#{group_admin.name}"]))).to be_present
     expect(restoration_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.suspended"))
     expect(restoration_context.at_css("[data-field='current-status']")["class"]).to include("bg-red-50")
     restore_form = restoration_page.at_css(%(form[action="#{admin_group_operation_restorations_path(active_group)}"]))

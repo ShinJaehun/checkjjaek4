@@ -1,6 +1,14 @@
 require "rails_helper"
 
 RSpec.describe UsersHelper, type: :helper do
+  it "provides shared user role labels and badge colors" do
+    expect(helper.user_role_badge_classes(:global_admin)).to include("bg-amber-100")
+    expect(helper.user_role_badge_classes(:group_admin)).to include("bg-sky-100")
+    expect(helper.user_role_badge_classes(:regular)).to include("bg-stone-100")
+    expect(helper.user_role_label(:group_admin)).to eq("동아리 관리자")
+    I18n.with_locale(:en) { expect(helper.user_role_label(:global_admin)).to eq("System admin") }
+  end
+
   it "returns a 128px default avatar path" do
     user = User.new(default_avatar_index: 7)
 

@@ -402,10 +402,6 @@ en:
         active: "Active"
         suspended: "Suspended"
         withdrawn: "Withdrawn by user"
-      roles:
-        global_admin: "System admin"
-        group_admin: "Club admin"
-        regular: "Regular user"
       sections:
         group_relationships: "Club relationships"
       empty:
@@ -1096,6 +1092,10 @@ en:
     formats:
       short: "%Y-%m-%d %H:%M"
   users:
+    roles:
+      global_admin: "System admin"
+      group_admin: "Club admin"
+      regular: "Regular user"
     suspension_reasons:
       repeated_policy_violations: "Repeated policy violations"
       spam_or_manipulation: "Spam or abnormal activity"
