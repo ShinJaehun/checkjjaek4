@@ -104,8 +104,58 @@ en:
     actions:
       search_books: "Search books"
       my_shelf: "Open my shelf"
+  pagination:
+    range: "%{first}–%{last} of %{total}"
+    previous: "Previous"
+    next: "Next"
+  content_statuses:
+    active: "Normal"
+    hidden: "Hidden"
+    deleted: "Deleted"
   groups:
     nav: "Clubs"
+    content_inventory:
+      title: "Group content management"
+      description: "Review this group's posts together with their comments."
+      back: "Back to group"
+      total_count: "%{count} posts"
+      navigation_label: "Content type"
+      navigation:
+        all: "All"
+        general: "Jjaeks"
+        book: "Book Jjaeks"
+        comments: "Comments"
+      kinds:
+        general: "Jjaek"
+        book: "Book Jjaek"
+        comments: "Comment"
+      fields:
+        kind: "Type"
+        author: "Author"
+        body: "Body"
+        reference: "Reference"
+        status: "Status"
+        created: "Created"
+        actions: "Actions"
+        sort: "Sort"
+      actions:
+        direct: "Open"
+        back_from_moderation: "Back to content management"
+      references:
+        book: "Book"
+      sorts:
+        recent: "Most recent activity"
+        oldest: "Oldest activity"
+      filters:
+        search: "Search author name or content"
+        apply: "Search"
+        reset: "Clear filters"
+      tombstones:
+        platform_hidden: "Content hidden by the platform"
+        deleted: "Deleted content"
+      pagination:
+        page: "Page %{current} of %{total}"
+      empty: "No matching group content."
     group_admin: "Club admin: %{name}"
     group_admin_label: "Club admin"
     active_member_count: "Members %{count}"
@@ -194,6 +244,7 @@ en:
       new: "Apply to open a club"
       create: "Submit application"
       edit: "Manage club"
+      manage_content: "Manage content"
       update: "Update club"
       cancel: "Cancel"
       back: "Back to clubs"
@@ -342,10 +393,6 @@ en:
         target: "Target"
         book: "Book"
         source: "Source"
-      statuses:
-        active: "Active"
-        hidden: "Moderation hidden"
-        deleted: "Deleted"
       filters:
         all: "All"
         search: "Search body"
@@ -387,10 +434,6 @@ en:
       recent: "Newest first"
       oldest: "Oldest first"
       name: "Name"
-    pagination:
-      range: "%{first}–%{last} of %{total}"
-      previous: "Previous"
-      next: "Next"
     users:
       nav: "Users"
       index:
@@ -692,6 +735,9 @@ en:
         restore_title: "Restore group comment"
         restore_description: "Lift the current hide and record a separate restoration reason."
         internal_note_hint: "Optional · Shown only to club operators."
+        actions:
+          hide: "Hide"
+          restore: "Restore"
       notices:
         hidden: "Comment hidden."
         restored: "Comment restored."

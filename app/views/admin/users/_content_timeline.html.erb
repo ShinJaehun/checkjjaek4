@@ -24,6 +24,13 @@
             else
               truncate(record.content.to_s, length: 140, omission: " [...]").presence || "-"
             end
+            status = if item.record_type == "Jjaek" && record.deleted?
+              :deleted
+            elsif record.hidden?
+              :hidden
+            else
+              :active
+            end
           %>
           <tr id="timeline_<%= item.record_type.downcase %>_<%= record.id %>"
               class="border-b border-stone-100 align-middle hover:bg-stone-50/60 last:border-b-0"
@@ -74,19 +81,7 @@
               <% end %>
             </td>
             <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
-              <% if item.record_type == "Jjaek" && record.deleted? %>
-                <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:deleted) %>">
-                  <%= admin_content_status_label(:deleted) %>
-                </span>
-              <% elsif record.hidden? %>
-                <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:hidden) %>">
-                  <%= admin_content_status_label(:hidden) %>
-                </span>
-              <% else %>
-                <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:active) %>">
-                  <%= admin_content_status_label(:active) %>
-                </span>
-              <% end %>
+              <%= content_status_badge(status) %>
             </td>
             <td class="px-4 py-3.5 align-middle whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
             <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="actions">
@@ -110,5 +105,5 @@
     <% end %>
   </div>
 
-  <%= render "admin/shared/pagination", page: page, page_param: :all_page %>
+  <%= render "shared/pagination", page: page, page_param: :all_page %>
 </section>

@@ -12,7 +12,7 @@
   <% end %>
 
   <%= render "form" %>
-  <%= link_to t("comments.moderation.cancel"),
-              jjaek_path(@jjaek, anchor: dom_id(@comment)),
+  <%= link_to @group_content_return ? t("groups.content_inventory.actions.back_from_moderation") : t("comments.moderation.cancel"),
+              @return_path,
               class: "mt-5 inline-block text-sm font-medium text-stone-600 underline" %>
 </section>

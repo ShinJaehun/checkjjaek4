@@ -1,6 +1,6 @@
 <%= form_with model: @moderation_action,
               scope: :moderation_action,
-              url: jjaek_group_restorations_path(@jjaek),
+              url: jjaek_group_restorations_path(@jjaek, @return_context_params),
               method: :post,
               class: "mt-6 space-y-4" do |form| %>
   <div class="space-y-2">

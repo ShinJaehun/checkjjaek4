@@ -19,7 +19,7 @@ RSpec.describe Admin::ContentHelper, type: :helper do
   it "keeps hidden and deleted status badges distinct" do
     expect(helper.admin_content_status_label(:hidden)).to eq("숨김")
     expect(helper.admin_content_status_badge_classes(:hidden)).to include("bg-red-100")
-    expect(helper.admin_content_status_label(:deleted)).to eq("삭제")
+    expect(helper.admin_content_status_label(:deleted)).to eq("삭제됨")
     expect(helper.admin_content_status_badge_classes(:deleted)).to include("bg-stone-200")
   end
 end

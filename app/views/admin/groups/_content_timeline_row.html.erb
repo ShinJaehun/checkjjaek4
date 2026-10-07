@@ -6,6 +6,13 @@
   else
     truncate(record.content.to_s, length: 140, omission: " [...]").presence || "-"
   end
+  status = if root_row && record.deleted?
+    :deleted
+  elsif record.hidden?
+    :hidden
+  else
+    :active
+  end
 %>
 
 <tr id="group_timeline_<%= record_type.downcase %>_<%= record.id %>"
@@ -38,19 +45,7 @@
     <% end %>
   </td>
   <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
-    <% if root_row && record.deleted? %>
-      <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:deleted) %>">
-        <%= admin_content_status_label(:deleted) %>
-      </span>
-    <% elsif record.hidden? %>
-      <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:hidden) %>">
-        <%= admin_content_status_label(:hidden) %>
-      </span>
-    <% else %>
-      <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:active) %>">
-        <%= admin_content_status_label(:active) %>
-      </span>
-    <% end %>
+    <%= content_status_badge(status) %>
   </td>
   <td class="px-4 py-3.5 align-middle whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
   <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="actions">

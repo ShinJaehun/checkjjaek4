@@ -1,5 +1,7 @@
 module Comments
   class GroupRestorationsController < ApplicationController
+    include GroupContentReturnContext
+
     before_action :prepare_page
 
     def new; end
@@ -9,7 +11,7 @@ module Comments
       @moderation_action.assign_attributes(action_params)
       Comments::Restore.new(@comment, actor: current_user, **action_params).call!
 
-      redirect_to return_path, notice: t("comments.moderation.notices.restored")
+      redirect_to @return_path, notice: t("comments.moderation.notices.restored")
     rescue Comments::Restore::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
       @comment.reload
       @current_hide_action = @comment.current_hide_action
@@ -32,14 +34,12 @@ module Comments
       authorize @comment, :restore_as_group_admin?
       @current_hide_action = @comment.current_hide_action
       @moderation_action = ModerationAction.new
+      prepare_group_content_return(default_path: jjaek_path(@jjaek, anchor: ActionView::RecordIdentifier.dom_id(@comment)))
     end
 
     def moderation_action_params
       params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
     end
 
-    def return_path
-      jjaek_path(@jjaek, anchor: ActionView::RecordIdentifier.dom_id(@comment))
-    end
   end
 end

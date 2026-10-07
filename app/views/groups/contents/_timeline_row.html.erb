@@ -1,0 +1,54 @@
+<%
+  root_row = record == root
+  kind = root_row ? (record.book_id.present? ? "book" : "general") : "comments"
+  status = group_content_status(record)
+  body_visible = group_content_body_visible?(record)
+  record_policy = policy(record)
+%>
+
+<tr id="group_content_<%= root_row ? 'jjaek' : 'comment' %>_<%= record.id %>"
+    class="border-b border-stone-100 align-middle hover:bg-stone-50/60 last:border-b-0"
+    data-thread-row="<%= root_row ? 'root' : 'comment' %>"
+    data-content-kind="<%= kind %>">
+  <td class="<%= root_row ? 'py-3.5 pr-4 pl-6' : 'px-4 py-3.5' %> whitespace-nowrap">
+    <span class="rounded-full px-2 py-1 text-xs font-medium <%= content_kind_badge_classes(kind) %>">
+      <%= t("groups.content_inventory.kinds.#{kind}") %>
+    </span>
+  </td>
+  <td class="px-4 py-3.5" data-field="author">
+    <div class="flex items-center gap-2">
+      <%= user_avatar_image(record.user, size: 128, alt: record.user.name,
+                            class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
+      <span class="text-sm font-medium text-stone-800"><%= record.user.name %></span>
+    </div>
+  </td>
+  <td class="px-4 py-3.5 leading-6 text-stone-800" data-field="body"><%= group_content_body(record, visible: body_visible) %></td>
+  <td class="px-4 py-3.5 leading-6" data-field="reference">
+    <% if root_row && kind == "book" && body_visible && record.book %>
+      <span class="text-stone-500"><%= t("groups.content_inventory.references.book") %> ·</span>
+      <%= link_to record.book.title, book_path(record.book), class: "text-stone-700 underline" %>
+    <% end %>
+  </td>
+  <td class="px-4 py-3.5 whitespace-nowrap" data-field="status">
+    <%= content_status_badge(status) %>
+  </td>
+  <td class="px-4 py-3.5 whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
+  <td class="px-4 py-3.5 whitespace-nowrap" data-field="actions">
+    <% if direct_linkable %>
+      <div class="flex flex-wrap items-center gap-2">
+        <%= link_to t("groups.content_inventory.actions.direct"),
+                    root_row ? jjaek_path(root) : jjaek_path(root, anchor: dom_id(record)),
+                    class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+        <% if record_policy.hide_as_group_admin? %>
+          <%= link_to t(root_row ? "jjaeks.moderation.group_admin.actions.hide" : "comments.moderation.group_admin.actions.hide"),
+                      root_row ? new_jjaek_group_hide_path(record, moderation_return_params) : new_jjaek_comment_group_hide_path(root, record, moderation_return_params),
+                      class: "inline-flex rounded-full bg-amber-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-900" %>
+        <% elsif record_policy.restore_as_group_admin? %>
+          <%= link_to t(root_row ? "jjaeks.moderation.group_admin.actions.restore" : "comments.moderation.group_admin.actions.restore"),
+                      root_row ? new_jjaek_group_restoration_path(record, moderation_return_params) : new_jjaek_comment_group_restoration_path(root, record, moderation_return_params),
+                      class: "inline-flex rounded-full border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+        <% end %>
+      </div>
+    <% end %>
+  </td>
+</tr>

@@ -216,6 +216,8 @@ RSpec.describe "Groups", type: :request do
     expect(title_card.at_css("span.bg-stone-900")).to be_nil
     expect(title_card.at_css(%(a[href="#{group_members_path(group)}"]))).to be_present
     expect(title_card.at_css(%(a[href="#{edit_group_path(group)}"]))).to be_present
+    content_link = title_card.at_css(%(a[href="#{content_group_path(group)}"]))
+    expect(content_link.text.strip).to eq(I18n.t("groups.actions.manage_content"))
   end
 
   it "shows joined group activity in stable reverse chronological order" do
@@ -741,6 +743,8 @@ RSpec.describe "Groups", type: :request do
       get group_path(pending_group)
       expect(response.body).not_to include("Initial purpose")
       expect(response.body).to include("동아리 관리")
+      pending_title_card = Nokogiri::HTML(response.body).at_css("section > section:first-child")
+      expect(pending_title_card.at_css(%(a[href="#{content_group_path(pending_group)}"]))).to be_nil
 
       get edit_group_path(pending_group)
       page = Nokogiri::HTML(response.body)
@@ -815,6 +819,7 @@ RSpec.describe "Groups", type: :request do
       get group_path(group)
       page = Nokogiri::HTML(response.body)
       expect(page.at_css(%(a[href="#{edit_group_path(group)}"]))).to be_nil
+      expect(page.at_css(%(a[href="#{content_group_path(group)}"]))).to be_nil
       expect(response.body).not_to include("회원 관리", "내보내기")
     end
 

@@ -30,6 +30,7 @@ Rails.application.routes.draw do
     end
   end
   resources :groups, only: %i[index show new create edit update] do
+    get :content, on: :member, to: "groups/contents#index"
     resources :members, only: :index, controller: "group_members"
     resources :closures, only: %i[new create], module: :groups
     resources :reactivation_requests, only: %i[new create], module: :groups

@@ -423,7 +423,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(comment_row.at_css("[data-field='reference']").text).to include("원문", group_admin.name, source.content)
     expect(comment_row.at_css("[data-field='reference']").text).not_to include("짹 ·", "책짹 ·", "다시짹 ·")
     expect(deleted_comment_source_row.at_css("[data-field='reference']").text).to include(group_admin.name, "-")
-    expect(timeline.at_css("#timeline_jjaek_#{deleted_jjaek.id} [data-field='status']").text.strip).to eq("삭제")
+    expect(timeline.at_css("#timeline_jjaek_#{deleted_jjaek.id} [data-field='status']").text.strip).to eq("삭제됨")
     expect(timeline.at_css("#timeline_jjaek_#{deleted_jjaek.id} [data-field='status'] span")["class"]).to include("bg-stone-200")
     expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status']").text.strip).to eq("숨김")
     expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status'] span")["class"]).to include("bg-red-100")
@@ -503,7 +503,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(document.at_css("input[type='hidden'][name='content']")).to be_present
     expect(document.at_css("select[name='status']")).to be_present
     expect(document.css("select[name='status'] option").map { |option| option.text.strip }).to eq(
-      [ "전체", "정상", "숨김", "삭제" ]
+      [ "전체", "정상", "숨김", "삭제됨" ]
     )
     expect(document.at_css("select[name='sort']")).to be_present
 
