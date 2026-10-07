@@ -106,6 +106,8 @@ en:
       my_shelf: "Open my shelf"
   groups:
     nav: "Clubs"
+    content_inventory:
+      title: "Group content management"
     group_admin: "Club admin: %{name}"
     group_admin_label: "Club admin"
     active_member_count: "Members %{count}"

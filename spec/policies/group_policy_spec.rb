@@ -152,6 +152,47 @@ RSpec.describe GroupPolicy do
     end
   end
 
+  describe "#view_content_inventory?" do
+    let(:group) { Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Content inventory", group_type: :private_group) }
+
+    it "allows the current group admin in active and inactive groups, including operation suspension" do
+      expect(described_class.new(group_admin, group).view_content_inventory?).to be(true)
+
+      group.update!(operation_suspended_at: Time.current)
+      expect(described_class.new(group_admin, group).view_content_inventory?).to be(true)
+
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      expect(described_class.new(group_admin, group).view_content_inventory?).to be(true)
+    end
+
+    it "rejects a pending group's admin" do
+      pending = Group.create!(group_admin: group_admin, name: "Pending content", group_type: :private_group, application_purpose: "Read together")
+
+      expect(described_class.new(group_admin, pending).view_content_inventory?).to be(false)
+
+      pending.update!(operation_suspended_at: Time.current)
+      expect(described_class.new(group_admin, pending).view_content_inventory?).to be(false)
+    end
+
+    it "rejects members, other group admins, global admins without the group relationship, and guests" do
+      group.group_memberships.create!(user: viewer, status: :active)
+      other_admin = User.create!(name: "Other admin", email: "content-policy-other-admin@example.com", password: "password123!")
+      Group.create!(lifecycle_status: :active, group_admin: other_admin, name: "Other group", group_type: :public_group)
+      global_admin = User.create!(name: "Global admin", email: "content-policy-global-admin@example.com", password: "password123!", global_admin: true)
+
+      [ viewer, other_admin, global_admin, nil ].each do |actor|
+        expect(described_class.new(actor, group).view_content_inventory?).to be(false)
+      end
+    end
+
+    it "allows a global admin only when they are the group's current admin" do
+      global_admin = User.create!(name: "Global admin", email: "content-policy-global-owner@example.com", password: "password123!", global_admin: true)
+      owned_group = Group.create!(lifecycle_status: :active, group_admin: global_admin, name: "Globally owned", group_type: :private_group)
+
+      expect(described_class.new(global_admin, owned_group).view_content_inventory?).to be(true)
+    end
+  end
+
   describe "#transfer_admin?" do
     it "allows the current admin and global admin for active or inactive groups" do
       admin = User.create!(name: "Global admin", email: "transfer-policy-admin@example.com", password: "password123!", password_confirmation: "password123!", global_admin: true)

@@ -54,6 +54,10 @@ class GroupPolicy < ApplicationPolicy
     user.present? && (record.group_admin?(user) || operational_investigator?)
   end
 
+  def view_content_inventory?
+    user.present? && record.group_admin?(user) && (record.active? || record.inactive?)
+  end
+
   def close?
     user.present? && record.operation_active? && record.active? && record.group_admin?(user)
   end

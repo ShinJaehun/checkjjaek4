@@ -106,6 +106,8 @@ ko:
       my_shelf: "내 서재 보기"
   groups:
     nav: "동아리"
+    content_inventory:
+      title: "동아리 콘텐츠 관리"
     group_admin: "동아리 관리자: %{name}"
     group_admin_label: "동아리 관리자"
     active_member_count: "회원 %{count}명"
