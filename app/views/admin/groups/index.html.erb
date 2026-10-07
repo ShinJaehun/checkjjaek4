@@ -48,7 +48,6 @@
       <thead class="bg-stone-50/80 text-xs font-semibold text-stone-500">
         <tr class="border-b border-stone-200 text-left">
           <th class="px-4 py-3"><%= t("admin.groups.fields.name") %></th>
-          <th class="px-4 py-3"><%= t("admin.groups.fields.status") %></th>
           <th class="px-4 py-3"><%= t("groups.group_admin_label") %></th>
           <th class="px-4 py-3"><%= t("admin.groups.fields.active_members") %></th>
           <th class="px-4 py-3"><%= t("admin.groups.fields.latest_activity") %></th>
@@ -60,22 +59,32 @@
         <% @groups.each do |group| %>
           <% latest_activity = @latest_activities_by_group_id[group.id] %>
           <tr id="<%= dom_id(group) %>" class="border-b border-stone-100 hover:bg-stone-50/60 last:border-b-0">
-            <td class="px-4 py-3.5">
-              <div class="flex items-center gap-2 whitespace-nowrap">
-                <span class="font-medium text-stone-900"><%= group.name %></span>
+            <td class="px-4 py-3.5" data-field="group-name">
+              <%= link_to group.name,
+                          group_path(group),
+                          class: "block max-w-56 truncate font-medium text-stone-900 underline-offset-2 hover:underline",
+                          data: { group_name: true },
+                          title: group.name %>
+              <div class="mt-1.5 flex items-center gap-1.5 whitespace-nowrap">
                 <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>">
                   <%= group_type_label(group) %>
                 </span>
+                <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status">
+                  <%= group_current_status_label(group) %>
+                </span>
               </div>
             </td>
-            <td class="px-4 py-3.5 whitespace-nowrap" data-field="current-status">
-              <span class="rounded-full px-2 py-1 <%= group_status_badge_classes(group) %>">
-                <%= group_current_status_label(group) %>
-              </span>
-            </td>
-            <td class="px-4 py-3.5">
-              <%= group.group_admin.name %><br>
-              <span class="text-xs text-stone-500"><%= group.group_admin.withdrawn? ? "-" : group.group_admin.email %></span>
+            <td class="px-4 py-3.5" data-field="group-admin">
+              <div class="flex items-center gap-2">
+                <%= user_avatar_image(group.group_admin,
+                                      size: 128,
+                                      alt: group.group_admin.name,
+                                      class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
+                <div>
+                  <%= group.group_admin.name %><br>
+                  <span class="text-xs text-stone-500"><%= group.group_admin.withdrawn? ? "-" : group.group_admin.email %></span>
+                </div>
+              </div>
             </td>
             <td class="px-4 py-3.5"><%= group.active_members_count %></td>
             <td class="px-4 py-3.5 whitespace-nowrap" data-field="latest-activity">
@@ -92,16 +101,19 @@
               <% end %>
             </td>
             <td class="px-4 py-3.5 whitespace-nowrap"><%= l(group.created_at, format: :short) %></td>
-            <td class="px-4 py-3.5">
+            <td class="px-4 py-3.5" data-field="actions">
               <div class="flex flex-wrap gap-2">
-                <%= link_to t("admin.groups.actions.show"),
+                <%= link_to t("admin.groups.index.actions.show"),
                             admin_group_path(group, request.query_parameters),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
-                <%= link_to t("admin.groups.actions.activity"),
+                <%= link_to t("admin.groups.index.actions.content"),
                             content_admin_group_path(group, request.query_parameters),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+                <%= link_to t("admin.groups.index.actions.members"),
+                            group_members_path(group, context: "admin"),
+                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
                 <% if policy(group).approve? %>
-                  <%= link_to t("admin.groups.actions.approve"),
+                  <%= link_to t("admin.groups.index.actions.approve"),
                               new_admin_group_approval_path(group, request.query_parameters.merge(return_to: "inventory")),
                               class: "rounded-xl bg-stone-900 px-3 py-1.5 text-xs font-medium text-white" %>
                 <% end %>

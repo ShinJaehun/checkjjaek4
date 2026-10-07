@@ -371,8 +371,8 @@ ko:
       empty: "활동이 없습니다."
     group_content:
       title: "사용자 활동"
-      description: "이 동아리에서 작성된 짹과 댓글을 유형별로 확인합니다."
-      total_count: "전체 %{count}건"
+      description: "이 동아리의 게시물별로 댓글 문맥을 함께 확인합니다."
+      total_count: "게시물 %{count}건"
       navigation_label: "활동 유형"
       navigation:
         all: "전체"
@@ -385,6 +385,9 @@ ko:
         search: "본문 또는 작성자 검색"
         apply: "검색"
         reset: "조건 초기화"
+      sorts:
+        recent: "최근 활동순"
+        oldest: "오래된 활동순"
       empty: "조건에 맞는 동아리 콘텐츠가 없습니다."
     filters:
       all: "전체"
@@ -528,6 +531,11 @@ ko:
         pending_title: "승인 대기"
         all_title: "전체 동아리"
         empty: "승인 대기 중인 동아리가 없습니다."
+        actions:
+          show: "상세"
+          content: "콘텐츠"
+          members: "회원"
+          approve: "승인"
       filters:
         search: "동아리·관리자 이름 또는 이메일 검색"
       fields:

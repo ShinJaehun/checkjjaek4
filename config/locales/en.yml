@@ -359,8 +359,8 @@ en:
       empty: "No activity."
     group_content:
       title: "User activity"
-      description: "Review Jjaeks and comments written in this club by type."
-      total_count: "Total %{count}"
+      description: "Review each post in this club together with its comment context."
+      total_count: "%{count} posts"
       navigation_label: "Activity type"
       navigation:
         all: "All"
@@ -373,6 +373,9 @@ en:
         search: "Search body or author"
         apply: "Search"
         reset: "Clear filters"
+      sorts:
+        recent: "Most recent activity"
+        oldest: "Oldest activity"
       empty: "No matching club content."
     filters:
       all: "All"
@@ -516,6 +519,11 @@ en:
         pending_title: "Pending approval"
         all_title: "All clubs"
         empty: "No clubs are awaiting approval."
+        actions:
+          show: "Details"
+          content: "Content"
+          members: "Members"
+          approve: "Approve"
       filters:
         search: "Search club, admin name or email"
       fields:
