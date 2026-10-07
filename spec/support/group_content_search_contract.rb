@@ -1,5 +1,4 @@
-# A Group query can use this contract when its production implementation is added.
-# The Admin query runs the same examples now through its own query spec.
+# Admin and Group queries run this contract with their own search boundaries.
 RSpec.shared_examples "group content search contract" do |search_context|
   let(:group_admin) { User.create!(name: "Group owner", email: "search-contract-owner@example.com", password: "password123!") }
   let(:platform_admin) { User.create!(name: "Platform operator", email: "search-contract-platform@example.com", password: "password123!", global_admin: true) }
