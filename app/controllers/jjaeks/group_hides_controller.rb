@@ -1,5 +1,7 @@
 module Jjaeks
   class GroupHidesController < ApplicationController
+    include GroupContentReturnContext
+
     before_action :prepare_page
 
     def new; end
@@ -9,7 +11,7 @@ module Jjaeks
       @moderation_action.assign_attributes(action_params)
       Jjaeks::Hide.new(@jjaek, actor: current_user, **action_params).call!
 
-      redirect_to jjaek_path(@jjaek), notice: t("jjaeks.moderation.notices.hidden")
+      redirect_to @return_path, notice: t("jjaeks.moderation.notices.hidden")
     rescue Jjaeks::Hide::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
       @jjaek.reload
       @error_message = t("jjaeks.moderation.alerts.hide_failed")
@@ -27,6 +29,7 @@ module Jjaeks
 
       authorize @jjaek, :hide_as_group_admin?
       @moderation_action = ModerationAction.new
+      prepare_group_content_return(default_path: jjaek_path(@jjaek))
     end
 
     def moderation_action_params

@@ -140,6 +140,7 @@ ko:
         sort: "정렬"
       actions:
         direct: "바로가기"
+        back_from_moderation: "콘텐츠 관리로 돌아가기"
       references:
         book: "책"
       sorts:
@@ -738,6 +739,9 @@ ko:
         restore_title: "동아리 댓글 복구"
         restore_description: "현재 숨김을 해제하고 별도의 복구 사유를 기록합니다."
         internal_note_hint: "선택 입력 · 동아리 운영자에게만 표시됩니다."
+        actions:
+          hide: "숨김"
+          restore: "숨김 해제"
       notices:
         hidden: "댓글을 숨겼습니다."
         restored: "댓글의 숨김을 해제했습니다."
@@ -1108,7 +1112,7 @@ ko:
         public_reason: "사유"
         actions:
           hide: "숨김"
-          restore: "복구"
+          restore: "숨김 해제"
       notices:
         hidden: "동아리에서 글을 숨겼습니다."
         restored: "동아리에서 글을 복구했습니다."

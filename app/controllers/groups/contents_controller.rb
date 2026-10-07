@@ -17,6 +17,7 @@ module Groups
         params:
       ).call
       @content_threads = @thread_page.records
+      @moderation_return_params = GroupContentReturnContext.filter_params(params).merge(return_to: "group_content")
       @direct_linkable_roots = @content_threads.to_h do |thread|
         [ thread.root.id, policy(thread.root).show? ]
       end

@@ -140,6 +140,7 @@ en:
         sort: "Sort"
       actions:
         direct: "Open"
+        back_from_moderation: "Back to content management"
       references:
         book: "Book"
       sorts:
@@ -734,6 +735,9 @@ en:
         restore_title: "Restore group comment"
         restore_description: "Lift the current hide and record a separate restoration reason."
         internal_note_hint: "Optional · Shown only to club operators."
+        actions:
+          hide: "Hide"
+          restore: "Restore"
       notices:
         hidden: "Comment hidden."
         restored: "Comment restored."

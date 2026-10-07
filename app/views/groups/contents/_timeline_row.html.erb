@@ -3,6 +3,7 @@
   kind = root_row ? (record.book_id.present? ? "book" : "general") : "comments"
   status = group_content_status(record)
   body_visible = group_content_body_visible?(record)
+  record_policy = policy(record)
 %>
 
 <tr id="group_content_<%= root_row ? 'jjaek' : 'comment' %>_<%= record.id %>"
@@ -34,9 +35,20 @@
   <td class="px-4 py-3.5 whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
   <td class="px-4 py-3.5 whitespace-nowrap" data-field="actions">
     <% if direct_linkable %>
-      <%= link_to t("groups.content_inventory.actions.direct"),
-                  root_row ? jjaek_path(root) : jjaek_path(root, anchor: dom_id(record)),
-                  class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+      <div class="flex flex-wrap items-center gap-2">
+        <%= link_to t("groups.content_inventory.actions.direct"),
+                    root_row ? jjaek_path(root) : jjaek_path(root, anchor: dom_id(record)),
+                    class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+        <% if record_policy.hide_as_group_admin? %>
+          <%= link_to t(root_row ? "jjaeks.moderation.group_admin.actions.hide" : "comments.moderation.group_admin.actions.hide"),
+                      root_row ? new_jjaek_group_hide_path(record, moderation_return_params) : new_jjaek_comment_group_hide_path(root, record, moderation_return_params),
+                      class: "inline-flex rounded-full bg-amber-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-900" %>
+        <% elsif record_policy.restore_as_group_admin? %>
+          <%= link_to t(root_row ? "jjaeks.moderation.group_admin.actions.restore" : "comments.moderation.group_admin.actions.restore"),
+                      root_row ? new_jjaek_group_restoration_path(record, moderation_return_params) : new_jjaek_comment_group_restoration_path(root, record, moderation_return_params),
+                      class: "inline-flex rounded-full border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+        <% end %>
+      </div>
     <% end %>
   </td>
 </tr>

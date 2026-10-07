@@ -102,10 +102,12 @@
           <tbody class="border-t-2 border-stone-300 first:border-t-0" data-thread-id="<%= thread.root.id %>">
             <% thread.comments.each do |comment| %>
               <%= render "groups/contents/timeline_row", record: comment, root: thread.root,
-                         direct_linkable: @direct_linkable_roots[thread.root.id] %>
+                         direct_linkable: @direct_linkable_roots[thread.root.id],
+                         moderation_return_params: @moderation_return_params %>
             <% end %>
             <%= render "groups/contents/timeline_row", record: thread.root, root: thread.root,
-                       direct_linkable: @direct_linkable_roots[thread.root.id] %>
+                       direct_linkable: @direct_linkable_roots[thread.root.id],
+                       moderation_return_params: @moderation_return_params %>
           </tbody>
         <% end %>
       </table>

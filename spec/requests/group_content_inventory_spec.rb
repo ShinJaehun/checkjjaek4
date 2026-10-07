@@ -4,6 +4,25 @@ RSpec.describe "Group content inventory", type: :request do
   let(:group_admin) { User.create!(name: "Group admin", email: "content-inventory-admin@example.com", password: "password123!") }
   let(:group) { Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Reading club", group_type: :private_group) }
 
+  def expect_path_and_query(url, path:, query:)
+    parsed = URI.parse(url)
+    expect(parsed.path).to eq(path)
+    expect(Rack::Utils.parse_query(parsed.query)).to eq(query.stringify_keys)
+  end
+
+  def inventory_moderation_form_action(path:, filters:)
+    page = Nokogiri::HTML(response.body)
+    cancel = page.css("a").find { |link| link.text.strip == I18n.t("groups.content_inventory.actions.back_from_moderation") }
+    expect(cancel).to be_present
+    expect_path_and_query(cancel["href"], path: content_group_path(group), query: filters)
+
+    form = page.at_css(%(form[action^="#{path}"]))
+    expect(form).to be_present
+    action = form["action"]
+    expect_path_and_query(action, path:, query: filters.merge(return_to: "group_content"))
+    action
+  end
+
   it "requires authentication" do
     get content_group_path(group)
 
@@ -113,6 +132,8 @@ RSpec.describe "Group content inventory", type: :request do
     newer_comment = root.comments.create!(user: author, content: "NEWER_COMMENT_BODY", created_at: base_time + 20.minutes)
     group_hidden_comment = root.comments.create!(user: author, content: "GROUP_HIDDEN_COMMENT_BODY")
     platform_hidden_comment = root.comments.create!(user: author, content: "PLATFORM_HIDDEN_COMMENT_BODY")
+    own_comment = root.comments.create!(user: group_admin, content: "OWN_COMMENT_BODY")
+    global_admin_comment = root.comments.create!(user: platform_admin, content: "GLOBAL_ADMIN_COMMENT_BODY")
     Comments::Hide.new(group_hidden_comment, actor: group_admin, public_reason: "other").call!
     Comments::Hide.new(platform_hidden_comment, actor: platform_admin, public_reason: "other").call!
 
@@ -124,6 +145,8 @@ RSpec.describe "Group content inventory", type: :request do
     deleted_root.comments.create!(user: author, content: "COMMENT_ON_DELETED_ROOT")
     deleted_root.destroy_or_tombstone!
     deleted_root.update_columns(content: "DELETED_ROOT_BODY")
+    own_root = group_admin.jjaeks.create!(group:, content: "OWN_ROOT_BODY")
+    global_admin_root = platform_admin.jjaeks.create!(group:, content: "GLOBAL_ADMIN_ROOT_BODY")
 
     other_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Other club", group_type: :public_group)
     author.jjaeks.create!(group: other_group, content: "OTHER_GROUP_BODY")
@@ -137,7 +160,9 @@ RSpec.describe "Group content inventory", type: :request do
     row_ids = thread.css("tr").map { |row| row["id"] }
     expect(row_ids.index("group_content_comment_#{newer_comment.id}")).to be < row_ids.index("group_content_comment_#{older_comment.id}")
     expect(row_ids.last).to eq("group_content_jjaek_#{root.id}")
-    expect(thread.at_css("[data-field='author'] img")['alt']).to eq(author.name)
+    expect(
+      thread.at_css("#group_content_jjaek_#{root.id} [data-field='author'] img")["alt"]
+    ).to eq(author.name)
     expect(document.css("thead th").last.text).to eq(I18n.t("groups.content_inventory.fields.actions"))
     root_link = document.at_css("#group_content_jjaek_#{root.id} [data-field='actions'] a")
     comment_link = document.at_css("#group_content_comment_#{newer_comment.id} [data-field='actions'] a")
@@ -145,6 +170,45 @@ RSpec.describe "Group content inventory", type: :request do
     expect(root_link["href"]).to eq(jjaek_path(root))
     expect(comment_link.text).to include(I18n.t("groups.content_inventory.actions.direct"))
     expect(comment_link["href"]).to eq(jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(newer_comment)))
+    actions_for = lambda do |row_id|
+      document.css("##{row_id} [data-field='actions'] a").map { |link| [ link.text.strip, link["href"] ] }
+    end
+    direct = I18n.t("groups.content_inventory.actions.direct")
+    hide = I18n.t("jjaeks.moderation.group_admin.actions.hide")
+    restore = I18n.t("jjaeks.moderation.group_admin.actions.restore")
+    expect(actions_for.call("group_content_jjaek_#{root.id}")).to eq([
+      [ direct, jjaek_path(root) ], [ hide, new_jjaek_group_hide_path(root, return_to: "group_content") ]
+    ])
+    expect(actions_for.call("group_content_jjaek_#{group_hidden_root.id}")).to eq([
+      [ direct, jjaek_path(group_hidden_root) ], [ restore, new_jjaek_group_restoration_path(group_hidden_root, return_to: "group_content") ]
+    ])
+    expect(actions_for.call("group_content_jjaek_#{platform_hidden_root.id}")).to eq([
+      [ direct, jjaek_path(platform_hidden_root) ]
+    ])
+    expect(actions_for.call("group_content_jjaek_#{deleted_root.id}")).to eq([
+      [ direct, jjaek_path(deleted_root) ]
+    ])
+    comment_direct = jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(newer_comment))
+    expect(actions_for.call("group_content_comment_#{newer_comment.id}")).to eq([
+      [ direct, comment_direct ],
+      [ I18n.t("comments.moderation.group_admin.actions.hide"), new_jjaek_comment_group_hide_path(root, newer_comment, return_to: "group_content") ]
+    ])
+    expect(actions_for.call("group_content_comment_#{group_hidden_comment.id}")).to eq([
+      [ direct, jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(group_hidden_comment)) ],
+      [ I18n.t("comments.moderation.group_admin.actions.restore"), new_jjaek_comment_group_restoration_path(root, group_hidden_comment, return_to: "group_content") ]
+    ])
+    expect(actions_for.call("group_content_comment_#{platform_hidden_comment.id}").map(&:last)).to eq([
+      jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(platform_hidden_comment))
+    ])
+    [ own_root, global_admin_root ].each do |unmoderatable_root|
+      expect(actions_for.call("group_content_jjaek_#{unmoderatable_root.id}").map(&:last)).to eq([ jjaek_path(unmoderatable_root) ])
+    end
+    [ own_comment, global_admin_comment ].each do |unmoderatable_comment|
+      expect(actions_for.call("group_content_comment_#{unmoderatable_comment.id}").map(&:last)).to eq([
+        jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(unmoderatable_comment))
+      ])
+    end
+    expect(document.css("[data-field='actions'] a[href^='/admin/']")).to be_empty
     expect(response.body).to include("VISIBLE_ROOT_BODY", "OLDER_COMMENT_BODY", "GROUP_HIDDEN_ROOT_BODY", "GROUP_HIDDEN_COMMENT_BODY")
     expect(response.body).to include("COMMENT_ON_DELETED_ROOT")
     expect(response.body).not_to include("PLATFORM_HIDDEN_ROOT_BODY", "PLATFORM_HIDDEN_COMMENT_BODY", "DELETED_ROOT_BODY", "OTHER_GROUP_BODY")
@@ -159,6 +223,79 @@ RSpec.describe "Group content inventory", type: :request do
     expect(hidden_status.text.strip).to eq("숨김")
     expect(deleted_status.text.strip).to eq("삭제됨")
     expect(document.css("a[href^='/admin/']")).to be_empty
+  end
+
+  it "returns to the filtered inventory after hiding and restoring a Jjaek" do
+    author = User.create!(name: "Return author", email: "group-content-return-author@example.com", password: "password123!")
+    root = author.jjaeks.create!(group:, content: "RETURN_ROOT_BODY")
+    sign_in group_admin
+    filters = { content: "general", content_q: "RETURN_ROOT_BODY", content_status: "active", content_sort: "oldest", all_page: "1" }
+
+    get content_group_path(group, filters.merge(redirect_url: "https://example.invalid/elsewhere"))
+    hide_link = Nokogiri::HTML(response.body).at_css("#group_content_jjaek_#{root.id} a[href*='group_hides/new']")
+    expect(hide_link).to be_present
+    expect_path_and_query(hide_link["href"], path: new_jjaek_group_hide_path(root), query: filters.merge(return_to: "group_content"))
+
+    get hide_link["href"]
+    hide_action = inventory_moderation_form_action(path: jjaek_group_hides_path(root), filters:)
+    post hide_action, params: { moderation_action: { public_reason: "" } }
+    expect(response).to have_http_status(:unprocessable_content)
+    inventory_moderation_form_action(path: jjaek_group_hides_path(root), filters:)
+    expect(root.reload).not_to be_hidden
+
+    post hide_action, params: { moderation_action: { public_reason: "other" } }
+    expect(root.reload).to be_hidden
+    expect_path_and_query(response.location, path: content_group_path(group), query: filters)
+
+    filters[:content_status] = "hidden"
+    get content_group_path(group, filters)
+    restore_link = Nokogiri::HTML(response.body).at_css("#group_content_jjaek_#{root.id} a[href*='group_restorations/new']")
+    expect(restore_link).to be_present
+    expect_path_and_query(restore_link["href"], path: new_jjaek_group_restoration_path(root), query: filters.merge(return_to: "group_content"))
+
+    get restore_link["href"]
+    restore_action = inventory_moderation_form_action(path: jjaek_group_restorations_path(root), filters:)
+    post restore_action, params: { moderation_action: { public_reason: "Reviewed" } }
+    expect(root.reload).not_to be_hidden
+    expect_path_and_query(response.location, path: content_group_path(group), query: filters)
+
+    get new_jjaek_group_hide_path(root)
+    detail_page = Nokogiri::HTML(response.body)
+    expect(detail_page.at_css(%(a[href="#{jjaek_path(root)}"])).text.strip).to eq(I18n.t("jjaeks.moderation.group_admin.cancel"))
+    expect(detail_page.at_css(%(form[action^="#{jjaek_group_hides_path(root)}"]))["action"]).to eq(jjaek_group_hides_path(root))
+    post jjaek_group_hides_path(root), params: { moderation_action: { public_reason: "other" } }
+    expect(response).to redirect_to(jjaek_path(root))
+  end
+
+  it "returns to the filtered inventory after hiding and restoring a Comment" do
+    author = User.create!(name: "Comment return author", email: "group-content-comment-return@example.com", password: "password123!")
+    root = author.jjaeks.create!(group:, content: "COMMENT_RETURN_PARENT")
+    comment = root.comments.create!(user: author, content: "RETURN_COMMENT_BODY")
+    sign_in group_admin
+    filters = { content: "comments", content_q: "RETURN_COMMENT_BODY", content_status: "active", content_sort: "oldest", all_page: "1" }
+
+    get content_group_path(group, filters)
+    hide_link = Nokogiri::HTML(response.body).at_css("#group_content_comment_#{comment.id} a[href*='group_hides/new']")
+    expect(hide_link).to be_present
+    expect_path_and_query(hide_link["href"], path: new_jjaek_comment_group_hide_path(root, comment), query: filters.merge(return_to: "group_content"))
+
+    get hide_link["href"]
+    hide_action = inventory_moderation_form_action(path: jjaek_comment_group_hides_path(root, comment), filters:)
+    post hide_action, params: { moderation_action: { public_reason: "other" } }
+    expect(comment.reload).to be_hidden
+    expect_path_and_query(response.location, path: content_group_path(group), query: filters)
+
+    filters[:content_status] = "hidden"
+    get content_group_path(group, filters)
+    restore_link = Nokogiri::HTML(response.body).at_css("#group_content_comment_#{comment.id} a[href*='group_restorations/new']")
+    expect(restore_link).to be_present
+    expect_path_and_query(restore_link["href"], path: new_jjaek_comment_group_restoration_path(root, comment), query: filters.merge(return_to: "group_content"))
+
+    get restore_link["href"]
+    restore_action = inventory_moderation_form_action(path: jjaek_comment_group_restorations_path(root, comment), filters:)
+    post restore_action, params: { moderation_action: { public_reason: "Reviewed" } }
+    expect(comment.reload).not_to be_hidden
+    expect_path_and_query(response.location, path: content_group_path(group), query: filters)
   end
 
   it "applies search, type, status, and activity ordering without searching author emails" do
