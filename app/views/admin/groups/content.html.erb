@@ -33,7 +33,7 @@
         <h2 class="text-2xl font-semibold text-stone-900"><%= t("admin.group_content.title") %></h2>
         <p class="mt-1 text-sm text-stone-500"><%= t("admin.group_content.description") %></p>
       </div>
-      <span class="text-sm font-medium text-stone-500"><%= t("admin.group_content.total_count", count: @timeline_page.total_count) %></span>
+      <span class="text-sm font-medium text-stone-500"><%= t("admin.group_content.total_count", count: @thread_page.total_count) %></span>
     </header>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -86,8 +86,8 @@
       <%= f.select :content_sort,
                    options_for_select(
                      [
-                       [t("admin.user_content.sorts.recent"), "recent"],
-                       [t("admin.user_content.sorts.oldest"), "oldest"]
+                       [t("admin.group_content.sorts.recent"), "recent"],
+                       [t("admin.group_content.sorts.oldest"), "oldest"]
                      ],
                      params[:content_sort]
                    ),
@@ -102,6 +102,6 @@
   </section>
 
   <%= render "admin/groups/content_timeline",
-             timeline_items: @timeline_items,
-             page: @timeline_page %>
+             threads: @content_threads,
+             page: @thread_page %>
 </section>

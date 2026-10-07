@@ -12,97 +12,27 @@
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.actions") %></th>
         </tr>
       </thead>
-      <tbody>
-        <% timeline_items.each do |item| %>
-          <% record = item.record %>
-          <% source_jjaek = record.jjaek if item.record_type == "Comment" %>
-          <% kind_key = admin_content_kind_key(item.kind, context: :group) %>
-          <%
-            body = if item.record_type == "Jjaek" && record.deleted?
-              "-"
-            else
-              truncate(record.content.to_s, length: 140, omission: " [...]").presence || "-"
-            end
-          %>
-          <tr id="group_timeline_<%= item.record_type.downcase %>_<%= record.id %>"
-              class="border-b border-stone-100 align-middle hover:bg-stone-50/60 last:border-b-0"
-              data-content-kind="<%= item.kind %>">
-            <td class="px-4 py-3.5 align-middle whitespace-nowrap">
-              <span class="whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium <%= admin_content_kind_badge_classes(kind_key) %>" data-activity-kind="<%= item.kind %>">
-                <%= admin_content_kind_label(kind_key) %>
-              </span>
-            </td>
-            <td class="px-4 py-3.5 align-middle" data-field="author">
-              <div class="flex items-center gap-2">
-                <%= user_avatar_image(record.user,
-                                      size: 128,
-                                      alt: record.user.name,
-                                      class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
-                <%= link_to record.user.name,
-                            admin_user_path(record.user),
-                            class: "text-sm font-medium text-stone-800 hover:underline" %>
-              </div>
-            </td>
-            <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body"><%= body %></td>
-            <td class="px-4 py-3.5 align-middle leading-6" data-field="reference">
-              <% if item.kind == "general" %>
-                -
-              <% elsif item.kind == "book" %>
-                <% if !record.deleted? && record.book %>
-                  <span class="text-stone-500"><%= t("admin.user_content.references.book") %> ·</span>
-                  <%= link_to record.book.title,
-                              book_path(record.book),
-                              class: "text-stone-700 underline" %>
-                <% else %>
-                  -
-                <% end %>
-              <% elsif source_jjaek %>
-                <p>
-                  <span class="text-stone-500"><%= t("admin.user_content.references.source") %> ·</span>
-                  <%= link_to source_jjaek.user.name,
-                              admin_user_path(source_jjaek.user),
-                              class: "text-stone-700 underline" %>
-                </p>
-                <p class="mt-1 text-stone-500">
-                  <%= truncate(source_jjaek.content.to_s, length: 140, omission: " [...]").presence || "-" %>
-                </p>
-              <% else %>
-                -
-              <% end %>
-            </td>
-            <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
-              <% if item.record_type == "Jjaek" && record.deleted? %>
-                <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:deleted) %>">
-                  <%= admin_content_status_label(:deleted) %>
-                </span>
-              <% elsif record.hidden? %>
-                <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:hidden) %>">
-                  <%= admin_content_status_label(:hidden) %>
-                </span>
-              <% else %>
-                <span class="rounded-full px-2 py-1 text-xs <%= admin_content_status_badge_classes(:active) %>">
-                  <%= admin_content_status_label(:active) %>
-                </span>
-              <% end %>
-            </td>
-            <td class="px-4 py-3.5 align-middle whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
-            <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="actions">
-              <% if item.record_type == "Comment" %>
-                <%= link_to t("admin.user_content.actions.direct"),
-                            jjaek_path(record.jjaek, anchor: dom_id(record)),
-                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
-              <% else %>
-                <%= link_to t("admin.user_content.actions.direct"),
-                            jjaek_path(record),
-                            class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
-              <% end %>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
+
+      <% threads.each do |thread| %>
+        <tbody class="border-t-2 border-stone-300 first:border-t-0" data-thread-id="<%= thread.root.id %>">
+          <% thread.comments.each do |comment| %>
+            <%= render "admin/groups/content_timeline_row",
+                       record: comment,
+                       root: thread.root,
+                       record_type: "Comment",
+                       kind: "comments" %>
+          <% end %>
+
+          <%= render "admin/groups/content_timeline_row",
+                     record: thread.root,
+                     root: thread.root,
+                     record_type: "Jjaek",
+                     kind: thread.root.book_id.present? ? "book" : "general" %>
+        </tbody>
+      <% end %>
     </table>
 
-    <% if timeline_items.empty? %>
+    <% if threads.empty? %>
       <p class="p-6 text-center"><%= t("admin.group_content.empty") %></p>
     <% end %>
   </div>

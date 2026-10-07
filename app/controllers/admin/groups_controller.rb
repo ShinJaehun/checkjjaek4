@@ -45,13 +45,13 @@ module Admin
         .joins(:jjaek)
         .where(jjaeks: { group_id: @group.id })
 
-      @timeline_page = GroupContentTimelineQuery.new(
+      @thread_page = GroupContentThreadQuery.new(
         jjaek_scope: jjaeks,
         comment_scope: comments,
         content_section: @content_section,
         params:
       ).call
-      @timeline_items = @timeline_page.records
+      @content_threads = @thread_page.records
     end
 
     private

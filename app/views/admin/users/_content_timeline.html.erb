@@ -49,8 +49,6 @@
                   <%= link_to record.target_user.name,
                               admin_user_path(record.target_user),
                               class: "text-stone-700 underline" %>
-                <% else %>
-                  -
                 <% end %>
               <% elsif item.kind == "book" %>
                 <% if !record.deleted? && record.book %>
