@@ -10,12 +10,33 @@
 
   <% if @admin_transfer_candidates.any? %>
     <%= form_with url: group_admin_transfers_path(@group), method: :post, class: "mt-6 space-y-4" do %>
-      <div>
-        <%= label_tag :new_admin_id, t("groups.admin_transfer.target"), class: "mb-2 block text-sm font-medium text-stone-700" %>
-        <%= select_tag :new_admin_id,
-                       options_from_collection_for_select(@admin_transfer_candidates, :id, :name, @selected_admin_id),
-                       class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
-      </div>
+      <% candidate_ids = @admin_transfer_candidates.map { |candidate| candidate.id.to_s } %>
+      <% selected_admin_id = candidate_ids.include?(@selected_admin_id.to_s) ? @selected_admin_id : @admin_transfer_candidates.first.id %>
+      <fieldset>
+        <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("groups.admin_transfer.target") %></legend>
+        <div class="max-h-80 divide-y divide-stone-100 overflow-x-hidden overflow-y-auto rounded-2xl border border-stone-200" data-admin-transfer-candidates>
+          <% @admin_transfer_candidates.each do |candidate| %>
+            <% input_id = dom_id(candidate, :admin_transfer_candidate) %>
+            <label for="<%= input_id %>" class="flex cursor-pointer items-center gap-3 bg-white p-3 hover:bg-stone-50" data-admin-transfer-candidate>
+              <%= radio_button_tag :new_admin_id,
+                                   candidate.id,
+                                   candidate.id.to_s == selected_admin_id.to_s,
+                                   id: input_id,
+                                   required: true,
+                                   class: "shrink-0 border-stone-300 text-stone-900" %>
+              <%= user_avatar_image(candidate, size: 128, alt: candidate.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium text-stone-900"><%= candidate.name %></span>
+                <span class="block truncate text-xs text-stone-500"><%= candidate.email %></span>
+                <span class="mt-1.5 flex flex-wrap gap-1.5">
+                  <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_membership_role_badge_classes(:member) %>" data-membership-role="member"><%= group_membership_role_label(:member) %></span>
+                  <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_membership_status_badge_classes(:active) %>" data-membership-status="active"><%= group_membership_status_label(:active) %></span>
+                </span>
+              </span>
+            </label>
+          <% end %>
+        </div>
+      </fieldset>
       <%= submit_tag t("groups.admin_transfer.submit"), class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
     <% end %>
   <% else %>

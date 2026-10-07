@@ -51,6 +51,10 @@ RSpec.describe "Admin user account actions", type: :request do
     get new_path
     page = Nokogiri::HTML(response.body)
     expect(page.text).to include(reader.name, reader.email, "정상", "일반 사용자", "계정 정지")
+    context = page.at_css("[data-account-action-context]")
+    expect(context.at_css(%(img[alt="#{reader.name}"]))).to be_present
+    expect(context.at_css("[data-field='account-status'] span.rounded-full")["class"]).to include("bg-emerald-100")
+    expect(context.at_css("[data-role='regular']")["class"]).to include("bg-stone-100")
     reason_select = page.at_css("form[action='#{create_path}'] select[name='moderation_action[public_reason]']")
     expect(reason_select.css("option").map { |option| option["value"] }).to include(*User::SUSPENSION_REASONS)
     expect(page.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
@@ -93,6 +97,10 @@ RSpec.describe "Admin user account actions", type: :request do
     get new_path
     page = Nokogiri::HTML(response.body)
     expect(page.text).to include(reader.name, reader.email, "운영 정지", "현재 정지 정보", "계정 복구")
+    context = page.at_css("[data-account-action-context]")
+    expect(context.at_css(%(img[alt="#{reader.name}"]))).to be_present
+    expect(context.at_css("[data-field='account-status'] span.rounded-full")["class"]).to include("bg-red-100")
+    expect(context.at_css("[data-role='regular']")["class"]).to include("bg-stone-100")
     current_suspension = page.at_css("[data-account-moderation-action='suspend']")
     expect(current_suspension.text).to include(
       admin.name,

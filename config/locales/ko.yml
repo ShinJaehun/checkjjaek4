@@ -414,10 +414,6 @@ ko:
         active: "정상"
         suspended: "운영 정지"
         withdrawn: "본인 탈퇴"
-      roles:
-        global_admin: "시스템 관리자"
-        group_admin: "동아리 관리자"
-        regular: "일반 사용자"
       sections:
         group_relationships: "동아리 관계"
       empty:
@@ -1098,6 +1094,10 @@ ko:
     formats:
       short: "%Y-%m-%d %H:%M"
   users:
+    roles:
+      global_admin: "시스템 관리자"
+      group_admin: "동아리 관리자"
+      regular: "일반 사용자"
     suspension_reasons:
       repeated_policy_violations: "반복적인 운영 정책 위반"
       spam_or_manipulation: "스팸·비정상적 활동"

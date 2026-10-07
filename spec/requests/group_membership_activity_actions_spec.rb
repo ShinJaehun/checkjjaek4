@@ -19,6 +19,10 @@ RSpec.describe "Group membership activity actions", type: :request do
     get new_group_group_membership_activity_suspension_path(group, membership)
     page = Nokogiri::HTML(response.body)
     expect(page.text).to include(group.name, member.name, "참여 중", "정상 활동", "회원 자격은 유지하고 동아리 활동만 정지합니다.")
+    context = page.at_css("[data-member-action-context]")
+    expect(context.at_css(%(img[alt="#{member.name}"]))).to be_present
+    expect(context.at_css("[data-field='membership-status'] span")["class"]).to include("bg-emerald-100")
+    expect(context.at_css("[data-field='activity-status'] span")["class"]).to include("bg-emerald-100")
     form = page.at_css("form[action='#{group_group_membership_activity_suspensions_path(group, membership)}']")
     expect(form.at_css("textarea[name='moderation_action[public_reason]'][required]")).to be_present
     expect(form.at_css("textarea[name='moderation_action[internal_note]']")).to be_present
@@ -78,6 +82,10 @@ RSpec.describe "Group membership activity actions", type: :request do
     get new_group_group_membership_activity_restoration_path(group, membership)
     page = Nokogiri::HTML(response.body)
     expect(page.text).to include(group.name, member.name, "동아리 활동 정지", "현재 정지 조치")
+    context = page.at_css("[data-member-action-context]")
+    expect(context.at_css(%(img[alt="#{member.name}"]))).to be_present
+    expect(context.at_css("[data-field='membership-status'] span")["class"]).to include("bg-emerald-100")
+    expect(context.at_css("[data-field='activity-status'] span")["class"]).to include("bg-red-50")
     suspension_entry = page.at_css("[data-activity-history-entry='suspend_activity']")
     expect(suspension_entry.text).to include(group_admin.name, member.name, "Original reason", "Original note")
     form = page.at_css("form[action='#{group_group_membership_activity_restorations_path(group, membership)}']")

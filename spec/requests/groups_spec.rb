@@ -598,12 +598,18 @@ RSpec.describe "Groups", type: :request do
       expect(header.at_css(%(a[href="#{group_path(group)}"])).text.strip).to eq("동아리로 돌아가기")
       expect(page.css(%(a[href="#{group_path(group)}"])).one?).to be(true)
       expect(header.at_css(%(img[alt="#{user.name}"]))).to be_present
+      expect(header.at_css("[data-membership-role='admin']").text.strip).to eq("동아리 관리자")
+      expect(header.at_css("[data-membership-role='admin']")["class"]).to include("bg-sky-100")
       expect(admin_row.at_css(%(img[alt="#{user.name}"]))).to be_present
-      expect(admin_row.text).to include("관리자")
+      expect(admin_row.at_css("[data-membership-role='admin']").text.strip).to eq("동아리 관리자")
+      expect(admin_row.at_css("[data-activity-status='normal']")["class"]).to include("bg-emerald-100")
       expect(admin_row.at_css(%(a[href="#{new_group_admin_transfer_path(group)}"]))).to be_present
       expect(admin_row.at_css("[data-member-management]")).to be_nil
       expect(member_row.at_css(%(img[alt="#{member.name}"]))).to be_present
-      expect(member_row.text).to include("회원", "활동 정지", "내보내기", "동아리 이용 제한")
+      expect(member_row.at_css("[data-membership-role='member']").text.strip).to eq("회원")
+      expect(member_row.at_css("[data-membership-role='member']")["class"]).to include("bg-stone-100")
+      expect(member_row.at_css("[data-activity-status='normal']").text.strip).to eq("정상 활동")
+      expect(member_row.text).to include("활동 정지", "내보내기", "동아리 이용 제한")
       expect(member_row.at_css(%(a[href="#{new_group_group_membership_activity_suspension_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
       expect(member_row.at_css(%(form[action="#{remove_group_group_membership_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
       expect(member_row.at_css(%(a[href="#{new_group_group_membership_member_ban_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
@@ -666,11 +672,13 @@ RSpec.describe "Groups", type: :request do
       page = Nokogiri::HTML(response.body)
       expect(page.css("h2").map(&:text)).to include("가입 승인 대기", "이용 제한 사용자")
       expect(page.at_css(%(img[alt="#{pending_user.name}"]))).to be_present
+      expect(page.at_css("[data-membership-status='pending']")["class"]).to include("bg-amber-100")
       expect(page.at_css(%(form[action="#{group_group_membership_path(group, pending_membership)}"]))).to be_present
       expect(page.at_css(%(form[action="#{reject_group_group_membership_path(group, pending_membership)}"]))).to be_present
       ban_row = page.at_css("#group_member_ban_#{ban.id}")
       expect(ban_row.at_css(%(img[alt="#{banned_user.name}"]))).to be_present
       expect(ban_row.text).to include("동아리 이용 제한", "Current ban reason")
+      expect(ban_row.at_css("[data-restriction-status='banned']")["class"]).to include("bg-red-50")
       expect(ban_row.element_children.first.at_css(%(a[data-member-action="unban_from_group"][href="#{new_group_group_member_ban_restoration_path(group, ban)}"]))).to be_present
     end
 
@@ -683,6 +691,7 @@ RSpec.describe "Groups", type: :request do
 
       member_row = Nokogiri::HTML(response.body).at_css("#group_membership_#{membership.id}")
       expect(member_row.text).to include("활동 정지", "공개 사유", "Current suspension reason")
+      expect(member_row.at_css("[data-activity-status='activity_suspended']")["class"]).to include("bg-red-50")
       expect(member_row.at_css(%(a[href="#{new_group_group_membership_activity_restoration_path(group, membership)}"]))).to be_present
       expect(member_row.at_css(%(a[href="#{new_group_group_membership_activity_suspension_path(group, membership)}"]))).to be_nil
     end
@@ -832,6 +841,7 @@ RSpec.describe "Groups", type: :request do
       expect(response).to have_http_status(:ok)
       close_context = close_page.at_css("[data-group-action-context]")
       expect(close_context.text).to include(group.name, "동아리 관리자", user.name)
+      expect(close_context.at_css(%(img[alt="#{user.name}"]))).to be_present
       expect(close_context.at_css("[data-group-type='approval_group']").text.strip).to eq(I18n.t("groups.types.approval_group"))
       expect(close_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.active"))
       expect(close_context.at_css("[data-field='current-status']")["class"]).to include("bg-emerald-100")
@@ -879,6 +889,7 @@ RSpec.describe "Groups", type: :request do
       expect(response).to have_http_status(:ok)
       reactivation_context = reactivation_page.at_css("[data-group-action-context]")
       expect(reactivation_context.text).to include(group.name, "동아리 관리자", user.name)
+      expect(reactivation_context.at_css(%(img[alt="#{user.name}"]))).to be_present
       expect(reactivation_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.inactive"))
       expect(reactivation_context.at_css("[data-field='current-status']")["class"]).to include("bg-stone-200")
       expect(response.body).to include("The reading program finished")
@@ -1099,9 +1110,17 @@ RSpec.describe "Groups", type: :request do
       expect(response).to have_http_status(:ok)
       transfer_context = transfer_page.at_css("[data-group-action-context]")
       expect(transfer_context.text).to include(group.name, "동아리 관리자", user.name)
+      expect(transfer_context.at_css(%(img[alt="#{user.name}"]))).to be_present
       expect(transfer_context.at_css("[data-group-type='public_group']")).to be_present
       expect(transfer_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.active"))
-      expect(transfer_page.at_css(%(form[action="#{group_admin_transfers_path(group)}"] select[name="new_admin_id"] option[value="#{new_admin.id}"]))).to be_present
+      candidate_list = transfer_page.at_css("[data-admin-transfer-candidates]")
+      expect(candidate_list["class"]).to include("max-h-80", "overflow-y-auto")
+      candidate = transfer_page.at_css(%([data-admin-transfer-candidate] input[name="new_admin_id"][value="#{new_admin.id}"][checked]))
+      expect(candidate).to be_present
+      candidate_row = candidate.ancestors("label").first
+      expect(candidate_row.at_css(%(img[alt="#{new_admin.name}"]))).to be_present
+      expect(candidate_row.at_css("[data-membership-role='member']").text.strip).to eq("회원")
+      expect(candidate_row.at_css("[data-membership-status='active']").text.strip).to eq("참여 중")
 
       get edit_group_path(group)
       expect(response.body).not_to include("현재 관리자: #{user.name}", new_admin.name, "관리자 권한 이전")
@@ -1153,6 +1172,22 @@ RSpec.describe "Groups", type: :request do
 
       expect(response).to redirect_to(admin_group_path(group))
       expect(group.reload.group_admin).to eq(new_admin)
+    end
+
+    it "keeps the selected candidate when transfer validation fails" do
+      other_candidate = User.create!(name: "Other candidate", email: "request-other-admin@example.com", password: "password123!")
+      group.group_memberships.create!(user: new_admin, status: :active)
+      group.group_memberships.create!(user: other_candidate, status: :active)
+      sign_in user
+      allow_any_instance_of(Group).to receive(:transfer_admin_to!).and_raise(ActiveRecord::RecordInvalid.new(group))
+
+      post group_admin_transfers_path(group), params: { new_admin_id: other_candidate.id }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      page = Nokogiri::HTML(response.body)
+      selected_candidate = page.at_css(%(input[name="new_admin_id"][value="#{other_candidate.id}"][checked]))
+      expect(selected_candidate).to be_present
+      expect(selected_candidate.ancestors("label").first.at_css(%(img[alt="#{other_candidate.name}"]))).to be_present
     end
 
     it "blocks non-admin, non-active targets, and pending groups" do

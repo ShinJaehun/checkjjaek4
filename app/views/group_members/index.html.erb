@@ -26,7 +26,7 @@
       <div class="mt-2 flex items-center gap-3">
         <%= user_avatar_image(@group.group_admin, size: 128, alt: @group.group_admin.name, class: "h-10 w-10 rounded-full object-cover") %>
         <span class="text-sm font-medium text-stone-800"><%= @group.group_admin.name %></span>
-        <span class="rounded-full bg-stone-100 px-2 py-1 text-xs font-medium text-stone-700"><%= t("groups.members.roles.admin") %></span>
+        <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_membership_role_badge_classes(:admin) %>" data-membership-role="admin"><%= group_membership_role_label(:admin) %></span>
       </div>
     </div>
   </section>
@@ -43,10 +43,9 @@
               <%= user_avatar_image(membership.user, size: 128, alt: membership.user.name, class: "h-10 w-10 rounded-full object-cover") %>
               <div class="flex flex-wrap items-center gap-2">
                 <span class="text-sm font-medium text-stone-800"><%= membership.user.name %></span>
-                <span class="rounded-full bg-stone-100 px-2 py-1 text-xs font-medium text-stone-700"><%= t(membership.user_id == @group.group_admin_id ? "groups.members.roles.admin" : "groups.members.roles.member") %></span>
-                <% if membership.activity_suspended? %>
-                  <span class="rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700"><%= t("group_memberships.management.actions.suspend_activity") %></span>
-                <% end %>
+                <% membership_role = membership.user_id == @group.group_admin_id ? :admin : :member %>
+                <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_membership_role_badge_classes(membership_role) %>" data-membership-role="<%= membership_role %>"><%= group_membership_role_label(membership_role) %></span>
+                <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_membership_activity_status_badge_classes(membership.moderation_status) %>" data-activity-status="<%= membership.moderation_status %>"><%= group_membership_activity_status_label(membership.moderation_status) %></span>
               </div>
             </div>
 
@@ -93,6 +92,7 @@
             <div class="flex items-center gap-3">
               <%= user_avatar_image(membership.user, size: 128, alt: membership.user.name, class: "h-10 w-10 rounded-full object-cover") %>
               <span class="text-sm font-medium text-stone-800"><%= membership.user.name %></span>
+              <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_membership_status_badge_classes(membership.status) %>" data-membership-status="<%= membership.status %>"><%= group_membership_status_label(membership.status) %></span>
             </div>
             <div class="flex flex-wrap gap-2">
               <% if policy(membership).approve? %>
@@ -125,6 +125,7 @@
               <div class="flex items-center gap-3">
                 <%= user_avatar_image(membership.user, size: 128, alt: membership.user.name, class: "h-10 w-10 rounded-full object-cover") %>
                 <span class="text-sm font-medium text-stone-800"><%= membership.user.name %></span>
+                <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_membership_status_badge_classes(membership.status) %>" data-membership-status="<%= membership.status %>"><%= group_membership_status_label(membership.status) %></span>
               </div>
               <% if @group.active? && policy(membership).revoke? %>
                 <%= button_to t("group_memberships.actions.revoke"),
@@ -153,7 +154,7 @@
                 <%= user_avatar_image(ban.user, size: 128, alt: ban.user.name, class: "h-10 w-10 rounded-full object-cover") %>
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="text-sm font-medium text-stone-800"><%= ban.user.name %></span>
-                  <span class="rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700"><%= t("group_member_bans.status") %></span>
+                  <span class="rounded-full px-2 py-1 text-xs font-medium <%= group_member_ban_status_badge_classes %>" data-restriction-status="banned"><%= group_member_ban_status_label %></span>
                 </div>
               </div>
               <% if policy(ban).unban? %>

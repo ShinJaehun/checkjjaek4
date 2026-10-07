@@ -1,6 +1,18 @@
 module UsersHelper
   AVATAR_SIZES = [ 128, 512 ].freeze
 
+  def user_role_label(role)
+    t("users.roles.#{role}")
+  end
+
+  def user_role_badge_classes(role)
+    case role.to_s
+    when "global_admin" then "bg-amber-100 text-amber-900"
+    when "group_admin" then "bg-sky-100 text-sky-900"
+    else "bg-stone-100 text-stone-700"
+    end
+  end
+
   BOOKSHELF_TAB_CLASSES_BY_COLOR_KEY = {
     "stone" => {
       selected: "border-stone-900 bg-stone-900 text-white shadow-sm ring-2 ring-stone-200",

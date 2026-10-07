@@ -19,9 +19,5 @@ RSpec.describe Admin::UsersHelper, type: :helper do
     expect(helper.admin_user_role_filter_options).to eq([
       ["시스템 관리자", "global_admin"], ["동아리 관리자", "group_admin"], ["일반 사용자", "regular"]
     ])
-    expect(helper.admin_user_role_badge_classes(:global_admin)).to include("bg-amber-100")
-    expect(helper.admin_user_role_badge_classes(:group_admin)).to include("bg-sky-100")
-    expect(helper.admin_user_role_badge_classes(:regular)).to include("bg-stone-100")
-    I18n.with_locale(:en) { expect(helper.admin_user_role_label(:global_admin)).to eq("System admin") }
   end
 end

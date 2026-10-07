@@ -74,7 +74,7 @@
             <td class="px-4 py-3.5">
               <div class="flex flex-wrap gap-1">
                 <% admin_user_role_keys(user, has_administered_groups: user.administered_groups_count.to_i.positive?).each do |role| %>
-                  <span class="rounded-full px-2 py-1 text-xs <%= admin_user_role_badge_classes(role) %>" data-role="<%= role.tr("_", "-") %>"><%= admin_user_role_label(role) %></span>
+                  <span class="rounded-full px-2 py-1 text-xs <%= user_role_badge_classes(role) %>" data-role="<%= role.tr("_", "-") %>"><%= user_role_label(role) %></span>
                 <% end %>
               </div>
             </td>

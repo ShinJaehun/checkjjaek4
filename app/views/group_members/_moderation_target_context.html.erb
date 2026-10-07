@@ -1,0 +1,37 @@
+<div class="mt-5 rounded-2xl bg-stone-50 p-4 text-sm text-stone-800" data-member-action-context>
+  <p><span class="font-semibold"><%= t("group_memberships.moderation.group") %>:</span> <%= group.name %></p>
+
+  <div class="mt-3 flex items-center gap-3">
+    <%= user_avatar_image(user, size: 128, alt: user.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
+    <div>
+      <p class="text-xs font-medium text-stone-500"><%= t("group_memberships.moderation.member") %></p>
+      <p class="font-medium text-stone-900"><%= user.name %></p>
+    </div>
+  </div>
+
+  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+    <% if membership %>
+      <div data-field="membership-status">
+        <p class="text-xs font-medium text-stone-500"><%= t("group_memberships.moderation.membership_status") %></p>
+        <span class="mt-1 inline-flex rounded-full px-2 py-1 text-xs font-medium <%= group_membership_status_badge_classes(membership.status) %>">
+          <%= group_membership_status_label(membership.status) %>
+        </span>
+      </div>
+      <div data-field="activity-status">
+        <p class="text-xs font-medium text-stone-500"><%= t("group_memberships.moderation.activity_status") %></p>
+        <span class="mt-1 inline-flex rounded-full px-2 py-1 text-xs font-medium <%= group_membership_activity_status_badge_classes(membership.moderation_status) %>">
+          <%= group_membership_activity_status_label(membership.moderation_status) %>
+        </span>
+      </div>
+    <% end %>
+
+    <% if restricted %>
+      <div data-field="restriction-status">
+        <p class="text-xs font-medium text-stone-500"><%= t("group_member_bans.moderation.restriction_status") %></p>
+        <span class="mt-1 inline-flex rounded-full px-2 py-1 text-xs font-medium <%= group_member_ban_status_badge_classes %>">
+          <%= group_member_ban_status_label %>
+        </span>
+      </div>
+    <% end %>
+  </div>
+</div>

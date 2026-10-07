@@ -2,12 +2,11 @@
   <h1 class="text-2xl font-semibold text-stone-900"><%= t("group_memberships.moderation.restore.title") %></h1>
   <p class="mt-2 text-sm text-stone-600"><%= t("group_memberships.management.descriptions.restore_activity") %></p>
 
-  <div class="mt-5 rounded-2xl bg-stone-50 p-4 text-sm text-stone-800">
-    <p><span class="font-semibold"><%= t("group_memberships.moderation.group") %>:</span> <%= @group.name %></p>
-    <p class="mt-2"><span class="font-semibold"><%= t("group_memberships.moderation.member") %>:</span> <%= @membership.user.name %></p>
-    <p class="mt-2"><span class="font-semibold"><%= t("group_memberships.moderation.membership_status") %>:</span> <%= t("group_memberships.statuses.#{@membership.status}") %></p>
-    <p class="mt-2"><span class="font-semibold"><%= t("group_memberships.moderation.activity_status") %>:</span> <%= t("group_memberships.moderation.statuses.activity_suspended") %></p>
-  </div>
+  <%= render "group_members/moderation_target_context",
+             group: @group,
+             user: @membership.user,
+             membership: @membership,
+             restricted: false %>
 
   <% if @current_activity_suspension.present? %>
     <section class="mt-6">
