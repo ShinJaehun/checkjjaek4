@@ -868,7 +868,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(general_row.at_css("[data-field='status']").text.strip).to eq("정상")
     expect(general_row.at_css("[data-field='status'] span")["class"]).to include("bg-emerald-100")
     expect(deleted_row.at_css("[data-field='body']").text.strip).to eq("-")
-    expect(deleted_row.at_css("[data-field='status']").text.strip).to eq("삭제")
+    expect(deleted_row.at_css("[data-field='status']").text.strip).to eq("삭제됨")
     expect(deleted_row.at_css("[data-field='status'] span")["class"]).to include("bg-stone-200")
     expect(timeline.at_css("#group_timeline_jjaek_#{hidden.id} [data-field='status']").text.strip).to eq("숨김")
     expect(timeline.at_css("#group_timeline_jjaek_#{hidden.id} [data-field='status'] span")["class"]).to include("bg-red-100")
@@ -986,7 +986,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(filter_document.at_css("input[name='content_q']")).to be_present
     expect(filter_document.at_css("select[name='content_status']")).to be_present
     expect(filter_document.css("select[name='content_status'] option").map { |option| option.text.strip }).to eq(
-      [ "전체", "정상", "숨김", "삭제" ]
+      [ "전체", "정상", "숨김", "삭제됨" ]
     )
     expect(filter_document.at_css("select[name='content_sort']")).to be_present
     expect(filter_document.at_css("select[name='kind'], select[name='location']")).to be_nil

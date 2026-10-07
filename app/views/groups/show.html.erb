@@ -10,6 +10,9 @@
         <% if @group.group_admin?(current_user) %>
           <div class="flex items-center gap-2">
             <%= link_to t("groups.members.management_title"), group_members_path(@group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+            <% if policy(@group).view_content_inventory? %>
+              <%= link_to t("groups.actions.manage_content"), content_group_path(@group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+            <% end %>
             <% if policy(@group).edit? %>
               <%= link_to t("groups.actions.edit"), edit_group_path(@group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
             <% end %>

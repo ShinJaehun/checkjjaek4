@@ -6,6 +6,9 @@ module Groups
       authorize @group, :view_content_inventory?
 
       @content_section = permitted_content_section
+      @content_filter_params = params.permit(:content_q, :content_status, :content_sort)
+      @content_status = params[:content_status] if %w[active hidden deleted].include?(params[:content_status])
+      @content_sort = %w[recent oldest].include?(params[:content_sort]) ? params[:content_sort] : "recent"
       @thread_page = ContentThreadQuery.new(
         group: @group,
         jjaek_scope: @group.jjaeks,
@@ -14,6 +17,9 @@ module Groups
         params:
       ).call
       @content_threads = @thread_page.records
+      @direct_linkable_roots = @content_threads.to_h do |thread|
+        [ thread.root.id, policy(thread.root).show? ]
+      end
     end
 
     private

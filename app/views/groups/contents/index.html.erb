@@ -1,1 +1,121 @@
-<h1><%= t("groups.content_inventory.title") %></h1>
+<section id="group_content_inventory" class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2 space-y-5">
+  <section class="mx-auto max-w-5xl rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+    <div class="flex flex-wrap items-start justify-between gap-5">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-amber-700"><%= t("groups.actions.manage_content") %></p>
+        <h1 class="mt-2 text-3xl font-semibold tracking-tight text-stone-900"><%= @group.name %></h1>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_type_badge_classes(@group) %>" data-group-type="<%= @group.group_type %>"><%= group_type_label(@group) %></span>
+          <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_status_badge_classes(@group) %>" data-field="current-status">
+            <%= group_current_status_label(@group) %>
+          </span>
+        </div>
+      </div>
+      <%= link_to t("groups.content_inventory.back"), group_path(@group),
+                  class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-5xl space-y-5 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
+    <header class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="text-2xl font-semibold text-stone-900"><%= t("groups.content_inventory.title") %></h2>
+        <p class="mt-1 text-sm text-stone-500"><%= t("groups.content_inventory.description") %></p>
+      </div>
+      <span class="text-sm font-medium text-stone-500"><%= t("groups.content_inventory.total_count", count: @thread_page.total_count) %></span>
+    </header>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="w-16 text-sm font-semibold text-stone-600"><%= t("groups.content_inventory.navigation_label") %></span>
+      <nav class="inline-flex flex-wrap gap-1 rounded-xl bg-stone-100 p-1" aria-label="<%= t('groups.content_inventory.navigation_label') %>">
+        <% %w[all general book comments].each do |section| %>
+          <% selected = @content_section == section %>
+          <%
+            classes = if selected
+              "rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-stone-900 shadow-sm"
+            else
+              "rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-white/70"
+            end
+          %>
+          <%= link_to t("groups.content_inventory.navigation.#{section}"),
+                      content_group_path(@group, @content_filter_params.merge(content: section)),
+                      class: classes,
+                      aria: { current: ("page" if selected) } %>
+        <% end %>
+      </nav>
+    </div>
+
+    <%= form_with url: content_group_path(@group), method: :get,
+                  class: "flex flex-col gap-3 border-t border-stone-200 pt-4 lg:flex-row lg:items-center" do |form| %>
+      <%= form.hidden_field :content, value: @content_section %>
+      <%= form.search_field :content_q, value: params[:content_q],
+                            placeholder: t("groups.content_inventory.filters.search"),
+                            class: "min-w-0 rounded-xl border border-stone-200 px-3 py-2 lg:flex-1" %>
+      <%= form.select :content_status,
+                      options_for_select(
+                        [
+                          [t("groups.content_inventory.navigation.all"), ""],
+                          [content_status_label(:active), "active"],
+                          [content_status_label(:hidden), "hidden"],
+                          [content_status_label(:deleted), "deleted"]
+                        ],
+                        @content_status
+                      ),
+                      {},
+                      class: "rounded-xl border border-stone-200 px-3 py-2",
+                      aria: { label: t("groups.content_inventory.fields.status") } %>
+      <%= form.select :content_sort,
+                      options_for_select(
+                        [
+                          [t("groups.content_inventory.sorts.recent"), "recent"],
+                          [t("groups.content_inventory.sorts.oldest"), "oldest"]
+                        ],
+                        @content_sort
+                      ),
+                      {},
+                      class: "rounded-xl border border-stone-200 px-3 py-2",
+                      aria: { label: t("groups.content_inventory.fields.sort") } %>
+      <%= form.submit t("groups.content_inventory.filters.apply"),
+                      class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
+      <%= link_to t("groups.content_inventory.filters.reset"),
+                  content_group_path(@group, content: @content_section),
+                  class: "whitespace-nowrap px-2 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 hover:underline" %>
+    <% end %>
+  </section>
+
+  <section id="group_content_timeline" class="space-y-5">
+    <div class="overflow-x-auto rounded-3xl border border-stone-200 bg-white shadow-sm">
+      <table class="min-w-full text-sm">
+        <thead class="bg-stone-50/80 text-xs font-semibold text-stone-500">
+          <tr class="border-b border-stone-200 text-left">
+            <th class="px-4 py-3"><%= t("groups.content_inventory.fields.kind") %></th>
+            <th class="min-w-36 px-4 py-3"><%= t("groups.content_inventory.fields.author") %></th>
+            <th class="min-w-80 px-4 py-3"><%= t("groups.content_inventory.fields.body") %></th>
+            <th class="min-w-80 px-4 py-3"><%= t("groups.content_inventory.fields.reference") %></th>
+            <th class="px-4 py-3"><%= t("groups.content_inventory.fields.status") %></th>
+            <th class="px-4 py-3"><%= t("groups.content_inventory.fields.created") %></th>
+            <th class="px-4 py-3"><%= t("groups.content_inventory.fields.actions") %></th>
+          </tr>
+        </thead>
+
+        <% @content_threads.each do |thread| %>
+          <tbody class="border-t-2 border-stone-300 first:border-t-0" data-thread-id="<%= thread.root.id %>">
+            <% thread.comments.each do |comment| %>
+              <%= render "groups/contents/timeline_row", record: comment, root: thread.root,
+                         direct_linkable: @direct_linkable_roots[thread.root.id] %>
+            <% end %>
+            <%= render "groups/contents/timeline_row", record: thread.root, root: thread.root,
+                       direct_linkable: @direct_linkable_roots[thread.root.id] %>
+          </tbody>
+        <% end %>
+      </table>
+
+      <% if @content_threads.empty? %>
+        <p class="p-6 text-center text-stone-600"><%= t("groups.content_inventory.empty") %></p>
+      <% end %>
+    </div>
+
+    <p class="text-center text-sm text-stone-500"><%= t("groups.content_inventory.pagination.page", current: @thread_page.page, total: @thread_page.total_pages) %></p>
+    <%= render "shared/pagination", page: @thread_page, page_param: :all_page %>
+  </section>
+</section>

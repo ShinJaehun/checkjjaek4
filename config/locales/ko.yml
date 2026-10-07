@@ -104,10 +104,57 @@ ko:
     actions:
       search_books: "책 검색"
       my_shelf: "내 서재 보기"
+  pagination:
+    range: "전체 %{total}건 중 %{first}–%{last}"
+    previous: "이전"
+    next: "다음"
+  content_statuses:
+    active: "정상"
+    hidden: "숨김"
+    deleted: "삭제됨"
   groups:
     nav: "동아리"
     content_inventory:
       title: "동아리 콘텐츠 관리"
+      description: "이 동아리의 짹과 댓글을 글별로 함께 확인합니다."
+      back: "동아리로 돌아가기"
+      total_count: "게시물 %{count}건"
+      navigation_label: "콘텐츠 유형"
+      navigation:
+        all: "전체"
+        general: "짹"
+        book: "책짹"
+        comments: "댓글"
+      kinds:
+        general: "짹"
+        book: "책짹"
+        comments: "댓글"
+      fields:
+        kind: "유형"
+        author: "작성자"
+        body: "본문"
+        reference: "참고"
+        status: "상태"
+        created: "작성 시각"
+        actions: "작업"
+        sort: "정렬"
+      actions:
+        direct: "바로가기"
+      references:
+        book: "책"
+      sorts:
+        recent: "최근 활동순"
+        oldest: "오래된 활동순"
+      filters:
+        search: "작성자 이름 또는 내용 검색"
+        apply: "검색"
+        reset: "조건 초기화"
+      tombstones:
+        platform_hidden: "시스템에 의해 숨겨진 콘텐츠"
+        deleted: "삭제된 콘텐츠"
+      pagination:
+        page: "전체 %{total}페이지 중 %{current}페이지"
+      empty: "조건에 맞는 동아리 콘텐츠가 없습니다."
     group_admin: "동아리 관리자: %{name}"
     group_admin_label: "동아리 관리자"
     active_member_count: "회원 %{count}명"
@@ -199,6 +246,7 @@ ko:
       new: "동아리 개설 신청"
       create: "개설 신청"
       edit: "동아리 관리"
+      manage_content: "콘텐츠 관리"
       update: "수정하기"
       cancel: "취소"
       back: "동아리 목록으로"
@@ -356,10 +404,6 @@ ko:
         target: "대상"
         book: "책"
         source: "원문"
-      statuses:
-        active: "정상"
-        hidden: "숨김"
-        deleted: "삭제"
       filters:
         all: "전체"
         search: "본문 검색"
@@ -401,10 +445,6 @@ ko:
       recent: "최근 생성순"
       oldest: "오래된 생성순"
       name: "이름순"
-    pagination:
-      range: "전체 %{total}건 중 %{first}–%{last}"
-      previous: "이전"
-      next: "다음"
     users:
       nav: "사용자 관리"
       index:
