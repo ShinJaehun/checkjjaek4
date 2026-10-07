@@ -818,6 +818,8 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(comment_row.at_css("[data-activity-kind='comments']").text.strip).to eq("댓글")
     expect(comment_row.at_css("[data-activity-kind='comments']")["class"]).to include("bg-amber-100")
     expect(comment_row.at_css("a[href='#{admin_user_path(member)}']")).to be_present
+    expect(general_row.at_css("[data-field='status']").text.strip).to eq("정상")
+    expect(general_row.at_css("[data-field='status'] span")["class"]).to include("bg-emerald-100")
     expect(deleted_row.at_css("[data-field='body']").text.strip).to eq("-")
     expect(deleted_row.at_css("[data-field='status']").text.strip).to eq("삭제")
     expect(deleted_row.at_css("[data-field='status'] span")["class"]).to include("bg-stone-200")
