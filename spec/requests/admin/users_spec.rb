@@ -402,7 +402,7 @@ RSpec.describe "Admin user inventory", type: :request do
     deleted_comment_source_row = timeline.at_css("#timeline_comment_#{deleted_source_comment.id}")
 
     expect(personal_row.at_css("[data-field='location']").text.strip).to eq("개인")
-    expect(personal_row.at_css("[data-field='reference']").text.strip).to eq("-")
+    expect(personal_row.at_css("[data-field='reference']").text.strip).to be_empty
     expect(targeted_row.at_css("[data-field='reference']").text).to include("대상", target_user.name)
     expect(targeted_row.at_css("a[href='#{admin_user_path(target_user)}']")).to be_present
     group_location = group_row.at_css("[data-field='location']")
@@ -428,7 +428,8 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status']").text.strip).to eq("숨김")
     expect(timeline.at_css("#timeline_jjaek_#{hidden_jjaek.id} [data-field='status'] span")["class"]).to include("bg-red-100")
     expect(timeline.at_css("#timeline_comment_#{hidden_comment.id} [data-field='status']").text.strip).to eq("숨김")
-    expect(personal_row.at_css("[data-field='status']").text.strip).to eq("-")
+    expect(personal_row.at_css("[data-field='status']").text.strip).to eq("정상")
+    expect(personal_row.at_css("[data-field='status'] span")["class"]).to include("bg-emerald-100")
     expect(personal_row.at_css("[data-field='actions'] a").text.strip).to eq("바로가기")
     expect(personal_row.at_css("a[href='#{jjaek_path(personal_jjaek)}']")).to be_present
     comment_anchor = ActionView::RecordIdentifier.dom_id(comment)

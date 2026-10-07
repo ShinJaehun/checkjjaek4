@@ -28,6 +28,7 @@ module Admin
 
     def admin_content_status_badge_classes(status)
       case status.to_s
+      when "active" then "bg-emerald-100 text-emerald-800"
       when "hidden" then "bg-red-100 text-red-800"
       else "bg-stone-200 text-stone-700"
       end

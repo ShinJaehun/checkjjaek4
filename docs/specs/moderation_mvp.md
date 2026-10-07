@@ -811,9 +811,11 @@ rate limit은 환경별로 조정할 수 있어야 하며 정상적인 한 교�
 
 ### 현재 구현과 closure 경계
 
-현재 global admin은 User·Group top-level inventory와 User 작성자 기준·Group 문맥 기준
-Jjaek/Comment content timeline을 사용한다. 검색, 기본 상태·역할·종류 필터, 정렬, 페이지네이션을 제공하며
-admin User·Group 상세에서 contextual investigation을 이어간다. 두 content timeline은 공통으로
+현재 global admin은 User·Group top-level inventory, User 작성자 기준 flat content timeline,
+Group 문맥 기준 post thread inventory를 사용한다. Group inventory는 root Jjaek과 Comment를 묶어
+최근 Comment부터 root 순으로 표시하고, thread의 최근 활동 시각을 기준으로 DB에서 정렬·페이지네이션한다.
+검색·유형·상태 조건은 Group thread 포함 여부를 결정하며 포함된 thread의 전체 문맥을 표시한다.
+두 content inventory는 공통으로
 `전체 / 정상 / 숨김 / 삭제` 상태 필터를 제공한다. Jjaek의 정상은 `deleted_at`과 `hidden_at`이 모두 없는 상태,
 숨김은 삭제되지 않고 `hidden_at`이 있는 상태, 삭제는 `deleted_at`이 있는 상태다. Comment는 `hidden_at`에 따라
 정상과 숨김만 구분하며 삭제 상태를 새로 만들지 않는다. hidden Comment도 두 timeline에서 숨김으로 표시·필터한다.

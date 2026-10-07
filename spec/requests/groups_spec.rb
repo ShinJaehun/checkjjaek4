@@ -595,6 +595,8 @@ RSpec.describe "Groups", type: :request do
       expect(header.text).to include("회원 관리", "승인 동아리", "운영 중", "현재 관리자", user.name)
       expect(header.at_css("[data-group-type='approval_group']")["class"]).to include("bg-amber-100")
       expect(header.at_css("[data-field='current-status']")["class"]).to include("bg-emerald-100")
+      expect(header.at_css(%(a[href="#{group_path(group)}"])).text.strip).to eq("동아리로 돌아가기")
+      expect(page.css(%(a[href="#{group_path(group)}"])).one?).to be(true)
       expect(header.at_css(%(img[alt="#{user.name}"]))).to be_present
       expect(admin_row.at_css(%(img[alt="#{user.name}"]))).to be_present
       expect(admin_row.text).to include("관리자")
@@ -607,6 +609,26 @@ RSpec.describe "Groups", type: :request do
       expect(member_row.at_css(%(a[href="#{new_group_group_membership_member_ban_path(group, group.group_memberships.find_by!(user: member))}"]))).to be_present
       expect(page.css("h2").map(&:text)).not_to include("동아리 관리자")
       expect(page.text).not_to include("회원 자격은 유지하고 동아리 활동만 정지합니다.", "동아리에서 내보냅니다. 다시 가입할 수 있습니다.")
+    end
+
+    it "uses admin return navigation only for a global admin with admin context" do
+      global_admin = User.create!(name: "Global admin", email: "members-navigation-admin@example.com", password: "password123!", global_admin: true)
+      sign_in global_admin
+
+      get group_members_path(group, context: "admin")
+
+      page = Nokogiri::HTML(response.body)
+      header = page.at_css("section > section:first-child")
+      expect(header.at_css(%(a[href="#{admin_groups_path}"])).text.strip).to eq("동아리 관리로")
+      expect(page.at_css(%(a[href="#{group_path(group)}"]))).to be_nil
+
+      sign_in user
+      get group_members_path(group, context: "admin")
+
+      member_page = Nokogiri::HTML(response.body)
+      member_header = member_page.at_css("section > section:first-child")
+      expect(member_header.at_css(%(a[href="#{group_path(group)}"])).text.strip).to eq("동아리로 돌아가기")
+      expect(member_page.at_css(%(a[href="#{admin_groups_path}"]))).to be_nil
     end
 
     it "hides empty pending and ban sections" do

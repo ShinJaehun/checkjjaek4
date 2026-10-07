@@ -273,9 +273,10 @@
 - 승인·비공개·inactive·pending 동아리 원문의 외부 ReJjaek과 개인 Jjaek의 동아리 공유·동아리 안에서의 ReJjaek 작성은 허용하지 않음
 - 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
 - 동아리 hard delete, 이메일·링크 초대, moderator와 별도 moderation dashboard는 구현되지 않음
-- global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를, Group 운영 상세의 같은 형태 inventory에서 해당 동아리의 Jjaek·책짹·Comment를 직접 조사할 수 있음
+- global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를 직접 조사할 수 있음
+- Group 운영 상세는 root Jjaek과 그 Comment를 하나의 thread로 묶고, 최신 Comment부터 root 순으로 표시하며 thread의 최근 활동 시각 기준으로 정렬·페이지네이션함
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
-- User/Group content timeline은 검색·기본 상태 필터·정렬·페이지네이션을 제공하며 hidden Comment를 `hidden_at` 기준으로 숨김 상태에 표시·필터함. Comment에는 별도 삭제 상태를 만들지 않고 삭제 필터에서는 제외함
+- User/Group content inventory는 검색·기본 상태 필터·정렬·페이지네이션을 제공함. User inventory는 item을 직접 필터하고, Group inventory는 root 또는 Comment가 조건에 맞는 thread를 선택한 뒤 전체 thread 문맥을 표시함. hidden Comment는 `hidden_at` 기준으로 숨김 상태로 다루며 Comment에는 별도 삭제 상태를 만들지 않음
 - Group top-level inventory는 lifecycle 상태, 재활성화 대기와 operation suspended를 하나의 현재 상태 badge·필터로 제공함. `operation_suspended_at`이 있으면 lifecycle 상태보다 운영 정지를 우선 표시함
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
 - global admin은 다른 사용자의 모든 현재 Jjaek 유형을 정의된 숨김 사유와 선택적 내부 메모로 숨기고, 별도 공개 복구 사유와 선택적 내부 메모로 복구할 수 있으며 상태와 append-only hide/restore 감사를 원자적으로 남김

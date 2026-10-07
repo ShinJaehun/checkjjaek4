@@ -2,6 +2,7 @@ class GroupMembersController < ApplicationController
   def index
     @group = policy_scope(Group).find(params[:group_id])
     authorize @group, :view_members?
+    @admin_navigation_context = params[:context] == "admin" && current_user.global_admin?
 
     @active_memberships = @group.group_memberships.active.includes(:user).order(:created_at)
     @pending_memberships = if @group.approval_group?
