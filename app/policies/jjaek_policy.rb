@@ -234,7 +234,9 @@ class JjaekPolicy < ApplicationPolicy
       return scope.none unless user.present?
       return scope.all if user.global_admin?
 
-      visible_records = JjaekPolicy::Scope.new(user, scope).resolve
+      visible_records = scope.where(
+        id: JjaekPolicy::Scope.new(user, Jjaek.all).resolve.select(:id)
+      )
       hidden_scope = scope.where(user_id: user.id).where.not(hidden_at: nil)
       public_group_ids = Group.active.public_group.select(:id)
       hidden_own_records = hidden_scope.where(group_id: public_group_ids)

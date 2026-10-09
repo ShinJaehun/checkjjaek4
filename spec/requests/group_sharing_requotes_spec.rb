@@ -56,6 +56,11 @@ RSpec.describe "Group sharing and quotes", type: :request do
     expect(response).to redirect_to(group_path(available))
     expect(Notification.last).to be_requote_created
 
+      get group_path(available)
+      expect(
+        Nokogiri::HTML(response.body).at_css("article#jjaek_#{share.id}")
+      ).to be_present
+
     get jjaek_path(share)
     card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{share.id}")
     expect(card.text).to include("에 공유", source_author.name, available.name)
