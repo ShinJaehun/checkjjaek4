@@ -3,6 +3,8 @@ module NotificationsHelper
     return moderation_notification_message(notification) if notification.moderation?
     return group_lifecycle_notification_message(notification) if notification.group_lifecycle?
     return group_membership_notification_message(notification) if notification.group_membership_workflow?
+    return t("notifications.messages.requote_unavailable") if notification.requote_created? && !readable_requote_notification?(notification)
+    return t("notifications.messages.comment_unavailable") if notification.comment_created? && !readable_comment_notification?(notification)
 
     if notification.comment_created? && notification.notifiable&.jjaek&.group.present?
       return t(
@@ -25,16 +27,36 @@ module NotificationsHelper
       account_relationships_path(anchor: "received-book-friend-requests")
     when "book_friendship_accepted"
       user_path(notification.actor)
-    when "profile_jjaek_created", "requote_created"
+    when "profile_jjaek_created"
       notification.notifiable ? jjaek_path(notification.notifiable) : root_path
+    when "requote_created"
+      readable_requote_notification?(notification) ? jjaek_path(notification.notifiable) : root_path
     when "comment_created"
-      notification.notifiable ? jjaek_path(notification.notifiable.jjaek) : root_path
+      readable_comment_notification?(notification) ? jjaek_path(notification.notifiable.jjaek) : root_path
     else
       root_path
     end
   end
 
+  def notification_actor_visible?(notification)
+    return false unless notification.actor.present? && notification.show_actor_avatar?
+    return readable_requote_notification?(notification) if notification.requote_created?
+    return readable_comment_notification?(notification) if notification.comment_created?
+
+    true
+  end
+
   private
+
+  def readable_requote_notification?(notification)
+    requote = notification.notifiable
+    requote.is_a?(Jjaek) && JjaekPolicy.new(current_user, requote).visible_for_interaction?
+  end
+
+  def readable_comment_notification?(notification)
+    jjaek = notification.notifiable&.jjaek
+    jjaek.present? && JjaekPolicy.new(current_user, jjaek).visible_for_interaction?
+  end
 
   def group_membership_notification_message(notification)
     event = notification.notifiable

@@ -192,12 +192,12 @@ Library 안에서 볼 수 있는 책장:
 - 원문 자체가 ReJjaek이면 다시 인용할 수 없다
 - active 공개 동아리의 Jjaek·책짹은 membership 없이 개인 영역으로 ReJjaek할 수 있다
 - 승인·비공개·inactive·pending 동아리 원문은 개인 영역으로 ReJjaek할 수 없다
-- 같은 사용자가 같은 원문을 이미 ReJjaek했다면 새 ReJjaek 버튼을 보여주지 않는다
-- MVP에서는 버튼 숨김만으로 충분하다
+- 개인 영역에서는 동일 사용자·원문당 한 번, 동아리에서는 동일 사용자·원문·목적지 동아리당 한 번만 다시짹할 수 있다. 버튼·GET·POST·모델·DB 제약에서 중복을 검사한다
+- 전체 공개 개인 원문은 작성 가능한 여러 동아리에 각각 의견을 붙여 공유할 수 있고, 동아리 원문은 같은 동아리의 읽기·쓰기 권한을 갖춘 회원이 인용할 수 있다. 동아리 간 직접 공유와 중첩 다시짹은 금지한다
 - 기존 ReJjaek은 살아 있는 source의 현재 read 권한을 계속 요구한다. source hidden이나 friendship·visibility·Group context 변화로
   source를 읽을 수 없으면 ReJjaek도 볼 수 없으며 과거 접근 사실은 우회 권한이 되지 않는다
 - source hidden은 ReJjaek row와 관계를 보존하고 일반 조회만 제한하므로, restore 뒤에는 현재 권한으로 다시 판단한다
-- source 삭제 시 기존 ReJjaek은 source association을 제거하고 삭제 snapshot을 남긴 private 콘텐츠가 되며 작성자만 볼 수 있다.
+- source 삭제 시 개인 ReJjaek은 기존대로 연결을 끊고 작성자 전용 private 콘텐츠가 된다. 동아리 인용은 원문 식별 정보를 노출하지 않고 목적지 동아리의 현재 읽기 권한에 따라 독립 토론을 유지한다.
   이 deleted-source ReJjaek 자체는 삭제 상태가 아니어서 일반 personal Jjaek의 작성자 lifecycle과 허용된 interaction을 따른다
 
 ### ReJjaek 목록 조회
@@ -327,7 +327,7 @@ Library 안에서 볼 수 있는 책장:
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
 작성은 모든 동아리 종류에서 active member에게만 허용한다.
 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, 탈퇴하거나 내보내진 작성자도 자기 기존 글은 삭제할 수 있다.
-동아리 관리자의 타인 Jjaek·Comment 숨김/복구는 구현되어 있다. 개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성은 아직 구현하지 않는다.
+동아리 관리자의 타인 Jjaek·Comment 숨김/복구, 전체 공개 개인 원문의 동아리 공유와 같은 동아리 내부 인용 다시짹을 제공한다.
 active 공개 동아리의 Jjaek·책짹을 개인 영역으로 ReJjaek하는 기능은 제공한다.
 홈 `FeedScope`에는 현재 사용자가 active member인 active/inactive 동아리의 Jjaek만 포함하며,
 public 동아리나 follow 관계만으로 가입하지 않은 동아리 콘텐츠를 포함하지 않는다.

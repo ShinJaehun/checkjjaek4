@@ -539,7 +539,9 @@ RSpec.describe "Jjaeks", type: :request do
         group_jjaek = original_author.jjaeks.create!(group:, content: "HIDDEN_GROUP_REQUOTE_ACTION")
 
         get jjaek_path(group_jjaek)
-        expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: group_jjaek.id))
+        links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
+        expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: group_jjaek.id))
+        expect(links).to include(new_group_jjaek_path(group, quoted_jjaek_id: group_jjaek.id))
       end
 
       inactive_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Hidden inactive", group_type: :public_group)
@@ -549,7 +551,9 @@ RSpec.describe "Jjaeks", type: :request do
       inactive_group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
 
       get jjaek_path(inactive_jjaek)
-      expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: inactive_jjaek.id))
+      links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
+      expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: inactive_jjaek.id))
+      expect(links).not_to include(new_group_jjaek_path(inactive_group, quoted_jjaek_id: inactive_jjaek.id))
       expect(response.body).not_to include(jjaek_requotes_path(inactive_jjaek))
     end
 

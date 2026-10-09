@@ -492,7 +492,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).to include(public_jjaek.content, approval_jjaek.content)
   end
 
-  it "renders comments and likes but not unsupported requotes for group jjaeks" do
+  it "renders comments, likes, and same-group quotes without a personal requote" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     jjaek = group_admin.jjaeks.create!(group:, content: "Read only group jjaek")
     sign_in group_admin
@@ -504,7 +504,9 @@ RSpec.describe "Group Jjaeks", type: :request do
       jjaek_comments_path(jjaek, comments_context: "group")
     )
     expect(response.body).to include(jjaek_like_path(jjaek))
-    expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: jjaek.id))
+    links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
+    expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: jjaek.id))
+    expect(links).to include(new_group_jjaek_path(group, quoted_jjaek_id: jjaek.id))
   end
 
   it "shows the book search context only to an active member" do

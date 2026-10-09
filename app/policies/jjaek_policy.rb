@@ -98,6 +98,27 @@ class JjaekPolicy < ApplicationPolicy
     requote? && !already_requoted?
   end
 
+  def group_share_destinations
+    return [] unless user.present? && record.persisted? && record.group_id.blank?
+    return [] unless record.public_jjaek? && !record.deleted? && !record.requote? && visible_for_interaction?
+
+    user.group_memberships.active.includes(:group).filter_map do |membership|
+      group = membership.group
+      group if group && self.class.new(user, Jjaek.new(user:, group:, quoted_jjaek: record)).create?
+    end.sort_by(&:name)
+  end
+
+  def share_to_group?
+    group_share_destinations.any?
+  end
+
+  def quote_in_group?
+    return false unless user.present? && record.persisted? && record.group_id.present?
+    return false if record.deleted? || record.requote? || !visible_for_interaction?
+
+    self.class.new(user, Jjaek.new(user:, group: record.group, quoted_jjaek: record)).create?
+  end
+
   def update?
     return false unless user.present? && record.user_id == user.id && !record.deleted? && !record.hidden?
     return true if record.group_id.blank?

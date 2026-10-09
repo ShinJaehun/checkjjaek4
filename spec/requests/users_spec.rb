@@ -929,9 +929,8 @@ RSpec.describe "Users", type: :request do
         }
       }.not_to change(Jjaek, :count)
 
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include('name="jjaek[target_user_id]"')
-      expect(response.body).to include(I18n.t("activerecord.errors.models.jjaek.attributes.visibility.invalid"))
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
     end
 
     it "does not reach persistence for an unknown target user" do

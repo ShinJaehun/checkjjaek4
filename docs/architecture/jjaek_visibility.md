@@ -105,7 +105,7 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
 
 현재 구현과 목표 정책에서 공통으로 반복되는 핵심 제약은 아래와 같다.
 
-- private 원문은 인용할 수 없다
+- `private_jjaek` 개인 원문은 인용할 수 없다. 비공개 동아리 원문은 같은 동아리의 현재 읽기·쓰기 권한 안에서 인용할 수 있다
 - ReJjaek은 원문보다 넓은 공개 범위를 가질 수 없다
 - quoted Jjaek 접근 권한은 조회 시 다시 검사한다
 - ReJjaek은 원문을 복사하지 않고 참조하므로, 원문 수정 시 quoted block도 최신 원문을 보여준다

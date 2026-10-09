@@ -850,6 +850,8 @@ ko:
       comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
       group_comment_created: "%{group_name} 동아리에서 %{actor_name}님이 내 글에 댓글을 남겼습니다."
       requote_created: "%{actor_name}님이 내 Jjaek을 다시짹했습니다."
+      requote_unavailable: "다시짹한 게시물을 현재 볼 수 없습니다."
+      comment_unavailable: "댓글이 달린 게시물을 현재 볼 수 없습니다."
       user_account_suspended: "%{authority}에서 계정을 정지했습니다. 사유: %{reason}"
       user_account_restored: "%{authority}에서 계정을 복구했습니다. 사유: %{reason}"
       group_operation_suspended: "%{authority}에서 %{group_name} 운영을 정지했습니다. 사유: %{reason}"
@@ -1038,6 +1040,9 @@ ko:
     contexts:
       group_general_html: "%{author_name}님이 %{group_name}에 남긴 짹"
       group_book_html: "%{author_name}님이 %{group_name}에 남긴 책짹 · %{book_title}"
+      group_share_html: "%{author_name}님이 %{quoted_user_name}님의 %{quoted_context_label}을 %{group_name}에 공유"
+      group_quote_html: "%{author_name}님이 %{group_name}의 %{quoted_user_name}님의 %{quoted_context_label}을 인용"
+      group_requote_unavailable_html: "%{author_name}님이 %{group_name}에 남긴 인용 짹"
       general_html: "%{author_name}님의 짹"
       profile_html: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
       book_html: "%{author_name}님의 책짹"
@@ -1056,6 +1061,8 @@ ko:
       publish_requote: "다시짹"
       publish_short: "짹"
       requote: "다시짹"
+      share_to_group: "동아리에 공유"
+      quote_in_group: "동아리에서 인용"
       save: "저장"
       view: "글 보기"
     confirmations:
@@ -1065,6 +1072,10 @@ ko:
       jjaek_content: "짹 내용"
       book_jjaek_content: "책짹 내용"
       requote_content: "다시짹 내용"
+      quote_opinion: "내 의견"
+      destination_group: "공유할 동아리"
+      choose_group: "동아리 선택"
+      selected_group: "대상 동아리: %{group_name}"
       visibility: "공개 범위"
     labels:
       requote: "%{name}님의 짹"

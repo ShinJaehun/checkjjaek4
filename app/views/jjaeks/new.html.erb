@@ -1,5 +1,10 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
   <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+    <% if @share_to_group || @group.present? %>
+      <h1 class="mb-4 text-xl font-semibold text-stone-900">
+        <%= t(@share_to_group ? "jjaeks.actions.share_to_group" : "jjaeks.actions.quote_in_group") %>
+      </h1>
+    <% end %>
     <% if @book.present? %>
       <div class="rounded-2xl bg-stone-50 px-4 py-4">
         <div class="text-sm font-medium text-stone-900"><%= @book.title %></div>
@@ -7,14 +12,21 @@
       </div>
     <% end %>
 
-    <% if @quoted_jjaek.present? %>
+    <% if @quoted_jjaek.present? && policy(@jjaek).view_quoted_source? %>
       <div class="<%= @book.present? ? "mt-4" : "" %>">
         <%= render "jjaeks/quoted_jjaek", quoted_jjaek: @quoted_jjaek %>
       </div>
     <% end %>
 
     <div class="mt-6">
-      <%= form_with model: @jjaek, class: "space-y-4" do |form| %>
+      <% form_url = if @share_to_group
+                      jjaeks_path(quoted_jjaek_id: @quoted_jjaek.id, share_to_group: 1)                      
+                    elsif @group.present?
+                      group_jjaeks_path(@group, quoted_jjaek_id: @quoted_jjaek.id)
+                    else
+                      jjaeks_path
+                    end %>
+      <%= form_with model: @jjaek, url: form_url, class: "space-y-4" do |form| %>
         <% if @jjaek.errors.any? %>
           <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <%= @jjaek.errors.full_messages.to_sentence %>
@@ -24,16 +36,33 @@
         <%= form.hidden_field :book_id, value: @book.id if @book.present? %>
         <%= form.hidden_field :quoted_jjaek_id, value: @quoted_jjaek&.id %>
 
-        <div class="space-y-2">
-          <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
-          <%= form.select :visibility,
-                          @jjaek_visibility_options.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
-                          {},
-                          class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
-        </div>
+        <% if @share_to_group %>
+          <% if @group.present? %>
+            <p class="text-sm text-stone-600"><%= t("jjaeks.form.selected_group", group_name: @group.name) %></p>
+          <% end %>
+          <div class="space-y-2">
+            <%= form.label :group_id, t("jjaeks.form.destination_group"), class: "text-sm font-medium text-stone-700" %>
+            <%= form.select :group_id,
+                            options_from_collection_for_select(@available_share_groups, :id, :name, @group&.id),
+                            { include_blank: t("jjaeks.form.choose_group") },
+                            { required: true, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm" } %>
+          </div>
+        <% elsif @group.present? %>
+          <p class="text-sm text-stone-600"><%= t("jjaeks.form.selected_group", group_name: @group.name) %></p>
+        <% else %>
+          <div class="space-y-2">
+            <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
+            <%= form.select :visibility,
+                            @jjaek_visibility_options.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
+                            {},
+                            class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+          </div>
+        <% end %>
 
         <div class="space-y-2">
-          <% content_label_key = if @quoted_jjaek.present?
+          <% content_label_key = if @group.present? || @share_to_group
+                                  "jjaeks.form.quote_opinion"
+                                elsif @quoted_jjaek.present?
                                   "jjaeks.form.requote_content"
                                 elsif @book.present?
                                   "jjaeks.form.book_jjaek_content"
@@ -41,10 +70,20 @@
                                   "jjaeks.form.jjaek_content"
                                 end %>
           <%= form.label :content, t(content_label_key), class: "sr-only" %>
-          <%= form.text_area :content, rows: 8, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+          <%= form.text_area :content, rows: 8, required: @group.present? || @share_to_group,
+                            class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
         </div>
 
-        <%= form.submit @quoted_jjaek.present? ? t("jjaeks.actions.publish_requote") : t("jjaeks.actions.publish"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+        <% submit_label = if @share_to_group
+                            t("jjaeks.actions.share_to_group")
+                          elsif @group.present?
+                            t("jjaeks.actions.quote_in_group")
+                          elsif @quoted_jjaek.present?
+                            t("jjaeks.actions.publish_requote")
+                          else
+                            t("jjaeks.actions.publish")
+                          end %>
+        <%= form.submit submit_label, class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
       <% end %>
     </div>
   </section>

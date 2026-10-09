@@ -846,6 +846,8 @@ en:
       comment_created: "%{actor_name} commented on your Jjaek."
       group_comment_created: "%{actor_name} commented on your post in the %{group_name} club."
       requote_created: "%{actor_name} ReJjaeked your Jjaek."
+      requote_unavailable: "A requoted post is currently unavailable."
+      comment_unavailable: "A commented post is currently unavailable."
       user_account_suspended: "%{authority} suspended your account. Reason: %{reason}"
       user_account_restored: "%{authority} restored your account. Reason: %{reason}"
       group_operation_suspended: "%{authority} suspended operations for %{group_name}. Reason: %{reason}"
@@ -1034,6 +1036,9 @@ en:
     contexts:
       group_general_html: "%{author_name} posted a Jjaek in %{group_name}"
       group_book_html: "%{author_name} posted a Book Jjaek in %{group_name} · %{book_title}"
+      group_share_html: "%{author_name} shared %{quoted_user_name}'s %{quoted_context_label} in %{group_name}"
+      group_quote_html: "%{author_name} quoted %{quoted_user_name}'s %{quoted_context_label} in %{group_name}"
+      group_requote_unavailable_html: "%{author_name}'s group quote in %{group_name}"
       general_html: "%{author_name}'s Jjaek"
       profile_html: "%{author_name}'s Jjaek for %{target_user_name}"
       book_html: "%{author_name}'s Book Jjaek"
@@ -1052,6 +1057,8 @@ en:
       publish_requote: "ReJjaek"
       publish_short: "Jjaek"
       requote: "ReJjaek"
+      share_to_group: "Share to group"
+      quote_in_group: "Quote in group"
       save: "Save changes"
       view: "Open thread"
     confirmations:
@@ -1061,6 +1068,10 @@ en:
       jjaek_content: "Jjaek content"
       book_jjaek_content: "Book Jjaek content"
       requote_content: "ReJjaek content"
+      quote_opinion: "Your opinion"
+      destination_group: "Destination group"
+      choose_group: "Choose a group"
+      selected_group: "Destination group: %{group_name}"
       visibility: "Visibility"
     labels:
       requote: "ReJjaek from %{name}"

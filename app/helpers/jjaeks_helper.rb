@@ -98,7 +98,11 @@ module JjaeksHelper
   private
 
   def jjaek_context_translation_key(jjaek)
-    if jjaek.group_id.present? && jjaek.book_id.present?
+    if jjaek.group_id.present? && jjaek.requote?
+      return "jjaeks.contexts.group_requote_unavailable_html" unless policy(jjaek).view_quoted_source?
+
+      jjaek.quoted_jjaek.group_id.blank? ? "jjaeks.contexts.group_share_html" : "jjaeks.contexts.group_quote_html"
+    elsif jjaek.group_id.present? && jjaek.book_id.present?
       "jjaeks.contexts.group_book_html"
     elsif jjaek.group_id.present?
       "jjaeks.contexts.group_general_html"
@@ -125,7 +129,11 @@ module JjaeksHelper
     if jjaek.group_id.present?
       options[:group_name] = link_to(jjaek.group.name, group_path(jjaek.group), class: "font-semibold text-stone-900 hover:text-stone-700")
       options[:book_title] = jjaek_context_book_link(jjaek.book) if jjaek.book.present?
-    elsif jjaek.quoted_jjaek.present?
+      if jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
+        options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user)
+        options[:quoted_context_label] = jjaek.quoted_jjaek.book.present? ? t("jjaeks.contexts.quoted_book") : t("jjaeks.contexts.quoted_general")
+      end
+    elsif jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
       options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user)
       options[:quoted_context_label] = jjaek.quoted_jjaek.book.present? ? t("jjaeks.contexts.quoted_book") : t("jjaeks.contexts.quoted_general")
       if jjaek.quoted_jjaek.group_id.present?

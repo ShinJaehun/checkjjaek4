@@ -93,7 +93,8 @@ class Notification < ApplicationRecord
     return unless requote.quoted_jjaek.present?
 
     recipient = requote.quoted_jjaek.user
-    return unless JjaekPolicy.new(recipient, requote).show?
+    return unless JjaekPolicy.new(recipient, requote.quoted_jjaek).visible_for_interaction?
+    return unless JjaekPolicy.new(recipient, requote).visible_for_interaction?
 
     notify_once(
       recipient:,

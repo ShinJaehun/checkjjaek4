@@ -2,7 +2,7 @@
 
 ## 1. 목적과 기준
 
-이 문서는 기존 `Jjaek`, `quoted_jjaek`, `group_id`를 이용한 개인·동아리 간 공유와 동아리 내부 인용 정책을 정한다. **A는 현재 구현을 유지하고, B·C는 구현 전 목표 정책**이다. 이 문서는 구현 완료를 뜻하지 않는다. 기존 동아리 접근 정책은 `groups_mvp.md`, 개인 다시짹의 목록·삭제 계약은 `requotes_mvp.md`, visibility와 moderation 경계는 각각 `../architecture/jjaek_visibility.md`, `moderation_mvp.md`를 함께 따른다. 이 문서와 기존 문서가 다른 부분은 아래의 충돌 항목에 명시한다.
+이 문서는 기존 `Jjaek`, `quoted_jjaek`, `group_id`를 이용한 개인·동아리 간 공유와 동아리 내부 인용 정책을 정한다. A는 기존 개인 다시짹 동작을 유지하고 B·C의 제품 정책을 정의한다. 실제 구현 상태는 `../architecture/current_system.md`를 따른다. 기존 동아리 접근 정책은 `groups_mvp.md`, 개인 다시짹의 목록·삭제 계약은 `requotes_mvp.md`, visibility와 moderation 경계는 각각 `../architecture/jjaek_visibility.md`, `moderation_mvp.md`를 함께 따른다. 이 문서와 기존 문서가 다른 부분은 아래의 충돌 항목에 명시한다.
 
 확정 원칙은 다음과 같다.
 

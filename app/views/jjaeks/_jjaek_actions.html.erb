@@ -15,6 +15,16 @@
     <%= link_to t("comments.actions.view_inline"), jjaek_comments_path(jjaek, inline_comments_params), data: { turbo_stream: true }, class: "font-medium text-stone-700" %>
   <% end %>
   <%= render "jjaeks/requote_link", jjaek: jjaek %>
+  <% if policy(jjaek).share_to_group? %>
+    <%= link_to t("jjaeks.actions.share_to_group"),
+                new_jjaek_path(quoted_jjaek_id: jjaek.id, share_to_group: 1),
+                class: "font-medium text-stone-700" %>
+  <% end %>
+  <% if policy(jjaek).quote_in_group? %>
+    <%= link_to t("jjaeks.actions.quote_in_group"),
+                new_group_jjaek_path(jjaek.group, quoted_jjaek_id: jjaek.id),
+                class: "font-medium text-stone-700" %>
+  <% end %>
   <% unless detail_context %>
     <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>
   <% end %>
