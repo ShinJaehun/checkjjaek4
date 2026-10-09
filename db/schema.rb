@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -113,6 +113,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_090000) do
     t.index ["followee_id"], name: "index_follows_on_followee_id"
     t.index ["follower_id", "followee_id"], name: "index_follows_on_follower_id_and_followee_id", unique: true
     t.index ["follower_id"], name: "index_follows_on_follower_id"
+  end
+
+  create_table "global_admin_role_changes", force: :cascade do |t|
+    t.integer "action", null: false
+    t.datetime "created_at", null: false
+    t.string "execution_id", null: false
+    t.boolean "global_admin_after", null: false
+    t.boolean "global_admin_before", null: false
+    t.string "operator_account", null: false
+    t.bigint "operator_uid", null: false
+    t.text "reason", null: false
+    t.string "server_hostname", null: false
+    t.bigint "user_id", null: false
+    t.index ["execution_id"], name: "index_global_admin_role_changes_on_execution_id", unique: true
+    t.index ["user_id", "created_at", "id"], name: "index_global_admin_role_changes_on_user_and_time"
+    t.index ["user_id"], name: "index_global_admin_role_changes_on_user_id"
+    t.check_constraint "action = 0 AND global_admin_before = false AND global_admin_after = true OR action = 1 AND global_admin_before = true AND global_admin_after = false", name: "global_admin_role_changes_valid_transition"
   end
 
   create_table "group_lifecycle_events", force: :cascade do |t|
@@ -310,6 +327,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_090000) do
   add_foreign_key "comments", "users"
   add_foreign_key "follows", "users", column: "followee_id"
   add_foreign_key "follows", "users", column: "follower_id"
+  add_foreign_key "global_admin_role_changes", "users"
   add_foreign_key "group_lifecycle_events", "groups"
   add_foreign_key "group_lifecycle_events", "users", column: "actor_id"
   add_foreign_key "group_member_bans", "groups"
