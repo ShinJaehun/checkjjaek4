@@ -330,14 +330,25 @@ class JjaekPolicy < ApplicationPolicy
   def group_context_allowed?
     return true if record.group_id.blank?
 
-    GroupPolicy.new(user, record.group).create_jjaek?
+    record.group.present? && GroupPolicy.new(user, record.group).create_jjaek?
   end
 
   def quoted_context_allowed?
     return true if record.quoted_jjaek_id.blank?
-    return false if record.group_id.present?
+    return false unless record.quoted_jjaek.present?
+    return group_quoted_context_allowed? if record.group_id.present?
 
     self.class.new(user, record.quoted_jjaek).requote?
+  end
+
+  def group_quoted_context_allowed?
+    source = record.quoted_jjaek
+    return false unless source.persisted?
+    return false if source.deleted? || source.requote?
+    return false unless self.class.new(user, source).visible_for_interaction?
+    return false if Jjaek.exists?(user_id: user.id, quoted_jjaek_id: source.id, group_id: record.group_id)
+
+    source.group_id == record.group_id || (source.group_id.blank? && source.public_jjaek?)
   end
 
   def target_user_context_allowed?
@@ -373,6 +384,6 @@ class JjaekPolicy < ApplicationPolicy
   def already_requoted?
     return false unless user.present? && record.persisted?
 
-    Jjaek.exists?(user_id: user.id, quoted_jjaek_id: record.id)
+    Jjaek.exists?(user_id: user.id, quoted_jjaek_id: record.id, group_id: nil)
   end
 end

@@ -33,7 +33,7 @@ class Jjaek < ApplicationRecord
   validate :quoted_group_jjaek_must_be_public
   validate :quoted_jjaek_visibility_must_not_expand
   validate :target_user_visibility_must_not_be_private
-  validate :group_context_must_not_be_requote
+  validate :quoted_group_context_must_be_allowed
   validate :group_context_must_not_target_user
 
   before_validation :normalize_group_visibility
@@ -124,6 +124,7 @@ class Jjaek < ApplicationRecord
 
   def quoted_group_jjaek_must_be_public
     return unless quoted_jjaek&.group_id.present?
+    return if group_id.present? && group_id == quoted_jjaek.group_id
     return if quoted_jjaek.group.public_group?
 
     errors.add(:quoted_jjaek, :invalid)
@@ -156,8 +157,10 @@ class Jjaek < ApplicationRecord
     self.visibility = :public_jjaek if group_id.present?
   end
 
-  def group_context_must_not_be_requote
-    return unless group_id.present? && quoted_jjaek_id.present?
+  def quoted_group_context_must_be_allowed
+    return unless group_id.present? && quoted_jjaek.present?
+    return if quoted_jjaek.group_id == group_id
+    return if quoted_jjaek.group_id.blank? && quoted_jjaek.public_jjaek?
 
     errors.add(:quoted_jjaek, :invalid)
   end

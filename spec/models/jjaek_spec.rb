@@ -113,7 +113,7 @@ RSpec.describe Jjaek, type: :model do
     expect(duplicate_requote.errors.of_kind?(:quoted_jjaek_id, :taken)).to be(true)
   end
 
-  it "checks group requote uniqueness by destination while still rejecting group requotes" do
+  it "checks group requote uniqueness by destination" do
     original = other_user.jjaeks.create!(content: "개인 원문")
     first_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "First readers", group_type: :public_group)
     second_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Second readers", group_type: :public_group)
@@ -124,9 +124,11 @@ RSpec.describe Jjaek, type: :model do
     expect(duplicate.errors.of_kind?(:quoted_jjaek_id, :taken)).to be(true)
 
     other_destination = described_class.new(user:, group: second_group, quoted_jjaek: original, content: "다른 목적지")
-    expect(other_destination).not_to be_valid
+    expect(other_destination).to be_valid
     expect(other_destination.errors.of_kind?(:quoted_jjaek_id, :taken)).to be(false)
-    expect(other_destination.errors.of_kind?(:quoted_jjaek, :invalid)).to be(true)
+
+    personal_destination = described_class.new(user:, quoted_jjaek: original, content: "개인 목적지")
+    expect(personal_destination).to be_valid
   end
 
   it "enforces personal and group requote uniqueness separately in PostgreSQL" do
@@ -180,12 +182,61 @@ RSpec.describe Jjaek, type: :model do
     expect(described_class.new(user:, group:, book:, content: "그룹 책짹")).to be_valid
   end
 
-  it "does not mix group context with requote or profile context" do
+  it "does not mix group context with profile context" do
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Readers", group_type: :public_group)
-    original = other_user.jjaeks.create!(content: "원문")
 
-    expect(described_class.new(user:, group:, quoted_jjaek: original, content: "그룹 다시짹")).not_to be_valid
     expect(described_class.new(user:, group:, target_user: other_user, content: "그룹 프로필 짹")).not_to be_valid
+  end
+
+  it "allows public personal originals, including book jjaeks, in group requotes without copying the book" do
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Readers", group_type: :public_group)
+    general_original = other_user.jjaeks.create!(content: "전체 공개 짹")
+    book_original = other_user.jjaeks.create!(book:, content: "전체 공개 책짹")
+
+    [ general_original, book_original ].each do |original|
+      group_requote = described_class.new(user:, group:, quoted_jjaek: original, content: "내 의견")
+
+      expect(group_requote).to be_valid
+      expect(group_requote.book_id).to be_nil
+    end
+
+    blank_opinion = described_class.new(user:, group:, quoted_jjaek: general_original, content: "")
+    expect(blank_opinion).not_to be_valid
+    expect(blank_opinion.errors.of_kind?(:content, :blank)).to be(true)
+  end
+
+  it "rejects book-friends and private personal originals in group requotes" do
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Readers", group_type: :public_group)
+
+    %i[book_friends private_jjaek].each do |visibility|
+      original = other_user.jjaeks.create!(content: "제한된 원문", visibility:)
+      group_requote = described_class.new(user:, group:, quoted_jjaek: original, content: "내 의견")
+
+      expect(group_requote).not_to be_valid
+      expect(group_requote.errors.of_kind?(:quoted_jjaek, :invalid)).to be(true)
+    end
+  end
+
+  it "allows same-group originals of every group type but rejects cross-group and nested requotes" do
+    groups = %i[public_group approval_group private_group].map do |group_type|
+      Group.create!(lifecycle_status: :active, group_admin: user, name: group_type.to_s, group_type:)
+    end
+
+    groups.each do |group|
+      original = user.jjaeks.create!(group:, content: "동아리 원문")
+      group_requote = described_class.new(user:, group:, quoted_jjaek: original, content: "내 의견")
+
+      expect(group_requote).to be_valid
+      expect(described_class.new(user:, group: groups.find { |item| item != group }, quoted_jjaek: original, content: "다른 동아리")).not_to be_valid
+
+      group_requote.save!
+      expect(described_class.new(user:, group:, quoted_jjaek: group_requote, content: "중첩 인용")).not_to be_valid
+    end
+
+    book_original = user.jjaeks.create!(group: groups.first, book:, content: "동아리 책짹 원문")
+    book_requote = described_class.new(user:, group: groups.first, quoted_jjaek: book_original, content: "책 의견")
+    expect(book_requote).to be_valid
+    expect(book_requote.book_id).to be_nil
   end
 
   it "allows public group jjaeks and book jjaeks to be personal requote sources" do

@@ -385,6 +385,19 @@ RSpec.describe JjaekPolicy do
 
       expect(described_class.new(viewer, original).create_requote?).to be(true)
     end
+
+    it "keeps the personal requote available after a same-group quote of a public group original" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Personal requote boundary", group_type: :public_group)
+      group.group_memberships.create!(user: viewer, status: :active)
+      source = original_author.jjaeks.create!(group:, content: "PUBLIC_GROUP_SOURCE")
+      viewer.jjaeks.create!(group:, quoted_jjaek: source, content: "GROUP_QUOTE")
+
+      expect(described_class.new(viewer, source).requote?).to be(true)
+      expect(described_class.new(viewer, source).create_requote?).to be(true)
+
+      viewer.jjaeks.create!(quoted_jjaek: source, content: "PERSONAL_REQUOTE")
+      expect(described_class.new(viewer, source).create_requote?).to be(false)
+    end
   end
 
   describe "#create?" do
@@ -446,6 +459,112 @@ RSpec.describe JjaekPolicy do
       )
 
       expect(described_class.new(viewer, jjaek).create?).to be(false)
+    end
+
+    it "allows public personal originals in multiple writable groups without widening personal requotes" do
+      source = original_author.jjaeks.create!(content: "PUBLIC_PERSONAL_SOURCE")
+      groups = %i[public_group approval_group private_group].map do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: group_type.to_s, group_type:)
+        group.group_memberships.create!(user: viewer, status: :active)
+        group
+      end
+
+      groups.each do |group|
+        quote = viewer.jjaeks.build(group:, quoted_jjaek: source, content: "GROUP_OPINION")
+        expect(described_class.new(viewer, quote).create?).to be(true)
+        quote.save!
+      end
+
+      expect(described_class.new(viewer, source).create_requote?).to be(true)
+      duplicate = viewer.jjaeks.build(group: groups.first, quoted_jjaek: source, content: "DUPLICATE_OPINION")
+      expect(described_class.new(viewer, duplicate).create?).to be(false)
+    end
+
+    it "rejects restricted, deleted, hidden, and nested personal sources for group sharing" do
+      group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Source restrictions", group_type: :public_group)
+      public_source = original_author.jjaeks.create!(content: "PUBLIC_SOURCE")
+      friend_source = original
+      private_source = original_author.jjaeks.create!(content: "PRIVATE_SOURCE", visibility: :private_jjaek)
+      nested_source = viewer.jjaeks.create!(quoted_jjaek: public_source, content: "FIRST_REQUOTE")
+      hidden_source = original_author.jjaeks.create!(content: "HIDDEN_SOURCE", hidden_at: Time.current)
+      deleted_source = original_author.jjaeks.create!(content: "DELETED_SOURCE")
+      deleted_source.comments.create!(user: viewer, content: "Preserved comment")
+      deleted_source.destroy_or_tombstone!
+
+      [ friend_source, private_source, nested_source, hidden_source, deleted_source ].each do |source|
+        quote = viewer.jjaeks.build(group:, quoted_jjaek: source, content: "BLOCKED_GROUP_OPINION")
+        expect(described_class.new(viewer, quote).create?).to be(false)
+      end
+    end
+
+    it "allows same-group quotes in public, approval, and private groups but not cross-group quotes" do
+      destination = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Other destination", group_type: :public_group)
+
+      %i[public_group approval_group private_group].each do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: group_type.to_s, group_type:)
+        group.group_memberships.create!(user: viewer, status: :active)
+        source = original_author.jjaeks.create!(group:, content: "GROUP_SOURCE")
+        same_group = viewer.jjaeks.build(group:, quoted_jjaek: source, content: "SAME_GROUP_OPINION")
+        other_group = viewer.jjaeks.build(group: destination, quoted_jjaek: source, content: "CROSS_GROUP_OPINION")
+
+        expect(described_class.new(viewer, same_group).create?).to be(true)
+        expect(described_class.new(viewer, other_group).create?).to be(false)
+        expect(described_class.new(viewer, source).requote?).to eq(group.public_group?)
+
+        same_group.save!
+        duplicate = viewer.jjaeks.build(group:, quoted_jjaek: source, content: "DUPLICATE_GROUP_OPINION")
+        nested = viewer.jjaeks.build(group:, quoted_jjaek: same_group, content: "NESTED_GROUP_OPINION")
+        expect(described_class.new(viewer, duplicate).create?).to be(false)
+        expect(described_class.new(viewer, nested).create?).to be(false)
+
+        source.update!(hidden_at: Time.current)
+        expect(described_class.new(viewer, viewer.jjaeks.build(group:, quoted_jjaek: source, content: "HIDDEN_SOURCE_OPINION")).create?).to be(false)
+      end
+    end
+
+    it "does not let a public-group reader quote without current write permission" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Readable public group", group_type: :public_group)
+      source = original_author.jjaeks.create!(group:, content: "PUBLIC_GROUP_SOURCE")
+      quote = viewer.jjaeks.build(group:, quoted_jjaek: source, content: "GROUP_OPINION")
+
+      expect(described_class.new(viewer, source).visible_for_interaction?).to be(true)
+      expect(described_class.new(viewer, quote).create?).to be(false)
+    end
+
+    it "requires current membership and activity permission for group quotes" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Membership boundary", group_type: :private_group)
+      membership = group.group_memberships.create!(user: viewer, status: :active)
+      group_source = original_author.jjaeks.create!(group:, content: "PRIVATE_GROUP_SOURCE")
+      personal_source = original_author.jjaeks.create!(content: "PUBLIC_PERSONAL_SOURCE")
+      quotes = [ group_source, personal_source ].map do |source|
+        viewer.jjaeks.build(group:, quoted_jjaek: source, content: "GROUP_OPINION")
+      end
+
+      quotes.each { |quote| expect(described_class.new(viewer, quote).create?).to be(true) }
+
+      membership.update!(moderation_status: :activity_suspended)
+      quotes.each { |quote| expect(described_class.new(viewer, quote).create?).to be(false) }
+
+      membership.update!(moderation_status: :normal)
+      membership.destroy!
+      quotes.each { |quote| expect(described_class.new(viewer, quote).create?).to be(false) }
+    end
+
+    it "blocks new group quotes when the destination becomes inactive or operation-suspended" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Lifecycle boundary", group_type: :public_group)
+      group.group_memberships.create!(user: viewer, status: :active)
+      group_source = original_author.jjaeks.create!(group:, content: "GROUP_SOURCE")
+      personal_source = original_author.jjaeks.create!(content: "PERSONAL_SOURCE")
+      quotes = [ group_source, personal_source ].map do |source|
+        viewer.jjaeks.build(group:, quoted_jjaek: source, content: "GROUP_OPINION")
+      end
+
+      group.update!(operation_suspended_at: Time.current)
+      quotes.each { |quote| expect(described_class.new(viewer, quote).create?).to be(false) }
+
+      group.update!(operation_suspended_at: nil)
+      group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+      quotes.each { |quote| expect(described_class.new(viewer, quote).create?).to be(false) }
     end
   end
 
