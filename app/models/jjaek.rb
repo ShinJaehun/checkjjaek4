@@ -99,12 +99,21 @@ class Jjaek < ApplicationRecord
   end
 
   def mark_requotes_as_deleted_source(deletion_time = Time.current)
-    requotes.update_all(
+    requotes.where(group_id: nil).update_all(
       quoted_jjaek_id: nil,
       quoted_source_author_name: user.name,
       quoted_source_deleted_at: deletion_time,
       quoted_source_kind: book.present? ? "book" : "general",
       visibility: self.class.visibilities[:private_jjaek],
+      updated_at: deletion_time
+    )
+
+    requotes.where.not(group_id: nil).update_all(
+      quoted_jjaek_id: nil,
+      quoted_source_author_name: nil,
+      quoted_source_deleted_at: deletion_time,
+      quoted_source_kind: nil,
+      visibility: self.class.visibilities[:public_jjaek],
       updated_at: deletion_time
     )
   end

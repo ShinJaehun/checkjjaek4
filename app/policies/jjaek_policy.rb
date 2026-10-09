@@ -76,6 +76,11 @@ class JjaekPolicy < ApplicationPolicy
     user.present? && !record.hidden? && context_visible_to_user? && quoted_jjaek_visible_to_user?
   end
 
+  def view_quoted_source?
+    source = record.quoted_jjaek
+    source.present? && !source.deleted? && self.class.new(user, source).visible_for_interaction?
+  end
+
   def create?
     user.present? &&
       record.user_id == user.id &&
@@ -190,13 +195,16 @@ class JjaekPolicy < ApplicationPolicy
     end
 
     def with_visible_quoted_jjaeks(records, visible_scope)
-      visible_quoted_jjaek_ids = visible_records(visible_scope).select(:id)
-      deleted_source_requotes = records.where(user_id: user.id).where.not(quoted_source_deleted_at: nil)
+      visible_quoted_jjaek_ids = visible_records(visible_scope).where(deleted_at: nil).select(:id)
+      deleted_source_requotes = records.where(quoted_jjaek_id: nil).where.not(quoted_source_deleted_at: nil)
+      personal_deleted_requotes = deleted_source_requotes.where(group_id: nil, user_id: user.id)
+      group_deleted_requotes = deleted_source_requotes.where.not(group_id: nil)
 
       records
         .where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
         .or(records.where(quoted_jjaek_id: visible_quoted_jjaek_ids))
-        .or(deleted_source_requotes)
+        .or(personal_deleted_requotes)
+        .or(group_deleted_requotes)
     end
   end
 
@@ -284,7 +292,7 @@ class JjaekPolicy < ApplicationPolicy
     end
 
     def with_visible_quoted_jjaeks(records, visible_scope)
-      visible_quoted_jjaek_ids = Scope.new(user, visible_scope).resolve.select(:id)
+      visible_quoted_jjaek_ids = Scope.new(user, visible_scope).resolve.where(deleted_at: nil).select(:id)
       deleted_source_requotes = records.where(user_id: user.id).where.not(quoted_source_deleted_at: nil)
 
       records
@@ -375,10 +383,12 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def quoted_jjaek_visible_to_user?
-    return record.user_id == user.id if record.quoted_source_deleted?
+    if record.quoted_source_deleted? && record.quoted_jjaek_id.nil?
+      return record.group_id.present? || record.user_id == user.id
+    end
     return true unless record.quoted_jjaek
 
-    self.class.new(user, record.quoted_jjaek).visible_for_interaction?
+    view_quoted_source?
   end
 
   def already_requoted?

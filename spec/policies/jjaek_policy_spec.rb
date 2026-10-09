@@ -237,6 +237,103 @@ RSpec.describe JjaekPolicy do
       expect(described_class.new(original_author, requote).show?).to be(false)
     end
 
+    it "uses destination Group read access for a deleted-source group share" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Private readers", group_type: :private_group)
+      membership = group.group_memberships.create!(user: viewer, status: :active)
+      source = original_author.jjaeks.create!(content: "PERSONAL_GROUP_SOURCE")
+      share = viewer.jjaeks.create!(group:, content: "GROUP_DISCUSSION", quoted_jjaek: source)
+      source.destroy!
+      share.reload
+
+      expect(described_class.new(original_author, share)).to be_visible_for_interaction
+      expect(described_class::Scope.new(original_author, Jjaek.all).resolve).to include(share)
+      expect(described_class::ProfileScope.new(original_author, viewer.jjaeks).resolve).to include(share)
+      expect(described_class::GroupContentScope.new(original_author, group.jjaeks).resolve).to include(share)
+      expect(CommentPolicy.new(original_author, share.comments.build(user: original_author, content: "Reply"))).to be_create
+      expect(LikePolicy.new(original_author, share.likes.build(user: original_author))).to be_create
+      expect(described_class.new(unrelated_author, share)).not_to be_show
+      expect(described_class::Scope.new(unrelated_author, Jjaek.all).resolve).not_to include(share)
+
+      membership.destroy!
+      expect(described_class.new(viewer, share)).not_to be_show
+      expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).not_to include(share)
+      expect(CommentPolicy.new(viewer, share.comments.build(user: viewer, content: "Blocked"))).not_to be_create
+    end
+
+    it "keeps deleted-source group quotes readable but blocks new interaction when Group activity stops" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Private readers", group_type: :private_group)
+      membership = group.group_memberships.create!(user: viewer, status: :active)
+      source = original_author.jjaeks.create!(group:, content: "GROUP_SOURCE")
+      quote = viewer.jjaeks.create!(group:, content: "GROUP_QUOTE", quoted_jjaek: source)
+      source.destroy!
+      quote.reload
+
+      membership.update!(moderation_status: :activity_suspended)
+      expect(described_class.new(viewer, quote)).to be_show
+      expect(CommentPolicy.new(viewer, quote.comments.build(user: viewer, content: "Blocked"))).not_to be_create
+      membership.update!(moderation_status: :normal)
+
+      group.update!(operation_suspended_at: Time.current)
+      quote.reload
+      expect(described_class.new(viewer, quote)).to be_visible_for_interaction
+      expect(described_class::GroupActivityScope.new(viewer, Jjaek.all).resolve).to include(quote)
+      expect(CommentPolicy.new(viewer, quote.comments.build(user: viewer, content: "Blocked"))).not_to be_create
+      expect(LikePolicy.new(viewer, quote.likes.build(user: viewer))).not_to be_create
+
+      group.update!(operation_suspended_at: nil, lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      quote.reload
+      expect(described_class.new(viewer, quote)).to be_show
+      expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).to include(quote)
+      expect(CommentPolicy.new(viewer, quote.comments.build(user: viewer, content: "Blocked"))).not_to be_create
+    end
+
+    it "keeps a hidden source linked and rechecks it after restoration" do
+      admin = User.create!(name: "Admin", email: "hidden-quote-source-admin@example.com", password: "password123!", global_admin: true)
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Private readers", group_type: :private_group)
+      group.group_memberships.create!(user: viewer, status: :active)
+      source = original_author.jjaeks.create!(group:, content: "HIDDEN_GROUP_SOURCE")
+      quote = viewer.jjaeks.create!(group:, content: "GROUP_QUOTE", quoted_jjaek: source)
+
+      Jjaeks::Hide.new(source, actor: admin, public_reason: "other").call!
+
+      expect(quote.reload.quoted_jjaek_id).to eq(source.id)
+      expect(quote).not_to be_quoted_source_deleted
+      expect(described_class.new(viewer, quote)).not_to be_show
+      expect(described_class.new(viewer, quote)).not_to be_view_quoted_source
+      expect(described_class.new(admin, quote)).to be_show
+      expect(described_class.new(admin, quote)).not_to be_view_quoted_source
+      expect(described_class::Scope.new(viewer, Jjaek.all).resolve).not_to include(quote)
+      expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).not_to include(quote)
+      expect(described_class::ProfileScope.new(original_author, viewer.jjaeks).resolve).not_to include(quote)
+
+      Jjaeks::Restore.new(source, actor: admin, public_reason: "Restored").call!
+
+      expect(quote.reload.quoted_jjaek_id).to eq(source.id)
+      expect(described_class.new(viewer, quote)).to be_show
+      expect(described_class.new(viewer, quote)).to be_view_quoted_source
+      expect(described_class::Scope.new(viewer, Jjaek.all).resolve).to include(quote)
+      expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).to include(quote)
+      expect(ModerationAction.where(target: source).count).to eq(2)
+    end
+
+    it "does not treat a still-present but inaccessible personal source as deleted" do
+      group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Readers", group_type: :public_group)
+      source = original_author.jjaeks.create!(content: "PUBLIC_SOURCE")
+      share = viewer.jjaeks.create!(group:, content: "GROUP_SHARE", quoted_jjaek: source)
+
+      source.update!(visibility: :private_jjaek)
+
+      expect(share.reload.quoted_jjaek_id).to eq(source.id)
+      expect(share).not_to be_quoted_source_deleted
+      expect(described_class.new(viewer, share)).not_to be_show
+      expect(described_class::Scope.new(viewer, Jjaek.all).resolve).not_to include(share)
+
+      source.update!(visibility: :public_jjaek)
+      share.reload
+      expect(described_class.new(viewer, share)).to be_show
+      expect(described_class::Scope.new(viewer, Jjaek.all).resolve).to include(share)
+    end
+
     it "shows a requote when the original is still visible to the viewer" do
       expect(described_class.new(viewer, requote).show?).to be(true)
     end

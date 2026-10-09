@@ -104,9 +104,11 @@ module JjaeksHelper
       "jjaeks.contexts.group_general_html"
     elsif jjaek.quoted_source_deleted?
       "jjaeks.contexts.deleted_requote_html"
+    elsif jjaek.quoted_jjaek.present? && !policy(jjaek).view_quoted_source?
+      "jjaeks.contexts.deleted_requote_html"
     elsif jjaek.quoted_jjaek&.group_id.present?
       "jjaeks.contexts.group_requote_html"
-    elsif jjaek.quoted_jjaek.present?
+    elsif jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
       "jjaeks.contexts.requote_html"
     elsif jjaek.book.present?
       "jjaeks.contexts.book_html"

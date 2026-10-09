@@ -294,6 +294,58 @@ RSpec.describe Jjaek, type: :model do
     expect(requote.quoted_jjaek_id).to be_nil
   end
 
+  it "keeps personal requotes private and group shares public after a hard delete" do
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Readers", group_type: :public_group)
+    original = other_user.jjaeks.create!(book:, content: "원문")
+    personal_requote = user.jjaeks.create!(content: "개인 의견", quoted_jjaek: original)
+    group_share = user.jjaeks.create!(group:, content: "동아리 의견", quoted_jjaek: original)
+    comment = group_share.comments.create!(user: other_user, content: "별도 토론")
+    like = group_share.likes.create!(user: other_user)
+    action = ModerationAction.create!(target: group_share, actor: other_user, action_type: :hide,
+                                      public_reason: "other", moderation_authority: "platform")
+
+    original.destroy!
+
+    expect(personal_requote.reload).to be_private_jjaek
+    expect(personal_requote.quoted_source_author_name).to eq(other_user.name)
+    expect(group_share.reload).to be_public_jjaek
+    expect(group_share).to be_quoted_source_deleted
+    expect(group_share.quoted_jjaek_id).to be_nil
+    expect(group_share.quoted_source_author_name).to be_nil
+    expect(group_share.quoted_source_kind).to be_nil
+    expect(group_share.content).to eq("동아리 의견")
+    expect(group_share.group).to eq(group)
+    expect(group_share.comments).to contain_exactly(comment)
+    expect(group_share.likes).to contain_exactly(like)
+    expect(ModerationAction.find(action.id)).to eq(action)
+    expect(group_share.update(content: "이어서 쓴 의견")).to be(true)
+    expect(group_share.reload).to be_quoted_source_deleted
+    expect(group_share).to be_public_jjaek
+  end
+
+  it "keeps a same-group quote and its discussion after the source is tombstoned" do
+    group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :private_group)
+    group.group_memberships.create!(user:, status: :active)
+    original = other_user.jjaeks.create!(group:, book:, content: "동아리 원문")
+    quote = user.jjaeks.create!(group:, content: "독립 의견", quoted_jjaek: original)
+    comment = quote.comments.create!(user: other_user, content: "독립 댓글")
+    like = quote.likes.create!(user: other_user)
+    original.comments.create!(user:, content: "원문 댓글")
+
+    original.destroy_or_tombstone!
+
+    expect(original.reload).to be_deleted
+    expect(quote.reload).to be_quoted_source_deleted
+    expect(quote.quoted_jjaek_id).to be_nil
+    expect(quote.quoted_source_author_name).to be_nil
+    expect(quote.quoted_source_kind).to be_nil
+    expect(quote).to be_public_jjaek
+    expect(quote.group).to eq(group)
+    expect(quote.content).to eq("독립 의견")
+    expect(quote.comments).to contain_exactly(comment)
+    expect(quote.likes).to contain_exactly(like)
+  end
+
   it "counts only persisted comments when the association target includes a form object" do
     jjaek = user.jjaeks.create!(content: "댓글 집계")
     jjaek.comments.create!(user: other_user, content: "저장된 댓글")

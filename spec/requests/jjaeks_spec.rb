@@ -752,6 +752,146 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short)))
     end
 
+    it "keeps a deleted personal source's group share and shows only a generic source notice" do
+      group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Shared readers", group_type: :public_group)
+      source = original_author.jjaeks.create!(book:, content: "DELETED_PERSONAL_SOURCE")
+      share = viewer.jjaeks.create!(group:, content: "INDEPENDENT_GROUP_OPINION", quoted_jjaek: source)
+      comment = share.comments.create!(user: original_author, content: "INDEPENDENT_GROUP_COMMENT")
+      share.likes.create!(user: original_author)
+      source.destroy!
+      share.reload
+      sign_in viewer
+
+      [ jjaek_path(share), group_path(group), user_path(viewer) ].each do |path|
+        get path
+
+        card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{share.id}")
+        expect(card).to be_present
+        expect(card.text).to include(share.content, I18n.t("jjaeks.labels.deleted_quoted_source"))
+        expect(card.text).not_to include(source.content, source.user.name, book.title)
+        expect(card.at_css(%(a[href="#{jjaek_path(source)}"]))).to be_nil
+      end
+
+      expect(share.quoted_source_author_name).to be_nil
+      expect(share.quoted_source_kind).to be_nil
+      expect(share.likes.count).to eq(1)
+      get jjaek_path(share)
+      expect(response.body).to include(comment.content)
+
+      expect {
+        post jjaek_comments_path(share), params: { comment: { content: "CONTINUED_GROUP_DISCUSSION" } }
+      }.to change(share.comments, :count).by(1)
+      expect { post jjaek_like_path(share) }.to change(share.likes, :count).by(1)
+
+      group.update!(operation_suspended_at: Time.current)
+      expect {
+        post jjaek_comments_path(share), params: { comment: { content: "BLOCKED_GROUP_COMMENT" } }
+      }.not_to change(share.comments, :count)
+      expect { post jjaek_like_path(share) }.not_to change(share.likes, :count)
+
+      # Older group rows may already contain personal-requote snapshots.
+      share.update_columns(
+        quoted_source_author_name: "OLD_SOURCE_NAME",
+        quoted_source_kind: "book",
+        visibility: Jjaek.visibilities[:private_jjaek]
+      )
+      get jjaek_path(share)
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{share.id}")
+      expect(card).to be_present
+      expect(card.text).not_to include("OLD_SOURCE_NAME")
+    end
+
+    it "keeps a tombstoned same-group quote readable only to current Group readers" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Private readers", group_type: :private_group)
+      membership = group.group_memberships.create!(user: viewer, status: :active)
+      source = original_author.jjaeks.create!(group:, book:, content: "DELETED_PRIVATE_SOURCE")
+      quote = viewer.jjaeks.create!(group:, content: "PRIVATE_GROUP_DISCUSSION", quoted_jjaek: source)
+      source.comments.create!(user: viewer, content: "Keeps source tombstone")
+      source.destroy_or_tombstone!
+      sign_in viewer
+
+      [ jjaek_path(quote), group_path(group), user_path(viewer) ].each do |path|
+        get path
+        card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{quote.id}")
+        expect(card).to be_present
+        expect(card.text).to include(quote.content, I18n.t("jjaeks.labels.deleted_quoted_source"))
+        expect(card.text).not_to include(source.user.name, book.title, "DELETED_PRIVATE_SOURCE")
+      end
+
+      membership.destroy!
+      get jjaek_path(quote)
+      expect(response).to have_http_status(:not_found)
+
+      get user_path(viewer)
+      expect(response.body).not_to include("PRIVATE_GROUP_DISCUSSION")
+    end
+
+    it "does not reveal a hidden source through a hidden requote's card or header" do
+      admin = User.create!(name: "Admin", email: "hidden-source-card-admin@example.com", password: "password123!", global_admin: true)
+      source_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "SECRET_SOURCE_GROUP", group_type: :public_group)
+      source = original_author.jjaeks.create!(group: source_group, book:, content: "SECRET_SOURCE_BODY")
+      personal_requote = viewer.jjaeks.create!(content: "MY_REQUOTE_OPINION", quoted_jjaek: source)
+      Jjaeks::Hide.new(source, actor: admin, public_reason: "other").call!
+
+      sign_in viewer
+      get edit_jjaek_path(personal_requote)
+      expect(response.body).to include("MY_REQUOTE_OPINION")
+      expect(response.body).not_to include("SECRET_SOURCE_BODY", "SECRET_SOURCE_GROUP", original_author.name, book.title)
+
+      Jjaeks::Hide.new(personal_requote, actor: admin, public_reason: "other").call!
+
+      [ viewer, admin ].each do |reader|
+        sign_in reader
+        get jjaek_path(personal_requote)
+
+        card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
+        expect(card).to be_present
+        expect(card.text).to include("MY_REQUOTE_OPINION")
+        expect(card.text).not_to include("SECRET_SOURCE_BODY", "SECRET_SOURCE_GROUP", original_author.name, book.title)
+        expect(card.at_css(%(a[href="#{group_path(source_group)}"]))).to be_nil
+      end
+
+      Jjaeks::Restore.new(source, actor: admin, public_reason: "Restored").call!
+      sign_in admin
+      get jjaek_path(personal_requote)
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
+      expect(card.text).to include("SECRET_SOURCE_BODY", "SECRET_SOURCE_GROUP")
+    end
+
+    it "hides and restores a group share with its source without exposing the source in inspection views" do
+      admin = User.create!(name: "Admin", email: "hidden-group-share-admin@example.com", password: "password123!", global_admin: true)
+      group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Destination readers", group_type: :public_group)
+      source = original_author.jjaeks.create!(book:, content: "HIDDEN_PERSONAL_SOURCE")
+      share = viewer.jjaeks.create!(group:, content: "GROUP_SHARE_OPINION", quoted_jjaek: source)
+      Jjaeks::Hide.new(source, actor: admin, public_reason: "other").call!
+      sign_in viewer
+
+      get jjaek_path(share)
+      expect(response).to have_http_status(:not_found)
+      [ group_path(group), user_path(viewer) ].each do |path|
+        get path
+        expect(Nokogiri::HTML(response.body).at_css("article#jjaek_#{share.id}")).to be_nil
+      end
+
+      Jjaeks::Hide.new(share, actor: admin, public_reason: "other").call!
+      [ viewer, admin ].each do |reader|
+        sign_in reader
+        get jjaek_path(share)
+        card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{share.id}")
+        expect(card).to be_present
+        expect(card.text).to include("GROUP_SHARE_OPINION", group.name)
+        expect(card.text).not_to include("HIDDEN_PERSONAL_SOURCE", original_author.name, book.title)
+      end
+
+      Jjaeks::Restore.new(source, actor: admin, public_reason: "Restored").call!
+      Jjaeks::Restore.new(share, actor: admin, public_reason: "Restored").call!
+      sign_in viewer
+      get jjaek_path(share)
+      expect(response.body).to include("HIDDEN_PERSONAL_SOURCE")
+      expect(share.reload.quoted_jjaek_id).to eq(source.id)
+      expect(ModerationAction.where(target: source).count).to eq(2)
+    end
+
 
     it "shows a deleted book jjaek shell without its original body or interaction forms" do
       original.comments.create!(user: viewer, content: "PRESERVED_DELETED_COMMENT")
