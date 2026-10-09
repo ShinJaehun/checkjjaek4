@@ -457,6 +457,37 @@ RSpec.describe "Notifications", type: :request do
     get notifications_path
 
     expect(response.body).to include(jjaek_path(requote))
+    expect(response.body).to include(I18n.t("notifications.messages.requote_created", actor_name: actor.name))
+  end
+
+  it "names the destination in an accessible group requote notification" do
+    group = Group.create!(lifecycle_status: :active, group_admin: recipient, name: "Readers", group_type: :public_group)
+    group.group_memberships.create!(user: actor, status: :active)
+    source = recipient.jjaeks.create!(content: "PUBLIC_SOURCE")
+    requote = actor.jjaeks.create!(group:, quoted_jjaek: source, content: "GROUP_REQUOTE")
+    Notification.notify_requote_created(requote)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(response.body).to include(
+      I18n.t("notifications.messages.group_requote_created", actor_name: actor.name, group_name: group.name)
+    )
+  end
+
+  it "names the same group in an accessible internal requote notification" do
+    group = Group.create!(lifecycle_status: :active, group_admin: recipient, name: "Readers", group_type: :public_group)
+    group.group_memberships.create!(user: actor, status: :active)
+    source = recipient.jjaeks.create!(group:, content: "GROUP_SOURCE")
+    requote = actor.jjaeks.create!(group:, quoted_jjaek: source, content: "INTERNAL_REQUOTE")
+    Notification.notify_requote_created(requote)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(response.body).to include(
+      I18n.t("notifications.messages.group_inner_requote_created", actor_name: actor.name, group_name: group.name)
+    )
   end
 
   it "falls back safely when a private group quote recipient loses membership" do

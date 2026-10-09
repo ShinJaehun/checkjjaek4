@@ -616,6 +616,11 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("_128")
       expect(response.body).to include(%(alt="#{original_author.name}"))
       expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: original.id))
+      expect(response.body).to include(I18n.t("jjaeks.actions.requote"))
+
+      get new_jjaek_path(quoted_jjaek_id: original.id)
+
+      expect(response.body).to include(I18n.t("jjaeks.actions.publish_requote"))
     end
 
     it "does not show a requote entry after the viewer has already requoted the original" do
@@ -651,9 +656,9 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("Author")
       expect(response.body).to include("user_profile_")
       expect(response.body).to include(%(alt="#{original_author.name}"))
-      expect(response.body).to include("님의 책짹을 다시짹")
+      expect(response.body).to include("님의 책짹을 개인 피드에 다시짹")
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{requote.id}")
-      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 책짹을 다시짹")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 책짹을 개인 피드에 다시짹")
     end
 
     it "shows the general requote context label on the detail page" do
@@ -665,9 +670,9 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response.body).to include("REQUEST_VIEWER_GENERAL_REQUOTE_BODY")
       expect(response.body).to include("REQUEST_ORIGINAL_GENERAL_SOURCE")
-      expect(response.body).to include("님의 짹을 다시짹")
+      expect(response.body).to include("님의 짹을 개인 피드에 다시짹")
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{general_requote.id}")
-      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 다시짹")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 개인 피드에 다시짹")
     end
 
     it "links the source group on home, profile, and detail cards for a general requote" do
@@ -682,7 +687,7 @@ RSpec.describe "Jjaeks", type: :request do
         card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
         expect(card).to be_present
         expect(card.text).to include("#{group.name}에 올라온")
-        expect(card.text).to include("님의 짹을 다시짹")
+        expect(card.text).to include("님의 짹을 개인 피드에 다시짹")
         expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
       end
 
@@ -707,7 +712,7 @@ RSpec.describe "Jjaeks", type: :request do
         card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
         expect(card).to be_present
         expect(card.text).to include("#{group.name}에 올라온")
-        expect(card.text).to include("님의 책짹을 다시짹")
+        expect(card.text).to include("님의 책짹을 개인 피드에 다시짹")
         expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
       end
     end

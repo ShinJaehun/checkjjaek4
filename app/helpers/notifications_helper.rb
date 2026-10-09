@@ -6,6 +6,12 @@ module NotificationsHelper
     return t("notifications.messages.requote_unavailable") if notification.requote_created? && !readable_requote_notification?(notification)
     return t("notifications.messages.comment_unavailable") if notification.comment_created? && !readable_comment_notification?(notification)
 
+    if notification.requote_created? && notification.notifiable.group.present?
+      requote = notification.notifiable
+      message_key = requote.quoted_jjaek&.group_id == requote.group_id ? "group_inner_requote_created" : "group_requote_created"
+      return t("notifications.messages.#{message_key}", actor_name: notification.actor.name, group_name: requote.group.name)
+    end
+
     if notification.comment_created? && notification.notifiable&.jjaek&.group.present?
       return t(
         "notifications.messages.group_comment_created",

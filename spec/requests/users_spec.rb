@@ -753,7 +753,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("PROFILE_REQUOTE_VISIBLE_ORIGINAL")
       expect(response.body).to include(other_user.name)
       expect(response.body).to include(user_path(other_user))
-      expect(page_text).to include("Profile User님이 Other님의 짹을 다시짹")
+      expect(page_text).to include("Profile User님이 Other님의 짹을 개인 피드에 다시짹")
     end
 
     it "does not show BookActivity on a stranger's profile" do

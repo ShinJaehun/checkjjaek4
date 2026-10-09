@@ -271,6 +271,7 @@
 - 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있음. 기존 자기 Like 철회는 hidden, deleted tombstone, 동아리 운영 종료 등에서도 부모 Jjaek의 현재 read boundary가 유지되는 범위에서만 가능하고, membership 종료 등으로 부모를 읽을 수 없으면 허용하지 않음
 - active 공개 동아리의 Jjaek·책짹은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
 - 승인·비공개·inactive·pending 동아리 원문의 개인 피드 외부 ReJjaek은 허용하지 않음. 전체 공개 개인 원문은 작성 가능한 동아리마다 의견을 붙여 공유할 수 있고, 동아리 원문은 같은 동아리의 읽기·쓰기 권한을 갖춘 회원이 인용할 수 있음. 다른 동아리 원문과 이미 다시짹한 글의 인용은 금지함
+- 이 세 경로의 사용자 표시 용어는 다시짹으로 통일함. 동작은 각각 `내 피드에 다시짹`, `동아리에 다시짹`, `이 동아리에 다시짹`으로 구분하며, 카드 헤더와 알림에는 접근 가능한 출처·목적지 문맥을 표시함
 - 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
 - 동아리 hard delete, 이메일·링크 초대, moderator와 별도 moderation dashboard는 구현되지 않음
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를 직접 조사할 수 있음

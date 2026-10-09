@@ -19,6 +19,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
     links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
     expect(links).to include(new_jjaek_path(quoted_jjaek_id: source.id))
     expect(links).to include(new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1))
+    expect(response.body).to include(I18n.t("jjaeks.actions.requote"), I18n.t("jjaeks.actions.share_to_group"))
 
     writer.jjaeks.create!(quoted_jjaek: source, content: "Personal requote")
     get new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1)
@@ -27,6 +28,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
     choices = page.css('select[name="jjaek[group_id]"] option').map { |option| option["value"] }
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("PUBLIC_BOOK_SOURCE", book.title)
+    expect(response.body).to include(I18n.t("jjaeks.actions.share_to_group"), I18n.t("jjaeks.form.destination_group"))
     expect(response.body).not_to include('name="jjaek[visibility]"')
     expect(choices).to include(available.id.to_s)
     expect(choices).not_to include(already_used.id.to_s, suspended.id.to_s, unjoined.id.to_s)
@@ -63,7 +65,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
     get jjaek_path(share)
     card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{share.id}")
-    expect(card.text).to include("에 공유", source_author.name, available.name)
+    expect(card.text).to include("에 다시짹", source_author.name, available.name)
 
     source.destroy!
     get jjaek_path(share)
@@ -82,10 +84,12 @@ RSpec.describe "Group sharing and quotes", type: :request do
     links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
     expect(links).to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
     expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: source.id))
+    expect(response.body).to include(I18n.t("jjaeks.actions.quote_in_group"))
 
     get new_group_jjaek_path(group, quoted_jjaek_id: source.id)
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("PRIVATE_GROUP_SOURCE", group.name)
+    expect(response.body).to include(I18n.t("jjaeks.actions.quote_in_group"))
     expect(response.body).not_to include('name="jjaek[visibility]"', 'name="jjaek[group_id]"')
 
     post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
@@ -108,7 +112,10 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
     get jjaek_path(quote)
     card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{quote.id}")
-    expect(card.text).to include("을 인용", source_author.name, group.name)
+    expect(card.text).to include(
+      "#{group.name}에서 #{source_author.name}님의",
+      "을 다시짹"
+    )
 
     expect {
       post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
