@@ -306,6 +306,9 @@
 - 회원 관리 화면은 `GroupMembershipEvent`와 GroupMembership 대상 `ModerationAction`을 Group 단위 최신순 회원 운영 이력으로 통합 표시함
 - 이용 제한·해제는 `GroupMemberBan` 대상 append-only 감사 row로 같은 운영 이력에 표시하며 일반 `removed` lifecycle event로 기록하지 않음
 - 복수의 global admin은 동등한 운영 권한을 가지며 현재 global admin이 아닌 active User만 정지하고 suspended User만 복구할 수 있음. 자기 자신과 다른 global admin 계정의 정지·복구는 허용하지 않음
+- 서버 전용 `global_admin:grant`/`global_admin:revoke` Rails task로 기존 정상 활성 User의 시스템 관리자 권한을 변경함. 대상 ID·이메일 대조, 사유 입력, 실행 전 확인을 거치고, `GlobalAdminRoleChange`에 전후 역할·사유·확인 가능한 서버 실행 정보를 별도 감사로 남김. 일반 관리자 웹 UI와 moderation 권한에는 역할 변경 경로가 없음
+- 권한 변경 service는 PostgreSQL transaction advisory lock 뒤 대상 User 잠금과 현재 상태 재조회, 역할 변경과 감사 생성을 한 transaction에서 수행함. 정상 활성 관리자가 최소 한 명 남아야 하며 정지·탈퇴한 관리자는 이 수에 포함하지 않음. 기존 관리자의 과거 부여 이력은 소급 생성하지 않음
+- 역할 회수 뒤 기존 세션과 remember-me 복원도 다음 요청부터 현재 User 역할에 따라 관리자 권한이 사라지고 일반 User 접근은 유지됨
 - Group 운영 정지·복구는 User 계정 정지 및 GroupMemberBan과 서로 자동 전파되지 않음
 - User 정지·복구는 User row lock 안에서 `suspended_at` 변경과 suspend/restore 감사 row 생성을 한 transaction으로 처리함
 - admin User 상세는 현재 허용된 계정 정지 또는 복구 action link만 표시하고, 사유 입력과 실행은 `/admin/users/:user_id/account_suspensions/new`와 `/admin/users/:user_id/account_restorations/new`의 독립 page에서 각각 기존 policy와 service로 처리함

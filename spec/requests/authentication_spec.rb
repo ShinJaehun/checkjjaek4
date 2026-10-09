@@ -105,6 +105,65 @@ RSpec.describe "Authentication", type: :request do
     expect(response).to redirect_to(new_user_session_path)
   end
 
+  it "removes admin access from an existing session while retaining ordinary access" do
+    admin = User.create!(name: "Role session admin", email: "role-session-admin@example.com", password: "password123!", global_admin: true)
+    other_admin = User.create!(name: "Remaining admin", email: "role-session-remaining@example.com", password: "password123!", global_admin: true)
+    reader = User.create!(name: "Reader", email: "role-session-reader@example.com", password: "password123!")
+    sign_in admin
+
+    get admin_users_path
+    expect(response).to have_http_status(:ok)
+
+    GlobalAdminRoles::Change.new(
+      user_id: admin.id, action: :revoke, reason: "Staffing change",
+      operator_uid: 1000, operator_account: "deploy", server_hostname: "app-server",
+      execution_id: SecureRandom.uuid
+    ).call!
+    expect(other_admin.reload).to be_global_admin
+
+    get admin_users_path
+    expect(response).to redirect_to(root_path)
+    expect {
+      post admin_user_account_suspensions_path(reader), params: { moderation_action: { public_reason: "other" } }
+    }.not_to change(ModerationAction, :count)
+    expect(response).to redirect_to(root_path)
+
+    get root_path
+    expect(response).to have_http_status(:ok)
+    expect {
+      post jjaeks_path, params: { jjaek: { content: "Ordinary access after role revocation" } }
+    }.to change(Jjaek, :count).by(1)
+  end
+
+  it "does not restore admin access from a remember-me cookie after revocation" do
+    admin = User.create!(name: "Remembered admin", email: "role-remember-admin@example.com", password: "password123!", global_admin: true)
+    User.create!(name: "Remaining admin", email: "role-remember-remaining@example.com", password: "password123!", global_admin: true)
+
+    post user_session_path, params: {
+      user: { email: admin.email, password: "password123!", remember_me: "1" }
+    }
+    remember_cookie = Array(response.headers.fetch("Set-Cookie")).flat_map { |value| value.to_s.split("\n") }
+      .find { |cookie| cookie.start_with?("remember_user_token=") }
+      &.split(";", 2)&.first
+    expect(remember_cookie).to be_present
+
+    remembered_session = ActionDispatch::Integration::Session.new(Rails.application)
+    remembered_session.get(admin_users_path, headers: { "Cookie" => remember_cookie })
+    expect(remembered_session.response).to have_http_status(:ok)
+
+    GlobalAdminRoles::Change.new(
+      user_id: admin.id, action: :revoke, reason: "Staffing change",
+      operator_uid: 1000, operator_account: "deploy", server_hostname: "app-server",
+      execution_id: SecureRandom.uuid
+    ).call!
+
+    revoked_session = ActionDispatch::Integration::Session.new(Rails.application)
+    revoked_session.get(admin_users_path, headers: { "Cookie" => remember_cookie })
+    expect(revoked_session.response).to redirect_to(root_path)
+    revoked_session.get(root_path)
+    expect(revoked_session.response).to have_http_status(:ok)
+  end
+
   it "keeps a suspended author's existing public content visible" do
     author = User.create!(name: "Suspended Author", email: "suspended-content-author@example.com", password: "password123!", suspended_at: Time.current)
     viewer = User.create!(name: "Viewer", email: "suspended-content-viewer@example.com", password: "password123!")
