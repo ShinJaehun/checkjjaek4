@@ -1,11 +1,13 @@
 <div class="rounded-2xl border border-stone-200 bg-stone-50/80 px-4 py-3 text-sm text-stone-600">
-  <% source_kind = jjaek.quoted_source_kind.presence || "general" %>
-  <% source_author_name = jjaek.quoted_source_author_name.presence || t("jjaeks.labels.deleted_quoted_source_unknown_author") %>
+  <% if jjaek.group_id.blank? %>
+    <% source_kind = jjaek.quoted_source_kind.presence || "general" %>
+    <% source_author_name = jjaek.quoted_source_author_name.presence || t("jjaeks.labels.deleted_quoted_source_unknown_author") %>
 
-  <div class="font-medium text-stone-700">
-    <%= t("jjaeks.labels.deleted_quoted_source_title.#{source_kind}", name: source_author_name) %>
-  </div>
-  <div class="mt-1 text-stone-500">
+    <div class="font-medium text-stone-700">
+      <%= t("jjaeks.labels.deleted_quoted_source_title.#{source_kind}", name: source_author_name) %>
+    </div>
+  <% end %>
+  <div class="<%= jjaek.group_id.blank? ? "mt-1 text-stone-500" : "text-stone-500" %>">
     <%= t("jjaeks.labels.deleted_quoted_source") %>
   </div>
 </div>

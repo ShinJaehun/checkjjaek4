@@ -76,6 +76,11 @@ class JjaekPolicy < ApplicationPolicy
     user.present? && !record.hidden? && context_visible_to_user? && quoted_jjaek_visible_to_user?
   end
 
+  def view_quoted_source?
+    source = record.quoted_jjaek
+    source.present? && !source.deleted? && self.class.new(user, source).visible_for_interaction?
+  end
+
   def create?
     user.present? &&
       record.user_id == user.id &&
@@ -89,8 +94,42 @@ class JjaekPolicy < ApplicationPolicy
     visible_for_interaction? && !record.deleted? && requote_source_context_allowed? && !record.private_jjaek? && !record.requote?
   end
 
+  def view_requotes?
+    visible_for_interaction? && !record.deleted? && !record.requote?
+  end
+
+  def view_restricted_requote_details?(requote)
+    return false unless view_requotes? && record.user_id == user.id
+    return false unless requote.quoted_jjaek_id == record.id && !requote.hidden? && !requote.deleted?
+
+    group = requote.group
+    group&.active? && group.approval_group? && GroupPolicy.new(user, group).show? &&
+      UserPolicy.new(user, requote.user).show?
+  end
+
   def create_requote?
     requote? && !already_requoted?
+  end
+
+  def group_share_destinations
+    return [] unless user.present? && record.persisted? && record.group_id.blank?
+    return [] unless record.public_jjaek? && !record.deleted? && !record.requote? && visible_for_interaction?
+
+    user.group_memberships.active.includes(:group).filter_map do |membership|
+      group = membership.group
+      group if group && self.class.new(user, Jjaek.new(user:, group:, quoted_jjaek: record)).create?
+    end.sort_by(&:name)
+  end
+
+  def share_to_group?
+    group_share_destinations.any?
+  end
+
+  def quote_in_group?
+    return false unless user.present? && record.persisted? && record.group_id.present?
+    return false if record.deleted? || record.requote? || !visible_for_interaction?
+
+    self.class.new(user, Jjaek.new(user:, group: record.group, quoted_jjaek: record)).create?
   end
 
   def update?
@@ -190,13 +229,28 @@ class JjaekPolicy < ApplicationPolicy
     end
 
     def with_visible_quoted_jjaeks(records, visible_scope)
-      visible_quoted_jjaek_ids = visible_records(visible_scope).select(:id)
-      deleted_source_requotes = records.where(user_id: user.id).where.not(quoted_source_deleted_at: nil)
+      visible_quoted_jjaek_ids = visible_records(visible_scope).where(deleted_at: nil).select(:id)
+      deleted_source_requotes = records.where(quoted_jjaek_id: nil).where.not(quoted_source_deleted_at: nil)
+      personal_deleted_requotes = deleted_source_requotes.where(group_id: nil, user_id: user.id)
+      group_deleted_requotes = deleted_source_requotes.where.not(group_id: nil)
 
       records
         .where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
         .or(records.where(quoted_jjaek_id: visible_quoted_jjaek_ids))
-        .or(deleted_source_requotes)
+        .or(personal_deleted_requotes)
+        .or(group_deleted_requotes)
+    end
+  end
+
+  class RestrictedRequoteScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      readable_ids = JjaekPolicy::Scope.new(user, Jjaek.all).resolve.select(:id)
+      scope.joins(:group)
+        .where(quoted_jjaek_id: Jjaek.where(user_id: user.id).select(:id))
+        .where(groups: { lifecycle_status: %i[active inactive] }, hidden_at: nil, deleted_at: nil)
+        .where.not(id: readable_ids)
     end
   end
 
@@ -205,7 +259,9 @@ class JjaekPolicy < ApplicationPolicy
       return scope.none unless user.present?
       return scope.all if user.global_admin?
 
-      visible_records = JjaekPolicy::Scope.new(user, scope).resolve
+      visible_records = scope.where(
+        id: JjaekPolicy::Scope.new(user, Jjaek.all).resolve.select(:id)
+      )
       hidden_scope = scope.where(user_id: user.id).where.not(hidden_at: nil)
       public_group_ids = Group.active.public_group.select(:id)
       hidden_own_records = hidden_scope.where(group_id: public_group_ids)
@@ -284,7 +340,7 @@ class JjaekPolicy < ApplicationPolicy
     end
 
     def with_visible_quoted_jjaeks(records, visible_scope)
-      visible_quoted_jjaek_ids = Scope.new(user, visible_scope).resolve.select(:id)
+      visible_quoted_jjaek_ids = Scope.new(user, visible_scope).resolve.where(deleted_at: nil).select(:id)
       deleted_source_requotes = records.where(user_id: user.id).where.not(quoted_source_deleted_at: nil)
 
       records
@@ -330,14 +386,25 @@ class JjaekPolicy < ApplicationPolicy
   def group_context_allowed?
     return true if record.group_id.blank?
 
-    GroupPolicy.new(user, record.group).create_jjaek?
+    record.group.present? && GroupPolicy.new(user, record.group).create_jjaek?
   end
 
   def quoted_context_allowed?
     return true if record.quoted_jjaek_id.blank?
-    return false if record.group_id.present?
+    return false unless record.quoted_jjaek.present?
+    return group_quoted_context_allowed? if record.group_id.present?
 
     self.class.new(user, record.quoted_jjaek).requote?
+  end
+
+  def group_quoted_context_allowed?
+    source = record.quoted_jjaek
+    return false unless source.persisted?
+    return false if source.deleted? || source.requote?
+    return false unless self.class.new(user, source).visible_for_interaction?
+    return false if Jjaek.exists?(user_id: user.id, quoted_jjaek_id: source.id, group_id: record.group_id)
+
+    source.group_id == record.group_id || (source.group_id.blank? && source.public_jjaek?)
   end
 
   def target_user_context_allowed?
@@ -364,15 +431,17 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def quoted_jjaek_visible_to_user?
-    return record.user_id == user.id if record.quoted_source_deleted?
+    if record.quoted_source_deleted? && record.quoted_jjaek_id.nil?
+      return record.group_id.present? || record.user_id == user.id
+    end
     return true unless record.quoted_jjaek
 
-    self.class.new(user, record.quoted_jjaek).visible_for_interaction?
+    view_quoted_source?
   end
 
   def already_requoted?
     return false unless user.present? && record.persisted?
 
-    Jjaek.exists?(user_id: user.id, quoted_jjaek_id: record.id)
+    Jjaek.exists?(user_id: user.id, quoted_jjaek_id: record.id, group_id: nil)
   end
 end

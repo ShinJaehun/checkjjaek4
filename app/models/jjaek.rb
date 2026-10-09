@@ -26,14 +26,14 @@ class Jjaek < ApplicationRecord
 
   validates :content, presence: true, length: { maximum: 2_000 }, unless: :deleted?
   validates :quoted_jjaek_id,
-            uniqueness: { scope: :user_id },
+            uniqueness: { scope: %i[user_id group_id] },
             allow_nil: true
   validate :quoted_jjaek_must_be_requotable
   validate :quoted_jjaek_must_not_be_requote
   validate :quoted_group_jjaek_must_be_public
   validate :quoted_jjaek_visibility_must_not_expand
   validate :target_user_visibility_must_not_be_private
-  validate :group_context_must_not_be_requote
+  validate :quoted_group_context_must_be_allowed
   validate :group_context_must_not_target_user
 
   before_validation :normalize_group_visibility
@@ -99,12 +99,21 @@ class Jjaek < ApplicationRecord
   end
 
   def mark_requotes_as_deleted_source(deletion_time = Time.current)
-    requotes.update_all(
+    requotes.where(group_id: nil).update_all(
       quoted_jjaek_id: nil,
       quoted_source_author_name: user.name,
       quoted_source_deleted_at: deletion_time,
       quoted_source_kind: book.present? ? "book" : "general",
       visibility: self.class.visibilities[:private_jjaek],
+      updated_at: deletion_time
+    )
+
+    requotes.where.not(group_id: nil).update_all(
+      quoted_jjaek_id: nil,
+      quoted_source_author_name: nil,
+      quoted_source_deleted_at: deletion_time,
+      quoted_source_kind: nil,
+      visibility: self.class.visibilities[:public_jjaek],
       updated_at: deletion_time
     )
   end
@@ -124,6 +133,7 @@ class Jjaek < ApplicationRecord
 
   def quoted_group_jjaek_must_be_public
     return unless quoted_jjaek&.group_id.present?
+    return if group_id.present? && group_id == quoted_jjaek.group_id
     return if quoted_jjaek.group.public_group?
 
     errors.add(:quoted_jjaek, :invalid)
@@ -156,8 +166,10 @@ class Jjaek < ApplicationRecord
     self.visibility = :public_jjaek if group_id.present?
   end
 
-  def group_context_must_not_be_requote
-    return unless group_id.present? && quoted_jjaek_id.present?
+  def quoted_group_context_must_be_allowed
+    return unless group_id.present? && quoted_jjaek.present?
+    return if quoted_jjaek.group_id == group_id
+    return if quoted_jjaek.group_id.blank? && quoted_jjaek.public_jjaek?
 
     errors.add(:quoted_jjaek, :invalid)
   end

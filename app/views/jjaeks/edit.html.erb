@@ -26,7 +26,7 @@
       </div>
     <% end %>
 
-    <% if @jjaek.quoted_jjaek.present? %>
+    <% if policy(@jjaek).view_quoted_source? %>
       <div class="mt-6">
         <%= render "jjaeks/quoted_jjaek", quoted_jjaek: @jjaek.quoted_jjaek %>
       </div>

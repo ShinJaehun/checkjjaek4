@@ -270,7 +270,9 @@
 - 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고 탈퇴하거나 내보내진 작성자는 수정할 수 없지만 자기 기존 글은 삭제할 수 있음
 - 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있음. 기존 자기 Like 철회는 hidden, deleted tombstone, 동아리 운영 종료 등에서도 부모 Jjaek의 현재 read boundary가 유지되는 범위에서만 가능하고, membership 종료 등으로 부모를 읽을 수 없으면 허용하지 않음
 - active 공개 동아리의 Jjaek·책짹은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
-- 승인·비공개·inactive·pending 동아리 원문의 외부 ReJjaek과 개인 Jjaek의 동아리 공유·동아리 안에서의 ReJjaek 작성은 허용하지 않음
+- 승인·비공개·inactive·pending 동아리 원문의 개인 피드 외부 ReJjaek은 허용하지 않음. 전체 공개 개인 원문은 작성 가능한 동아리마다 의견을 붙여 공유할 수 있고, 동아리 원문은 같은 동아리의 읽기·쓰기 권한을 갖춘 회원이 인용할 수 있음. 다른 동아리 원문과 이미 다시짹한 글의 인용은 금지함
+- 이 세 경로의 사용자 표시 용어는 다시짹으로 통일함. 동작은 각각 `내 피드에 다시짹`, `동아리에 다시짹`, `이 동아리에 다시짹`으로 구분하며, 카드 헤더와 알림에는 접근 가능한 출처·목적지 문맥을 표시함
+- 일반 독자의 원문 다시짹 개수와 목록은 연결된 개인·동아리 다시짹 중 현재 읽을 수 있는 항목만 포함함. 원문 작성자는 읽을 수 없는 유효 동아리 다시짹도 개수와 접근 제한 카드로 확인함. 공개 조회가 가능한 승인 동아리만 작성자·원문 종류·동아리 이름을 표시하고, 비공개 동아리의 제한 카드는 익명으로 표시함. 목록 조회는 새 다시짹 작성 권한과 별개이며, 동아리 원문에도 같은 개수·목록 링크를 제공함
 - 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
 - 동아리 hard delete, 이메일·링크 초대, moderator와 별도 moderation dashboard는 구현되지 않음
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를 직접 조사할 수 있음
@@ -356,7 +358,7 @@
 - `/notifications` 진입 시 현재 사용자의 unread 알림을 read 처리
 - 책친구 요청 알림은 `/account/relationships#received-book-friend-requests`로 연결
 - 책친구 신청 수락 알림은 원래 신청자에게 전달하고, 수락한 사용자의 이름·avatar와 프로필 링크를 표시함
-- profile-context Jjaek, 댓글, ReJjaek 알림은 관련 Jjaek 상세로 연결
+- profile-context Jjaek 알림은 관련 Jjaek 상세로 연결함. 댓글·ReJjaek 알림은 현재 해당 글을 읽을 수 있을 때 상세로 연결하고, 권한이 사라지면 원문·동아리 정보를 표시하지 않는 안내와 안전한 경로를 사용함
 - User 계정·Group 운영 정지/복구와 Jjaek·Comment 숨김/복구는 이번 조치의 `ModerationAction`을 참조하는 알림을 핵심 transaction commit 뒤 best-effort로 전달하며, group 수신자는 조치 시점 active membership으로 확정
 - GroupMembership 활동 정지·복구도 대상 회원에게 실제 `ModerationAction`을 참조하는 알림을 commit 뒤 전달하며, 운영진 권한 표시·공개 사유와 현재 Group 접근 권한에 따른 링크를 사용
 - moderation 알림은 실제 actor를 audit/알림에 보존하되 사용자 화면에는 운영 주체와 공개 사유만 표시하고, 클릭 시 현재 policy를 다시 적용해 접근 불가 대상은 안전한 화면으로 연결

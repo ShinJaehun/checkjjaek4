@@ -49,7 +49,7 @@ Rails.application.routes.draw do
     resources :group_member_bans, only: [] do
       resources :restorations, only: %i[new create], module: :group_member_bans
     end
-    resources :jjaeks, only: :create
+    resources :jjaeks, only: %i[new create]
   end
   resource :book_search, only: :show, controller: "book_searches"
   resources :books, only: :show do

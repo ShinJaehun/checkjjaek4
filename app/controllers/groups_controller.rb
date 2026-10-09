@@ -7,7 +7,8 @@ class GroupsController < ApplicationController
       .includes(:group_admin, :group_memberships)
       .order(created_at: :desc, id: :desc)
     @group_activity_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupActivityScope)
-      .includes(:user, :book, :target_user, :likes, :comments, :group, :quoted_jjaek, :moderation_actions)
+      .includes(:user, :book, :target_user, :likes, :comments, :group, :moderation_actions,
+                quoted_jjaek: [ :user, :book, :group ])
       .order(created_at: :desc, id: :desc)
     prepare_visible_requote_counts_for(@group_activity_jjaeks)
     @invitations = current_user.group_memberships.invited
@@ -132,10 +133,11 @@ class GroupsController < ApplicationController
       policy_scope(
         @group.jjaeks,
         policy_scope_class: JjaekPolicy::GroupContentScope
-      ).includes(:user, :book, :group, :moderation_actions).recent
+      ).includes(:user, :book, :group, :moderation_actions, quoted_jjaek: [ :user, :book, :group ]).recent
     else
       Jjaek.none
     end
+    prepare_visible_requote_counts_for(@jjaeks)
     @jjaek = Jjaek.new(user: current_user, group: @group) if group_policy.create_jjaek?
   end
 

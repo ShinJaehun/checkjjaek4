@@ -457,6 +457,99 @@ RSpec.describe "Notifications", type: :request do
     get notifications_path
 
     expect(response.body).to include(jjaek_path(requote))
+    expect(response.body).to include(I18n.t("notifications.messages.requote_created", actor_name: actor.name))
+  end
+
+  it "names the destination in an accessible group requote notification" do
+    group = Group.create!(lifecycle_status: :active, group_admin: recipient, name: "Readers", group_type: :public_group)
+    group.group_memberships.create!(user: actor, status: :active)
+    source = recipient.jjaeks.create!(content: "PUBLIC_SOURCE")
+    requote = actor.jjaeks.create!(group:, quoted_jjaek: source, content: "GROUP_REQUOTE")
+    Notification.notify_requote_created(requote)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(response.body).to include(
+      I18n.t("notifications.messages.group_requote_created", actor_name: actor.name, group_name: group.name)
+    )
+  end
+
+  it "names the same group in an accessible internal requote notification" do
+    group = Group.create!(lifecycle_status: :active, group_admin: recipient, name: "Readers", group_type: :public_group)
+    group.group_memberships.create!(user: actor, status: :active)
+    source = recipient.jjaeks.create!(group:, content: "GROUP_SOURCE")
+    requote = actor.jjaeks.create!(group:, quoted_jjaek: source, content: "INTERNAL_REQUOTE")
+    Notification.notify_requote_created(requote)
+    sign_in recipient
+
+    get notifications_path
+
+    expect(response.body).to include(
+      I18n.t("notifications.messages.group_inner_requote_created", actor_name: actor.name, group_name: group.name)
+    )
+  end
+
+  it "falls back safely when a private group quote recipient loses membership" do
+    group_admin = User.create!(name: "Group admin", email: "private-requote-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "SECRET_GROUP_NAME", group_type: :private_group)
+    membership = group.group_memberships.create!(user: recipient, status: :active)
+    group.group_memberships.create!(user: actor, status: :active)
+    source = recipient.jjaeks.create!(group:, content: "SECRET_GROUP_SOURCE")
+    quote = actor.jjaeks.create!(group:, quoted_jjaek: source, content: "SECRET_GROUP_QUOTE")
+    Notification.notify_requote_created(quote)
+    expect(Notification.where(recipient:, notifiable: quote, action: :requote_created).count).to eq(1)
+
+    membership.destroy!
+    sign_in recipient
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.messages.requote_unavailable"))
+    expect(article.text).not_to include(group.name, source.content, quote.content, actor.name)
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(root_path)
+  end
+
+  it "does not notify a group source author who cannot read the new quote" do
+    group_admin = User.create!(name: "Group admin", email: "unreadable-requote-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Private readers", group_type: :private_group)
+    membership = group.group_memberships.create!(user: recipient, status: :active)
+    group.group_memberships.create!(user: actor, status: :active)
+    source = recipient.jjaeks.create!(group:, content: "PRIVATE_SOURCE")
+    membership.destroy!
+    quote = actor.jjaeks.create!(group:, quoted_jjaek: source, content: "PRIVATE_QUOTE")
+
+    expect { Notification.notify_requote_created(quote) }.not_to change(Notification, :count)
+  end
+
+  it "does not notify a public source author about a private destination they cannot read" do
+    group = Group.create!(lifecycle_status: :active, group_admin: actor, name: "Private destination", group_type: :private_group)
+    source = recipient.jjaeks.create!(content: "PUBLIC_SOURCE")
+    share = actor.jjaeks.create!(group:, quoted_jjaek: source, content: "PRIVATE_SHARE")
+
+    expect { Notification.notify_requote_created(share) }.not_to change(Notification, :count)
+  end
+
+  it "hides a private group quote's comment notification after the recipient loses access" do
+    group_admin = User.create!(name: "Group admin", email: "private-quote-comment-admin@example.com", password: "password123!")
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "SECRET_COMMENT_GROUP", group_type: :private_group)
+    membership = group.group_memberships.create!(user: recipient, status: :active)
+    group.group_memberships.create!(user: actor, status: :active)
+    source = group_admin.jjaeks.create!(group:, content: "PRIVATE_COMMENT_SOURCE")
+    quote = recipient.jjaeks.create!(group:, quoted_jjaek: source, content: "PRIVATE_QUOTE")
+    comment = quote.comments.create!(user: actor, content: "PRIVATE_COMMENT")
+    Notification.notify_comment_created(comment)
+    membership.destroy!
+    sign_in recipient
+
+    get notifications_path
+
+    article = parse_html.at_css("article")
+    expect(article.text).to include(I18n.t("notifications.messages.comment_unavailable"))
+    expect(article.text).not_to include(group.name, source.content, quote.content, actor.name)
+    expect(article.at_css("img")).to be_nil
+    expect(article.at_css("a")["href"]).to eq(root_path)
   end
 
   it "shows platform moderation without the actor identity or internal note" do

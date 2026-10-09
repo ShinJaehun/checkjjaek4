@@ -5,6 +5,13 @@ class JjaeksController < ApplicationController
   before_action :build_new_jjaek, only: %i[new create]
 
   def new
+    raise ActiveRecord::RecordNotFound if params[:share_to_group].present? && !@share_to_group
+
+    if @group.present?
+      raise ActiveRecord::RecordNotFound unless @quoted_jjaek&.group_id == @group.id
+    elsif @share_to_group
+      authorize @quoted_jjaek, :share_to_group?
+    end
   end
 
   def show
@@ -43,16 +50,40 @@ class JjaeksController < ApplicationController
 
   def create
     authorize target_user, :write_jjaek? if @group.blank? && target_user.present?
+    raise Pundit::NotAuthorizedError if params[:share_to_group].present? && @group.blank?
+    if @group.present? && request.path_parameters[:group_id].blank? && @quoted_jjaek.blank?
+      raise Pundit::NotAuthorizedError
+    end
+    if @group.present? && @quoted_jjaek.present?
+      nested_group_route = request.path_parameters[:group_id].present?
+      valid_source = nested_group_route ? @quoted_jjaek.group_id == @group.id : @quoted_jjaek.group_id.nil?
+      raise Pundit::NotAuthorizedError unless valid_source
+    end
 
-    @jjaek.assign_attributes(jjaek_params)
+    attributes = jjaek_params
+    attributes = attributes.except(:book_id, :visibility, :target_user_id) if @group.present? && @quoted_jjaek.present?
+    @jjaek.assign_attributes(attributes)
 
-    saved = if @group
-      @group.with_lock do
+    saved = begin
+      if @group
+        @group.with_lock do
+          if group_requote_already_exists?
+            @jjaek.errors.add(:quoted_jjaek_id, :taken)
+            false
+          else
+            authorize @jjaek
+            @jjaek.save
+          end
+        end
+      else
         authorize @jjaek
         @jjaek.save
       end
-    else
-      @jjaek.save
+    rescue ActiveRecord::RecordNotUnique
+      raise unless @jjaek.quoted_jjaek_id.present?
+
+      @jjaek.errors.add(:quoted_jjaek_id, :taken)
+      false
     end
 
     if saved
@@ -123,10 +154,13 @@ class JjaeksController < ApplicationController
 
   def build_new_jjaek
     @group = find_jjaek_group
-    @book = find_jjaek_book
     @quoted_jjaek = find_quoted_jjaek
     return if performed?
 
+    @share_to_group = @quoted_jjaek.present? && @quoted_jjaek.group_id.blank? &&
+      (params[:share_to_group].present? || @group.present?)
+    @available_share_groups = policy(@quoted_jjaek).group_share_destinations if @share_to_group
+    @book = find_jjaek_book unless (@group.present? && @quoted_jjaek.present?) || @share_to_group
     @jjaek_visibility_options = jjaek_visibility_options_for(@quoted_jjaek)
     @jjaek = Jjaek.new(
       user: current_user,
@@ -136,10 +170,14 @@ class JjaeksController < ApplicationController
       target_user: @group.present? ? nil : target_user,
       visibility: default_jjaek_visibility_for(@quoted_jjaek)
     )
-    authorize @jjaek
+    authorize @jjaek if action_name == "new" && !@share_to_group
   end
 
   def render_failed_create
+    if @group.present? && @quoted_jjaek.present?
+      @available_share_groups = policy(@quoted_jjaek).group_share_destinations if @share_to_group
+      return render :new, status: :unprocessable_content
+    end
     return render_group_book_create_failure if @group.present? && @book.present?
     return render_group_create_failure if @group.present?
     return render_book_create_failure if @book.present?
@@ -192,8 +230,18 @@ class JjaeksController < ApplicationController
   end
 
   def find_jjaek_group
-    group_id = request.path_parameters[:group_id]
+    path_group_id = request.path_parameters[:group_id]
+    form_group_id = params.dig(:jjaek, :group_id)
+    quoting = params[:quoted_jjaek_id].present? ||
+      params.dig(:jjaek, :quoted_jjaek_id).present?
+    if quoting && path_group_id.present? && form_group_id.present? &&
+        path_group_id.to_s != form_group_id.to_s
+      raise Pundit::NotAuthorizedError
+    end
+
+    group_id = path_group_id || (form_group_id if action_name == "create")
     return if group_id.blank?
+    raise Pundit::NotAuthorizedError unless group_id.to_s.match?(/\A[1-9]\d*\z/)
 
     policy_scope(Group).find(group_id)
   end
@@ -244,7 +292,7 @@ class JjaeksController < ApplicationController
       policy_scope(
         @group.jjaeks,
         policy_scope_class: JjaekPolicy::GroupContentScope
-      ).includes(:user, :book, :group, :moderation_actions).recent
+      ).includes(:user, :book, :group, :moderation_actions, quoted_jjaek: [ :user, :book, :group ]).recent
     else
       Jjaek.none
     end
@@ -262,7 +310,7 @@ class JjaeksController < ApplicationController
 
   def render_home_create_failure
     @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
-      .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek, :moderation_actions)
+      .includes(:user, :book, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ])
       .recent
     @feed_book_activities = policy_scope(BookActivity)
       .includes(:user, :book)
@@ -324,7 +372,7 @@ class JjaeksController < ApplicationController
     policy_scope(
       @user.jjaeks,
       policy_scope_class: JjaekPolicy::ProfileScope
-    ).includes(:user, :book, :group, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book ]).recent
+    ).includes(:user, :book, :group, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ]).recent
   end
 
   def jjaek_book_id
@@ -332,7 +380,16 @@ class JjaeksController < ApplicationController
   end
 
   def jjaek_quoted_id
-    params.dig(:jjaek, :quoted_jjaek_id) || params[:quoted_jjaek_id]
+    form_id = params.dig(:jjaek, :quoted_jjaek_id)
+    url_id = params[:quoted_jjaek_id]
+    if url_id.present? && params[:jjaek]&.key?(:quoted_jjaek_id) && form_id.to_s != url_id.to_s
+      raise Pundit::NotAuthorizedError
+    end
+
+    quoted_id = form_id || url_id
+    raise Pundit::NotAuthorizedError if quoted_id.present? && !quoted_id.to_s.match?(/\A[1-9]\d*\z/)
+
+    quoted_id
   end
 
   def jjaek_target_user_id
@@ -341,6 +398,11 @@ class JjaeksController < ApplicationController
 
   def jjaek_params
     params.require(:jjaek).permit(:book_id, :content, :visibility, :quoted_jjaek_id, :target_user_id)
+  end
+
+  def group_requote_already_exists?
+    @jjaek.quoted_jjaek_id.present? &&
+      Jjaek.exists?(user_id: current_user.id, quoted_jjaek_id: @jjaek.quoted_jjaek_id, group_id: @group.id)
   end
 
   def update_jjaek_params

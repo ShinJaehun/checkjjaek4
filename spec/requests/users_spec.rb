@@ -753,7 +753,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("PROFILE_REQUOTE_VISIBLE_ORIGINAL")
       expect(response.body).to include(other_user.name)
       expect(response.body).to include(user_path(other_user))
-      expect(page_text).to include("Profile User님이 Other님의 짹을 다시짹")
+      expect(page_text).to include("Profile User님이 Other님의 짹을 개인 피드에 다시짹")
     end
 
     it "does not show BookActivity on a stranger's profile" do
@@ -929,9 +929,8 @@ RSpec.describe "Users", type: :request do
         }
       }.not_to change(Jjaek, :count)
 
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include('name="jjaek[target_user_id]"')
-      expect(response.body).to include(I18n.t("activerecord.errors.models.jjaek.attributes.visibility.invalid"))
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
     end
 
     it "does not reach persistence for an unknown target user" do

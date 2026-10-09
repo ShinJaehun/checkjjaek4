@@ -3,8 +3,12 @@
 
   <div class="space-y-4">
     <% if requotes.any? %>
-      <% requotes.each do |requote| %>
-        <%= render "jjaeks/jjaek", jjaek: requote %>
+      <% requotes.each do |requote, restricted| %>
+        <% if restricted %>
+          <%= render "requotes/restricted_requote", source: jjaek, requote: requote %>
+        <% else %>
+          <%= render "jjaeks/jjaek", jjaek: requote %>
+        <% end %>
       <% end %>
     <% else %>
       <p class="text-sm text-stone-500"><%= t("requotes.index.empty") %></p>

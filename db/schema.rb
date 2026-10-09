@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -231,7 +231,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_090000) do
     t.index ["quoted_jjaek_id"], name: "index_jjaeks_on_quoted_jjaek_id"
     t.index ["quoted_source_deleted_at"], name: "index_jjaeks_on_quoted_source_deleted_at"
     t.index ["target_user_id"], name: "index_jjaeks_on_target_user_id"
-    t.index ["user_id", "quoted_jjaek_id"], name: "index_jjaeks_on_user_id_and_quoted_jjaek_id_unique", unique: true, where: "(quoted_jjaek_id IS NOT NULL)"
+    t.index ["user_id", "quoted_jjaek_id", "group_id"], name: "index_jjaeks_on_group_requote_unique", unique: true, where: "((quoted_jjaek_id IS NOT NULL) AND (group_id IS NOT NULL))"
+    t.index ["user_id", "quoted_jjaek_id"], name: "index_jjaeks_on_personal_requote_unique", unique: true, where: "((quoted_jjaek_id IS NOT NULL) AND (group_id IS NULL))"
     t.index ["user_id"], name: "index_jjaeks_on_user_id"
   end
 
