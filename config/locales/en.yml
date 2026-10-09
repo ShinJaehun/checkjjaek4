@@ -1038,6 +1038,7 @@ en:
       profile_html: "%{author_name}'s Jjaek for %{target_user_name}"
       book_html: "%{author_name}'s Book Jjaek"
       requote_html: "%{author_name}'s ReJjaek of %{quoted_user_name}'s %{quoted_context_label}"
+      group_requote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s %{quoted_context_label} from %{group_name}"
       deleted_requote_html: "%{author_name}'s ReJjaek"
       quoted_general: "Jjaek"
       quoted_book: "Book Jjaek"

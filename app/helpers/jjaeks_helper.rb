@@ -104,6 +104,8 @@ module JjaeksHelper
       "jjaeks.contexts.group_general_html"
     elsif jjaek.quoted_source_deleted?
       "jjaeks.contexts.deleted_requote_html"
+    elsif jjaek.quoted_jjaek&.group_id.present?
+      "jjaeks.contexts.group_requote_html"
     elsif jjaek.quoted_jjaek.present?
       "jjaeks.contexts.requote_html"
     elsif jjaek.book.present?
@@ -124,6 +126,10 @@ module JjaeksHelper
     elsif jjaek.quoted_jjaek.present?
       options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user)
       options[:quoted_context_label] = jjaek.quoted_jjaek.book.present? ? t("jjaeks.contexts.quoted_book") : t("jjaeks.contexts.quoted_general")
+      if jjaek.quoted_jjaek.group_id.present?
+        group = jjaek.quoted_jjaek.group
+        options[:group_name] = link_to(group.name, group_path(group), class: "font-semibold text-stone-900 hover:text-stone-700")
+      end
     elsif jjaek.book.present?
       options[:book_title] = jjaek_context_book_link(jjaek.book)
     elsif profile_context_label?(jjaek)

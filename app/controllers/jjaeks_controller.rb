@@ -262,7 +262,7 @@ class JjaeksController < ApplicationController
 
   def render_home_create_failure
     @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
-      .includes(:user, :book, :target_user, :likes, :comments, :quoted_jjaek, :moderation_actions)
+      .includes(:user, :book, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ])
       .recent
     @feed_book_activities = policy_scope(BookActivity)
       .includes(:user, :book)
@@ -324,7 +324,7 @@ class JjaeksController < ApplicationController
     policy_scope(
       @user.jjaeks,
       policy_scope_class: JjaekPolicy::ProfileScope
-    ).includes(:user, :book, :group, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book ]).recent
+    ).includes(:user, :book, :group, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ]).recent
   end
 
   def jjaek_book_id

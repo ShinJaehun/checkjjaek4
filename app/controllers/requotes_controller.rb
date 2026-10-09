@@ -5,7 +5,7 @@ class RequotesController < ApplicationController
 
     @requotes = policy_scope(Jjaek)
       .where(quoted_jjaek_id: @jjaek.id)
-      .includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
+      .includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book, :group ])
       .recent
   end
 end

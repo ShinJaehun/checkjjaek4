@@ -1042,6 +1042,7 @@ ko:
       profile_html: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
       book_html: "%{author_name}님의 책짹"
       requote_html: "%{author_name}님이 %{quoted_user_name}님의 %{quoted_context_label}을 다시짹"
+      group_requote_html: "%{author_name}님이 %{group_name}에 올라온 %{quoted_user_name}님의 %{quoted_context_label}을 다시짹"
       deleted_requote_html: "%{author_name}님의 다시짹"
       quoted_general: "짹"
       quoted_book: "책짹"

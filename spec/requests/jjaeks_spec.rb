@@ -648,6 +648,8 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("user_profile_")
       expect(response.body).to include(%(alt="#{original_author.name}"))
       expect(response.body).to include("님의 책짹을 다시짹")
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{requote.id}")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 책짹을 다시짹")
     end
 
     it "shows the general requote context label on the detail page" do
@@ -660,6 +662,50 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("REQUEST_VIEWER_GENERAL_REQUOTE_BODY")
       expect(response.body).to include("REQUEST_ORIGINAL_GENERAL_SOURCE")
       expect(response.body).to include("님의 짹을 다시짹")
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{general_requote.id}")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 다시짹")
+    end
+
+    it "links the source group on home, profile, and detail cards for a general requote" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "General source group", group_type: :public_group)
+      source = original_author.jjaeks.create!(group:, content: "GROUP_GENERAL_SOURCE")
+      personal_requote = viewer.jjaeks.create!(quoted_jjaek: source, content: "PERSONAL_GENERAL_REQUOTE")
+      sign_in viewer
+
+      [ root_path, user_path(viewer), jjaek_path(personal_requote) ].each do |path|
+        get path
+
+        card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
+        expect(card).to be_present
+        expect(card.text).to include("#{group.name}에 올라온")
+        expect(card.text).to include("님의 짹을 다시짹")
+        expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
+      end
+
+      source.destroy!
+      get jjaek_path(personal_requote.reload)
+
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
+      expect(card.text).not_to include(group.name)
+      expect(card.at_css("a[href='#{group_path(group)}']")).to be_nil
+      expect(card.text).to include(I18n.t("jjaeks.labels.deleted_quoted_source"))
+    end
+
+    it "links the source group on home, profile, and detail cards for a book requote" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Book source group", group_type: :public_group)
+      source = original_author.jjaeks.create!(group:, book:, content: "GROUP_BOOK_SOURCE")
+      personal_requote = viewer.jjaeks.create!(quoted_jjaek: source, content: "PERSONAL_BOOK_REQUOTE")
+      sign_in viewer
+
+      [ root_path, user_path(viewer), jjaek_path(personal_requote) ].each do |path|
+        get path
+
+        card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
+        expect(card).to be_present
+        expect(card.text).to include("#{group.name}에 올라온")
+        expect(card.text).to include("님의 책짹을 다시짹")
+        expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
+      end
     end
 
     it "shows written and edited timestamps for an edited jjaek" do
