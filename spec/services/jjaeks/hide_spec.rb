@@ -80,6 +80,18 @@ RSpec.describe Jjaeks::Hide do
     expect(own_jjaek.moderation_actions).to be_empty
   end
 
+  it "rejects direct platform hide after author promotion without changing state or audit" do
+    jjaek = author.jjaeks.create!(content: "Promoted author")
+    author.update!(global_admin: true)
+
+    expect {
+      described_class.new(jjaek, actor: admin, public_reason: "other").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(jjaek.reload).not_to be_hidden
+    expect(jjaek.moderation_actions).to be_empty
+  end
+
   it "rejects hiding a tombstoned jjaek" do
     jjaek = author.jjaeks.create!(content: "Deleted target")
     comment = jjaek.comments.create!(user: admin, content: "Preserved comment")

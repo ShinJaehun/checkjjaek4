@@ -279,20 +279,20 @@
 - User/Group content inventory는 검색·기본 상태 필터·정렬·페이지네이션을 제공함. User inventory는 item을 직접 필터하고, Group inventory는 root 또는 Comment가 조건에 맞는 thread를 선택한 뒤 전체 thread 문맥을 표시함. hidden Comment는 `hidden_at` 기준으로 숨김 상태로 다루며 Comment에는 별도 삭제 상태를 만들지 않음
 - Group top-level inventory는 lifecycle 상태, 재활성화 대기와 operation suspended를 하나의 현재 상태 badge·필터로 제공함. `operation_suspended_at`이 있으면 lifecycle 상태보다 운영 정지를 우선 표시함
 - 일반 Jjaek·홈 feed scope와 Group membership 권한은 변경하지 않고, global admin도 타인의 Jjaek·Comment를 작성자 대신 수정·삭제할 수 없음
-- global admin은 다른 사용자의 모든 현재 Jjaek 유형을 정의된 숨김 사유와 선택적 내부 메모로 숨기고, 별도 공개 복구 사유와 선택적 내부 메모로 복구할 수 있으며 상태와 append-only hide/restore 감사를 원자적으로 남김
+- global admin은 현재 global admin이 아닌 작성자의 모든 현재 Jjaek 유형을 정의된 숨김 사유와 선택적 내부 메모로 숨기고, 별도 공개 복구 사유와 선택적 내부 메모로 복구할 수 있으며 상태와 append-only hide/restore 감사를 원자적으로 남김. 승격 전 감사 이력은 보존하고 승격 중 다른 global admin의 새 숨김·복구는 거부함
 - Jjaek 상세의 콘텐츠 관리 card는 authority별 policy가 허용한 숨김 또는 복구 Action link만 표시함. platform 입력·실행은 `/admin/jjaeks/:jjaek_id/hides/new`와 `/admin/jjaeks/:jjaek_id/restorations/new`, Group authority 입력·실행은 `/jjaeks/:jjaek_id/group_hides/new`와 `/jjaeks/:jjaek_id/group_restorations/new`의 독립 page에서 기존 policy와 service로 처리함
 - platform-origin 숨겨진 Jjaek은 기존 feed/profile/Book/Group read boundary 안의 목록·단건 상세에서 원문 body 대신 시스템 관리자 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기를 유지하되 새 interaction은 차단함. 이를 원문으로 참조하는 ReJjaek row와 관계는 보존하되 일반 조회에서 제외하며, source restore 뒤에는 현재 접근 권한을 다시 적용함
 - group-origin 숨겨진 Jjaek은 기존 Group read 경계 안의 Group 목록·단건 상세에서 원문 body 대신 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기 맥락을 유지하되 새 interaction은 차단함. 작성자는 자기 원문·숨김 주체·공개 사유를 확인하고 자기 삭제만 수행하며, group admin은 자기 Group의 숨겨진 원문·공개 사유를 조사함
 - 대상 Jjaek의 작성자인 global admin에게는 작성자 권한이 우선하여 내부 메모·전체 감사·hide/restore 권한을 제공하지 않고, 작성자가 아닌 global admin은 원문과 전체 hide/restore 감사를 조사함
 - group admin은 운영 정지되지 않은 active 자기 동아리에서 타인의 짹·책짹을 새로 숨기거나 기존 group-origin hide를 복구할 수 있음. inactive 자기 동아리에서는 새 숨김 없이 기존 group-origin hide의 복구만 허용함.
-  같은 Group authority의 hide는 현재 관리자가 복구하고 global admin hide와 global admin 작성 글은 대상에서 제외함
+  같은 Group authority의 hide는 현재 관리자가 복구하고 global admin hide와 현재 global admin 작성 글의 신규 hide는 대상에서 제외함. 일반 사용자일 때 적법하게 발생한 group-origin hide는 작성자가 승격된 뒤에도 현재 Group admin이 복구할 수 있음
 - group admin도 hide/restore 시 선택적 내부 메모를 저장함.
   global admin은 platform/group-origin 메모를 모두 열람하고, 현재 group admin은 자기 Group의 group-origin 메모만 관리자 변경과 관계없이 열람하며 작성자·일반 회원과 권한을 잃은 이전 관리자는 열람하지 못함
 - Group Jjaek 상세의 운영 이력은 현재 group admin에게만 이전 관리자의 조치를 포함한 group-origin hide/restore 전체 cycle을 오래된 순서로 표시하며, visible 복구 뒤에도 유지되고 platform-origin 이력은 포함하지 않음
 - 대상 작성자가 아닌 global admin은 Jjaek 단건 상세에서 platform/group-origin hide/restore 전체 이력을 authority source와 함께 `created_at`, `id` 오름차순으로 확인함. 현재 Group admin의 group-origin 전용 이력 권한은 변경하지 않음
 - platform/Group restore Action page의 현재 hide 조치는 상세 운영 이력과 같은 entry 표현을 재사용하며, authority별 internal note 열람 경계를 유지함
 - platform-origin hidden Jjaek의 일반 사용자 placeholder/detail에서도 새 Like·Comment·ReJjaek 등 hidden mutation, internal note/history 노출과 기존 visibility/Group boundary 확대는 허용하지 않음
-- Comment hide/restore는 global admin과 현재 Group admin의 권한 경계, author-first, 조치 시점 `platform`/`group` authority snapshot, Jjaek과 같은 predefined hide reason 및 별도 자유 텍스트 restore reason으로 구현됨
+- Comment hide/restore는 global admin과 현재 Group admin의 권한 경계, author-first, 조치 시점 `platform`/`group` authority snapshot, Jjaek과 같은 predefined hide reason 및 별도 자유 텍스트 restore reason으로 구현됨. 현재 global admin인 작성자의 댓글은 다른 global admin도 숨김·복구할 수 없고, 승격 전 감사 이력과 Group authority의 기존 복구 예외는 유지함
 - group admin의 새 Comment hide는 운영 정지되지 않은 active 자기 동아리에서만 허용하고, inactive에서는 기존 group-origin Comment hide의 복구만 허용함. pending 또는 operation suspended 상태에서는 두 조치 모두 차단함
 - Comment 카드의 콘텐츠 관리 영역은 authority별 policy가 허용한 숨김 또는 복구 Action link만 표시함. platform 입력·실행은 `/admin/jjaeks/:jjaek_id/comments/:comment_id/hides/new`와 `/admin/jjaeks/:jjaek_id/comments/:comment_id/restorations/new`, Group authority 입력·실행은 `/jjaeks/:jjaek_id/comments/:comment_id/group_hides/new`와 `/jjaeks/:jjaek_id/comments/:comment_id/group_restorations/new`의 독립 page에서 기존 policy와 service로 처리하고 댓글 위치 anchor로 복귀함
 - hidden Comment는 부모 Jjaek의 기존 read boundary 안에서 authority placeholder와 현재 공개 사유를 표시하고, 작성자·허용된 운영자에게만 원문을 보여줌. 작성자 hard delete는 유지하며 부모와 Comment의 hidden 상태는 독립됨. deleted parent에서도 원래 Jjaek context의 read boundary 안에서 tombstone과 기존 댓글을 읽되 새 댓글 작성·기존 댓글 수정은 금지하고, Comment 작성자 삭제와 살아 있는 Comment의 hide/restore는 유지함
@@ -305,7 +305,7 @@
 - GroupMembership·GroupMemberBan 대상 `ModerationAction`은 membership 또는 ban row 삭제 뒤에도 Group/User attribution을 잃지 않도록 FK 없는 `membership_group_id`/`membership_user_id` snapshot을 보존함
 - 회원 관리 화면은 `GroupMembershipEvent`와 GroupMembership 대상 `ModerationAction`을 Group 단위 최신순 회원 운영 이력으로 통합 표시함
 - 이용 제한·해제는 `GroupMemberBan` 대상 append-only 감사 row로 같은 운영 이력에 표시하며 일반 `removed` lifecycle event로 기록하지 않음
-- global admin은 다른 active User를 정지하고 suspended User를 복구할 수 있으며 자기 자신 정지는 허용하지 않음
+- 복수의 global admin은 동등한 운영 권한을 가지며 현재 global admin이 아닌 active User만 정지하고 suspended User만 복구할 수 있음. 자기 자신과 다른 global admin 계정의 정지·복구는 허용하지 않음
 - Group 운영 정지·복구는 User 계정 정지 및 GroupMemberBan과 서로 자동 전파되지 않음
 - User 정지·복구는 User row lock 안에서 `suspended_at` 변경과 suspend/restore 감사 row 생성을 한 transaction으로 처리함
 - admin User 상세는 현재 허용된 계정 정지 또는 복구 action link만 표시하고, 사유 입력과 실행은 `/admin/users/:user_id/account_suspensions/new`와 `/admin/users/:user_id/account_restorations/new`의 독립 page에서 각각 기존 policy와 service로 처리함

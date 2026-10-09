@@ -60,7 +60,9 @@ RSpec.describe "Admin Comment moderation", type: :request do
     }.not_to change(ModerationAction, :count)
     expect(comment.reload).not_to be_hidden
 
+    admin.update!(global_admin: false)
     Comments::Hide.new(comment, actor: other_admin, public_reason: "other").call!
+    admin.update!(global_admin: true)
     expect {
       post admin_jjaek_comment_restorations_path(jjaek, comment), params: { moderation_action: { public_reason: "Self restore" } }
     }.not_to change(ModerationAction, :count)

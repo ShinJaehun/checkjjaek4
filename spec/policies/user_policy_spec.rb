@@ -16,10 +16,12 @@ RSpec.describe UserPolicy do
 
     it "allows a global admin to suspend another active user but not themselves" do
       admin = User.create!(name: "Admin", email: "user-policy-suspend-admin@example.com", password: "password123!", global_admin: true)
+      peer = User.create!(name: "Peer", email: "user-policy-suspend-peer@example.com", password: "password123!", global_admin: true)
       Group.create!(lifecycle_status: :active, group_admin: user, name: "Policy group", group_type: :public_group)
 
       expect(described_class.new(admin, other_user).suspend?).to be(true)
       expect(described_class.new(admin, admin).suspend?).to be(false)
+      expect(described_class.new(admin, peer).suspend?).to be(false)
       expect(described_class.new(user, other_user).suspend?).to be(false)
     end
 
@@ -30,6 +32,11 @@ RSpec.describe UserPolicy do
       expect(described_class.new(admin, other_user).suspend?).to be(false)
       expect(described_class.new(admin, other_user).restore?).to be(true)
       expect(described_class.new(user, other_user).restore?).to be(false)
+
+      admin.update!(suspended_at: Time.current)
+      peer = User.create!(name: "Peer", email: "user-policy-restore-peer@example.com", password: "password123!", global_admin: true, suspended_at: Time.current)
+      expect(described_class.new(admin, admin).restore?).to be(false)
+      expect(described_class.new(admin, peer).restore?).to be(false)
 
       other_user.update_columns(withdrawn_at: Time.current)
       expect(described_class.new(admin, other_user).suspend?).to be(false)

@@ -64,4 +64,27 @@ RSpec.describe Users::RestoreAccount do
     expect(user.reload).to be_suspended
     expect(ModerationAction.where(reversal_of: suspension)).to be_empty
   end
+
+  it "rejects direct restoration of a current global admin and preserves the suspension" do
+    user.update!(global_admin: true)
+
+    expect {
+      described_class.new(user, actor:, public_reason: "Blocked").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(user.reload).to be_suspended
+    expect(suspension.reload).to be_persisted
+    expect(ModerationAction.where(reversal_of: suspension)).to be_empty
+  end
+
+  it "rejects direct self-restoration by a suspended global admin" do
+    actor.update!(suspended_at: Time.current)
+
+    expect {
+      described_class.new(actor, actor:, public_reason: "Blocked").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(actor.reload).to be_suspended
+    expect(ModerationAction.where(target: actor)).to be_empty
+  end
 end

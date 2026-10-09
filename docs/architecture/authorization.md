@@ -280,7 +280,7 @@ Library 안에서 볼 수 있는 책장:
 - User admin 상세는 작성자 기준의, Group 운영 상세는 Group 문맥 기준의 필터 가능한 chronological content inventory를 제공한다
 - 일반 User와 group admin은 admin User·Group 상세 URL에 접근할 수 없으며, 이 운영 조회 권한은 일반 홈 feed scope를 넓히지 않는다
 - `JjaekPolicy#show?`는 global admin이 admin 상세에서 발견한 특정 private·Group Jjaek을 직접 조사할 수 있게 하지만 타인의 update/destroy 권한은 부여하지 않으며 Comment의 author mutation 원칙도 유지한다
-- global admin은 다른 사용자의 Jjaek만 정의된 사유로 숨기고 별도 공개 복구 사유로 복구할 수 있다. 숨겨진 원문을 참조하는 ReJjaek row와 관계는 보존하되 일반 scope에서 제외하고, source restore 뒤에는 현재 read 권한을 다시 적용한다. platform-origin hidden Jjaek 자체는 기존 read boundary 안에서 placeholder로 유지한다. 작성자는 숨겨진 원문·숨김 주체·공개 사유만 확인하고 수정과 새 interaction 없이 자기 삭제만 할 수 있다. 기존 Group read 경계 안의 해당 group admin은 숨겨진 원문·숨김 주체·공개 사유를 확인한다. 대상 작성자인 global admin에게도 작성자 권한이 우선한다
+- global admin은 현재 global admin이 아닌 작성자의 Jjaek만 정의된 사유로 숨기고 별도 공개 복구 사유로 복구할 수 있다. 숨겨진 원문을 참조하는 ReJjaek row와 관계는 보존하되 일반 scope에서 제외하고, source restore 뒤에는 현재 read 권한을 다시 적용한다. platform-origin hidden Jjaek 자체는 기존 read boundary 안에서 placeholder로 유지한다. 작성자는 숨겨진 원문·숨김 주체·공개 사유만 확인하고 수정과 새 interaction 없이 자기 삭제만 할 수 있다. 기존 Group read 경계 안의 해당 group admin은 숨겨진 원문·숨김 주체·공개 사유를 확인한다. 대상 작성자인 global admin에게도 작성자 권한이 우선한다
 - Jjaek 상세의 platform hide/restore Action link와 각 Action page GET/POST는 각각 같은 `JjaekPolicy#hide?`/`#restore?`를 사용한다. Group authority의 Action link와 GET/POST도 각각 같은 `#hide_as_group_admin?`/`#restore_as_group_admin?`를 사용한다
 - Comment 카드의 platform hide/restore Action link와 각 Action page GET/POST는 각각 같은 `CommentPolicy#hide?`/`#restore?`를 사용한다. Group authority의 Action link와 GET/POST도 각각 같은 `#hide_as_group_admin?`/`#restore_as_group_admin?`를 사용하며, 기존 Comment CRUD/Turbo 권한과 흐름은 분리해 유지한다
 - global admin과 Group admin은 모두 hide/restore 시 선택적 내부 메모를 입력한다. global admin은 platform/group-origin 메모를 모두 열람하고, 현재 Group admin은 자기 Group의 group-origin 메모만 관리자 변경과 관계없이 열람한다. 작성자·일반 회원, 권한을 잃은 이전 Group admin에게는 노출하지 않으며 platform-origin과 다른 Group 메모도 Group admin에게 노출하지 않는다
@@ -348,15 +348,15 @@ inactive 자기 Group에서는 새 숨김 없이 기존 group-origin hide의 복
 현재 global admin 작성 콘텐츠의 신규 Group hide와 자기 콘텐츠의 hide/restore는 direct request에서도 거부한다.
 Comment의 author-first는 부모 Jjaek 작성자가 아니라 Comment 작성자를 기준으로 한다. 작성자가 나중에 global admin으로
 승격되어도 기존의 적법한 group-origin hide는 현재 Group admin이 복구할 수 있으며 작성자 self-restore는 허용하지 않는다.
-global admin은 타인의 personal·Group Comment를 platform 권한으로 숨김·복구하고 group-origin hide도 복구할 수 있다.
+global admin은 현재 global admin이 아닌 작성자의 personal·Group Comment를 platform 권한으로 숨김·복구하고 group-origin hide도 복구할 수 있다. 작성자의 현재 `global_admin?` 상태를 기준으로 하며, 승격 전의 적법한 감사 이력은 보존하고 승격 중에는 다른 global admin의 새 숨김·복구를 거부한다. 기존 Group authority의 승격 전 hide 복구 예외는 유지한다.
 hide/restore authority는 `ModerationAction`에 조치 당시 `platform`/`group` snapshot으로 보존하며 actor의 현재 역할로 추론하지 않는다.
 `CommentPolicy#view_original_content?`, `#view_admin_inventory?`, `#view_group_moderation_history?`는 원문·이력의 author-first 및 Group read 경계를
 유지한다. global admin은 타인 Comment의 platform/group-origin 전체 이력·메모를 보고, 현재 Group admin은 자기 Group의
 group-origin 이력·메모만 본다. 작성자와 일반 사용자는 현재 상태·공개 사유만 보고 전체 이력·메모는 보지 못한다.
 상세 경계는 `docs/specs/moderation_mvp.md`를 따른다.
 
-global admin은 다른 active User를 명시적인 `suspend?` action으로 정지하고 suspended User를 `restore?` action으로 복구할 수 있다.
-자기 자신 정지와 withdrawn User의 정지·복구는 허용하지 않으며 일반 User와 group admin에게 이 권한을 부여하지 않는다.
+복수의 global admin은 동등한 운영 권한을 갖는다. global admin은 현재 global admin이 아닌 active User를 명시적인 `suspend?` action으로 정지하고 suspended User를 `restore?` action으로 복구할 수 있다.
+자기 자신과 다른 global admin의 정지·복구, withdrawn User의 정지·복구는 허용하지 않으며 일반 User와 group admin에게 이 권한을 부여하지 않는다.
 admin User 상세의 action button, 계정 정지 action page의 GET/POST는 모두 `UserPolicy#suspend?`를 사용하고,
 계정 복구 action button과 action page의 GET/POST는 모두 `UserPolicy#restore?`를 사용한다.
 정지·복구 권한은 타인을 대신한 일반 작성·수정·삭제·reaction 권한으로 이어지지 않는다.

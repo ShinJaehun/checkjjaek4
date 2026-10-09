@@ -39,6 +39,19 @@ RSpec.describe Comments::Restore do
     )
   end
 
+  it "preserves a hide from before promotion and rejects direct platform restore" do
+    hide = hide!
+    author.update!(global_admin: true)
+
+    expect {
+      described_class.new(comment_target, actor: admin, public_reason: "Blocked").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(comment_target.reload).to be_hidden
+    expect(hide.reload).to be_persisted
+    expect(comment_target.moderation_actions.action_type_restore).to be_empty
+  end
+
   it "rejects visible and already restored comments and preserves cycles" do
     expect { described_class.new(comment_target, actor: admin, public_reason: "Nope").call! }.to raise_error(described_class::InvalidState)
 

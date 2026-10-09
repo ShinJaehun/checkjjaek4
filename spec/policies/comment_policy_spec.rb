@@ -102,6 +102,15 @@ RSpec.describe CommentPolicy do
       expect(described_class.new(admin, own_comment)).not_to be_hide
       expect(described_class.new(admin, own_comment)).not_to be_restore
       expect(described_class.new(admin, own_comment)).to be_destroy
+
+      peer = User.create!(name: "Peer admin", email: "comment-policy-peer-admin@example.com", password: "password123!")
+      peer_comment = jjaek_record.comments.create!(user: peer, content: "Peer")
+      peer_comment.update!(hidden_at: Time.current)
+      ModerationAction.create!(target: peer_comment, actor: admin, action_type: :hide, public_reason: "other", moderation_authority: "platform")
+      peer.update!(global_admin: true)
+      visible_peer_comment = jjaek_record.comments.create!(user: peer, content: "Visible peer")
+      expect(described_class.new(admin, visible_peer_comment)).not_to be_hide
+      expect(described_class.new(admin, peer_comment)).not_to be_restore
     end
 
     it "limits group moderation to eligible parent groups and preserves promotion restore" do

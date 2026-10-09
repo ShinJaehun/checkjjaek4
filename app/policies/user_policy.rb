@@ -14,11 +14,11 @@ class UserPolicy < ApplicationPolicy
   end
 
   def suspend?
-    user&.global_admin? && record != user && !record.withdrawn? && !record.suspended?
+    user&.global_admin? && record != user && !record.global_admin? && !record.withdrawn? && !record.suspended?
   end
 
   def restore?
-    user&.global_admin? && !record.withdrawn? && record.suspended?
+    user&.global_admin? && record != user && !record.global_admin? && !record.withdrawn? && record.suspended?
   end
 
   def show_library?

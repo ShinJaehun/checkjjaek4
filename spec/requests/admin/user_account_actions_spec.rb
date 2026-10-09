@@ -253,6 +253,34 @@ RSpec.describe "Admin user account actions", type: :request do
     expect(admin.reload).not_to be_suspended
   end
 
+  it "denies a current peer's account suspension and restoration without changing state or audit" do
+    peer = User.create!(name: "Peer admin", email: "account-action-peer@example.com", password: "password123!", global_admin: true)
+    sign_in admin
+
+    get admin_user_path(peer)
+    expect(Nokogiri::HTML(response.body).at_css("a[href='#{new_admin_user_account_suspension_path(peer)}']")).to be_nil
+    get new_admin_user_account_suspension_path(peer)
+    expect(response).to redirect_to(root_path)
+    expect {
+      post admin_user_account_suspensions_path(peer), params: { moderation_action: { public_reason: "other" } }
+    }.not_to change(ModerationAction, :count)
+    expect(response).to redirect_to(root_path)
+    expect(peer.reload).not_to be_suspended
+
+    suspension = create_suspension!(peer)
+    get admin_user_path(peer)
+    expect(Nokogiri::HTML(response.body).at_css("a[href='#{new_admin_user_account_restoration_path(peer)}']")).to be_nil
+    get new_admin_user_account_restoration_path(peer)
+    expect(response).to redirect_to(root_path)
+    expect {
+      post admin_user_account_restorations_path(peer), params: { moderation_action: { public_reason: "Blocked" } }
+    }.not_to change(ModerationAction, :count)
+    expect(response).to redirect_to(root_path)
+    expect(peer.reload).to be_suspended
+    expect(suspension.reload).to be_persisted
+    expect(ModerationAction.where(reversal_of: suspension)).to be_empty
+  end
+
   it "uses the policies to reject suspended, active, and withdrawn targets in the wrong actions" do
     withdrawn = User.create!(
       name: "Withdrawn",

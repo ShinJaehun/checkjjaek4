@@ -91,7 +91,9 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     }.not_to change(ModerationAction, :count)
 
     other_admin = User.create!(name: "Other admin", email: "other-admin-hide@example.com", password: "password123!", global_admin: true)
+    admin.update!(global_admin: false)
     Jjaeks::Hide.new(own_jjaek, actor: other_admin, public_reason: "other", internal_note: "ADMIN ONLY").call!
+    admin.update!(global_admin: true)
 
     get jjaek_path(own_jjaek)
     expect(response.body).to include("ADMIN OWN MODERATION TARGET", "시스템 관리자에 의해 숨겨진 짹입니다.", "기타", "좋아요 0개", "댓글 0개")

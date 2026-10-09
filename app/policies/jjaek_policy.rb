@@ -105,11 +105,11 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def hide?
-    user&.global_admin? && record.user_id != user.id && !record.deleted? && !record.hidden?
+    user&.global_admin? && record.user_id != user.id && !record.user.global_admin? && !record.deleted? && !record.hidden?
   end
 
   def restore?
-    user&.global_admin? && record.user_id != user.id && !record.deleted? && record.hidden? &&
+    user&.global_admin? && record.user_id != user.id && !record.user.global_admin? && !record.deleted? && record.hidden? &&
       record.current_hide_action.present?
   end
 
