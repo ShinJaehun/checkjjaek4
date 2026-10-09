@@ -6,6 +6,7 @@
 **원본 Jjaek을 다시짹한 글 목록을 조회하는 MVP 기능**의 기준을 정리한다.
 
 이 문서는 기존 ReJjaek 생성, visibility 제약, 알림, 피드 노출 정책을 대체하지 않는다.
+개인·동아리 A·B·C 생성 규칙은 `group_sharing_requotes.md`를 따른다. 이 목록에는 현재 원문에 연결된 세 경로의 다시짹을 함께 포함한다.
 
 이 문서가 고정하는 범위는 다음이다.
 
@@ -39,7 +40,7 @@
 
 - `Jjaek#requote?`가 false다. 즉 `quoted_jjaek_id`가 없고 deleted-source snapshot도 없다.
 - viewer가 볼 수 있어야 한다.
-- `private_jjaek`이면 다시짹 목록 접근 대상이 아니다.
+- 목록 조회는 원문을 현재 읽을 수 있는지로 판단한다. `private_jjaek` 원문은 작성자만 접근할 수 있다.
 
 ### ReJjaek
 
@@ -49,7 +50,7 @@
 
 - `quoted_jjaek_id`가 있거나 source 삭제 snapshot이 남아 있다.
 - `quoted_jjaek`은 다른 ReJjaek이면 안 된다.
-- 원문보다 더 넓은 visibility를 가질 수 없다.
+- 개인 다시짹 A는 원문보다 더 넓은 visibility를 가질 수 없다. B·C는 목적지 동아리의 접근 권한을 따른다.
 
 ---
 
@@ -65,11 +66,9 @@
   - 원본 Jjaek에 연결된 ReJjaek 목록 association이다.
 
 - `JjaekPolicy#requote?`
-  - 원본이 viewer에게 보여야 한다.
-  - 원본이 `private_jjaek`이면 안 된다.
-  - 원본 자체가 ReJjaek이면 안 된다.
-  - 동아리 원본은 active 공개 동아리 Jjaek 또는 책짹만 허용한다.
-  - 같은 사용자가 같은 원문을 이미 ReJjaek했다면 새 ReJjaek을 만들지 않는다.
+  - 개인 피드에 새 다시짹을 작성할 수 있는 원문인지를 판단한다. 동아리 원본의 개인 반출은 active 공개 동아리만 허용한다.
+- `JjaekPolicy#view_requotes?`
+  - 원문을 현재 읽을 수 있는지와 원본 여부를 판단한다. 새 다시짹 작성 가능 여부는 요구하지 않는다.
 
 - `JjaekPolicy::Scope`
   - viewer가 볼 수 있는 Jjaek만 반환한다.
@@ -105,13 +104,13 @@
 
 1. 원본 Jjaek의 “다시짹 N개”에서 ReJjaek 목록으로 이동할 수 있다.
 2. ReJjaek 목록 페이지에서 해당 원본을 다시짹한 글들을 볼 수 있다.
-3. 목록에는 viewer가 볼 수 있는 ReJjaek만 표시한다.
+3. 일반 독자의 목록에는 현재 읽을 수 있는 ReJjaek만 표시한다. 원문 작성자는 읽을 수 없는 유효 동아리 다시짹을 제한 카드로 확인할 수 있다.
 4. viewer 본인이 작성한 `private_jjaek` ReJjaek은 viewer에게 표시될 수 있다.
 5. viewer가 원본 Jjaek을 볼 수 없으면 ReJjaek 목록에도 접근할 수 없다.
-6. `private_jjaek` 원본 Jjaek은 ReJjaek 목록 접근 대상이 아니다.
+6. `private_jjaek` 원본 Jjaek의 목록은 원문 작성자에게만 열리며, 현재 보이는 다시짹만 표시한다.
 7. ReJjaek 자체에 대해서는 다시 ReJjaek 목록을 제공하지 않는다.
 8. 기존 Jjaek 카드 partial을 재사용해 목록을 렌더링한다.
-9. 한 사용자는 같은 원문 Jjaek을 한 번만 ReJjaek할 수 있다.
+9. 한 사용자는 같은 원문을 개인 피드에 한 번, 목적지 동아리별로 한 번씩 다시짹할 수 있다.
 10. 다른 사용자가 같은 원문을 ReJjaek하는 것은 허용한다.
 
 ### 제외
@@ -175,8 +174,8 @@ app/controllers/requotes_controller.rb
 예상 흐름:
 
 1. `params[:jjaek_id]`로 원본 Jjaek을 찾는다.
-2. `authorize @jjaek, :requote?`로 접근 가능 여부를 확인한다.
-3. `policy_scope(@jjaek.requotes)`로 viewer가 볼 수 있는 ReJjaek만 가져온다.
+2. `authorize @jjaek, :view_requotes?`로 원문 목록 접근 가능 여부를 확인한다.
+3. `policy_scope(Jjaek).where(quoted_jjaek_id: @jjaek.id)`로 viewer가 볼 수 있는 A·B·C 다시짹만 가져온다. 원문의 개수에도 같은 scope를 사용한다.
 4. `recent` 순서로 표시한다.
 
 예상 형태:
@@ -185,10 +184,10 @@ app/controllers/requotes_controller.rb
 class RequotesController < ApplicationController
   def index
     @jjaek = Jjaek.find(params[:jjaek_id])
-    authorize @jjaek, :requote?
+    authorize @jjaek, :view_requotes?
 
-    @requotes = policy_scope(@jjaek.requotes)
-      .includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
+    @requotes = policy_scope(Jjaek).where(quoted_jjaek_id: @jjaek.id)
+      .includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book, :group ])
       .recent
   end
 end
@@ -242,7 +241,7 @@ MVP에서는 새 카드 partial을 만들지 않는다.
 다시짹 2개 → /jjaeks/:id/requotes
 ```
 
-단, visible ReJjaek count가 0이면 기존처럼 표시하지 않는다.
+단, 일반 독자의 읽을 수 있는 다시짹과 원문 작성자의 제한 카드까지 합한 개수가 0이면 표시하지 않는다.
 
 ---
 
@@ -250,19 +249,19 @@ MVP에서는 새 카드 partial을 만들지 않는다.
 
 ### 원본 접근
 
-ReJjaek 목록은 원본 Jjaek을 다시짹할 수 있는 viewer에게만 열린다.
+ReJjaek 목록은 원본 Jjaek을 현재 읽을 수 있는 viewer에게 열린다. 새 다시짹 작성 가능 여부와는 독립적이다.
 
 기준:
 
 ```ruby
-authorize @jjaek, :requote?
+authorize @jjaek, :view_requotes?
 ```
 
 따라서 아래는 접근 불가다.
 
 - 로그인하지 않은 사용자
 - viewer가 볼 수 없는 원본
-- `private_jjaek` 원본
+- 숨김·삭제된 원본
 - ReJjaek 자체
 
 ### 목록 노출
@@ -270,12 +269,12 @@ authorize @jjaek, :requote?
 목록은 아래 기준으로 가져온다.
 
 ```ruby
-policy_scope(@jjaek.requotes)
+policy_scope(Jjaek).where(quoted_jjaek_id: @jjaek.id)
 ```
 
 따라서 아래는 표시되지 않는다.
 
-- viewer가 볼 수 없는 ReJjaek
+- 일반 독자가 볼 수 없는 ReJjaek. 원문 작성자에게는 숨김·삭제되지 않은 동아리 다시짹을 제한 카드로만 표시할 수 있다.
 - 다른 사람의 `private_jjaek` ReJjaek
 - quoted 원문 visibility 규칙을 통과하지 않는 ReJjaek
 
@@ -284,6 +283,7 @@ policy_scope(@jjaek.requotes)
 - `public_jjaek` ReJjaek
 - viewer가 볼 수 있는 `book_friends` ReJjaek
 - viewer 본인의 `private_jjaek` ReJjaek
+- 읽을 수 있는 목적지 동아리의 B·C 다시짹
 
 ---
 
@@ -302,7 +302,7 @@ spec/requests/requotes_spec.rb
 3. 목록에는 viewer가 볼 수 없는 private ReJjaek이 표시되지 않는다.
 4. viewer 본인의 private ReJjaek은 목록에 표시된다.
 5. viewer가 볼 수 없는 original Jjaek이면 접근할 수 없다.
-6. private original Jjaek이면 접근할 수 없다.
+6. private original Jjaek은 작성자만 접근할 수 있다.
 7. ReJjaek 자체에 대한 ReJjaek 목록 접근은 허용하지 않는다.
 8. 로그인하지 않은 사용자는 sign-in 페이지로 redirect된다.
 9. 원본 Jjaek 카드의 “다시짹 N개”는 ReJjaek 목록 링크로 렌더링된다.
@@ -312,8 +312,8 @@ spec/requests/requotes_spec.rb
 ## 구현 원칙
 
 1. Rails 관례에 맞춰 별도 `RequotesController#index`를 둔다.
-2. 기존 `JjaekPolicy#requote?`와 `policy_scope`를 재사용한다.
-3. 기존 `Jjaek#requotes` association을 재사용한다.
+2. 목록 진입에는 `JjaekPolicy#view_requotes?`를 사용한다. 일반 카드는 기존 `policy_scope`로 제한하고, 원문 작성자의 제한 카드와 추가 개수는 같은 `RestrictedRequoteScope`를 사용한다.
+3. 기존 `Jjaek#requotes` 관계와 `quoted_jjaek_id`를 재사용한다.
 4. 기존 ReJjaek 생성, 검증, 알림 코드는 옮기지 않는다.
 5. 홈/프로필 피드의 ReJjaek 카드 레이아웃은 변경하지 않는다.
 6. 새 helper/service는 만들지 않는다.

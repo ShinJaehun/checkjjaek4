@@ -14,7 +14,7 @@
   <% end %>
 
   <% visible_requote_count = visible_requote_count_for(@jjaek) %>
-  <% if policy(@jjaek).requote? && visible_requote_count.positive? %>
+  <% if policy(@jjaek).view_requotes? && visible_requote_count.positive? %>
     <div>
       <%= link_to t("requotes.actions.view_panel"),
                   jjaek_requotes_path(@jjaek),

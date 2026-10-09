@@ -137,6 +137,7 @@ class GroupsController < ApplicationController
     else
       Jjaek.none
     end
+    prepare_visible_requote_counts_for(@jjaeks)
     @jjaek = Jjaek.new(user: current_user, group: @group) if group_policy.create_jjaek?
   end
 

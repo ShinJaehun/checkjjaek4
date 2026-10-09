@@ -5,6 +5,111 @@ RSpec.describe "Group sharing and quotes", type: :request do
   let(:source_author) { User.create!(name: "Source author", email: "group-share-source@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "Source book", authors_text: "Source writer") }
 
+  it "keeps A and C independent in either creation order for a public group original" do
+    sign_in writer
+
+    %i[personal_first group_first].each do |order|
+      group = Group.create!(lifecycle_status: :active, group_admin: source_author, name: "Readers #{order}", group_type: :public_group)
+      group.group_memberships.create!(user: writer, status: :active)
+      source = source_author.jjaeks.create!(group:, content: "SOURCE_#{order}")
+
+      create_personal = -> do
+        get new_jjaek_path(quoted_jjaek_id: source.id)
+        expect(response).to have_http_status(:ok)
+        post jjaeks_path(quoted_jjaek_id: source.id), params: {
+          jjaek: { quoted_jjaek_id: source.id, content: "PERSONAL_#{order}" }
+        }
+        expect(response).to redirect_to(jjaek_path(Jjaek.last))
+      end
+      create_in_group = -> do
+        get new_group_jjaek_path(group, quoted_jjaek_id: source.id)
+        expect(response).to have_http_status(:ok)
+        post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
+          jjaek: { quoted_jjaek_id: source.id, content: "GROUP_#{order}" }
+        }
+        expect(response).to redirect_to(group_path(group))
+      end
+
+      get jjaek_path(source)
+      expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: source.id),
+                                       new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+
+      if order == :personal_first
+        create_personal.call
+        get jjaek_path(source)
+        expect(response.body).to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+        create_in_group.call
+      else
+        create_in_group.call
+        get jjaek_path(source)
+        expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: source.id))
+        create_personal.call
+      end
+
+      expect(writer.jjaeks.where(quoted_jjaek: source).order(:group_id).pluck(:group_id)).to contain_exactly(nil, group.id)
+      get jjaek_path(source)
+      expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 2))
+      expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: source.id),
+                                           new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+    end
+  end
+
+  it "allows one C in an approval group and rejects nonmembers or suspended members" do
+    group = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Approval readers", group_type: :approval_group)
+    group.group_memberships.create!(user: source_author, status: :active)
+    source = source_author.jjaeks.create!(group:, content: "APPROVAL_SOURCE")
+    sign_in writer
+
+    get jjaek_path(source)
+    links = Nokogiri::HTML(response.body).css("a[href]").map { |link| link["href"] }
+    expect(links).to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+    expect(links).not_to include(
+      new_jjaek_path(quoted_jjaek_id: source.id),
+      new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1)
+    )
+    get new_group_jjaek_path(group, quoted_jjaek_id: source.id)
+    expect(response).to have_http_status(:ok)
+
+    post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
+      jjaek: { quoted_jjaek_id: source.id, content: "APPROVAL_C" }
+    }
+    expect(response).to redirect_to(group_path(group))
+    expect(writer.jjaeks.where(group:, quoted_jjaek: source).count).to eq(1)
+
+    get jjaek_path(source)
+    links = Nokogiri::HTML(response.body).css("a[href]").map { |link| link["href"] }
+    expect(links).not_to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+    expect {
+      post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
+        jjaek: { quoted_jjaek_id: source.id, content: "DUPLICATE_C" }
+      }
+    }.not_to change(Jjaek, :count)
+    expect(response).to have_http_status(:unprocessable_content)
+
+    outsider = User.create!(name: "Outsider", email: "approval-c-outsider@example.com", password: "password123!")
+    sign_in outsider
+    get new_group_jjaek_path(group, quoted_jjaek_id: source.id)
+    expect(response).to redirect_to(root_path)
+    expect {
+      post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
+        jjaek: { quoted_jjaek_id: source.id, content: "OUTSIDER_C" }
+      }
+    }.not_to change(Jjaek, :count)
+
+    membership = group.group_memberships.find_by!(user: source_author)
+    membership.update!(moderation_status: :activity_suspended)
+    sign_in source_author
+    get jjaek_path(source)
+    expect(response.body).not_to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+    get new_group_jjaek_path(group, quoted_jjaek_id: source.id)
+    expect(response).to redirect_to(root_path)
+    expect {
+      post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
+        jjaek: { quoted_jjaek_id: source.id, content: "SUSPENDED_C" }
+      }
+    }.not_to change(Jjaek, :count)
+  end
+
   it "offers only writable, not-yet-used groups and creates a B share without copying the source book" do
     available = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Available readers", group_type: :public_group)
     already_used = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Already used readers", group_type: :public_group)

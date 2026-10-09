@@ -44,12 +44,25 @@ class ApplicationController < ActionController::Base
     records = Array(jjaeks)
     original_ids = records.reject(&:requote?).filter_map(&:id)
 
-    @visible_requote_counts_by_jjaek_id =
-      if original_ids.any?
-        policy_scope(Jjaek).where(quoted_jjaek_id: original_ids).group(:quoted_jjaek_id).count
-      else
-        {}
-      end
+    @visible_requote_counts_by_jjaek_id = {}
+    return if original_ids.empty?
+
+    @visible_requote_counts_by_jjaek_id = policy_scope(Jjaek)
+      .where(quoted_jjaek_id: original_ids)
+      .group(:quoted_jjaek_id).count
+    return unless current_user
+
+    own_original_ids = records.filter_map do |jjaek|
+      jjaek.id if jjaek.user_id == current_user.id && policy(jjaek).view_requotes?
+    end
+    return if own_original_ids.empty?
+
+    restricted_counts = JjaekPolicy::RestrictedRequoteScope
+      .new(current_user, Jjaek.where(quoted_jjaek_id: own_original_ids))
+      .resolve.group(:quoted_jjaek_id).count
+    restricted_counts.each do |original_id, count|
+      @visible_requote_counts_by_jjaek_id[original_id] = @visible_requote_counts_by_jjaek_id.fetch(original_id, 0) + count
+    end
   end
 
   def user_not_authorized

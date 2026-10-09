@@ -881,6 +881,9 @@ en:
   requotes:
     actions:
       view_panel: "View ReJjaeks"
+    restricted:
+      context_html: "%{author_name} ReJjaeked %{source_author_name}'s %{source_kind} in %{group_name}"
+      notice: "This ReJjaek was posted in a club you cannot access."
     index:
       title: "ReJjaeks"
       description: "Browse the posts that ReJjaeked this Jjaek."

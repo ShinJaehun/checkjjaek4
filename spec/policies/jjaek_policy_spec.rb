@@ -497,6 +497,74 @@ RSpec.describe JjaekPolicy do
     end
   end
 
+  describe "#view_requotes?" do
+    it "allows reading a visible original's list after the viewer has requoted it" do
+      requote
+
+      expect(described_class.new(viewer, original).create_requote?).to be(false)
+      expect(described_class.new(viewer, original).view_requotes?).to be(true)
+    end
+
+    it "allows a member to read a restricted group original's list without personal requote permission" do
+      group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Members' list", group_type: :private_group)
+      group.group_memberships.create!(user: viewer, status: :active)
+      source = original_author.jjaeks.create!(group:, content: "GROUP_SOURCE")
+
+      expect(described_class.new(viewer, source).requote?).to be(false)
+      expect(described_class.new(viewer, source).view_requotes?).to be(true)
+
+      group.group_memberships.find_by!(user: viewer).destroy!
+      expect(described_class.new(viewer, source).view_requotes?).to be(false)
+    end
+
+    it "does not allow lists for hidden, deleted, or nested sources" do
+      expect(described_class.new(viewer, requote).view_requotes?).to be(false)
+
+      original.update!(hidden_at: Time.current)
+      expect(described_class.new(viewer, original).view_requotes?).to be(false)
+
+      original.update!(hidden_at: nil, deleted_at: Time.current)
+      expect(described_class.new(viewer, original).view_requotes?).to be(false)
+    end
+  end
+
+  describe "restricted requote metadata" do
+    it "separates the source author's metadata access from group content access" do
+      source = original_author.jjaeks.create!(book:, content: "PUBLIC_BOOK_SOURCE")
+      approval_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Approval readers", group_type: :approval_group)
+      private_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Private readers", group_type: :private_group)
+      approval_requote = viewer.jjaeks.create!(group: approval_group, quoted_jjaek: source, content: "APPROVAL_OPINION")
+      private_requote = viewer.jjaeks.create!(group: private_group, quoted_jjaek: source, content: "PRIVATE_OPINION")
+      author_policy = described_class.new(original_author, source)
+
+      expect(described_class.new(original_author, approval_requote).visible_for_interaction?).to be(false)
+      expect(described_class.new(original_author, private_requote).visible_for_interaction?).to be(false)
+      expect(author_policy.view_restricted_requote_details?(approval_requote)).to be(true)
+      expect(author_policy.view_restricted_requote_details?(private_requote)).to be(false)
+
+      restricted = described_class::RestrictedRequoteScope.new(original_author, source.requotes).resolve
+      expect(restricted).to contain_exactly(approval_requote, private_requote)
+      expect(described_class::RestrictedRequoteScope.new(unrelated_author, source.requotes).resolve).to be_empty
+
+      approval_group.group_memberships.create!(user: original_author, status: :active)
+      expect(described_class::RestrictedRequoteScope.new(original_author, source.requotes).resolve).to contain_exactly(private_requote)
+    end
+
+    it "excludes hidden and deleted group requotes" do
+      source = original_author.jjaeks.create!(content: "SOURCE")
+      group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Approval readers", group_type: :approval_group)
+      requote = viewer.jjaeks.create!(group:, quoted_jjaek: source, content: "GROUP_OPINION")
+      restricted = -> { described_class::RestrictedRequoteScope.new(original_author, source.requotes).resolve }
+
+      requote.update!(hidden_at: Time.current)
+      expect(restricted.call).to be_empty
+
+      requote.update!(hidden_at: nil, deleted_at: Time.current)
+      expect(restricted.call).to be_empty
+
+    end
+  end
+
   describe "#create?" do
     it "allows creating a general jjaek without a book" do
       jjaek = viewer.jjaeks.build(content: "GENERAL_POLICY_JJAEK")

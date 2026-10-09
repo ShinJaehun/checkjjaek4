@@ -94,6 +94,19 @@ class JjaekPolicy < ApplicationPolicy
     visible_for_interaction? && !record.deleted? && requote_source_context_allowed? && !record.private_jjaek? && !record.requote?
   end
 
+  def view_requotes?
+    visible_for_interaction? && !record.deleted? && !record.requote?
+  end
+
+  def view_restricted_requote_details?(requote)
+    return false unless view_requotes? && record.user_id == user.id
+    return false unless requote.quoted_jjaek_id == record.id && !requote.hidden? && !requote.deleted?
+
+    group = requote.group
+    group&.active? && group.approval_group? && GroupPolicy.new(user, group).show? &&
+      UserPolicy.new(user, requote.user).show?
+  end
+
   def create_requote?
     requote? && !already_requoted?
   end
@@ -226,6 +239,18 @@ class JjaekPolicy < ApplicationPolicy
         .or(records.where(quoted_jjaek_id: visible_quoted_jjaek_ids))
         .or(personal_deleted_requotes)
         .or(group_deleted_requotes)
+    end
+  end
+
+  class RestrictedRequoteScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      readable_ids = JjaekPolicy::Scope.new(user, Jjaek.all).resolve.select(:id)
+      scope.joins(:group)
+        .where(quoted_jjaek_id: Jjaek.where(user_id: user.id).select(:id))
+        .where(groups: { lifecycle_status: %i[active inactive] }, hidden_at: nil, deleted_at: nil)
+        .where.not(id: readable_ids)
     end
   end
 

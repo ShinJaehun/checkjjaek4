@@ -554,7 +554,7 @@ RSpec.describe "Jjaeks", type: :request do
       links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
       expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: inactive_jjaek.id))
       expect(links).not_to include(new_group_jjaek_path(inactive_group, quoted_jjaek_id: inactive_jjaek.id))
-      expect(response.body).not_to include(jjaek_requotes_path(inactive_jjaek))
+      expect(response.body).to include(jjaek_requotes_path(inactive_jjaek))
     end
 
     it "hides a public group requote after a non-member loses source access" do

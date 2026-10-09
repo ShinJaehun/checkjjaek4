@@ -10,8 +10,12 @@
 
   <section class="space-y-4">
     <% if @requotes.any? %>
-      <% @requotes.each do |jjaek| %>
-        <%= render "jjaeks/jjaek", jjaek: jjaek %>
+      <% @requotes.each do |requote, restricted| %>
+        <% if restricted %>
+          <%= render "requotes/restricted_requote", source: @jjaek, requote: requote %>
+        <% else %>
+          <%= render "jjaeks/jjaek", jjaek: requote %>
+        <% end %>
       <% end %>
     <% else %>
       <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
