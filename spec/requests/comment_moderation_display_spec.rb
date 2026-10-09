@@ -87,7 +87,11 @@ RSpec.describe "Comment moderation display", type: :request do
 
     group_admin.update!(global_admin: true)
     Comments::Hide.new(comment, actor: group_admin, public_reason: "other").call!
+
+    admin.update!(global_admin: false)
     Comments::Hide.new(own_comment, actor: group_admin, public_reason: "other").call!
+    admin.update!(global_admin: true)
+
     get jjaek_path(jjaek)
     document = Nokogiri::HTML(response.body)
     action = document.at_css("#comment_#{comment.id} [data-comment-moderation-action]")

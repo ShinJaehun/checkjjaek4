@@ -42,6 +42,19 @@ RSpec.describe Jjaeks::Restore do
     )
   end
 
+  it "preserves a hide from before promotion and rejects direct platform restore" do
+    hide = hide!
+    author.update!(global_admin: true)
+
+    expect {
+      described_class.new(jjaek, actor: admin, public_reason: "Blocked").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(jjaek.reload).to be_hidden
+    expect(hide.reload).to be_persisted
+    expect(jjaek.moderation_actions.action_type_restore).to be_empty
+  end
+
   it "rolls back the state when the restore audit is invalid" do
     hide = hide!
 

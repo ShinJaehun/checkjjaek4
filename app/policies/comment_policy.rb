@@ -46,11 +46,11 @@ class CommentPolicy < ApplicationPolicy
   end
 
   def hide?
-    user&.global_admin? && record.user_id != user.id && !record.hidden?
+    user&.global_admin? && record.user_id != user.id && !record.user.global_admin? && !record.hidden?
   end
 
   def restore?
-    user&.global_admin? && record.user_id != user.id && record.hidden? && record.current_hide_action.present?
+    user&.global_admin? && record.user_id != user.id && !record.user.global_admin? && record.hidden? && record.current_hide_action.present?
   end
 
   def hide_as_group_admin?

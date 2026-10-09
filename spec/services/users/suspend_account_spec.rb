@@ -96,4 +96,15 @@ RSpec.describe Users::SuspendAccount do
     expect(ModerationAction.where(target: user)).to be_empty
     expect(actor.reload).not_to be_suspended
   end
+
+  it "rejects direct suspension of another current global admin without an audit action" do
+    peer = User.create!(name: "Peer", email: "suspend-service-peer@example.com", password: "password123!", global_admin: true)
+
+    expect {
+      described_class.new(peer, actor:, public_reason: "other").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(peer.reload).not_to be_suspended
+    expect(ModerationAction.where(target: peer)).to be_empty
+  end
 end

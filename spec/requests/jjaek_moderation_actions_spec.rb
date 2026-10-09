@@ -379,6 +379,40 @@ RSpec.describe "Jjaek moderation actions", type: :request do
     expect(own_hidden.reload).to be_hidden
   end
 
+  it "denies platform actions on a current peer's jjaeks and preserves pre-promotion hide history" do
+    peer_visible = other_admin.jjaeks.create!(content: "PEER VISIBLE")
+    promoted_visible = author.jjaeks.create!(content: "PROMOTED VISIBLE")
+    promoted_hidden = author.jjaeks.create!(content: "PROMOTED HIDDEN")
+    hide = create_hide!(promoted_hidden, actor: admin, authority: "platform")
+    hide_attributes = hide.attributes
+    author.update!(global_admin: true)
+    sign_in admin
+
+    [ peer_visible, promoted_visible ].each do |target|
+      get jjaek_path(target)
+      expect(Nokogiri::HTML(response.body).at_css("a[href='#{new_admin_jjaek_hide_path(target)}']")).to be_nil
+      get new_admin_jjaek_hide_path(target)
+      expect(response).to redirect_to(root_path)
+      expect {
+        post admin_jjaek_hides_path(target), params: { moderation_action: { public_reason: "other" } }
+      }.not_to change(ModerationAction, :count)
+      expect(response).to redirect_to(root_path)
+      expect(target.reload).not_to be_hidden
+    end
+
+    get jjaek_path(promoted_hidden)
+    expect(Nokogiri::HTML(response.body).at_css("a[href='#{new_admin_jjaek_restoration_path(promoted_hidden)}']")).to be_nil
+    get new_admin_jjaek_restoration_path(promoted_hidden)
+    expect(response).to redirect_to(root_path)
+    expect {
+      post admin_jjaek_restorations_path(promoted_hidden), params: { moderation_action: { public_reason: "Blocked" } }
+    }.not_to change(ModerationAction, :count)
+    expect(response).to redirect_to(root_path)
+    expect(promoted_hidden.reload).to be_hidden
+    expect(hide.reload.attributes).to eq(hide_attributes)
+    expect(ModerationAction.where(reversal_of: hide)).to be_empty
+  end
+
   it "denies platform hide and restore for deleted Jjaeks" do
     deleted = author.jjaeks.create!(content: "DELETED PLATFORM TARGET")
     deleted.comments.create!(user: member, content: "Preserve row")

@@ -69,6 +69,18 @@ RSpec.describe JjaekPolicy do
     expect(policy).to be_destroy
   end
 
+  it "does not let a global admin hide or restore a current peer's jjaek" do
+    admin = User.create!(name: "Moderating admin", email: "jjaek-peer-moderator@example.com", password: "password123!", global_admin: true)
+    peer = User.create!(name: "Peer admin", email: "jjaek-peer-author@example.com", password: "password123!")
+    visible = peer.jjaeks.create!(content: "Peer visible")
+    hidden = peer.jjaeks.create!(content: "Peer hidden", hidden_at: Time.current)
+    ModerationAction.create!(target: hidden, actor: admin, action_type: :hide, public_reason: "other", moderation_authority: "platform")
+    peer.update!(global_admin: true)
+
+    expect(described_class.new(admin, visible)).not_to be_hide
+    expect(described_class.new(admin, hidden)).not_to be_restore
+  end
+
   it "excludes hidden sources and their requotes from ordinary scopes but keeps admin investigation" do
     admin = User.create!(name: "Admin", email: "jjaek-hide-scope-admin@example.com", password: "password123!", global_admin: true)
     source = original_author.jjaeks.create!(content: "HIDDEN_SCOPE_SOURCE")

@@ -461,6 +461,41 @@ RSpec.describe "Comment moderation actions", type: :request do
     expect(own_hidden.reload).to be_hidden
   end
 
+  it "denies platform actions on a current peer's comments and preserves pre-promotion hide history" do
+    peer_visible = jjaek.comments.create!(user: other_admin, content: "PEER VISIBLE COMMENT")
+    promoted_hidden = jjaek.comments.create!(user: comment_author, content: "PROMOTED HIDDEN COMMENT")
+    hide = create_hide!(promoted_hidden, actor: admin, authority: "platform")
+    hide_attributes = hide.attributes
+    comment_author.update!(global_admin: true)
+    sign_in admin
+
+    [ peer_visible, comment ].each do |target|
+      get jjaek_path(jjaek)
+      card = Nokogiri::HTML(response.body).at_css("#comment_#{target.id}")
+      expect(card.at_css("a[href='#{new_admin_jjaek_comment_hide_path(jjaek, target)}']")).to be_nil
+      get new_admin_jjaek_comment_hide_path(jjaek, target)
+      expect(response).to redirect_to(root_path)
+      expect {
+        post admin_jjaek_comment_hides_path(jjaek, target), params: { moderation_action: { public_reason: "other" } }
+      }.not_to change(ModerationAction, :count)
+      expect(response).to redirect_to(root_path)
+      expect(target.reload).not_to be_hidden
+    end
+
+    get jjaek_path(jjaek)
+    card = Nokogiri::HTML(response.body).at_css("#comment_#{promoted_hidden.id}")
+    expect(card.at_css("a[href='#{new_admin_jjaek_comment_restoration_path(jjaek, promoted_hidden)}']")).to be_nil
+    get new_admin_jjaek_comment_restoration_path(jjaek, promoted_hidden)
+    expect(response).to redirect_to(root_path)
+    expect {
+      post admin_jjaek_comment_restorations_path(jjaek, promoted_hidden), params: { moderation_action: { public_reason: "Blocked" } }
+    }.not_to change(ModerationAction, :count)
+    expect(response).to redirect_to(root_path)
+    expect(promoted_hidden.reload).to be_hidden
+    expect(hide.reload.attributes).to eq(hide_attributes)
+    expect(ModerationAction.where(reversal_of: hide)).to be_empty
+  end
+
   it "keeps Group Action URLs inside the existing actor, author, and authority boundaries" do
     other_group = Group.create!(lifecycle_status: :active, group_admin: other_group_admin, name: "Other comment action group", group_type: :private_group)
     other_group.group_memberships.create!(user: comment_author, status: :active)

@@ -49,4 +49,16 @@ RSpec.describe Comments::Hide do
     expect(comment.content).to eq("Comment")
     expect(comment.current_hide_action).to be_group_authority
   end
+
+  it "rejects direct platform hide after comment author promotion without changing state or audit" do
+    comment = author.jjaeks.create!(content: "Source").comments.create!(user: author, content: "Promoted author")
+    author.update!(global_admin: true)
+
+    expect {
+      described_class.new(comment, actor: admin, public_reason: "other").call!
+    }.to raise_error(described_class::InvalidState)
+
+    expect(comment.reload).not_to be_hidden
+    expect(comment.moderation_actions).to be_empty
+  end
 end
