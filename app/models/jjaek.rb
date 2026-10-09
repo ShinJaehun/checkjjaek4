@@ -26,7 +26,7 @@ class Jjaek < ApplicationRecord
 
   validates :content, presence: true, length: { maximum: 2_000 }, unless: :deleted?
   validates :quoted_jjaek_id,
-            uniqueness: { scope: :user_id },
+            uniqueness: { scope: %i[user_id group_id] },
             allow_nil: true
   validate :quoted_jjaek_must_be_requotable
   validate :quoted_jjaek_must_not_be_requote

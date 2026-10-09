@@ -113,6 +113,49 @@ RSpec.describe Jjaek, type: :model do
     expect(duplicate_requote.errors.of_kind?(:quoted_jjaek_id, :taken)).to be(true)
   end
 
+  it "checks group requote uniqueness by destination while still rejecting group requotes" do
+    original = other_user.jjaeks.create!(content: "개인 원문")
+    first_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "First readers", group_type: :public_group)
+    second_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Second readers", group_type: :public_group)
+    described_class.insert_all!([ { user_id: user.id, group_id: first_group.id, quoted_jjaek_id: original.id, content: "기존 동아리 공유" } ])
+
+    duplicate = described_class.new(user:, group: first_group, quoted_jjaek: original, content: "중복 공유")
+    expect(duplicate).not_to be_valid
+    expect(duplicate.errors.of_kind?(:quoted_jjaek_id, :taken)).to be(true)
+
+    other_destination = described_class.new(user:, group: second_group, quoted_jjaek: original, content: "다른 목적지")
+    expect(other_destination).not_to be_valid
+    expect(other_destination.errors.of_kind?(:quoted_jjaek_id, :taken)).to be(false)
+    expect(other_destination.errors.of_kind?(:quoted_jjaek, :invalid)).to be(true)
+  end
+
+  it "enforces personal and group requote uniqueness separately in PostgreSQL" do
+    original = other_user.jjaeks.create!(content: "개인 원문")
+    first_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "First destination", group_type: :public_group)
+    second_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Second destination", group_type: :public_group)
+    user.jjaeks.create!(content: "개인 다시짹", quoted_jjaek: original)
+
+    [ first_group, second_group ].each do |group|
+      described_class.insert_all!([ { user_id: user.id, group_id: group.id, quoted_jjaek_id: original.id, content: "동아리 공유" } ])
+    end
+
+    expect {
+      described_class.transaction(requires_new: true) do
+        described_class.insert_all!([ { user_id: user.id, quoted_jjaek_id: original.id, content: "중복 개인 다시짹" } ])
+      end
+    }.to raise_error(ActiveRecord::RecordNotUnique)
+
+    expect {
+      described_class.transaction(requires_new: true) do
+        described_class.insert_all!([ { user_id: user.id, group_id: first_group.id, quoted_jjaek_id: original.id, content: "중복 동아리 공유" } ])
+      end
+    }.to raise_error(ActiveRecord::RecordNotUnique)
+
+    user.jjaeks.create!(group: first_group, content: "일반 동아리 짹 하나")
+    user.jjaeks.create!(group: first_group, content: "일반 동아리 짹 둘")
+    expect(described_class.where(user:, group: first_group, quoted_jjaek_id: nil).count).to eq(2)
+  end
+
   it "allows different users to requote the same original" do
     original = other_user.jjaeks.create!(book:, content: "원문")
     user.jjaeks.create!(book:, content: "첫 인용", quoted_jjaek: original)
