@@ -1,0 +1,18 @@
+<div class="inline-flex items-center gap-3">
+  <%= link_to user_path(group.group_admin),
+              class: "relative shrink-0 rounded-full bg-stone-100 p-0.5 ring-1 ring-stone-200 hover:z-10 focus:z-10",
+              title: t("groups.group_admin", name: group.group_admin.name),
+              aria: { label: t("groups.group_admin", name: group.group_admin.name) },
+              data: { group_admin_avatar: true } do %>
+    <%= user_avatar_image(group.group_admin, size: 128, alt: group.group_admin.name, class: "h-9 w-9 rounded-full object-cover") %>
+  <% end %>
+  <% if member_preview.any? %>
+    <div class="flex -space-x-2" data-member-preview>
+      <% member_preview.first(5).each do |member| %>
+        <%= link_to user_path(member), class: "relative shrink-0 rounded-full bg-stone-100 p-0.5 ring-1 ring-stone-200 hover:z-10 focus:z-10", title: member.name, aria: { label: member.name } do %>
+          <%= user_avatar_image(member, size: 128, alt: member.name, class: "h-8 w-8 rounded-full object-cover") %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

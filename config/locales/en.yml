@@ -104,6 +104,28 @@ en:
     actions:
       search_books: "Search books"
       my_shelf: "Open my shelf"
+  discovery:
+    nav: "Discover"
+    title: "Discover"
+    read_jjaek: "Read post"
+    book_jjaeks:
+      title: "A book and its posts"
+      empty: "No public book posts are available yet."
+    general_jjaeks:
+      title: "A chance encounter"
+      empty: "No public posts are available yet."
+    library:
+      title: "Featured library"
+      book_count: "%{count} public books"
+      visit: "Explore %{name}'s books and posts"
+      empty: "No public library is available yet."
+    group:
+      title: "Featured club"
+      recent_post_title: "A recent post in this club"
+      visit: "Visit club"
+      empty: "No club is available yet."
+      approval_required: "Club posts are available after your membership is approved."
+      empty_posts: "No club posts are available to read yet."
   pagination:
     range: "%{first}–%{last} of %{total}"
     previous: "Previous"

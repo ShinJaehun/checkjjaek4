@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   root "homes#show"
+  resource :discovery, only: :show, controller: "discoveries", path: "discover"
   devise_for :users, controllers: { registrations: "users/registrations", sessions: "users/sessions" }
   resource :account_withdrawal, only: %i[show destroy]
   namespace :account do

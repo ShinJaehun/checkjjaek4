@@ -104,6 +104,28 @@ ko:
     actions:
       search_books: "책 검색"
       my_shelf: "내 서재 보기"
+  discovery:
+    nav: "발견"
+    title: "발견"
+    read_jjaek: "원문 보기"
+    book_jjaeks:
+      title: "새로운 책과 책짹"
+      empty: "지금 소개할 공개 책짹이 없습니다."
+    general_jjaeks:
+      title: "우연히 발견한 짹"
+      empty: "지금 소개할 공개 짹이 없습니다."
+    library:
+      title: "추천 서재"
+      book_count: "공개 책 %{count}권"
+      visit: "%{name}의 책과 글 보기"
+      empty: "지금 소개할 공개 서재가 없습니다."
+    group:
+      title: "추천 동아리"
+      recent_post_title: "이 동아리에 올라온 최근 글"
+      visit: "동아리 방문하기"
+      empty: "지금 소개할 동아리가 없습니다."
+      approval_required: "가입 승인 후 동아리 게시물을 볼 수 있습니다."
+      empty_posts: "아직 볼 수 있는 동아리 게시물이 없습니다."
   pagination:
     range: "전체 %{total}건 중 %{first}–%{last}"
     previous: "이전"
