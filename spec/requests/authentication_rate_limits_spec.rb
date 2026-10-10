@@ -42,6 +42,7 @@ RSpec.describe "Authentication rate limits", type: :request do
     attempt_login(email: "another-missing@example.com")
 
     expect(response).to have_http_status(:too_many_requests)
+    expect(response.body).to include(I18n.t("auth.alerts.login_rate_limited"))
   end
 
   it "limits an IP and normalized email combination to eight attempts" do
@@ -51,6 +52,7 @@ RSpec.describe "Authentication rate limits", type: :request do
     attempt_login(email: "reader@EXAMPLE.com")
 
     expect(response).to have_http_status(:too_many_requests)
+    expect(response.body).to include(I18n.t("auth.alerts.login_rate_limited"))
     expect(counter_keys.join).not_to include("reader@example.com", "READER@example.com", "wrong-password")
   end
 
@@ -139,7 +141,7 @@ RSpec.describe "Authentication rate limits", type: :request do
 
       expect(response).to have_http_status(:too_many_requests)
       expect(response.media_type).to eq("text/html")
-      expect(response.body).to include(I18n.t("auth.alerts.rate_limited"))
+      expect(response.body).to include(I18n.t("auth.alerts.login_rate_limited"))
       expect(response.body).to include(I18n.t("auth.sessions.title"))
 
       60.times { attempt_registration }

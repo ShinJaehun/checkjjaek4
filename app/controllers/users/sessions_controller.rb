@@ -23,6 +23,10 @@ module Users
 
     private
 
+    def authentication_rate_limit_message
+      t("auth.alerts.login_rate_limited")
+    end
+
     def login_ip_and_email_key
       email = sign_in_params[:email].to_s.strip.downcase
       secret = Rails.application.key_generator.generate_key("login-rate-limit-email", 32)

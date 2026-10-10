@@ -51,6 +51,15 @@ RSpec.describe "Authentication", type: :request do
       expect(response).to redirect_to(root_path)
     end
 
+    it "shows the same generic message for an unknown email and a wrong password" do
+      User.create!(name: "Reader", email: "reader@example.com", password: "password123!")
+
+      [ "reader@example.com", "missing@example.com" ].each do |email|
+        post user_session_path, params: { user: { email:, password: "wrong-password" } }, headers: { "ACCEPT" => "text/html" }
+        expect(response.body).to include(I18n.t("auth.alerts.invalid_credentials"))
+      end
+    end
+
     it "shows the public suspension reason only after correct credentials" do
       user = User.create!(name: "Suspended", email: "suspended-sign-in@example.com", password: "password123!", suspended_at: Time.current)
       actor = User.create!(name: "Admin", email: "suspension-login-admin@example.com", password: "password123!", global_admin: true)

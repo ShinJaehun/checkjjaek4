@@ -76,6 +76,7 @@ en:
     alerts:
       invalid_credentials: "Email or password is incorrect."
       rate_limited: "Too many requests. Please wait a moment and try again."
+      login_rate_limited: "Sign-in is temporarily limited. Too many sign-in attempts were made in a short time, so sign-in is currently limited. Please try signing in again in 5 minutes."
       not_authorized: "You cannot perform that action."
       sign_in_required: "Sign in to continue."
       suspended: "Your account is suspended. Reason: %{reason}"
