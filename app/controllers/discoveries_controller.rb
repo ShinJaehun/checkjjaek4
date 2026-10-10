@@ -2,17 +2,36 @@ class DiscoveriesController < ApplicationController
   def show
     authorize :discovery, :show?
 
-    @book = Book.where(id: public_original_jjaeks.where.not(book_id: nil).select(:book_id))
-      .order(Arel.sql("RANDOM()"))
-      .first
-    @book_jjaeks = @book ? varied_jjaeks(public_original_jjaeks.where(book_id: @book.id)) : []
-    @general_jjaeks = varied_jjaeks(public_original_jjaeks.where(book_id: nil).where.not(user_id: current_user.id))
+    case params[:refresh]
+    when nil
+      prepare_book_jjaeks
+      prepare_general_jjaeks
+    when "book"
+      prepare_book_jjaeks
+      return render partial: "discoveries/book_jjaeks"
+    when "general"
+      prepare_general_jjaeks
+      return render partial: "discoveries/general_jjaeks"
+    else
+      return head :not_found
+    end
 
     prepare_recommended_library
     prepare_recommended_group
   end
 
   private
+
+  def prepare_book_jjaeks
+    @book = Book.where(id: public_original_jjaeks.where.not(book_id: nil).select(:book_id))
+      .order(Arel.sql("RANDOM()"))
+      .first
+    @book_jjaeks = @book ? varied_jjaeks(public_original_jjaeks.where(book_id: @book.id)) : []
+  end
+
+  def prepare_general_jjaeks
+    @general_jjaeks = varied_jjaeks(public_original_jjaeks.where(book_id: nil).where.not(user_id: current_user.id))
+  end
 
   def public_original_jjaeks
     @public_original_jjaeks ||= policy_scope(Jjaek)

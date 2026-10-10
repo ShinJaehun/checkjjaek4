@@ -9,6 +9,12 @@ RSpec.describe "Discoveries", type: :request do
     expect(response).to redirect_to(new_user_session_path)
   end
 
+  it "requires sign in for a refresh request" do
+    get discovery_path, params: { refresh: "book" }, headers: { "Turbo-Frame" => "discovery_book_jjaeks" }
+
+    expect(response).to redirect_to(new_user_session_path)
+  end
+
   it "shows all four empty sections when there are no candidates" do
     sign_in viewer
     get discovery_path
@@ -17,6 +23,69 @@ RSpec.describe "Discoveries", type: :request do
     %w[book_jjaeks general_jjaeks library group].each do |section|
       expect(response.body).to include(I18n.t("discovery.#{section}.empty"))
     end
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("turbo-frame#discovery_book_jjaeks")).to be_present
+    expect(page.at_css("turbo-frame#discovery_general_jjaeks")).to be_present
+  end
+
+  it "refreshes only the book and book posts frame with its repeatable control" do
+    book = Book.create!(title: "REFRESH_BOOK")
+    public_post = writer.jjaeks.create!(book:, content: "REFRESH_BOOK_POST", visibility: :public_jjaek)
+    hidden_post = writer.jjaeks.create!(book:, content: "HIDDEN_REFRESH_BOOK_POST", visibility: :public_jjaek)
+    hidden_post.update_columns(hidden_at: Time.current)
+    sign_in viewer
+
+    get discovery_path, params: { refresh: "book" }, headers: { "Turbo-Frame" => "discovery_book_jjaeks" }
+
+    page = Nokogiri::HTML(response.body)
+    frame = page.at_css("turbo-frame#discovery_book_jjaeks")
+    expect(response).to have_http_status(:ok)
+    expect(frame).to be_present
+    expect(page.at_css("turbo-frame#discovery_general_jjaeks")).to be_nil
+    expect(frame.text).to include("REFRESH_BOOK", "REFRESH_BOOK_POST")
+    expect(frame.text).not_to include("HIDDEN_REFRESH_BOOK_POST")
+    expect(frame.at_css(%(a[href="#{discovery_path(refresh: "book")}"][data-turbo-frame="discovery_book_jjaeks"]))).to be_present
+    expect(frame.at_css(%(a[href="#{book_path(book)}"][data-turbo-frame="_top"]))).to be_present
+    expect(frame.at_css(%(a[href="#{jjaek_path(public_post)}"][data-turbo-frame="_top"]))).to be_present
+  end
+
+  it "refreshes only the public general posts frame" do
+    public_post = writer.jjaeks.create!(content: "REFRESH_GENERAL_POST", visibility: :public_jjaek)
+    writer.jjaeks.create!(content: "PRIVATE_REFRESH_POST", visibility: :private_jjaek)
+    own_post = viewer.jjaeks.create!(content: "OWN_REFRESH_POST", visibility: :public_jjaek)
+    sign_in viewer
+
+    get discovery_path, params: { refresh: "general" }, headers: { "Turbo-Frame" => "discovery_general_jjaeks" }
+
+    page = Nokogiri::HTML(response.body)
+    frame = page.at_css("turbo-frame#discovery_general_jjaeks")
+    expect(response).to have_http_status(:ok)
+    expect(frame).to be_present
+    expect(page.at_css("turbo-frame#discovery_book_jjaeks")).to be_nil
+    expect(frame.text).to include("REFRESH_GENERAL_POST")
+    expect(frame.text).not_to include("PRIVATE_REFRESH_POST", "OWN_REFRESH_POST")
+    expect(frame.at_css(%(a[href="#{discovery_path(refresh: "general")}"][data-turbo-frame="discovery_general_jjaeks"]))).to be_present
+    expect(frame.at_css(%(a[href="#{jjaek_path(public_post)}"][data-turbo-frame="_top"]))).to be_present
+    expect(frame.at_css(%(a[href="#{user_path(writer)}"][data-turbo-frame="_top"]))).to be_present
+    expect(frame.at_css(%(a[href="#{jjaek_path(own_post)}"]))).to be_nil
+  end
+
+  it "shows the existing empty states in both refresh frames" do
+    sign_in viewer
+
+    get discovery_path, params: { refresh: "book" }, headers: { "Turbo-Frame" => "discovery_book_jjaeks" }
+    expect(response.body).to include(I18n.t("discovery.book_jjaeks.empty"))
+
+    get discovery_path, params: { refresh: "general" }, headers: { "Turbo-Frame" => "discovery_general_jjaeks" }
+    expect(response.body).to include(I18n.t("discovery.general_jjaeks.empty"))
+  end
+
+  it "rejects an unknown refresh target" do
+    sign_in viewer
+
+    get discovery_path, params: { refresh: "library" }
+
+    expect(response).to have_http_status(:not_found)
   end
 
   it "shows public original book and general posts with existing detail links" do

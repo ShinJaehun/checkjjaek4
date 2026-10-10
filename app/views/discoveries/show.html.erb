@@ -4,65 +4,8 @@
   </header>
 
   <div class="grid gap-10 lg:grid-cols-2 lg:gap-0">
-    <section class="min-w-0 lg:border-r lg:border-stone-300 lg:pr-10">
-      <h2 class="border-b border-stone-300 pb-3 font-serif text-3xl font-semibold text-stone-950"><%= t("discovery.book_jjaeks.title") %></h2>
-      <% if @book %>
-        <div class="mt-6 flex items-start gap-5">
-          <%= render "books/thumbnail", title: @book.title, thumbnail: @book.thumbnail,
-                     url: book_path(@book), size: :large %>
-          <div class="min-w-0">
-            <h3 class="font-serif text-2xl font-semibold leading-tight"><%= link_to @book.title, book_path(@book) %></h3>
-            <% if @book.authors_text.present? %>
-              <p class="mt-2 text-sm text-stone-600"><%= @book.authors_text %></p>
-            <% end %>
-          </div>
-        </div>
-        <div class="mt-7 divide-y divide-stone-200">
-          <% @book_jjaeks.each do |jjaek| %>
-            <article class="py-5 pl-5">
-              <div class="flex items-center gap-3">
-                <%= link_to user_path(jjaek.user), title: jjaek.user.name, aria: { label: jjaek.user.name } do %>
-                  <%= user_avatar_image(jjaek.user, size: 128, alt: jjaek.user.name, class: "h-9 w-9 rounded-full object-cover") %>
-                <% end %>
-                <div class="min-w-0">
-                  <p class="text-sm font-semibold text-stone-800"><%= link_to jjaek.user.name, user_path(jjaek.user) %></p>
-                  <p class="text-xs text-stone-500"><%= t("jjaeks.meta.created_at", time: l(jjaek.created_at, format: :short)) %></p>
-                </div>
-              </div>
-              <p class="mt-2 line-clamp-3 whitespace-pre-line break-words font-serif text-lg leading-7 text-stone-800"><%= jjaek.content %></p>
-              <%= link_to t("discovery.read_jjaek"), jjaek_path(jjaek), class: "mt-3 inline-block text-sm font-semibold underline underline-offset-4" %>
-            </article>
-          <% end %>
-        </div>
-      <% else %>
-        <p class="mt-6 text-sm text-stone-500"><%= t("discovery.book_jjaeks.empty") %></p>
-      <% end %>
-    </section>
-
-    <section class="min-w-0 border-t border-stone-300 pt-8 lg:border-t-0 lg:pl-10 lg:pt-0">
-      <h2 class="border-b border-stone-300 pb-3 font-serif text-3xl font-semibold text-stone-950"><%= t("discovery.general_jjaeks.title") %></h2>
-      <% if @general_jjaeks.any? %>
-        <div class="divide-y divide-stone-200">
-          <% @general_jjaeks.each do |jjaek| %>
-            <article class="py-6">
-              <div class="flex items-center gap-3">
-                <%= link_to user_path(jjaek.user), title: jjaek.user.name, aria: { label: jjaek.user.name } do %>
-                  <%= user_avatar_image(jjaek.user, size: 128, alt: jjaek.user.name, class: "h-9 w-9 rounded-full object-cover") %>
-                <% end %>
-                <div class="min-w-0">
-                  <p class="text-sm font-semibold text-stone-800"><%= link_to jjaek.user.name, user_path(jjaek.user) %></p>
-                  <p class="text-xs text-stone-500"><%= t("jjaeks.meta.created_at", time: l(jjaek.created_at, format: :short)) %></p>
-                </div>
-              </div>
-              <p class="mt-3 line-clamp-3 whitespace-pre-line break-words font-serif text-xl leading-8 text-stone-900"><%= jjaek.content %></p>
-              <%= link_to t("discovery.read_jjaek"), jjaek_path(jjaek), class: "mt-4 inline-block text-sm font-semibold underline underline-offset-4" %>
-            </article>
-          <% end %>
-        </div>
-      <% else %>
-        <p class="mt-6 text-sm text-stone-500"><%= t("discovery.general_jjaeks.empty") %></p>
-      <% end %>
-    </section>
+    <%= render "discoveries/book_jjaeks" %>
+    <%= render "discoveries/general_jjaeks" %>
   </div>
 
   <section class="border-t-2 border-stone-800 pt-6">

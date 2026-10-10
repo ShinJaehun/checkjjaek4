@@ -107,6 +107,7 @@ ko:
   discovery:
     nav: "발견"
     title: "발견"
+    refresh: "새로고침"
     read_jjaek: "원문 보기"
     book_jjaeks:
       title: "새로운 책과 책짹"

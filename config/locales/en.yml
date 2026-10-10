@@ -107,6 +107,7 @@ en:
   discovery:
     nav: "Discover"
     title: "Discover"
+    refresh: "Refresh"
     read_jjaek: "Read post"
     book_jjaeks:
       title: "A book and its posts"
