@@ -30,6 +30,13 @@ class ApplicationController < ActionController::Base
 
   private
 
+  def authentication_rate_limit_exceeded
+    self.resource = resource_class.new
+    request.env["devise.allow_params_authentication"] = false
+    flash.now[:alert] = t("auth.alerts.rate_limited")
+    render :new, formats: :html, status: :too_many_requests
+  end
+
   def reject_suspended_session!
     return unless current_user&.suspended?
 

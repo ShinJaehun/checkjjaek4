@@ -75,6 +75,7 @@ ko:
       sign_up: "회원가입"
     alerts:
       invalid_credentials: "이메일 또는 비밀번호가 올바르지 않습니다."
+      rate_limited: "요청이 너무 빠릅니다. 잠시 후 다시 시도해 주세요."
       not_authorized: "이 작업을 수행할 수 없습니다."
       sign_in_required: "계속하려면 로그인해 주세요."
       suspended: "계정이 정지되었습니다. 사유: %{reason}"
