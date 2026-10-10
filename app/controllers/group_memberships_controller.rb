@@ -1,17 +1,17 @@
 class GroupMembershipsController < ApplicationController
   before_action :set_group, except: %i[accept decline]
+  before_action :prepare_join_request, only: :create
+  before_action :prepare_invitation, only: :invite
   before_action :authorize_group_access, only: %i[update destroy reject revoke remove]
   before_action :set_membership, only: :destroy
   before_action :set_membership_for_management_action, only: %i[update reject revoke remove]
   before_action :set_own_invitation, only: %i[accept decline]
+  rate_limit to: 15, within: 1.hour, by: -> { current_user.id }, name: "join",
+             with: :join_rate_limit_exceeded, only: :create
+  rate_limit to: 30, within: 1.hour, by: -> { current_user.id }, name: "invite",
+             with: :invitation_rate_limit_exceeded, only: :invite
 
   def create
-    @membership = @group.group_memberships.build(
-      user: current_user,
-      status: @group.public_group? ? :active : :pending
-    )
-    authorize @membership
-
     saved = @group.with_lock do
       authorize @membership
       next false unless @membership.save
@@ -45,9 +45,6 @@ class GroupMembershipsController < ApplicationController
   end
 
   def invite
-    @membership = @group.group_memberships.build(user_id: params[:user_id], status: :invited)
-    authorize @membership, :invite?
-
     saved = @group.with_lock do
       authorize @membership, :invite?
       next false unless @membership.save
@@ -149,6 +146,38 @@ class GroupMembershipsController < ApplicationController
   end
 
   private
+
+  def prepare_join_request
+    @membership = @group.group_memberships.build(
+      user: current_user,
+      status: @group.public_group? ? :active : :pending
+    )
+    authorize @membership
+  end
+
+  def prepare_invitation
+    @membership = @group.group_memberships.build(user_id: params[:user_id], status: :invited)
+    authorize @membership, :invite?
+  rescue Pundit::NotAuthorizedError
+    raise unless profile_invitation_return?
+
+    redirect_to invitation_return_path, alert: t("auth.alerts.not_authorized")
+  end
+
+  def join_rate_limit_exceeded
+    render_membership_rate_limit(t("group_memberships.alerts.join_rate_limited"))
+  end
+
+  def invitation_rate_limit_exceeded
+    render_membership_rate_limit(t("group_memberships.alerts.invite_rate_limited"))
+  end
+
+  def render_membership_rate_limit(message)
+    respond_to do |format|
+      format.turbo_stream { render_content_rate_limit_flash(message) }
+      format.html { render html: helpers.tag.p(message), layout: true, status: :too_many_requests }
+    end
+  end
 
   def profile_invitation_return?
     params[:return_context] == "profile" && @membership&.user.present?

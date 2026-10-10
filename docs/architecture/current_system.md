@@ -327,7 +327,7 @@
 - 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
 - Group membership 활동 정지·이용 제한은 group admin만 실행하며 global admin은 현재 회원·제한·감사 이력을 조사하고 service-wide 제재에는 User 계정 정지·복구를 사용함
 - 신규 User 계정 정지와 Group 운영 정지는 각각 정의된 predefined 공개 사유를 선택하며 known key는 locale label로 표시하고 기존 자유 텍스트 감사 row는 그대로 표시함. 복구 공개 사유와 GroupMembership 활동 정지·복구 및 GroupMemberBan 제한·해제 사유는 자유 텍스트를 유지함
-- Group operation 전체 이력 UI는 구현되어 있음. 회원가입·로그인·짹·책짹·댓글·좋아요 요청에는 기본 rate limit이 적용되며, 동아리 개설·가입·초대 제한은 후속 범위임
+- Group operation 전체 이력 UI는 구현되어 있음. 회원가입·로그인·짹·책짹·댓글·좋아요와 동아리 개설·가입·초대 요청에는 기본 rate limit이 적용됨. 동아리 제한은 권한 확인 뒤 사용자별 카운터를 사용하며, 개설은 5회/24시간, 가입·신청은 합산 15회/1시간, 초대는 30회/1시간임
 
 ### 5-2. 계정 탈퇴
 

@@ -1,5 +1,8 @@
 class GroupsController < ApplicationController
   before_action :set_group, only: %i[show edit update]
+  before_action :prepare_group_creation, only: :create
+  rate_limit to: 5, within: 24.hours, by: -> { current_user.id },
+             with: :group_creation_rate_limit_exceeded, only: :create
 
   def index
     authorize Group
@@ -37,10 +40,6 @@ class GroupsController < ApplicationController
   end
 
   def create
-    @group = current_user.administered_groups.build(create_group_params)
-    @group.lifecycle_status = :active if current_user.global_admin?
-    authorize @group
-
     created = Group.transaction do
       next false unless @group.save
 
@@ -91,6 +90,23 @@ class GroupsController < ApplicationController
   end
 
   private
+
+  def prepare_group_creation
+    @group = current_user.administered_groups.build(create_group_params)
+    @group.lifecycle_status = :active if current_user.global_admin?
+    authorize @group
+  end
+
+  def group_creation_rate_limit_exceeded
+    message = t("groups.alerts.rate_limited")
+    respond_to do |format|
+      format.turbo_stream { render_content_rate_limit_flash(message) }
+      format.html do
+        flash.now[:alert] = message
+        render :new, status: :too_many_requests
+      end
+    end
+  end
 
   def eligible_global_admin_ids
     User.where(global_admin: true, withdrawn_at: nil, suspended_at: nil).pluck(:id)

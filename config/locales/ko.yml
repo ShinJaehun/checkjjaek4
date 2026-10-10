@@ -343,6 +343,7 @@ ko:
       admin_transferred: "동아리 관리자 권한을 이전했습니다."
     alerts:
       not_found_or_inaccessible: "동아리를 찾을 수 없거나 접근할 수 없습니다."
+      rate_limited: "동아리 개설이 일시적으로 제한되었습니다. 24시간 동안 동아리 개설 요청이 너무 많이 발생했습니다. 24시간 후 다시 시도해 주세요."
       close_failed: "동아리 운영을 종료할 수 없습니다."
       reactivation_request_failed: "동아리 재운영을 요청할 수 없습니다."
       admin_transfer_failed: "동아리 관리자 권한을 이전할 수 없습니다."
@@ -666,6 +667,8 @@ ko:
       activity_restored: "동아리 활동을 복구했습니다."
     alerts:
       removed: "동아리에서 내보내졌습니다."
+      join_rate_limited: "동아리 가입이 일시적으로 제한되었습니다. 1시간 동안 가입 및 가입 신청 요청이 너무 많이 발생했습니다. 1시간 후 다시 시도해 주세요."
+      invite_rate_limited: "동아리 초대가 일시적으로 제한되었습니다. 1시간 동안 초대 요청이 너무 많이 발생했습니다. 1시간 후 다시 시도해 주세요."
       stale_action: "이미 처리되었거나 더 이상 존재하지 않는 동아리 회원입니다."
       stale_invitation: "이미 처리되었거나 더 이상 존재하지 않는 동아리 초대입니다."
       suspend_activity_failed: "동아리 활동을 정지할 수 없습니다."

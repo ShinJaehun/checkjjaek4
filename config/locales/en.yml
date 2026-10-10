@@ -336,6 +336,7 @@ en:
       admin_transferred: "Club admin rights were transferred."
     alerts:
       not_found_or_inaccessible: "The club could not be found or accessed."
+      rate_limited: "Club creation is temporarily limited. Too many club creation requests were made within 24 hours. Please try again in 24 hours."
       close_failed: "The club could not be closed."
       reactivation_request_failed: "Club reactivation could not be requested."
       admin_transfer_failed: "Club admin rights could not be transferred."
@@ -660,6 +661,8 @@ en:
       activity_restored: "Club activity was restored."
     alerts:
       removed: "You were removed from the club."
+      join_rate_limited: "Joining clubs is temporarily limited. Too many join and join request attempts were made within an hour. Please try again in 1 hour."
+      invite_rate_limited: "Club invitations are temporarily limited. Too many invitation requests were made within an hour. Please try again in 1 hour."
       stale_action: "This club membership has already been handled or no longer exists."
       stale_invitation: "This group invitation has already been handled or no longer exists."
       suspend_activity_failed: "Club activity could not be suspended."

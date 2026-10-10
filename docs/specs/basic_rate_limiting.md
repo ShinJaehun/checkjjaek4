@@ -2,7 +2,7 @@
 
 ## 상태와 목적
 
-이 문서는 기본 Rate Limit의 **승인된 설계**를 기록한다. 회원가입·로그인·짹·댓글·좋아요 제한은 구현되었으며, 동아리 개설·가입·초대 제한은 아직 구현되지 않았다. 아래 수치는 운영 중 정상 사용과 차단 현황을 보며 조정할 초기 정책이다.
+이 문서는 기본 Rate Limit의 **승인된 설계와 구현 상태**를 기록한다. 회원가입·로그인·짹·댓글·좋아요 및 동아리 개설·가입·초대 제한을 구현했다. 아래 수치는 운영 중 정상 사용과 차단 현황을 보며 조정할 초기 정책이다.
 
 반복적인 인증 및 쓰기 요청으로 인한 서버 부담과 남용을 완화한다. 기존 Devise 인증, 계정 정지, Pundit 권한, 동아리 운영 정책 및 데이터 중복 방지 규칙은 유지한다. 제한은 요청을 처리하기 전에 적용하며 성공·실패 여부와 관계없이 요청 횟수를 계산한다.
 
@@ -11,7 +11,7 @@
 - Rails 8.1.3.1의 `ActionController::RateLimiting#rate_limit`을 사용할 수 있다. 지정한 action의 요청을 캐시 카운터로 제한하고, 초과 시 기본적으로 `ActionController::TooManyRequests`와 HTTP 429를 사용한다.
 - 회원가입은 `Users::RegistrationsController#create`에서 Devise의 기존 create 흐름을 사용한다. 로그인은 `Users::SessionsController#create`가 정지 계정의 올바른 비밀번호 입력을 별도로 처리하고 그 외에는 Devise에 위임한다. 로그인 실패만 세는 별도 계측은 이번 범위에 없다.
 - `ApplicationController`는 Devise 인증, 정지 세션 차단, Pundit 권한 처리를 담당한다. Devise controller는 일반 로그인 필수 before action의 예외다.
-- 운영 환경은 별도 cache DB를 사용하는 Solid Cache, 개발 환경은 프로세스별 MemoryStore, 테스트 환경은 NullStore다. 현재 요청 횟수 제한은 없다.
+- 운영 환경은 별도 cache DB를 사용하는 Solid Cache, 개발 환경은 프로세스별 MemoryStore, 테스트 환경은 NullStore다. Rate Limit request spec은 별도 MemoryStore로 카운터를 검증한다.
 - 좋아요의 사용자·글 고유성, 동아리 membership의 사용자·동아리 고유성, 일부 인용 다시짹 중복 방지와 동아리 쓰기의 row lock은 기존 중복·동시성 방어다. 요청 횟수 제한을 대신하지 않는다.
 
 ## 적용 요청과 초기 상한
@@ -25,7 +25,7 @@
 | 개인 짹·책짹·동아리 게시물 작성 | `JjaeksController#create` | Pundit, 유효성 검사, 일부 인용 중복 방지 | 사용자당 합계 30회/5분 | 여러 게시 공간에 연속 작성하면 공유 상한에 도달함 |
 | 댓글 작성 | `CommentsController#create` | 부모 글 접근 권한, 유효성 검사 | 사용자당 30회/5분 | 매우 활발한 연속 댓글 작성에 영향 가능 |
 | 좋아요·취소 | `LikesController#create/destroy` | Pundit, 사용자·글 고유성 | 사용자당 두 action 합계 60회/5분 | 빠른 반복 토글에 영향 가능 |
-| 동아리 생성 | `GroupsController#create` | 승인 lifecycle, 유효성 검사 | 사용자당 5회/1일 | 여러 동아리를 연속 개설하는 관리자 작업에도 적용됨 |
+| 동아리 생성 | `GroupsController#create` | 승인 lifecycle, 유효성 검사 | 사용자당 5회/24시간 | 모든 동아리 유형과 global admin 개설을 합산함 |
 | 공개 동아리 가입·승인 동아리 가입 신청 | `GroupMembershipsController#create` | Pundit, 사용자·동아리 고유성, row lock | 사용자당 합계 15회/1시간 | 여러 동아리에 연속 가입하면 제한될 수 있음 |
 | 비공개 동아리 회원 초대 | `GroupMembershipsController#invite` | Pundit, 중복 방지, row lock | 초대자당 30회/1시간 | 큰 동아리의 연속 초대 작업에 영향 가능 |
 
@@ -36,12 +36,12 @@
 - Rails 내장 `rate_limit`을 해당 controller action에 적용한다. 인증 전 회원가입·로그인은 신뢰할 수 있는 `request.remote_ip`를, 인증된 쓰기 요청은 `current_user.id`를 제한 기준으로 사용한다. 같은 controller에서 독립된 제한을 여러 개 둘 때 `name`을 구분한다. 좋아요 create/destroy처럼 상한을 공유하는 action은 같은 범위를 사용한다.
 - 운영 환경에서는 기존 Solid Cache를 카운터 저장소로 사용해 여러 Rails 프로세스가 제한 상태를 공유한다. 새 gem, Redis, 별도 DB 테이블 또는 외부 서비스는 추가하지 않는다.
 - Rack::Attack은 이번 범위에 포함하지 않는다. Rails controller 전에 전체 경로를 제한하거나 인증 실패 결과만 별도로 계측할 필요가 확인되면 다시 검토한다. Solid Cache는 제한 규칙이 아니라 카운터 저장소다.
-- Rails 내장 제한은 action 실행 전 요청을 계산한다. 로그인 성공·실패, 유효성 검사 실패, 권한 거부 등도 호출된 제한 카운터를 사용한다. 회원가입과 로그인 실패 **전용** 카운터는 구현하지 않는다.
+- Rails 내장 제한은 action 실행 전 요청을 계산한다. 로그인 성공·실패 및 유효성 검사 실패도 카운터를 사용한다. 동아리 개설·가입·초대는 첫 Pundit 권한 검사 뒤에 카운터를 적용해 비인가 요청을 제외한다. 회원가입과 로그인 실패 **전용** 카운터는 구현하지 않는다.
 - 개발 환경의 MemoryStore는 프로세스 간 카운터를 공유하지 않는다. 테스트 환경의 기본 NullStore는 카운터 동작을 검증할 수 없으므로 Rate Limit request spec에서 실제 카운터가 작동하는 테스트용 캐시 저장소를 명시하고 예제 간 상태를 격리한다.
 
 ## 초과 응답과 사용자 안내
 
-HTML과 Turbo 요청 모두 HTTP 429와 한국어·영어 locale 기반의 안내를 제공한다. 회원가입 초과 안내는 “요청이 너무 빠릅니다. 잠시 후 다시 시도해 주세요.”를 유지한다. 로그인 초과 안내는 “로그인이 일시적으로 제한되었습니다.”로 시작하고, 5분 뒤 재시도를 안내한다. 짹·책짹, 댓글, 좋아요 초과 안내는 각각 제한 이유와 5분 뒤 재시도를 설명한다. 이 시간은 정확한 남은 시간이 아닌 재시도 안내다. 콘텐츠 Turbo Stream 요청에서는 `flash-messages`만 갱신해 작성 중인 입력과 기존 댓글·좋아요 상태를 유지한다. HTML 요청에서는 429와 안내를 표시하며, 짹·댓글은 제출한 입력을 유지한다. 로그인 초과 안내는 계정 존재 여부, 비밀번호 정답 여부, 정지 여부를 드러내지 않는다.
+HTML과 Turbo 요청 모두 HTTP 429와 한국어·영어 locale 기반의 안내를 제공한다. 회원가입 초과 안내는 “요청이 너무 빠릅니다. 잠시 후 다시 시도해 주세요.”를 유지한다. 로그인 초과 안내는 “로그인이 일시적으로 제한되었습니다.”로 시작하고, 5분 뒤 재시도를 안내한다. 짹·책짹, 댓글, 좋아요 초과 안내는 각각 제한 이유와 5분 뒤 재시도를 설명한다. 동아리 개설은 24시간 뒤, 가입·초대는 1시간 뒤 재시도를 안내한다. 이 시간은 정확한 남은 시간이 아닌 재시도 안내다. 콘텐츠와 동아리 Turbo Stream 요청에서는 `flash-messages`만 갱신해 작성 중인 입력과 기존 화면 상태를 유지한다. HTML 요청에서는 429와 안내를 표시하며, 짹·댓글·동아리 개설은 제출한 입력을 유지한다. 로그인 초과 안내는 계정 존재 여부, 비밀번호 정답 여부, 정지 여부를 드러내지 않는다.
 
 ## 운영과 보안 확인
 
@@ -51,7 +51,7 @@ HTML과 Turbo 요청 모두 HTTP 429와 한국어·영어 locale 기반의 안�
 
 ## 예상 구현 파일과 검증
 
-인증 제한에 이어 `JjaeksController#create`, `CommentsController#create`, `LikesController#create/destroy`에 사용자별 제한을 적용했다. 공통 Turbo Stream 429 안내, 각 기능의 한국어·영어 locale, 콘텐츠 request spec을 추가했다. 동아리 요청 제한은 후속 단계다.
+인증·콘텐츠 제한에 이어 `GroupsController#create`, `GroupMembershipsController#create/invite`에 사용자별 제한을 적용했다. 가입과 초대는 별도 이름의 카운터를 사용하며, 권한 확인을 카운터 앞에 둔다. 공통 Turbo Stream 429 안내와 기능별 한국어·영어 locale, request spec을 사용한다.
 
 Request spec에서는 각 action의 경계값과 초과 직후 429, 카운터 만료 후 재허용, IP·사용자·로그인 IP＋이메일 조합 간 분리, 로그인 성공·실패 모두 카운트, 정지 계정 처리 유지, HTML·Turbo 안내, 기존 권한·중복 방지의 보존을 확인한다. 학교 공유 IP 사례와 동아리 가입·초대 및 좋아요 두 action의 공유 상한도 확인한다.
 
