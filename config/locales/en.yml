@@ -735,6 +735,7 @@ en:
   comments:
     alerts:
       stale_action: "This comment has already been handled or no longer exists."
+      rate_limited: "Commenting is temporarily limited. Too many comment requests were made in a short time, so commenting is currently limited. Please try again in 5 minutes."
     moderation:
       hide_title: "Hide comment"
       hide_description: "Hide the comment content and record the moderation action."
@@ -965,6 +966,7 @@ en:
   likes:
     alerts:
       not_found: "Like was not found."
+      rate_limited: "Like changes are temporarily limited. Too many like and unlike requests were made in a short time, so changes are currently limited. Please try again in 5 minutes."
     actions:
       like: "Like"
       unlike: "Unlike"
@@ -1172,6 +1174,7 @@ en:
     alerts:
       not_found_or_inaccessible: "This Jjaek could not be found or is no longer accessible."
       requote_source_unavailable: "The original Jjaek could not be found or can no longer be requoted."
+      rate_limited: "Posting is temporarily limited. Too many Jjaek and book Jjaek requests were made in a short time, so posting is currently limited. Please try again in 5 minutes."
     visibility:
       public_jjaek: "Public"
       book_friends: "Book friends"

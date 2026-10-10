@@ -741,6 +741,7 @@ ko:
   comments:
     alerts:
       stale_action: "이미 처리되었거나 더 이상 존재하지 않는 댓글입니다."
+      rate_limited: "댓글 작성이 일시적으로 제한되었습니다. 짧은 시간에 댓글 작성 요청이 너무 많이 발생하여 현재 작성이 제한되어 있습니다. 5분 후 다시 작성해 주세요."
     moderation:
       hide_title: "댓글 숨김"
       hide_description: "댓글 원문을 숨기고 운영 조치 이력을 남깁니다."
@@ -971,6 +972,7 @@ ko:
   likes:
     alerts:
       not_found: "좋아요를 찾을 수 없습니다."
+      rate_limited: "좋아요 변경이 일시적으로 제한되었습니다. 짧은 시간에 좋아요 추가 및 취소 요청이 너무 많이 발생하여 현재 변경이 제한되어 있습니다. 5분 후 다시 시도해 주세요."
     actions:
       like: "좋아요"
       unlike: "좋아요 취소"
@@ -1176,6 +1178,7 @@ ko:
     alerts:
       not_found_or_inaccessible: "짹을 찾을 수 없거나 더 이상 접근할 수 없습니다."
       requote_source_unavailable: "원본 짹을 찾을 수 없거나 더 이상 다시짹할 수 없습니다."
+      rate_limited: "짹 작성이 일시적으로 제한되었습니다. 짧은 시간에 짹·책짹 작성 요청이 너무 많이 발생하여 현재 작성이 제한되어 있습니다. 5분 후 다시 작성해 주세요."
     visibility:
       public_jjaek: "전체 공개"
       book_friends: "책친구 공개"

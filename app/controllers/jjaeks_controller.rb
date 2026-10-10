@@ -3,6 +3,8 @@ class JjaeksController < ApplicationController
   before_action :set_editable_jjaek, only: %i[edit update]
   before_action :set_destroy_jjaek, only: :destroy
   before_action :build_new_jjaek, only: %i[new create]
+  rate_limit to: 30, within: 5.minutes, by: -> { current_user.id },
+             with: :jjaek_rate_limit_exceeded, only: :create
 
   def new
     raise ActiveRecord::RecordNotFound if params[:share_to_group].present? && !@share_to_group
@@ -119,6 +121,18 @@ class JjaeksController < ApplicationController
 
   private
 
+  def jjaek_rate_limit_exceeded
+    message = t("jjaeks.alerts.rate_limited")
+    respond_to do |format|
+      format.turbo_stream { render_content_rate_limit_flash(message) }
+      format.html do
+        @jjaek.assign_attributes(jjaek_params)
+        flash.now[:alert] = message
+        render_failed_create(status: :too_many_requests)
+      end
+    end
+  end
+
   def set_jjaek
     @jjaek = Jjaek.find(params[:id])
 
@@ -173,18 +187,18 @@ class JjaeksController < ApplicationController
     authorize @jjaek if action_name == "new" && !@share_to_group
   end
 
-  def render_failed_create
+  def render_failed_create(status: :unprocessable_content)
     if @group.present? && @quoted_jjaek.present?
       @available_share_groups = policy(@quoted_jjaek).group_share_destinations if @share_to_group
-      return render :new, status: :unprocessable_content
+      return render :new, status:
     end
-    return render_group_book_create_failure if @group.present? && @book.present?
-    return render_group_create_failure if @group.present?
-    return render_book_create_failure if @book.present?
-    return render :new, status: :unprocessable_content if @quoted_jjaek.present?
-    return render_profile_create_failure if render_profile_create_failure?
+    return render_group_book_create_failure(status:) if @group.present? && @book.present?
+    return render_group_create_failure(status:) if @group.present?
+    return render_book_create_failure(status:) if @book.present?
+    return render(:new, status:) if @quoted_jjaek.present?
+    return render_profile_create_failure(status:) if render_profile_create_failure?
 
-    render_home_create_failure
+    render_home_create_failure(status:)
   end
 
   def target_user
@@ -260,7 +274,7 @@ class JjaeksController < ApplicationController
     nil
   end
 
-  def render_book_create_failure
+  def render_book_create_failure(status:)
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book) ||
       BookshelfEntry.new(user: current_user, book: @book)
     authorize @bookshelf_entry
@@ -270,10 +284,10 @@ class JjaeksController < ApplicationController
       .where(quoted_jjaek_id: nil)
       .recent
     prepare_visible_requote_counts_for(@jjaeks)
-    render "books/show", status: :unprocessable_content
+    render "books/show", status:
   end
 
-  def render_group_book_create_failure
+  def render_group_book_create_failure(status:)
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
     @bookshelves = current_user.bookshelves.default_first
     @sticker_definitions = StickerDefinition.alphabetical
@@ -281,10 +295,10 @@ class JjaeksController < ApplicationController
       .where(group_id: nil, quoted_jjaek_id: nil)
       .recent
     prepare_visible_requote_counts_for(@jjaeks)
-    render "books/show", status: :unprocessable_content
+    render "books/show", status:
   end
 
-  def render_group_create_failure
+  def render_group_create_failure(status:)
     @membership = @group.group_memberships.find_by(user: current_user)
     group_policy = policy(@group)
     @can_read_group_jjaeks = group_policy.read_jjaeks?
@@ -296,19 +310,19 @@ class JjaeksController < ApplicationController
     else
       Jjaek.none
     end
-    render "groups/show", status: :unprocessable_content
+    render "groups/show", status:
   end
 
   def render_profile_create_failure?
     target_user.present? && Pundit.policy!(current_user, target_user).write_jjaek?
   end
 
-  def render_profile_create_failure
+  def render_profile_create_failure(status:)
     prepare_user_context(target_user)
-    render "users/show", status: :unprocessable_content
+    render "users/show", status:
   end
 
-  def render_home_create_failure
+  def render_home_create_failure(status:)
     @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
       .includes(:user, :book, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ])
       .recent
@@ -317,7 +331,7 @@ class JjaeksController < ApplicationController
       .recent
     @feed_items = (@feed_jjaeks.to_a + @feed_book_activities.to_a).sort_by(&:created_at).reverse
     prepare_visible_requote_counts_for(@feed_jjaeks)
-    render "homes/show", status: :unprocessable_content
+    render "homes/show", status:
   end
 
   def prepare_profile_bookshelf(profile_policy)

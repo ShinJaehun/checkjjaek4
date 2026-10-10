@@ -6,6 +6,8 @@ class CommentsController < ApplicationController
   before_action :set_comments_context, only: %i[index create update destroy]
   before_action :set_update_comment, only: :update
   before_action :set_destroy_comment, only: :destroy
+  rate_limit to: 30, within: 5.minutes, by: -> { current_user.id },
+             with: :comment_rate_limit_exceeded, only: :create
 
   def index
     @comments_panel_closed = inline_comments_context? && params[:panel_state] == "closed"
@@ -100,6 +102,20 @@ class CommentsController < ApplicationController
   end
 
   private
+
+  def comment_rate_limit_exceeded
+    message = t("comments.alerts.rate_limited")
+    respond_to do |format|
+      format.turbo_stream { render_content_rate_limit_flash(message) }
+      format.html do
+        @comment = Comment.new(comment_params.merge(jjaek: @jjaek, user: current_user))
+        prepare_comments_panel(comment: @comment)
+        prepare_visible_requote_counts_for([ @jjaek ])
+        flash.now[:alert] = message
+        render "jjaeks/show", status: :too_many_requests
+      end
+    end
+  end
 
   def set_readable_jjaek
     @jjaek = Jjaek.find(params[:jjaek_id])

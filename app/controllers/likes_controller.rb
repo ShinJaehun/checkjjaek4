@@ -1,5 +1,7 @@
 class LikesController < ApplicationController
   before_action :set_jjaek
+  rate_limit to: 60, within: 5.minutes, by: -> { current_user.id },
+             with: :like_rate_limit_exceeded, only: %i[create destroy]
 
   def create
     @like = @jjaek.likes.find_or_initialize_by(user: current_user)
@@ -46,6 +48,14 @@ class LikesController < ApplicationController
   end
 
   private
+
+  def like_rate_limit_exceeded
+    message = t("likes.alerts.rate_limited")
+    respond_to do |format|
+      format.turbo_stream { render_content_rate_limit_flash(message) }
+      format.html { render html: helpers.tag.p(message), layout: true, status: :too_many_requests }
+    end
+  end
 
   def set_jjaek
     @jjaek = Jjaek.find_by(id: params[:jjaek_id])

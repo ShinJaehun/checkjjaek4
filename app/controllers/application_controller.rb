@@ -41,6 +41,11 @@ class ApplicationController < ActionController::Base
     t("auth.alerts.rate_limited")
   end
 
+  def render_content_rate_limit_flash(message)
+    flash.now[:alert] = message
+    render turbo_stream: turbo_stream.update("flash-messages", partial: "shared/flash"), status: :too_many_requests
+  end
+
   def reject_suspended_session!
     return unless current_user&.suspended?
 
