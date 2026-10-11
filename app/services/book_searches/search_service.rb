@@ -19,11 +19,15 @@ module BookSearches
           title: item["title"].to_s,
           authors_text: Array(item["authors"]).join(", "),
           publisher: item["publisher"].to_s,
-          thumbnail: item["thumbnail"].presence,
+          thumbnail: valid_url(item["thumbnail"]),
           isbn: item["isbn"].to_s,
           contents_excerpt: item["contents"].to_s,
-          url: item["url"].to_s
+          url: valid_url(item["url"])
         }
+      end
+
+      def valid_url(value)
+        value.to_s if Book.valid_http_url?(value)
       end
 
       def normalize_meta(meta)

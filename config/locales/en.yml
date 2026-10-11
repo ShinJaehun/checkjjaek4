@@ -803,6 +803,8 @@ en:
     errors:
       generic: "Something went wrong while searching books."
       invalid_result: "This book search result is invalid or has expired. Please search again."
+      identity_conflict: "This book conflicts with an existing book. Please search again."
+      missing_identity: "This result has no verifiable ISBN or book URL and cannot be added to your shelf."
     results:
       title: "Search results"
       meta: "%{count} results"

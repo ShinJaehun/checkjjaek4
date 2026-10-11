@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_11_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -42,6 +42,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_100000) do
 
   create_table "books", force: :cascade do |t|
     t.string "authors_text"
+    t.string "canonical_isbn"
     t.datetime "created_at", null: false
     t.text "description"
     t.string "external_url"
@@ -50,7 +51,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_100000) do
     t.string "thumbnail"
     t.string "title", null: false
     t.datetime "updated_at", null: false
-    t.index ["external_url"], name: "index_books_on_external_url"
+    t.index ["canonical_isbn"], name: "index_books_on_canonical_isbn_unique", unique: true, where: "(canonical_isbn IS NOT NULL)"
+    t.index ["external_url"], name: "index_books_on_external_url_unique", unique: true, where: "(external_url IS NOT NULL)"
     t.index ["isbn"], name: "index_books_on_isbn"
   end
 

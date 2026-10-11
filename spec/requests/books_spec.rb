@@ -192,6 +192,39 @@ RSpec.describe "Books", type: :request do
       expect(existing_book.reload.attributes).to eq(original_attributes)
     end
 
+    it "does not write when search ISBN and URL identify different books" do
+      Book.create!(title: "ISBN 책", isbn: "9780000000002")
+      Book.create!(title: "URL 책", external_url: "https://example.com/collision")
+      sign_in user
+      token = search_result_token_for({
+        title: "충돌 책", authors_text: "저자", publisher: "", thumbnail: nil,
+        isbn: "9780000000002", contents_excerpt: "", url: "https://example.com/collision"
+      })
+
+      expect {
+        get lookup_books_path, params: { search_result_token: token }
+      }.not_to change { [ Book.count, BookshelfEntry.count ] }
+
+      expect(response).to redirect_to(book_search_path)
+      expect(flash[:alert]).to eq(I18n.t("book_search.errors.identity_conflict"))
+    end
+
+    it "previews a book with unsafe URLs using the default cover without writing" do
+      sign_in user
+      token = BookSearches::ResultToken.issue({
+        title: "표지 없는 책", authors_text: "저자", publisher: "", thumbnail: "javascript:alert(1)",
+        isbn: "9780000000002", contents_excerpt: "소개", url: "file:///etc/passwd"
+      }, user: user)
+
+      expect {
+        get lookup_books_path, params: { search_result_token: token }
+      }.not_to change { [ Book.count, BookshelfEntry.count ] }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("표지 없는 책", "저자", "소개", I18n.t("books.thumbnail.no_thumbnail"))
+      expect(response.body).not_to include("javascript:alert(1)", "file:///etc/passwd")
+    end
+
     it "rejects a tampered or expired search result without writing" do
       sign_in user
       token = search_result_token_for({

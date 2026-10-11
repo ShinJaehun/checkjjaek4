@@ -8,8 +8,12 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def create
+    attempts ||= 0
     @book = book_for_create
     return redirect_to_invalid_search_result if @book.blank?
+    if @book.new_record? && @book.canonical_isbn.blank? && @book.external_url.blank?
+      return redirect_to_search_error("book_search.errors.missing_identity")
+    end
 
     Book.transaction do
       @book.save! if @book.new_record?
@@ -47,6 +51,15 @@ class BookshelfEntriesController < ApplicationController
   rescue ActiveRecord::RecordInvalid => error
     redirect_back fallback_location: book_search_path,
                   alert: error.record.errors.full_messages.to_sentence.presence || t("book_search.errors.invalid_result")
+  rescue Book::IdentityConflict
+    redirect_to_search_error("book_search.errors.identity_conflict")
+  rescue ActiveRecord::RecordNotUnique => error
+    if attempts.zero? && book_identity_index_conflict?(error) && reusable_book_after_conflict?
+      attempts += 1
+      retry
+    end
+
+    redirect_to_search_error("book_search.errors.identity_conflict")
   end
 
   def update
@@ -160,6 +173,22 @@ class BookshelfEntriesController < ApplicationController
     return if @search_result_attributes.blank?
 
     Book.find_or_initialize_from_search(@search_result_attributes)
+  end
+
+  def book_identity_index_conflict?(error)
+    error.message.match?(/index_books_on_(canonical_isbn|external_url)_unique/)
+  end
+
+  def reusable_book_after_conflict?
+    return false if @search_result_attributes.blank?
+
+    Book.find_or_initialize_from_search(@search_result_attributes).persisted?
+  rescue Book::IdentityConflict
+    false
+  end
+
+  def redirect_to_search_error(key)
+    redirect_to book_search_path(group_id: group_context_id), alert: t(key), status: :see_other
   end
 
   def redirect_to_invalid_search_result

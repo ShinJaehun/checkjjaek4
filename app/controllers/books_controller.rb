@@ -16,6 +16,8 @@ class BooksController < ApplicationController
     @bookshelves = current_user.bookshelves.default_first
     @jjaeks = Jjaek.none
     render :show
+  rescue Book::IdentityConflict
+    redirect_to book_search_path(group_id: @group&.id), alert: t("book_search.errors.identity_conflict")
   end
 
   def show

@@ -25,4 +25,16 @@ RSpec.describe BookSearches::SearchService do
     expect(result[:results].first[:thumbnail]).to eq("https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Fexample.com%2Fcover.jpg")
     expect(result[:meta][:total_count]).to eq(1)
   end
+
+  it "drops unsafe book and thumbnail URLs" do
+    allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
+      "documents" => [ { "title" => "책", "url" => "file:///etc/passwd", "thumbnail" => "http://localhost/cover" } ],
+      "meta" => {}
+    )
+
+    result = described_class.call(query: "책", page: 1).fetch(:results).first
+
+    expect(result[:url]).to be_nil
+    expect(result[:thumbnail]).to be_nil
+  end
 end

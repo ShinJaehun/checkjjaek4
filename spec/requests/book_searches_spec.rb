@@ -102,6 +102,23 @@ RSpec.describe "BookSearches", type: :request do
     expect(response.body).not_to include("/books/lookup")
   end
 
+  it "marks an ISBN-10 result when the matching ISBN-13 Book is already shelved" do
+    book = Book.create!(title: "ISBN 책", isbn: "9788996991342")
+    user.bookshelf_entries.create!(book:)
+    sign_in user
+    allow(BookSearches::SearchService).to receive(:call).and_return(
+      results: [ {
+        title: "ISBN-10 검색", authors_text: "저자", publisher: "", thumbnail: nil,
+        isbn: "8996991341", contents_excerpt: "", url: nil
+      } ], meta: { total_count: 1, pageable_count: 1, is_end: true }
+    )
+
+    get book_search_path, params: { query: "ISBN-10 검색" }
+
+    expect(response.body).to include(I18n.t("book_search.actions.in_shelf"), book_path(book))
+    expect(response.body).not_to include("/books/lookup")
+  end
+
   it "still shows add to shelf when the matching book is only in another user's shelf" do
     other_user = User.create!(name: "Other", email: "other-book-search@example.com", password: "password123!", password_confirmation: "password123!")
     book = Book.create!(

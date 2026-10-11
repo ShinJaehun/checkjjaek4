@@ -38,36 +38,49 @@ class BookSearchesController < ApplicationController
   end
 
   def mark_shelved_results(results)
-    isbns = results.filter_map { |book| normalized_presence(book[:isbn]) }
-    external_urls = results.filter_map { |book| normalized_presence(book[:url]) }
-    return results if isbns.empty? && external_urls.empty?
-
+    identities = results.map do |result|
+      [ Book.canonical_isbn_for(result[:isbn]), valid_external_url(result[:url]) ]
+    rescue Book::IdentityConflict
+      [ :ambiguous, nil ]
+    end
+    isbns = identities.filter_map { |isbn, _| isbn if isbn != :ambiguous }
+    external_urls = identities.filter_map(&:last)
     books = shelved_books_matching(isbns:, external_urls:)
-    books_by_isbn = books.select { |book| book.isbn.present? }.index_by(&:isbn)
+    shelved_book_ids = current_user.bookshelf_entries.where(book_id: books.map(&:id)).pluck(:book_id)
+    books_by_isbn = books.select { |book| book.canonical_isbn.present? }.index_by(&:canonical_isbn)
     books_by_external_url = books.select { |book| book.external_url.present? }.index_by(&:external_url)
 
-    results.map do |book|
-      shelved_book = books_by_isbn[normalized_presence(book[:isbn])] ||
-                     books_by_external_url[normalized_presence(book[:url])]
+    results.zip(identities).map do |book, (isbn, url)|
+      isbn_book = books_by_isbn[isbn] unless isbn == :ambiguous
+      url_book = books_by_external_url[url]
+      shelved_book =
+        if isbn == :ambiguous || (isbn && url_book && url_book != isbn_book)
+          nil
+        elsif isbn
+          isbn_book
+        else
+          url_book
+        end
 
-      book.merge(shelved_book_id: shelved_book&.id)
+      book.merge(shelved_book_id: shelved_book_ids.include?(shelved_book&.id) ? shelved_book.id : nil)
     end
   end
 
   def shelved_books_matching(isbns:, external_urls:)
-    scope = Book.joins(:bookshelf_entries)
-      .where(bookshelf_entries: { user_id: current_user.id })
+    scope = Book.all
 
     if isbns.any? && external_urls.any?
-      scope.where(isbn: isbns).or(scope.where(external_url: external_urls)).distinct
+      scope.where(canonical_isbn: isbns).or(scope.where(external_url: external_urls)).distinct
     elsif isbns.any?
-      scope.where(isbn: isbns).distinct
-    else
+      scope.where(canonical_isbn: isbns).distinct
+    elsif external_urls.any?
       scope.where(external_url: external_urls).distinct
+    else
+      scope.none
     end
   end
 
-  def normalized_presence(value)
-    value.to_s.strip.presence
+  def valid_external_url(value)
+    value.to_s.strip if Book.valid_http_url?(value)
   end
 end

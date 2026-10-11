@@ -21,7 +21,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "adds a searched book to the shelf without a status" do
     sign_in user
-    token = search_result_token_for(title: "서재의 책", authors_text: "저자", publisher: "출판사", isbn: "1234")
+    token = search_result_token_for(title: "서재의 책", authors_text: "저자", publisher: "출판사", isbn: "1234", url: "https://example.com/shelf-book")
 
     expect {
       post bookshelf_entries_path, params: { search_result_token: token }
@@ -60,7 +60,7 @@ RSpec.describe "BookshelfEntries", type: :request do
   it "adds a searched book to the selected owned bookshelf" do
     target_bookshelf = user.bookshelves.create!(name: "선택한 책장", visibility: :private)
     sign_in user
-    token = search_result_token_for(title: "선택 책장 책", authors_text: "저자", isbn: "selected-shelf-001")
+    token = search_result_token_for(title: "선택 책장 책", authors_text: "저자", isbn: "selected-shelf-001", url: "https://example.com/selected-shelf-001")
 
     post bookshelf_entries_path, params: {
       search_result_token: token,
@@ -75,7 +75,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "ignores edited hidden book fields and reuses a verified search result" do
     sign_in user
-    token = search_result_token_for(title: "검증된 책", authors_text: "실제 저자", isbn: "verified-001")
+    token = search_result_token_for(title: "검증된 책", authors_text: "실제 저자", isbn: "verified-001", url: "https://example.com/verified-001")
 
     expect {
       post bookshelf_entries_path, params: {
@@ -93,6 +93,86 @@ RSpec.describe "BookshelfEntries", type: :request do
       post bookshelf_entries_path, params: { search_result_token: token }
     }.not_to change { [ Book.count, BookshelfEntry.count ] }
     expect(response).to redirect_to(book_path(created_book))
+  end
+
+  it "reuses the same Book for ISBN-10 and ISBN-13 search results" do
+    sign_in user
+    first_token = search_result_token_for(title: "ISBN-10 검색", authors_text: "저자", isbn: "8996991341")
+    second_token = search_result_token_for(title: "ISBN-13 검색", authors_text: "다른 저자", isbn: "9788996991342")
+    post bookshelf_entries_path, params: { search_result_token: first_token }
+    book = Book.find_by!(canonical_isbn: "9788996991342")
+
+    expect {
+      post bookshelf_entries_path, params: { search_result_token: second_token }
+    }.not_to change { [ Book.count, BookshelfEntry.count ] }
+
+    expect(response).to redirect_to(book_path(book))
+    expect(book.reload.isbn).to eq("8996991341")
+    expect(book.title).to eq("ISBN-10 검색")
+  end
+
+  it "rejects an unidentifiable search result without writing" do
+    sign_in user
+    token = search_result_token_for(title: "식별자 없는 책", authors_text: "저자", isbn: "1111")
+
+    expect {
+      post bookshelf_entries_path, params: { search_result_token: token }
+    }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+
+    expect(response).to have_http_status(:see_other)
+    expect(flash[:alert]).to eq(I18n.t("book_search.errors.missing_identity"))
+  end
+
+  it "rejects ISBN and URL identifiers that point to different Books" do
+    Book.create!(title: "ISBN 책", isbn: "9780000000002")
+    Book.create!(title: "URL 책", external_url: "https://example.com/collision")
+    sign_in user
+    token = search_result_token_for(
+      title: "충돌 책", authors_text: "저자", isbn: "9780000000002", url: "https://example.com/collision"
+    )
+
+    expect {
+      post bookshelf_entries_path, params: { search_result_token: token }
+    }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+
+    expect(response).to have_http_status(:see_other)
+    expect(flash[:alert]).to eq(I18n.t("book_search.errors.identity_conflict"))
+  end
+
+  it "rejects a composite result containing different valid ISBN-13 values" do
+    sign_in user
+    token = search_result_token_for(
+      title: "모호한 책", authors_text: "저자", isbn: "9780000000002 9780000000019"
+    )
+
+    expect {
+      post bookshelf_entries_path, params: { search_result_token: token }
+    }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+
+    expect(flash[:alert]).to eq(I18n.t("book_search.errors.identity_conflict"))
+  end
+
+  it "retries a competing first registration after finding the same Book outside the failed transaction" do
+    sign_in user
+    token = search_result_token_for(title: "동시 등록 책", authors_text: "저자", isbn: "9780000000002")
+    first_attempt = true
+    allow(Book).to receive(:transaction).and_wrap_original do |original, *args, &block|
+      if first_attempt
+        first_attempt = false
+        Book.insert_all!([ {
+          title: "동시 등록 책", isbn: "9780000000002", canonical_isbn: "9780000000002"
+        } ])
+        raise ActiveRecord::RecordNotUnique, "index_books_on_canonical_isbn_unique"
+      end
+
+      original.call(*args, &block)
+    end
+
+    expect {
+      post bookshelf_entries_path, params: { search_result_token: token }
+    }.to change(Book, :count).by(1).and change(BookshelfEntry, :count).by(1)
+
+    expect(response).to redirect_to(book_path(Book.find_by!(canonical_isbn: "9780000000002")))
   end
 
   it "does not change an existing Book's metadata when adding it by book_id" do
@@ -150,7 +230,7 @@ RSpec.describe "BookshelfEntries", type: :request do
   it "rolls back a new Book when the selected bookshelf is not owned" do
     other_bookshelf = book_friend.bookshelves.create!(name: "다른 사람 책장", visibility: :public)
     sign_in user
-    token = search_result_token_for(title: "롤백할 책", authors_text: "저자", isbn: "rollback-001")
+    token = search_result_token_for(title: "롤백할 책", authors_text: "저자", isbn: "rollback-001", url: "https://example.com/rollback-001")
 
     expect {
       post bookshelf_entries_path, params: {
@@ -200,7 +280,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "records added_to_shelf when a new book is added" do
     sign_in user
-    token = search_result_token_for(title: "활동 기록 책", authors_text: "저자", isbn: "activity-001")
+    token = search_result_token_for(title: "활동 기록 책", authors_text: "저자", isbn: "activity-001", url: "https://example.com/activity-001")
 
     expect {
       post bookshelf_entries_path, params: { search_result_token: token }
@@ -750,7 +830,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "does not record activity when a shelf entry save fails" do
     sign_in user
-    token = search_result_token_for(title: "저장 실패 책", authors_text: "저자", isbn: "activity-invalid")
+    token = search_result_token_for(title: "저장 실패 책", authors_text: "저자", isbn: "activity-invalid", url: "https://example.com/activity-invalid")
 
     expect {
       post bookshelf_entries_path, params: {
