@@ -31,6 +31,12 @@ RSpec.describe "Jjaeks", type: :request do
     end
 
     it "rerenders the home form when a general jjaek is invalid" do
+      followed_friend = User.create!(name: "Followed friend", email: "jjaek-followed-friend@example.com", password: "password123!")
+      BookFriendship.create!(requester: viewer, addressee: followed_friend, status: :accepted)
+      viewer.active_follows.create!(followee: followed_friend)
+      BookActivity.create!(user: viewer, book: Book.create!(title: "OWN_FAILURE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
+      BookActivity.create!(user: followed_friend, book: Book.create!(title: "FOLLOWED_FAILURE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
+      BookActivity.create!(user: original_author, book: Book.create!(title: "UNFOLLOWED_FAILURE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
       sign_in viewer
 
       expect {
@@ -45,6 +51,8 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("textarea")
       expect(response.body).to include('name="jjaek[content]"')
+      expect(response.body).to include("OWN_FAILURE_ACTIVITY", "FOLLOWED_FAILURE_ACTIVITY")
+      expect(response.body).not_to include("UNFOLLOWED_FAILURE_ACTIVITY")
     end
 
     it "creates a book-linked jjaek from a shelf context" do

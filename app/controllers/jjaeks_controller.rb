@@ -299,7 +299,14 @@ class JjaeksController < ApplicationController
   end
 
   def render_group_create_failure(status:)
+    active_member_scope = @group.active_group_memberships.where.not(user_id: @group.group_admin_id)
+    @member_preview = active_member_scope.includes(:user).order(:created_at, :id).limit(5).map(&:user)
+    @active_member_count = active_member_scope.count
     @membership = @group.group_memberships.find_by(user: current_user)
+    @group_member_ban = @group.group_member_bans.find_by(user: current_user)
+    @current_group_ban_action = @group_member_ban&.current_ban_action
+    @current_operation_suspension = @group.current_operation_suspension_action
+    @current_activity_suspension = @membership&.current_activity_suspension_action if @membership&.activity_suspended?
     group_policy = policy(@group)
     @can_read_group_jjaeks = group_policy.read_jjaeks?
     @jjaeks = if @can_read_group_jjaeks
@@ -310,6 +317,7 @@ class JjaeksController < ApplicationController
     else
       Jjaek.none
     end
+    prepare_visible_requote_counts_for(@jjaeks)
     render "groups/show", status:
   end
 
@@ -326,7 +334,7 @@ class JjaeksController < ApplicationController
     @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
       .includes(:user, :book, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ])
       .recent
-    @feed_book_activities = policy_scope(BookActivity)
+    @feed_book_activities = policy_scope(BookActivity, policy_scope_class: BookActivityPolicy::FeedScope)
       .includes(:user, :book)
       .recent
     @feed_items = (@feed_jjaeks.to_a + @feed_book_activities.to_a).sort_by(&:created_at).reverse

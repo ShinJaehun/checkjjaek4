@@ -42,6 +42,13 @@ RSpec.describe "Content rate limits", type: :request do
   end
 
   it "keeps the submitted Jjaek content in an HTML 429 response" do
+    followed_friend = User.create!(name: "Followed friend", email: "rate-followed-friend@example.com", password: "password123!")
+    BookFriendship.create!(requester: user, addressee: author, status: :accepted)
+    BookFriendship.create!(requester: user, addressee: followed_friend, status: :accepted)
+    user.active_follows.create!(followee: followed_friend)
+    BookActivity.create!(user:, book: Book.create!(title: "OWN_RATE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
+    BookActivity.create!(user: followed_friend, book: Book.create!(title: "FOLLOWED_RATE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
+    BookActivity.create!(user: author, book: Book.create!(title: "UNFOLLOWED_RATE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
     sign_in user
     30.times { post jjaeks_path, params: { jjaek: { content: "" } } }
 
@@ -49,6 +56,26 @@ RSpec.describe "Content rate limits", type: :request do
 
     expect(response).to have_http_status(:too_many_requests)
     expect(response.body).to include("Unsent draft", I18n.t("jjaeks.alerts.rate_limited"))
+    expect(response.body).to include("OWN_RATE_ACTIVITY", "FOLLOWED_RATE_ACTIVITY")
+    expect(response.body).not_to include("UNFOLLOWED_RATE_ACTIVITY")
+  end
+
+  it "rerenders the group page with its members and submitted draft on an HTML 429" do
+    group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Rate limited readers", group_type: :public_group)
+    group.group_memberships.create!(user:, status: :active)
+    sign_in user
+    30.times { post jjaeks_path, params: { jjaek: { content: "" } } }
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { content: "Unsent group draft" } },
+                                     headers: { "Accept" => "text/html" }
+    }.not_to change(Jjaek, :count)
+
+    expect(response).to have_http_status(:too_many_requests)
+    expect(response.body).to include(group.name, "data-member-preview", user_path(user))
+    expect(response.body).to include(I18n.t("groups.active_member_count", count: 1))
+    expect(response.body).to include(group_jjaeks_path(group), "Unsent group draft")
+    expect(response.body).to include(I18n.t("jjaeks.alerts.rate_limited"))
   end
 
   it "counts group posts and requotes in the same Jjaek limit" do

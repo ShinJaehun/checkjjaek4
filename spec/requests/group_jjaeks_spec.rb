@@ -20,6 +20,24 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to redirect_to(group_path(group))
   end
 
+  it "rerenders the group page with its members, form, and errors when a general jjaek is invalid" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Readers", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    existing_jjaek = group_admin.jjaeks.create!(group:, content: "Existing group jjaek")
+    sign_in member
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { content: "" } }, headers: { "Accept" => "text/html" }
+    }.not_to change(Jjaek, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(group.name, existing_jjaek.content)
+    expect(response.body).to include("data-member-preview", user_path(member))
+    expect(response.body).to include(I18n.t("groups.active_member_count", count: 1))
+    expect(response.body).to include(group_jjaeks_path(group), 'name="jjaek[content]"')
+    expect(Nokogiri::HTML(response.body).text).to include(I18n.t("errors.messages.blank"))
+  end
+
   it "does not create a Jjaek while the group is pending or inactive" do
     group = Group.create!(group_admin: group_admin, name: "Lifecycle", group_type: :public_group, application_purpose: "Read together")
     sign_in group_admin
