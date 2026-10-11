@@ -50,7 +50,7 @@ RSpec.describe Groups::SuspendOperation do
   end
 
   it "rejects free-text and blank reasons without changing state or audit" do
-    ["Service safety", ""].each do |reason|
+    [ "Service safety", "" ].each do |reason|
       expect {
         described_class.new(group, actor: admin, public_reason: reason).call!
       }.to raise_error(described_class::InvalidState)

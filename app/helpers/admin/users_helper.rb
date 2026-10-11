@@ -18,18 +18,18 @@ module Admin
     end
 
     def admin_user_status_filter_options
-      USER_STATUS_FILTERS.map { |status| [admin_user_status_label(status), status] }
+      USER_STATUS_FILTERS.map { |status| [ admin_user_status_label(status), status ] }
     end
 
     def admin_user_role_keys(user, has_administered_groups:)
       roles = []
       roles << "global_admin" if user.global_admin?
       roles << "group_admin" if has_administered_groups
-      roles.presence || ["regular"]
+      roles.presence || [ "regular" ]
     end
 
     def admin_user_role_filter_options
-      USER_ROLE_FILTERS.map { |role| [user_role_label(role), role] }
+      USER_ROLE_FILTERS.map { |role| [ user_role_label(role), role ] }
     end
   end
 end

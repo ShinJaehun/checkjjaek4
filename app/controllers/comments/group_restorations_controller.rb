@@ -40,6 +40,5 @@ module Comments
     def moderation_action_params
       params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
     end
-
   end
 end

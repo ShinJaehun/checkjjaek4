@@ -111,7 +111,7 @@ class GroupContentThreadQuery
     direction = SORT_DIRECTIONS.fetch(@params[:content_sort].to_s, SORT_DIRECTIONS["recent"])
 
     @thread_scope.reorder(nil)
-      .joins("LEFT JOIN (#{latest_comments_sql}) latest_comments ON latest_comments.jjaek_id = jjaeks.id")
+      .joins(latest_comments_join)
       .select(
         "jjaeks.id AS jjaek_id",
         "GREATEST(jjaeks.created_at, COALESCE(latest_comments.latest_comment_at, jjaeks.created_at)) AS latest_activity_at"
@@ -122,11 +122,16 @@ class GroupContentThreadQuery
       .to_sql
   end
 
-  def latest_comments_sql
-    @scoped_comments.reorder(nil)
+  def latest_comments_join
+    latest_comments = @scoped_comments.reorder(nil)
       .group(:jjaek_id)
       .select(:jjaek_id, "MAX(comments.created_at) AS latest_comment_at")
-      .to_sql
+    comments_table = Arel::Nodes::TableAlias.new(
+      Arel::Nodes::Grouping.new(latest_comments.arel), "latest_comments"
+    )
+    Jjaek.arel_table.join(comments_table, Arel::Nodes::OuterJoin)
+      .on(comments_table[:jjaek_id].eq(Jjaek.arel_table[:id]))
+      .join_sources
   end
 
   def normalized_page

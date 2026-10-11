@@ -48,7 +48,7 @@ module ApplicationHelper
     end
 
     (lifecycle_entries + moderation_entries).sort_by do |entry|
-      [entry[:occurred_at], entry[:kind] == :lifecycle ? 0 : 1, entry[:sort_id]]
+      [ entry[:occurred_at], entry[:kind] == :lifecycle ? 0 : 1, entry[:sort_id] ]
     end.reverse
   end
 

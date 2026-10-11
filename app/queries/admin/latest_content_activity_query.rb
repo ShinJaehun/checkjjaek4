@@ -35,7 +35,7 @@ module Admin
     def jjaek_rows
       scope = Jjaek.where(owner_column => @owner_ids)
       scope.select(
-        "jjaeks.#{owner_column} AS owner_id",
+        owner_select,
         "'Jjaek' AS record_type",
         "jjaeks.id AS record_id",
         "jjaeks.created_at AS created_at"
@@ -65,6 +65,10 @@ module Admin
       return :group_id if @owner_type == :group
 
       raise ArgumentError, "owner_type must be :user or :group"
+    end
+
+    def owner_select
+      @owner_type == :user ? "jjaeks.user_id AS owner_id" : "jjaeks.group_id AS owner_id"
     end
 
     def hydrate(rows)
