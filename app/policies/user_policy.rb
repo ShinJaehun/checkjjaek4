@@ -22,7 +22,7 @@ class UserPolicy < ApplicationPolicy
   end
 
   def show_library?
-    operational_profile_read? || %i[self book_friend].include?(profile_access_level)
+    %i[self book_friend].include?(profile_access_level)
   end
 
   def follow?

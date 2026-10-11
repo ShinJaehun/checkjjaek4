@@ -10,6 +10,20 @@ RSpec.describe "User libraries", type: :request do
     user.bookshelf_entries.create!(book:, bookshelf: target_bookshelf)
   end
 
+  it "redirects a global admin without book friendship away from another user's library" do
+    admin = User.create!(
+      name: "Admin",
+      email: "library-global-admin@example.com",
+      password: "password123!",
+      global_admin: true
+    )
+    sign_in admin
+
+    get user_library_path(user, bookshelf_id: target_bookshelf.id)
+
+    expect(response).to redirect_to(user_path(user))
+  end
+
   it "renders source and target lists on the transfer screen" do
     source_book = Book.create!(title: "Source Book", authors_text: "Source Author")
     source_entry = user.bookshelf_entries.create!(book: source_book, bookshelf: selected_bookshelf)

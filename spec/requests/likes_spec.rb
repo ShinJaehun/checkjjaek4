@@ -259,6 +259,34 @@ RSpec.describe "Likes", type: :request do
     expect(like.reload).to be_persisted
   end
 
+  it "blocks unlike on a hidden group jjaek after losing read access" do
+    admin = User.create!(
+      name: "Moderator",
+      email: "hidden-like-moderator@example.com",
+      password: "password123!",
+      global_admin: true
+    )
+    group = Group.create!(
+      lifecycle_status: :active,
+      group_admin: author,
+      name: "Hidden approval",
+      group_type: :approval_group
+    )
+    membership = group.group_memberships.create!(user:, status: :active)
+    group_jjaek = author.jjaeks.create!(group:, content: "Hidden group jjaek")
+    like = group_jjaek.likes.create!(user:)
+    Jjaeks::Hide.new(group_jjaek, actor: admin, public_reason: "other").call!
+    membership.destroy!
+    sign_in user
+
+    expect { delete jjaek_like_path(group_jjaek) }.not_to change(Like, :count)
+    expect(response).to redirect_to(root_path)
+    expect(like.reload).to be_persisted
+
+    group.group_memberships.create!(user:, status: :active)
+    expect { delete jjaek_like_path(group_jjaek) }.to change(Like, :count).by(-1)
+  end
+
   it "removes the empty like wrapper after a turbo unlike when another like is not allowed" do
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public", group_type: :public_group)
     membership = group.group_memberships.create!(user:, status: :active)

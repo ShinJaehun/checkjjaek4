@@ -71,7 +71,7 @@ RSpec.describe "Libraries", type: :request do
       expect(response.body).not_to include(private_shelf.name)
     end
 
-    it "shows every bookshelf and entry to a global admin without management or transfer access" do
+    it "denies a global admin full library and transfer access without book friendship" do
       global_admin = User.create!(name: "Global admin", email: "library-global-admin@example.com", password: "password123!", global_admin: true)
       public_shelf = owner.bookshelves.create!(name: "ADMIN_PUBLIC_SHELF", visibility: :public)
       friend_shelf = owner.bookshelves.create!(name: "ADMIN_FRIEND_SHELF", visibility: :book_friends)
@@ -87,20 +87,12 @@ RSpec.describe "Libraries", type: :request do
       shelves_and_books.each do |shelf, title|
         get user_library_path(owner, bookshelf_id: shelf.id)
 
-        expect(response).to have_http_status(:ok)
-        expect(response.body).to include(title)
+        expect(response).to redirect_to(user_path(owner))
+        expect(response.body).not_to include(title)
       end
 
-      expect(response.body).to include(public_shelf.name, friend_shelf.name, private_shelf.name, "ADMIN_PRIVATE_BOOK")
-      expect(response.body).not_to include(I18n.t("bookshelves.form.title"))
-      expect(response.body).not_to include(I18n.t("bookshelves.form.edit_title"))
-      expect(response.body).not_to include(I18n.t("bookshelves.actions.destroy"))
-      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_up"))
-      expect(response.body).not_to include(I18n.t("bookshelves.actions.move_down"))
-      expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
-
       get transfer_user_library_path(owner)
-      expect(response).to redirect_to(user_library_path(owner))
+      expect(response).to redirect_to(user_path(owner))
     end
 
     it "redirects strangers to the profile" do

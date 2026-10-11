@@ -64,8 +64,6 @@ class LikesController < ApplicationController
       return
     end
 
-    return if action_name == "destroy" && @jjaek.hidden?
-
     authorize @jjaek, :show?
   end
 end

@@ -11,7 +11,7 @@ class JjaekPolicy < ApplicationPolicy
 
   def view_hidden_content?
     return false unless user.present? && record.hidden?
-    return true if record.user_id == user.id
+    return true if record.user_id == user.id && context_visible_to_user?
     return true if view_admin_inventory?
 
     group_admin_can_read_hidden_content?

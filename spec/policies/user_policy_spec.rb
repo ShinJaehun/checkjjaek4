@@ -108,14 +108,14 @@ RSpec.describe UserPolicy do
       expect(policy.write_profile_jjaek?).to be(false)
     end
 
-    it "gives a global admin profile and library read access without self mutation" do
+    it "gives a global admin profile read access without full library access or self mutation" do
       global_admin = User.create!(name: "Global admin", email: "user-policy-global-admin@example.com", password: "password123!", global_admin: true)
       policy = described_class.new(global_admin, other_user)
 
       expect(policy.profile_access_level).to eq(:none)
       expect(policy.show_profile_bookshelf?).to be(true)
       expect(policy.show_profile_bookshelf_status?).to be(true)
-      expect(policy.show_library?).to be(true)
+      expect(policy.show_library?).to be(false)
       expect(policy.write_profile_jjaek?).to be(false)
     end
   end

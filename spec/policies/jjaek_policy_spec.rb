@@ -111,6 +111,8 @@ RSpec.describe JjaekPolicy do
 
     author_membership.destroy!
     expect(described_class::GroupContentScope.new(viewer, group.jjaeks).resolve).not_to include(hidden_jjaek)
+    expect(described_class.new(viewer, hidden_jjaek)).not_to be_show
+    expect(described_class.new(viewer, hidden_jjaek)).not_to be_view_hidden_content
   end
 
   it "limits group admin moderation to eligible jjaeks and group-originated hides" do
@@ -561,7 +563,6 @@ RSpec.describe JjaekPolicy do
 
       requote.update!(hidden_at: nil, deleted_at: Time.current)
       expect(restricted.call).to be_empty
-
     end
   end
 
