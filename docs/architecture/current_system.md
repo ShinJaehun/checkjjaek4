@@ -387,6 +387,8 @@
 - 대상 책장을 선택하지 않으면 기본 책장 “내 책장”에 담김
 - `BookSearches::SearchService`와 `BookSearches::KakaoAdapter`를 통해
   Kakao 책 검색 API를 호출하고 결과를 정규화함
+- 검색 결과에는 로그인 사용자에 묶인 30분 유효 서명을 발급하며, 미등록 책의 `책 상세 보기`는 저장 없이 읽기 전용 미리보기를 표시함
+- 신규 Book은 검증된 검색 결과를 `서재에 담기` 할 때만 BookshelfEntry와 함께 등록하며, 기존 Book 메타데이터는 변경하지 않음
 
 관련 코드:
 - controller: app/controllers/book_searches_controller.rb

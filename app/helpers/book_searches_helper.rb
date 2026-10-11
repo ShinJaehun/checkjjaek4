@@ -8,16 +8,7 @@ module BookSearchesHelper
   def book_search_result_path(book, group_id: nil)
     return book_path(book[:shelved_book_id], group_id:) if book[:shelved_book_id].present?
 
-    lookup_books_path(
-      title: book[:title],
-      authors_text: book[:authors_text],
-      publisher: book[:publisher],
-      thumbnail: book[:thumbnail],
-      isbn: book[:isbn],
-      description: book[:contents_excerpt],
-      external_url: book[:url],
-      group_id:
-    )
+    lookup_books_path(search_result_token: book[:search_result_token], group_id:)
   end
 
   def book_search_bookshelf_select_id(book)

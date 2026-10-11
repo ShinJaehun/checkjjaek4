@@ -25,8 +25,6 @@ class Book < ApplicationRecord
         find_by(external_url: attrs[:external_url])
       end
 
-    book = existing || new
-    book.assign_attributes(attrs)
-    book
+    existing || new(attrs)
   end
 end

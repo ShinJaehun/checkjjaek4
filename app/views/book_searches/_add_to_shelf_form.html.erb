@@ -1,14 +1,6 @@
 <% bookshelf_select_id = book_search_bookshelf_select_id(book) %>
 <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
-  <%= fields_for :book do |book_form| %>
-    <%= book_form.hidden_field :title, value: book[:title] %>
-    <%= book_form.hidden_field :authors_text, value: book[:authors_text] %>
-    <%= book_form.hidden_field :publisher, value: book[:publisher] %>
-    <%= book_form.hidden_field :thumbnail, value: book[:thumbnail] %>
-    <%= book_form.hidden_field :isbn, value: book[:isbn] %>
-    <%= book_form.hidden_field :description, value: book[:contents_excerpt] %>
-    <%= book_form.hidden_field :external_url, value: book[:url] %>
-  <% end %>
+  <%= hidden_field_tag :search_result_token, book[:search_result_token] %>
   <%= hidden_field_tag :bookshelf_entry_source, "book_search" %>
   <%= hidden_field_tag :group_id, local_assigns[:group_id] if local_assigns[:group_id].present? %>
 

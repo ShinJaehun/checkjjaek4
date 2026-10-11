@@ -2,13 +2,20 @@ class BooksController < ApplicationController
   before_action :set_book, only: :show
 
   def lookup
-    group = find_group_context
-    authorize group, :create_jjaek? if group.present?
-    book = Book.find_or_initialize_from_search(lookup_book_params)
-    authorize book, :show?
-    book.save! if book.new_record? || book.changed?
+    @group = find_group_context
+    authorize @group, :create_jjaek? if @group.present?
+    attributes = BookSearches::ResultToken.verify(params[:search_result_token], user: current_user)
+    return redirect_to_invalid_search_result if attributes.blank?
 
-    redirect_to book_path(book, group_id: group&.id)
+    @book = Book.find_or_initialize_from_search(attributes)
+    authorize @book, :show?
+    return redirect_to_invalid_search_result if @book.invalid?
+    return redirect_to book_path(@book, group_id: @group&.id) if @book.persisted?
+
+    @search_result_token = params[:search_result_token]
+    @bookshelves = current_user.bookshelves.default_first
+    @jjaeks = Jjaek.none
+    render :show
   end
 
   def show
@@ -55,7 +62,7 @@ class BooksController < ApplicationController
     policy_scope(Group).find(params[:group_id])
   end
 
-  def lookup_book_params
-    params.permit(:title, :authors_text, :publisher, :thumbnail, :isbn, :description, :external_url)
+  def redirect_to_invalid_search_result
+    redirect_to book_search_path(group_id: @group&.id), alert: t("book_search.errors.invalid_result")
   end
 end

@@ -14,7 +14,9 @@ class BookSearchesController < ApplicationController
     return if @query.blank?
 
     result = BookSearches::SearchService.call(query: @query, page: @page)
-    @results = mark_shelved_results(result[:results])
+    @results = mark_shelved_results(result[:results]).map do |book|
+      book.merge(search_result_token: BookSearches::ResultToken.issue(book, user: current_user))
+    end
     @meta = result[:meta]
     @has_previous_page = @page > 1
     @has_next_page = @meta[:is_end] == false

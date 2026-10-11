@@ -39,9 +39,10 @@ RSpec.describe Book, type: :model do
       )
 
       expect(resolved_book).to eq(existing_book)
-      expect(resolved_book.title).to eq("새 제목")
-      expect(resolved_book.authors_text).to eq("새 저자")
-      expect(resolved_book.external_url).to eq("https://example.com/updated")
+      expect(resolved_book.title).to eq("기존 제목")
+      expect(resolved_book.authors_text).to eq("기존 저자")
+      expect(resolved_book.external_url).to eq("https://example.com/original")
+      expect(resolved_book).not_to be_changed
     end
 
     it "reuses an existing book matched by external_url when isbn is missing" do
@@ -58,8 +59,9 @@ RSpec.describe Book, type: :model do
       )
 
       expect(resolved_book).to eq(existing_book)
-      expect(resolved_book.title).to eq("새 제목")
-      expect(resolved_book.authors_text).to eq("새 저자")
+      expect(resolved_book.title).to eq("기존 제목")
+      expect(resolved_book.authors_text).to eq("기존 저자")
+      expect(resolved_book).not_to be_changed
     end
   end
 end

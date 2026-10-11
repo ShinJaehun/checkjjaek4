@@ -9,42 +9,44 @@ class BookshelfEntriesController < ApplicationController
 
   def create
     @book = book_for_create
-    @book.save! if @book.new_record? || @book.changed?
+    return redirect_to_invalid_search_result if @book.blank?
 
-    @bookshelf_entry = current_user.bookshelf_entries.find_or_initialize_by(book: @book)
-    authorize @bookshelf_entry
+    Book.transaction do
+      @book.save! if @book.new_record?
+      @bookshelf_entry = current_user.bookshelf_entries.find_or_initialize_by(book: @book)
+      authorize @bookshelf_entry
 
-    was_new_record = @bookshelf_entry.new_record?
-    previous_status = @bookshelf_entry.status
-    previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
+      was_new_record = @bookshelf_entry.new_record?
+      previous_status = @bookshelf_entry.status
+      previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
 
-    @bookshelf_entry.bookshelf = bookshelf_for_create if was_new_record && bookshelf_entry_params[:bookshelf_id].present?
-    @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
-    assign_stickers(@bookshelf_entry)
+      @bookshelf_entry.bookshelf = bookshelf_for_create if was_new_record && bookshelf_entry_params[:bookshelf_id].present?
+      @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
+      assign_stickers(@bookshelf_entry)
+      @bookshelf_entry.save!
 
-    if @bookshelf_entry.save
       record_bookshelf_entry_change(
         @bookshelf_entry,
         was_new_record: was_new_record,
         previous_status: previous_status,
         previous_sticker_definition_ids: previous_sticker_definition_ids
       )
+    end
 
-      if book_search_result_source?
-        prepare_book_search_result_card
-        flash.now[:notice] = t("bookshelf_entries.notices.created")
+    if book_search_result_source?
+      prepare_book_search_result_card
+      flash.now[:notice] = t("bookshelf_entries.notices.created")
 
-        respond_to do |format|
-          format.turbo_stream
-          format.html { redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created") }
-        end
-      else
-        redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created")
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created") }
       end
     else
-      @sticker_definitions = StickerDefinition.alphabetical
-      redirect_back fallback_location: book_search_path, alert: @bookshelf_entry.errors.full_messages.to_sentence
+      redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created")
     end
+  rescue ActiveRecord::RecordInvalid => error
+    redirect_back fallback_location: book_search_path,
+                  alert: error.record.errors.full_messages.to_sentence.presence || t("book_search.errors.invalid_result")
   end
 
   def update
@@ -151,14 +153,18 @@ class BookshelfEntriesController < ApplicationController
     target_bookshelf.id
   end
 
-  def book_attributes
-    params.fetch(:book, {}).permit(:title, :authors_text, :publisher, :thumbnail, :isbn, :description, :external_url)
-  end
-
   def book_for_create
     return Book.find(params[:book_id]) if params[:book_id].present?
 
-    Book.find_or_initialize_from_search(book_attributes)
+    @search_result_attributes = BookSearches::ResultToken.verify(params[:search_result_token], user: current_user)
+    return if @search_result_attributes.blank?
+
+    Book.find_or_initialize_from_search(@search_result_attributes)
+  end
+
+  def redirect_to_invalid_search_result
+    redirect_to book_search_path(group_id: group_context_id),
+                alert: t("book_search.errors.invalid_result"), status: :see_other
   end
 
   def bookshelf_for_create
@@ -176,7 +182,7 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def prepare_book_search_result_card
-    attributes = book_attributes
+    attributes = @search_result_attributes || @book.attributes.symbolize_keys
     @book_search_result = {
       title: attributes[:title],
       authors_text: attributes[:authors_text],

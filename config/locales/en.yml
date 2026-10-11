@@ -802,6 +802,7 @@ en:
       description: "Try another keyword."
     errors:
       generic: "Something went wrong while searching books."
+      invalid_result: "This book search result is invalid or has expired. Please search again."
     results:
       title: "Search results"
       meta: "%{count} results"

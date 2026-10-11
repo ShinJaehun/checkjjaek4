@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "BookshelfEntries", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   let!(:user) { User.create!(name: "Reader", email: "reader-shelf@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book_friend) { User.create!(name: "Friend", email: "friend-shelf@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:stranger) { User.create!(name: "Stranger", email: "stranger-shelf@example.com", password: "password123!", password_confirmation: "password123!") }
@@ -19,17 +21,11 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "adds a searched book to the shelf without a status" do
     sign_in user
+    token = search_result_token_for(title: "서재의 책", authors_text: "저자", publisher: "출판사", isbn: "1234")
 
     expect {
-      post bookshelf_entries_path, params: {
-        book: {
-          title: "서재의 책",
-          authors_text: "저자",
-          publisher: "출판사",
-          isbn: "1234"
-        }
-      }
-    }.to change(BookshelfEntry, :count).by(1)
+      post bookshelf_entries_path, params: { search_result_token: token }
+    }.to change(Book, :count).by(1).and change(BookshelfEntry, :count).by(1)
 
     expect(response).to redirect_to(book_path(Book.last))
     expect(BookshelfEntry.last.status).to be_nil
@@ -39,19 +35,16 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "updates the search result card when adding a searched book with Turbo" do
     sign_in user
+    token = search_result_token_for(
+      title: "터보 검색 책", authors_text: "저자", publisher: "출판사",
+      isbn: "turbo-search-001", contents_excerpt: "소개", url: "https://example.com/turbo-search-001"
+    )
 
     expect {
       post bookshelf_entries_path,
            params: {
              bookshelf_entry_source: "book_search",
-             book: {
-               title: "터보 검색 책",
-               authors_text: "저자",
-               publisher: "출판사",
-               isbn: "turbo-search-001",
-               description: "소개",
-               external_url: "https://example.com/turbo-search-001"
-             }
+             search_result_token: token
            },
            headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.to change(BookshelfEntry, :count).by(1)
@@ -67,13 +60,10 @@ RSpec.describe "BookshelfEntries", type: :request do
   it "adds a searched book to the selected owned bookshelf" do
     target_bookshelf = user.bookshelves.create!(name: "선택한 책장", visibility: :private)
     sign_in user
+    token = search_result_token_for(title: "선택 책장 책", authors_text: "저자", isbn: "selected-shelf-001")
 
     post bookshelf_entries_path, params: {
-      book: {
-        title: "선택 책장 책",
-        authors_text: "저자",
-        isbn: "selected-shelf-001"
-      },
+      search_result_token: token,
       bookshelf_entry: {
         bookshelf_id: target_bookshelf.id
       }
@@ -81,6 +71,95 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to redirect_to(book_path(Book.last))
     expect(BookshelfEntry.last.bookshelf).to eq(target_bookshelf)
+  end
+
+  it "ignores edited hidden book fields and reuses a verified search result" do
+    sign_in user
+    token = search_result_token_for(title: "검증된 책", authors_text: "실제 저자", isbn: "verified-001")
+
+    expect {
+      post bookshelf_entries_path, params: {
+        search_result_token: token,
+        book: { title: "조작한 제목", authors_text: "조작한 저자", isbn: "forged-001" }
+      }
+    }.to change(Book, :count).by(1).and change(BookshelfEntry, :count).by(1)
+
+    created_book = Book.find_by!(isbn: "verified-001")
+    expect(created_book.title).to eq("검증된 책")
+    expect(created_book.authors_text).to eq("실제 저자")
+    expect(Book.exists?(isbn: "forged-001")).to be(false)
+
+    expect {
+      post bookshelf_entries_path, params: { search_result_token: token }
+    }.not_to change { [ Book.count, BookshelfEntry.count ] }
+    expect(response).to redirect_to(book_path(created_book))
+  end
+
+  it "does not change an existing Book's metadata when adding it by book_id" do
+    existing_book = Book.create!(title: "원래 제목", authors_text: "원래 저자", isbn: "existing-001")
+    original_attributes = existing_book.attributes
+    sign_in user
+
+    expect {
+      post bookshelf_entries_path, params: {
+        book_id: existing_book.id,
+        book: { title: "조작한 제목", authors_text: "조작한 저자", isbn: "existing-001" }
+      }
+    }.to change(BookshelfEntry, :count).by(1)
+
+    expect(existing_book.reload.attributes).to eq(original_attributes)
+  end
+
+  it "rejects missing and tampered search results without writing" do
+    sign_in user
+    token = search_result_token_for(title: "검증 실패 책", authors_text: "저자", isbn: "invalid-token-001")
+
+    [ nil, "#{token}tampered" ].each do |invalid_token|
+      expect {
+        post bookshelf_entries_path, params: {
+          search_result_token: invalid_token,
+          book: { title: "조작한 책", isbn: "forged-002" }
+        }
+      }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(book_search_path)
+      expect(flash[:alert]).to eq(I18n.t("book_search.errors.invalid_result"))
+    end
+  end
+
+  it "rejects expired and other users' search results" do
+    sign_in user
+    token = search_result_token_for(title: "만료된 검색 책", authors_text: "저자", isbn: "expired-001")
+
+    travel_to(31.minutes.from_now) do
+      expect {
+        post bookshelf_entries_path, params: { search_result_token: token }
+      }.not_to change { [ Book.count, BookshelfEntry.count ] }
+      expect(response).to redirect_to(book_search_path)
+    end
+
+    sign_out user
+    sign_in book_friend
+    expect {
+      post bookshelf_entries_path, params: { search_result_token: token }
+    }.not_to change { [ Book.count, BookshelfEntry.count ] }
+    expect(response).to redirect_to(book_search_path)
+  end
+
+  it "rolls back a new Book when the selected bookshelf is not owned" do
+    other_bookshelf = book_friend.bookshelves.create!(name: "다른 사람 책장", visibility: :public)
+    sign_in user
+    token = search_result_token_for(title: "롤백할 책", authors_text: "저자", isbn: "rollback-001")
+
+    expect {
+      post bookshelf_entries_path, params: {
+        search_result_token: token,
+        bookshelf_entry: { bookshelf_id: other_bookshelf.id }
+      }
+    }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+
+    expect(response).to have_http_status(:not_found)
   end
 
   it "does not add a book to another user's bookshelf" do
@@ -121,15 +200,10 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "records added_to_shelf when a new book is added" do
     sign_in user
+    token = search_result_token_for(title: "활동 기록 책", authors_text: "저자", isbn: "activity-001")
 
     expect {
-      post bookshelf_entries_path, params: {
-        book: {
-          title: "활동 기록 책",
-          authors_text: "저자",
-          isbn: "activity-001"
-        }
-      }
+      post bookshelf_entries_path, params: { search_result_token: token }
     }.to change(BookActivity, :count).by(1)
 
     activity = BookActivity.last
@@ -676,21 +750,28 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "does not record activity when a shelf entry save fails" do
     sign_in user
+    token = search_result_token_for(title: "저장 실패 책", authors_text: "저자", isbn: "activity-invalid")
 
     expect {
       post bookshelf_entries_path, params: {
-        book: {
-          title: "저장 실패 책",
-          authors_text: "저자",
-          isbn: "activity-invalid"
-        },
+        search_result_token: token,
         bookshelf_entry: {
           status: "not_a_status",
           sticker_definition_ids: []
         }
       }
-    }.not_to change(BookActivity, :count)
+    }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
 
     expect(response).to redirect_to(book_search_path)
+  end
+
+  def search_result_token_for(title:, authors_text:, publisher: "", thumbnail: nil, isbn: "", contents_excerpt: "", url: "")
+    result = { title:, authors_text:, publisher:, thumbnail:, isbn:, contents_excerpt:, url: }
+    allow(BookSearches::SearchService).to receive(:call).with(query: title, page: 1).and_return(
+      results: [ result ], meta: { total_count: 1, pageable_count: 1, is_end: true }
+    )
+    get book_search_path, params: { query: title }
+
+    Nokogiri::HTML(response.body).at_css('input[name="search_result_token"]')["value"]
   end
 end
