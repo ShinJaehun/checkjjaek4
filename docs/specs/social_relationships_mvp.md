@@ -78,6 +78,8 @@ Notification의 canonical 기준은 `docs/specs/notifications_mvp.md`를 따른�
 - 받은 책친구 요청은 `book_friendship_requested` notification으로 생성된다.
 - 해당 알림은 `/account/relationships#received-book-friend-requests`로 연결된다.
 - 알림을 읽음 처리해도 `BookFriendship.pending` 상태는 바뀌지 않는다.
+- 책친구 요청을 수락하면 원래 신청자에게 `book_friendship_accepted` notification을 생성한다.
+- 수락 알림은 수락한 사용자의 이름과 avatar를 표시하고 해당 사용자 프로필로 연결된다.
 
 원칙:
 - Notification은 관계 요청 확인의 진입점이다.
@@ -91,7 +93,6 @@ soft rejection 원칙:
 - 책친구 관계 해제는 상대방에게 notification을 생성하지 않는다.
 - 소식받기 해제는 상대방에게 notification을 생성하지 않는다.
 - 위 이벤트들은 action을 수행한 현재 사용자에게만 flash로 안내한다.
-- 책친구 요청 수락 알림은 후속 기능으로 검토할 수 있지만, 현재 MVP 필수 범위는 아니다.
 
 ## 계정 탈퇴와 관계 `(현재 구현)`
 
