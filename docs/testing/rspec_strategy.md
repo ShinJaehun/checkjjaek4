@@ -6,6 +6,9 @@
 `docs/specs/bookjjaek_reboot_spec.md`와 `docs/architecture/current_system.md`
 를 기준으로 해석한다.
 
+초기 재구축 순서는 역사적 참고이며, 현재 구현된 BookActivity, 여러 책장, Group과 moderation도
+각 기능의 domain·policy·request 경계를 우선 검증한다.
+
 ---
 
 ## 목적
@@ -50,6 +53,9 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - Comment / Like 핵심 request 흐름
 - `볼 수 있는 사람만 댓글/좋아요 가능` 규칙
 - Book 검색과 `서재에 담기` import 흐름
+- BookActivity 생성과 피드·프로필 노출 범위
+- 여러 책장의 visibility, 이동과 정렬 흐름
+- Group lifecycle·membership·콘텐츠 접근과 moderation 상태 전이
 - Turbo / HTML 응답의 핵심 성공/실패 흐름
 
 ### 2순위
@@ -62,9 +68,6 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - 세세한 뷰 구조
 - 자주 바뀌는 마크업
 - 스타일/문구 중심 테스트
-- BookActivity
-- Group / GroupMembership
-- 여러 책장
 - 학생 계정 전환
 
 ---
@@ -131,9 +134,10 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 
 ---
 
-## 현재 단계에서 먼저 고정할 것
+## 초기 재구축에서 먼저 고정한 것 `(역사적 기준)`
 
-초기 재구축 단계에서는 아래를 먼저 테스트로 고정한다.
+아래는 초기 재구축 당시의 우선순위다. 현재 작업의 우선순위는 위의 현재 우선순위와
+관련 canonical spec을 따른다.
 
 1. 인증 이후 기본 landing path
 2. Pundit 도입 후 authorize / policy_scope의 핵심 분기
@@ -145,13 +149,13 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 
 ---
 
-## 현재 단계에서 테스트로 바로 고정하지 않아도 되는 것
+## 테스트로 직접 고정하지 않아도 되는 것
 
 - 세세한 partial 구조
 - Tailwind class
 - 문구의 정확한 HTML 배치
 - 레거시와 1:1 동일한 DOM 구조
-- 아직 확정되지 않은 `BookActivity` 후속 범위, 그룹, 책장 DnD/정렬 관련 기능
+- 아직 확정되지 않은 `BookActivity` 후속 범위와 학생 계정 전환
 - 새 책 담기 시 대상 책장 선택처럼 확정된 여러 책장 흐름은 request spec으로 고정한다.
 
 ---
@@ -173,10 +177,13 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - spec이 아직 없는 기능은 먼저 spec 초안을 만들고 그 뒤 테스트를 설계한다.
 - migration/legacy 문서는 “왜 이렇게 바뀌었는가”의 근거로 참고하되,
   실제 테스트 기준은 현재 `checkjjaek4`의 spec과 architecture 문서에 둔다.
+- SDD의 명세·설계 검토와 RSpec 실행 검증은 서로 보완하며 어느 한쪽이 다른 쪽을 대체하지 않는다.
 
 ---
 
-## 초기 테스트 작성 순서 제안
+## 초기 재구축 당시 테스트 작성 순서 `(역사적 참고)`
+
+현재 기능 변경에서는 아래 순서를 반복하지 않고 관련 domain·policy·request spec을 우선한다.
 
 ### Step 1
 - 인증 이후 landing path request/spec

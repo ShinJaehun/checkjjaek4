@@ -16,6 +16,9 @@
 - Jjaek / ReJjaek / 책활동의 의미
 - 향후 구현 시 흔들리면 안 되는 원칙
 
+이 문서의 `초기 MVP`와 `1차 MVP` 표현은 제품 방향을 확립한 기준을 설명한다.
+현재 구현 여부는 `docs/architecture/current_system.md`와 기능별 canonical spec을 따른다.
+
 ---
 
 ## 제품 방향
@@ -245,7 +248,7 @@ Jjaek의 공개 범위는 아래 3개만 둔다.
 - 사용자에게는 필요 이상으로 복잡하게 드러내지 않는다.
 - 피드에서는 둘을 하나의 흐름처럼 함께 보여줄 수 있다.
 - 현재 구현에서는 BookActivity 모델과 프로필 최근 활동 타임라인 노출이 도입되어 있다.
-- 홈 피드 합성, books/:id 노출, 더 정교한 visibility는 후속 단계에서 다룬다.
+- 홈 피드 합성도 구현되어 있으며, books/:id 노출과 더 정교한 visibility는 후속 단계에서 다룬다.
 
 ### BookshelfEntry / BookshelfEntrySticker / BookActivity 책임 경계
 
@@ -276,7 +279,7 @@ Jjaek의 공개 범위는 아래 3개만 둔다.
 - 현재 상태는 `BookshelfEntry`
 - 현재 스티커 부착 상태는 `BookshelfEntrySticker`
 - 본문 글은 `Jjaek`
-- 피드용 활동 이벤트는 나중의 `BookActivity`
+- 피드용 활동 이벤트는 `BookActivity`
 
 ---
 
@@ -284,6 +287,11 @@ Jjaek의 공개 범위는 아래 3개만 둔다.
 
 ReJjaek은 새 Jjaek이지만,
 원문 권한을 절대 넘어서면 안 된다.
+
+개인·동아리 다시짹 A/B/C의 공유 경로와 원문 삭제 후 처리는
+`docs/specs/group_sharing_requotes.md`, 다시짹 목록 조회와 노출 범위는
+`docs/specs/requotes_mvp.md`를 canonical 기준으로 본다. 아래 삭제 후 private 전환과
+개인 영역 중복 제한은 개인 다시짹 A에 적용하며 동아리 인용 B/C에 일반화하지 않는다.
 
 ### 기본 규칙
 
@@ -296,20 +304,20 @@ ReJjaek은 새 Jjaek이지만,
 7. ReJjaek 조회 시에도 원문 접근 권한을 다시 검사한다.
 8. 원문이 삭제되지 않았지만 private_jjaek/book_friends 변경이나 관계 변경으로 현재 사용자에게 보이지 않으면,
    해당 사용자에게는 ReJjaek도 비노출한다. 이 경우 ReJjaek을 자동으로 private_jjaek으로 전환하지 않는다.
-9. 원문이 hard delete되거나 댓글을 보존하는 tombstone이 되면 ReJjaek은 삭제하지 않고 private_jjaek으로 전환한다.
+9. 개인 다시짹 A의 원문이 hard delete되거나 댓글을 보존하는 tombstone이 되면 ReJjaek은 삭제하지 않고 private_jjaek으로 전환한다.
    다른 사용자 홈 피드, 프로필, 책 상세, 검색 결과, 상세 접근에서는 노출하지 않는다.
    ReJjaek 작성자 본인의 홈 피드/프로필/상세에서는 보일 수 있다.
-10. hard delete된 원문의 quoted block 위치에는 작성자 본인에게만
+10. 개인 다시짹 A의 hard delete된 원문 quoted block 위치에는 작성자 본인에게만
     “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
     안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남긴다.
     원문 본문, 책 제목/메타데이터, 원문 내용 snapshot, avatar snapshot은 저장하거나 표시하지 않는다.
-11. MVP에서는 공개 화면에 “삭제된 원문입니다” placeholder를 표시하지 않는다.
+11. 개인 다시짹 A는 공개 화면에 “삭제된 원문입니다” placeholder를 표시하지 않는다.
 12. 초기 MVP에서는 구현 단순성과 권한 일관성을 위해
    ReJjaek이 다른 ReJjaek을 다시 인용하는 **중첩 ReJjaek**은 허용하지 않는다.
-13. 한 사용자는 같은 원문 Jjaek을 한 번만 ReJjaek할 수 있다.
+13. 개인 영역에서 한 사용자는 같은 원문 Jjaek을 한 번만 ReJjaek할 수 있다.
     동일 사용자 + 동일 원문 중복 ReJjaek 요청은 새 ReJjaek을 만들지 않는다.
     다른 사용자가 같은 원문을 ReJjaek하는 것은 허용한다.
-14. 원문 hard delete로 인해 기존 ReJjaek이 deleted-source private 상태가 된 경우는 별도 상태이며,
+14. 원문 hard delete로 인해 기존 개인 ReJjaek이 deleted-source private 상태가 된 경우는 별도 상태이며,
     살아 있는 원문에 대한 중복 ReJjaek 제한과 구분한다.
 15. ReJjaek의 1차 작성 진입 UX는 아래 `ReJjaek 1차 UX` 기준을 따른다.
     이를 별도 모델로 곧바로 분리하지는 않으며,
@@ -497,7 +505,7 @@ ReJjaek은 새 Jjaek이지만,
   - 이 동작으로 책이 우리 DB와 내 서재에 처음 등록된다
   - 그 다음부터는 `books/:id`에서 상태/스티커와 Jjaek을 다룬다
 
-### 초기 MVP UI 용어
+### 현재 UI 용어
 - 검색 결과 버튼: `서재에 담기`
 - 홈의 일반 작성 버튼: `짹`
 - 책 상세의 책 연결 작성 버튼: `책짹`
@@ -546,26 +554,18 @@ ReJjaek은 새 Jjaek이지만,
 
 ---
 
-## 향후 확장: 그룹 기능
+## 현재 구현: Group
 
-그룹 기능은 가치 있는 확장 방향이지만,
-초기 MVP 범위에는 포함하지 않는다.
+`Group`과 `GroupMembership`, 동아리 Jjaek·Comment, 가입·초대·승인·운영 lifecycle,
+개인·동아리 다시짹과 moderation은 현재 구현되어 있다.
 
-초기 MVP에서는 개인 서재와 개인 간 관계를 먼저 완성한다.
+현재 구현 상태는 `docs/architecture/current_system.md`, 제품·접근 정책은
+`docs/specs/groups_mvp.md`, lifecycle은 `docs/specs/account_group_lifecycle.md`,
+개인·동아리 다시짹은 `docs/specs/group_sharing_requotes.md`, moderation은
+`docs/specs/moderation_mvp.md`를 따른다.
 
-향후 확장에서는 아래와 같은 그룹 기능을 지원할 수 있다.
-
-- 학급 그룹
-- 독서모임 그룹
-- 프로젝트 그룹
-- 그룹 안 독서 활동
-- 그룹 안 Jjaek
-- 그룹 기반 사용자에서 일반 사용자로의 전환 흐름
-
-이 확장 단계에서는 아래 모델 도입을 검토할 수 있다.
-
-- Group
-- GroupMembership
+Classroom, 프로젝트별 별도 Group 정책과 관리형 학생 계정은 현재 Group 구현과 구분하는
+후속 확장이다. Group 정책을 이 기능들에 자동 적용하지 않는다.
 
 ---
 
@@ -582,30 +582,27 @@ ReJjaek은 새 Jjaek이지만,
 - 기존 서재와 Jjaek 기록은 유지한다.
 - 그룹 기반 사용에서 개인 서재 기반 사용으로 이어질 수 있어야 한다.
 
-이 기능 역시 초기 MVP 범위에는 포함하지 않고,
-그룹 기능과 함께 후속 단계에서 검토한다.
+이 기능은 현재 Group 구현 범위에 포함하지 않고,
+Classroom 정책과 함께 후속 단계에서 검토한다.
 
 ---
 
 ## 핵심 엔티티
 
-초기 기준 핵심 엔티티는 아래와 같다.
+현재 구현에서 제품 방향을 구성하는 주요 엔티티는 아래와 같다.
 
 - User
 - Book
+- Bookshelf
 - BookshelfEntry
 - StickerDefinition
 - BookshelfEntrySticker
+- BookActivity
 - Jjaek
 - Follow
 - BookFriendship
 - Comment
 - Like
-
-후속 확장 시:
-- BookActivity
-- Bookshelf
-- BookshelfMembership
 - Group
 - GroupMembership
 
@@ -622,6 +619,6 @@ ReJjaek은 새 Jjaek이지만,
 7. 공개 범위는 전체 공개 / 책친구 공개 / 나만 보기로 제한한다.
 8. ReJjaek은 원문 권한을 넘을 수 없다.
 9. 피드는 도메인의 결과물이지 중심 모델이 아니다.
-10. 초기 MVP에서는 개인 서재와 개인 간 관계를 먼저 완성한다.
+10. 개인 서재와 개인 간 관계는 제품의 핵심이며, 현재는 Group과 moderation까지 구현 범위가 확장되었다.
 11. 한 서재 안 여러 책장과 책장 공개/비공개는 현재 Bookshelf 정책을 따른다.
-12. 그룹, 학생 계정 전환 흐름은 후속 확장으로 남긴다.
+12. Classroom과 관리형 학생 계정 전환 흐름은 후속 확장으로 남긴다.

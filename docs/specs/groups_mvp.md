@@ -2,11 +2,12 @@
 
 ## 목적
 
-이 문서는 앞으로 구현할 일반 사용자용 동아리 기능의 제품 정책을 정리한다.
+이 문서는 일반 사용자용 동아리 기능의 canonical 제품 정책을 정리한다.
 
 동아리는 일반 사용자가 함께 읽고 기록하고 토론하는 독서 공동체다.
 내부적으로 `Group` 모델과 `GroupMembership` 모델로 구현한다.
-현재 시스템 구조를 설명하는 architecture 문서가 아니라, 구현 전 기준이 되는 목표 spec이다.
+현재 구현 사실은 `docs/architecture/current_system.md`와 `docs/architecture/authorization.md`를 따르며,
+이 문서는 구현된 기능과 아직 남은 목표 정책을 구분한다.
 계정 탈퇴와 Group 승인·운영 lifecycle의 목표 정책은
 `docs/specs/account_group_lifecycle.md`를 canonical 기준으로 본다.
 
@@ -42,6 +43,8 @@
 - GroupMembership의 별도 `moderation_status` 기반 활동 정지·복구와 `GroupMemberBan` 기반 이용 제한·해제
 - 회원 관리 화면에서 `GroupMembershipEvent`와 GroupMembership·GroupMemberBan 대상 `ModerationAction`을 실제 사건 단위의 통합 회원 운영 이력으로 표시
 - Group admin과 global admin의 권한 경계에 따른 Group Jjaek·Comment 숨김·복구 및 append-only 감사 이력
+- 개인 원문의 동아리 다시짹과 같은 동아리 안의 다시짹, 경로별 원문 삭제 후 처리
+- 현재 동아리 관리자의 thread 기반 콘텐츠 관리 화면과 기존 hide/restore action 연결
 
 비공개 동아리는 사용자 생성 UI에서 제공하며, 동아리 관리자가 기존 사용자를 초대할 수 있다.
 초대는 `GroupMembership`의 `invited` 상태로 표현하고 수락하면 `active`, 거절하면 삭제한다.
@@ -64,9 +67,9 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 동아리 이용 제한·해제는 `GroupMemberBan` 대상 `ModerationAction`으로 사유·처리자와 Group/User historical attribution을 보존하며
 일반 내보내기 `removed` lifecycle event로 중복 기록하지 않는다. group admin만 해당 Group의 활동 정지·해제와 이용 제한·해제를
 실행하고 global admin은 회원·제한·감사 이력을 운영 조사 목적으로만 조회한다.
-개인 Jjaek의 동아리 공유와 동아리 안에서의 ReJjaek 작성,
-이메일·링크 초대와 별도 moderation dashboard는 미구현이며,
-이 문서의 해당 내용은 계속 목표 정책으로 읽는다.
+개인 Jjaek의 동아리 다시짹과 같은 동아리 안의 다시짹은 구현되어 있으며
+상세 경로와 원문 삭제 후 처리는 `docs/specs/group_sharing_requotes.md`를 따른다.
+이메일·링크 초대, 신고 queue와 별도 platform moderator 역할은 미구현 목표로 남아 있다.
 
 또한 여기서 사용하는 `visibility`, `discoverability`, `join policy`는 제품 정책을 설명하기 위한 개념적 구분이다. 실제 DB column, enum, association 구조를 확정하지 않는다.
 
@@ -202,7 +205,8 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 생성된 ReJjaek은 `group_id`가 없는 개인 Jjaek이며 원문 댓글을 복사하지 않는다.
 원본 동아리가 inactive가 되는 등 원문 접근 권한을 잃으면 기존 ReJjaek도 조회 시점 권한에 따라 비노출한다.
 ReJjaek row를 자동 삭제하거나 visibility를 변경하지 않는다.
-기존 ReJjaek의 현재 구현 기준은 `docs/specs/requotes_mvp.md`와 관련 architecture 문서를 함께 본다.
+개인·동아리 공유 경로와 원문 삭제 후 처리는 `docs/specs/group_sharing_requotes.md`,
+다시짹 목록 조회와 노출 범위는 `docs/specs/requotes_mvp.md`를 따른다.
 
 ---
 
@@ -210,14 +214,14 @@ ReJjaek row를 자동 삭제하거나 visibility를 변경하지 않는다.
 
 기존 개인 Jjaek을 동아리로 가져오는 것은 자동 복제가 아니라 명시적인 “동아리에 공유” 동작이다.
 
-초기 MVP에서는 다음만 허용한다.
+현재 구현에서는 다음만 허용한다.
 
 - `public_jjaek`은 동아리에 공유할 수 있다.
 - `book_friends`는 동아리에 공유할 수 없다.
 - `private_jjaek`은 동아리에 공유할 수 없다.
 
-공유된 콘텐츠는 원문을 참조하는 crosspost/ReJjaek 계열의 개념으로 본다.
-실제 DB 모델이나 association 방식은 이 문서에서 확정하지 않는다.
+공유된 콘텐츠는 원문을 복사하지 않고 `quoted_jjaek`으로 참조하는 새 Group Jjaek이다.
+경로별 생성·조회·삭제 정책은 `docs/specs/group_sharing_requotes.md`를 따른다.
 
 ---
 
@@ -339,27 +343,22 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 
 ---
 
-## MVP에서 하지 않는 것
+## 현재 범위에서 하지 않는 것
 
 - Classroom 구현 또는 상세 설계
 - `Space`, `Context` 같은 공통 추상 모델 도입
 - polymorphic association 설계 확정
-- 동아리 문맥의 DB column, enum, association 확정
 - 신고 queue와 `platform_moderator` 실제 구현
 - 댓글을 공유 공간 사이에 복사하거나 합쳐 보여주는 기능
 - 승인 동아리·비공개 동아리 원문의 외부 ReJjaek
 - `book_friends`, `private_jjaek`의 동아리 공유
 - nested ReJjaek
-- Group 공유 Notification 정책 확정
 - 여러 group admin과 Group moderator 역할
 
 ---
 
 ## 미결정 사항
 
-- 아직 확정되지 않은 Group 공유 Notification inbox 정책.
-  승인제 가입·초대 workflow, 신청 취소·내보내기, 이용 제한·해제의 확정 정책은
-  `docs/specs/notifications_mvp.md`를 따른다.
 - 동아리 생성 횟수 제한, 계정 연령과 남용 방지 조건
 - 탈퇴 후 댓글 삭제를 제공하는 정확한 UI, 메시지와 동선
 - 승인 동아리 또는 비공개 동아리 탈퇴 후 원문 조회 권한을 잃은 상태에서 자기 콘텐츠 관리 진입을 제공하는 방식
@@ -371,9 +370,9 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 
 ---
 
-## 구현 전 확인할 정책 체크리스트
+## 변경 전 확인할 정책 체크리스트
 
-- 동아리의 구현 범위와 아직 미구현인 목표 정책을 구현 문서에서도 구분했는가?
+- 동아리의 현재 구현과 아직 미구현인 목표 정책을 구분했는가?
 - 개인 Jjaek visibility와 동아리 접근 정책을 분리했는가?
 - 공개·승인·비공개 동아리의 발견·가입·읽기·쓰기 권한을 각각 고정했는가?
 - 홈 피드 자동 배포와 프로필의 권한 기반 노출을 구분했는가?

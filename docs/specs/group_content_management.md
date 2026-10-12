@@ -2,9 +2,9 @@
 
 ## 상태와 목적
 
-이 문서는 동아리 관리자용 콘텐츠 관리 화면의 canonical spec이다. 구현 전 목표 정책을 정한다.
+이 문서는 구현된 동아리 관리자용 콘텐츠 관리 화면의 canonical spec이다.
 현재 Group·Jjaek·Comment의 일반 접근 정책은 `docs/architecture/authorization.md`, 기존 hide/restore 권한과 감사 정책은
-`docs/specs/moderation_mvp.md`를 따른다. 이 문서는 새 **목록 화면**의 접근·표시·검색 경계를 정하며 기존 단건 moderation 권한을 확대하지 않는다.
+`docs/specs/moderation_mvp.md`를 따른다. 이 문서는 **목록 화면**의 접근·표시·검색 경계를 정하며 기존 단건 moderation 권한을 확대하지 않는다.
 
 현재 해당 동아리 관리자가 자기 Group의 Jjaek과 Comment를 thread 문맥에서 조사하고, 허용된 기존 Group moderation으로
 이동할 수 있도록 `GET /groups/:id/content`를 제공한다. 시스템 관리자용 `/admin/groups/:id/content`와 조회·표현의 일부를
@@ -122,20 +122,19 @@ route, controller, service, policy 및 사유 입력 화면을 그대로 사용�
   action을 추가하지 않는다.
 - controller는 Group 목록 접근을 `GroupPolicy`로 승인받고 자기 Group에 한정된 Jjaek/Comment relation을 준비한다.
   Admin controller는 현재 `AdminInventoryScope`를 유지한다. 이를 generic scope로 변경하지 않는다.
-- 현재 `Admin::GroupContentThreadQuery`의 thread 선택·필터·정렬·페이지네이션·hydration은 공유 후보이다.
-  먼저 admin과 Group 각각의 query contract를 spec으로 고정한 뒤 공통 thread mechanics만 추출한다. 단순 rename이나
-  이동으로 두 검색 경계를 합치지 않는다. Group query에는 작성자 이메일 및 비노출 본문 검색이 들어가지 않는다.
+- 공통 thread 선택·필터·정렬·페이지네이션·hydration은 `GroupContentThreadQuery`에 두고,
+  `Admin::GroupContentThreadQuery`와 `Groups::ContentThreadQuery`가 서로 다른 검색 경계를 구현한다.
+  Group query에는 작성자 이메일 및 비노출 본문 검색이 들어가지 않는다.
 - admin content page 전체를 재사용하지 않는다. header, filter form, navigation, admin 전용 링크와 action은
   각 화면에 둔다. thread table 구조, row 유형·상태 표현, 페이지네이션은 실제 중복이 확인될 때만 공유한다.
   공유 partial은 `admin_user_path` 또는 platform action route를 내부에 하드코딩하지 않는다.
 - Group 상세 `/groups/:id`의 회원 관리·동아리 수정과 같은 관리 action 영역에 `콘텐츠 관리` 진입점을 둔다.
   콘텐츠 관리 화면에는 Group 상세로 돌아가는 링크를 둔다. 진입점도 목록 접근 predicate를 따른다.
-- 새 사용자 문구와 tombstone은 locale에 정의한다. 이 문서는 표현 정책만 확정하며 이번 단계에서 locale 파일은
-  수정하지 않는다.
+- 사용자 문구와 tombstone은 locale에 정의한다.
 
 ---
 
-## MVP 제외 범위
+## 이 화면 범위에서 제외하는 것
 
 - platform moderation 권한·경로·서비스 변경 및 global admin 권한 확대
 - GroupMembership moderation 변경
@@ -157,7 +156,9 @@ route, controller, service, policy 및 사유 입력 화면을 그대로 사용�
 - 기존 admin Group content request spec의 조회·필터·검색·페이지 동작을 회귀 검증한다. HTML 구조 세부사항보다
   권한, 정보 노출, thread 결과와 navigation을 우선한다.
 
-## 구현 순서
+## 초기 구현 순서 `(과거 계획)`
+
+아래는 이 화면을 도입할 때 사용한 작업 순서이며 현재의 미구현 목록이 아니다.
 
 1. canonical spec 승인
 2. policy + route/controller contract

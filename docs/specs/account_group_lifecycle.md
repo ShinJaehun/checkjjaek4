@@ -37,8 +37,8 @@
 
 탈퇴한 사용자를 대상으로 새 Follow, BookFriendship, Group 초대와 profile-context Jjaek을 만들 수 없다.
 
-Notification 등 사회적 콘텐츠가 아닌 개인 운영 데이터는 구현 단계에서 정리 대상으로 본다.
-정확한 보존·삭제 방식은 이 문서에서 확정하지 않는다.
+현재 구현은 Notification, Bookshelf, BookshelfEntry와 BookActivity를 삭제하고,
+공용 Book과 익명화된 User에 연결된 Jjaek·Comment는 보존한다.
 
 global admin의 self-withdrawal과 다른 사용자를 강제 탈퇴시키는 기능은 제공하지 않는다.
 
@@ -79,7 +79,7 @@ Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 �
 - 개설 신청·최초 승인·운영 종료·재활성화 요청·재승인은 발생 시각과 함께 운영 이력에 누적한다.
 - 개설 신청에는 당시 개설 목적, 운영 종료에는 당시 종료 사유를 snapshot으로 보존한다.
 
-승인 거절 상태 또는 row 삭제 여부, 거절 사유, admin UI, 생성 횟수 제한,
+승인 거절 상태 또는 row 삭제 여부, 거절 사유, 생성 횟수 제한,
 spam/abuse scoring은 후속 결정으로 남긴다.
 
 ---
@@ -97,19 +97,19 @@ active Group 관리자는 Group을 그대로 둔 채 계정을 탈퇴할 수 없
 - 이전은 Group row lock 안에서 현재 관리자와 대상 membership을 재검증한다.
 - 이전 후 새 관리자는 active membership을 유지하고 기존 관리자는 일반 active member로 남아 정상 탈퇴할 수 있다.
 
-### Group 운영 종료
+### Group 운영 종료 `(현재 구현)`
 
 - 운영 종료는 Group hard delete가 아니다.
 - 기존 Jjaek, Comment와 독서 기록을 보존한다.
 - 새 가입과 새 Jjaek·Comment 작성을 허용하지 않는다.
 - 일반 발견·검색 대상에서 제외한다.
-- 기존 참여자는 자신이 참여했던 과거 공간과 콘텐츠를 읽을 수 있는 방향으로 둔다.
+- active membership이 있는 기존 참여자는 과거 공간과 콘텐츠를 읽을 수 있다.
 - 동아리 관리자가 운영을 종료한 뒤에는 해당 Group 때문에 계정 탈퇴가 막히지 않는다.
 - 동아리 관리자가 운영을 종료할 때 최대 500자의 종료 사유와 서버 기준 종료 시각을 기록한다.
 - 운영 종료와 재활성화 요청은 동아리 상세이 아닌 동아리 관리 화면에서 수행한다.
 
-운영 종료 후 정확한 read scope는 구현 전에 추가로 결정한다.
-특히 과거 public Group이었다는 이유만으로 비회원 열람을 계속 허용한다고 전제하지 않는다.
+현재 구현에서 운영 종료된 Group은 active membership이 있는 사용자만 기본 정보와 기존 콘텐츠를 읽을 수 있다.
+과거 public Group이었다는 이유만으로 비회원 열람을 계속 허용하지 않는다.
 Group hard delete는 이 lifecycle의 기본 동작이 아니다.
 
 계정 탈퇴 시 `closed_at`이 없는 최초 개설 승인 대기 Group은 관리자 외 membership, 운영 콘텐츠 또는 예상 밖 lifecycle
@@ -121,17 +121,18 @@ Group은 삭제하지 않고 재운영 신청만 취소해 inactive로 되돌린
 
 ## 재활성화 `(현재 구현)`
 
-운영 종료된 Group은 다음 승인 흐름을 거쳐 다시 운영할 수 있는 방향으로 둔다.
+운영 종료된 Group은 다음 승인 흐름을 거쳐 다시 운영할 수 있다.
 
 > 운영 종료 → 재활성화 요청 → 승인 대기 → global admin 승인 → 운영 중
 
-최소한 기존 동아리 관리자가 재활성화를 요청할 수 있는 방향을 둔다.
+기존 동아리 관리자는 동아리 관리 화면의 전용 Action page에서 재활성화를 요청할 수 있다.
 재활성화 요청은 기존 종료 사유·시각을 보존하며 global admin 승인 목록에서 신규 개설 신청과 구분한다.
 동아리 관리자는 자기 Group의 시각 중심 운영 이력을 관리 화면에서 열람한다. 개설 목적과 종료 사유 snapshot은
 global admin의 운영 상세에서 확인하며 admin 목록에는 운영 이력을 직접 표시하지 않는다. global admin은 모든 Group의
 운영 metadata·이력·내부 콘텐츠를 운영 목적으로 조사하고 필요한 관리자 이전을 수행할 수 있다. 이 권한은 일반 Group
 수정·종료·재활성화 요청·membership 관리 권한을 자동으로 부여하지 않는다.
-정확한 요청 UI, 요청 가능 사용자의 예외와 admin 거절 처리는 후속 결정으로 남긴다.
+현재 동아리 관리자만 요청할 수 있고 global admin이 승인한다.
+admin의 재활성화 거절 상태와 사유 처리는 후속 결정으로 남긴다.
 
 ---
 
@@ -141,7 +142,7 @@ global admin의 운영 상세에서 확인하며 admin 목록에는 운영 이�
 - 승인 대기 또는 운영 종료 Group에서는 group type과 관계없이 정상 가입·작성 활동을 허용하지 않는다.
 - 기존 Group Jjaek visibility, 댓글 visibility와 membership 정책은 이 문서에서 변경하지 않는다.
 - 계정 탈퇴로 보존된 Jjaek과 Comment는 익명 작성자의 콘텐츠로 남는다.
-- 운영 종료 Group의 세부 read scope는 구현 전에 별도로 확정한다.
+- 운영 종료 Group은 active membership이 있는 사용자만 기존 콘텐츠를 읽는다.
 
 ---
 
@@ -159,8 +160,5 @@ Classroom은 이번 lifecycle 설계 범위가 아니다.
 ## 후속 결정
 
 - Group 승인 거절 상태 또는 row 삭제 여부와 거절 사유
-- global admin UI와 운영 절차
 - Group 생성 횟수 제한과 spam/abuse 대응
-- 운영 종료 Group의 정확한 read scope
-- 재활성화 요청 UI, 요청 가능 사용자의 예외와 거절 처리
-- 계정 익명화의 DB 구조와 개인 운영 데이터 정리 방식
+- 재활성화 요청에 대한 admin 거절 상태와 사유 처리
