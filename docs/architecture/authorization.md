@@ -197,13 +197,14 @@ Library 안에서 볼 수 있는 책장:
 - 기존 ReJjaek은 살아 있는 source의 현재 read 권한을 계속 요구한다. source hidden이나 friendship·visibility·Group context 변화로
   source를 읽을 수 없으면 ReJjaek도 볼 수 없으며 과거 접근 사실은 우회 권한이 되지 않는다
 - source hidden은 ReJjaek row와 관계를 보존하고 일반 조회만 제한하므로, restore 뒤에는 현재 권한으로 다시 판단한다
-- source 삭제 시 개인 ReJjaek은 기존대로 연결을 끊고 작성자 전용 private 콘텐츠가 된다. 동아리 인용은 원문 식별 정보를 노출하지 않고 목적지 동아리의 현재 읽기 권한에 따라 독립 토론을 유지한다.
-  이 deleted-source ReJjaek 자체는 삭제 상태가 아니어서 일반 personal Jjaek의 작성자 lifecycle과 허용된 interaction을 따른다
+- source 삭제 시 개인 ReJjaek은 기존대로 연결을 끊고 작성자 전용 private 콘텐츠가 된다. 이 deleted-source A 자체는 삭제 상태가 아니어서 일반 personal Jjaek의 작성자 lifecycle과 허용된 interaction을 따른다
+- 동아리 인용 B·C는 source 삭제 뒤 원문 식별 정보를 노출하지 않고 목적지 동아리의 현재 읽기 권한에 따라 독립 본문·댓글·좋아요를 유지하며 일반 Group Jjaek lifecycle을 따른다
+- A·B·C 경로와 source 삭제 후 처리의 canonical 정책은 `docs/specs/group_sharing_requotes.md`, 목록 노출은 `docs/specs/requotes_mvp.md`를 따른다
 
 ### ReJjaek 목록 조회
 
 - 원본 Jjaek을 볼 수 있는 사용자만 ReJjaek 목록에 접근할 수 있다
-- `private_jjaek` 원문은 ReJjaek 목록 접근 대상이 아니다
+- `private_jjaek` 원문의 목록은 원문 작성자에게만 열린다
 - ReJjaek 자체에 대해서는 ReJjaek 목록을 제공하지 않는다
 - 목록에는 현재 사용자가 볼 수 있는 ReJjaek만 표시한다
 - 상세 MVP 기준은 `docs/specs/requotes_mvp.md`를 따른다
@@ -226,7 +227,10 @@ Library 안에서 볼 수 있는 책장:
 - 현재 사용자를 대상으로 한 non-private profile-context Jjaek
 - 소식받는 사용자의 공개 Jjaek
 - 소식받는 accepted 책친구의 책친구 공개 Jjaek
-- 동아리 Jjaek은 현재 FeedScope에서 제외한다
+- 현재 `feed_records`는 `group_id`가 없는 개인 Jjaek만 반환하며 Group Jjaek은 포함하지 않는다
+
+`docs/specs/groups_mvp.md`는 현재 사용자가 active member인 active/inactive 동아리의 Jjaek을 홈 피드에 포함하도록 규정한다.
+현재 `FeedScope` 구현은 이 확정 정책과 일치하지 않으며 별도 후속 구현이 필요하다.
 
 이 scope는 프로필 조회 권한과 분리해서 읽어야 한다.
 특정 사용자의 `public_jjaek`을 프로필에서 볼 수 있다고 해서
@@ -273,6 +277,8 @@ Library 안에서 볼 수 있는 책장:
 - 동아리 관리자만 active 동아리를 `inactive`로 종료하고 inactive 동아리를 다시 승인 대기로 전환할 수 있다
 - 운영 종료는 동아리 관리자가 사유를 입력해 lifecycle·종료 사유·종료 시각을 함께 저장하며, 재활성화 요청은 이 정보를 보존한다
 - 동아리 관리자는 자기 동아리 관리 화면에서 `GroupLifecycleEvent`와 Group 대상 platform `ModerationAction`을 실제 event 단위의 시간순 운영 이력으로 열람한다. lifecycle detail과 platform 공개 사유는 볼 수 있지만 platform 내부 메모는 볼 수 없다
+- 현재 동아리 관리자는 `GET /groups/:id/content`의 콘텐츠 관리 화면에 접근한다. `GroupPolicy#view_content_inventory?`는 active/inactive 동아리의 현재 관리자에게만 허용하며, pending 동아리와 관리자 아닌 global admin에게는 허용하지 않는다. 운영 정지는 기존 read boundary를 없애지 않는다
+- 이 화면의 thread 조회는 자기 동아리로 제한된 `Groups::ContentThreadQuery`를 사용하고, 실제 hide/restore는 기존 `JjaekPolicy`·`CommentPolicy`의 Group authority predicate를 그대로 사용한다
 - global admin은 전용 policy query와 admin inventory scope를 통해 전체 User와 모든 Group metadata를 검색·필터·정렬·페이지네이션하여 조회한다
 - global admin은 admin 상세 화면에서 lifecycle과 platform operation moderation을 반영한 통합 현재 상태, 목적·사유·내부 메모를 포함한 전체 운영 이력과 내부 콘텐츠를 조사하고 pending 동아리를 승인한다
 - admin Group 운영 관리 card의 action button은 `suspend_operation?` 또는 `restore_operation?`이 허용될 때만 표시하며, 각 action page와 실행도 같은 policy predicate를 사용한다
@@ -329,8 +335,8 @@ Library 안에서 볼 수 있는 책장:
 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, 탈퇴하거나 내보내진 작성자도 자기 기존 글은 삭제할 수 있다.
 동아리 관리자의 타인 Jjaek·Comment 숨김/복구, 전체 공개 개인 원문의 동아리 공유와 같은 동아리 내부 인용 다시짹을 제공한다.
 active 공개 동아리의 Jjaek·책짹을 개인 영역으로 ReJjaek하는 기능은 제공한다.
-홈 `FeedScope`에는 현재 사용자가 active member인 active/inactive 동아리의 Jjaek만 포함하며,
-public 동아리나 follow 관계만으로 가입하지 않은 동아리 콘텐츠를 포함하지 않는다.
+Group Jjaek의 일반 조회 권한은 위 정책을 따르지만 현재 홈 `FeedScope`에서는 모든 Group Jjaek이 제외된다.
+active membership이 있는 active/inactive 동아리 콘텐츠를 홈에 포함하는 `groups_mvp.md`의 확정 정책은 아직 구현되지 않았다.
 
 동아리 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
 global admin은 일반 Group 목록과 admin inventory에서 모든 Group을 볼 수 있고 각 `show?`로 단건 운영 조사를 수행한다.

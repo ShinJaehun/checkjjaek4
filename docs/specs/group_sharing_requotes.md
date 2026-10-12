@@ -2,7 +2,7 @@
 
 ## 1. 목적과 기준
 
-이 문서는 기존 `Jjaek`, `quoted_jjaek`, `group_id`를 이용한 개인·동아리 간 공유와 동아리 내부 인용 정책을 정한다. A는 기존 개인 다시짹 동작을 유지하고 B·C의 제품 정책을 정의한다. 실제 구현 상태는 `../architecture/current_system.md`를 따른다. 기존 동아리 접근 정책은 `groups_mvp.md`, 개인 다시짹의 목록·삭제 계약은 `requotes_mvp.md`, visibility와 moderation 경계는 각각 `../architecture/jjaek_visibility.md`, `moderation_mvp.md`를 함께 따른다. 이 문서와 기존 문서가 다른 부분은 아래의 충돌 항목에 명시한다.
+이 문서는 기존 `Jjaek`, `quoted_jjaek`, `group_id`를 이용한 개인·동아리 간 공유와 동아리 내부 인용 정책을 정한다. A는 기존 개인 다시짹 동작을 유지하고 B·C의 제품 정책을 정의한다. A·B·C 공유 경로와 원문 삭제 후 처리의 canonical 기준은 이 문서다. 실제 구현 상태는 `../architecture/current_system.md`를 따른다. 기존 동아리 접근 정책은 `groups_mvp.md`, 다시짹 목록 조회와 노출 범위는 `requotes_mvp.md`, visibility와 moderation 경계는 각각 `../architecture/jjaek_visibility.md`, `moderation_mvp.md`를 함께 따른다.
 
 사용자에게는 A·B·C 모두 **다시짹**으로 표시한다. 동작명은 A **내 피드에 다시짹**, B **동아리에 다시짹**, C **이 동아리에 다시짹**이며, 게시물 헤더와 알림에는 읽을 수 있는 범위에서 출처와 목적지를 구분한다. 이 문서의 공유·인용은 기존 데이터 관계와 사용 사례를 설명하는 용어다.
 
@@ -36,7 +36,7 @@
 - B는 **개인 원문**만 대상으로 한다. `public_jjaek`이라는 저장값만 보고 동아리 글을 개인 원문으로 취급하지 않는다. 개인 원문의 visibility가 나중에 좁아지거나 현재 열람 권한이 사라지면 기존 B 게시물에서도 원문을 우회해 볼 수 없어야 한다.
 - C는 원문과 목적지의 `group_id`가 같아야 한다. 원문 동아리가 공개인지와 무관하게 해당 동아리의 현재 read·write policy를 모두 통과해야 한다.
 - 새 동아리 게시물의 독자는 목적지 Group 정책으로 결정된다. 인용 카드의 원문은 그 독자가 **원문도 읽을 수 있을 때만** 표시한다. 살아 있는 원문을 읽을 수 없는 경우 게시물 전체를 일반 조회에서 비노출하고 관계를 유지한다. 원문을 복사한 카드나 별도 목록·프로필·알림으로 이 경계를 우회하지 않는다.
-- 홈·프로필·동아리 목록·다시짹 목록·직접 URL은 같은 조회 권한을 따른다. 동아리 게시물은 일반 팔로워 홈에 자동 배포하지 않는다. 회원에게 허용된 홈 동아리 활동과 동아리 목록, 권한 있는 작성자 프로필에서만 노출한다. **현재 홈 `FeedScope`와 문서 간의 회원 동아리 글 포함 불일치는 별도 해결 대상**이며, 이 설계 문서 작성 중 어느 쪽도 수정하지 않는다.
+- 프로필·동아리 목록·다시짹 목록·직접 URL은 현재 Group 조회 권한을 따른다. 확정 정책상 홈에는 현재 사용자가 active member인 active/inactive 동아리 게시물만 포함하고 일반 팔로워에게 자동 배포하지 않는다. 다만 현재 홈 `FeedScope#feed_records`는 `group_id`가 없는 개인 게시물만 반환하므로 이 Group 피드 정책은 아직 구현되지 않았다.
 - 시스템 관리자의 운영 조사 권한은 일반 사용자 피드나 알림 수신자의 읽기 권한을 넓히지 않는다.
 
 ## 4. 동일 원문 재공유와 중첩 금지
@@ -82,22 +82,14 @@ B·C에서 새 게시물의 `content`는 공유 작성자가 직접 작성한 �
 - 버튼은 원문 권한과 목적지 작성 권한, 목적지별 중복 여부를 반영한다. GET 작성 화면과 POST 생성도 동일한 정책을 다시 검사한다. 원문 ID·목적지 ID를 바꾼 요청, 이전에 열어 둔 작성 화면, 중복 제출에 대한 서버 검증이 필요하다.
 - 세 경로의 카드 헤더·작성 화면·알림은 모두 다시짹으로 표현하면서 출발·도착 문맥을 구분한다. 새 문구는 `ko`·`en` locale에 함께 정의하는 것을 구현 기준으로 삼는다. 목적지 Group의 visibility를 개인 visibility 선택 UI로 표시하지 않는다. 일반 독자의 다시짹 개수와 목록에는 현재 읽을 수 있는 A·B·C 게시물만 포함한다. 원문 작성자는 읽을 수 없는 동아리 다시짹도 숨김·삭제되지 않고 원문과 연결된 유효 게시물이라면 개수에 포함하며, 목록에는 제한 카드로 표시한다. 승인 동아리처럼 현재 공개 조회가 허용된 경우에만 작성자·원문 종류·동아리 이름을 표시하고, 비공개·비활성 동아리는 식별 정보를 익명화한다. 제한 카드에는 의견·댓글·좋아요·게시물 링크를 표시하지 않는다. 목록 조회 권한은 새 다시짹 작성 권한과 분리한다.
 
-## 9. 구현 시 변경이 필요한 기존 코드와 충돌
+## 9. 현재 구현 상태
 
-| 현재 코드·문서 | 충돌과 필요한 검토 |
-| --- | --- |
-| `Jjaek#group_context_must_not_be_requote`, `quoted_group_jjaek_must_be_public` | 모든 동아리 인용과 승인·비공개 동아리 내부 C를 막는다. 목적지와 원문의 관계별 validation이 필요하다. 개인 A의 외부 반출 금지는 유지한다. |
-| `JjaekPolicy#quoted_context_allowed?`, `#requote?`, `#create_requote?` | 동아리 인용을 막고 중복도 사용자·원문 단위로 센다. 출발·도착 경로와 목적지별 중복을 Pundit에서 판정하고, 조회 scope도 원문·목적지 권한을 함께 적용해야 한다. |
-| `Jjaek` uniqueness validation, `db/schema.rb`의 `(user_id, quoted_jjaek_id)` partial unique index | 개인과 여러 동아리 간 공유를 막는다. PostgreSQL에서는 nullable `group_id`가 포함된 단일 unique index만으로 개인 공간 중복을 막을 수 없다. `group_id IS NULL`인 개인용, `group_id IS NOT NULL`인 동아리용 제약을 별도로 설계하고 모델 검증을 맞춘다. 정책 검사와 DB 제약 사이의 동시 POST도 막아야 한다. 기존 index 교체는 migration에서만 수행한다. |
-| `Jjaek#normalize_group_visibility`, `quoted_jjaek_visibility_must_not_expand` | Group 접근 권한은 개인 visibility 저장값과 별개다. B·C의 원문 접근 검증을 visibility 숫자 비교만으로 처리할 수 없다. 원문 삭제 후 B·C가 그룹 문맥을 유지할 때도 visibility 정규화와 삭제 marker가 충돌하지 않아야 한다. |
-| `Jjaek#mark_requotes_as_deleted_source` | 현재 **모든** 다시짹의 원문 FK를 끊고 `private_jjaek`으로 바꾸며 원문 작성자 이름·종류 snapshot을 남긴다. A는 그대로 두고 B·C는 목적지 동아리 토론을 유지하며 삭제 사실만 표시하도록 분기해야 한다. hard delete와 tombstone 양쪽을 검토하고, 기존 `ModerationAction` 및 댓글·좋아요를 변경·삭제하지 않는다. 삭제 marker의 DB 제약·중복 기록·기존 row 처리도 검토한다. |
-| `JjaeksController` 생성 경로와 동아리·책 작성 화면 | 동아리 인용의 GET/POST 경로와 목적지 선택이 없다. 게시물 속성을 최종 확정한 뒤 Policy를 검사해야 하며, URL/hidden field 조작으로 다른 원문·동아리나 중첩 다시짹을 넣지 못하게 해야 한다. |
-| `JjaekPolicy::Scope`, `GroupContentScope`, `ProfileScope`, `FeedScope`, 다시짹 목록·count | 살아 있는 원문 접근 상실은 비노출, 삭제된 B·C는 목적지 기준으로 노출한다. Group의 `public_jjaek` 내부 저장값만으로 외부 접근을 허용하지 않는다. 홈 `FeedScope`는 현재 개인 글만 선택하지만 `groups_mvp.md`·`current_system.md`는 active member의 Group 글 홈 포함을 적어 두었다. 이 불일치는 별도 해결 대상으로 남긴다. |
-| `jjaek_visibility.md`, `requotes_mvp.md`의 삭제된 원문 규칙 | 기존 문서는 삭제된 원문의 모든 다시짹을 작성자 전용으로 설명한다. 이 정책은 A에 유지하고, B·C의 독립적인 동아리 토론에는 5절의 삭제 후 목적지 접근 규칙을 적용한다. 구현 후 기존 문서의 적용 범위를 정합화해야 한다. |
-| `Notification.notify_requote_created`, `notify_comment_created`, `NotificationsHelper` | 현재 새 글/댓글 알림은 생성 시 일부 접근을 확인하지만 일반 알림 링크는 클릭 시 접근 가능 여부를 확인하지 않고 상세 URL을 만든다. 비공개 동아리 인용에는 현재 권한 기반 문구·링크·fallback 검토가 필요하다. |
-| `jjaeks/_jjaek_header`, 인용 카드·작성 화면, 관련 locale | 현재 Group 문맥 표시가 인용 문맥보다 우선해 B·C의 공유 출발지를 구분하기 어렵다. 카드와 작성 동선을 기존 partial 기준으로 확장해야 한다. |
-
-기존 `ModerationAction`의 숨김·복구 이력은 인용 관계의 변화나 원문 삭제 때문에 소급 수정·삭제하지 않는다. 원문 삭제를 운영자 숨김 감사 사건처럼 기록하지 않는다. hard delete된 원문과의 FK를 끊은 뒤에는 원문 본문·책 정보를 보존하지 않고도 삭제 사실을 표시할 최소 marker가 필요하다. 기존 삭제 callback은 `update_all`을 사용하므로 목적지별 처리, 저장 후 유효성, 트랜잭션 경계, 기존 row와의 호환성을 구현 전에 구체적으로 확인해야 한다. 이 단계에서 새 감사 모델은 결정하지 않는다.
+- A·B·C는 기존 `Jjaek`, `quoted_jjaek`, optional `group_id` 구조로 구현되어 있다.
+- 모델 검증과 DB 제약은 개인 공간과 목적지 동아리별 중복을 구분하며, 중첩 다시짹과 동아리 간 직접 공유를 막는다.
+- `JjaekPolicy`와 각 scope는 공유 경로의 원문·목적지 권한을 함께 검사한다. 다만 현재 홈 `FeedScope`는 모든 Group 게시물을 제외하며, active membership이 있는 active/inactive 동아리 게시물을 포함하는 확정 정책과 일치하지 않는다.
+- 원문 삭제 처리는 A와 B·C를 분기한다. A는 작성자 전용 개인 콘텐츠로 전환하고, B·C는 원문 식별 정보를 제거한 뒤 목적지 동아리의 독립 본문·댓글·좋아요를 보존한다.
+- A·B·C 작성 화면, 카드 문맥, 알림과 locale이 구현되어 있다. 다시짹 목록과 count의 노출 기준은 `requotes_mvp.md`가 담당한다.
+- 원문 숨김·복구와 원문 삭제는 기존 `ModerationAction` 이력을 소급 변경하지 않는다.
 
 ## 10. Acceptance criteria와 RSpec 검증 항목
 
@@ -110,18 +102,10 @@ B·C에서 새 게시물의 `content`는 공유 작성자가 직접 작성한 �
 7. 원문 hard delete와 tombstone 후 A는 기존대로 작성자 전용이 되고 B·C는 목적지 동아리에서 의견·댓글·좋아요를 유지한다. B·C에는 삭제 사실만 표시하고 원문 본문·책 정보·작성자 snapshot을 노출하지 않는다. 기존 moderation 이력은 보존된다.
 8. B·C의 댓글·좋아요는 원문과 독립적이다. 탈퇴·활동 정지·동아리 inactive/suspended 이후 읽기와 새 상호작용은 각각 현재 정책을 따른다.
 9. 원문 작성자 알림과 새 게시물 댓글 알림은 각각 허용된 대상에게만 생성된다. 비공개 동아리 접근 상실 후 알림 문구·링크·직접 URL은 원문과 동아리 정보를 유출하지 않는다.
-10. 동아리 게시물은 해당 동아리의 접근 권한 범위와 권한 있는 프로필에서만 보이고 일반 팔로워에게 자동 배포되지 않는다. 홈 피드의 기존 코드·문서 불일치는 별도 작업으로 해결한다.
+10. 동아리 게시물은 해당 동아리의 접근 권한 범위와 권한 있는 프로필에서만 보이고 일반 팔로워에게 자동 배포되지 않는다. 홈 피드에는 현재 사용자가 active member인 active/inactive 동아리 게시물만 포함한다. **현재 `FeedScope`는 Group 게시물을 모두 제외하므로 이 Acceptance Criteria는 미충족이며 별도 후속 구현이 필요하다.**
 
-RSpec은 기존 `jjaek` 모델·정책·request·notification spec을 재사용해 권한 매트릭스, 직접 URL/파라미터 조작, DB 중복 및 동시성, 원문 lifecycle, 댓글·알림 경계를 검증한다. 구현 단계에서 중복 예제를 늘리지 않고 기존 A 회귀 사례를 유지한다.
+회귀 검증은 기존 `jjaek` 모델·정책·request·notification spec에서 권한 매트릭스, 직접 URL/파라미터 조작, DB 중복 및 동시성, 원문 lifecycle, 댓글·알림 경계를 다룬다. 중복 예제를 늘리지 않고 기존 A 회귀 사례를 유지한다.
 
-## 11. 단계별 구현 순서와 기술 검토
+## 11. 유지보수 경계
 
-1. **데이터 불변 조건:** 기존 자료와 PostgreSQL index를 확인하고 개인/동아리 목적지별 유일 제약을 migration으로 설계한다. 동시 요청과 NULL 처리, 삭제되어 `quoted_jjaek_id`가 비워진 row를 검토한다.
-2. **모델과 삭제 처리:** A·B·C 관계별 validation, 중첩·동아리 간 공유 금지, B·C 삭제 marker와 Group 토론 보존을 구현한다. hard delete/tombstone 트랜잭션 및 기존 moderation 감사 이력 보존을 확인한다.
-3. **Policy와 생성·조회:** 출발·목적지 권한을 Pundit에 두고 최종 입력을 authorize한다. 개별 조회, Group·Profile·Feed·다시짹 목록/count의 원문 가시성과 삭제 예외를 맞춘다. 홈 피드의 기존 불일치는 별도 범위로 분리해 결정·수정한다.
-4. **Notification과 UI:** 현재 권한을 반영한 알림 생성·조회·fallback, B·C 작성 동선, 문맥 카드와 locale을 추가한다.
-5. **검증과 문서 정합화:** 10절의 targeted RSpec과 권한 우회·lifecycle 회귀를 검증한 뒤 관련 canonical 문서의 현재 구현 서술을 실제 결과에 맞춰 갱신한다.
-
-**확정된 제품 정책:** 2~8절의 A·B·C 허용 범위, 목적지별 1회 제한, 중첩·동아리 간 공유 금지, 원문 삭제 후 B·C 토론 보존, A 삭제 규칙 유지.
-
-**구현 전에 남은 기술 검토:** 기존 index를 대체할 PostgreSQL partial index와 데이터 이행, 그룹 인용의 삭제 marker·visibility 정규화 충돌, 원문 삭제 callback의 원자성 및 기존 row 처리, 모든 조회 경로의 인용 가시성 재검사, 비공개 동아리 알림의 현재 권한 기반 문구·목적지, 홈 피드 코드·문서 불일치의 별도 해결 범위. 이 항목들은 제품 정책을 바꾸는 선택지가 아니다.
+2~8절의 A·B·C 허용 범위, 목적지별 1회 제한, 중첩·동아리 간 공유 금지, 원문 삭제 후 B·C 토론 보존과 A의 작성자 전용 전환은 확정된 제품 정책이다. 후속 변경은 이 경계를 모델·DB 제약, Pundit policy/scope, 직접 요청, 알림과 화면 노출에서 함께 유지해야 한다. 구현 구조의 현재 요약은 `../architecture/current_system.md`를 따른다.

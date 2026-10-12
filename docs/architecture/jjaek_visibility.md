@@ -103,22 +103,20 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
 
 ## ReJjaek visibility 제약
 
-현재 구현과 목표 정책에서 공통으로 반복되는 핵심 제약은 아래와 같다.
+현재 구현의 visibility 흐름은 아래와 같다. A·B·C 공유 경로와 원문 삭제 후 처리의 canonical 정책은
+`../specs/group_sharing_requotes.md`, 다시짹 목록 조회와 노출 범위는 `../specs/requotes_mvp.md`를 따른다.
 
 - `private_jjaek` 개인 원문은 인용할 수 없다. 비공개 동아리 원문은 같은 동아리의 현재 읽기·쓰기 권한 안에서 인용할 수 있다
 - ReJjaek은 원문보다 넓은 공개 범위를 가질 수 없다
 - quoted Jjaek 접근 권한은 조회 시 다시 검사한다
 - ReJjaek은 원문을 복사하지 않고 참조하므로, 원문 수정 시 quoted block도 최신 원문을 보여준다
 - 원문 또는 ReJjaek 본문이 실제 수정된 시각을 표시하며 수정 이력 전체 조회는 제공하지 않는다
-- 원문이 삭제되지 않았지만 현재 사용자에게 보이지 않으면, 해당 사용자에게는 ReJjaek도 권한 기준으로 비노출한다
-- 원문 visibility 변경/권한 상실만으로 ReJjaek을 자동 private 전환하지 않는다
-- 원문이 hard delete되거나 댓글을 보존하는 tombstone이 되면 ReJjaek은 삭제하지 않고 `private_jjaek`으로 전환해 작성자 본인에게만 보존한다
-- deleted-source ReJjaek은 작성자 본인에게만 “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다
-- deleted-source 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기며,
-  원문 본문/책 메타/avatar snapshot은 저장하지 않는다
-- 공개 화면에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다
+- 살아 있는 원문에 대한 visibility 변경·관계 변경·숨김 등 접근 권한 상실은 원문 삭제와 구분한다. 관계를 유지한 채 해당 사용자에게 ReJjaek을 비노출하고 자동 private 전환하지 않으며, 권한 회복이나 복구 뒤 현재 권한으로 다시 판단한다
+- 원문이 hard delete되거나 댓글을 보존하는 tombstone이 되면 개인 다시짹 A는 원문 연결을 끊고 `private_jjaek`으로 전환해 작성자 본인에게만 보존한다
+- deleted-source A는 작성자 본인에게만 “원문이 삭제되어 나만 볼 수 있습니다.” 안내와 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각을 표시한다. 원문 본문/책 메타/avatar snapshot은 저장하지 않으며 공개 화면에는 placeholder를 표시하지 않는다
+- 동아리 다시짹 B·C는 원문 연결과 원문 식별 정보를 제거하되 독립 본문·댓글·좋아요를 보존한다. 이후 목적지 동아리 접근 권한과 게시물 자체 상태로 노출하며, 동아리 안에서는 원문 삭제 사실만 표시한다
 - 원문 자체가 ReJjaek이면 중첩 ReJjaek은 허용하지 않는다
-- 이미 같은 원문을 ReJjaek한 사용자에게는 새 ReJjaek 버튼을 보여주지 않는다
+- 동일 사용자는 같은 원문을 개인 공간에 한 번, 각 목적지 동아리에 한 번씩 다시짹할 수 있다. 해당 목적지에 이미 다시짹했다면 새 버튼을 보여주지 않는다
 
 관련 위치:
 

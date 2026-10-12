@@ -5,8 +5,8 @@
 이 문서는 checkjjaek4의 ReJjaek(다시짹) 기능 중,
 **원본 Jjaek을 다시짹한 글 목록을 조회하는 MVP 기능**의 기준을 정리한다.
 
-이 문서는 기존 ReJjaek 생성, visibility 제약, 알림, 피드 노출 정책을 대체하지 않는다.
-개인·동아리 A·B·C 생성 규칙은 `group_sharing_requotes.md`를 따른다. 이 목록에는 현재 원문에 연결된 세 경로의 다시짹을 함께 포함한다.
+이 문서는 기존 ReJjaek 생성, 알림 정책을 대체하지 않는다.
+개인·동아리 A·B·C 공유 경로와 원문 삭제 후 처리는 `group_sharing_requotes.md`를 따른다. 이 문서는 다시짹 목록 조회와 노출 범위를 담당하며, 목록에는 현재 원문에 연결된 세 경로의 다시짹을 함께 포함한다.
 
 이 문서가 고정하는 범위는 다음이다.
 
@@ -82,7 +82,7 @@
 
 이번 MVP에서는 이 구조를 유지한다.
 
-새 조회 기능을 만들기 위해 기존 생성, 알림, visibility validation 코드를 크게 이동하지 않는다.
+목록 조회는 기존 생성, 알림, visibility validation 구조를 이동하지 않고 별도 진입점으로 구현되어 있다.
 
 ### source 상태와 기존 ReJjaek
 
@@ -90,10 +90,12 @@
   source가 restore되면 보존된 관계를 기준으로 현재 접근 권한을 다시 판단한다.
 - source가 살아 있어도 viewer가 friendship, visibility 또는 Group context의 현재 read 권한을 잃으면 기존 ReJjaek도 볼 수 없다.
   과거에 source를 읽었다는 사실은 현재 source visibility를 우회하지 않으며 ReJjaek을 자동으로 private 전환하지 않는다.
-- source가 hard delete되거나 tombstone이 되면 기존 ReJjaek의 `quoted_jjaek_id`를 제거하고 삭제 source snapshot을 보존하며
-  ReJjaek visibility를 `private_jjaek`으로 축소한다. source 원문 body는 보존하거나 노출하지 않는다.
-- deleted-source ReJjaek 자체는 삭제된 Jjaek이 아니다. 작성자 자신의 콘텐츠로 남아 일반 personal Jjaek의 수정·삭제와
-  살아 있는 Jjaek에 허용되는 Comment·Like interaction 계약을 그대로 따른다.
+- source가 hard delete되거나 tombstone이 되면 개인 다시짹 A는 `quoted_jjaek_id`를 제거하고 삭제 source snapshot을 보존하며
+  `private_jjaek`으로 축소한다. source 원문 body는 보존하거나 노출하지 않는다.
+- B·C는 source 삭제 뒤 원문 식별 정보를 제거하되 목적지 동아리의 독립 본문·댓글·좋아요를 보존한다. 이후 목록 노출은
+  source 권한이 아니라 목적지 동아리 접근 권한과 해당 게시물의 숨김·삭제 상태로 판단한다.
+- deleted-source A 자체는 삭제된 Jjaek이 아니다. 작성자 자신의 콘텐츠로 남아 일반 personal Jjaek의 수정·삭제와
+  살아 있는 Jjaek에 허용되는 Comment·Like interaction 계약을 그대로 따른다. B·C의 lifecycle은 일반 Group Jjaek 계약을 따른다.
 - ReJjaek 자체의 hide/delete에도 별도 예외를 두지 않고 일반 Jjaek lifecycle/moderation 계약을 적용한다.
 
 ---
@@ -163,7 +165,7 @@ jjaek_requotes_path(jjaek)
 
 ## 컨트롤러
 
-새 컨트롤러를 사용한다.
+전용 컨트롤러를 사용한다.
 
 ```text
 app/controllers/requotes_controller.rb
@@ -171,35 +173,21 @@ app/controllers/requotes_controller.rb
 
 `JjaeksController`에 `requotes` 액션을 추가하지 않는다.
 
-예상 흐름:
+현재 흐름:
 
 1. `params[:jjaek_id]`로 원본 Jjaek을 찾는다.
 2. `authorize @jjaek, :view_requotes?`로 원문 목록 접근 가능 여부를 확인한다.
-3. `policy_scope(Jjaek).where(quoted_jjaek_id: @jjaek.id)`로 viewer가 볼 수 있는 A·B·C 다시짹만 가져온다. 원문의 개수에도 같은 scope를 사용한다.
-4. `recent` 순서로 표시한다.
+3. `policy_scope(Jjaek).where(quoted_jjaek_id: @jjaek.id)`로 viewer가 읽을 수 있는 A·B·C 다시짹을 가져온다.
+4. 원문 작성자에게는 `JjaekPolicy::RestrictedRequoteScope`로 읽을 수 없는 유효 동아리 다시짹의 제한 카드를 더한다. 원문의 개수에도 같은 두 scope를 사용한다.
+5. 전체 결과를 `recent` 순서로 표시한다.
 
-예상 형태:
-
-```ruby
-class RequotesController < ApplicationController
-  def index
-    @jjaek = Jjaek.find(params[:jjaek_id])
-    authorize @jjaek, :view_requotes?
-
-    @requotes = policy_scope(Jjaek).where(quoted_jjaek_id: @jjaek.id)
-      .includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book, :group ])
-      .recent
-  end
-end
-```
-
-구현 시 실제 includes 범위는 기존 `jjaeks/_jjaek` 렌더링에 필요한 association 기준으로 조정할 수 있다.
+controller는 일반 카드와 제한 카드 여부를 함께 view에 넘기고, 기존 `jjaeks/_jjaek` 렌더링에 필요한 association을 preload한다.
 
 ---
 
 ## View
 
-새 view를 사용한다.
+전용 view를 사용한다.
 
 ```text
 app/views/requotes/index.html.erb
@@ -227,7 +215,7 @@ MVP에서는 새 카드 partial을 만들지 않는다.
 
 ## 원본 카드의 count 링크
 
-기존 Jjaek 카드의 `다시짹 N개` 텍스트는 링크로 바꾼다.
+Jjaek 카드의 `다시짹 N개` 텍스트는 목록 링크로 표시한다.
 
 현재 의미:
 
@@ -235,7 +223,7 @@ MVP에서는 새 카드 partial을 만들지 않는다.
 다시짹 2개
 ```
 
-변경 후 의미:
+현재 경로:
 
 ```text
 다시짹 2개 → /jjaeks/:id/requotes
@@ -289,7 +277,7 @@ policy_scope(Jjaek).where(quoted_jjaek_id: @jjaek.id)
 
 ## 테스트 기준
 
-RSpec 파일은 다음을 추가한다.
+회귀 검증은 다음 RSpec 파일에 있다.
 
 ```text
 spec/requests/requotes_spec.rb

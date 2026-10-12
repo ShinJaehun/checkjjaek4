@@ -65,6 +65,8 @@
 - `JjaekPolicy::FeedScope` 기반 Jjaek 피드와 `BookActivityPolicy::FeedScope` 기반 BookActivity 피드를 합성
 - 내 Jjaek, 소식받는 사용자의 공개 Jjaek, 소식받는 accepted 책친구의 책친구 공개 Jjaek,
   현재 사용자를 대상으로 한 non-private profile-context Jjaek이 함께 섞일 수 있음
+- `JjaekPolicy::FeedScope#feed_records`는 현재 `group_id`가 없는 개인 Jjaek만 반환하므로 Group Jjaek은 홈 피드에서 제외됨
+- `docs/specs/groups_mvp.md`가 규정한 active membership의 active/inactive Group 게시물 홈 피드 포함은 아직 구현되지 않은 후속 과제임
 - BookActivity는 현재 사용자와 소식받는 accepted 책친구의 활동만 함께 섞임
 - follow-only / stranger의 BookActivity는 홈 피드에 노출하지 않음
 - Jjaek과 BookActivity는 `created_at` 기준으로 함께 정렬함
@@ -269,8 +271,8 @@
 - 두 형태 모두 `Jjaek`의 optional `group_id` / `book_id` 조합으로 표현함
 - 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
 - 공개 동아리의 Jjaek은 로그인 사용자가, 승인/비공개 동아리의 Jjaek은 active member만 조회할 수 있음
-- 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에 표시하며, 현재 사용자가 active member인 active/inactive 동아리 콘텐츠는 홈 피드에도 포함함
-- 가입하지 않은 public/approval/private 동아리 Jjaek은 홈 피드에 포함하지 않으며 전역 책 상세에서도 제외함
+- 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에 표시하지만 현재 홈 `FeedScope`에서는 membership과 관계없이 제외됨
+- 동아리 Jjaek은 전역 책 상세에서도 제외함. active membership이 있는 active/inactive 동아리 콘텐츠의 홈 피드 포함은 확정 정책과 현재 구현이 일치하지 않는 후속 구현 과제임
 - 동아리 Jjaek은 기존 `Comment` 모델과 Turbo panel을 사용함
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - 탈퇴하거나 내보내진 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
@@ -281,7 +283,9 @@
 - 이 세 경로의 사용자 표시 용어는 다시짹으로 통일함. 동작은 각각 `내 피드에 다시짹`, `동아리에 다시짹`, `이 동아리에 다시짹`으로 구분하며, 카드 헤더와 알림에는 접근 가능한 출처·목적지 문맥을 표시함
 - 일반 독자의 원문 다시짹 개수와 목록은 연결된 개인·동아리 다시짹 중 현재 읽을 수 있는 항목만 포함함. 원문 작성자는 읽을 수 없는 유효 동아리 다시짹도 개수와 접근 제한 카드로 확인함. 공개 조회가 가능한 승인 동아리만 작성자·원문 종류·동아리 이름을 표시하고, 비공개 동아리의 제한 카드는 익명으로 표시함. 목록 조회는 새 다시짹 작성 권한과 별개이며, 동아리 원문에도 같은 개수·목록 링크를 제공함
 - 동아리 관리자의 타인 댓글·Jjaek 삭제는 구현되지 않음
-- 동아리 hard delete, 이메일·링크 초대, moderator와 별도 moderation dashboard는 구현되지 않음
+- 동아리 hard delete, 이메일·링크 초대, 신고 queue와 별도 platform moderator 역할·dashboard는 구현되지 않음
+- 현재 동아리 관리자는 `/groups/:id/content`에서 자기 동아리의 Jjaek·Comment thread를 검색·필터·정렬·페이지네이션하는 콘텐츠 관리 화면을 사용함. `Groups::ContentsController#index`는 `GroupPolicy#view_content_inventory?`로 active/inactive 동아리의 현재 관리자만 허용하고, 운영 정지 중에도 기존 read boundary 안의 조회는 유지하며 pending 동아리는 거부함
+- Group 화면은 `Groups::ContentThreadQuery`로 자기 동아리만 조회하고 author email, platform-origin hidden 원문과 삭제 본문을 검색 대상으로 노출하지 않음. global admin용 `Admin::GroupContentThreadQuery`와 권한 경계를 분리하며, 실제 hide/restore 링크와 실행은 기존 Jjaek·Comment Group authority policy를 재사용함
 - global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를 직접 조사할 수 있음
 - Group 운영 상세는 root Jjaek과 그 Comment를 하나의 thread로 묶고, 최신 Comment부터 root 순으로 표시하며 thread의 최근 활동 시각 기준으로 정렬·페이지네이션함
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
@@ -446,16 +450,17 @@ read boundary 안에서 읽고, Comment 작성자의 자기 삭제와 살아 있
 원문이 삭제되지 않았지만 현재 사용자에게 보이지 않으면, 해당 사용자에게는 ReJjaek도 조회 시점 권한 기준으로 비노출한다.
 source hidden 또는 friendship·visibility·Group context 변화로 현재 read 권한을 잃은 경우에도 기존 ReJjaek 관계를 보존하며,
 과거 접근 사실로 우회하지 않는다. source hidden은 restore 가능한 노출 제한이고 이 경우 ReJjaek을 자동으로 private 전환하지 않는다.
-원문이 hard delete되거나 tombstone되면 ReJjaek 본문은 보존하고 `private_jjaek`으로 전환한다.
-이후 ReJjaek 작성자 본인에게만 보이며, quoted block 위치에는
-“원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
-deleted-source 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기고,
-원문 본문/책 메타/avatar snapshot은 저장하지 않는다.
-공개 화면에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다.
-deleted-source ReJjaek 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 personal Jjaek과 같은 수정·삭제 lifecycle과
+원문이 hard delete되거나 tombstone되면 개인 다시짹 A는 원문 연결을 끊고 `private_jjaek`으로 전환한다.
+이후 작성자 본인에게만 보이며 quoted block 위치에는 “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
+deleted-source A 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기고,
+원문 본문/책 메타/avatar snapshot은 저장하지 않는다. 공개 화면에는 placeholder를 표시하지 않는다.
+deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 personal Jjaek과 같은 수정·삭제 lifecycle과
 살아 있는 Jjaek에 허용되는 Comment·Like interaction을 계속 사용할 수 있다.
-한 사용자는 같은 원문 Jjaek을 한 번만 ReJjaek할 수 있으며,
-동일 사용자 + 동일 원문 중복 ReJjaek 요청은 새 ReJjaek을 만들지 않는다.
+동아리 다시짹 B·C는 원문 연결과 식별 정보를 제거하되 게시물 본문과 독립 댓글·좋아요를 보존한다.
+이후 원문 접근 권한 대신 목적지 동아리의 현재 접근 권한과 게시물 자체의 숨김·삭제 상태를 적용하고,
+인용 카드에는 원문 삭제 사실만 표시한다.
+동일 사용자는 같은 원문을 개인 공간에 한 번, 각 목적지 동아리에 한 번씩 다시짹할 수 있으며,
+동일 사용자·원문·목적지 중복 요청은 새 ReJjaek을 만들지 않는다.
 다른 사용자가 같은 원문을 ReJjaek하는 것은 허용한다.
 
 ---
@@ -535,6 +540,7 @@ BooksController#show
 
 - 댓글 / 좋아요 권한 상세는 `docs/architecture/authorization.md`를 본다
 - ReJjaek visibility 제약 상세는 `docs/architecture/jjaek_visibility.md`를 본다
+- A·B·C 공유 경로와 원문 삭제 후 처리 기준은 `docs/specs/group_sharing_requotes.md`를 본다
 - ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
 
 Turbo 1차 적용 상태:
