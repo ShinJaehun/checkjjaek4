@@ -1,266 +1,167 @@
 # AGENTS.md
 
-## 목적
+## 목적과 적용 기준
 
-이 문서는 `checkjjaek4` 저장소에서 작업하는 에이전트(Codex 등)가
-프로젝트의 기본 작업 원칙과 문서 참조 순서를 일관되게 따르도록 하기 위한 안내서다.
+이 문서는 `checkjjaek4` 저장소에만 적용되는 도메인 정책, 권한 구조,
+아키텍처와 구현 관례, 문서 탐색 기준을 정의한다.
 
----
+Rails 프로젝트에 공통인 spec-driven 개발 절차, 역할 분담, 승인과 실행,
+컨텍스트 관리, Proposal / Specs / Design / Tasks, Delta Specs, 브랜치와 Git,
+코드 복잡성 방지, 테스트 보존 및 검증 절차는
+`~/.agents/skills/spec-driven-rails-development/SKILL.md`를 따른다.
 
-## 기본 작업 원칙
-
-- Rails 관례(Rails way)를 최우선으로 따른다.
-- 꼭 필요하지 않다면 비표준 구조, 과한 추상화, 과한 메타프로그래밍을 피한다.
-- 작은 단위로 읽고, 작은 단위로 수정하고, 변경 이유를 분명히 남긴다.
-- 새로운 코드를 만들 때는 현재 코드베이스의 구조와 스타일에 최대한 일관되게 맞춘다.
-- UI 문구나 마크업만 보고 성급히 수정하지 말고, 관련 도메인/흐름/정책부터 확인한다.
-- view에는 가능한 한 로직을 최소화하고, 권한/분기/도메인 판단은 controller, policy, model, helper 등 적절한 계층에 둔다.
-- 권한 판단은 view에서 직접 해결하지 말고, controller와 policy를 기준으로 읽기 쉽게 유지한다.
-- 문자열이 새로 추가되거나 변경될 때는 처음부터 `locales`를 함께 고려해 제안한다.
+공통 workflow보다 이 저장소의 도메인·권한·구현 규칙이 필요한 경우에는
+이 문서와 관련 canonical spec 및 architecture 문서를 함께 따른다.
 
 ---
 
-## 문서 우선순위
+## 프로젝트 구현 원칙
 
-작업 전 아래 문서를 가능한 먼저 확인한다.
-단, `docs/archive/*`와 `docs/legacy/*`는 기본 확인 대상에서 제외한다.
-
-1. `AGENTS.md`
-
-2. 현재 시스템 구조 요약
-   - `docs/architecture/current_system.md`
-     - 현재 구현 상태와 주요 화면 흐름 요약
-   - `docs/architecture/authorization.md`
-     - 권한 구조와 policy 기준 정리
-   - `docs/architecture/jjaek_visibility.md`
-     - visibility 의미와 적용 범위 정리
-
-3. 현재 활성 제품/도메인 기준 문서
-   - `docs/specs/bookjjaek_reboot_spec.md`
-
-4. 현재 작업과 직접 관련된 spec 문서
-   - 예: `docs/specs/book_search_mvp.md`
-
-5. 테스트 전략 문서
-   - `docs/testing/rspec_strategy.md`
-
-6. 관련 아키텍처/정책 문서
-   - `docs/architecture/*.md`
-
-원칙:
-
-- 현재 `checkjjaek4`의 활성 기준은
-  `AGENTS.md` → `docs/architecture/current_system.md` → `docs/architecture/authorization.md` → `docs/architecture/jjaek_visibility.md` → `docs/specs/bookjjaek_reboot_spec.md`
-  순으로 먼저 읽는 것을 기본값으로 둔다.
-- `docs/archive/*`와 `docs/legacy/*`는 과거 판단 기록 보존용이다.
-- 사용자가 명시적으로 요청하거나, 현재 active docs만으로 맥락을 알 수 없는 경우에만 참고한다.
-- 기존 문서를 함부로 수정하지 말라는 원칙은 오래된 기준을 active docs에 계속 보존하라는 뜻이 아니다.
-- 새 기능이나 새 canonical spec이 기존 기준을 대체하면, 기존 active 문서는 갱신·통합·삭제하거나 필요 시 `docs/archive/`로 이동한다.
-- spec만 보지 말고, 해당 spec의 판단 근거가 되는 정책/구조 문서가 있으면 함께 먼저 확인한다.
-- 문서가 아직 없거나 부족하면, 먼저 문서를 보강한 뒤 구현에 들어간다.
+- Rails 관례(Rails way)와 현재 코드베이스의 구조·naming·스타일을 우선한다.
+- 비표준 구조, 과도한 메타프로그래밍과 불필요한 새 객체·계층을 추가하지 않는다.
+- UI 문구나 markup만 보고 수정하지 않고 관련 도메인 흐름과 정책을 먼저 확인한다.
+- view에는 표현 로직만 두고 권한·도메인 판단은 model, policy, controller 등 적절한 계층에 둔다.
+- 기존 partial 분리와 controller 책임을 확인하고 같은 흐름을 유지한다.
+- 새 문자열이나 문구 변경은 `ko`와 `en` locale 및 기존 UI 용어의 일관성을 함께 고려한다.
+- 사용자가 만든 변경과 현재 작업에 무관한 변경은 수정하거나 되돌리지 않는다.
 
 ---
 
-## bookjjaek 작업 규칙
+## 문서 탐색과 책임
 
-- 현재 제품/도메인 기준 문서는 `docs/specs/bookjjaek_reboot_spec.md`다.
-- 현재 구현 상태와 주요 흐름은 `docs/architecture/current_system.md`를 기준으로 빠르게 파악한다.
-- 권한 구조와 visibility 상세는 아래 문서를 함께 본다.
-  - `docs/architecture/authorization.md`
-  - `docs/architecture/jjaek_visibility.md`
-- `checkjjaek4`는 기존의 post 중심 SNS를 억지로 확장하는 프로젝트가 아니라,
-  **책과 서재가 중요한 문맥을 이루는 독서 커뮤니티 서비스로 리부트된 현재 시스템을 기준으로 기능을 확장하는 프로젝트**로 본다.
+모든 문서를 고정된 순서로 읽지 않는다. `AGENTS.md`를 확인한 뒤 현재 작업에
+직접 관련된 canonical spec, architecture 및 testing 문서만 필요한 범위에서 읽는다.
 
-- 여러 책장 기본 구조와 새 책 담기 시 책장 선택은 현재 구현 범위에 포함된다.
-- 그룹, Topic, 작가 정규화, 인용문 기능, 범용 SNS 확장은 현재 MVP 범위가 아니다.
-- 복잡한 도메인 작업은 한 번에 크게 수정하지 말고,
-  **분석 → 계획 제안 → diff 제시 → 승인 후 반영** 순서를 지킨다.
-- 새 repo를 만드는 대신, 같은 repo 안에서 현재 구조를 기준으로 점진적으로 기능을 확장하는 방향을 기본값으로 둔다.
-- 핵심 도메인과 현재 구현 흐름은 `docs/architecture/current_system.md`를 따른다.
-- 제품 방향과 흔들리면 안 되는 도메인 원칙은 `docs/specs/bookjjaek_reboot_spec.md`를 따른다.
+- 현재 구현 상태와 주요 화면·데이터 흐름:
+  `docs/architecture/current_system.md`
+- 권한 구조와 Pundit 경계:
+  `docs/architecture/authorization.md`
+- Jjaek visibility와 조회 범위:
+  `docs/architecture/jjaek_visibility.md`
+- 제품 방향과 핵심 도메인:
+  `docs/specs/bookjjaek_reboot_spec.md`
+- 기능별 확정 정책과 Acceptance Criteria:
+  관련 `docs/specs/*.md`
+- 테스트 전략:
+  `docs/testing/rspec_strategy.md`
 
----
+작업에 관련된 spec의 판단 근거가 architecture 또는 정책 문서에 있으면 함께 확인한다.
+`docs/archive/*`와 `docs/legacy/*`는 사용자가 요청하거나 active 문서만으로 판단할 수
+없을 때만 참고하며 현재 기준으로 사용하지 않는다.
 
-## 현재 시스템 해석 원칙
-
-- 현재 구현 상태와 주요 화면 흐름은 `docs/architecture/current_system.md`를 따른다.
-- 권한 구조와 visibility 해석은
-  `docs/architecture/authorization.md`,
-  `docs/architecture/jjaek_visibility.md`를 함께 따른다.
-- 장기 제품 방향과 MVP 범위 판단은 `docs/specs/bookjjaek_reboot_spec.md`를 따른다.
+문서와 구현 또는 active 문서끼리 충돌하면 조용히 한쪽에 맞추지 않는다.
+현재 구현 사실과 목표 정책을 구분하고, 정책 결정이 필요한 충돌은 사용자에게 보고한다.
 
 ---
 
-## ReJjaek 규칙
+## 제품과 현재 구현 해석
 
-- `ReJjaek`은 다른 `Jjaek`을 인용하거나 응답한 새 `Jjaek`이다.
-- 원문을 복사하지 않고 `quoted_jjaek`으로 참조한다.
-- 원문이 수정되면 quoted block도 최신 원문을 보여준다.
-- 원문 또는 ReJjaek 본문이 수정된 경우 MVP에서는 수정 이력 전체가 아니라 “수정됨” 표시만 둔다.
-- 원문보다 넓게 공개할 수 없다.
-- 원문이 `나만 보기`면 `ReJjaek`을 만들 수 없다.
-- 원문이 삭제되지 않았지만 visibility 변경이나 관계 변경으로 현재 사용자에게 보이지 않으면,
-  해당 사용자에게는 `ReJjaek`도 비노출한다. 이 경우 `ReJjaek`을 자동으로 private 전환하지 않는다.
-- 원문이 hard delete되면 `ReJjaek` 본문은 삭제하지 않고 `private_jjaek`으로 전환한다.
-  이후 `ReJjaek` 작성자 본인에게만 보이며, quoted block 위치에는
-  “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
-- deleted-source 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남긴다.
-  원문 본문, 책 제목/메타데이터, avatar snapshot은 저장하거나 표시하지 않는다.
-- 공개 화면에서는 “삭제된 원문입니다” placeholder를 표시하지 않는다.
-- 따라서 조회 시에도 원문 접근 권한 재검사가 필요하다.
-- 이 규칙은 model validation만으로 끝내지 말고,
-  policy / policy scope / request spec 관점에서도 함께 고정한다.
-- `ReJjaek`은 별도 1급 모델로 성급히 분리하지 않고,
-  우선 `Jjaek`의 인용/응답 문맥으로 해석한다.
+`checkjjaek4`는 post 중심 SNS를 확장하는 프로젝트가 아니라 책과 서재가 중요한
+문맥을 이루는 독서 커뮤니티 서비스다. 장기 제품 방향은
+`docs/specs/bookjjaek_reboot_spec.md`, 현재 구현 사실은
+`docs/architecture/current_system.md`를 기준으로 판단한다.
+
+- 여러 책장과 새 책 담기 시 책장 선택은 현재 구현 범위다.
+- Group과 moderation은 현재 구현된 기능이다. 세부 상태와 권한은 현재 시스템 문서와
+  관련 Group·moderation canonical spec을 따른다.
+- Classroom은 후속 개발 대상이다. Group에서 확립된 콘텐츠 접근 정책을 재사용할 수
+  있지만 Group 승인 lifecycle을 자동 적용하지 않으며 별도 작업에서 정책을 확정한다.
+- Topic, 작가 정규화, 인용문 기능과 범용 SNS 확장은 별도 승인된 spec 없이 추가하지 않는다.
+- 새 저장소로 분리하기보다 현재 저장소와 기존 구조를 점진적으로 확장한다.
 
 ---
 
-## 그룹/교실 기능 해석 원칙
+## ReJjaek과 동아리 다시짹
 
-- 계정 탈퇴와 Group 승인·운영 lifecycle의 목표 정책은
-  `docs/specs/account_group_lifecycle.md`를 canonical 기준으로 본다.
-- 그룹 기능은 단순한 커뮤니티 확장이 아니라,
-  향후 **교실에서 실제로 쓰이는 독서 도구** 방향과 연결될 수 있다.
-- 다만 현재는 그룹 기능을 먼저 확장하지 않고,
-  `짹 흐름 → 책/서재 문맥 → 책활동 후속 도입` 코어를 우선 안정화한다.
-- 그룹이 도입되더라도, 학생 개인의 서재/기록이 source of truth이고
-  그룹은 그 활동 중 공유 가능한 부분을 함께 보는 층으로 해석한다.
-- Classroom은 Group에서 확립된 SNS/콘텐츠 접근 정책을 재사용할 수 있지만,
-  Group 승인 lifecycle을 자동으로 적용하지 않으며 상세 정책은 Classroom 작업 시 결정한다.
+ReJjaek의 상세 생성·조회·visibility·수정·삭제 정책을 이 문서에 중복 정의하지 않는다.
+작업 경로에 따라 다음 canonical 문서를 확인한다.
 
----
+- 개인·동아리 다시짹 A/B/C의 공유 경로와 원문 삭제 후 처리 정책:
+  `docs/specs/group_sharing_requotes.md`
+- 다시짹 목록 조회와 노출 범위 정책:
+  `docs/specs/requotes_mvp.md`
+- 공통 visibility와 조회 권한:
+  `docs/architecture/jjaek_visibility.md`
+- 현재 구현 구조:
+  `docs/architecture/current_system.md`
 
-## 변경 승인 원칙
-
-- 기본적으로 파일을 바로 수정하지 말고, 먼저 변경 계획과 diff/patch 요약을 제시한다.
-- 기본 순서는 **diff 제시 → 사용자 승인 → 실제 반영** 이다.
-- 사용자가 승인하기 전에는 실제 파일 수정(write)을 하지 않는다.
-- 문서 작업도 동일하게 적용한다.
-- 사용자가 “바로 반영해도 된다”고 명시한 경우에만 즉시 수정한다.
-- 변경 범위가 클 경우, 파일별 수정 계획을 먼저 요약한다.
+개인 다시짹 A와 동아리 인용 B/C의 원문 삭제 후 처리 방식은 동일하지 않다.
+일반적인 ReJjaek 설명을 모든 경로에 확장하지 말고 해당 경로의 canonical spec을 우선한다.
+정책은 model validation에만 두지 않고 policy, policy scope와 request 흐름에서 함께 강제한다.
 
 ---
 
-## 정리/복구 원칙
+## Group, moderation과 Classroom
 
-- 구현 방향이 바뀌어 더 이상 필요 없어졌다면, 관련 파일과 코드도 함께 정리 대상으로 본다.
-- 새 구조를 넣으면서 불필요해진 controller, view, helper, route, 테스트, 문서가 남지 않도록 정리한다.
-- 무언가를 추가했다가 방향을 바꿔 되돌리는 경우,
-  남겨둘 이유가 분명하지 않다면 최대한 작업 전 상태에 가깝게 복구한다.
-- 임시 호환 코드를 오래 남기는 것보다,
-  현재 승인된 spec과 구조 기준으로 일관되게 정리하는 쪽을 우선한다.
-- 다만 사용자가 직접 만든 변경이나, 현재 작업과 무관한 기존 변경은 임의로 되돌리지 않는다.
-- 삭제/복구가 필요한 파일이 있다면, 반영 전에 정리 대상 파일 목록을 먼저 diff 요약에 포함한다.
-- archive/legacy로 이동한 문서를 정리할 때는
-  기존 위치에 중복 파일이 남지 않도록 주의한다.
-
----
-
-## 토큰 절약 작업 원칙
-
-- 기본적으로 토큰 절약 모드로 작업한다.
-- 관련 파일만 읽고, 관련 파일만 수정한다.
-- 전체 `git diff` 출력은 피한다.
-- 긴 계획, 긴 최종 요약, 전체 테스트 로그 출력을 피한다.
-- 작업 완료 후에는 변경 파일 목록과 사용자가 실행할 테스트 명령만 짧게 제시한다.
-- 전체 테스트, 전체 diff 확인, 커밋, push, merge는 기본적으로 사용자가 직접 수행한다.
-- 사용자가 명시적으로 요청하지 않는 한 Codex가 직접 커밋하지 않는다.
-- `git add .`는 사용하지 않는다.
-- 커밋이 필요한 경우에도 사용자가 명시한 파일만 `git add <file>` 형식으로 스테이징한다.
-- 다른 장치로 리뷰를 넘기기 위한 handoff 커밋이 필요한 경우에만 예외적으로 커밋을 허용한다.
-- 한 세션에서는 가능하면 하나의 기능이나 하나의 작은 문서 정리만 처리한다.
+- Group 생성·승인·membership·운영 lifecycle과 Group 콘텐츠는 현재 구현 범위다.
+- Group 및 사용자 운영 정지, 회원 활동 정지·이용 제한, Jjaek·Comment 숨김/복구와
+  감사 이력도 현재 moderation 구현 범위다.
+- Group 접근과 moderation 권한은
+  `docs/architecture/authorization.md`, 관련 Group·moderation spec 및
+  `docs/architecture/current_system.md`를 따른다.
+- 계정 탈퇴와 Group lifecycle의 목표 정책은
+  `docs/specs/account_group_lifecycle.md`를 따른다.
+- 개인 영역과 Group 영역은 게시 문맥과 접근 권한을 구분하며, 한 영역의 규칙을
+  다른 영역에 자동 적용하지 않는다.
+- Classroom은 현재 Group이나 moderation의 다른 이름이 아니다. 도입 시 재사용할 정책과
+  새로 정할 lifecycle을 구분해 별도 spec으로 확정한다.
 
 ---
 
-## 브랜치 운영 원칙
+## 승인된 작업의 실행
 
-- 브랜치는 너무 잘게 쪼개지 않는다.
-- docs 수정, label polish, 작은 정책 검토처럼 서로 연결된 작업마다 새 브랜치를 만들지 않는다.
-- 하나의 기능 흐름이나 정책 검토 흐름이 이어지는 동안에는 같은 의미 있는 브랜치에서 작업을 계속한다.
-- 브랜치는 “작업 단위”가 아니라 “의미 있는 변경 묶음” 기준으로 만든다.
-- 단, `main`에는 직접 작업하지 않는다.
-- 이미 관련 브랜치가 열려 있다면, 새 브랜치를 만들기보다 그 브랜치에서 이어서 작업할 수 있는지 먼저 확인한다.
-- 브랜치 분리가 필요한 경우는 기능 방향이 명확히 달라지거나, 위험도가 높은 변경을 기존 작업과 분리해야 할 때로 제한한다.
+목적, 정책과 수정 범위가 이미 승인된 작업은 같은 승인을 반복하거나 사전 diff 승인을
+다시 요구하지 않고 승인된 범위를 직접 완료한다.
 
----
+다음 상황에서는 영향을 받는 부분을 임의로 진행하지 않고 충돌과 필요한 결정을 보고한다.
 
-## spec 기반 작업 규칙
+- 새로운 제품 또는 권한 정책 결정이 필요한 경우
+- 기존 불변 조건이나 테스트가 보장하는 동작을 변경해야 하는 경우
+- 승인된 수정 범위를 실질적으로 확대해야 하는 경우
+- canonical 문서와 실제 구현의 기준이 불명확하게 충돌하는 경우
 
-- 작업은 `docs/specs/*.md`를 기준으로 진행한다.
-- 새로운 기능이나 리팩토링 단위가 필요하면 먼저 해당 spec 초안을 제안한다.
-- 관련 spec이 아직 없다면, 바로 구현에 들어가지 말고 먼저 spec 초안을 제안한다.
-- spec 변경이 필요하면 먼저 제안하고 승인 후 반영한다.
-- 임의로 spec 밖의 기능을 추가하지 않는다.
-- 별도 지시가 없으면, 구현과 함께 관련 문서도 같이 갱신한다.
-- 코드 변경으로 문서화된 현재 구현/정책/남은 작업이 달라지는 경우, 해당 내용의 기준 문서만 함께 갱신한다.
-- 이때 관련 없는 다른 문서까지 함께 수정하려고 하지 않는다.
-- 코드 변경으로 현재 구현이 달라진 경우, `docs/architecture/current_system.md`를 포함한 해당 기준 문서를 함께 갱신한다.
-- 새 기능이 기존 spec의 기준을 대체하면 active spec을 둘로 나누어 병렬 유지하지 않는다.
-- canonical spec을 하나로 정하고, 중복되는 기존 spec은 필요한 내용을 흡수한 뒤 삭제하거나 archive로 이동한다.
-- 이때 `docs/architecture/current_system.md` 등 참조 문서도 새 canonical 기준만 가리키도록 정리한다.
-- 작업 결과는 사용자가 확인한 뒤 필요할 때 git 커밋으로 남긴다.
+승인된 범위 안의 코드·테스트·관련 canonical 문서 동기화는 하나의 동작을 완성하는 데
+필요하면 인위적으로 분리하지 않는다. 반대로 독립적인 기능이나 무관한 리팩토링은 끼워
+넣지 않는다.
 
 ---
 
-## 아키텍처/구현 원칙
+## 권한과 구현 구조
 
-- `checkjjaek4`의 서버측 권한 판단은 **Pundit policy 중심**으로 유지한다.
-- controller에 권한 조건식을 직접 늘어놓기보다,
-  controller는 가능한 한 `authorize`, `policy_scope`를 호출하는 자리로 남긴다.
-- 단건 권한 판단은 policy에, 목록 조회 범위 판단은 policy scope에 둔다.
-- 권한 규칙과 조회 가능 범위가 화면마다 다르면,
-  그 차이를 controller 조건문으로 풀기보다 policy/policy scope 구조로 먼저 설명 가능해야 한다.
-- view에서 권한 분기를 추가해야 할 때도,
-  가능한 한 controller와 policy에서 이미 정리된 상태를 소비하도록 만든다.
-- 레거시 `checkjjaek3`의 CanCanCan 구조는 참고 대상일 뿐,
-  새 프로젝트의 기본 권한 체계로 그대로 가져오지 않는다.
-- Turbo 응답과 HTML 응답은 둘 다 깨지지 않도록 주의하고,
-  응답 방식은 가능한 한 일관되게 유지한다.
-- 새 기능을 추가할 때는 먼저 현재 구조와 naming, partial 분리 방식, controller 책임 범위를 확인하고 그 흐름을 따른다.
-- 불필요한 새 객체, 새 패턴, 새 계층을 성급히 늘리지 않는다.
+- 서버측 권한 판단은 Pundit policy 중심으로 유지한다.
+- 단건 권한은 policy, 목록 조회 범위는 policy scope에 둔다.
+- controller는 가능한 한 `authorize`와 `policy_scope`를 호출하는 자리로 남기고 권한
+  조건식을 화면별로 반복하지 않는다.
+- view는 policy와 controller에서 정리된 상태를 소비하며 직접 권한 체계를 만들지 않는다.
+- 화면마다 다른 조회 범위는 controller 조건문보다 policy 또는 scope 구조로 설명할 수
+  있어야 한다.
+- 레거시 `checkjjaek3`의 CanCanCan 구조는 참고 대상일 뿐 현재 권한 체계로 가져오지 않는다.
+- Turbo와 HTML 응답을 모두 유지하고 같은 권한·도메인 결과를 반환하도록 한다.
+- Turbo 전용 mutation과 HTML fallback의 책임을 기존 흐름과 일관되게 유지한다.
 
 ---
 
-## 테스트 원칙
+## 테스트 기준
 
-- 테스트의 목적은 coverage 수치가 아니라 confidence 확보이다.
-- 테스트 전략은 프로젝트의 `docs/testing/rspec_strategy.md`를 우선 기준으로 따른다.
-- 핵심 도메인 규칙, 권한, 상태 전이, request 흐름을 우선 테스트한다.
-- 특히 아래를 우선 고정한다.
-  - `Book` / `BookshelfEntry` / `BookshelfEntrySticker`
-  - 검색 결과 import 흐름
-  - `Jjaek` / `ReJjaek`
-  - 공개 범위와 조회 가능 범위
-  - policy scope
-  - request 흐름
-- brittle한 HTML 구조 테스트는 지양한다.
-- system spec은 핵심 happy path 중심으로 최소화한다.
-- RSpec 스타일은 readable > clever 원칙을 따른다.
-- 과도한 shared context, helper, abstraction을 피한다.
-- 기존 테스트와 중복되는 저가치 테스트를 늘리지 않는다.
+테스트의 목적은 coverage 수치가 아니라 핵심 동작에 대한 confidence 확보다.
+구체적인 레벨과 작성 순서는 `docs/testing/rspec_strategy.md`를 따른다.
 
----
+우선 검증 대상은 다음과 같다.
 
-## 커밋 원칙
+- `Book`, `BookshelfEntry`, `BookshelfEntrySticker`
+- 검색 결과 import 흐름
+- `Jjaek`, 개인·동아리 ReJjaek
+- Group과 moderation의 상태 전이 및 감사 경계
+- visibility, policy와 policy scope
+- 주요 request 흐름과 실패 경로
 
-- 커밋은 기본적으로 사용자가 직접 수행한다.
-- Codex는 사용자가 명시적으로 요청한 경우에만 커밋한다.
-- Codex가 커밋을 수행해야 하는 경우, 먼저 커밋 대상 파일 목록을 짧게 제시한다.
-- `git add .`는 사용하지 않고, 필요한 파일만 명시적으로 스테이징한다.
-- 커밋 메시지는 가능하면 아래 항목이 드러나게 작성한다.
-  - What: 무엇을 변경했는가
-  - Why: 왜 변경했는가
-  - Risk: 영향/부작용이 있는가
-  - Verify: 무엇으로 확인했는가
-- 너무 짧은 한 줄 메시지는 피한다.
-- commit message는 한국어 우선으로 작성한다.
+brittle한 HTML 구조 검증과 중복되는 저가치 테스트를 피한다. system spec은 핵심 happy
+path 중심으로 제한하고 RSpec은 readable > clever 원칙을 따른다.
 
 ---
 
-## 작업 완료 후 기대사항
+## 완료 보고
 
-- 변경 이유를 짧게 설명할 수 있어야 한다.
-- 가능하면 관련 테스트를 함께 추가/수정한다.
-- 새 규칙이 생겼다면 관련 문서도 함께 갱신한다.
-- 변경 범위가 크면 후속 작업 포인트를 짧게 남긴다.
-- 사용자가 실행할 확인 명령이나 테스트 명령을 짧게 제시한다.
+공통 완료 검토와 보고 형식은 `spec-driven-rails-development` 스킬을 따른다.
+특히 변경된 파일과 이유, canonical 정책과 구현의 일치 여부, 남은 충돌, 사용자가 실행할
+검증 명령을 간결하게 남긴다. 실제 실행하지 않은 테스트나 검증은 통과했다고 보고하지 않는다.
