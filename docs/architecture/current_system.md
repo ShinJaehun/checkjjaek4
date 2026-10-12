@@ -66,7 +66,7 @@
 - 내 Jjaek, 소식받는 사용자의 공개 Jjaek, 소식받는 accepted 책친구의 책친구 공개 Jjaek,
   현재 사용자를 대상으로 한 non-private profile-context Jjaek이 함께 섞일 수 있음
 - `JjaekPolicy::FeedScope#feed_records`는 현재 `group_id`가 없는 개인 Jjaek만 반환하므로 Group Jjaek은 홈 피드에서 제외됨
-- `docs/specs/groups_mvp.md`가 규정한 active membership의 active/inactive Group 게시물 홈 피드 포함은 아직 구현되지 않은 후속 과제임
+- 홈과 동아리 활동 피드 경계는 `docs/specs/group_activity_feed.md`를 따르며, 가입한 동아리의 통합 활동 피드는 `/groups`에서 제공함
 - BookActivity는 현재 사용자와 소식받는 accepted 책친구의 활동만 함께 섞임
 - follow-only / stranger의 BookActivity는 홈 피드에 노출하지 않음
 - Jjaek과 BookActivity는 `created_at` 기준으로 함께 정렬함
@@ -272,7 +272,7 @@
 - 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
 - 공개 동아리의 Jjaek은 로그인 사용자가, 승인/비공개 동아리의 Jjaek은 active member만 조회할 수 있음
 - 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에 표시하지만 현재 홈 `FeedScope`에서는 membership과 관계없이 제외됨
-- 동아리 Jjaek은 전역 책 상세에서도 제외함. active membership이 있는 active/inactive 동아리 콘텐츠의 홈 피드 포함은 확정 정책과 현재 구현이 일치하지 않는 후속 구현 과제임
+- 동아리 Jjaek은 전역 책 상세에서도 제외함. 홈 제외와 `/groups` 통합 활동 피드는 `docs/specs/group_activity_feed.md`의 확정 정책을 구현한 것임
 - 동아리 Jjaek은 기존 `Comment` 모델과 Turbo panel을 사용함
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - 탈퇴하거나 내보내진 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함

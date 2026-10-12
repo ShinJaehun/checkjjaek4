@@ -776,17 +776,9 @@ Jjaek·Comment 숨김/복구는 이 감사 기반에 연결되어 있다. 각 �
 
 ## 기본 남용 예방
 
-rate limit은 아직 구현되지 않았다. 후속 구현에서는 Classroom의 실제 교사·학생 사용 전에 다음 경로를 다룬다.
+회원가입·로그인 시도·Jjaek·책짹·Comment 작성·Like mutation 및 Group 생성·가입 요청·초대의 기본 rate limit은 구현되어 있다. 적용 경로, 초기 상한, 카운터와 응답 정책의 canonical 기준은 `docs/specs/basic_rate_limiting.md`다. 로그인 실패만 세는 전용 제한은 현재 구현 범위가 아니다.
 
-- 회원가입
-- 로그인 실패
-- Jjaek·책짹 작성
-- Comment 작성
-- Like 등 반복 mutation
-- Group 생성·가입 요청·초대
-
-정확한 횟수와 시간창은 구현 브랜치에서 운영 환경과 사용자 흐름을 확인해 결정한다.
-rate limit은 환경별로 조정할 수 있어야 하며 정상적인 한 교실의 동시 사용을 악성 트래픽으로 오인하지 않아야 한다.
+운영 중 정상 사용과 차단 현황에 따라 상한을 조정하며, 후속 Classroom의 정상 동시 사용을 고려한다. Group 생성 총량 제한, 계정 연령과 고급 spam 정책은 기본 요청 rate limit과 구분한다.
 
 ---
 
@@ -826,7 +818,7 @@ Group 문맥 기준 post thread inventory를 사용한다. Group inventory는 ro
 Group top-level inventory는 lifecycle 상태, 재활성화 대기와 operation suspended를 하나의 현재 상태 badge·필터로 제공한다.
 `operation_suspended_at`이 있으면 lifecycle 상태보다 운영 정지를 우선 표시한다.
 
-이 moderation closure는 완료되었다. 기본 rate limit은 서비스 전반의 abuse-prevention 후속 구현으로 남는다.
+이 moderation closure는 완료되었다. 서비스 전반의 기본 rate limit도 구현되어 있으며 `docs/specs/basic_rate_limiting.md`를 따른다.
 서비스 전체 Jjaek/Comment 전역 inventory는 현재 contextual investigation과 별개로 필요성을 판단할 후속 항목이며,
 Classroom 이전 필수 완료 항목으로 단정하지 않는다. User 가입 기간·Group 생성 기간 같은 고급 필터도 현재 구현이 아니다.
 
@@ -935,6 +927,6 @@ teacher의 자기 Classroom moderation은 Classroom 구조가 존재해야 구�
 User·Group inventory, contextual content timeline, User/Group/GroupMembership/GroupMemberBan 및
 Jjaek·Comment moderation의 현재 구현은 위 절에 기록했다. 신규 User·Group 정지 사유 선택,
 Group operation 전체 이력 UI, hidden Comment와 operation 상태의 inventory 표시·필터까지 이번 moderation closure에서 완료했다.
-기본 rate limit은 아직 구현되지 않았으며 가입·로그인·콘텐츠 작성·반복 mutation 등 서비스 전반의
-abuse-prevention을 다루는 별도 후속 구현 범위로 유지한다.
+가입·로그인·콘텐츠 작성·반복 mutation 및 Group 요청의 기본 rate limit은 구현되어 있으며
+`docs/specs/basic_rate_limiting.md`를 따른다. 고급 abuse-prevention 정책은 별도 후속 판단 범위다.
 Classroom·managed student account와 teacher moderation은 별도 단계에서 다룬다.

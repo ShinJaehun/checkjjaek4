@@ -79,7 +79,8 @@ Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 �
 - 개설 신청·최초 승인·운영 종료·재활성화 요청·재승인은 발생 시각과 함께 운영 이력에 누적한다.
 - 개설 신청에는 당시 개설 목적, 운영 종료에는 당시 종료 사유를 snapshot으로 보존한다.
 
-승인 거절 상태 또는 row 삭제 여부, 거절 사유, 생성 횟수 제한,
+Group 생성 요청의 기본 rate limit은 `docs/specs/basic_rate_limiting.md`에 따라 구현되어 있다.
+승인 거절 상태 또는 row 삭제 여부, 거절 사유, Group 생성 총량 제한,
 spam/abuse scoring은 후속 결정으로 남긴다.
 
 ---
@@ -160,5 +161,5 @@ Classroom은 이번 lifecycle 설계 범위가 아니다.
 ## 후속 결정
 
 - Group 승인 거절 상태 또는 row 삭제 여부와 거절 사유
-- Group 생성 횟수 제한과 spam/abuse 대응
+- Group 생성 총량 제한과 고급 spam/abuse 대응 (기본 요청 rate limit은 구현됨)
 - 재활성화 요청에 대한 admin 거절 상태와 사유 처리

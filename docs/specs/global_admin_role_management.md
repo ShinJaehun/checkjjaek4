@@ -4,7 +4,7 @@
 
 이 문서는 복수의 시스템 관리자(`global_admin`)를 운영하기 위한 서버 전용 권한 부여·회수 절차의 구현 기준이다. 현재 구현 설명은 `docs/architecture/current_system.md`, Pundit 권한 경계는 `docs/architecture/authorization.md`, 일반 moderation 정책은 `docs/specs/moderation_mvp.md`를 따른다. 이 문서의 역할 관리 조치는 일반 계정·콘텐츠 moderation과 별개다.
 
-현재 `users.global_admin`은 기본값 `false`, `null: false`인 boolean이며 복수 관리자 수를 제한하는 DB 제약은 없다. 시스템 관리자 권한은 기존 `global_admin?` 검사와 Pundit policy로 판단한다. Devise 인증에는 `database_authenticatable`, `registerable`, `recoverable`, `rememberable`, `validatable`이 사용된다. 회원가입과 계정 수정의 허용 파라미터에는 `global_admin`이 없다. 현재 관리자 User inventory에는 역할 필터와 badge가 있지만 역할 변경 UI·controller·service·운영 명령은 없다.
+현재 `users.global_admin`은 기본값 `false`, `null: false`인 boolean이며 복수 관리자 수를 제한하는 DB 제약은 없다. 시스템 관리자 권한은 기존 `global_admin?` 검사와 Pundit policy로 판단한다. Devise 인증에는 `database_authenticatable`, `registerable`, `recoverable`, `rememberable`, `validatable`이 사용된다. 회원가입과 계정 수정의 허용 파라미터에는 `global_admin`이 없다. 현재 관리자 User inventory에는 역할 필터와 badge가 있다. 역할 변경은 전용 Rails task와 service로 구현되어 있으며, 역할 변경 웹 UI·controller는 제공하지 않는다.
 
 기존 `ModerationAction`은 계정·콘텐츠·Group moderation 감사이며, `GroupLifecycleEvent`와 `GroupMembershipEvent`는 Group 운영·membership 사건을 기록한다. 시스템 관리자 역할 변경에는 이 기록들을 재사용하지 않고 별도의 `GlobalAdminRoleChange`를 둔다. 기존 관리자에게 과거 역할 부여 이력이 없을 수 있으므로, 배포 이전 변경을 새 감사 기록에서 추정하거나 실제 실행된 것처럼 소급 생성하지 않는다.
 
@@ -21,9 +21,9 @@
 
 ## 서버 운영 절차와 실행자 식별
 
-구현 시 `global_admin:grant`와 `global_admin:revoke`에 해당하는 전용 Rails task 또는 동등한 서버 전용 명령을 제공한다. 명령은 대상 User ID와 확인용 이메일을 받아 같은 계정인지 검증하고, 변경 사유를 필수로 받는다. 실행 직전 대상의 계정 상태·현재 역할·요청 동작을 표시해 명시적 실행 확인을 받는다. 명령 실행에 필요한 서버 접근과 애플리케이션 환경·DB 접근은 기존 서버 운영 권한으로 제한한다. 웹 endpoint는 만들지 않는다.
+현재 `global_admin:grant`와 `global_admin:revoke` 전용 Rails task를 제공한다. 명령은 대상 User ID와 확인용 이메일을 받아 같은 계정인지 검증하고, 변경 사유를 필수로 받는다. 실행 직전 대상의 계정 상태·현재 역할·요청 동작을 표시해 명시적 실행 확인을 받는다. 명령 실행에 필요한 서버 접근과 애플리케이션 환경·DB 접근은 기존 서버 운영 권한으로 제한한다. 웹 endpoint는 제공하지 않는다.
 
-명령 인자에 입력된 실행자 이름을 검증된 신원으로 취급하지 않는다. 명령은 실행 환경에서 확인 가능한 OS 프로세스 계정, 서버 식별 정보, 실행 시각과 실행 식별 정보를 기록하고, 동일한 실행 식별 정보를 서버 운영 로그에도 남겨 두 기록을 대조할 수 있게 한다. 이 정보가 공유 배포 계정이나 공용 서버 계정을 가리킨다면 실제 명령을 입력한 개인까지 확인했다고 표시하지 않는다. 사유·대상 정보가 일반 셸 기록이나 공개 로그에 불필요하게 노출되지 않도록 입력·로그 방식을 구현 시 정한다.
+명령 인자에 입력된 실행자 이름을 검증된 신원으로 취급하지 않는다. 명령은 실행 환경에서 확인 가능한 OS 프로세스 계정, 서버 식별 정보, 실행 시각과 실행 식별 정보를 기록하고, 동일한 실행 식별 정보를 Rails 로그에도 남겨 두 기록을 대조할 수 있게 한다. 이 정보가 공유 배포 계정이나 공용 서버 계정을 가리킨다면 실제 명령을 입력한 개인까지 확인했다고 표시하지 않는다. 사유와 실행 확인은 대화형 입력을 사용하며 사유·이메일은 완료 로그에 기록하지 않는다. 실제 로그 수집·보존과 열람 운영은 아래 확인 사항으로 남긴다.
 
 개인별 OS 계정이나 새 인증 체계는 최초 구현의 선행 조건이 아니다. 향후 서버 운영자가 여러 명이 되어 개인별 책임 추적이 필요해지면 개인별 서버 접근, 명령 실행 로그의 신뢰성·보존, 감사 row와 서버 로그의 연결 방식을 강화한다. 그 전까지 감사 기록은 **확인 가능한 서버 실행 환경과 명령 실행**을 설명하며, 확인되지 않은 사람의 신원을 증명하지 않는다.
 
@@ -61,13 +61,13 @@
 - 실행 결과가 불명확하면 역할의 현재값과 시간순 `GlobalAdminRoleChange`, 서버 실행 로그를 대조한다. 이미 적용된 부여·회수를 다시 실행하면 중복 오류로 종료되며 추가 감사 row는 남기지 않는다.
 - DB 직접 변경으로 역할과 감사 이력이 불일치하면 자동으로 과거 감사 사건을 만들어 맞추지 않는다. 운영자가 서버·DB 로그를 조사하고 별도 복구 절차를 결정한다.
 
-## 구현 단계별 계획
+## 현재 구현과 검증
 
-1. 서버 명령의 대상 식별, 사유 입력, 실행 확인, 서버 실행 정보와 로그 대조 방식을 현재 운영 환경에 맞게 확정한다.
-2. `GlobalAdminRoleChange` 저장 구조와 생성 후 수정·삭제 방지, 대상 User와의 연결을 구현한다. 배포 전 기존 관리자 목록은 별도 초기 기준으로 확인하고 허구의 과거 grant 기록은 만들지 않는다.
-3. 역할 변경 service에 대상 적격성, 중복 상태, 마지막 정상 활성 관리자 보호, 동시성 직렬화, User 변경과 감사 생성의 단일 transaction을 구현한다.
-4. 전용 서버 명령을 service에 연결하고 웹 UI·controller에는 역할 변경 경로를 추가하지 않는다.
-5. service·명령의 성공과 실패, 정지·탈퇴한 관리자만 추가로 남은 경우 및 정상 활성 관리자들의 동시 회수, 감사 rollback, 기존 세션·remember-me의 권한 회수를 검증한다. 구현 결과에 맞춰 현재 시스템 문서만 갱신한다.
+1. `lib/tasks/global_admin.rake`는 대상 ID·이메일 대조, 사유 입력과 실행 확인을 거쳐 `global_admin:grant` / `global_admin:revoke`를 실행한다. OS 프로세스 계정·서버·실행 식별 정보를 감사 기록에 저장하고 실행 식별 정보를 Rails 로그에 남긴다. 실제 로그 수집·보존 운영은 아래 확인 사항으로 남긴다.
+2. 역할 변경은 `GlobalAdminRoles::Change`와 별도 `GlobalAdminRoleChange` 감사 기록으로 구현되어 있다. 과거 grant 기록은 소급 생성하지 않는다.
+3. service는 PostgreSQL transaction advisory lock 뒤 대상 User를 잠그고 상태를 재조회한다. 대상 적격성·중복 상태·마지막 정상 활성 관리자 보호를 적용하며, 역할 변경과 감사 생성을 한 transaction으로 처리한다.
+4. 역할 변경 웹 UI·controller는 제공하지 않는다. 현재 구조의 상세는 `docs/architecture/current_system.md`를 따른다.
+5. service·task·동시성 spec은 성공·실패, 정지·탈퇴 대상, 마지막 활성 관리자 보호, 동시 회수와 감사 실패 rollback을 검증하도록 작성되어 있다.
 
 ## Acceptance criteria
 
@@ -78,9 +78,8 @@
 - 명령은 실행자 이름 입력값만으로 개인을 검증했다고 기록하지 않으며, 서버 로그와 감사 기록을 실행 식별 정보로 대조할 수 있다.
 - 기존 moderation policy, `global_admin` boolean, Pundit 권한 구조와 관리자 간 제재 금지 규칙은 유지된다.
 
-## 구현 전에 확인할 쟁점
+## 남은 운영 확인 사항
 
 - 현재 서버·배포 환경에서 확인 가능한 OS 프로세스 계정, 서버 식별 정보와 명령 로그의 실제 수집·보존 위치. 공유 계정만 확인되는 경우 감사 화면·운영 보고에서 그 한계를 어떻게 표시할지.
-- 역할 변경을 직렬화하고 마지막 정상 활성 관리자 수를 보호할 실제 DB 동기화 방식. 현재 배포 DB와 명령의 동시 실행 환경에 맞춰 정한다.
 - 기존 관리자들의 배포 전 역할 상태를 초기 기준으로 확인·보존할 운영 방법. 이전 역할 부여 시각이나 실행자를 추정하지 않는다.
 - 감사 이력과 서버 접근 로그의 보존 기간 및 운영자 열람 범위. 별도 관리자 관리 UI는 이번 구현 범위에 포함하지 않는다.

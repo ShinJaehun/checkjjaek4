@@ -556,11 +556,12 @@ metadata 후보:
 
 ## 결정 보류 항목
 
+home feed 합성은 구현 완료다. 현재 사용자와 소식받는 accepted book_friend의 활동을 Jjaek과 함께 표시하는 기준은 위 Step 4를 따른다.
+
 아래는 후속 단계에서 별도 판단이 필요하다.
 
 - BookActivity에 자체 visibility 컬럼을 둘지
 - 현재 관계 기반 공개 정책을 책장 visibility와 어떻게 연결할지
-- home feed에 바로 섞을지, 별도 활동 섹션으로 둘지
 - 책 상세에 BookActivity를 노출할지
 - status/sticker 변경을 한 요청 안에서 하나의 활동으로 묶을지, 개별 활동으로 나눌지
 - metadata snapshot을 어디까지 저장할지

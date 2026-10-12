@@ -10,7 +10,8 @@ Bookshelf 기능은 다음 범위까지 확장되었고, 현재 책장 구조와
 
 - 책장 탭
 - 책장별 책 목록 표시
-- select 기반 책 이동
+- Book 상세의 select 기반 책 이동
+- Library 전용 `/users/:user_id/library/transfer` 화면의 DnD 책 이동 (self 전용)
 - 일반 책장 생성
 - 일반 책장 수정/삭제
 - 책장 색상 `color_key`
@@ -163,6 +164,8 @@ Library Screen은 Bookshelf UI의 주 화면이다.
 
 self는 자신의 `BookshelfEntry`를 자신의 다른 Bookshelf로 이동할 수 있다.
 
+Book 상세에서는 select로 이동하고, Library에서는 self 전용 `/users/:user_id/library/transfer` 화면의 DnD로 이동한다. 기본 Library 카드에는 이동 select/form을 표시하지 않는다. 상세 UI 기준은 `docs/specs/bookshelf_ui.md`를 따른다.
+
 - 이동은 중복 생성이 아니다.
 - 기존 `BookshelfEntry.bookshelf_id`만 변경한다.
 - 다른 사용자의 BookshelfEntry는 이동할 수 없다.
@@ -288,7 +291,6 @@ self만 가능한 기능:
 - `Library` 모델 생성
 - DB 구조 변경
 - 기존 Bookshelf / BookshelfEntry 모델 변경
-- drag & drop 도입
 - 별도 책장 관리 전용 dashboard 도입
 - BookActivity visibility 변경
 - Bookshelf visibility와 BookActivity visibility 연동
@@ -301,7 +303,7 @@ self만 가능한 기능:
 현재 구현은 다음 상태다.
 
 1. `/users/:user_id/library` route와 `Users::LibrariesController#show`가 Library Screen을 제공한다.
-2. Library Screen은 책장 탭, 책장별 책 목록, 책 이동, 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다.
+2. Library Screen은 책장 탭, 책장별 책 목록, 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공하며, 책장 간 DnD 이동은 self 전용 transfer 화면에서 제공한다.
 3. Library Screen 접근은 `self / accepted book_friend`에게만 허용한다.
 4. `stranger / follow`가 Library Screen에 접근하면 프로필 화면으로 redirect된다.
 5. 프로필 화면은 요약 화면으로 정리되었고, 책장 탭/정렬/관리/책 이동 UI를 제공하지 않는다.
@@ -310,7 +312,6 @@ self만 가능한 기능:
 
 후속 확장 후보:
 
-- drag & drop
 - 별도 책장 관리 화면
 - BookActivity와 Bookshelf visibility 연동
 - 사용자별 책 문맥 화면

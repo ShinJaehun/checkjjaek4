@@ -135,7 +135,7 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 - global admin이 직접 생성한 동아리는 승인 대기를 거치지 않고 즉시 `active`로 시작한다. 이는 다른 사용자가 만든 pending 동아리의 자동 승인을 뜻하지 않는다.
 - 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 group admin과 global admin만 확인한다.
 - 승인·운영 lifecycle의 상세 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.
-- 동아리 생성 횟수 제한, 계정 연령, 남용 방지 조건은 아직 결정하지 않는다.
+- 동아리 생성 요청의 기본 rate limit은 `docs/specs/basic_rate_limiting.md`에 따라 구현되어 있다. 동아리 생성 총량 제한, 계정 연령과 고급 남용 방지 조건은 아직 결정하지 않는다.
 
 ---
 
@@ -161,8 +161,8 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 ### 홈 피드
 
 - 동아리에 작성한 Jjaek은 해당 동아리 피드에 나타난다.
-- 현재 사용자가 active member인 active/inactive 동아리의 기존 Jjaek은 종류와 작성자에 관계없이 홈 피드에 포함한다.
-- active membership이 없는 동아리의 Jjaek은 public 동아리이거나 followee가 작성했더라도 홈 피드에 포함하지 않는다.
+- 홈(`/`)에는 membership, 동아리 종류와 작성자에 관계없이 Group Jjaek을 포함하지 않는다.
+- 가입한 동아리의 통합 활동 피드는 `/groups`에서 제공한다. 홈과 동아리 활동 피드 경계의 canonical 기준은 `docs/specs/group_activity_feed.md`다. 이전 회원 동아리 게시물의 홈 포함 규칙은 이 정책으로 대체되었다.
 - 작성자의 일반 팔로워에게 동아리 글이라는 이유만으로 자동 배포하지 않는다.
 - 공개 동아리라는 이유만으로 작성자의 모든 팔로워 홈 피드에 자동 노출하지 않는다.
 
@@ -359,7 +359,7 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 
 ## 미결정 사항
 
-- 동아리 생성 횟수 제한, 계정 연령과 남용 방지 조건
+- 동아리 생성 총량 제한, 계정 연령과 고급 남용 방지 조건 (기본 요청 rate limit은 구현됨)
 - 탈퇴 후 댓글 삭제를 제공하는 정확한 UI, 메시지와 동선
 - 승인 동아리 또는 비공개 동아리 탈퇴 후 원문 조회 권한을 잃은 상태에서 자기 콘텐츠 관리 진입을 제공하는 방식
 

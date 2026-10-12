@@ -229,8 +229,8 @@ Library 안에서 볼 수 있는 책장:
 - 소식받는 accepted 책친구의 책친구 공개 Jjaek
 - 현재 `feed_records`는 `group_id`가 없는 개인 Jjaek만 반환하며 Group Jjaek은 포함하지 않는다
 
-`docs/specs/groups_mvp.md`는 현재 사용자가 active member인 active/inactive 동아리의 Jjaek을 홈 피드에 포함하도록 규정한다.
-현재 `FeedScope` 구현은 이 확정 정책과 일치하지 않으며 별도 후속 구현이 필요하다.
+홈에서 Group Jjaek을 제외하는 구현은 `docs/specs/group_activity_feed.md`의 확정 정책과 일치한다.
+가입한 동아리의 통합 활동 피드는 `/groups`에서 `JjaekPolicy::GroupActivityScope`로 조회한다.
 
 이 scope는 프로필 조회 권한과 분리해서 읽어야 한다.
 특정 사용자의 `public_jjaek`을 프로필에서 볼 수 있다고 해서
@@ -336,7 +336,7 @@ Library 안에서 볼 수 있는 책장:
 동아리 관리자의 타인 Jjaek·Comment 숨김/복구, 전체 공개 개인 원문의 동아리 공유와 같은 동아리 내부 인용 다시짹을 제공한다.
 active 공개 동아리의 Jjaek·책짹을 개인 영역으로 ReJjaek하는 기능은 제공한다.
 Group Jjaek의 일반 조회 권한은 위 정책을 따르지만 현재 홈 `FeedScope`에서는 모든 Group Jjaek이 제외된다.
-active membership이 있는 active/inactive 동아리 콘텐츠를 홈에 포함하는 `groups_mvp.md`의 확정 정책은 아직 구현되지 않았다.
+이는 `docs/specs/group_activity_feed.md`의 확정 정책이며, 가입한 동아리 콘텐츠는 `/groups` 통합 활동 피드에서 현재 읽기 권한에 따라 조회한다.
 
 동아리 권한의 제품 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
 global admin은 일반 Group 목록과 admin inventory에서 모든 Group을 볼 수 있고 각 `show?`로 단건 운영 조사를 수행한다.

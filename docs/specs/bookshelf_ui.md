@@ -134,7 +134,7 @@ Library 책 목록을 Bookshelf 단위로 구분해서 보여준다.
 query parameter를 사용한다.
 
 ```text
-/users/:id?bookshelf_id=3
+/users/:user_id/library?bookshelf_id=3
 ```
 
 이 방식의 장점은 다음과 같다.
@@ -144,6 +144,8 @@ query parameter를 사용한다.
 - 테스트가 쉽다.
 - JavaScript 없이도 동작한다.
 - 나중에 Turbo Frame으로 확장하기 쉽다.
+
+Library 접근은 self / accepted book_friend에게만 허용한다. stranger/follow-only는 query parameter와 관계없이 프로필로 redirect되며 책장 탭을 볼 수 없다. 접근 정책은 `docs/specs/library_screen.md`를 따른다.
 
 선택된 `bookshelf_id`가 없으면 기본 책장을 선택한다.
 
@@ -159,10 +161,10 @@ Bookshelf visibility 정책은 foundation 정책을 따른다.
 | --- | --- |
 | self | `public` + `book_friends` + `private` |
 | accepted book_friend | `public` + `book_friends` |
-| follow-only | `public` |
-| stranger | `public` |
+| follow-only | Library 접근 불가, 탭 비노출 |
+| stranger | Library 접근 불가, 탭 비노출 |
 
-follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 public 책장만 볼 수 있다.
+follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있다. 이는 Library 내부 책장 탭 접근과 별개다.
 
 ---
 
@@ -174,10 +176,10 @@ follow-only는 Bookshelf visibility 기준으로는 stranger와 동일하게 pub
 | --- | --- | --- |
 | self | 볼 수 있음 | 볼 수 있음 |
 | accepted book_friend | 볼 수 있음 | 볼 수 있음 |
-| follow-only | public 책장에 한해 볼 수 있음 | 볼 수 없음 |
-| stranger | public 책장에 한해 볼 수 있음 | 볼 수 없음 |
+| follow-only | 프로필의 public 책 목록 요약에서만 볼 수 있음 | 볼 수 없음 |
+| stranger | 프로필의 public 책 목록 요약에서만 볼 수 있음 | 볼 수 없음 |
 
-즉, stranger/follow-only는 public 책장 탭과 책 목록은 볼 수 있지만, 상태와 스티커는 볼 수 없다.
+위 표의 stranger/follow-only 책 정보는 프로필의 public 책 목록 요약에만 적용된다. Library 책장 탭은 볼 수 없고, 프로필에서도 상태와 스티커는 볼 수 없다.
 
 ---
 
@@ -428,7 +430,7 @@ private
 예상 redirect:
 
 ```text
-/users/:id?bookshelf_id=<new_bookshelf_id>
+/users/:user_id/library?bookshelf_id=<new_bookshelf_id>
 ```
 
 성공 시 flash를 표시한다.
@@ -511,7 +513,7 @@ pink
 - 기본값은 `stone`이다.
 - 자유 hex 입력이나 사용자 정의 색상은 허용하지 않는다.
 - 기본 책장 “내 책장”은 `stone`을 유지하고 수정 UI를 제공하지 않는다.
-- 타인 프로필에서도 접근 가능한 책장 탭의 `color_key` 표시는 허용한다.
+- accepted book_friend가 보는 타인 Library에서도 접근 가능한 책장 탭의 `color_key` 표시는 허용한다. 프로필에는 책장 탭을 표시하지 않는다.
 
 ### Library UX 색상 원칙
 
@@ -555,10 +557,9 @@ Library 카드 안에는 책장 이동 select/form을 두지 않는다. 정확�
 
 ### stranger / follow-only
 
-stranger/follow-only는 다음을 볼 수 있다.
+stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect된다. 프로필에서 다음을 볼 수 있다.
 
-- public 책장 탭
-- 책 목록
+- public 책 목록 요약 (책장 탭 없음)
 - 상태/스티커는 볼 수 없음
 - 책장 이동 모드에 접근할 수 없음
 - 일반 책장 생성 form은 볼 수 없음
@@ -600,7 +601,7 @@ stranger/follow-only는 다음을 볼 수 있다.
 책장 안의 책 목록은 query parameter 기반 정렬을 지원한다.
 
 ```text
-/users/:id?bookshelf_id=3&sort=title
+/users/:user_id/library?bookshelf_id=3&sort=title
 ```
 
 지원 값:
@@ -708,7 +709,7 @@ stranger/follow-only는 다음을 볼 수 있다.
 2. self는 private 책장 탭도 볼 수 있다.
 3. accepted book_friend는 public + book_friends 책장 탭을 볼 수 있다.
 4. accepted book_friend는 private 책장 탭을 볼 수 없다.
-5. stranger/follow-only는 public 책장 탭만 볼 수 있다.
+5. stranger/follow-only는 Library URL 접근 시 프로필로 redirect되며 책장 탭을 볼 수 없다.
 6. 선택한 책장 탭의 책만 표시된다.
 7. 허용되지 않은 `bookshelf_id`가 전달되면 접근 가능한 책장으로 fallback된다.
 
@@ -716,7 +717,7 @@ stranger/follow-only는 다음을 볼 수 있다.
 
 1. self는 선택한 책장 안에서 상태/스티커를 볼 수 있다.
 2. accepted book_friend는 선택한 책장 안에서 상태/스티커를 볼 수 있다.
-3. stranger/follow-only는 public 책장 안의 책 제목은 볼 수 있지만 상태/스티커는 볼 수 없다.
+3. stranger/follow-only는 프로필의 public 책 목록 요약에서 책 제목을 볼 수 있지만 상태/스티커는 볼 수 없다.
 
 ### 책 이동
 
@@ -760,7 +761,7 @@ stranger/follow-only는 다음을 볼 수 있다.
 1. 일반 책장 생성 form에 `color_key` 선택 UI가 보인다.
 2. 일반 책장 관리 form에 `color_key` 선택 UI가 보인다.
 3. 책장 탭에 `color_key`가 반영된다.
-4. 타인 프로필에서는 생성/수정 UI 없이 책장 탭 색상 표시만 유지된다.
+4. accepted book_friend가 보는 타인 Library에서는 생성/수정 UI 없이 허용된 책장 탭 색상 표시만 유지된다. 프로필에는 책장 탭이 없다.
 
 ### 책장 순서 변경
 
@@ -783,7 +784,7 @@ stranger/follow-only는 다음을 볼 수 있다.
 5. `sort=status`이면 상태순으로 표시된다.
 6. 허용되지 않은 `sort` 값이면 self/other 기본 정렬 정책으로 fallback한다.
 7. 정렬해도 선택된 책장 안의 책만 표시된다.
-8. 정렬해도 stranger/follow-only에게 상태/스티커는 보이지 않는다.
+8. stranger/follow-only는 정렬 query parameter를 전달해도 Library에 접근할 수 없으며, 프로필 책 요약에서 상태/스티커는 보이지 않는다.
 9. 책장 탭 링크가 현재 `sort` 값을 유지한다.
 10. 정렬 UI는 선택된 책장 header의 컨트롤로 제공한다.
 
