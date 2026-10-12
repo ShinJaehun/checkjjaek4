@@ -53,6 +53,10 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include('name="jjaek[content]"')
       expect(response.body).to include("OWN_FAILURE_ACTIVITY", "FOLLOWED_FAILURE_ACTIVITY")
       expect(response.body).not_to include("UNFOLLOWED_FAILURE_ACTIVITY")
+      page = Nokogiri::HTML(response.body)
+      expect(page.text).to include("내용을 입력해 주세요.")
+      expect(page.text).not_to include("Content", "can't be blank")
+      expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
     end
 
     it "creates a book-linked jjaek from a shelf context" do
@@ -75,17 +79,29 @@ RSpec.describe "Jjaeks", type: :request do
     end
 
     it "rerenders the book page with only original book jjaeks when a book-linked jjaek is invalid" do
-      viewer.bookshelf_entries.create!(book:)
+      entry = viewer.bookshelf_entries.create!(book:)
+      target_bookshelf = viewer.bookshelves.create!(name: "실패 화면 선택 책장", visibility: :private)
       original_book_jjaek = original_author.jjaeks.create!(book:, content: "VISIBLE_BOOK_ORIGINAL", visibility: :public_jjaek)
       hidden_requote = viewer.jjaeks.create!(book:, content: "HIDDEN_BOOK_REQUOTE", quoted_jjaek: original_book_jjaek, visibility: :private_jjaek)
+      private_original = original_author.jjaeks.create!(book:, content: "PRIVATE_FAILURE_ORIGINAL", visibility: :private_jjaek)
+      group = Group.create!(name: "실패 화면 동아리", group_admin: original_author, group_type: :public_group, lifecycle_status: :active)
+      group_original = original_author.jjaeks.create!(book:, group:, content: "GROUP_FAILURE_ORIGINAL")
+      submitted_content = "FAILED_BOOK_INPUT_" + "a" * 2_001
+      invalid_jjaek = viewer.jjaeks.build(book:, content: submitted_content, visibility: :book_friends)
+      invalid_jjaek.valid?
       sign_in viewer
+
+      get book_path(book)
+      normal_page = Nokogiri::HTML(response.body)
+      normal_timeline_ids = normal_page.css("article[id^='jjaek_']").map { |article| article["id"] }
+      normal_bookshelf_ids = normal_page.css('select[name="bookshelf_id"] option').map { |option| option["value"] }
 
       expect {
         post jjaeks_path, params: {
           jjaek: {
             book_id: book.id,
-            content: "",
-            visibility: :public_jjaek
+            content: submitted_content,
+            visibility: :book_friends
           }
         }
       }.not_to change(Jjaek, :count)
@@ -95,6 +111,37 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
       expect(response.body).not_to include(hidden_requote.content)
       expect(response.body).to include('name="jjaek[content]"')
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("article[id^='jjaek_']").map { |article| article["id"] }).to eq(normal_timeline_ids)
+      [ private_original, group_original ].each do |excluded|
+        expect(page.at_css("article#jjaek_#{excluded.id}")).to be_nil
+      end
+      expect(page.css('select[name="bookshelf_id"] option').map { |option| option["value"] }).to eq(normal_bookshelf_ids)
+      expect(normal_bookshelf_ids).to contain_exactly(entry.bookshelf_id.to_s, target_bookshelf.id.to_s)
+      expect(page.at_css('select[name="bookshelf_id"] option[selected]')["value"]).to eq(entry.bookshelf_id.to_s)
+      expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(submitted_content)
+      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("book_friends")
+      expect(page.text).to include(invalid_jjaek.errors.full_messages.to_sentence)
+      expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+      expect(page.text).not_to include("Content", "is too long")
+    end
+
+    it "shows a Korean blank-content error on the book page without losing the form" do
+      viewer.bookshelf_entries.create!(book:)
+      sign_in viewer
+
+      expect {
+        post jjaeks_path, params: {
+          jjaek: { book_id: book.id, content: "", visibility: :book_friends }
+        }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      page = Nokogiri::HTML(response.body)
+      expect(page.text).to include("내용을 입력해 주세요.")
+      expect(page.text).not_to include("Content", "can't be blank")
+      expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
+      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("book_friends")
     end
 
     it "does not create a book-linked jjaek without a shelf entry" do

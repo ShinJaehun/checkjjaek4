@@ -27,5 +27,6 @@ module Checkjjaek4
     config.i18n.default_locale = :ko
     config.i18n.available_locales = %i[ko en]
     config.i18n.fallbacks = [ :en ]
+    config.active_model.i18n_customize_full_message = true
   end
 end

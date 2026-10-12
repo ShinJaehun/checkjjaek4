@@ -279,22 +279,14 @@ class JjaeksController < ApplicationController
       BookshelfEntry.new(user: current_user, book: @book)
     authorize @bookshelf_entry
     @sticker_definitions = StickerDefinition.alphabetical
-    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
-      .where(group_id: nil)
-      .where(quoted_jjaek_id: nil)
-      .recent
-    prepare_visible_requote_counts_for(@jjaeks)
+    prepare_book_show_read_context
     render "books/show", status:
   end
 
   def render_group_book_create_failure(status:)
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
-    @bookshelves = current_user.bookshelves.default_first
     @sticker_definitions = StickerDefinition.alphabetical
-    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
-      .where(group_id: nil, quoted_jjaek_id: nil)
-      .recent
-    prepare_visible_requote_counts_for(@jjaeks)
+    prepare_book_show_read_context
     render "books/show", status:
   end
 

@@ -496,6 +496,44 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.bookshelf).to eq(original_bookshelf)
   end
 
+  it "preserves the book show context and submitted stickers when an update fails validation" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "실패 화면 선택 책장", visibility: :private)
+    original = book_friend.jjaeks.create!(book: user_book, content: "UPDATE_FAILURE_ORIGINAL", visibility: :book_friends)
+    requote = user.jjaeks.create!(book: user_book, content: "UPDATE_FAILURE_REQUOTE", quoted_jjaek: original, visibility: :private_jjaek)
+    private_original = stranger.jjaeks.create!(book: user_book, content: "UPDATE_FAILURE_PRIVATE", visibility: :private_jjaek)
+    group = Group.create!(name: "실패 화면 동아리", group_admin: book_friend, group_type: :public_group, lifecycle_status: :active)
+    group_original = book_friend.jjaeks.create!(book: user_book, group:, content: "UPDATE_FAILURE_GROUP")
+    sign_in user
+
+    get book_path(user_book)
+    normal_page = Nokogiri::HTML(response.body)
+    normal_timeline_ids = normal_page.css("article[id^='jjaek_']").map { |article| article["id"] }
+    normal_bookshelf_ids = normal_page.css('select[name="bookshelf_id"] option').map { |option| option["value"] }
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: { status: "invalid", sticker_definition_ids: [ sticker.id ] }
+      }
+    }.not_to change(BookActivity, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    page = Nokogiri::HTML(response.body)
+    expect(page.css("article[id^='jjaek_']").map { |article| article["id"] }).to eq(normal_timeline_ids)
+    expect(page.at_css("article#jjaek_#{original.id}")).to be_present
+    [ requote, private_original, group_original ].each do |excluded|
+      expect(page.at_css("article#jjaek_#{excluded.id}")).to be_nil
+    end
+    expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
+    expect(page.css('select[name="bookshelf_id"] option').map { |option| option["value"] }).to eq(normal_bookshelf_ids)
+    expect(normal_bookshelf_ids).to contain_exactly(entry.bookshelf_id.to_s, target_bookshelf.id.to_s)
+    expect(page.at_css('select[name="bookshelf_id"] option[selected]')["value"]).to eq(entry.bookshelf_id.to_s)
+    expect(page.at_css("input[name='bookshelf_entry[sticker_definition_ids][]'][value='#{sticker.id}'][checked]")).to be_present
+    entry.errors.add(:status, :inclusion)
+    expect(page.text).to include(entry.errors.full_messages.to_sentence)
+    expect(entry.reload.status).to eq("reading")
+  end
+
   it "returns to the book page when a book-context move fails validation" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "실패 후 돌아갈 책장", visibility: :private)

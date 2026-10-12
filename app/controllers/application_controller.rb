@@ -56,6 +56,14 @@ class ApplicationController < ActionController::Base
     redirect_to new_user_session_path, alert: message, status: :see_other
   end
 
+  def prepare_book_show_read_context
+    @bookshelves = current_user.bookshelves.default_first
+    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
+      .where(group_id: nil, quoted_jjaek_id: nil)
+      .recent
+    prepare_visible_requote_counts_for(@jjaeks)
+  end
+
   def prepare_visible_requote_counts_for(jjaeks)
     records = Array(jjaeks)
     original_ids = records.reject(&:requote?).filter_map(&:id)

@@ -35,7 +35,29 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).to include("data-member-preview", user_path(member))
     expect(response.body).to include(I18n.t("groups.active_member_count", count: 1))
     expect(response.body).to include(group_jjaeks_path(group), 'name="jjaek[content]"')
-    expect(Nokogiri::HTML(response.body).text).to include(I18n.t("errors.messages.blank"))
+    page = Nokogiri::HTML(response.body)
+    expect(page.text).to include("내용을 입력해 주세요.")
+    expect(page.text).not_to include("Content", "can't be blank")
+    expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
+  end
+
+  it "preserves overlong group book content with a Korean validation error" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Readers", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    member.bookshelf_entries.create!(book:)
+    content = "동아리 책짹 입력 " + "a" * 2_001
+    sign_in member
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: } }, headers: { "Accept" => "text/html" }
+    }.not_to change(Jjaek, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    page = Nokogiri::HTML(response.body)
+    expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+    expect(page.text).not_to include("Content", "is too long")
+    expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
+    expect(page.at_css("form[action='#{group_jjaeks_path(group)}']")).to be_present
   end
 
   it "does not create a Jjaek while the group is pending or inactive" do

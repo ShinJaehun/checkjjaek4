@@ -24,10 +24,8 @@ class BooksController < ApplicationController
     @group = find_group_context
     authorize @group, :create_jjaek? if @group.present?
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
-    @bookshelves = current_user.bookshelves.default_first
     prepare_book_write_context if @bookshelf_entry.present?
-    @jjaeks = visible_book_jjaeks
-    prepare_visible_requote_counts_for(@jjaeks)
+    prepare_book_show_read_context
   end
 
   private
@@ -44,13 +42,6 @@ class BooksController < ApplicationController
     return unless params[:quote_id].present?
 
     policy_scope(@book.jjaeks).find(params[:quote_id])
-  end
-
-  def visible_book_jjaeks
-    policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
-      .where(group_id: nil)
-      .where(quoted_jjaek_id: nil)
-      .recent
   end
 
   def set_book
