@@ -59,6 +59,41 @@ RSpec.describe "Jjaeks", type: :request do
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
     end
 
+    it "keeps the normal home feed and requote counts when overlong input fails" do
+      viewer.active_follows.create!(followee: original_author)
+      source = original_author.jjaeks.create!(content: "HOME_VISIBLE_SOURCE", visibility: :book_friends, created_at: 3.hours.ago)
+      visible_requote = viewer.jjaeks.create!(quoted_jjaek: source, content: "HOME_VISIBLE_REQUOTE", visibility: :book_friends, created_at: 1.hour.ago)
+      private_jjaek = original_author.jjaeks.create!(content: "HOME_EXCLUDED_PRIVATE", visibility: :private_jjaek)
+      private_requote = original_author.jjaeks.create!(quoted_jjaek: source, content: "HOME_EXCLUDED_PRIVATE_REQUOTE", visibility: :private_jjaek)
+      group = Group.create!(name: "Home excluded group", group_admin: original_author, group_type: :public_group, lifecycle_status: :active)
+      group_jjaek = original_author.jjaeks.create!(group:, content: "HOME_EXCLUDED_GROUP")
+      group_book_jjaek = original_author.jjaeks.create!(group:, book:, content: "HOME_EXCLUDED_GROUP_BOOK")
+      activity = BookActivity.create!(user: original_author, book:, action: :added_to_shelf, created_at: 2.hours.ago)
+      content = "HOME_FAILED_INPUT_" + "a" * 2_001
+      sign_in viewer
+
+      get root_path
+      expect(response).to have_http_status(:ok)
+      normal_page = Nokogiri::HTML(response.body)
+      expect(normal_page.css("article[id^='jjaek_']").map { |article| article["id"] }).to eq([ "jjaek_#{visible_requote.id}", "jjaek_#{source.id}" ])
+      expect(normal_page.text).to include(activity.book.title)
+      requote_link = %(a[href="#{jjaek_requotes_path(source)}"])
+      expect(normal_page.at_css(requote_link).text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
+
+      expect {
+        post jjaeks_path, params: { jjaek: { content:, visibility: :private_jjaek } }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("article").map(&:text)).to eq(normal_page.css("article").map(&:text))
+      expect(page.at_css(requote_link).text).to eq(normal_page.at_css(requote_link).text)
+      expect(response.body).not_to include(private_jjaek.content, private_requote.content, group_jjaek.content, group_book_jjaek.content)
+      expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
+      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("private_jjaek")
+      expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+    end
+
     it "creates a book-linked jjaek from a shelf context" do
       viewer.bookshelf_entries.create!(book:)
       sign_in viewer

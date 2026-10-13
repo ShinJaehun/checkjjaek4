@@ -876,7 +876,61 @@ RSpec.describe "Users", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include('name="jjaek[target_user_id]"')
-      expect(Nokogiri::HTML(response.body).at_css(invitation_form)).to be_present
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css(invitation_form)).to be_present
+      expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
+      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("book_friends")
+      expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
+      expect(page.text).to include("내용을 입력해 주세요.")
+    end
+
+    it "keeps profile visibility, bookshelf summaries, relationships, and requotes after overlong input fails" do
+      BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+      friend_shelf = profile_user.bookshelves.create!(name: "Friends shelf", visibility: :book_friends)
+      friend_entry = profile_user.bookshelf_entries.create!(bookshelf: friend_shelf, book: activity_book, status: :finished)
+      private_shelf = profile_user.bookshelves.create!(name: "Private shelf", visibility: :private)
+      private_book = Book.create!(title: "PROFILE_EXCLUDED_PRIVATE_BOOK", authors_text: "Author")
+      profile_user.bookshelf_entries.create!(bookshelf: private_shelf, book: private_book)
+      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      source = other_user.jjaeks.create!(content: "PROFILE_VISIBLE_SOURCE", visibility: :public_jjaek)
+      visible_requote = profile_user.jjaeks.create!(quoted_jjaek: source, content: "PROFILE_VISIBLE_REQUOTE")
+      viewer.jjaeks.create!(quoted_jjaek: profile_jjaek, book:, content: "PROFILE_COUNTED_REQUOTE")
+      inaccessible_group = Group.create!(lifecycle_status: :active, group_admin: profile_user, name: "Inaccessible profile group", group_type: :private_group)
+      excluded_jjaek = profile_user.jjaeks.create!(group: inaccessible_group, content: "PROFILE_EXCLUDED_GROUP")
+      invitable_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Invitable", group_type: :private_group)
+      invited_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Already invited", group_type: :private_group)
+      invitation = invited_group.group_memberships.create!(user: profile_user, status: :invited)
+      content = "PROFILE_FAILED_INPUT_" + "a" * 2_001
+      sign_in viewer
+
+      get user_path(profile_user)
+      expect(response).to have_http_status(:ok)
+      normal_page = Nokogiri::HTML(response.body)
+      expect(normal_page.text).to include(profile_jjaek.content, profile_friend_jjaek.content, visible_requote.content, activity_book.title, profile_shelf_sticker.name)
+      expect(normal_page.css("[data-bookshelf-entry-id]").map { |entry| entry["data-bookshelf-entry-id"] }).to contain_exactly(profile_entry.id.to_s, friend_entry.id.to_s)
+      requote_link = %(a[href="#{jjaek_requotes_path(profile_jjaek)}"])
+      expect(normal_page.at_css(requote_link).text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
+
+      expect {
+        post jjaeks_path, params: { jjaek: { target_user_id: profile_user.id, content:, visibility: :public_jjaek } }
+      }.not_to change(Jjaek, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("article").map(&:text)).to eq(normal_page.css("article").map(&:text))
+      expect(page.css("[data-bookshelf-entry-id]").map { |entry| entry["data-bookshelf-entry-id"] }).to eq(normal_page.css("[data-bookshelf-entry-id]").map { |entry| entry["data-bookshelf-entry-id"] })
+      expect(page.at_css("#profile-header").text).to eq(normal_page.at_css("#profile-header").text)
+      expect(page.css("#profile-header form").map { |form| form["action"] }).to eq(normal_page.css("#profile-header form").map { |form| form["action"] })
+      expect(page.at_css(%(form[action="#{invite_group_group_memberships_path(invitable_group)}"]))).to be_present
+      expect(page.at_css(%(form[action="#{revoke_group_group_membership_path(invited_group, invitation)}"]))).to be_present
+      expect(page.at_css(%(a[href="#{user_library_path(profile_user)}"]))).to be_present
+      expect(page.at_css(requote_link).text).to eq(normal_page.at_css(requote_link).text)
+      expect(response.body).not_to include(profile_private_jjaek.content, excluded_jjaek.content, private_book.title)
+      expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
+      expect(page.css('select[name="jjaek[visibility]"] option').map { |option| option["value"] }).to eq(%w[public_jjaek book_friends])
+      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("public_jjaek")
+      expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
+      expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
     end
 
     it "does not create a profile-context jjaek when the viewer cannot write in that profile context" do

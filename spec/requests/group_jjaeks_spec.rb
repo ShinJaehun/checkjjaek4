@@ -41,6 +41,59 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
   end
 
+  it "keeps private group content, members, and moderation display after overlong general input fails" do
+    group = Group.create!(lifecycle_status: :active, group_admin:, name: "Private readers", group_type: :private_group)
+    membership = group.group_memberships.create!(user: member, status: :active)
+    moderated_member = User.create!(
+      name: "Moderated member",
+      email: "group-moderation-failure@example.com",
+      password: "password123!"
+    )
+    group.group_memberships.create!(user: moderated_member, status: :active)
+    group.group_memberships.create!(user: pending_user, status: :invited)
+    source = group_admin.jjaeks.create!(group:, content: "GROUP_VISIBLE_SOURCE")
+    group_admin.jjaeks.create!(group:, book:, content: "GROUP_VISIBLE_BOOK")
+    member.jjaeks.create!(group:, quoted_jjaek: source, content: "GROUP_VISIBLE_REQUOTE")
+    hidden = moderated_member.jjaeks.create!(group:, content: "GROUP_HIDDEN_BODY")
+    Jjaeks::Hide.new(hidden, actor: group_admin, public_reason: "other").call!
+    other_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Other group", group_type: :public_group)
+    excluded = group_admin.jjaeks.create!(group: other_group, content: "GROUP_EXCLUDED_OTHER_GROUP")
+    content = "GROUP_FAILED_INPUT_" + "a" * 2_001
+    sign_in member
+
+    get group_path(group)
+    expect(response).to have_http_status(:ok)
+    normal_page = Nokogiri::HTML(response.body)
+    expect(normal_page.text).to include(
+      "GROUP_VISIBLE_SOURCE",
+      "GROUP_VISIBLE_BOOK",
+      "GROUP_VISIBLE_REQUOTE",
+      I18n.t("jjaeks.moderation.reasons.other")
+    )
+    expect(normal_page.at_css("#jjaek_#{hidden.id}")).to be_present
+    expect(normal_page.text).not_to include(hidden.content)
+    requote_link = %(a[href="#{jjaek_requotes_path(source)}"])
+    expect(normal_page.at_css(requote_link).text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
+
+    expect {
+      post group_jjaeks_path(group), params: { jjaek: { content: } }, headers: { "Accept" => "text/html" }
+    }.not_to change(Jjaek, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    page = Nokogiri::HTML(response.body)
+    expect(page.css("article").map(&:text)).to eq(normal_page.css("article").map(&:text))
+    expect(page.at_css(requote_link).text).to eq(normal_page.at_css(requote_link).text)
+    expect(normal_page.css("[data-member-preview] a").map { |link| link["href"] }).to eq([ user_path(member), user_path(moderated_member) ])
+    expect(page.css("[data-member-preview] a").map { |link| link["href"] }).to eq(normal_page.css("[data-member-preview] a").map { |link| link["href"] })
+    expect(page.text).to include(I18n.t("groups.active_member_count", count: 2))
+    expect(page.at_css(%(form[action="#{group_group_membership_path(group, membership)}"]))).to be_present
+    expect(page.at_css(%(form[action="#{group_jjaeks_path(group)}"]))).to be_present
+    expect(response.body).not_to include(excluded.content, hidden.content, pending_user.name)
+    expect(page.at_css('select[name="jjaek[visibility]"]')).to be_nil
+    expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
+    expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+  end
+
   it "preserves overlong group book content with a Korean validation error" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Readers", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
