@@ -49,6 +49,8 @@ en:
       save: "Save"
     notices:
       updated: "Settings saved."
+  content_form:
+    too_long: "Content must be %{count} characters or fewer."
   activerecord:
     errors:
       models:
@@ -61,6 +63,12 @@ en:
             visibility:
               cannot_exceed_quoted_visibility: "cannot be broader than the original Jjaek"
               invalid: "is invalid"
+        comment:
+          attributes:
+            content:
+              format: "%{message}"
+              blank: "Please enter content."
+              too_long: "Content must be %{count} characters or fewer."
         bookshelf:
           attributes:
             base:

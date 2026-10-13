@@ -1,6 +1,25 @@
 require "rails_helper"
 
 RSpec.describe Comment, type: :model do
+  it "allows 200 code points including whitespace and punctuation and rejects 201" do
+    user = User.create!(name: "Reader", email: "comment-length@example.com", password: "password123!")
+    jjaek = user.jjaeks.create!(content: "Jjaek")
+    comment = described_class.new(user:, jjaek:, content: "한a🙂 !\n" * 33 + "가!")
+    expect(comment).to be_valid
+
+    comment.content += "!"
+    expect(comment).not_to be_valid
+    expect(comment.errors.of_kind?(:content, :too_long)).to be(true)
+
+    comment.content = "a" * 198 + "\r\n🙂"
+    expect(comment.content).to eq("a" * 198 + "\n🙂")
+    expect(comment).to be_valid
+    comment.content += "!"
+    expect(comment).not_to be_valid
+    comment.content = "가"
+    expect(comment).to be_valid
+  end
+
   it "requires content" do
     user = User.create!(name: "Reader", email: "comment@example.com", password: "password123!", password_confirmation: "password123!")
     book = Book.create!(title: "북짹", authors_text: "저자")

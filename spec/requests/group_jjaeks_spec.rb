@@ -58,7 +58,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     Jjaeks::Hide.new(hidden, actor: group_admin, public_reason: "other").call!
     other_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Other group", group_type: :public_group)
     excluded = group_admin.jjaeks.create!(group: other_group, content: "GROUP_EXCLUDED_OTHER_GROUP")
-    content = "GROUP_FAILED_INPUT_" + "a" * 2_001
+    content = "GROUP_FAILED_INPUT_".ljust(201, "a")
     sign_in member
 
     get group_path(group)
@@ -91,14 +91,14 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).not_to include(excluded.content, hidden.content, pending_user.name)
     expect(page.at_css('select[name="jjaek[visibility]"]')).to be_nil
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
-    expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+    expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
   end
 
   it "preserves overlong group book content with a Korean validation error" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Readers", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     member.bookshelf_entries.create!(book:)
-    content = "동아리 책짹 입력 " + "a" * 2_001
+    content = "동아리 책짹 입력 ".ljust(201, "a")
     sign_in member
 
     expect {
@@ -107,7 +107,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     page = Nokogiri::HTML(response.body)
-    expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+    expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     expect(page.text).not_to include("Content", "is too long")
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
     expect(page.at_css("form[action='#{group_jjaeks_path(group)}']")).to be_present

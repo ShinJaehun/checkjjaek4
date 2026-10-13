@@ -87,11 +87,7 @@
 
       <p class="mt-4 text-sm text-stone-500"><%= t("groups.jjaeks.general_description") %></p>
       <%= form_with model: [@group, @jjaek], class: "mt-4 space-y-4" do |form| %>
-        <% if @jjaek.errors.any? %>
-          <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= @jjaek.errors.full_messages.to_sentence %></div>
-        <% end %>
-        <%= form.label :content, t("jjaeks.form.jjaek_content"), class: "sr-only" %>
-        <%= form.text_area :content, rows: 5, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+        <%= render "shared/content_field", form: form, label_key: "jjaeks.form.jjaek_content", rows: 5 %>
         <%= form.submit t("groups.jjaeks.tabs.general"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
       <% end %>
     </section>

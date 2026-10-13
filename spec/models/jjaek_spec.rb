@@ -5,6 +5,32 @@ RSpec.describe Jjaek, type: :model do
   let(:other_user) { User.create!(name: "Other", email: "other-jjaek@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "북짹", authors_text: "저자") }
 
+  it "allows 200 code points and rejects 201 for every Jjaek context without counting the quoted source" do
+    group = Group.create!(group_admin: user, name: "Readers", group_type: :public_group, lifecycle_status: :active)
+    source = user.jjaeks.create!(content: "원" * 200)
+    content = "한a🙂 !\n" * 33 + "가!"
+
+    [ {}, { book: }, { group: }, { group:, book: }, { quoted_jjaek: source } ].each do |attributes|
+      jjaek = described_class.new(**attributes, user:, content:)
+      expect(jjaek).to be_valid
+
+      jjaek.content += "!"
+      expect(jjaek).not_to be_valid
+      expect(jjaek.errors.of_kind?(:content, :too_long)).to be(true)
+    end
+  end
+
+  it "counts CRLF and CR line breaks as one character without imposing a minimum length" do
+    jjaek = described_class.new(user:, content: "a" * 198 + "\r\n🙂")
+    expect(jjaek.content).to eq("a" * 198 + "\n🙂")
+    expect(jjaek).to be_valid
+
+    jjaek.content = "a" * 198 + "\r🙂!"
+    expect(jjaek).not_to be_valid
+    jjaek.content = "가"
+    expect(jjaek).to be_valid
+  end
+
   it "allows a jjaek without a book" do
     jjaek = described_class.new(user:, content: "책 없이 남기는 짹")
 

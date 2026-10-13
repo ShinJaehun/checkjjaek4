@@ -51,6 +51,8 @@ ko:
       save: "저장"
     notices:
       updated: "설정을 저장했습니다."
+  content_form:
+    too_long: "내용은 %{count}자 이하로 입력해 주세요."
   activerecord:
     errors:
       models:
@@ -59,10 +61,16 @@ ko:
             content:
               format: "%{message}"
               blank: "내용을 입력해 주세요."
-              too_long: "내용은 2,000자 이하로 입력해 주세요."
+              too_long: "내용은 %{count}자 이하로 입력해 주세요."
             visibility:
               cannot_exceed_quoted_visibility: "원문보다 더 넓게 공개할 수 없습니다"
               invalid: "올바르지 않습니다"
+        comment:
+          attributes:
+            content:
+              format: "%{message}"
+              blank: "내용을 입력해 주세요."
+              too_long: "내용은 %{count}자 이하로 입력해 주세요."
         bookshelf:
           attributes:
             base:

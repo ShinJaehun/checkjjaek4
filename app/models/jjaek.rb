@@ -24,7 +24,9 @@ class Jjaek < ApplicationRecord
 
   before_destroy :mark_requotes_as_deleted_source
 
-  validates :content, presence: true, length: { maximum: 2_000 }, unless: :deleted?
+  normalizes :content, with: ->(content) { content.gsub(/\r\n?/, "\n") }
+
+  validates :content, presence: true, length: { maximum: 200 }, unless: :deleted?
   validates :quoted_jjaek_id,
             uniqueness: { scope: %i[user_id group_id] },
             allow_nil: true

@@ -33,12 +33,6 @@
                       jjaeks_path
                     end %>
       <%= form_with model: @jjaek, url: form_url, class: "space-y-4" do |form| %>
-        <% if @jjaek.errors.any? %>
-          <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <%= @jjaek.errors.full_messages.to_sentence %>
-          </div>
-        <% end %>
-
         <%= form.hidden_field :book_id, value: @book.id if @book.present? %>
         <%= form.hidden_field :quoted_jjaek_id, value: @quoted_jjaek&.id %>
 
@@ -75,9 +69,7 @@
                                 else
                                   "jjaeks.form.jjaek_content"
                                 end %>
-          <%= form.label :content, t(content_label_key), class: "sr-only" %>
-          <%= form.text_area :content, rows: 8, required: @group.present? || @share_to_group,
-                            class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+          <%= render "shared/content_field", form: form, label_key: content_label_key, rows: 8, required: @group.present? || @share_to_group %>
         </div>
 
         <% submit_label = if @share_to_group

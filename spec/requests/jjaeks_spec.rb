@@ -69,7 +69,7 @@ RSpec.describe "Jjaeks", type: :request do
       group_jjaek = original_author.jjaeks.create!(group:, content: "HOME_EXCLUDED_GROUP")
       group_book_jjaek = original_author.jjaeks.create!(group:, book:, content: "HOME_EXCLUDED_GROUP_BOOK")
       activity = BookActivity.create!(user: original_author, book:, action: :added_to_shelf, created_at: 2.hours.ago)
-      content = "HOME_FAILED_INPUT_" + "a" * 2_001
+      content = "HOME_FAILED_INPUT_".ljust(201, "a")
       sign_in viewer
 
       get root_path
@@ -91,7 +91,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).not_to include(private_jjaek.content, private_requote.content, group_jjaek.content, group_book_jjaek.content)
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
       expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("private_jjaek")
-      expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+      expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     end
 
     it "creates a book-linked jjaek from a shelf context" do
@@ -121,7 +121,7 @@ RSpec.describe "Jjaeks", type: :request do
       private_original = original_author.jjaeks.create!(book:, content: "PRIVATE_FAILURE_ORIGINAL", visibility: :private_jjaek)
       group = Group.create!(name: "실패 화면 동아리", group_admin: original_author, group_type: :public_group, lifecycle_status: :active)
       group_original = original_author.jjaeks.create!(book:, group:, content: "GROUP_FAILURE_ORIGINAL")
-      submitted_content = "FAILED_BOOK_INPUT_" + "a" * 2_001
+      submitted_content = "FAILED_BOOK_INPUT_".ljust(201, "a")
       invalid_jjaek = viewer.jjaeks.build(book:, content: submitted_content, visibility: :book_friends)
       invalid_jjaek.valid?
       sign_in viewer
@@ -157,7 +157,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(submitted_content)
       expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("book_friends")
       expect(page.text).to include(invalid_jjaek.errors.full_messages.to_sentence)
-      expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+      expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
       expect(page.text).not_to include("Content", "is too long")
     end
 

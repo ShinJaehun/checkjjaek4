@@ -1,0 +1,27 @@
+<% content_length = form.object.content.to_s.length %>
+<% over_limit = content_length > 200 %>
+<% server_messages = form.object.errors.reject { |error| error.attribute == :content && error.type == :too_long }.map(&:full_message) %>
+
+<div class="space-y-2"
+     data-controller="content-length"
+     data-content-length-limit-value="200"
+     data-content-length-message-value="<%= t('content_form.too_long', count: 200) %>"
+     data-action="reset@document->content-length#reset">
+  <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+       data-content-length-target="errors"
+       role="alert"
+       <%= "hidden" unless server_messages.any? || over_limit %>>
+    <p data-content-length-target="serverErrors" <%= "hidden" if server_messages.empty? %>><%= server_messages.to_sentence %></p>
+    <p data-content-length-target="warning" <%= "hidden" unless over_limit %>><%= t("content_form.too_long", count: 200) %></p>
+  </div>
+  <%= form.label :content, t(label_key), class: "sr-only" %>
+  <%= form.text_area :content,
+                     rows: rows,
+                     required: local_assigns.fetch(:required, false),
+                     data: { content_length_target: "input", action: "input->content-length#update invalid->content-length#invalid" },
+                     class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+  <p class="text-right text-sm">
+    <span class="<%= over_limit ? "text-red-700" : "text-stone-400" %>"
+          data-content-length-target="counter" aria-live="polite"><%= content_length %> / 200</span>
+  </p>
+</div>

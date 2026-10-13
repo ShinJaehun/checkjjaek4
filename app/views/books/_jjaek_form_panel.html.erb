@@ -14,12 +14,6 @@
 
   <div class="<%= quoted_jjaek.present? ? 'mt-5' : nil %>">
     <%= form_with model: (jjaek.group_id.present? ? [jjaek.group, jjaek] : jjaek), class: "space-y-4" do |form| %>
-      <% if jjaek.errors.any? %>
-        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <%= jjaek.errors.full_messages.to_sentence %>
-        </div>
-      <% end %>
-
       <%= form.hidden_field :book_id, value: book.id %>
       <%= form.hidden_field :quoted_jjaek_id, value: quoted_jjaek&.id %>
 
@@ -33,10 +27,7 @@
         </div>
       <% end %>
 
-      <div class="space-y-2">
-        <%= form.label :content, t("jjaeks.form.book_jjaek_content"), class: "sr-only" %>
-        <%= form.text_area :content, rows: 8, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
-      </div>
+      <%= render "shared/content_field", form: form, label_key: "jjaeks.form.book_jjaek_content", rows: 8 %>
 
       <%= form.submit t(jjaek.group_id.present? ? "groups.jjaeks.tabs.book" : "jjaeks.actions.publish_book"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
     <% end %>

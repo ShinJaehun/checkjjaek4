@@ -5,6 +5,8 @@ class Comment < ApplicationRecord
   belongs_to :user
   has_many :moderation_actions, as: :target
 
+  normalizes :content, with: ->(content) { content.gsub(/\r\n?/, "\n") }
+
   validates :content, presence: true, length: { maximum: 200 }
 
   scope :visible, -> { where(hidden_at: nil) }

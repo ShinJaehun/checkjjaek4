@@ -900,7 +900,7 @@ RSpec.describe "Users", type: :request do
       invitable_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Invitable", group_type: :private_group)
       invited_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Already invited", group_type: :private_group)
       invitation = invited_group.group_memberships.create!(user: profile_user, status: :invited)
-      content = "PROFILE_FAILED_INPUT_" + "a" * 2_001
+      content = "PROFILE_FAILED_INPUT_".ljust(201, "a")
       sign_in viewer
 
       get user_path(profile_user)
@@ -930,7 +930,7 @@ RSpec.describe "Users", type: :request do
       expect(page.css('select[name="jjaek[visibility]"] option').map { |option| option["value"] }).to eq(%w[public_jjaek book_friends])
       expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("public_jjaek")
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
-      expect(page.text).to include("내용은 2,000자 이하로 입력해 주세요.")
+      expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     end
 
     it "does not create a profile-context jjaek when the viewer cannot write in that profile context" do
