@@ -51,11 +51,11 @@
   <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="actions">
     <% if root_row %>
       <%= link_to t("admin.user_content.actions.direct"),
-                  jjaek_path(root),
+                  jjaek_path(root, jjaek_navigation_params),
                   class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
     <% else %>
       <%= link_to t("admin.user_content.actions.direct"),
-                  jjaek_path(root, anchor: dom_id(record)),
+                  jjaek_path(root, jjaek_navigation_params.merge(anchor: dom_id(record))),
                   class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
     <% end %>
   </td>

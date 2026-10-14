@@ -1,4 +1,5 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
+  <%= render "jjaeks/back_link", default_path: jjaek_path(@jjaek) %>
   <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
     <% if @jjaek.group_id.present? %>
       <div class="mb-6 text-sm text-stone-600">
@@ -34,6 +35,7 @@
 
     <div class="mt-6">
       <%= form_with model: @jjaek, class: "space-y-4" do |form| %>
+        <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
         <% if @jjaek.group_id.blank? %>
           <div class="space-y-2">
             <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>

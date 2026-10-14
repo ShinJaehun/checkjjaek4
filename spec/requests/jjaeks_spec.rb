@@ -634,7 +634,13 @@ RSpec.describe "Jjaeks", type: :request do
         get jjaek_path(group_jjaek)
         links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
         expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: group_jjaek.id))
-        expect(links).to include(new_group_jjaek_path(group, quoted_jjaek_id: group_jjaek.id))
+        expect(links).to include(
+          new_group_jjaek_path(
+            group,
+            quoted_jjaek_id: group_jjaek.id,
+            return_to: jjaek_path(group_jjaek)
+          )
+        )
       end
 
       inactive_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Hidden inactive", group_type: :public_group)
@@ -645,8 +651,12 @@ RSpec.describe "Jjaeks", type: :request do
 
       get jjaek_path(inactive_jjaek)
       links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
-      expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: inactive_jjaek.id))
-      expect(links).not_to include(new_group_jjaek_path(inactive_group, quoted_jjaek_id: inactive_jjaek.id))
+      expect(links).not_to include(
+        a_string_starting_with(new_jjaek_path(quoted_jjaek_id: inactive_jjaek.id))
+      )
+      expect(links).not_to include(
+        a_string_starting_with(new_group_jjaek_path(inactive_group))
+       )
       expect(response.body).to include(jjaek_requotes_path(inactive_jjaek))
     end
 
@@ -749,9 +759,12 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("Author")
       expect(response.body).to include("user_profile_")
       expect(response.body).to include(%(alt="#{original_author.name}"))
-      expect(response.body).to include("님의 책짹을 개인 피드에 다시짹")
+      expect(response.body).to include("님의 책짹을 개인 소식에 다시짹")
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{requote.id}")
-      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 책짹을 개인 피드에 다시짹")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 책짹을 개인 소식에 다시짹")
+      thumbnail = card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")
+      expect(thumbnail).to be_present
+      expect(thumbnail["alt"]).to eq(original_author.name)
     end
 
     it "shows the general requote context label on the detail page" do
@@ -763,9 +776,12 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response.body).to include("REQUEST_VIEWER_GENERAL_REQUOTE_BODY")
       expect(response.body).to include("REQUEST_ORIGINAL_GENERAL_SOURCE")
-      expect(response.body).to include("님의 짹을 개인 피드에 다시짹")
+      expect(response.body).to include("님의 짹을 개인 소식에 다시짹")
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{general_requote.id}")
-      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 개인 피드에 다시짹")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 개인 소식에 다시짹")
+      thumbnail = card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")
+      expect(thumbnail).to be_present
+      expect(thumbnail["alt"]).to eq(original_author.name)
     end
 
     it "links the source group on home, profile, and detail cards for a general requote" do
@@ -780,8 +796,9 @@ RSpec.describe "Jjaeks", type: :request do
         card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
         expect(card).to be_present
         expect(card.text).to include("#{group.name}에 올라온")
-        expect(card.text).to include("님의 짹을 개인 피드에 다시짹")
+        expect(card.text).to include("님의 짹을 개인 소식에 다시짹")
         expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
+        expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_present
       end
 
       source.destroy!
@@ -789,6 +806,7 @@ RSpec.describe "Jjaeks", type: :request do
 
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
       expect(card.text).not_to include(group.name)
+      expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_nil
       expect(card.at_css("a[href='#{group_path(group)}']")).to be_nil
       expect(card.text).to include(I18n.t("jjaeks.labels.deleted_quoted_source"))
     end
@@ -805,8 +823,9 @@ RSpec.describe "Jjaeks", type: :request do
         card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
         expect(card).to be_present
         expect(card.text).to include("#{group.name}에 올라온")
-        expect(card.text).to include("님의 책짹을 개인 피드에 다시짹")
+        expect(card.text).to include("님의 책짹을 개인 소식에 다시짹")
         expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
+        expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_present
       end
     end
 
@@ -983,6 +1002,7 @@ RSpec.describe "Jjaeks", type: :request do
         expect(card).to be_present
         expect(card.text).to include("GROUP_SHARE_OPINION", group.name)
         expect(card.text).not_to include("HIDDEN_PERSONAL_SOURCE", original_author.name, book.title)
+        expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_nil
       end
 
       Jjaeks::Restore.new(source, actor: admin, public_reason: "Restored").call!
@@ -990,6 +1010,8 @@ RSpec.describe "Jjaeks", type: :request do
       sign_in viewer
       get jjaek_path(share)
       expect(response.body).to include("HIDDEN_PERSONAL_SOURCE")
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{share.id}")
+      expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_present
       expect(share.reload.quoted_jjaek_id).to eq(source.id)
       expect(ModerationAction.where(target: source).count).to eq(2)
     end

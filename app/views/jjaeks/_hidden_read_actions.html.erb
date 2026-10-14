@@ -13,6 +13,6 @@
                 jjaek_comments_path(jjaek, inline_comments_params),
                 data: { turbo_stream: true },
                 class: "font-medium text-stone-700" %>
-    <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-stone-700" %>
+    <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek, jjaek_navigation_params), class: "font-medium text-stone-700" %>
   <% end %>
 </div>

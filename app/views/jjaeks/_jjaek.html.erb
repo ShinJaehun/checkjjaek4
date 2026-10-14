@@ -60,7 +60,7 @@ end %>
     <% end %>
   <% elsif jjaek.hidden? && inline_comments_context == :group && jjaek_policy.show? %>
     <div class="mt-4 text-xs">
-      <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek), class: "font-medium text-red-800" %>
+      <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek, jjaek_navigation_params), class: "font-medium text-red-800" %>
     </div>
   <% end %>
 

@@ -431,9 +431,9 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(personal_row.at_css("[data-field='status']").text.strip).to eq("정상")
     expect(personal_row.at_css("[data-field='status'] span")["class"]).to include("bg-emerald-100")
     expect(personal_row.at_css("[data-field='actions'] a").text.strip).to eq("바로가기")
-    expect(personal_row.at_css("a[href='#{jjaek_path(personal_jjaek)}']")).to be_present
+    expect(personal_row.at_css("a[href='#{jjaek_path(personal_jjaek, return_to: content_admin_user_path(reader))}']")).to be_present
     comment_anchor = ActionView::RecordIdentifier.dom_id(comment)
-    expect(comment_row.at_css("a[href='#{jjaek_path(source, anchor: comment_anchor)}']")).to be_present
+    expect(comment_row.at_css("a[href='#{jjaek_path(source, anchor: comment_anchor, return_to: content_admin_user_path(reader))}']")).to be_present
     expect(response.body).not_to include(other_jjaek.content)
     expect(response.body).not_to include(reader.encrypted_password, "reset_password_token")
   end

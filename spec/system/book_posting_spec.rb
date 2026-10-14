@@ -57,9 +57,11 @@ RSpec.describe "Book posting location", type: :system do
     expect(page).to have_field(I18n.t("jjaeks.form.book_jjaek_content"), with: "동아리에서 시작한 개인 책짹")
     click_button I18n.t("jjaeks.actions.publish_book")
 
-    expect(page).to have_current_path(%r{\A/jjaeks/\d+\z})
+    expect(page).to have_current_path(%r{\A/jjaeks/\d+\z}, ignore_query: true)
     post = user.jjaeks.order(:id).last
-    expect(page).to have_current_path(jjaek_path(post))
+    expect(page).to have_current_path(
+      jjaek_path(post, return_to: book_path(book, group_id: group.id))
+    )
     expect(post).to have_attributes(book: book, group_id: nil, visibility: "book_friends", content: "동아리에서 시작한 개인 책짹")
     expect(group.jjaeks).to be_empty
   end
@@ -77,7 +79,11 @@ RSpec.describe "Book posting location", type: :system do
     select I18n.t("jjaeks.visibility.private_jjaek"), from: I18n.t("jjaeks.form.visibility")
     click_button I18n.t("jjaeks.actions.publish_book")
 
-    expect(page).to have_current_path(%r{\A/jjaeks/\d+\z})
-    expect(user.jjaeks.order(:id).last).to have_attributes(book: book, group_id: nil, visibility: "private_jjaek", content: "동아리 선택 없이 작성한 책짹")
+    expect(page).to have_current_path(%r{\A/jjaeks/\d+\z}, ignore_query: true)
+    post = user.jjaeks.order(:id).last
+    expect(page).to have_current_path(
+      jjaek_path(post, return_to: book_path(book))
+    )
+    expect(post).to have_attributes(book: book, group_id: nil, visibility: "private_jjaek", content: "동아리 선택 없이 작성한 책짹")
   end
 end

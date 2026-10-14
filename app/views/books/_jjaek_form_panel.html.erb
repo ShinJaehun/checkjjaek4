@@ -20,6 +20,7 @@
   <div class="<%= quoted_jjaek.present? ? 'mt-5' : nil %>">
     <% form_url = !select_destination && group_post ? group_jjaeks_path(jjaek.group) : jjaeks_path %>
     <%= form_with model: jjaek, url: form_url, class: "space-y-4" do |form| %>
+      <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
       <%= form.hidden_field :book_id, value: book.id %>
       <%= form.hidden_field :quoted_jjaek_id, value: quoted_jjaek&.id %>
 

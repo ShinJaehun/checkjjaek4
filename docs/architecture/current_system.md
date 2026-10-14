@@ -148,6 +148,7 @@
 - self / accepted book_friend만 접근할 수 있다
 - stranger / follow-only가 접근하면 프로필 화면으로 redirect된다
 - 접근 가능한 책장 탭, 선택된 책장 책 목록, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
+- 서재 타이틀 요약은 기존 policy scope 결과와 책장별 집계를 재사용한다. 표시 정책은 `docs/specs/library_screen.md`를 따른다
 - 관리 기능은 self에게만 제공한다
 - 기본 Library는 책장 하나만 detail 카드로 표시한다
 - 기본 Library의 책장 전환 UI는 선택 책장을 바꾸는 탐색만 담당한다
@@ -542,6 +543,15 @@ BooksController#show
 → Jjaek.new (book context)
 → POST /jjaeks
 → JjaeksController#create
+
+---
+
+### 3. 게시물 문맥과 복귀 경로
+
+- `JjaeksHelper`는 기존 문맥 문장에 동아리 배지와 받는 사람·원문 작성자의 프로필 썸네일을 구성한다.
+- 게시물 링크와 작성·수정 흐름은 단일 `return_to`를 전달한다. helper에서 허용된 내부 GET route, query key와 현재 Pundit 접근 권한을 검증하고, `JjaeksController`는 개인 작성·수정의 상세 redirect에도 검증된 출처를 유지한다.
+- 돌아가기 링크는 검증된 복귀 경로를 사용한다. 기존 moderation의 `GroupContentReturnContext`와 전용 액션 링크는 별도 흐름으로 유지한다.
+- 세부 표시와 복귀 정책은 `docs/specs/bookjjaek_reboot_spec.md`를 따른다.
 
 ---
 

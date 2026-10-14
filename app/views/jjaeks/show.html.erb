@@ -1,4 +1,5 @@
 <section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
+  <%= render "jjaeks/back_link", default_path: jjaek_default_return_path(@jjaek) %>
   <%= render "jjaeks/jjaek",
              jjaek: @jjaek,
              detail_context: true,
@@ -8,7 +9,7 @@
   <% if policy(@jjaek).create_requote? %>
     <div>
       <%= link_to t("jjaeks.actions.requote"),
-                  new_jjaek_path(quoted_jjaek_id: @jjaek.id),
+                  new_jjaek_path(jjaek_navigation_params.merge(quoted_jjaek_id: @jjaek.id)),
                   class: "inline-flex rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
     </div>
   <% end %>

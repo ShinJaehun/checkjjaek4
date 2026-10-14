@@ -36,6 +36,11 @@ class Users::LibrariesController < ApplicationController
     @profile_bookshelves = policy_scope(@user.bookshelves).default_first
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
+    @library_summary_bookshelves = if current_user == @user
+      @profile_bookshelves
+    else
+      @profile_bookshelves.reject(&:visibility_private?)
+    end
     @selected_bookshelf = selected_library_bookshelf(@profile_bookshelves)
     @managed_bookshelf = @selected_bookshelf if @show_profile_bookshelf_create_form && @selected_bookshelf&.is_default? == false
     @profile_bookshelf_order_controls = @show_profile_bookshelf_create_form ? bookshelf_order_controls(@profile_bookshelves) : {}

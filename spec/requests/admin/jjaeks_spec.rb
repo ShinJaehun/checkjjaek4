@@ -206,7 +206,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(home_card.at_css("#comment_action_jjaek_#{general.id}")).to be_present
     expect(home_card.text).not_to include(general.content, "PRIVATE PLATFORM NOTE", "운영 이력", "다시짹")
     expect(home_card.at_css(%(a[href="#{jjaek_comments_path(general, comments_context: :home)}"]))).to be_present
-    expect(home_card.at_css(%(a[href="#{jjaek_path(general)}"]))).to be_present
+    expect(home_card.at_css(%(a[href="#{jjaek_path(general, return_to: root_path)}"]))).to be_present
     expect(home_card.at_css(%(form[action="#{jjaek_like_path(general)}"]))).to be_nil
     home_group_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{group_jjaek.id}")
     expect(home_group_card).to be_nil
@@ -348,7 +348,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     expect(response.body.scan(%(id="jjaek_#{jjaek.id}")).size).to eq(1)
     expect(response.body.scan("ADMIN GROUP HIDDEN SOURCE").size).to eq(1)
     expect(wrapper.at_css(%(a[href="#{jjaek_comments_path(jjaek, comments_context: :group)}"]))).to be_present
-    expect(wrapper.at_css(%(a[href="#{jjaek_path(jjaek)}"]))).to be_present
+        expect(wrapper.at_css(%(a[href="#{jjaek_path(jjaek, return_to: group_path(group))}"]))).to be_present
     expect(wrapper.at_css(%(form[action="#{jjaek_like_path(jjaek)}"]))).to be_nil
     expect(wrapper.at_css(%(a[href="#{new_jjaek_path(quoted_jjaek_id: jjaek.id)}"]))).to be_nil
 

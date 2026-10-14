@@ -876,9 +876,9 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(timeline.at_css("#group_timeline_comment_#{hidden_comment.id} [data-field='status'] span")["class"]).to include("bg-red-100")
     expect(deleted_comment_row.at_css("[data-field='reference']").text.strip).to be_empty
     expect(timeline.text).not_to include(other_jjaek.content)
-    expect(book_row.at_css("a[href='#{jjaek_path(book_jjaek)}']")).to be_present
+    expect(book_row.at_css("a[href='#{jjaek_path(book_jjaek, return_to: content_admin_group_path(active_group))}']")).to be_present
     comment_anchor = ActionView::RecordIdentifier.dom_id(comment)
-    expect(comment_row.at_css("a[href='#{jjaek_path(general, anchor: comment_anchor)}']")).to be_present
+    expect(comment_row.at_css("a[href='#{jjaek_path(general, anchor: comment_anchor, return_to: content_admin_group_path(active_group))}']")).to be_present
 
     navigation = controls.at_css("nav[aria-label='활동 유형']")
     expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "동아리짹", "동아리 책짹", "댓글" ])
@@ -960,9 +960,9 @@ RSpec.describe "Admin group approvals", type: :request do
 
     expect(comment_row.at_css("[data-field='reference']").text.strip).to be_empty
     expect(comment_row.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
-    expect(source_row.at_css("a[href='#{jjaek_path(source)}']")).to be_present
+    expect(source_row.at_css("a[href='#{jjaek_path(source, return_to: content_admin_group_path(active_group))}']")).to be_present
     comment_anchor = ActionView::RecordIdentifier.dom_id(comment)
-    expect(comment_row.at_css("a[href='#{jjaek_path(source, anchor: comment_anchor)}']")).to be_present
+    expect(comment_row.at_css("a[href='#{jjaek_path(source, anchor: comment_anchor, return_to: content_admin_group_path(active_group))}']")).to be_present
   end
 
   it "filters Group content and preserves filters across navigation" do

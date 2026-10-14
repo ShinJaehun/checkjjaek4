@@ -138,7 +138,7 @@ RSpec.describe "Homes", type: :request do
       expect(response.body).to include(%(href="/jjaeks/#{jjaek.id}/comments?comments_context=home"))
       expect(response.body).to include(%(data-turbo-stream="true"))
       expect(page_text).to include(I18n.t("comments.actions.view_inline"))
-      expect(response.body).to include(%(href="/jjaeks/#{jjaek.id}#comments_panel_jjaek_#{jjaek.id}"))
+      expect(response.body).to include(%(href="#{ERB::Util.html_escape(jjaek_path(jjaek, return_to: root_path, anchor: "comments_panel_jjaek_#{jjaek.id}"))}"))
     end
 
     it "keeps group jjaeks out of the people-based home feed" do

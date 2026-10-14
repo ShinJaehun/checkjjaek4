@@ -598,8 +598,8 @@ RSpec.describe "Group Jjaeks", type: :request do
     )
     expect(response.body).to include(jjaek_like_path(jjaek))
     links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
-    expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: jjaek.id))
-    expect(links).to include(new_group_jjaek_path(group, quoted_jjaek_id: jjaek.id))
+    expect(links).not_to include(new_jjaek_path(return_to: group_path(group), quoted_jjaek_id: jjaek.id))
+    expect(links).to include(new_group_jjaek_path(group, return_to: group_path(group), quoted_jjaek_id: jjaek.id))
   end
 
   it "shows the book search context only to an active member" do

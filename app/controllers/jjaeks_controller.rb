@@ -108,7 +108,7 @@ class JjaeksController < ApplicationController
     end
 
     if updated
-      redirect_to jjaek_path(@jjaek), notice: t("jjaeks.notices.updated")
+      redirect_to jjaek_path(@jjaek, post_return_params), notice: t("jjaeks.notices.updated")
     else
       render :edit, status: :unprocessable_content
     end
@@ -239,10 +239,16 @@ class JjaeksController < ApplicationController
     end
   end
 
+  def post_return_params
+    path = view_context.validated_jjaek_return_path(params[:return_to])
+    path = nil if path == jjaek_path(@jjaek)
+    path ? { return_to: path } : {}
+  end
+
   def create_success_path
     return group_path(@group) if @group.present?
 
-    target_user.present? ? root_path : jjaek_path(@jjaek)
+    target_user.present? ? root_path : jjaek_path(@jjaek, post_return_params)
   end
 
   def find_jjaek_group

@@ -5,6 +5,11 @@
         <%= user_avatar_image(@user, size: 128, alt: @user.name, class: "h-12 w-12 shrink-0 rounded-full object-cover") %>
         <div class="min-w-0">
           <h1 class="truncate text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.library.title_with_name", name: @user.name) %></h1>
+          <% if @library_summary_bookshelves.present? %>
+            <p class="mt-1 break-words text-sm leading-6 text-stone-500" data-library-bookshelf-summary>
+              <%= safe_join(@library_summary_bookshelves.map { |bookshelf| t("users.library.bookshelf_summary", name: bookshelf.name, count: @profile_bookshelf_entry_counts.fetch(bookshelf.id, 0)) }, " · ") %>
+            </p>
+          <% end %>
           <% if current_user != @user %>
             <p class="mt-1 text-sm text-stone-500"><%= t("users.library.book_friend_read_only_notice") %></p>
           <% end %>

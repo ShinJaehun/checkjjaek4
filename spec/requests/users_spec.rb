@@ -51,7 +51,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(%(id="comments_panel_profile_#{profile_user.id}_jjaek_#{profile_jjaek.id}"))
       expect(response.body).to include(%(href="/jjaeks/#{profile_jjaek.id}/comments?comments_context=profile&amp;profile_user_id=#{profile_user.id}"))
       expect(response.body).to include(%(data-turbo-stream="true"))
-      expect(response.body).to include(%(href="/jjaeks/#{profile_jjaek.id}#comments_panel_jjaek_#{profile_jjaek.id}"))
+      expect(response.body).to include(%(href="#{ERB::Util.html_escape(jjaek_path(profile_jjaek, return_to: user_path(profile_user), anchor: "comments_panel_jjaek_#{profile_jjaek.id}"))}"))
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include("Other private")
@@ -753,7 +753,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("PROFILE_REQUOTE_VISIBLE_ORIGINAL")
       expect(response.body).to include(other_user.name)
       expect(response.body).to include(user_path(other_user))
-      expect(page_text).to include("Profile User님이 Other님의 짹을 개인 피드에 다시짹")
+      expect(page_text).to include("Profile User님이 Other님의 짹을 개인 소식에 다시짹")
     end
 
     it "does not show BookActivity on a stranger's profile" do

@@ -10,6 +10,45 @@ RSpec.describe "User libraries", type: :request do
     user.bookshelf_entries.create!(book:, bookshelf: target_bookshelf)
   end
 
+  it "shows every owned bookshelf and its existing count in the title summary" do
+    sign_in user
+
+    get user_library_path(user)
+
+    summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
+    expect(summary.text.squish).to include("내 책장 0권", "Selected Shelf 0권", "Target Shelf 1권")
+    expect(summary.text).to include("·")
+  end
+
+  it "limits another user's title summary to visible non-private shelves" do
+    friend = User.create!(name: "Friend", email: "summary-friend@example.com", password: "password123!")
+    BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+    public_shelf = user.bookshelves.create!(name: "Public Summary", visibility: :public)
+    friend_shelf = user.bookshelves.create!(name: "Friends Summary", visibility: :book_friends)
+    user.bookshelf_entries.create!(book: Book.create!(title: "Friend summary book"), bookshelf: friend_shelf)
+    sign_in friend
+
+    get user_library_path(user)
+
+    summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
+    expect(summary.text).to include("Public Summary 0권", "Friends Summary 1권")
+    expect(summary.text).not_to include(selected_bookshelf.name, target_bookshelf.name)
+    expect(response.body).not_to include("Target Shelf", "Selected Shelf")
+  end
+
+  it "does not include private shelves in another user's title summary for an admin book friend" do
+    admin_friend = User.create!(name: "Admin Friend", email: "summary-admin-friend@example.com", password: "password123!", global_admin: true)
+    BookFriendship.create!(requester: user, addressee: admin_friend, status: :accepted)
+    sign_in admin_friend
+
+    get user_library_path(user)
+
+    expect(response).to have_http_status(:ok)
+    summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
+    expect(summary.text).to include("내 책장 0권")
+    expect(summary.text).not_to include(selected_bookshelf.name, target_bookshelf.name)
+  end
+
   it "redirects a global admin without book friendship away from another user's library" do
     admin = User.create!(
       name: "Admin",

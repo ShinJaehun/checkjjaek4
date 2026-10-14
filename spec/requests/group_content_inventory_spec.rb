@@ -167,9 +167,9 @@ RSpec.describe "Group content inventory", type: :request do
     root_link = document.at_css("#group_content_jjaek_#{root.id} [data-field='actions'] a")
     comment_link = document.at_css("#group_content_comment_#{newer_comment.id} [data-field='actions'] a")
     expect(root_link.text).to include(I18n.t("groups.content_inventory.actions.direct"))
-    expect(root_link["href"]).to eq(jjaek_path(root))
+    expect(root_link["href"]).to eq(jjaek_path(root, return_to: content_group_path(group)))
     expect(comment_link.text).to include(I18n.t("groups.content_inventory.actions.direct"))
-    expect(comment_link["href"]).to eq(jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(newer_comment)))
+    expect(comment_link["href"]).to eq(jjaek_path(root, return_to: content_group_path(group), anchor: ActionView::RecordIdentifier.dom_id(newer_comment)))
     actions_for = lambda do |row_id|
       document.css("##{row_id} [data-field='actions'] a").map { |link| [ link.text.strip, link["href"] ] }
     end
@@ -177,35 +177,35 @@ RSpec.describe "Group content inventory", type: :request do
     hide = I18n.t("jjaeks.moderation.group_admin.actions.hide")
     restore = I18n.t("jjaeks.moderation.group_admin.actions.restore")
     expect(actions_for.call("group_content_jjaek_#{root.id}")).to eq([
-      [ direct, jjaek_path(root) ], [ hide, new_jjaek_group_hide_path(root, return_to: "group_content") ]
+      [ direct, jjaek_path(root, return_to: content_group_path(group)) ], [ hide, new_jjaek_group_hide_path(root, return_to: "group_content") ]
     ])
     expect(actions_for.call("group_content_jjaek_#{group_hidden_root.id}")).to eq([
-      [ direct, jjaek_path(group_hidden_root) ], [ restore, new_jjaek_group_restoration_path(group_hidden_root, return_to: "group_content") ]
+      [ direct, jjaek_path(group_hidden_root, return_to: content_group_path(group)) ], [ restore, new_jjaek_group_restoration_path(group_hidden_root, return_to: "group_content") ]
     ])
     expect(actions_for.call("group_content_jjaek_#{platform_hidden_root.id}")).to eq([
-      [ direct, jjaek_path(platform_hidden_root) ]
+      [ direct, jjaek_path(platform_hidden_root, return_to: content_group_path(group)) ]
     ])
     expect(actions_for.call("group_content_jjaek_#{deleted_root.id}")).to eq([
-      [ direct, jjaek_path(deleted_root) ]
+      [ direct, jjaek_path(deleted_root, return_to: content_group_path(group)) ]
     ])
-    comment_direct = jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(newer_comment))
+    comment_direct = jjaek_path(root, return_to: content_group_path(group), anchor: ActionView::RecordIdentifier.dom_id(newer_comment))
     expect(actions_for.call("group_content_comment_#{newer_comment.id}")).to eq([
       [ direct, comment_direct ],
       [ I18n.t("comments.moderation.group_admin.actions.hide"), new_jjaek_comment_group_hide_path(root, newer_comment, return_to: "group_content") ]
     ])
     expect(actions_for.call("group_content_comment_#{group_hidden_comment.id}")).to eq([
-      [ direct, jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(group_hidden_comment)) ],
+      [ direct, jjaek_path(root, return_to: content_group_path(group), anchor: ActionView::RecordIdentifier.dom_id(group_hidden_comment)) ],
       [ I18n.t("comments.moderation.group_admin.actions.restore"), new_jjaek_comment_group_restoration_path(root, group_hidden_comment, return_to: "group_content") ]
     ])
     expect(actions_for.call("group_content_comment_#{platform_hidden_comment.id}").map(&:last)).to eq([
-      jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(platform_hidden_comment))
+      jjaek_path(root, return_to: content_group_path(group), anchor: ActionView::RecordIdentifier.dom_id(platform_hidden_comment))
     ])
     [ own_root, global_admin_root ].each do |unmoderatable_root|
-      expect(actions_for.call("group_content_jjaek_#{unmoderatable_root.id}").map(&:last)).to eq([ jjaek_path(unmoderatable_root) ])
+      expect(actions_for.call("group_content_jjaek_#{unmoderatable_root.id}").map(&:last)).to eq([ jjaek_path(unmoderatable_root, return_to: content_group_path(group)) ])
     end
     [ own_comment, global_admin_comment ].each do |unmoderatable_comment|
       expect(actions_for.call("group_content_comment_#{unmoderatable_comment.id}").map(&:last)).to eq([
-        jjaek_path(root, anchor: ActionView::RecordIdentifier.dom_id(unmoderatable_comment))
+        jjaek_path(root, return_to: content_group_path(group), anchor: ActionView::RecordIdentifier.dom_id(unmoderatable_comment))
       ])
     end
     expect(document.css("[data-field='actions'] a[href^='/admin/']")).to be_empty

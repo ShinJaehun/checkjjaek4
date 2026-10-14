@@ -56,7 +56,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(%(id="comments_panel_book_#{book.id}_jjaek_#{book_jjaek.id}"))
       expect(response.body).to include(%(href="/jjaeks/#{book_jjaek.id}/comments?book_id=#{book.id}&amp;comments_context=book))
       expect(response.body).to include(%(data-turbo-stream="true"))
-      expect(response.body).to include(%(href="/jjaeks/#{book_jjaek.id}#comments_panel_jjaek_#{book_jjaek.id}"))
+      expect(response.body).to include(%(href="#{ERB::Util.html_escape(jjaek_path(book_jjaek, return_to: book_path(book), anchor: "comments_panel_jjaek_#{book_jjaek.id}"))}"))
       expect(response.body).to include(user.name)
       expect(response.body).to include(user_path(user))
       expect(response.body).to include(book.title)

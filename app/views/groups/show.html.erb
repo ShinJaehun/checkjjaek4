@@ -87,6 +87,7 @@
 
       <p class="mt-4 text-sm text-stone-500"><%= t("groups.jjaeks.general_description") %></p>
       <%= form_with model: [@group, @jjaek], class: "mt-4 space-y-4" do |form| %>
+        <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
         <%= render "shared/content_field", form: form, label_key: "jjaeks.form.jjaek_content", rows: 5 %>
         <%= form.submit t("groups.jjaeks.tabs.general"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
       <% end %>

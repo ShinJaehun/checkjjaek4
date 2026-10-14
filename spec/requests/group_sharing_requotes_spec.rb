@@ -62,10 +62,11 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
     get jjaek_path(source)
     links = Nokogiri::HTML(response.body).css("a[href]").map { |link| link["href"] }
-    expect(links).to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+    expect(links).to include(
+      new_group_jjaek_path(group, quoted_jjaek_id: source.id, return_to: jjaek_path(source))
+    )
     expect(links).not_to include(
-      new_jjaek_path(quoted_jjaek_id: source.id),
-      new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1)
+      a_string_starting_with(new_jjaek_path(quoted_jjaek_id: source.id))
     )
     get new_group_jjaek_path(group, quoted_jjaek_id: source.id)
     expect(response).to have_http_status(:ok)
@@ -78,7 +79,9 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
     get jjaek_path(source)
     links = Nokogiri::HTML(response.body).css("a[href]").map { |link| link["href"] }
-    expect(links).not_to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+    expect(links).not_to include(
+      a_string_starting_with(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+    )
     expect {
       post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
         jjaek: { quoted_jjaek_id: source.id, content: "DUPLICATE_C" }
@@ -122,8 +125,12 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
     get jjaek_path(source)
     links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
-    expect(links).to include(new_jjaek_path(quoted_jjaek_id: source.id))
-    expect(links).to include(new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1))
+    expect(links).to include(
+      new_jjaek_path(quoted_jjaek_id: source.id, return_to: jjaek_path(source))
+    )
+    expect(links).to include(
+      new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1, return_to: jjaek_path(source))
+    )
     expect(response.body).to include(I18n.t("jjaeks.actions.requote"), I18n.t("jjaeks.actions.share_to_group"))
 
     writer.jjaeks.create!(quoted_jjaek: source, content: "Personal requote")
@@ -187,8 +194,12 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
     get jjaek_path(source)
     links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
-    expect(links).to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
-    expect(links).not_to include(new_jjaek_path(quoted_jjaek_id: source.id))
+    expect(links).to include(
+      new_group_jjaek_path(group, quoted_jjaek_id: source.id, return_to: jjaek_path(source))
+    )
+    expect(links).not_to include(
+      a_string_starting_with(new_jjaek_path(quoted_jjaek_id: source.id))
+    )
     expect(response.body).to include(I18n.t("jjaeks.actions.quote_in_group"))
 
     get new_group_jjaek_path(group, quoted_jjaek_id: source.id)

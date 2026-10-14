@@ -121,6 +121,12 @@ Library Screen:
 
 Library Screen은 Bookshelf UI의 주 화면이다.
 
+### 서재 타이틀 요약
+
+- 서재 타이틀 아래에 현재 조회 가능한 책장 이름과 책 수를 표시한다.
+- 기존 policy scope 결과와 책장별 집계를 재사용하며, `내 책장 12권 · 읽고 싶은 책 8권` 형식으로 표시하고 항목이 많으면 자연스럽게 줄바꿈한다.
+- 타인 서재의 private 책장은 타이틀 요약에서 제외한다. 기존 책장 목록·관리 권한은 유지한다.
+
 ### 책장 표시
 
 - 접근 가능한 Bookshelf를 탭으로 표시한다.
@@ -213,7 +219,7 @@ Library Screen은 프로필보다 깊은 서재 화면이다.
 
 따라서 Library Screen 접근은 `self`와 `accepted book_friend`에게만 허용한다.
 
-`follow`의 추가 의미는 Library 접근 권한이 아니라 홈 피드 구독이다.  
+`follow`의 추가 의미는 Library 접근 권한이 아니라 홈 피드 구독이다.
 `stranger`와 `follow`는 프로필에서 public 책 목록을 볼 수 있지만, 상대의 Library Screen에는 접근할 수 없다.
 
 ### Library 접근 권한
