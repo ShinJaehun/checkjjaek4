@@ -198,7 +198,7 @@ RSpec.describe "Admin user inventory", type: :request do
       group_book_author => group_book_author.jjaeks.create!(group: active_group, book:, content: "Inventory group book", created_at: 30.minutes.ago),
       comment_author => comment_source.comments.create!(user: comment_author, content: "Inventory comment", created_at: 20.minutes.ago)
     }
-    expected_kinds = %w[짹 책짹 다시짹 동아리짹 동아리책짹 댓글]
+    expected_kinds = [ "짹", "책짹", "다시짹", "동아리짹", "동아리 책짹", "댓글" ]
 
     sign_in admin
     get admin_users_path
@@ -414,7 +414,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(book_row.at_css("[data-activity-kind='book']")["class"]).to include("bg-emerald-100")
     expect(requote_row.at_css("[data-activity-kind='requote']")["class"]).to include("bg-violet-100")
     expect(group_row.at_css("[data-activity-kind='general']").text.strip).to eq("동아리짹")
-    expect(timeline.at_css("#timeline_jjaek_#{group_book_jjaek.id} [data-activity-kind='book']").text.strip).to eq("동아리책짹")
+    expect(timeline.at_css("#timeline_jjaek_#{group_book_jjaek.id} [data-activity-kind='book']").text.strip).to eq("동아리 책짹")
     expect(comment_row.at_css("[data-activity-kind='comments']")["class"]).to include("bg-amber-100")
     expect(book_row.at_css("a[href='#{book_path(book)}']")).to be_present
     expect(requote_row.at_css("[data-field='reference']").text).to include("원문", group_admin.name, source.content)

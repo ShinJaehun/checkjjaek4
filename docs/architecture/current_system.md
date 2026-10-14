@@ -79,13 +79,19 @@
 
 ### 2. 책 화면 (/books/:id)
 
-- 책 정보 표시
-- viewer 기준 `policy_scope`를 통과한 해당 책의 원본 책짹 목록 표시
+- PC 상단은 기존 1.35fr/0.75fr 비율의 2열이며 왼쪽 책 타이틀 카드에 기본 정보 아래 API 설명을 표시하고, 오른쪽에 책장·상태 카드를 세로로 표시한다. 모바일의 긴 설명은 펼침·접기를 제공한다
+- 일반 상세는 viewer 기준 개인 원본 책짹 BookScope를 적용하고, 서재 미등록 시 공개 책짹만 표시한다. 서재 등록 후 동아리 맥락은 해당 동아리의 GroupContentScope 원본 책짹 목록을 표시한다
 - `books/:id`의 책짹 목록에는 ReJjaek을 직접 포함하지 않는다
 - 원본 책짹 카드의 visible ReJjaek count는 유지한다
 - ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 책짹 작성 컨텍스트가 열림
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
+- 모바일은 책 타이틀 카드 → 책장 카드 → 상태 카드 순서의 1열이며, PC·모바일 모두 상단 아래에 펼친 책짹 폼과 목록을 표시한다
+- 상태·스티커는 `reading-state` Stimulus가 항목별 PATCH를 순차 전송한다. update는 항목 잠금과 transaction으로 저장하며 JSON과 HTML 결과를 지원한다. 실패 시 마지막 저장 선택을 복구한다
+- 일반/동아리 작성 제목·버튼은 책짹/동아리 책짹이며 동아리 이름·게시 대상 안내를 표시한다. 동아리에는 개인 visibility 선택을 표시하지 않는다
+- 새 책짹 폼의 게시 위치는 일반 진입에서 personal, group_id 진입에서 해당 group이 기본값이다. `book-posting` Stimulus가 본문을 유지하며 개인 공개 범위와 동아리 선택을 전환하고 제목·버튼을 갱신한다
+- 동아리 목록과 새 책짹의 명시적 게시 대상은 `GroupPolicy::CreateJjaekScope`로 제한한다. `POST /jjaeks`에서 목적지·Book·group_id를 검증하고 기존 Jjaek policy로 저장을 인가한다. 공유·다시짹은 기존 경로를 유지한다
+- 동아리 피드의 작성 선택은 짹/동아리 책짹이며 책 상세 입력 카드의 중복 탭은 제거했다
 - 현재 사용자의 `BookshelfEntry`가 있을 때 현재 책장 이름을 보여주고, 사용자의 책장이 2개 이상이면 기존 책장 이동 흐름으로 책장을 옮길 수 있음
 
 관련 코드:
@@ -272,7 +278,7 @@
 - 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
 - 공개 동아리의 Jjaek은 로그인 사용자가, 승인/비공개 동아리의 Jjaek은 active member만 조회할 수 있음
 - 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에 표시하지만 현재 홈 `FeedScope`에서는 membership과 관계없이 제외됨
-- 동아리 Jjaek은 전역 책 상세에서도 제외함. 홈 제외와 `/groups` 통합 활동 피드는 `docs/specs/group_activity_feed.md`의 확정 정책을 구현한 것임
+- 동아리 Jjaek은 일반 책 상세에서 제외하며, group_id 맥락의 서재 등록 책 상세에서만 해당 동아리 목록을 표시함. 홈 제외와 `/groups` 통합 활동 피드는 `docs/specs/group_activity_feed.md`의 확정 정책을 구현한 것임
 - 동아리 Jjaek은 기존 `Comment` 모델과 Turbo panel을 사용함
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - 탈퇴하거나 내보내진 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
@@ -507,9 +513,12 @@ deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 p
 - BookActivity
   - 책 관련 활동 이벤트 기반
 
-현재 `BookActivity`는 모델/테이블과 `BookshelfEntry` 생성/수정 성공 후 실제 변경을 기록하는 기반이 도입되어 있다.
-프로필 화면에는 Jjaek과 함께 최근 활동 섹션으로 노출되며, 조회 가능 범위는 현재 `self / accepted book_friend` 기준이다.
-home feed에는 현재 사용자와 소식받는 accepted book_friend의 BookActivity를 Jjaek과 함께 합성한다.
+`BookActivity`는 개인 BookshelfEntry 최초 생성 성공 시 `added_to_shelf`만 기록한다.
+상태·스티커 update는 활동을 생성하지 않고 과거 변경 활동과 항목 연결 없는 활동은 피드에서 제외한다.
+BookshelfEntry 제거 시 연결된 모든 활동을 dependent destroy로 정리한다.
+프로필은 self / accepted book_friend, 홈은 self / 소식받는 accepted book_friend 관계를 유지하며,
+다른 사용자의 활동은 연결된 항목의 현재 책장이 public/book_friends인 경우에만 표시한다.
+private 변경 또는 private 책장 이동은 과거 추가 활동에도 즉시 적용된다. 운영 조사용 ProfileScope admin 예외는 유지한다.
 books/:id timeline에는 아직 합성하지 않는다.
 
 → 현재 상태, 본문 콘텐츠, 피드용 이벤트는 분리된 모델에서 관리한다

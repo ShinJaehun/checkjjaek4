@@ -6,7 +6,7 @@ RSpec.describe Admin::ContentHelper, type: :helper do
     expect(helper.admin_content_kind_key(:book, context: :group)).to eq("group_book")
     expect(helper.admin_content_kind_key(:comments, context: :group)).to eq("comments")
     expect(helper.admin_content_kind_label(:general, context: :group)).to eq("동아리짹")
-    expect(helper.admin_content_kind_label(:book, context: :group)).to eq("동아리책짹")
+    expect(helper.admin_content_kind_label(:book, context: :group)).to eq("동아리 책짹")
 
     {
       general: "bg-sky-100", book: "bg-emerald-100", requote: "bg-violet-100",

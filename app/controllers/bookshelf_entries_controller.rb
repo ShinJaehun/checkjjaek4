@@ -21,19 +21,15 @@ class BookshelfEntriesController < ApplicationController
       authorize @bookshelf_entry
 
       was_new_record = @bookshelf_entry.new_record?
-      previous_status = @bookshelf_entry.status
-      previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
 
       @bookshelf_entry.bookshelf = bookshelf_for_create if was_new_record && bookshelf_entry_params[:bookshelf_id].present?
       @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
       assign_stickers(@bookshelf_entry)
       @bookshelf_entry.save!
 
-      record_bookshelf_entry_change(
-        @bookshelf_entry,
-        was_new_record: was_new_record,
-        previous_status: previous_status,
-        previous_sticker_definition_ids: previous_sticker_definition_ids
+      BookActivities::RecordBookshelfEntryChange.call(
+        bookshelf_entry: @bookshelf_entry,
+        was_new_record: was_new_record
       )
     end
 
@@ -49,7 +45,7 @@ class BookshelfEntriesController < ApplicationController
       redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created")
     end
   rescue ActiveRecord::RecordInvalid => error
-    redirect_back fallback_location: book_search_path,
+    redirect_back fallback_location: book_search_path(group_id: group_context_id),
                   alert: error.record.errors.full_messages.to_sentence.presence || t("book_search.errors.invalid_result")
   rescue Book::IdentityConflict
     redirect_to_search_error("book_search.errors.identity_conflict")
@@ -64,23 +60,32 @@ class BookshelfEntriesController < ApplicationController
 
   def update
     authorize @bookshelf_entry
-    previous_status = @bookshelf_entry.status
-    previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
 
-    @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
-    assign_stickers(@bookshelf_entry)
+    @bookshelf_entry.with_lock do
+      @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
+      @bookshelf_entry.save!
+      assign_stickers(@bookshelf_entry)
+      update_sticker if params[:sticker_definition_id].present?
+    end
 
-    if @bookshelf_entry.save
-      record_bookshelf_entry_change(
-        @bookshelf_entry,
-        was_new_record: false,
-        previous_status: previous_status,
-        previous_sticker_definition_ids: previous_sticker_definition_ids
-      )
-      redirect_to book_path(@bookshelf_entry.book), notice: t("bookshelf_entries.notices.updated")
-    else
-      prepare_book_show_failure
-      render "books/show", status: :unprocessable_content
+    respond_to do |format|
+      format.json { render json: reading_state }
+      format.html do
+        redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id), notice: t("bookshelf_entries.notices.updated")
+      end
+    end
+  rescue ActiveRecord::RecordInvalid => error
+    message = error.record.errors.full_messages.to_sentence
+    @bookshelf_entry.reload
+    respond_to do |format|
+      format.json do
+        render json: reading_state.merge(error: message), status: :unprocessable_content
+      end
+      format.html do
+        @bookshelf_entry.errors.add(:base, message)
+        prepare_book_show_failure
+        render "books/show", status: :unprocessable_content
+      end
     end
   end
 
@@ -228,13 +233,17 @@ class BookshelfEntriesController < ApplicationController
   def prepare_book_show_failure
     @book = @bookshelf_entry.book
     @sticker_definitions = StickerDefinition.alphabetical
+    @group = policy_scope(Group).find(group_context_id) if group_context_id
+    authorize @group, :create_jjaek? if @group
     @quoted_jjaek = nil
-    @jjaek = Jjaek.new(user: current_user, book: @book)
+    @jjaek = Jjaek.new(user: current_user, book: @book, group: @group)
     authorize @jjaek
     prepare_book_show_read_context
   end
 
   def assign_stickers(entry)
+    return unless bookshelf_entry_params.key?(:sticker_definition_ids)
+
     entry.sticker_definition_ids = Array(bookshelf_entry_params[:sticker_definition_ids]).reject(&:blank?)
   end
 
@@ -242,17 +251,24 @@ class BookshelfEntriesController < ApplicationController
     params[:group_id].presence
   end
 
-  def record_bookshelf_entry_change(entry, was_new_record:, previous_status:, previous_sticker_definition_ids:)
-    BookActivities::RecordBookshelfEntryChange.call(
-      bookshelf_entry: entry,
-      was_new_record: was_new_record,
-      previous_status: previous_status,
-      previous_sticker_definition_ids: previous_sticker_definition_ids
-    )
+  def update_sticker
+    sticker = StickerDefinition.find(params[:sticker_definition_id])
+    selected = ActiveModel::Type::Boolean.new.cast(params[:sticker_selected])
+    attached = @bookshelf_entry.bookshelf_entry_stickers.find_by(sticker_definition: sticker)
+
+    if selected
+      @bookshelf_entry.bookshelf_entry_stickers.create!(sticker_definition: sticker) unless attached
+    else
+      attached&.destroy!
+    end
+  end
+
+  def reading_state
+    { status: @bookshelf_entry.status, sticker_definition_ids: @bookshelf_entry.sticker_definition_ids }
   end
 
   def bookshelf_entry_move_redirect_path(bookshelf)
-    return book_path(@bookshelf_entry.book) if params[:return_to] == "book"
+    return book_path(@bookshelf_entry.book, group_id: group_context_id) if params[:return_to] == "book"
     return bookshelf_entry_transfer_redirect_path(bookshelf) if params[:return_to] == "library_transfer"
 
     options = { bookshelf_id: bookshelf&.id }

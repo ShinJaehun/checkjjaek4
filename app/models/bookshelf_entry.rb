@@ -7,6 +7,7 @@ class BookshelfEntry < ApplicationRecord
   belongs_to :book
   belongs_to :bookshelf
 
+  has_many :book_activities, dependent: :destroy
   has_many :bookshelf_entry_stickers, dependent: :destroy
   has_many :sticker_definitions, through: :bookshelf_entry_stickers
 

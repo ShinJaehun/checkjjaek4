@@ -110,7 +110,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     expect(page.text).not_to include("Content", "is too long")
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
-    expect(page.at_css("form[action='#{group_jjaeks_path(group)}']")).to be_present
+    expect(page.at_css("form[action='#{jjaeks_path}']")).to be_present
   end
 
   it "does not create a Jjaek while the group is pending or inactive" do
@@ -616,7 +616,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to redirect_to(root_path)
   end
 
-  it "shows the group book jjaek form without a visibility selector for a shelved book" do
+  it "defaults a shelved book's posting location to the entering group" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     member.bookshelf_entries.create!(book: book)
@@ -625,9 +625,16 @@ RSpec.describe "Group Jjaeks", type: :request do
     get book_path(book, group_id: group.id)
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include(I18n.t("groups.jjaeks.tabs.general"), I18n.t("groups.jjaeks.tabs.book"))
-    expect(response.body).not_to include(%(name="jjaek[visibility]"))
-    expect(response.body).to include(group_jjaeks_path(group))
+    page = Nokogiri::HTML(response.body)
+    form = page.at_css("form[action='#{jjaeks_path}']")
+    expect(page.css("h2").map(&:text)).to include(I18n.t("jjaeks.actions.publish_group_book"))
+    expect(page.text).to include(I18n.t("books.show.group_destination", name: group.name))
+    expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_group_book"))
+    expect(form.at_css("select[name='book_post_destination'] option[selected]")["value"]).to eq("group")
+    expect(form.at_css("select[name='jjaek[group_id]'] option[selected]")["value"]).to eq(group.id.to_s)
+    expect(form.at_css("select[name='jjaek[visibility]'][disabled]")).to be_present
+    expect(form.at_css("[data-book-posting-target='personal'][hidden]")).to be_present
+    expect(page.at_css("[data-controller='book-posting'] a[href='#{group_path(group)}']")).to be_nil
   end
 
   it "keeps group context while adding a searched book to the shelf" do
@@ -646,4 +653,63 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to redirect_to(book_path(book, group_id: group.id))
     expect(member.bookshelf_entries.exists?(book: book)).to be(true)
   end
+  it "separates the group's book list from the personal book list" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Context readers", group_type: :private_group)
+    other_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Other readers", group_type: :private_group)
+    group.group_memberships.create!(user: member, status: :active)
+    member.bookshelf_entries.create!(book: book)
+    personal = group_admin.jjaeks.create!(book: book, content: "PERSONAL_BOOK_CONTEXT")
+    group_post = group_admin.jjaeks.create!(group: group, book: book, content: "SELECTED_GROUP_BOOK_CONTEXT")
+    other_post = group_admin.jjaeks.create!(group: other_group, book: book, content: "OTHER_GROUP_BOOK_CONTEXT")
+    sign_in member
+
+    get book_path(book, group_id: group.id)
+    expect(response.body).to include(group_post.content)
+    expect(response.body).not_to include(personal.content, other_post.content)
+
+    get book_path(book)
+    expect(response.body).to include(personal.content)
+    expect(response.body).not_to include(group_post.content, other_post.content)
+
+    sign_in non_member
+    get book_path(book, group_id: group.id)
+    expect(response).not_to have_http_status(:ok)
+    expect(response.body).not_to include(group_post.content)
+  end
+
+  it "keeps the group publishing context after a personal bookshelf move" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Moving readers", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    entry = member.bookshelf_entries.create!(book: book)
+    target = member.bookshelves.create!(name: "Personal destination", visibility: :private)
+    sign_in member
+
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target.id, return_to: "book", group_id: group.id }
+
+    expect(response).to redirect_to(book_path(book, group_id: group.id))
+    expect(entry.reload.bookshelf).to eq(target)
+    follow_redirect!
+    expect(response.body).to include(I18n.t("books.show.group_destination", name: group.name))
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("select[name='jjaek[visibility]'][disabled]")).to be_present
+    expect(page.at_css("[data-book-posting-target='personal'][hidden]")).to be_present
+  end
+
+  it "keeps the group context on the Turbo search card after adding to the personal library" do
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Search readers", group_type: :public_group)
+    group.group_memberships.create!(user: member, status: :active)
+    sign_in member
+
+    expect {
+      post bookshelf_entries_path, params: { book_id: book.id, group_id: group.id, bookshelf_entry_source: "book_search" },
+                                   headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(BookActivity, :count).by(1)
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(Nokogiri::HTML(response.body).at_css("a[href='#{book_path(book, group_id: group.id)}']")).to be_present
+    entry = member.bookshelf_entries.find_by!(book: book)
+    expect(BookActivity.last).to have_attributes(user: member, bookshelf_entry: entry, action: "added_to_shelf")
+    expect(entry.bookshelf.user).to eq(member)
+  end
+
 end

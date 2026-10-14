@@ -11,7 +11,7 @@ Bookshelf Foundation은 Checkjjaek4에서 사용자의 책 목록을 “책장�
 - BookshelfEntry와 Bookshelf의 관계
 - 책장 visibility 정책
 - Library 책 목록 노출 정책
-- BookActivity와 Bookshelf visibility의 분리
+- BookActivity의 기존 관계 범위와 현재 Bookshelf visibility
 - 구현 시 유지해야 할 인바리언트
 
 UI에서 책장을 어떻게 표시하고 조작할지는 `docs/specs/bookshelf_ui.md`에서 다룬다.
@@ -25,9 +25,9 @@ UI에서 책장을 어떻게 표시하고 조작할지는 `docs/specs/bookshelf_
 - `BookshelfEntry`는 사용자와 책의 관계를 나타낸다.
 - `BookshelfEntry`는 상태와 스티커 정보를 가진다.
 - `BookshelfEntry`는 같은 책장 안에서 사용자 지정 순서를 위한 `position`을 가진다.
-- `BookActivity`는 `BookshelfEntry`의 상태/스티커 변화에서 발생한다.
+- `BookActivity`는 개인 `BookshelfEntry` 최초 생성 시 추가 활동만 기록한다.
 - BookActivity는 현재 self / accepted book_friend에게만 노출한다.
-- Bookshelf visibility와 BookActivity visibility는 아직 연동하지 않는다.
+- BookActivity는 기존 관계 범위 안에서 현재 Bookshelf visibility로 추가 제한한다.
 
 ---
 
@@ -197,23 +197,10 @@ follow-only 사용자는 Bookshelf visibility 기준에서는 stranger와 동일
 
 ## BookActivity visibility
 
-BookActivity visibility는 Bookshelf visibility와 아직 연동하지 않는다.
-
-현재 정책은 다음과 같다.
-
-- self는 자신의 BookActivity를 볼 수 있다.
-- accepted book_friend는 상대의 BookActivity를 볼 수 있다.
-- follow-only는 상대의 BookActivity를 볼 수 없다.
-- stranger는 상대의 BookActivity를 볼 수 없다.
-
-즉, 책장이 `public`이어도 BookActivity는 public으로 열지 않는다.
-
-아래 내용은 후속 판단으로 남긴다.
-
-- Bookshelf visibility와 BookActivity visibility 연동
-- BookActivity visibility snapshot 저장
-- action별 BookActivity visibility 분리
-- books/:id timeline에 BookActivity 추가
+BookActivity의 생성·조회·삭제 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
+개인 서재 추가 활동만 피드에 표시하고, 상태·스티커 변경은 개인 독서 관리로 유지한다.
+기존 self / accepted book_friend 관계 경계를 유지하면서 현재 책장 visibility를 확인한다.
+public 책장도 follow-only와 stranger에게 활동을 공개하는 근거가 되지 않는다.
 
 ---
 
@@ -293,7 +280,7 @@ enum :visibility,
 - 기존 `BookshelfEntry.user_id`는 당장 제거하지 않는다.
 - `BookshelfEntry`에 `bookshelf_id`를 직접 둔다.
 - 조인 모델은 도입하지 않는다.
-- BookActivity visibility는 건드리지 않는다.
+- BookActivity visibility는 `docs/specs/book_activity_mvp.md`의 관계·현재 책장 조건을 따른다.
 - Notification과 연결하지 않는다.
 - 빌드 산출물을 커밋하지 않는다.
 

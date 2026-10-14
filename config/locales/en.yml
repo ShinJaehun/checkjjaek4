@@ -635,7 +635,7 @@ en:
     jjaeks:
       tabs:
         general: "Jjaek"
-        book: "Book Jjaek"
+        book: "Club Book Jjaek"
       title: "Club Jjaeks and Book Jjaeks"
       empty: "No Jjaeks or Book Jjaeks have been added to this club yet."
       general_description: "Leave a Jjaek in this club."
@@ -1068,7 +1068,13 @@ en:
     thumbnail:
       no_thumbnail: "No cover"
     show:
-      save_state: "Save"
+      expand_description: "Show more"
+      collapse_description: "Show less"
+      group_destination: "This will be posted to %{name}."
+      saving_state: "Saving…"
+      saved_state: "Saved."
+      save_state_failed: "Could not save. Your selections have been restored. Please try again."
+      clear_status: "No status"
       state_title: "Status and stickers"
       library_context_title: "My library info"
       current_bookshelf: "Current bookshelf"
@@ -1103,6 +1109,7 @@ en:
       delete: "Delete"
       edit: "Edit"
       publish_book: "Book Jjaek"
+      publish_group_book: "Club Book Jjaek"
       publish: "Publish Jjaek"
       publish_requote: "ReJjaek to my feed"
       publish_short: "Jjaek"
@@ -1117,6 +1124,10 @@ en:
       content: "Content"
       jjaek_content: "Jjaek content"
       book_jjaek_content: "Book Jjaek content"
+      posting_location: "Posting location"
+      choose_posting_group: "Choose a club."
+      no_postable_groups: "No clubs are available for posting."
+      posting_group: "Club"
       requote_content: "ReJjaek content"
       quote_opinion: "Your opinion"
       destination_group: "Group to ReJjaek in"

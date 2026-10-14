@@ -12,7 +12,7 @@ RSpec.describe "Homes", type: :request do
 
   describe "GET /" do
     it "shows the viewer's own BookActivity in the home feed" do
-      BookActivity.create!(user: viewer, book: viewer_book, action: :added_to_shelf)
+      BookActivity.create!(user: viewer, book: viewer_book, bookshelf_entry: viewer.bookshelf_entries.find_or_create_by!(book: viewer_book), action: :added_to_shelf)
       sign_in viewer
 
       get root_path
@@ -20,12 +20,12 @@ RSpec.describe "Homes", type: :request do
       expect(page_text).to include("Viewer님이 『내 활동 책』를 서재에 담았습니다.")
     end
 
-    it "shows BookActivity card links, thumbnail fallback, and badges" do
+    it "shows shelf addition card links and thumbnail fallback" do
       BookActivity.create!(
         user: viewer,
         book: viewer_book,
-        action: :status_changed,
-        metadata: { to_status: "finished" }
+        bookshelf_entry: viewer.bookshelf_entries.find_or_create_by!(book: viewer_book),
+        action: :added_to_shelf
       )
       sign_in viewer
 
@@ -34,7 +34,33 @@ RSpec.describe "Homes", type: :request do
       expect(response.body).to include(user_path(viewer))
       expect(response.body).to include(book_path(viewer_book))
       expect(response.body).to include(I18n.t("book_activities.card.no_thumbnail"))
-      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
+      expect(page_text).to include("Viewer님이 『#{viewer_book.title}』를 서재에 담았습니다.")
+    end
+
+    it "hides past additions from both feeds after a bookshelf becomes private" do
+      viewer.active_follows.create!(followee: book_friend)
+      BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
+      shelf = book_friend.bookshelves.create!(name: "Feed shelf", visibility: :public)
+      entry = book_friend.bookshelf_entries.create!(book: friend_book, bookshelf: shelf)
+      entry.book_activities.create!(user: book_friend, book: friend_book, action: :added_to_shelf)
+      entry.book_activities.create!(user: book_friend, book: friend_book, action: :bookshelf_entry_updated, metadata: { to_status: "finished" })
+      sign_in viewer
+
+      [ root_path, user_path(book_friend) ].each do |path|
+        get path
+        expect(page_text).to include("Book Friend님이 『#{friend_book.title}』를 서재에 담았습니다.")
+        expect(page_text).not_to include("Book Friend님이 『#{friend_book.title}』의 상태를 읽었어요로 바꿨습니다.")
+      end
+
+      shelf.update!(visibility: :private)
+      [ root_path, user_path(book_friend) ].each do |path|
+        get path
+        expect(page_text).not_to include("Book Friend님이 『#{friend_book.title}』를 서재에 담았습니다.")
+      end
+
+      sign_in book_friend
+      get root_path
+      expect(page_text).to include("Book Friend님이 『#{friend_book.title}』를 서재에 담았습니다.")
     end
 
     it "links the shelf entry point to the current user's library" do
@@ -49,7 +75,7 @@ RSpec.describe "Homes", type: :request do
       BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
       book_friend.jjaeks.create!(content: "FRIEND_ONLY_PUBLIC_JJAEK", visibility: :public_jjaek)
       book_friend.jjaeks.create!(book: friend_book, content: "FRIEND_ONLY_BOOK_JJAEK", visibility: :book_friends)
-      BookActivity.create!(user: book_friend, book: friend_book, action: :added_to_shelf)
+      BookActivity.create!(user: book_friend, book: friend_book, bookshelf_entry: book_friend.bookshelf_entries.find_or_create_by!(book: friend_book), action: :added_to_shelf)
       sign_in viewer
 
       get root_path
@@ -67,7 +93,7 @@ RSpec.describe "Homes", type: :request do
       viewer.active_follows.create!(followee:)
       followee.jjaeks.create!(content: "FOLLOW_ONLY_PUBLIC_JJAEK", visibility: :public_jjaek)
       followee.jjaeks.create!(book: followee_book, content: "FOLLOW_ONLY_BOOK_FRIENDS_JJAEK", visibility: :book_friends)
-      BookActivity.create!(user: followee, book: followee_book, action: :added_to_shelf)
+      BookActivity.create!(user: followee, book: followee_book, bookshelf_entry: followee.bookshelf_entries.find_or_create_by!(book: followee_book), action: :added_to_shelf)
       sign_in viewer
 
       get root_path
@@ -81,7 +107,7 @@ RSpec.describe "Homes", type: :request do
       BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
       book_friend.jjaeks.create!(content: "FOLLOWED_FRIEND_PUBLIC_JJAEK", visibility: :public_jjaek)
       book_friend.jjaeks.create!(book: friend_book, content: "FOLLOWED_FRIEND_BOOK_JJAEK", visibility: :book_friends)
-      BookActivity.create!(user: book_friend, book: friend_book, action: :added_to_shelf)
+      BookActivity.create!(user: book_friend, book: friend_book, bookshelf_entry: book_friend.bookshelf_entries.find_or_create_by!(book: friend_book), action: :added_to_shelf)
       sign_in viewer
 
       get root_path
@@ -93,7 +119,7 @@ RSpec.describe "Homes", type: :request do
     it "does not show a stranger's Jjaeks or BookActivity in the home feed" do
       stranger.jjaeks.create!(content: "STRANGER_PUBLIC_JJAEK", visibility: :public_jjaek)
       stranger.jjaeks.create!(book: stranger_book, content: "STRANGER_BOOK_FRIENDS_JJAEK", visibility: :book_friends)
-      BookActivity.create!(user: stranger, book: stranger_book, action: :added_to_shelf)
+      BookActivity.create!(user: stranger, book: stranger_book, bookshelf_entry: stranger.bookshelf_entries.find_or_create_by!(book: stranger_book), action: :added_to_shelf)
       sign_in viewer
 
       get root_path
@@ -147,6 +173,7 @@ RSpec.describe "Homes", type: :request do
       middle_activity = BookActivity.create!(
         user: viewer,
         book: viewer_book,
+        bookshelf_entry: viewer.bookshelf_entries.find_or_create_by!(book: viewer_book),
         action: :added_to_shelf,
         created_at: 2.hours.ago
       )

@@ -152,6 +152,18 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 
 동아리 문맥을 기존 `visibility_rank`만으로 표현할 수 있다고 전제하지 않는다.
 
+책 상세의 새 원본 책짹 작성은 `게시 위치`에서 책짹/동아리 책짹을 선택한다.
+동아리 진입 시 해당 동아리를 기본값으로 사용하고, 본문을 유지한 채 개인 게시나 다른 게시 가능한 동아리로 전환할 수 있다.
+동아리 선택 목록은 현재 active 동아리, 운영 정지 없음, active·활동 정지되지 않은 membership 기준으로 제한한다.
+`GroupPolicy::CreateJjaekScope`의 목록과 저장 시 `JjaekPolicy#create?`가 기존 작성 권한을 강제한다.
+일반 공개 범위 선택은 개인 게시에만 표시·전송하며 동아리의 실제 공개 범위는 기존 Group 정책을 따른다.
+새 책짹의 `POST /jjaeks`는 명시적인 book_post_destination과 기존 group_id를 검증한다.
+누락·불일치 목적지, 미등록 서재 책, 권한 없는 동아리는 게시하지 않는다.
+기존 일반 짹·nested 동아리 작성과 공유·다시짹 경로의 정책은 유지하며 이 selector를 공유·다시짹 요청에 혼합할 수 없다.
+동아리 피드 작성 선택은 `짹 / 동아리 책짹`이고 책 상세 작성 카드에는 중복 선택 버튼을 두지 않는다.
+개인 독서 기록과 BookActivity에는 동아리 소속을 추가하지 않는다.
+세부 화면과 실패 복원 기준은 `docs/specs/bookshelf_ui.md`를 따른다.
+
 ---
 
 ## 홈 피드와 프로필 노출

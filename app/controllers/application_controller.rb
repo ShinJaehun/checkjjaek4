@@ -58,9 +58,17 @@ class ApplicationController < ActionController::Base
 
   def prepare_book_show_read_context
     @bookshelves = current_user.bookshelves.default_first
-    @jjaeks = policy_scope(@book.jjaeks.includes(:user, :book, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ]))
-      .where(group_id: nil, quoted_jjaek_id: nil)
-      .recent
+    if @bookshelf_entry.present?
+      @book_post_groups = policy_scope(Group, policy_scope_class: GroupPolicy::CreateJjaekScope)
+        .order(:name, :id).select { |group| policy(group).create_jjaek? }
+    end
+    book_jjaeks = @book.jjaeks.includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
+    @jjaeks = if @group.present? && @bookshelf_entry.present?
+      policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::GroupContentScope).where(group: @group)
+    else
+      policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::BookScope)
+    end
+    @jjaeks = @jjaeks.where(quoted_jjaek_id: nil).recent
     prepare_visible_requote_counts_for(@jjaeks)
   end
 

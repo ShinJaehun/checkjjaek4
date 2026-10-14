@@ -1,34 +1,44 @@
 class BookActivityPolicy < ApplicationPolicy
   def show?
-    return false unless user.present?
+    return false unless user.present? && record.added_to_shelf? && record.bookshelf_entry.present?
+    return true if record.user_id == user.id
 
-    record.user_id == user.id || user.book_friend?(record.user) || false
+    return false unless user.book_friend?(record.user)
+
+    !record.bookshelf_entry.bookshelf.visibility_private?
   end
 
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?
 
-      visible_user_ids = [ user.id, *BookFriendship.connected_ids_for(user) ]
-      scope.where(user_id: visible_user_ids)
+      visible_additions.where(user_id: [ user.id, *BookFriendship.connected_ids_for(user) ])
+    end
+
+    private
+
+    def visible_additions
+      additions = scope.added_to_shelf.joins(bookshelf_entry: :bookshelf)
+      additions.where(user_id: user.id)
+        .or(additions.where(bookshelves: { visibility: %w[public book_friends] }))
     end
   end
 
-  class FeedScope < ApplicationPolicy::Scope
+  class FeedScope < Scope
     def resolve
       return scope.none unless user.present?
 
       followed_friend_ids = user.followee_ids & BookFriendship.connected_ids_for(user)
-      scope.where(user_id: [ user.id, *followed_friend_ids ])
+      visible_additions.where(user_id: [ user.id, *followed_friend_ids ])
     end
   end
 
-  class ProfileScope < ApplicationPolicy::Scope
+  class ProfileScope < Scope
     def resolve
       return scope.none unless user.present?
-      return scope.all if user.global_admin?
+      return scope.added_to_shelf.joins(:bookshelf_entry) if user.global_admin?
 
-      BookActivityPolicy::Scope.new(user, scope).resolve
+      super
     end
   end
 end

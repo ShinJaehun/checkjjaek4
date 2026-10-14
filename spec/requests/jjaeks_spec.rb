@@ -34,9 +34,12 @@ RSpec.describe "Jjaeks", type: :request do
       followed_friend = User.create!(name: "Followed friend", email: "jjaek-followed-friend@example.com", password: "password123!")
       BookFriendship.create!(requester: viewer, addressee: followed_friend, status: :accepted)
       viewer.active_follows.create!(followee: followed_friend)
-      BookActivity.create!(user: viewer, book: Book.create!(title: "OWN_FAILURE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
-      BookActivity.create!(user: followed_friend, book: Book.create!(title: "FOLLOWED_FAILURE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
-      BookActivity.create!(user: original_author, book: Book.create!(title: "UNFOLLOWED_FAILURE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
+      activity_book = Book.create!(title: "OWN_FAILURE_ACTIVITY", authors_text: "Author")
+      BookActivity.create!(user: viewer, book: activity_book, bookshelf_entry: viewer.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
+      activity_book = Book.create!(title: "FOLLOWED_FAILURE_ACTIVITY", authors_text: "Author")
+      BookActivity.create!(user: followed_friend, book: activity_book, bookshelf_entry: followed_friend.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
+      activity_book = Book.create!(title: "UNFOLLOWED_FAILURE_ACTIVITY", authors_text: "Author")
+      BookActivity.create!(user: original_author, book: activity_book, bookshelf_entry: original_author.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       sign_in viewer
 
       expect {
@@ -68,7 +71,7 @@ RSpec.describe "Jjaeks", type: :request do
       group = Group.create!(name: "Home excluded group", group_admin: original_author, group_type: :public_group, lifecycle_status: :active)
       group_jjaek = original_author.jjaeks.create!(group:, content: "HOME_EXCLUDED_GROUP")
       group_book_jjaek = original_author.jjaeks.create!(group:, book:, content: "HOME_EXCLUDED_GROUP_BOOK")
-      activity = BookActivity.create!(user: original_author, book:, action: :added_to_shelf, created_at: 2.hours.ago)
+      activity = BookActivity.create!(user: original_author, book:, bookshelf_entry: original_author.bookshelf_entries.find_or_create_by!(book: book), action: :added_to_shelf, created_at: 2.hours.ago)
       content = "HOME_FAILED_INPUT_".ljust(201, "a")
       sign_in viewer
 

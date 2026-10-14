@@ -212,7 +212,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(comment_cell.at_css("[data-activity-kind='comments']")["class"]).to include("bg-amber-100")
 
     book_cell = document.at_css("#group_#{book_group.id} [data-field='latest-activity']")
-    expect(book_cell.text).to include("동아리책짹", I18n.l(group_book.created_at, format: :short))
+    expect(book_cell.text).to include("동아리 책짹", I18n.l(group_book.created_at, format: :short))
     expect(book_cell.at_css("a")['href']).to eq(jjaek_path(group_book))
     expect(book_cell.at_css("[data-activity-kind='group_book']")).to be_present
     expect(book_cell.at_css("[data-activity-kind='group_book']")["class"]).to include("bg-emerald-100")
@@ -851,7 +851,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(general_row.at_css("[data-activity-kind='general']").text.strip).to eq("동아리짹")
     expect(general_row.at_css("[data-activity-kind='general']")["class"]).to include("bg-sky-100")
     expect(general_row.at_css("a[href='#{admin_user_path(group_admin)}']")).to be_present
-    expect(book_row.at_css("[data-activity-kind='book']").text.strip).to eq("동아리책짹")
+    expect(book_row.at_css("[data-activity-kind='book']").text.strip).to eq("동아리 책짹")
     expect(book_row.at_css("[data-activity-kind='book']")["class"]).to include("bg-emerald-100")
     expect(book_row.at_css("[data-field='reference']").text).to include("책", book.title)
     expect(book_row.at_css("a[href='#{book_path(book)}']")).to be_present
@@ -881,7 +881,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(comment_row.at_css("a[href='#{jjaek_path(general, anchor: comment_anchor)}']")).to be_present
 
     navigation = controls.at_css("nav[aria-label='활동 유형']")
-    expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "동아리짹", "동아리책짹", "댓글" ])
+    expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "동아리짹", "동아리 책짹", "댓글" ])
     expect(navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
     expect(navigation.text).not_to include("다시짹")
 
@@ -1101,7 +1101,7 @@ RSpec.describe "Admin group approvals", type: :request do
         content: "comments"
       )
     )
-    book_link = filtered_document.css("nav a").find { |link| link.text.strip == "동아리책짹" }
+    book_link = filtered_document.css("nav a").find { |link| link.text.strip == "동아리 책짹" }
     expect(book_link["href"]).to include(
       "content=book",
       "content_q=FILTER",

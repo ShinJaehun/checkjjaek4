@@ -14,6 +14,15 @@ class GroupPolicy < ApplicationPolicy
     end
   end
 
+  class CreateJjaekScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      writable_group_ids = GroupMembership.active.moderation_status_normal.where(user: user).select(:group_id)
+      scope.active.where(operation_suspended_at: nil, id: writable_group_ids)
+    end
+  end
+
   def index?
     user.present?
   end

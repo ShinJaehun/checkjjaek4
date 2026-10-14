@@ -362,7 +362,7 @@ ko:
     jjaeks:
       tabs:
         general: "짹"
-        book: "책짹"
+        book: "동아리 책짹"
       title: "동아리 짹과 책짹"
       empty: "아직 이 동아리에 남긴 짹이나 책짹이 없습니다."
       general_description: "이 동아리에 짹을 남깁니다."
@@ -428,7 +428,7 @@ ko:
         book: "책짹"
         requote: "다시짹"
         group_general: "동아리짹"
-        group_book: "동아리책짹"
+        group_book: "동아리 책짹"
         comments: "댓글"
       locations:
         personal: "개인"
@@ -464,7 +464,7 @@ ko:
       navigation:
         all: "전체"
         general: "동아리짹"
-        book: "동아리책짹"
+        book: "동아리 책짹"
         comments: "댓글"
       fields:
         author: "작성자"
@@ -1074,7 +1074,13 @@ ko:
     thumbnail:
       no_thumbnail: "표지 없음"
     show:
-      save_state: "저장"
+      expand_description: "더 보기"
+      collapse_description: "접기"
+      group_destination: "%{name} 동아리에 게시됩니다."
+      saving_state: "저장 중…"
+      saved_state: "저장되었습니다."
+      save_state_failed: "저장하지 못했습니다. 선택을 복구했습니다. 다시 시도해 주세요."
+      clear_status: "상태 없음"
       state_title: "상태와 스티커"
       library_context_title: "내 서재 정보"
       current_bookshelf: "현재 책장"
@@ -1109,6 +1115,7 @@ ko:
       delete: "삭제"
       edit: "수정"
       publish_book: "책짹"
+      publish_group_book: "동아리 책짹"
       publish: "Jjaek 남기기"
       publish_requote: "내 피드에 다시짹"
       publish_short: "짹"
@@ -1123,6 +1130,10 @@ ko:
       content: "내용"
       jjaek_content: "짹 내용"
       book_jjaek_content: "책짹 내용"
+      posting_location: "게시 위치"
+      choose_posting_group: "동아리를 선택하세요."
+      no_postable_groups: "게시 가능한 동아리가 없습니다."
+      posting_group: "동아리"
       requote_content: "다시짹 내용"
       quote_opinion: "내 의견"
       destination_group: "다시짹할 동아리"

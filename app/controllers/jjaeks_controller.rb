@@ -53,7 +53,8 @@ class JjaeksController < ApplicationController
   def create
     authorize target_user, :write_jjaek? if @group.blank? && target_user.present?
     raise Pundit::NotAuthorizedError if params[:share_to_group].present? && @group.blank?
-    if @group.present? && request.path_parameters[:group_id].blank? && @quoted_jjaek.blank?
+    if @group.present? && request.path_parameters[:group_id].blank? && @quoted_jjaek.blank? &&
+        params[:book_post_destination] != "group"
       raise Pundit::NotAuthorizedError
     end
     if @group.present? && @quoted_jjaek.present?
@@ -167,6 +168,7 @@ class JjaeksController < ApplicationController
   end
 
   def build_new_jjaek
+    validate_book_post_destination!
     @group = find_jjaek_group
     @quoted_jjaek = find_quoted_jjaek
     return if performed?
@@ -257,7 +259,32 @@ class JjaeksController < ApplicationController
     return if group_id.blank?
     raise Pundit::NotAuthorizedError unless group_id.to_s.match?(/\A[1-9]\d*\z/)
 
-    policy_scope(Group).find(group_id)
+    if params[:book_post_destination] == "group"
+      policy_scope(Group, policy_scope_class: GroupPolicy::CreateJjaekScope).find(group_id)
+    else
+      policy_scope(Group).find(group_id)
+    end
+  end
+
+  def validate_book_post_destination!
+    return unless params.key?(:book_post_destination)
+
+    destination = params[:book_post_destination]
+    valid_book_post = action_name == "create" && params.dig(:jjaek, :book_id).present? &&
+      params[:quoted_jjaek_id].blank? && params.dig(:jjaek, :quoted_jjaek_id).blank? &&
+      params[:share_to_group].blank? && jjaek_target_user_id.blank?
+    raise Pundit::NotAuthorizedError unless valid_book_post && destination.in?(%w[personal group])
+
+    path_group_id = request.path_parameters[:group_id]
+    form_group_id = params.dig(:jjaek, :group_id)
+    if destination == "personal"
+      raise Pundit::NotAuthorizedError if path_group_id.present? || form_group_id.present?
+    else
+      raise Pundit::NotAuthorizedError if form_group_id.blank?
+      if path_group_id.present? && path_group_id.to_s != form_group_id.to_s
+        raise Pundit::NotAuthorizedError
+      end
+    end
   end
 
   def find_jjaek_book

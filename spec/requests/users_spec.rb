@@ -60,7 +60,7 @@ RSpec.describe "Users", type: :request do
 
     it "shows every profile jjaek to a global admin without exposing other users' content" do
       global_admin = User.create!(name: "Global admin", email: "profile-global-admin@example.com", password: "password123!", global_admin: true)
-      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       create_profile_bookshelf_entry(
         user: profile_user,
         bookshelf_name: "ADMIN_BOOK_FRIENDS_SHELF",
@@ -702,7 +702,7 @@ RSpec.describe "Users", type: :request do
 
     it "shows the user's own Jjaeks and BookActivity in one recent activity section" do
       viewer.jjaeks.create!(content: "내 최근 짹", visibility: :private_jjaek)
-      BookActivity.create!(user: viewer, book: activity_book, action: :added_to_shelf)
+      BookActivity.create!(user: viewer, book: activity_book, bookshelf_entry: viewer.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       sign_in viewer
 
       get user_path(viewer)
@@ -727,7 +727,7 @@ RSpec.describe "Users", type: :request do
 
     it "shows visible Jjaeks and BookActivity on an accepted book friend's profile" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
-      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       sign_in viewer
 
       get user_path(profile_user)
@@ -757,43 +757,43 @@ RSpec.describe "Users", type: :request do
     end
 
     it "does not show BookActivity on a stranger's profile" do
-      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       sign_in viewer
 
       get user_path(profile_user)
 
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
-      expect(response.body).not_to include("프로필 활동 책")
+      expect(page_text).not_to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
     it "does not show BookActivity on a follow-only user's profile" do
       viewer.active_follows.create!(followee: profile_user)
-      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       sign_in viewer
 
       get user_path(profile_user)
 
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
-      expect(response.body).not_to include("프로필 활동 책")
+      expect(page_text).not_to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
     end
 
-    it "shows each BookActivity action message on the profile" do
+    it "shows only shelf additions and excludes historical reading changes on the profile" do
       sticker = StickerDefinition.create!(key: "users_spec_memorable", name: "기억나요")
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
-      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
-      BookActivity.create!(user: profile_user, book: activity_book, action: :status_changed, metadata: { to_status: "finished" })
-      BookActivity.create!(user: profile_user, book: activity_book, action: :status_cleared)
-      BookActivity.create!(user: profile_user, book: activity_book, action: :sticker_added, metadata: { sticker_definition_id: sticker.id, sticker_name: sticker.name })
-      BookActivity.create!(user: profile_user, book: activity_book, action: :sticker_removed, metadata: { sticker_definition_id: sticker.id, sticker_name: sticker.name })
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :status_changed, metadata: { to_status: "finished" })
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :status_cleared)
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :sticker_added, metadata: { sticker_definition_id: sticker.id, sticker_name: sticker.name })
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :sticker_removed, metadata: { sticker_definition_id: sticker.id, sticker_name: sticker.name })
       sign_in viewer
 
       get user_path(profile_user)
 
       expect(page_text).to include("Profile User님이 『프로필 활동 책』를 서재에 담았습니다.")
-      expect(page_text).to include("Profile User님이 『프로필 활동 책』를 읽었어요로 바꿨습니다.")
-      expect(page_text).to include("Profile User님이 『프로필 활동 책』 상태 비움")
-      expect(page_text).to include("Profile User님이 『프로필 활동 책』에 기억나요 스티커를 붙였습니다.")
-      expect(page_text).to include("Profile User님이 『프로필 활동 책』에서 기억나요 스티커를 제거했습니다.")
+      expect(page_text).not_to include("Profile User님이 『프로필 활동 책』를 읽었어요로 바꿨습니다.")
+      expect(page_text).not_to include("Profile User님이 『프로필 활동 책』 상태 비움")
+      expect(page_text).not_to include("Profile User님이 『프로필 활동 책』에 기억나요 스티커를 붙였습니다.")
+      expect(page_text).not_to include("Profile User님이 『프로필 활동 책』에서 기억나요 스티커를 제거했습니다.")
     end
 
     it "orders visible profile Jjaeks and BookActivity together by created_at" do
@@ -806,6 +806,7 @@ RSpec.describe "Users", type: :request do
       middle_activity = BookActivity.create!(
         user: profile_user,
         book: activity_book,
+        bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book),
         action: :added_to_shelf,
         created_at: 2.hours.ago
       )
@@ -829,7 +830,7 @@ RSpec.describe "Users", type: :request do
     it "shows a followed accepted book friend's BookActivity in the home feed" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       viewer.active_follows.create!(followee: profile_user)
-      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       sign_in viewer
 
       get root_path
@@ -891,7 +892,7 @@ RSpec.describe "Users", type: :request do
       private_shelf = profile_user.bookshelves.create!(name: "Private shelf", visibility: :private)
       private_book = Book.create!(title: "PROFILE_EXCLUDED_PRIVATE_BOOK", authors_text: "Author")
       profile_user.bookshelf_entries.create!(bookshelf: private_shelf, book: private_book)
-      BookActivity.create!(user: profile_user, book: activity_book, action: :added_to_shelf)
+      BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       source = other_user.jjaeks.create!(content: "PROFILE_VISIBLE_SOURCE", visibility: :public_jjaek)
       visible_requote = profile_user.jjaeks.create!(quoted_jjaek: source, content: "PROFILE_VISIBLE_REQUOTE")
       viewer.jjaeks.create!(quoted_jjaek: profile_jjaek, book:, content: "PROFILE_COUNTED_REQUOTE")

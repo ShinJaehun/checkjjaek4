@@ -87,7 +87,7 @@ checkjjaek4의 서버측 권한 판단은 Pundit policy 중심으로 유지한�
 - `self`는 전체 Jjaek을 볼 수 있다.
 - `stranger / follow`는 프로필 책 목록에서 상태와 스티커를 볼 수 없다.
 - `self / accepted book_friend`는 프로필 책 목록에서 상태와 스티커를 볼 수 있다.
-- `self / accepted book_friend`는 프로필 최근 활동에서 BookActivity를 볼 수 있다.
+- 프로필 최근 활동은 연결된 항목이 있는 added_to_shelf BookActivity만 표시한다. self는 모든 책장, accepted book_friend는 현재 public/book_friends 책장의 활동만 볼 수 있다. private 변경·이동 시 과거 추가 활동도 숨기며 기존 admin 운영 조사 예외는 유지한다.
 - accepted 책친구의 타인 프로필에서만 profile-context Jjaek 작성 진입을 사용할 수 있다. 자기 프로필에서는 일반 Jjaek을 홈(`/`)에서 작성한다.
 - Bookshelf 생성/수정/삭제/순서 변경은 Library에서 owner만 가능하며, 새 Bookshelf는 현재 사용자의 Bookshelf로만 생성한다.
 - 기본 Bookshelf는 수정/삭제/순서 변경할 수 없고, 책이 들어 있는 일반 Bookshelf는 삭제할 수 없다.
@@ -392,3 +392,13 @@ admin Group 상세는 `GroupLifecycleEvent`와 Group 대상 `ModerationAction` �
 - `app/policies/group_policy.rb`
 - `app/policies/group_membership_policy.rb`
 - `app/policies/jjaek_policy.rb`
+
+
+책 상세의 개인 원본 책짹 조회는 `JjaekPolicy::BookScope`가 기존 visibility와 개인 서재 등록 여부를 함께 확인한다.
+서재 미등록 책은 공개 개인 원본만 표시한다. 등록된 책의 group_id 맥락에서는 해당 동아리의
+`GroupContentScope`를 사용하며 기존 Group/Jjaek 접근·작성 권한을 유지한다.
+
+책 상세의 새 책짹 게시 위치는 기존 `Jjaek#group_id`로 표현하며 별도 모델을 추가하지 않는다.
+게시 가능한 동아리 목록과 새 책짹의 선택 대상은 `GroupPolicy::CreateJjaekScope`가 현재 작성 가능 범위로 제한한다.
+명시적인 book_post_destination은 Book 필수, personal/group과 group_id 일치, 공유·다시짹·profile target 미혼합을 검증한다.
+저장 직전 기존 Jjaek policy와 Group 잠금 안의 인가를 유지하며 개인 서재 등록 조건도 유지한다.

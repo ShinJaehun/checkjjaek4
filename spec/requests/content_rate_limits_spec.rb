@@ -46,9 +46,12 @@ RSpec.describe "Content rate limits", type: :request do
     BookFriendship.create!(requester: user, addressee: author, status: :accepted)
     BookFriendship.create!(requester: user, addressee: followed_friend, status: :accepted)
     user.active_follows.create!(followee: followed_friend)
-    BookActivity.create!(user:, book: Book.create!(title: "OWN_RATE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
-    BookActivity.create!(user: followed_friend, book: Book.create!(title: "FOLLOWED_RATE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
-    BookActivity.create!(user: author, book: Book.create!(title: "UNFOLLOWED_RATE_ACTIVITY", authors_text: "Author"), action: :added_to_shelf)
+    activity_book = Book.create!(title: "OWN_RATE_ACTIVITY", authors_text: "Author")
+    BookActivity.create!(user:, book: activity_book, bookshelf_entry: user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
+    activity_book = Book.create!(title: "FOLLOWED_RATE_ACTIVITY", authors_text: "Author")
+    BookActivity.create!(user: followed_friend, book: activity_book, bookshelf_entry: followed_friend.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
+    activity_book = Book.create!(title: "UNFOLLOWED_RATE_ACTIVITY", authors_text: "Author")
+    BookActivity.create!(user: author, book: activity_book, bookshelf_entry: author.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
     sign_in user
     30.times { post jjaeks_path, params: { jjaek: { content: "" } } }
 

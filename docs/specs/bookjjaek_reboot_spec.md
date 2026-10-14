@@ -121,18 +121,15 @@ Jjaek처럼 본문이 있는 글이 아니라,
 - 어떤 책에 너무 좋았어요 스티커를 붙임
 
 현재 구현에서는 책활동을 사용자-facing 개념으로 유지하면서,
-`BookActivity`를 일부 도입해 서재 상태/스티커 변경을 이벤트로 기록한다.
+`BookActivity`는 개인 서재 최초 추가만 이벤트로 기록한다. 상태·스티커는 개인 독서 관리로 유지한다.
 세부 구현 기준과 남은 범위는 `docs/specs/book_activity_mvp.md`를 따른다.
 
 ### BookActivity
 `BookActivity`는 책과 관련된 사용자 행동을
 피드에서 소비하기 좋은 형태로 기록하는 **피드용 이벤트 모델**이다.
 
-예를 들면 아래 같은 사건을 담을 수 있다.
-
-- 책을 서재에 처음 담음
-- 대표 상태를 읽고 싶어요 → 읽는 중으로 변경
-- 특정 스티커를 추가하거나 제거
+현재 기록 대상은 책을 개인 서재에 처음 담은 사건이다.
+상태·스티커 변경은 새 활동을 생성하지 않으며 과거 변경 활동도 피드에서 제외한다.
 
 중요한 점:
 - `BookActivity`는 책에 대한 본문 글이 아니다.
@@ -245,16 +242,15 @@ Jjaek의 공개 범위는 아래 3개만 둔다.
 최소 작성 분량은 정하지 않으며 기존 빈 본문 검증은 유지한다.
 
 ### 책활동
-서재 상태나 스티커 변경으로 생기는 활동이다.
-본문이 필수는 아니다.
-피드를 풍성하게 만드는 이벤트다.
+개인 서재에 책을 처음 추가한 활동이다.
+본문 콘텐츠와 독서 상태·스티커 관리는 분리한다.
 
 원칙:
 - 도메인 상 Jjaek과 책활동은 분리한다.
 - 사용자에게는 필요 이상으로 복잡하게 드러내지 않는다.
 - 피드에서는 둘을 하나의 흐름처럼 함께 보여줄 수 있다.
 - 현재 구현에서는 BookActivity 모델과 프로필 최근 활동 타임라인 노출이 도입되어 있다.
-- 홈 피드 합성도 구현되어 있으며, books/:id 노출과 더 정교한 visibility는 후속 단계에서 다룬다.
+- 홈 피드 합성은 구현되어 있으며, 현재 책장 visibility로 기존 관계 범위를 추가 제한한다. books/:id에는 합성하지 않는다.
 
 ### BookshelfEntry / BookshelfEntrySticker / BookActivity 책임 경계
 
@@ -275,8 +271,7 @@ Jjaek의 공개 범위는 아래 3개만 둔다.
 - 댓글/좋아요/ReJjaek의 대상이 된다.
 
 #### BookActivity
-- `BookshelfEntry` / `BookshelfEntrySticker` 변화에서 파생될 수 있는
-  **피드용 이벤트 모델**이다.
+- 개인 `BookshelfEntry` 최초 추가에서 파생되는 **피드용 이벤트 모델**이다.
 - 어떤 변화가 있었는지를 시간순으로 보여주기 위한 표현 계층이다.
 - 상태의 source of truth가 아니다.
 - 책에 대한 자유 본문 글도 아니다.
@@ -516,19 +511,17 @@ ReJjaek은 새 Jjaek이지만,
 - 홈의 일반 작성 버튼: `짹`
 - 책 상세의 책 연결 작성 버튼: `책짹`
 - 인용/응답 작성 버튼: `다시짹`
-- 책 상세의 상태/스티커 저장 버튼: `저장` 또는 `상태 저장`
+- 책 상세의 상태/스티커: 저장 버튼 없이 항목별 클릭 즉시 저장
 
 ### 홈 피드와 책활동
 - 현재 홈 피드는 Jjaek과 BookActivity를 함께 보여준다.
-- 현재 `BookActivity`는 `BookshelfEntry` 생성/변경/스티커 변경을
-  본문 글과 분리된 이벤트로 기록하고, 홈 피드와 프로필의 최근 활동 타임라인에 노출한다.
+- 현재 `BookActivity`는 개인 `BookshelfEntry` 최초 추가만 기록하고, 상태·스티커 변경 활동은 생성하거나 피드에 표시하지 않는다.
 - 홈 피드의 BookActivity 노출 범위는 현재 사용자와 소식받는 accepted book_friend로 제한한다.
 - 책친구 관계만으로는 상대의 Jjaek과 BookActivity가 홈에 자동 편입되지 않는다.
-- follow-only / stranger의 BookActivity는 여러 책장/공개 범위가 정리되기 전까지 홈 피드에 노출하지 않는다.
+- follow-only / stranger의 BookActivity는 public 책장인 경우에도 홈 피드에 노출하지 않는다.
 - `BookActivity`는 `BookshelfEntry`, `BookshelfEntrySticker`, `Jjaek`의
   source of truth를 대체하지 않는다.
-- books/:id 타임라인 노출 여부, 여러 책장과 연결되는 정교한 visibility는
-  `docs/specs/book_activity_mvp.md` 기준으로 후속 판단한다.
+- 현재 책장 공개 범위와 서재 항목 제거 시 활동 정리 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
 
 ---
 

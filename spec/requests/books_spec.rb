@@ -15,7 +15,7 @@ RSpec.describe "Books", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
-      expect(response.body).to include(I18n.t("books.show.save_state"))
+      expect(response.body).to include('data-controller="reading-state"')
       expect(response.body).to include('name="jjaek[content]"')
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
     end
@@ -97,6 +97,40 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include('name="jjaek[content]"')
     end
 
+    it "keeps the personal form expanded with its visibility selector and no state save button" do
+      user.bookshelf_entries.create!(book: book)
+      sign_in user
+
+      get book_path(book)
+
+      page = Nokogiri::HTML(response.body)
+      form = page.at_css("form[action='#{jjaeks_path}']")
+      expect(form).to be_present
+      expect(form.ancestors("details")).to be_empty
+      expect(form.at_css("select[name='jjaek[visibility]']")).to be_present
+      expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
+      expect(page.css("h2").map(&:text)).to include(I18n.t("jjaeks.actions.publish_book"))
+      expect(page.at_css("[data-controller='reading-state'] input[type='submit']")).to be_nil
+    end
+
+    it "shows only public personal book jjaeks before the book is added to the library" do
+      friend = User.create!(name: "Reader friend", email: "book-show-friend@example.com", password: "password123!")
+      BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+      public_jjaek = friend.jjaeks.create!(book: book, content: "UNSHELVED_PUBLIC_BOOK")
+      friend_jjaek = friend.jjaeks.create!(book: book, content: "UNSHELVED_FRIEND_BOOK", visibility: :book_friends)
+      private_jjaek = user.jjaeks.create!(book: book, content: "UNSHELVED_PRIVATE_BOOK", visibility: :private_jjaek)
+      sign_in user
+
+      get book_path(book)
+
+      expect(response.body).to include(public_jjaek.content)
+      expect(response.body).not_to include(friend_jjaek.content, private_jjaek.content, 'data-controller="reading-state"', 'name="jjaek[content]"')
+
+      user.bookshelf_entries.create!(book: book)
+      get book_path(book)
+      expect(response.body).to include(friend_jjaek.content, private_jjaek.content)
+    end
+
     it "redirects guests before showing the library context" do
       user.bookshelf_entries.create!(book:, status: :reading)
 
@@ -130,7 +164,7 @@ RSpec.describe "Books", type: :request do
 
       follow_redirect!
 
-      expect(response.body).to include(I18n.t("books.show.save_state"))
+      expect(response.body).to include('data-controller="reading-state"')
       expect(response.body).to include('name="jjaek[content]"')
 
       document = Nokogiri::HTML(response.body)
@@ -138,8 +172,8 @@ RSpec.describe "Books", type: :request do
       status_radios = document.css('input[type="radio"][name="bookshelf_entry[status]"]')
 
       expect(status_select).to be_nil
-      expect(status_radios.map { |radio| radio["value"] }).to match_array(BookshelfEntry.statuses.keys)
-      expect(status_radios.any? { |radio| radio["checked"].present? }).to be(false)
+      expect(status_radios.map { |radio| radio["value"] }).to match_array([ "", *BookshelfEntry.statuses.keys ])
+      expect(status_radios.select { |radio| radio["checked"].present? }.map { |radio| radio["value"] }).to eq([ "" ])
     end
   end
 

@@ -242,6 +242,15 @@ class JjaekPolicy < ApplicationPolicy
     end
   end
 
+  class BookScope < Scope
+    def resolve
+      return scope.none unless user.present?
+
+      records = super.where(group_id: nil, quoted_jjaek_id: nil)
+      records.public_jjaek.or(records.where(book_id: user.bookshelf_entries.select(:book_id)))
+    end
+  end
+
   class RestrictedRequoteScope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?

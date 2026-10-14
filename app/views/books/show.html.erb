@@ -2,13 +2,18 @@
   <section class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.75fr)] lg:items-start">
     <%= render "books/book_header", book: @book %>
 
-    <%= render "books/bookshelf_panel",
-               book: @book,
-               bookshelf_entry: @bookshelf_entry,
-               bookshelves: @bookshelves,
-               sticker_definitions: @sticker_definitions,
-               search_result_token: @search_result_token,
-               group_id: @group&.id %>
+    <div class="space-y-6">
+      <%= render "books/bookshelf_panel",
+                 book: @book,
+                 bookshelf_entry: @bookshelf_entry,
+                 bookshelves: @bookshelves,
+                 sticker_definitions: @sticker_definitions,
+                 search_result_token: @search_result_token,
+                 group_id: @group&.id %>
+      <% if @bookshelf_entry.present? %>
+        <%= render "books/reading_state", bookshelf_entry: @bookshelf_entry, sticker_definitions: @sticker_definitions %>
+      <% end %>
+    </div>
   </section>
 
   <% if @bookshelf_entry.present? %>
