@@ -44,6 +44,7 @@ class JjaeksController < ApplicationController
    end
 
     prepare_comments
+    prepare_current_reading_states_for([ @jjaek ])
     prepare_visible_requote_counts_for([ @jjaek ])
   end
 
@@ -342,6 +343,7 @@ class JjaeksController < ApplicationController
     else
       Jjaek.none
     end
+    prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
     render "groups/show", status:
   end
@@ -363,6 +365,7 @@ class JjaeksController < ApplicationController
       .includes(:user, :book)
       .recent
     @feed_items = (@feed_jjaeks.to_a + @feed_book_activities.to_a).sort_by(&:created_at).reverse
+    prepare_current_reading_states_for(@feed_jjaeks)
     prepare_visible_requote_counts_for(@feed_jjaeks)
     render "homes/show", status:
   end
@@ -388,6 +391,7 @@ class JjaeksController < ApplicationController
       else
         Jjaek.none
       end
+    prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
   end
 

@@ -1,12 +1,14 @@
-<article class="rounded-3xl border border-stone-300 bg-stone-100/70 p-5 text-sm text-stone-700 shadow-sm">
+<article class="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-stone-700 shadow-sm">
   <div class="flex gap-4">
     <%= render "books/thumbnail",
                title: book_activity.book.title,
                thumbnail: book_activity.book.thumbnail,
                url: book_path(book_activity.book),
-               size: :small %>
+               size: :large %>
 
     <div class="min-w-0 flex-1">
+      <h3 class="text-lg font-semibold leading-6 text-stone-900"><%= link_to book_activity.book.title, book_path(book_activity.book) %></h3>
+      <p class="mb-4 mt-1 text-sm text-stone-500"><%= book_activity.book.authors_text.presence || "-" %></p>
       <div class="flex items-start gap-3">
         <%= user_avatar_image(book_activity.user, size: 128, alt: book_activity.user.name, class: "h-9 w-9 shrink-0 rounded-full object-cover") %>
         <p class="leading-6"><%= book_activity_card_message(book_activity) %></p>

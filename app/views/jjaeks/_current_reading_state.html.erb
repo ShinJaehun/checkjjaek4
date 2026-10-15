@@ -1,0 +1,11 @@
+<% entry = current_reading_state_for(jjaek) %>
+<% if entry && (entry.status.present? || entry.sticker_definitions.any?) %>
+  <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs" data-current-reading-state>
+    <% if entry.status.present? %>
+      <%= reading_status_badge(entry.status) %>
+    <% end %>
+    <% entry.sticker_definitions.each do |sticker| %>
+      <%= reading_sticker_badge(sticker) %>
+    <% end %>
+  </div>
+<% end %>

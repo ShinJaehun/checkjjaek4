@@ -8,6 +8,7 @@ class RequotesController < ApplicationController
       .includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book, :group ])
       .recent
 
+    prepare_current_reading_states_for(readable_requotes)
     @requotes = readable_requotes.map { |requote| [ requote, false ] }
     if @jjaek.user_id == current_user.id
       restricted_requotes = JjaekPolicy::RestrictedRequoteScope

@@ -10,14 +10,68 @@ RSpec.describe "User libraries", type: :request do
     user.bookshelf_entries.create!(book:, bookshelf: target_bookshelf)
   end
 
-  it "shows every owned bookshelf and its existing count in the title summary" do
+  it "uses shared badges for reading information in the library" do
+    entry = user.bookshelf_entries.find_by!(book: book)
+    entry.update!(status: :reading)
+    sticker = StickerDefinition.create!(key: "recommended_to_me", name: "Legacy recommendation label")
+    entry.sticker_definitions << sticker
+    sign_in user
+
+    get user_library_path(user, bookshelf_id: target_bookshelf.id)
+
+    card = Nokogiri::HTML(response.body).at_css("[data-bookshelf-entry-id='#{entry.id}']")
+    expect(card.at_css('[data-reading-status="reading"] svg')).to be_present
+    expect(card.at_css('[data-reading-sticker="recommended_to_me"] svg')).to be_present
+    icon = card.at_css('[data-reading-sticker="recommended_to_me"]')
+    expect(icon.text).to be_empty
+    expect(icon["title"]).to eq(I18n.t("reading_experience.stickers.recommended_to_me"))
+    expect(icon["aria-label"]).to eq(icon["title"])
+    expect(card.text).to include(I18n.t("bookshelf_entries.statuses.reading"))
+    expect(card.text).not_to include(sticker.name)
+  end
+
+  it "keeps the first three stickers in order and summarizes the rest on detail and compact cards" do
+    entry = user.bookshelf_entries.find_by!(book: book)
+    stickers = %w[loved_it really_loved_it stayed_with_me want_to_reread recommended_to_me want_to_recommend].map do |key|
+      StickerDefinition.create!(key: key, name: key)
+    end
+    entry.sticker_definitions << stickers
+    sign_in user
+
+    paths = [
+      user_library_path(user, bookshelf_id: target_bookshelf.id),
+      transfer_user_library_path(user, source_bookshelf_id: target_bookshelf.id, target_bookshelf_id: selected_bookshelf.id)
+    ]
+    paths.each do |path|
+      get path
+      expect(response).to have_http_status(:ok)
+      card = Nokogiri::HTML(response.body).at_css("[data-bookshelf-entry-id='#{entry.id}']")
+      icons = card.css("[data-reading-sticker]")
+      expect(icons.map { |icon| icon["data-reading-sticker"] }).to eq(stickers.first(3).map(&:key))
+      expect(icons.all? { |icon| icon.at_css("svg") && icon.text.empty? && icon["title"] == icon["aria-label"] }).to be(true)
+      overflow = card.at_css("[data-reading-sticker-overflow]")
+      expect(overflow.text).to eq("+3")
+      names = stickers.drop(3).map { |sticker| I18n.t("reading_experience.stickers.#{sticker.key}") }.join(", ")
+      expect(overflow["title"]).to eq(names)
+      expect(overflow["aria-label"]).to include(names)
+      expect(card.css("[data-reading-status-row], [data-reading-stickers-row]").size).to eq(2)
+    end
+  end
+
+  it "shows the library title card with aggregate counts and the existing transfer link" do
     sign_in user
 
     get user_library_path(user)
 
     summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
-    expect(summary.text.squish).to include("내 책장 0권", "Selected Shelf 0권", "Target Shelf 1권")
-    expect(summary.text).to include("·")
+    expect(summary.text.squish).to eq("책장 3개 · 총 1권")
+    header = Nokogiri::HTML(response.body).at_css("header[data-library-summary]")
+    expect(header["class"].split).to include("bg-white", "rounded-2xl", "border", "border-stone-200", "shadow-sm", "p-4")
+    expect(header.at_css("img")).to be_present
+    expect(header.at_css(%(a[href="#{transfer_user_library_path(user, source_bookshelf_id: user.bookshelves.find_by!(is_default: true).id)}"]))).to be_present
+    expect(Nokogiri::HTML(response.body).at_css("h1").text).to eq("Reader의 서재")
+    expect(summary.css("li, [data-bookshelf-visibility]")).to be_empty
+    expect(Nokogiri::HTML(response.body).at_css('[data-bookshelf-visibility="public"]')).to be_present
   end
 
   it "limits another user's title summary to visible non-private shelves" do
@@ -31,7 +85,7 @@ RSpec.describe "User libraries", type: :request do
     get user_library_path(user)
 
     summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
-    expect(summary.text).to include("Public Summary 0권", "Friends Summary 1권")
+    expect(summary.text.squish).to eq("책장 3개 · 총 1권")
     expect(summary.text).not_to include(selected_bookshelf.name, target_bookshelf.name)
     expect(response.body).not_to include("Target Shelf", "Selected Shelf")
   end
@@ -45,7 +99,7 @@ RSpec.describe "User libraries", type: :request do
 
     expect(response).to have_http_status(:ok)
     summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
-    expect(summary.text).to include("내 책장 0권")
+    expect(summary.text.squish).to eq("책장 1개 · 총 0권")
     expect(summary.text).not_to include(selected_bookshelf.name, target_bookshelf.name)
   end
 

@@ -9,6 +9,25 @@ RSpec.describe UsersHelper, type: :helper do
     I18n.with_locale(:en) { expect(helper.user_role_label(:global_admin)).to eq("System admin") }
   end
 
+  it "renders bookshelf visibility labels and badges without database queries" do
+    shelves = Bookshelf.visibilities.keys.map { |visibility| Bookshelf.new(visibility: visibility) }
+    queries = []
+    subscriber = ->(_name, _start, _finish, _id, payload) { queries << payload[:sql] }
+    ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+      %i[ko en].each do |locale|
+        I18n.with_locale(locale) do
+          shelves.each do |shelf|
+            badge = Nokogiri::HTML.fragment(helper.bookshelf_visibility_badge(shelf)).at_css("span")
+            expect(badge.text).to eq(I18n.t("bookshelves.visibility.#{shelf.visibility}"))
+            expect(badge["data-bookshelf-visibility"]).to eq(shelf.visibility)
+            expect(badge["class"]).to include("rounded-full", "border-stone-200")
+          end
+        end
+      end
+    end
+    expect(queries).to be_empty
+  end
+
   it "returns a 128px default avatar path" do
     user = User.new(default_avatar_index: 7)
 

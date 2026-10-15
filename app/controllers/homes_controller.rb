@@ -10,6 +10,7 @@ class HomesController < ApplicationController
       .includes(:user, :book)
       .recent
     @feed_items = (@feed_jjaeks.to_a + @feed_book_activities.to_a).sort_by(&:created_at).reverse
+    prepare_current_reading_states_for(@feed_jjaeks)
     prepare_visible_requote_counts_for(@feed_jjaeks)
   end
 end

@@ -1,4 +1,10 @@
 module JjaeksHelper
+  def current_reading_state_for(jjaek)
+    return if jjaek.deleted?
+
+    @current_reading_states.to_h[[jjaek.user_id, jjaek.book_id]]
+  end
+
   def jjaek_hide_reason_options
     Jjaek::MODERATION_HIDE_REASONS.map do |reason|
       [ jjaek_hide_reason_label(reason), reason ]

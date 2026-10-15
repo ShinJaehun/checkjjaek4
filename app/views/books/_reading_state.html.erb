@@ -1,41 +1,44 @@
-<section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm"
-         data-controller="reading-state"
-         data-reading-state-url-value="<%= bookshelf_entry_path(bookshelf_entry) %>"
-         data-reading-state-saving-value="<%= t('books.show.saving_state') %>"
-         data-reading-state-saved-value="<%= t('books.show.saved_state') %>"
-         data-reading-state-error-value="<%= t('books.show.save_state_failed') %>">
-  <h2 class="mb-4 text-lg font-semibold text-stone-900"><%= t("books.show.state_title") %></h2>
-
+<div class="space-y-4"
+     data-controller="reading-state"
+     data-reading-state-url-value="<%= bookshelf_entry_path(bookshelf_entry) %>"
+     data-reading-state-saving-value="<%= t('books.show.saving_state') %>"
+     data-reading-state-saved-value="<%= t('books.show.saved_state') %>"
+     data-reading-state-error-value="<%= t('books.show.save_state_failed') %>">
   <% if bookshelf_entry.errors.any? %>
     <p role="alert" class="mb-4 text-sm text-red-700"><%= bookshelf_entry.errors.full_messages.to_sentence %></p>
   <% end %>
 
-  <fieldset>
-    <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("books.show.status_label") %></legend>
-    <div class="flex flex-wrap gap-2">
-      <% [nil, *BookshelfEntry.statuses.keys].each do |status| %>
-        <label class="inline-flex cursor-pointer items-center rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 has-[:checked]:border-stone-900 has-[:checked]:bg-stone-900 has-[:checked]:text-stone-50">
-          <%= radio_button_tag "bookshelf_entry[status]", status.to_s, bookshelf_entry.status == status,
-                               data: { reading_state_target: "status", action: "change->reading-state#changeStatus" }, class: "sr-only" %>
-          <span><%= status ? t("bookshelf_entries.statuses.#{status}") : t("books.show.clear_status") %></span>
-        </label>
-      <% end %>
-    </div>
-  </fieldset>
+  <section class="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm sm:p-6" data-reading-status-card>
+    <fieldset>
+      <legend class="mb-4 text-lg font-semibold text-stone-900"><%= t("books.show.status_label") %></legend>
+      <div class="flex flex-wrap gap-2">
+        <% BookshelfEntry.statuses.keys.each do |status| %>
+          <label class="<%= reading_badge_classes(:status, selectable: true) %>">
+            <%= check_box_tag "bookshelf_entry[status]", status.to_s, bookshelf_entry.status == status,
+                             id: "reading_status_#{status}",
+                             data: { reading_state_target: "status", action: "change->reading-state#changeStatus" }, class: "sr-only" %>
+            <%= reading_status_content(status) %>
+          </label>
+        <% end %>
+      </div>
+    </fieldset>
+  </section>
 
-  <fieldset class="mt-4">
-    <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("bookshelf_entries.form.stickers") %></legend>
-    <div class="flex flex-wrap gap-2">
-      <% selected_ids = bookshelf_entry.sticker_definition_ids %>
-      <% sticker_definitions.each do |sticker| %>
-        <label class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 has-[:checked]:border-stone-900 has-[:checked]:bg-stone-900 has-[:checked]:text-stone-50">
-          <%= check_box_tag "bookshelf_entry[sticker_definition_ids][]", sticker.id, selected_ids.include?(sticker.id),
-                            id: "reading_sticker_#{sticker.id}", data: { reading_state_target: "sticker", action: "change->reading-state#changeSticker" }, class: "sr-only" %>
-          <span><%= sticker.name %></span>
-        </label>
-      <% end %>
-    </div>
-  </fieldset>
+  <section class="rounded-[2rem] border border-amber-200 bg-amber-50/40 p-5 shadow-sm sm:p-6" data-reading-stickers-card>
+    <fieldset>
+      <legend class="mb-4 text-lg font-semibold text-stone-900"><%= t("bookshelf_entries.form.stickers") %></legend>
+      <div class="flex flex-wrap gap-2">
+        <% selected_ids = bookshelf_entry.sticker_definition_ids %>
+        <% sticker_definitions.each do |sticker| %>
+          <label class="<%= reading_badge_classes(:sticker, selectable: true) %>">
+            <%= check_box_tag "bookshelf_entry[sticker_definition_ids][]", sticker.id, selected_ids.include?(sticker.id),
+                              id: "reading_sticker_#{sticker.id}", data: { reading_state_target: "sticker", action: "change->reading-state#changeSticker" }, class: "sr-only" %>
+            <%= reading_sticker_content(sticker) %>
+          </label>
+        <% end %>
+      </div>
+    </fieldset>
+  </section>
 
   <p data-reading-state-target="message" role="status" aria-live="polite" class="mt-4 text-sm text-stone-600"></p>
-</section>
+</div>

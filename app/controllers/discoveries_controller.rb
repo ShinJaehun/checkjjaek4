@@ -27,6 +27,7 @@ class DiscoveriesController < ApplicationController
       .order(Arel.sql("RANDOM()"))
       .first
     @book_jjaeks = @book ? varied_jjaeks(public_original_jjaeks.where(book_id: @book.id)) : []
+    prepare_current_reading_states_for(@book_jjaeks)
   end
 
   def prepare_general_jjaeks
@@ -103,5 +104,6 @@ class DiscoveriesController < ApplicationController
       .order(created_at: :desc, id: :desc)
       .limit(3)
       .to_a
+    prepare_current_reading_states_for(@group_posts)
   end
 end

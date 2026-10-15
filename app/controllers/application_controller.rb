@@ -69,7 +69,21 @@ class ApplicationController < ActionController::Base
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::BookScope)
     end
     @jjaeks = @jjaeks.where(quoted_jjaek_id: nil).recent
+    prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
+  end
+
+  def prepare_current_reading_states_for(jjaeks)
+    records = Array(jjaeks).select { |jjaek| jjaek.book_id.present? && !jjaek.deleted? }
+    @current_reading_states ||= {}
+    return if records.empty?
+
+    entries = policy_scope(BookshelfEntry, policy_scope_class: BookshelfEntryPolicy::ReadingStateScope)
+      .where(user_id: records.map(&:user_id), book_id: records.map(&:book_id))
+      .includes(:sticker_definitions)
+    entries.each do |entry|
+      @current_reading_states[[entry.user_id, entry.book_id]] = entry
+    end
   end
 
   def prepare_visible_requote_counts_for(jjaeks)

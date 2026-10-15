@@ -30,6 +30,7 @@
               <p class="text-xs text-stone-500"><%= t("jjaeks.meta.created_at", time: l(jjaek.created_at, format: :short)) %></p>
             </div>
           </div>
+          <%= render "jjaeks/current_reading_state", jjaek: jjaek %>
           <p class="mt-2 line-clamp-3 whitespace-pre-line break-words font-serif text-lg leading-7 text-stone-800"><%= jjaek.content %></p>
           <%= link_to t("discovery.read_jjaek"), jjaek_path(jjaek),
                       data: { turbo_frame: "_top" },

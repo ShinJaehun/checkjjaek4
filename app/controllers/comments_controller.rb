@@ -46,6 +46,7 @@ class CommentsController < ApplicationController
       respond_to do |format|
         format.turbo_stream { render :create, status: :unprocessable_content }
         format.html do
+          prepare_current_reading_states_for([ @jjaek ])
           prepare_visible_requote_counts_for([ @jjaek ])
           render "jjaeks/show", status: :unprocessable_content
         end
@@ -76,6 +77,7 @@ class CommentsController < ApplicationController
       respond_to do |format|
         format.turbo_stream { render :update, status: :unprocessable_content }
         format.html do
+          prepare_current_reading_states_for([ @jjaek ])
           prepare_visible_requote_counts_for([ @jjaek ])
           render "jjaeks/show", status: :unprocessable_content
         end
@@ -110,6 +112,7 @@ class CommentsController < ApplicationController
       format.html do
         @comment = Comment.new(comment_params.merge(jjaek: @jjaek, user: current_user))
         prepare_comments_panel(comment: @comment)
+        prepare_current_reading_states_for([ @jjaek ])
         prepare_visible_requote_counts_for([ @jjaek ])
         flash.now[:alert] = message
         render "jjaeks/show", status: :too_many_requests

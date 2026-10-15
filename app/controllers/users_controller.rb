@@ -43,6 +43,7 @@ class UsersController < ApplicationController
       else
         Jjaek.none
       end
+    prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
   end
 

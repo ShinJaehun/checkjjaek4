@@ -32,6 +32,27 @@ RSpec.describe BookshelfEntryPolicy do
     end
   end
 
+  describe BookshelfEntryPolicy::ReadingStateScope do
+    it "allows own private entries and friends' accessible entries only" do
+      own_shelf = viewer.bookshelves.create!(name: "Own private", visibility: :private)
+      own = viewer.bookshelf_entries.create!(book: viewer_book, bookshelf: own_shelf)
+      friend_shelf = book_friend.bookshelves.create!(name: "Friend reading", visibility: :public)
+      friend = book_friend.bookshelf_entries.create!(book: friend_book, bookshelf: friend_shelf)
+      stranger.bookshelf_entries.create!(book: stranger_book)
+      BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
+      resolve = -> { described_class.new(viewer, BookshelfEntry.all).resolve }
+
+      expect(resolve.call).to contain_exactly(own, friend)
+      friend.bookshelf.update!(visibility: :book_friends)
+      expect(resolve.call).to contain_exactly(own, friend)
+      friend.bookshelf.update!(visibility: :private)
+      expect(resolve.call).to contain_exactly(own)
+      viewer.update!(global_admin: true)
+      expect(resolve.call).to contain_exactly(own)
+      expect(described_class.new(nil, BookshelfEntry.all).resolve).to be_empty
+    end
+  end
+
   describe BookshelfEntryPolicy::ProfileScope do
     let(:profile_user) { User.create!(name: "Profile", email: "profile-bookshelf-policy@example.com", password: "password123!", password_confirmation: "password123!") }
     let(:public_book) { Book.create!(title: "Public Profile Book", authors_text: "Author") }

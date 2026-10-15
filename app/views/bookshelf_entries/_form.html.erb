@@ -24,9 +24,9 @@
     <%= form.hidden_field :status, value: "" %>
     <div class="flex flex-wrap gap-2">
       <% BookshelfEntry.statuses.keys.each do |status| %>
-        <label class="inline-flex cursor-pointer items-center rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 has-[:checked]:border-stone-900 has-[:checked]:bg-stone-900 has-[:checked]:text-stone-50">
+        <label class="<%= reading_badge_classes(:status, selectable: true) %>">
           <%= form.radio_button :status, status, class: "sr-only" %>
-          <span><%= t("bookshelf_entries.statuses.#{status}") %></span>
+          <%= reading_status_content(status) %>
         </label>
       <% end %>
     </div>
@@ -36,9 +36,9 @@
     <span class="text-sm font-medium text-stone-700"><%= t("bookshelf_entries.form.stickers") %></span>
     <div class="flex flex-wrap gap-2">
       <%= form.collection_check_boxes :sticker_definition_ids, sticker_definitions, :id, :name do |builder| %>
-        <label class="inline-flex items-center gap-2 rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700">
-          <%= builder.check_box class: "rounded border-stone-300 text-stone-900 focus:ring-stone-500" %>
-          <span><%= builder.text %></span>
+        <label class="<%= reading_badge_classes(:sticker, selectable: true) %>">
+          <%= builder.check_box class: "sr-only" %>
+          <%= reading_sticker_content(builder.object) %>
         </label>
       <% end %>
     </div>

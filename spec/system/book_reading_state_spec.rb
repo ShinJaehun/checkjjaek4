@@ -19,6 +19,25 @@ RSpec.describe "Book reading state", type: :system do
 
   after { Warden.test_reset! }
 
+  it "clears the selected status on a second click and keeps stickers" do
+    check first_sticker.name, allow_label_click: true
+    expect(page).to have_text(I18n.t("books.show.saved_state"))
+    uncheck I18n.t("bookshelf_entries.statuses.reading"), allow_label_click: true
+    expect(page).to have_no_css('[data-controller="reading-state"][aria-busy="true"]')
+    expect(entry.reload.status).to be_nil
+    expect(entry.sticker_definition_ids).to eq([ first_sticker.id ])
+    expect(page).to have_no_css('[data-reading-state-target="status"]:checked')
+    expect(entry.book_activities).to be_empty
+
+    uncheck first_sticker.name, allow_label_click: true
+    expect(page).to have_no_css('[data-controller="reading-state"][aria-busy="true"]')
+    expect(entry.reload.sticker_definition_ids).to be_empty
+
+    check I18n.t("bookshelf_entries.statuses.finished"), allow_label_click: true
+    expect(page).to have_no_css('[data-controller="reading-state"][aria-busy="true"]')
+    expect(entry.reload.status).to eq("finished")
+  end
+
   it "serializes rapid status and sticker clicks and persists the final selection" do
     page.execute_script <<~JS
       const originalFetch = window.fetch.bind(window)
@@ -86,12 +105,12 @@ RSpec.describe "Book reading state", type: :system do
     expect(entry.sticker_definition_ids).to be_empty
 
     page.execute_script("window.fetch = window.originalReadingFetch")
-    choose I18n.t("bookshelf_entries.statuses.finished"), allow_label_click: true
+    check I18n.t("bookshelf_entries.statuses.finished"), allow_label_click: true
     expect(page).to have_text(I18n.t("books.show.saved_state"))
     expect(entry.reload.status).to eq("finished")
   end
   it "keeps the last successful save when a later network request fails" do
-    choose I18n.t("bookshelf_entries.statuses.finished"), allow_label_click: true
+    check I18n.t("bookshelf_entries.statuses.finished"), allow_label_click: true
     expect(page).to have_text(I18n.t("books.show.saved_state"))
 
     page.execute_script <<~JS

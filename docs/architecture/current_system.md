@@ -79,15 +79,16 @@
 
 ### 2. 책 화면 (/books/:id)
 
-- PC 상단은 기존 1.35fr/0.75fr 비율의 2열이며 왼쪽 책 타이틀 카드에 기본 정보 아래 API 설명을 표시하고, 오른쪽에 책장·상태 카드를 세로로 표시한다. 모바일의 긴 설명은 펼침·접기를 제공한다
+- PC 상단은 기존 1.35fr/0.75fr 비율의 2열이며 왼쪽 책 타이틀 카드에 기본 정보 아래 API 설명을 표시하고, 오른쪽에 책장·상태·스티커 카드를 세로로 표시한다. 모바일의 긴 설명은 펼침·접기를 제공한다
 - 일반 상세는 viewer 기준 개인 원본 책짹 BookScope를 적용하고, 서재 미등록 시 공개 책짹만 표시한다. 서재 등록 후 동아리 맥락은 해당 동아리의 GroupContentScope 원본 책짹 목록을 표시한다
 - `books/:id`의 책짹 목록에는 ReJjaek을 직접 포함하지 않는다
 - 원본 책짹 카드의 visible ReJjaek count는 유지한다
 - ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 책짹 작성 컨텍스트가 열림
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
-- 모바일은 책 타이틀 카드 → 책장 카드 → 상태 카드 순서의 1열이며, PC·모바일 모두 상단 아래에 펼친 책짹 폼과 목록을 표시한다
-- 상태·스티커는 `reading-state` Stimulus가 항목별 PATCH를 순차 전송한다. update는 항목 잠금과 transaction으로 저장하며 JSON과 HTML 결과를 지원한다. 실패 시 마지막 저장 선택을 복구한다
+- 모바일은 책 타이틀 카드 → 책장 카드 → 상태 카드 → 스티커 카드 순서의 1열이며, PC·모바일 모두 상단 아래에 펼친 책짹 폼과 목록을 표시한다
+- 상태·스티커는 `reading-state` Stimulus가 항목별 PATCH를 순차 전송한다. update는 항목 잠금과 transaction으로 저장하며 JSON과 HTML 결과를 지원한다. 실패 시 마지막 저장 선택을 복구한다. 선택한 상태를 다시 클릭하면 nil로 해제한다
+- 개인·동아리 책짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 항목과 스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
 - 일반/동아리 작성 제목·버튼은 책짹/동아리 책짹이며 동아리 이름·게시 대상 안내를 표시한다. 동아리에는 개인 visibility 선택을 표시하지 않는다
 - 새 책짹 폼의 게시 위치는 일반 진입에서 personal, group_id 진입에서 해당 group이 기본값이다. `book-posting` Stimulus가 본문을 유지하며 개인 공개 범위와 동아리 선택을 전환하고 제목·버튼을 갱신한다
 - 동아리 목록과 새 책짹의 명시적 게시 대상은 `GroupPolicy::CreateJjaekScope`로 제한한다. `POST /jjaeks`에서 목적지·Book·group_id를 검증하고 기존 Jjaek policy로 저장을 인가한다. 공유·다시짹은 기존 경로를 유지한다
@@ -114,7 +115,7 @@
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
 - stranger / follow-only는 프로필에서 `public` 책 목록을 flat summary 형태로 볼 수 있다
 - self / accepted book_friend는 프로필에서 접근 가능한 책 목록 요약을 볼 수 있다
-- 프로필 책 목록 요약은 현재 조회 순서를 유지한 채 4권씩 2열·2행 carousel page로 표시하고, 추가 스티커는 펼칠 수 있는 `+N`으로 묶는다. 전체 서재 화면의 책장·정렬·관리 흐름은 그대로 둔다
+- 프로필 책 목록 요약은 현재 조회 순서를 유지한 채 4권씩 2열·2행 carousel page로 표시하고, 스티커는 최대 3개와 생략한 이름을 제공하는 `+N`으로 묶는다. 전체 서재 화면의 책장·정렬·관리 흐름은 그대로 둔다
 - 프로필에서는 누구에게도 책장 탭, 책장 정렬 UI, 책장 관리 UI, 책 이동 UI를 보여주지 않는다
 - stranger / follow-only는 Library 링크를 볼 수 없다
 - self / accepted book_friend는 프로필에서 Library 링크를 볼 수 있다
@@ -194,8 +195,8 @@
 - 같은 책장 안 reorder는 `PATCH /bookshelf_entries/reorder`를 그대로 사용한다
 - compact book card는 한 화면에 더 많은 책이 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
 - compact / detail 카드의 썸네일과 카드 여백은 drag handle로 동작하며, 책 제목 링크는 클릭 시 책 상세로 이동한다
-- detail/compact 모두 저자와 출판사를 한 줄 metadata로 표시하고, 상태와 스티커를 카드 하단 footer row에 표시한다
-- sticker 목록은 일부 표시와 `+N` 또는 count badge로 요약하며, compact count badge는 전체 sticker 이름을 `title`/`aria-label`로 제공한다
+- detail/compact 모두 저자와 출판사를 한 줄 metadata로 표시하고, 상태와 스티커를 카드 하단 footer row에 표시한다. 프로필·Library 목록은 스티커를 접근 가능한 이름과 title이 있는 아이콘 전용으로 표시하며, 상태는 아이콘·텍스트를 유지한다. 세 화면은 공통 `bookshelf_entries/card_information` partial에서 제목·메타정보 한 줄과 상태·스티커 각각 한 줄을 예약한다. 가로형 카드는 9rem, compact 카드는 16rem로 고정한다
+- 프로필·Library·transfer는 스티커 아이콘을 최대 3개 표시하고 생략한 이름을 `+N`의 title·aria-label로 제공한다. 독서 정보가 없어도 목록 카드의 두 줄 공간은 유지한다
 
 관련 코드:
 - controller: app/controllers/users/libraries_controller.rb

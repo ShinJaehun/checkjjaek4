@@ -13,6 +13,7 @@ class GroupsController < ApplicationController
       .includes(:user, :book, :target_user, :likes, :comments, :group, :moderation_actions,
                 quoted_jjaek: [ :user, :book, :group ])
       .order(created_at: :desc, id: :desc)
+    prepare_current_reading_states_for(@group_activity_jjaeks)
     prepare_visible_requote_counts_for(@group_activity_jjaeks)
     @invitations = current_user.group_memberships.invited
       .joins(:group)
@@ -153,6 +154,7 @@ class GroupsController < ApplicationController
     else
       Jjaek.none
     end
+    prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
     @jjaek = Jjaek.new(user: current_user, group: @group) if group_policy.create_jjaek?
   end

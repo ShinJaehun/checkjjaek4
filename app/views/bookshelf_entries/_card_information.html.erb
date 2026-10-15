@@ -1,0 +1,33 @@
+<%
+  book = bookshelf_entry.book
+  metadata = [ book.authors_text.presence, book.publisher.presence ].compact.join(" · ").presence || "-"
+  stickers = show_status ? bookshelf_entry.sticker_definitions.to_a : []
+  remaining_stickers = stickers.drop(3)
+  remaining_names = remaining_stickers.map { |sticker| reading_sticker_label(sticker) }.join(", ")
+%>
+
+<div class="flex h-28 w-full min-w-0 shrink-0 flex-col" data-book-card-information>
+  <%= link_to book.title, book_path(book),
+              class: "block h-5 shrink-0 truncate text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700",
+              title: book.title %>
+  <p class="mt-1 h-5 shrink-0 truncate text-xs leading-5 text-stone-500" title="<%= metadata %>"><%= metadata %></p>
+
+  <div class="mt-2 space-y-1">
+    <div class="flex h-7 min-w-0 items-center" data-reading-status-row>
+      <%= reading_status_badge(bookshelf_entry.status) if show_status %>
+    </div>
+    <div class="flex h-7 min-w-0 items-center gap-0.5" data-reading-stickers-row>
+      <% stickers.first(3).each do |sticker| %>
+        <%= reading_sticker_badge(sticker, icon_only: true) %>
+      <% end %>
+      <% if remaining_stickers.any? %>
+        <span class="<%= reading_badge_classes(:sticker, icon_only: true) %>"
+              title="<%= remaining_names %>"
+              aria-label="<%= t("bookshelf_entries.stickers.summary", count: remaining_stickers.size) %>: <%= remaining_names %>"
+              role="img"
+              tabindex="0"
+              data-reading-sticker-overflow>+<%= remaining_stickers.size %></span>
+      <% end %>
+    </div>
+  </div>
+</div>

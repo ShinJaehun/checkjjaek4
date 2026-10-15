@@ -18,6 +18,7 @@ RSpec.describe "Homes", type: :request do
       get root_path
 
       expect(page_text).to include("Viewer님이 『내 활동 책』를 서재에 담았습니다.")
+      expect(page_text).not_to include("서재에 담은 책")
     end
 
     it "shows shelf addition card links and thumbnail fallback" do

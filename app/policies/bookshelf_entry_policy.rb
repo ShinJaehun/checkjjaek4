@@ -39,6 +39,19 @@ class BookshelfEntryPolicy < ApplicationPolicy
     end
   end
 
+  # Reading metadata is limited to owners and accepted book friends, even on public shelves.
+  class ReadingStateScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user
+
+      entries = scope.joins(:bookshelf)
+      entries.where(user_id: user.id).or(
+        entries.where(user_id: BookFriendship.connected_ids_for(user),
+                      bookshelves: { visibility: %w[public book_friends] })
+      )
+    end
+  end
+
   class ProfileScope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?

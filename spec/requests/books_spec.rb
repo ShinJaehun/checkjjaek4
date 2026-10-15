@@ -16,6 +16,10 @@ RSpec.describe "Books", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
       expect(response.body).to include('data-controller="reading-state"')
+      state = Nokogiri::HTML(response.body).at_css('[data-controller="reading-state"]')
+      expect(state.at_css('[data-reading-status-card] legend').text).to eq(I18n.t("books.show.status_label"))
+      expect(state.at_css('[data-reading-stickers-card] legend').text).to eq(I18n.t("bookshelf_entries.form.stickers"))
+      expect(state.css('[data-reading-state-target="message"]').size).to eq(1)
       expect(response.body).to include('name="jjaek[content]"')
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
     end
@@ -169,11 +173,11 @@ RSpec.describe "Books", type: :request do
 
       document = Nokogiri::HTML(response.body)
       status_select = document.at_css('select[name="bookshelf_entry[status]"]')
-      status_radios = document.css('input[type="radio"][name="bookshelf_entry[status]"]')
+      status_choices = document.css('input[type="checkbox"][name="bookshelf_entry[status]"]')
 
       expect(status_select).to be_nil
-      expect(status_radios.map { |radio| radio["value"] }).to match_array([ "", *BookshelfEntry.statuses.keys ])
-      expect(status_radios.select { |radio| radio["checked"].present? }.map { |radio| radio["value"] }).to eq([ "" ])
+      expect(status_choices.map { |choice| choice["value"] }).to match_array(BookshelfEntry.statuses.keys)
+      expect(status_choices.select { |choice| choice["checked"].present? }.map { |choice| choice["value"] }).to be_empty
     end
   end
 

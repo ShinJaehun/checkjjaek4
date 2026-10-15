@@ -1,0 +1,13 @@
+en:
+  reading_experience:
+    library_summary: "%{shelves} bookshelves · %{books} books total"
+    book_count:
+      one: "%{count} book"
+      other: "%{count} books"
+    stickers:
+      loved_it: "Loved it"
+      really_loved_it: "Really loved it"
+      stayed_with_me: "Stayed with me"
+      want_to_reread: "Want to reread"
+      recommended_to_me: "Recommended to me"
+      want_to_recommend: "Want to recommend"

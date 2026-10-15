@@ -86,9 +86,7 @@
             <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
               <%= bookshelf_entry_counts.fetch(selected_bookshelf.id, 0) %>
             </span>
-            <span class="rounded-full border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-500">
-              <%= t("bookshelves.visibility.#{selected_bookshelf.visibility}") %>
-            </span>
+            <%= bookshelf_visibility_badge(selected_bookshelf) %>
           </div>
         </div>
 

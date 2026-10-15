@@ -1,0 +1,11 @@
+ko:
+  reading_experience:
+    library_summary: "책장 %{shelves}개 · 총 %{books}권"
+    book_count: "%{count}권"
+    stickers:
+      loved_it: "좋았어요"
+      really_loved_it: "너무 좋았어요"
+      stayed_with_me: "마음에 남아요"
+      want_to_reread: "다시 읽고 싶어요"
+      recommended_to_me: "추천받았어요"
+      want_to_recommend: "추천하고 싶어요"

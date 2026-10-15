@@ -203,7 +203,10 @@ RSpec.describe "Users", type: :request do
       expect(summary.css("[data-bookshelf-entry-id]").size).to eq(4)
       expect(summary.at_css("[data-profile-books-carousel-target='previous']")).to be_nil
       expect(summary.at_css("[data-profile-books-carousel-target='next']")).to be_nil
-      expect(summary.text).to include(I18n.t("users.profile.no_reading_status"))
+      expect(summary.text).not_to include(I18n.t("users.profile.no_reading_status"))
+      expect(summary.css("[data-reading-status], [data-reading-sticker]")).to be_empty
+      expect(summary.css("[data-reading-status-row]").size).to eq(4)
+      expect(summary.css("[data-reading-stickers-row]").size).to eq(4)
       books.each do |book|
         expect(summary.at_css(%(a[href="#{book_path(book)}"]))).to be_present
       end
@@ -226,7 +229,7 @@ RSpec.describe "Users", type: :request do
       expect(summary.at_css("[data-profile-books-carousel-target='position']").text).to include("1 / 2")
     end
 
-    it "summarizes extra profile stickers in a keyboard-accessible details control" do
+    it "shows three profile sticker icons and an accessible summary of the remaining names" do
       book = Book.create!(title: "STICKER_OVERFLOW_BOOK", authors_text: "Author")
       entry = viewer.bookshelf_entries.create!(book:, status: :reading)
       stickers = 7.times.map do |index|
@@ -238,19 +241,16 @@ RSpec.describe "Users", type: :request do
       get user_path(viewer)
 
       card = Nokogiri::HTML(response.body).at_css("[data-profile-books-summary] [data-bookshelf-entry-id='#{entry.id}']")
-      expect(card.text).to include(
-        I18n.t("bookshelf_entries.statuses.reading"),
-        stickers[0].name,
-        stickers[1].name,
-        stickers[2].name,
-        stickers[3].name,
-        stickers[4].name
-      )
-      expect(card.at_css("details summary").text.strip).to eq("+2")
-      expect(card.at_css("details").text).to include(
-        stickers[5].name,
-        stickers[6].name
-      )
+      expect(card.text).to include(I18n.t("bookshelf_entries.statuses.reading"))
+      icons = card.css("[data-reading-sticker]")
+      expect(icons.map { |icon| icon["aria-label"] }).to eq(stickers.first(3).map(&:name))
+      expect(icons.map { |icon| icon["data-reading-sticker"] }).to eq(stickers.first(3).map(&:key))
+      expect(icons.all? { |icon| icon.at_css("svg") && icon.text.empty? && icon["title"] == icon["aria-label"] }).to be(true)
+      overflow = card.at_css("[data-reading-sticker-overflow]")
+      expect(overflow.text).to eq("+4")
+      expect(overflow["title"]).to eq(stickers.drop(3).map(&:name).join(", "))
+      expect(overflow["aria-label"]).to include(stickers.drop(3).map(&:name).join(", "))
+      expect(overflow["tabindex"]).to eq("0")
       expect(card.at_css(%(a[href="#{book_path(book)}"]))).to be_present
     end
 
@@ -620,6 +620,9 @@ RSpec.describe "Users", type: :request do
 
       expect(response.body).to include(I18n.t("bookshelf_entries.statuses.finished"))
       expect(response.body).to include("OWNER_DETAILS_UNIQUE_STICKER")
+      summary = Nokogiri::HTML(response.body).at_css("[data-profile-books-summary]")
+      expect(summary.at_css('[data-reading-status="finished"] svg')).to be_present
+      expect(summary.at_css('[data-reading-sticker] svg')).to be_present
     end
 
     it "shows status and stickers in a summarized bookshelf entry to accepted book friends" do
@@ -907,7 +910,8 @@ RSpec.describe "Users", type: :request do
       get user_path(profile_user)
       expect(response).to have_http_status(:ok)
       normal_page = Nokogiri::HTML(response.body)
-      expect(normal_page.text).to include(profile_jjaek.content, profile_friend_jjaek.content, visible_requote.content, activity_book.title, profile_shelf_sticker.name)
+      expect(normal_page.text).to include(profile_jjaek.content, profile_friend_jjaek.content, visible_requote.content, activity_book.title)
+      expect(normal_page.at_css("[data-profile-books-summary] [data-reading-sticker]")["aria-label"]).to eq(profile_shelf_sticker.name)
       expect(normal_page.css("[data-bookshelf-entry-id]").map { |entry| entry["data-bookshelf-entry-id"] }).to contain_exactly(profile_entry.id.to_s, friend_entry.id.to_s)
       requote_link = %(a[href="#{jjaek_requotes_path(profile_jjaek)}"])
       expect(normal_page.at_css(requote_link).text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
@@ -919,6 +923,7 @@ RSpec.describe "Users", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
       page = Nokogiri::HTML(response.body)
       expect(page.css("article").map(&:text)).to eq(normal_page.css("article").map(&:text))
+      expect(page.css("[data-reading-sticker]").map { |icon| icon["aria-label"] }).to eq(normal_page.css("[data-reading-sticker]").map { |icon| icon["aria-label"] })
       expect(page.css("[data-bookshelf-entry-id]").map { |entry| entry["data-bookshelf-entry-id"] }).to eq(normal_page.css("[data-bookshelf-entry-id]").map { |entry| entry["data-bookshelf-entry-id"] })
       expect(page.at_css("#profile-header").text).to eq(normal_page.at_css("#profile-header").text)
       expect(page.css("#profile-header form").map { |form| form["action"] }).to eq(normal_page.css("#profile-header form").map { |form| form["action"] })

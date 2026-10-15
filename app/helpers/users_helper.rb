@@ -80,6 +80,16 @@ module UsersHelper
     }
   }.freeze
 
+  def bookshelf_visibility_label(bookshelf)
+    t("bookshelves.visibility.#{bookshelf.visibility}")
+  end
+
+  def bookshelf_visibility_badge(bookshelf)
+    tag.span(bookshelf_visibility_label(bookshelf),
+             class: "inline-flex shrink-0 rounded-full border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-500",
+             data: { bookshelf_visibility: bookshelf.visibility })
+  end
+
   def bookshelf_tab_class(bookshelf, selected:)
     bookshelf_color_palette(bookshelf).fetch(selected ? :selected : :unselected)
   end

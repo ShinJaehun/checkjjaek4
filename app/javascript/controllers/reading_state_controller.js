@@ -14,7 +14,9 @@ export default class extends Controller {
   }
 
   changeStatus(event) {
-    this.enqueue({ "bookshelf_entry[status]": event.target.value })
+    const selected = event.target.checked ? event.target.value : ""
+    this.statusTargets.forEach(input => { input.checked = input.value === selected })
+    this.enqueue({ "bookshelf_entry[status]": selected })
   }
 
   changeSticker(event) {
