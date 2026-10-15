@@ -24,7 +24,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-[linear-gradient(180deg,#f5efe4_0%,#f8f7f3_38%,#fcfcfb_100%)] text-stone-900">
+  <body data-controller="book-search-modal" data-action="click->book-search-modal#open turbo:before-cache@document->book-search-modal#close" class="min-h-screen bg-[linear-gradient(180deg,#f5efe4_0%,#f8f7f3_38%,#fcfcfb_100%)] text-stone-900">
     <%= render "shared/nav" %>
 
     <main class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-8">
@@ -33,5 +33,6 @@
       </div>
       <%= yield %>
     </main>
+    <%= render "book_searches/dialog" if user_signed_in? %>
   </body>
 </html>

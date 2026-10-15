@@ -19,23 +19,29 @@ RSpec.describe "Book posting location", type: :system do
 
   it "keeps the draft and visibility through location changes and posts to the selected club" do
     visit book_path(book)
-    expect(page).to have_select(I18n.t("jjaeks.form.posting_location"), selected: I18n.t("jjaeks.actions.publish_book"))
+    expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "게시 위치를 바꿔도 남아 있는 본문"
-    select I18n.t("jjaeks.visibility.private_jjaek"), from: I18n.t("jjaeks.form.visibility")
+    choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
 
-    select I18n.t("jjaeks.actions.publish_group_book"), from: I18n.t("jjaeks.form.posting_location")
-    expect(page).to have_no_select(I18n.t("jjaeks.form.visibility"))
+    choose I18n.t("jjaeks.actions.publish_group_book"), allow_label_click: true
+    expect(page).to have_no_css('input[name="jjaek[visibility]"]:enabled')
     expect(page).to have_button(I18n.t("jjaeks.actions.publish_group_book"), disabled: true)
     select group.name, from: I18n.t("jjaeks.form.posting_group")
     expect(page).to have_text(I18n.t("books.show.group_destination", name: group.name))
     expect(page).to have_field(I18n.t("jjaeks.form.book_jjaek_content"), with: "게시 위치를 바꿔도 남아 있는 본문")
 
-    select I18n.t("jjaeks.actions.publish_book"), from: I18n.t("jjaeks.form.posting_location")
-    expect(page).to have_select(I18n.t("jjaeks.form.visibility"), selected: I18n.t("jjaeks.visibility.private_jjaek"))
+    choose I18n.t("jjaeks.actions.publish_book"), allow_label_click: true
+    expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
     expect(page).to have_no_select(I18n.t("jjaeks.form.posting_group"))
     expect(page).to have_button(I18n.t("jjaeks.actions.publish_book"))
 
-    select I18n.t("jjaeks.actions.publish_group_book"), from: I18n.t("jjaeks.form.posting_location")
+    2.times do
+      choose I18n.t("jjaeks.actions.publish_group_book"), allow_label_click: true
+      expect(page).to have_no_css('input[name="jjaek[visibility]"]:enabled')
+      choose I18n.t("jjaeks.actions.publish_book"), allow_label_click: true
+      expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
+    end
+    choose I18n.t("jjaeks.actions.publish_group_book"), allow_label_click: true
     expect(page).to have_select(I18n.t("jjaeks.form.posting_group"), selected: group.name)
     click_button I18n.t("jjaeks.actions.publish_group_book")
 
@@ -47,13 +53,13 @@ RSpec.describe "Book posting location", type: :system do
 
   it "defaults to the entering club and can publish the same draft as a personal book post" do
     visit book_path(book, group_id: group.id)
-    expect(page).to have_select(I18n.t("jjaeks.form.posting_location"), selected: I18n.t("jjaeks.actions.publish_group_book"))
+    expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_group_book"), visible: :all)
     expect(page).to have_select(I18n.t("jjaeks.form.posting_group"), selected: group.name)
-    expect(page).to have_no_select(I18n.t("jjaeks.form.visibility"))
+    expect(page).to have_no_css('input[name="jjaek[visibility]"]:enabled')
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "동아리에서 시작한 개인 책짹"
 
-    select I18n.t("jjaeks.actions.publish_book"), from: I18n.t("jjaeks.form.posting_location")
-    select I18n.t("jjaeks.visibility.book_friends"), from: I18n.t("jjaeks.form.visibility")
+    choose I18n.t("jjaeks.actions.publish_book"), allow_label_click: true
+    choose I18n.t("jjaeks.visibility.book_friends"), allow_label_click: true
     expect(page).to have_field(I18n.t("jjaeks.form.book_jjaek_content"), with: "동아리에서 시작한 개인 책짹")
     click_button I18n.t("jjaeks.actions.publish_book")
 
@@ -70,13 +76,13 @@ RSpec.describe "Book posting location", type: :system do
     membership.update!(moderation_status: :activity_suspended)
     visit book_path(book)
 
-    expect(page).to have_no_select(I18n.t("jjaeks.form.posting_location"))
+    expect(page).to have_no_css('input[name="book_post_destination"]')
     expect(page).to have_no_select(I18n.t("jjaeks.form.posting_group"))
-    expect(page).to have_no_text(I18n.t("jjaeks.form.no_postable_groups"))
+    expect(page).to have_text(I18n.t("jjaeks.form.no_postable_groups"))
     expect(page).to have_css("h2", text: I18n.t("jjaeks.actions.publish_book"), exact_text: true)
     expect(page).to have_button(I18n.t("jjaeks.actions.publish_book"), disabled: false)
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "동아리 선택 없이 작성한 책짹"
-    select I18n.t("jjaeks.visibility.private_jjaek"), from: I18n.t("jjaeks.form.visibility")
+    choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
     click_button I18n.t("jjaeks.actions.publish_book")
 
     expect(page).to have_current_path(%r{\A/jjaeks/\d+\z}, ignore_query: true)

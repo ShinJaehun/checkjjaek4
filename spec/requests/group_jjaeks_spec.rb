@@ -89,7 +89,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(page.at_css(%(form[action="#{group_group_membership_path(group, membership)}"]))).to be_present
     expect(page.at_css(%(form[action="#{group_jjaeks_path(group)}"]))).to be_present
     expect(response.body).not_to include(excluded.content, hidden.content, pending_user.name)
-    expect(page.at_css('select[name="jjaek[visibility]"]')).to be_nil
+    expect(page.at_css('[name="jjaek[visibility]"]')).to be_nil
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
     expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
   end
@@ -630,9 +630,9 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(page.css("h2").map(&:text)).to include(I18n.t("jjaeks.actions.publish_group_book"))
     expect(page.text).to include(I18n.t("books.show.group_destination", name: group.name))
     expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_group_book"))
-    expect(form.at_css("select[name='book_post_destination'] option[selected]")["value"]).to eq("group")
+    expect(form.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("group")
     expect(form.at_css("select[name='jjaek[group_id]'] option[selected]")["value"]).to eq(group.id.to_s)
-    expect(form.at_css("select[name='jjaek[visibility]'][disabled]")).to be_present
+    expect(form.at_css("input[name='jjaek[visibility]'][disabled]")).to be_present
     expect(form.at_css("[data-book-posting-target='personal'][hidden]")).to be_present
     expect(page.at_css("[data-controller='book-posting'] a[href='#{group_path(group)}']")).to be_nil
   end
@@ -691,7 +691,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     follow_redirect!
     expect(response.body).to include(I18n.t("books.show.group_destination", name: group.name))
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("select[name='jjaek[visibility]'][disabled]")).to be_present
+    expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_present
     expect(page.at_css("[data-book-posting-target='personal'][hidden]")).to be_present
   end
 

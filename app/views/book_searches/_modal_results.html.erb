@@ -1,0 +1,7 @@
+<%= turbo_frame_tag "book_search_modal_results" do %>
+  <% if @group %>
+    <p class="text-sm font-medium text-amber-800"><%= t("groups.jjaeks.book_search_context", group_name: @group.name) %></p>
+  <% end %>
+  <%= render "book_searches/search_form", query: @query, group_id: @group&.id, modal: true %>
+  <div class="mt-5"><%= render "book_searches/results", modal: true %></div>
+<% end %>

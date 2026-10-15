@@ -9,10 +9,10 @@ export default class extends Controller {
   }
 
   change() {
-    const groupPost = this.locationTarget.value === "group"
+    const groupPost = this.locationTargets.some(input => input.checked && input.value === "group")
     const label = groupPost ? this.groupLabelValue : this.personalLabelValue
     this.personalTarget.hidden = groupPost
-    this.visibilityTarget.disabled = groupPost
+    this.visibilityTargets.forEach(input => { input.disabled = groupPost })
     this.groupTarget.hidden = !groupPost
     this.groupSelectTarget.disabled = !groupPost
     this.groupSelectTarget.required = groupPost

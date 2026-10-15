@@ -27,14 +27,14 @@ module BookSearches
       request = Net::HTTP::Get.new(uri)
       request["Authorization"] = "KakaoAK #{key}"
 
-      response = Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+      response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 8) do |http|
         http.request(request)
       end
 
       raise Error, "http_error" unless response.is_a?(Net::HTTPSuccess)
 
       JSON.parse(response.body)
-    rescue JSON::ParserError, SocketError, Timeout::Error, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout
+    rescue JSON::ParserError, IOError, SystemCallError, SocketError, Timeout::Error, OpenSSL::SSL::SSLError, Net::HTTPBadResponse
       raise Error, "request_failed"
     end
 

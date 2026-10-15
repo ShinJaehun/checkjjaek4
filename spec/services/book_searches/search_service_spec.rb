@@ -26,6 +26,21 @@ RSpec.describe BookSearches::SearchService do
     expect(result[:meta][:total_count]).to eq(1)
   end
 
+  it "accepts partial fields and ignores malformed documents" do
+    allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
+      "documents" => [nil, "bad", { "title" => "Partial title" }], "meta" => nil
+    )
+    result = described_class.call(query: "Partial", page: 1)
+    expect(result[:results]).to eq([
+      { title: "Partial title", authors_text: "", publisher: "", thumbnail: nil, isbn: "", contents_excerpt: "", url: nil }
+    ])
+  end
+
+  it "treats an invalid provider response as an external search failure" do
+    allow(BookSearches::KakaoAdapter).to receive(:search).and_return([])
+    expect { described_class.call(query: "Book", page: 1) }.to raise_error(BookSearches::KakaoAdapter::Error)
+  end
+
   it "drops unsafe book and thumbnail URLs" do
     allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
       "documents" => [ { "title" => "책", "url" => "file:///etc/passwd", "thumbnail" => "http://localhost/cover" } ],

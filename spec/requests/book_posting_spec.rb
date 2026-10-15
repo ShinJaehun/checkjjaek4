@@ -14,10 +14,13 @@ RSpec.describe "Book posting destinations", type: :request do
     get book_path(book)
 
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("select[name='book_post_destination'] option[selected]")["value"]).to eq("personal")
+    expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("personal")
     expect(page.at_css("select[name='jjaek[group_id]'][disabled]")).to be_present
-    expect(page.at_css("select[name='jjaek[visibility]'][disabled]")).to be_nil
+    expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_nil
     expect(page.at_css("[data-book-posting-target='group'][hidden]")).to be_present
+    expect(page.css("input[name='book_post_destination']").map { |input| input["value"] }).to eq(%w[personal group])
+    expect(page.css("input[name='jjaek[visibility]']").map { |input| input["value"] }).to eq(Jjaek.visibilities.keys)
+    expect(page.css("input[name='book_post_destination']").all? { |input| input.parent.at_css("svg") }).to be(true)
   end
 
   it "shows only the personal book form when the user has no active club memberships" do
@@ -27,10 +30,10 @@ RSpec.describe "Book posting destinations", type: :request do
 
     page = Nokogiri::HTML(response.body)
     form = page.at_css("form[action='#{jjaeks_path}']")
-    expect(form.at_css("select[name='book_post_destination']")).to be_nil
+    expect(form.at_css("input[name='book_post_destination']")).to be_nil
     expect(form.at_css("select[name='jjaek[group_id]']")).to be_nil
-    expect(form.at_css("select[name='jjaek[visibility]']")).to be_present
-    expect(form.at_css("select[name='jjaek[visibility]'][disabled]")).to be_nil
+    expect(form.at_css("input[name='jjaek[visibility]']")).to be_present
+    expect(form.at_css("input[name='jjaek[visibility]'][disabled]")).to be_nil
     expect(form.at_css("textarea[name='jjaek[content]']")).to be_present
     expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
     expect(page.at_css("[data-book-posting-target='title']").text).to eq(I18n.t("jjaeks.actions.publish_book"))
@@ -43,10 +46,10 @@ RSpec.describe "Book posting destinations", type: :request do
     get book_path(book)
 
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("select[name='book_post_destination']")).to be_nil
+    expect(page.at_css("input[name='book_post_destination']")).to be_nil
     expect(page.at_css("select[name='jjaek[group_id]']")).to be_nil
-    expect(page.at_css("select[name='jjaek[visibility]'][disabled]")).to be_nil
-    expect(page.at_css("select[name='jjaek[visibility]']")).to be_present
+    expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_nil
+    expect(page.at_css("input[name='jjaek[visibility]']")).to be_present
   end
 
   it "hides the posting selector when every club is operation suspended" do
@@ -55,18 +58,22 @@ RSpec.describe "Book posting destinations", type: :request do
     get book_path(book)
 
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("select[name='book_post_destination']")).to be_nil
+    expect(page.at_css("input[name='book_post_destination']")).to be_nil
     expect(page.at_css("select[name='jjaek[group_id]']")).to be_nil
-    expect(page.at_css("select[name='jjaek[visibility]']")).to be_present
+    expect(page.at_css("input[name='jjaek[visibility]']")).to be_present
   end
 
   it "labels the club feed's writing choices as Jjaek and Club Book Jjaek" do
     get group_path(group)
 
     page = Nokogiri::HTML(response.body)
-    link = page.at_css("a[href='#{book_search_path(group_id: group.id)}']")
+    form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
+    expect(form).to be_present
+    writing_section = form.ancestors("section").first
+    link = writing_section.at_css("a[href='#{book_search_path(group_id: group.id)}']")
+    expect(link).to be_present
     expect(link.text).to eq(I18n.t("jjaeks.actions.publish_group_book"))
-    expect(page.at_css("form[action='#{group_jjaeks_path(group)}'] input[type='submit']")["value"]).to eq(I18n.t("groups.jjaeks.tabs.general"))
+    expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("groups.jjaeks.tabs.general"))
   end
 
   it "lists only clubs in which the user currently has writing permission" do
@@ -136,9 +143,9 @@ RSpec.describe "Book posting destinations", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("textarea[name='jjaek[content]']").text.delete_prefix("\n")).to eq(content)
-    expect(page.at_css("select[name='book_post_destination'] option[selected]")["value"]).to eq("group")
+    expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("group")
     expect(page.at_css("select[name='jjaek[group_id]'] option[selected]")["value"]).to eq(group.id.to_s)
-    expect(page.at_css("select[name='jjaek[visibility]'][disabled]")).to be_present
+    expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_present
   end
 
   it "preserves personal visibility and draft after a validation failure" do
@@ -148,8 +155,8 @@ RSpec.describe "Book posting destinations", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("select[name='book_post_destination'] option[selected]")["value"]).to eq("personal")
-    expect(page.at_css("select[name='jjaek[visibility]'] option[selected]")["value"]).to eq("book_friends")
+    expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("personal")
+    expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("book_friends")
     expect(page.at_css("select[name='jjaek[group_id]'][disabled]")).to be_present
   end
 
@@ -212,7 +219,7 @@ RSpec.describe "Book posting destinations", type: :request do
 
     expect(response).to have_http_status(:ok)
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("select[name='book_post_destination']")).to be_nil
+    expect(page.at_css("input[name='book_post_destination']")).to be_nil
     expect(page.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(source.id.to_s)
     expect(page.at_css("form[action='#{jjaeks_path}']")).to be_present
   end

@@ -25,13 +25,19 @@
       <%= form.hidden_field :quoted_jjaek_id, value: quoted_jjaek&.id %>
 
       <% if select_destination %>
-        <div class="space-y-2">
-          <%= label_tag :book_post_destination, t("jjaeks.form.posting_location"), class: "text-sm font-medium text-stone-700" %>
-          <%= select_tag :book_post_destination,
-                         options_for_select([[t("jjaeks.actions.publish_book"), "personal"], [t("jjaeks.actions.publish_group_book"), "group"]], group_post ? "group" : "personal"),
-                         data: { book_posting_target: "location", action: "change->book-posting#change" },
-                         class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
-        </div>
+        <fieldset>
+          <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("jjaeks.form.posting_location") %></legend>
+          <div class="grid grid-cols-2 gap-3">
+            <% { "personal" => "publish_book", "group" => "publish_group_book" }.each do |destination, label| %>
+              <label class="<%= book_posting_card_classes %>">
+                <%= radio_button_tag :book_post_destination, destination, destination == (group_post ? "group" : "personal"),
+                                     data: { book_posting_target: "location", action: "change->book-posting#change" }, class: "sr-only" %>
+                <%= book_posting_icon(destination) %>
+                <span><%= t("jjaeks.actions.#{label}") %></span>
+              </label>
+            <% end %>
+          </div>
+        </fieldset>
 
         <div data-book-posting-target="group" <%= 'hidden' unless group_post %> class="space-y-2">
           <%= form.label :group_id, t("jjaeks.form.posting_group"), class: "text-sm font-medium text-stone-700" %>
@@ -49,14 +55,23 @@
       <% end %>
 
       <% if select_destination || !group_post %>
-        <div data-book-posting-target="personal" <%= 'hidden' if group_post %> class="space-y-2">
-          <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
-          <%= form.select :visibility,
-                          Jjaek.visibilities.keys.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
-                          {},
-                          disabled: group_post, data: { book_posting_target: "visibility" },
-                          class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
-        </div>
+        <fieldset data-book-posting-target="personal" <%= 'hidden' if group_post %> class="space-y-2">
+          <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("jjaeks.form.visibility") %></legend>
+          <div class="grid gap-2 sm:grid-cols-3">
+            <% Jjaek.visibilities.each_key do |visibility| %>
+              <label class="<%= book_posting_card_classes %>">
+                <%= form.radio_button :visibility, visibility, disabled: group_post, required: true,
+                                      data: { book_posting_target: "visibility" }, class: "sr-only" %>
+                <%= book_posting_icon(visibility) %>
+                <span><%= t("jjaeks.visibility.#{visibility}") %></span>
+              </label>
+            <% end %>
+          </div>
+        </fieldset>
+      <% end %>
+
+      <% if !select_destination && quoted_jjaek.blank? %>
+        <p class="text-sm text-stone-500"><%= t("jjaeks.form.no_postable_groups") %></p>
       <% end %>
 
       <%= render "shared/content_field", form: form, label_key: "jjaeks.form.book_jjaek_content", rows: 8 %>

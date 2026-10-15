@@ -218,6 +218,7 @@ class BookshelfEntriesController < ApplicationController
   def prepare_book_search_result_card
     attributes = @search_result_attributes || @book.attributes.symbolize_keys
     @book_search_result = {
+      existing_book_id: (@book.id if params[:book_id].present?),
       title: attributes[:title],
       authors_text: attributes[:authors_text],
       publisher: attributes[:publisher],

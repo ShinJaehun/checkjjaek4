@@ -111,7 +111,7 @@ RSpec.describe "Books", type: :request do
       form = page.at_css("form[action='#{jjaeks_path}']")
       expect(form).to be_present
       expect(form.ancestors("details")).to be_empty
-      expect(form.at_css("select[name='jjaek[visibility]']")).to be_present
+      expect(form.at_css("input[name='jjaek[visibility]']")).to be_present
       expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
       expect(page.css("h2").map(&:text)).to include(I18n.t("jjaeks.actions.publish_book"))
       expect(page.at_css("[data-controller='reading-state'] input[type='submit']")).to be_nil

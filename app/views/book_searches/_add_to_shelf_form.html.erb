@@ -1,6 +1,10 @@
 <% bookshelf_select_id = book_search_bookshelf_select_id(book) %>
-<%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
-  <%= hidden_field_tag :search_result_token, book[:search_result_token] %>
+<%= form_with url: bookshelf_entries_path, method: :post, local: true, data: { turbo: !local_assigns[:modal] }, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
+  <% if book[:search_result_token].present? %>
+    <%= hidden_field_tag :search_result_token, book[:search_result_token] %>
+  <% else %>
+    <%= hidden_field_tag :book_id, book[:existing_book_id] %>
+  <% end %>
   <%= hidden_field_tag :bookshelf_entry_source, "book_search" %>
   <%= hidden_field_tag :group_id, local_assigns[:group_id] if local_assigns[:group_id].present? %>
 

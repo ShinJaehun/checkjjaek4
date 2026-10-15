@@ -158,7 +158,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(normal_bookshelf_ids).to contain_exactly(entry.bookshelf_id.to_s, target_bookshelf.id.to_s)
       expect(page.at_css('select[name="bookshelf_id"] option[selected]')["value"]).to eq(entry.bookshelf_id.to_s)
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(submitted_content)
-      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("book_friends")
+      expect(page.at_css('input[name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
       expect(page.text).to include(invalid_jjaek.errors.full_messages.to_sentence)
       expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
       expect(page.text).not_to include("Content", "is too long")
@@ -179,7 +179,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(page.text).to include("내용을 입력해 주세요.")
       expect(page.text).not_to include("Content", "can't be blank")
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
-      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("book_friends")
+      expect(page.at_css('input[name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
     end
 
     it "does not create a book-linked jjaek without a shelf entry" do

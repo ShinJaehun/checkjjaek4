@@ -90,7 +90,7 @@
 - 상태·스티커는 `reading-state` Stimulus가 항목별 PATCH를 순차 전송한다. update는 항목 잠금과 transaction으로 저장하며 JSON과 HTML 결과를 지원한다. 실패 시 마지막 저장 선택을 복구한다. 선택한 상태를 다시 클릭하면 nil로 해제한다
 - 개인·동아리 책짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 항목과 스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
 - 일반/동아리 작성 제목·버튼은 책짹/동아리 책짹이며 동아리 이름·게시 대상 안내를 표시한다. 동아리에는 개인 visibility 선택을 표시하지 않는다
-- 새 책짹 폼의 게시 위치는 일반 진입에서 personal, group_id 진입에서 해당 group이 기본값이다. `book-posting` Stimulus가 본문을 유지하며 개인 공개 범위와 동아리 선택을 전환하고 제목·버튼을 갱신한다
+- 새 책짹 폼의 게시 위치는 일반 진입에서 personal, group_id 진입에서 해당 group이 기본값이다. `book-posting` Stimulus가 SVG 라디오 카드의 게시 위치·개인 공개 범위와 동아리 선택을 전환하고 본문을 유지하며 제목·버튼을 갱신한다
 - 동아리 목록과 새 책짹의 명시적 게시 대상은 `GroupPolicy::CreateJjaekScope`로 제한한다. `POST /jjaeks`에서 목적지·Book·group_id를 검증하고 기존 Jjaek policy로 저장을 인가한다. 공유·다시짹은 기존 경로를 유지한다
 - 동아리 피드의 작성 선택은 짹/동아리 책짹이며 책 상세 입력 카드의 중복 탭은 제거했다
 - 현재 사용자의 `BookshelfEntry`가 있을 때 현재 책장 이름을 보여주고, 사용자의 책장이 2개 이상이면 기존 책장 이동 흐름으로 책장을 옮길 수 있음
@@ -397,9 +397,10 @@
 - query string 기반 이전/다음 pagination 제공
 - 검색 결과에서 새 책을 `서재에 담기` 할 때 사용자의 책장이 2개 이상이면 대상 책장 select를 표시
 - 대상 책장을 선택하지 않으면 기본 책장 “내 책장”에 담김
-- `BookSearches::SearchService`와 `BookSearches::KakaoAdapter`를 통해
-  Kakao 책 검색 API를 호출하고 결과를 정규화함
-- 검색 결과에는 로그인 사용자에 묶인 30분 유효 서명을 발급하며, 미등록 책의 `책 상세 보기`는 저장 없이 읽기 전용 미리보기를 표시함
+- Book의 제목·저자·출판사를 DB에서 검색하고, 기존 `BookSearches::SearchService`와 `KakaoAdapter`의 외부 결과를 함께 표시함. 외부 장애 시 DB 결과와 안내를 유지함
+- 상단 내비게이션·홈·Library·동아리는 native dialog와 `book-search-modal` Stimulus로 공통 모달에 진입함. `/book_search?modal=1`은 Turbo Frame을 반환하고 기존 전체 페이지와 결과 partial을 공유함
+- 모달의 선택·등록은 기존 상세/lookup/등록 경로로 전체 페이지 이동하며 group_id를 유지함
+- 외부 검색 결과에는 로그인 사용자에 묶인 30분 유효 서명을 발급하며, 미등록 책의 `책 상세 보기`는 저장 없이 읽기 전용 미리보기를 표시함
 - 신규 Book은 검증된 검색 결과를 `서재에 담기` 할 때만 BookshelfEntry와 함께 등록하며, 기존 Book 메타데이터는 변경하지 않음
 - 검색 등록은 유효한 canonical ISBN(ISBN-10의 978 변환 또는 ISBN-13)을 우선 식별자로 사용하고, ISBN이 없으면 검증된 외부 URL을 사용함. 두 식별자가 다른 Book을 가리키면 오류로 처리하며, DB 고유 인덱스로 동시 중복 등록을 방지함
 - 외부 책 주소와 썸네일은 HTTP/HTTPS 및 유효한 호스트만 허용하고, 무효한 썸네일은 기본 표지를 사용함. 운영 DB에는 고유 인덱스 배포 전 별도 중복·충돌 감사가 필요함

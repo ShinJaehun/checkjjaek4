@@ -325,7 +325,10 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include("_128")
     expect(response.body).to include(%(alt="#{user.name}"))
     expect(response.body).to include(I18n.t("comments.actions.edit"))
-    expect(response.body).not_to include(I18n.t("comments.actions.close_inline"))
+    panel = Nokogiri::HTML(response.body).at_css("#comments_panel_jjaek_#{jjaek.id}")
+    expect(panel).to be_present
+    close_links = panel.css("a").select { |link| link.text.strip == I18n.t("comments.actions.close_inline") }
+    expect(close_links).to be_empty
   end
 
   it "redirects guests to sign in when creating a comment" do

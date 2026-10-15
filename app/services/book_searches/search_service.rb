@@ -5,10 +5,11 @@ module BookSearches
     class << self
       def call(query:, page:, size: DEFAULT_SIZE)
         raw = BookSearches::KakaoAdapter.search(query: query, page: page, size: size)
+        raise BookSearches::KakaoAdapter::Error, "invalid_response" unless raw.is_a?(Hash)
 
         {
-          results: Array(raw["documents"]).map { |item| normalize(item) },
-          meta: normalize_meta(raw["meta"] || {})
+          results: Array(raw["documents"]).filter_map { |item| normalize(item) if item.is_a?(Hash) },
+          meta: normalize_meta(raw["meta"].is_a?(Hash) ? raw["meta"] : {})
         }
       end
 

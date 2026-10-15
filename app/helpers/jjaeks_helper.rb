@@ -1,4 +1,22 @@
 module JjaeksHelper
+  def book_posting_icon(key)
+    paths = {
+      "personal" => "M4 3h7a3 3 0 0 1 3 3v15a5 5 0 0 0-5-2H4V3Zm10 3h6v13h-1a5 5 0 0 0-5 2",
+      "group" => "M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-6 9v-2a6 6 0 0 1 12 0v2M16 4a4 4 0 0 1 0 8m1 3a5 5 0 0 1 5 5",
+      "public_jjaek" => "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18Z",
+      "book_friends" => "M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-6 9v-2a6 6 0 0 1 12 0v2m2-10 2 2 4-5",
+      "private_jjaek" => "M6 10h12v11H6V10Zm2 0V6a4 4 0 0 1 8 0v4m-4 4v3"
+    }
+    tag.svg(viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 1.7,
+            "stroke-linecap": "round", "stroke-linejoin": "round", class: "h-5 w-5 shrink-0", aria: { hidden: true }) do
+      tag.path(d: paths.fetch(key.to_s))
+    end
+  end
+
+  def book_posting_card_classes
+    "flex cursor-pointer items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-sm font-medium text-stone-600 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-950 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-amber-500"
+  end
+
   def current_reading_state_for(jjaek)
     return if jjaek.deleted?
 

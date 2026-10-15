@@ -1,6 +1,15 @@
 require "rails_helper"
 
 RSpec.describe JjaeksHelper, type: :helper do
+  it "uses distinct decorative SVG icons for posting locations and visibility choices" do
+    paths = %w[personal group public_jjaek book_friends private_jjaek].map do |key|
+      icon = Nokogiri::HTML.fragment(helper.book_posting_icon(key)).at_css("svg")
+      expect(icon["aria-hidden"]).to eq("true")
+      icon.at_css("path")["d"]
+    end
+    expect(paths.uniq.size).to eq(5)
+  end
+
   let(:viewer) { User.create!(name: "Reader", email: "context-helper@example.com", password: "password123!") }
   let(:author) { User.create!(name: "Author", email: "context-helper-author@example.com", password: "password123!") }
   let(:group) { Group.create!(name: "Readers", group_admin: author, group_type: :private_group, lifecycle_status: :active) }

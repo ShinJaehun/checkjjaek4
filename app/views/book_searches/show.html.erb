@@ -10,30 +10,5 @@
     <%= render "book_searches/search_form", query: @query, group_id: @group&.id %>
   </section>
 
-  <% if @query.present? %>
-    <% if @results.any? %>
-      <section class="space-y-4">
-        <div>
-          <h2 class="text-lg font-semibold text-stone-900"><%= t("book_search.results.title") %></h2>
-          <p class="mt-1 text-sm text-stone-500"><%= t("book_search.results.meta", count: @meta[:pageable_count]) %></p>
-        </div>
-
-        <% @results.each do |book| %>
-          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves, group_id: @group&.id %>
-        <% end %>
-
-        <%= render "book_searches/pagination",
-                   query: @query,
-                   page: @page,
-                   group_id: @group&.id,
-                   has_previous_page: @has_previous_page,
-                   has_next_page: @has_next_page %>
-      </section>
-    <% else %>
-      <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-semibold text-stone-900"><%= t("book_search.empty.title") %></h2>
-        <p class="mt-2 text-sm text-stone-500"><%= t("book_search.empty.description") %></p>
-      </section>
-    <% end %>
-  <% end %>
+  <%= render "book_searches/results", modal: false %>
 </section>

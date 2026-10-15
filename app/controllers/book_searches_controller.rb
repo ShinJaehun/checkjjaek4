@@ -11,20 +11,49 @@ class BookSearchesController < ApplicationController
     @has_previous_page = false
     @has_next_page = false
     @bookshelves = current_user.bookshelves.default_first
-    return if @query.blank?
-
-    result = BookSearches::SearchService.call(query: @query, page: @page)
-    @results = mark_shelved_results(result[:results]).map do |book|
-      book.merge(search_result_token: BookSearches::ResultToken.issue(book, user: current_user))
+    @local_results = []
+    unless @query.blank?
+      @bookshelves = @bookshelves.to_a
+      prepare_local_results
+      prepare_external_results
     end
-    @meta = result[:meta]
-    @has_previous_page = @page > 1
-    @has_next_page = @meta[:is_end] == false
-  rescue BookSearches::KakaoAdapter::Error
-    flash.now[:alert] = t("book_search.errors.generic")
+    render partial: "book_searches/modal_results" if params[:modal] == "1"
   end
 
   private
+
+  def prepare_local_results
+    query = "%#{Book.sanitize_sql_like(@query)}%"
+    books = Book.where("title ILIKE :query OR authors_text ILIKE :query OR publisher ILIKE :query", query: query)
+      .order(:title, :id).offset((@page - 1) * BookSearches::SearchService::DEFAULT_SIZE)
+      .limit(BookSearches::SearchService::DEFAULT_SIZE + 1).to_a
+    @has_next_page = books.size > BookSearches::SearchService::DEFAULT_SIZE
+    books = books.first(BookSearches::SearchService::DEFAULT_SIZE)
+    shelved_ids = current_user.bookshelf_entries.where(book_id: books.map(&:id)).pluck(:book_id)
+    @local_results = books.map do |book|
+      { title: book.title, authors_text: book.authors_text, publisher: book.publisher,
+        thumbnail: book.thumbnail, isbn: book.isbn, contents_excerpt: book.description,
+        url: book.external_url, existing_book_id: book.id,
+        shelved_book_id: (book.id if shelved_ids.include?(book.id)) }
+    end
+    @has_previous_page = @page > 1
+  end
+
+  def prepare_external_results
+    result = BookSearches::SearchService.call(query: @query, page: @page)
+    local_ids = @local_results.map { |book| book[:existing_book_id] }
+    results = mark_shelved_results(result[:results]).reject do |book|
+      book[:existing_book_id].present? && local_ids.include?(book[:existing_book_id])
+    end
+    @results = results.map do |book|
+      book.merge(search_result_token: BookSearches::ResultToken.issue(book, user: current_user))
+    end
+    @meta = result[:meta]
+    @has_next_page ||= @meta[:is_end] == false
+  rescue BookSearches::KakaoAdapter::Error
+    @external_search_failed = true
+    flash.now[:alert] = t("book_search.errors.generic") unless params[:modal] == "1"
+  end
 
   def normalized_page
     page = Integer(params[:page], exception: false)
@@ -62,7 +91,7 @@ class BookSearchesController < ApplicationController
           url_book
         end
 
-      book.merge(shelved_book_id: shelved_book_ids.include?(shelved_book&.id) ? shelved_book.id : nil)
+      book.merge(existing_book_id: shelved_book&.id, shelved_book_id: shelved_book_ids.include?(shelved_book&.id) ? shelved_book.id : nil)
     end
   end
 
