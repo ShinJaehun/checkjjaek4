@@ -130,8 +130,8 @@
 관련 코드:
 - controller: app/controllers/users_controller.rb (show)
 - context 준비:
-  - prepare_profile_context
-  - prepare_profile_jjaek_form
+  - `ProfileContext#prepare_profile_context`: 정상 조회와 작성 실패 재렌더링의 표시 데이터 준비를 공유
+  - `UsersController#prepare_profile_jjaek_form`: 정상 조회에서만 새 폼 생성. 작성 실패 시에는 기존 입력과 오류를 보존
 - view:
   - app/views/users/show.html.erb
   - app/views/users/_profile_header.html.erb

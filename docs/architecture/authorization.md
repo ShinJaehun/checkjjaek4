@@ -206,7 +206,7 @@ Library 안에서 볼 수 있는 책장:
 - 원본 Jjaek을 볼 수 있는 사용자만 ReJjaek 목록에 접근할 수 있다
 - `private_jjaek` 원문의 목록은 원문 작성자에게만 열린다
 - ReJjaek 자체에 대해서는 ReJjaek 목록을 제공하지 않는다
-- 목록에는 현재 사용자가 볼 수 있는 ReJjaek만 표시한다
+- 일반 독자의 목록에는 현재 읽을 수 있는 ReJjaek만 표시한다. 원문 작성자는 읽을 수 없는 유효 동아리 다시짹을 제한 카드로 확인할 수 있다
 - 상세 MVP 기준은 `docs/specs/requotes_mvp.md`를 따른다
 
 관련 위치:

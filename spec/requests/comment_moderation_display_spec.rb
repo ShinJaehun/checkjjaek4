@@ -146,8 +146,17 @@ RSpec.describe "Comment moderation display", type: :request do
     expect(history.css("li").size).to eq(2)
     expect(history.text).to include("Group admin", "GROUP HIDE NOTE", "Platform group restore", "PLATFORM GROUP NOTE")
 
+    get jjaek_comments_path(group_jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    expect(response).to have_http_status(:ok)
+    history = Nokogiri::HTML(response.body).at_css("#moderation_history_comment_#{group_comment.id}")
+    expect(history.css("li").map { |entry| entry["data-moderation-action-id"].to_i }).to eq(group_comment.moderation_actions.order(:created_at, :id).ids)
+    expect(history.text).to include("GROUP HIDE NOTE", "PLATFORM GROUP NOTE")
+
     sign_in author
     get jjaek_path(jjaek)
+    expect(response.body).not_to include("moderation_history_comment_#{comment.id}", "PLATFORM HIDE NOTE", "PLATFORM RESTORE NOTE")
+    get jjaek_comments_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    expect(response).to have_http_status(:ok)
     expect(response.body).not_to include("moderation_history_comment_#{comment.id}", "PLATFORM HIDE NOTE", "PLATFORM RESTORE NOTE")
     sign_in viewer
     get jjaek_path(jjaek)
@@ -166,6 +175,13 @@ RSpec.describe "Comment moderation display", type: :request do
 
     get jjaek_path(group_jjaek)
 
+    history = Nokogiri::HTML(response.body).at_css("#moderation_history_comment_#{group_comment.id}")
+    expect(history.css("li").size).to eq(1)
+    expect(history.text).to include("동아리 관리자", "GROUP ONLY NOTE")
+    expect(response.body).not_to include("PLATFORM ONLY NOTE", "PLATFORM HIDE NOTE", "Platform restored")
+
+    get jjaek_comments_path(group_jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    expect(response).to have_http_status(:ok)
     history = Nokogiri::HTML(response.body).at_css("#moderation_history_comment_#{group_comment.id}")
     expect(history.css("li").size).to eq(1)
     expect(history.text).to include("동아리 관리자", "GROUP ONLY NOTE")

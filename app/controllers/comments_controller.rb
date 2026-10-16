@@ -1,4 +1,6 @@
 class CommentsController < ApplicationController
+  include CommentModerationHistory
+
   COMMENTS_CONTEXTS = %w[detail home profile book group].freeze
 
   before_action :set_readable_jjaek, except: :destroy
@@ -173,18 +175,6 @@ class CommentsController < ApplicationController
     end
     @comment = comment
     prepare_comment_moderation_histories(@comments)
-  end
-
-  def prepare_comment_moderation_histories(comments)
-    @comment_moderation_histories = {}
-    comments.each do |record|
-      comment_policy = policy(record)
-      next unless comment_policy.view_admin_inventory? || comment_policy.view_group_moderation_history?
-
-      actions = record.moderation_actions.where(action_type: %i[hide restore])
-      actions = actions.where(moderation_authority: "group") if comment_policy.view_group_moderation_history?
-      @comment_moderation_histories[record.id] = actions.includes(:actor).order(created_at: :asc, id: :asc).to_a
-    end
   end
 
   def default_comments_context

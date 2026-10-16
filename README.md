@@ -183,16 +183,9 @@
 
 ### 책활동
 
-책활동은 사용자가 직접 본문을 쓴 글이 아니라, 서재 상태나 스티커 변경에서 생기는 활동 기록입니다.
+책활동은 개인 서재에 책을 처음 담은 사건을 `BookActivity`로 기록해 홈·프로필 피드에 표시합니다. 재등록, 상태·스티커 변경과 책장 이동은 활동을 만들지 않으며, 과거 상태·스티커 변경 활동도 피드에서 제외합니다.
 
-예를 들면 다음과 같습니다.
-
-- 책을 서재에 담음
-- 대표 상태를 바꿈
-- 스티커를 붙임
-- 스티커를 제거함
-
-현재 구현에서는 `BookActivity`가 책활동의 피드용 이벤트 모델 역할을 합니다. 단, `BookActivity`는 현재 상태의 source of truth가 아닙니다. 현재 상태는 `BookshelfEntry`와 `BookshelfEntrySticker`가 담당합니다.
+조회 시 현재 관계와 현재 책장의 공개 범위를 함께 적용합니다. 활동 자체에 별도 공개 범위를 저장하지 않습니다. 현재 상태는 `BookshelfEntry`와 `BookshelfEntrySticker`가 담당하며, 상세 기준은 [BookActivity 명세](docs/specs/book_activity_mvp.md)를 따릅니다.
 
 ---
 

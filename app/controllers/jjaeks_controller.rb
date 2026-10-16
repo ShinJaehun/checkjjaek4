@@ -1,4 +1,9 @@
 class JjaeksController < ApplicationController
+  include CommentModerationHistory
+  include GroupShowContext
+  include HomeFeedContext
+  include ProfileContext
+
   before_action :set_jjaek, only: :show
   before_action :set_editable_jjaek, only: %i[edit update]
   before_action :set_destroy_jjaek, only: :destroy
@@ -214,15 +219,7 @@ class JjaeksController < ApplicationController
   def prepare_user_context(user)
     @user = user
     authorize @user, :show?
-    profile_policy = policy(@user)
-
-    @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
-    @invitable_private_groups = ProfileInvitablePrivateGroupsQuery.new(actor: current_user, target: @user).call
-    @cancelable_private_group_invitations = ProfileCancelablePrivateGroupInvitationsQuery.new(actor: current_user, target: @user).call
-    prepare_profile_bookshelf(profile_policy)
-    prepare_profile_book_activities
-    prepare_profile_jjaeks(profile_policy)
-    prepare_profile_activity_items
+    prepare_profile_context
     @profile_jjaek = @jjaek
     @profile_jjaek_visibility_options = profile_jjaek_visibility_options_for(@user)
   end
@@ -230,15 +227,7 @@ class JjaeksController < ApplicationController
   def prepare_comments
     @comment = Comment.new(jjaek: @jjaek)
     @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
-    @comment_moderation_histories = {}
-    @comments.each do |comment|
-      comment_policy = policy(comment)
-      next unless comment_policy.view_admin_inventory? || comment_policy.view_group_moderation_history?
-
-      actions = comment.moderation_actions.where(action_type: %i[hide restore])
-      actions = actions.where(moderation_authority: "group") if comment_policy.view_group_moderation_history?
-      @comment_moderation_histories[comment.id] = actions.includes(:actor).order(created_at: :asc, id: :asc).to_a
-    end
+    prepare_comment_moderation_histories(@comments)
   end
 
   def post_return_params
@@ -324,26 +313,7 @@ class JjaeksController < ApplicationController
   end
 
   def render_group_create_failure(status:)
-    active_member_scope = @group.active_group_memberships.where.not(user_id: @group.group_admin_id)
-    @member_preview = active_member_scope.includes(:user).order(:created_at, :id).limit(5).map(&:user)
-    @active_member_count = active_member_scope.count
-    @membership = @group.group_memberships.find_by(user: current_user)
-    @group_member_ban = @group.group_member_bans.find_by(user: current_user)
-    @current_group_ban_action = @group_member_ban&.current_ban_action
-    @current_operation_suspension = @group.current_operation_suspension_action
-    @current_activity_suspension = @membership&.current_activity_suspension_action if @membership&.activity_suspended?
-    group_policy = policy(@group)
-    @can_read_group_jjaeks = group_policy.read_jjaeks?
-    @jjaeks = if @can_read_group_jjaeks
-      policy_scope(
-        @group.jjaeks,
-        policy_scope_class: JjaekPolicy::GroupContentScope
-      ).includes(:user, :book, :group, :moderation_actions, quoted_jjaek: [ :user, :book, :group ]).recent
-    else
-      Jjaek.none
-    end
-    prepare_current_reading_states_for(@jjaeks)
-    prepare_visible_requote_counts_for(@jjaeks)
+    prepare_group_show_context
     render "groups/show", status:
   end
 
@@ -357,72 +327,14 @@ class JjaeksController < ApplicationController
   end
 
   def render_home_create_failure(status:)
-    @feed_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::FeedScope)
-      .includes(:user, :book, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ])
-      .recent
-    @feed_book_activities = policy_scope(BookActivity, policy_scope_class: BookActivityPolicy::FeedScope)
-      .includes(:user, :book)
-      .recent
-    @feed_items = (@feed_jjaeks.to_a + @feed_book_activities.to_a).sort_by(&:created_at).reverse
-    prepare_current_reading_states_for(@feed_jjaeks)
-    prepare_visible_requote_counts_for(@feed_jjaeks)
+    prepare_home_feed
     render "homes/show", status:
-  end
-
-  def prepare_profile_bookshelf(profile_policy)
-    @show_bookshelf = profile_policy.show_profile_bookshelf?
-    @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
-    @show_library_link = profile_policy.show_library?
-    visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
-    @profile_public_bookshelf_entries =
-      if @show_bookshelf
-        profile_summary_bookshelf_entries(visible_entries)
-      else
-        BookshelfEntry.none
-      end
-  end
-
-  def prepare_profile_jjaeks(profile_policy)
-    @show_jjaeks = profile_policy.show_profile_jjaeks?
-    @jjaeks =
-      if @show_jjaeks
-        resolve_profile_jjaeks
-      else
-        Jjaek.none
-      end
-    prepare_current_reading_states_for(@jjaeks)
-    prepare_visible_requote_counts_for(@jjaeks)
-  end
-
-  def prepare_profile_book_activities
-    @book_activities = policy_scope(
-      @user.book_activities,
-      policy_scope_class: BookActivityPolicy::ProfileScope
-    )
-      .includes(:user, :book)
-      .recent
-  end
-
-  def profile_summary_bookshelf_entries(visible_entries)
-    visible_entries.joins(:bookshelf).profile_sorted("recent")
-  end
-
-  def prepare_profile_activity_items
-    @profile_activity_items = (@jjaeks.to_a + @book_activities.to_a).sort_by(&:created_at).reverse
-    @show_profile_activity = @show_jjaeks || current_user == @user || @profile_activity_items.any?
   end
 
   def profile_jjaek_visibility_options_for(user)
     options = %w[public_jjaek book_friends]
     options << "private_jjaek" if current_user == user
     options
-  end
-
-  def resolve_profile_jjaeks
-    policy_scope(
-      @user.jjaeks,
-      policy_scope_class: JjaekPolicy::ProfileScope
-    ).includes(:user, :book, :group, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ]).recent
   end
 
   def jjaek_book_id

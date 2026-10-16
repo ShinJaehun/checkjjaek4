@@ -300,9 +300,9 @@ self만 가능한 기능:
 - DB 구조 변경
 - 기존 Bookshelf / BookshelfEntry 모델 변경
 - 별도 책장 관리 전용 dashboard 도입
-- BookActivity visibility 변경
-- Bookshelf visibility와 BookActivity visibility 연동
 - 사용자별 책 문맥 화면 도입
+
+BookActivity는 현재 관계와 현재 책장의 visibility를 함께 적용하며, 별도 visibility를 갖지 않는다. 이 연동은 이미 구현되었으며 상세 정책은 `docs/specs/book_activity_mvp.md`를 따른다.
 
 ---
 
@@ -321,7 +321,6 @@ self만 가능한 기능:
 후속 확장 후보:
 
 - 별도 책장 관리 화면
-- BookActivity와 Bookshelf visibility 연동
 - 사용자별 책 문맥 화면
 
 ---
