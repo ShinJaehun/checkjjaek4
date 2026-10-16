@@ -115,6 +115,39 @@ RSpec.describe JjaeksHelper, type: :helper do
     expect(helper.validated_jjaek_return_path(user_path(author, return_to: "https://example.com", redirect_url: "https://example.com"))).to eq(user_path(author))
   end
 
+  it "preserves a separately validated search origin together with search filters" do
+    search_path = book_search_path(query: "a & b", page: 2, search_origin: user_path(author))
+    expect(helper.validated_jjaek_return_path(search_path)).to eq(search_path)
+
+    candidate = book_search_path(query: "a & b", page: 2,
+                                search_origin: user_path(author, return_to: "https://example.com"),
+                                return_to: "https://example.com", modal: "1")
+    expect(helper.validated_jjaek_return_path(candidate)).to eq(search_path)
+  end
+
+  it "drops invalid search origins and rechecks their access" do
+    origins = ["https://example.com", "//example.com", "/\\example.com", "/users/sign_out", "/users/999999999", group_path(group), [root_path]]
+    origins.each do |origin|
+      candidate = book_search_path(query: "book", page: 2, search_origin: origin)
+      expect(helper.validated_jjaek_return_path(candidate)).to eq(book_search_path(query: "book", page: 2))
+    end
+
+    membership = group.group_memberships.create!(user: viewer, status: :active)
+    candidate = book_search_path(query: "book", search_origin: group_path(group))
+    expect(helper.validated_jjaek_return_path(candidate)).to eq(candidate)
+    membership.destroy!
+    expect(helper.validated_jjaek_return_path(candidate)).to eq(book_search_path(query: "book"))
+    expect(helper.validated_jjaek_return_path(book_search_path(group_id: group.id))).to be_nil
+  end
+
+  it "keeps search origins to one level without forwarding nested navigation" do
+    origin = book_search_path(query: "previous", search_origin: root_path, return_to: user_path(author))
+    candidate = book_search_path(query: "current", search_origin: origin)
+    expect(helper.validated_jjaek_return_path(candidate)).to eq(
+      book_search_path(query: "current", search_origin: book_search_path(query: "previous"))
+    )
+  end
+
   it "checks access to a group-specific book origin" do
     book = Book.create!(title: "Context book", authors_text: "Author")
     expect(helper.validated_jjaek_return_path(book_path(book, group_id: group.id))).to be_nil

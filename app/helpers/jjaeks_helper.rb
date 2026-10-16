@@ -61,7 +61,7 @@ module JjaeksHelper
     t(translation_key, **jjaek_context_translation_options(jjaek))
   end
 
-  def validated_jjaek_return_path(candidate)
+  def validated_jjaek_return_path(candidate, include_search_origin: true)
     return unless candidate.is_a?(String) && candidate.start_with?("/")
     return if candidate.start_with?("//") || candidate.match?(/[\\[:cntrl:]]/)
 
@@ -74,6 +74,10 @@ module JjaeksHelper
     return unless path
 
     filters = query.permit(*filter_keys).to_h
+    if path == book_search_path && include_search_origin
+      origin = validated_jjaek_return_path(query[:search_origin], include_search_origin: false)
+      filters["search_origin"] = origin if origin
+    end
     filters.present? ? "#{path}?#{filters.to_query}" : path
   rescue URI::InvalidURIError, ActionController::RoutingError, ActiveRecord::RecordNotFound, Rack::QueryParser::ParameterTypeError, Rack::QueryParser::InvalidParameterError, Rack::QueryParser::ParamsTooDeepError
     nil

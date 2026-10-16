@@ -21,19 +21,25 @@ RSpec.describe "Book navigation", type: :request do
     expect(back_link["href"]).to eq(origin)
   end
 
-  it "keeps a modal opener through search forms, pagination, and the book detail link" do
+  it "separates the library origin from search result returns through forms and pagination" do
     entry = reader.bookshelf_entries.create!(book: book)
     origin = user_library_path(reader, bookshelf_id: entry.bookshelf_id, sort: "recent")
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: false })
     sign_in reader
-    get book_search_path, params: { modal: "1", query: "Navigation", page: "1", return_to: origin }
+    get book_search_path, params: { query: "Navigation", page: "1", search_origin: origin }
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("input[name='return_to']")["value"]).to eq(origin)
-    pagination = page.at_css("nav a")
-    expect(Rack::Utils.parse_query(URI.parse(pagination["href"]).query)["return_to"]).to eq(origin)
+    expect(page.at_css("input[name='search_origin']")["value"]).to eq(origin)
+    expect(back_link["href"]).to eq(origin)
+    pagination = page.css("nav a").find { |link| link.text == I18n.t("book_search.pagination.next") }
+    expect(Rack::Utils.parse_query(URI.parse(pagination["href"]).query)).to include(
+      "query" => "Navigation", "page" => "2", "search_origin" => origin
+    )
     detail = page.at_css("a[href^='/books/#{book.id}?']")
-    expect(detail["data-turbo-frame"]).to eq("_top")
+    results_path = book_search_path(query: "Navigation", page: "1", search_origin: origin)
+    expect(Rack::Utils.parse_query(URI.parse(detail["href"]).query)["return_to"]).to eq(results_path)
     get detail["href"]
+    expect(back_link["href"]).to eq(results_path)
+    get back_link["href"]
     expect(back_link["href"]).to eq(origin)
   end
 
@@ -43,7 +49,7 @@ RSpec.describe "Book navigation", type: :request do
     )
     sign_in reader
     get book_search_path, params: { query: "Navigation", page: "2" }
-    link = Nokogiri::HTML(response.body).at_css("article a[data-turbo-frame='_top']")
+    link = Nokogiri::HTML(response.body).at_css("article a")
     expect(link).to be_present
     origin = book_search_path(query: "Navigation", page: "2")
     expect(Rack::Utils.parse_query(URI.parse(link["href"]).query)["return_to"]).to eq(origin)

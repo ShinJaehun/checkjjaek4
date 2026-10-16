@@ -1,7 +1,5 @@
 en:
   search_ui:
-    close: "Close"
-    loading: "Loading book search."
     local_results: "Books in Bookjjaek"
     external_unavailable: "External search is unavailable. Choose a book already in Bookjjaek or try again later."
     untitled: "Title unavailable"

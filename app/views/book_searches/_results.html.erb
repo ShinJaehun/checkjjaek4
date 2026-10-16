@@ -4,7 +4,7 @@
       <section class="space-y-3" aria-label="<%= t("search_ui.local_results") %>">
         <h2 class="text-lg font-semibold"><%= t("search_ui.local_results") %></h2>
         <% @local_results.each do |book| %>
-          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves, group_id: @group&.id, modal: modal %>
+          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves, group_id: @group&.id %>
         <% end %>
       </section>
     <% end %>
@@ -16,7 +16,7 @@
         <h2 class="text-lg font-semibold"><%= t("book_search.results.title") %></h2>
         <p class="text-sm text-stone-500"><%= t("book_search.results.meta", count: @meta[:pageable_count]) %></p>
         <% @results.each do |book| %>
-          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves, group_id: @group&.id, modal: modal %>
+          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves, group_id: @group&.id %>
         <% end %>
       </section>
     <% elsif @local_results.empty? && !@external_search_failed %>
@@ -26,6 +26,6 @@
       </section>
     <% end %>
     <%= render "book_searches/pagination", query: @query, page: @page, group_id: @group&.id,
-               has_previous_page: @has_previous_page, has_next_page: @has_next_page, modal: modal %>
+               has_previous_page: @has_previous_page, has_next_page: @has_next_page %>
   </div>
 <% end %>

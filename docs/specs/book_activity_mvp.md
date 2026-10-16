@@ -46,7 +46,7 @@
 BookshelfEntry와 BookActivity는 개인 영역으로 유지하며 `group_id`를 추가하지 않는다.
 동아리에서 검색한 책을 개인 서재에 담아도 활동의 actor와 책장은 개인 소속이다.
 책 검색 대상과 책짹 게시 대상은 구분한다. 동아리 게시 맥락은 책짹의 Group 권한으로 처리한다.
-공통 책 검색 모달은 `docs/specs/book_search_mvp.md`를 따른다. 동아리 책장은 후속 검토 대상으로 두며 선행 모델을 추가하지 않는다.
+책 검색 단일 독립 페이지는 `docs/specs/book_search_mvp.md`를 따른다. 동아리 책장은 후속 검토 대상으로 두며 선행 모델을 추가하지 않는다.
 Notification, 댓글·좋아요·다시짹, 추천·랭킹, 활동 편집 UI도 추가하지 않는다.
 
 ## 구현과 Acceptance Criteria

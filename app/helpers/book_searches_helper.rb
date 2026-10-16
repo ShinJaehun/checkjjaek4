@@ -7,17 +7,26 @@ module BookSearchesHelper
     "book_search_result_#{Digest::SHA256.hexdigest(identifier)[0, 12]}"
   end
 
-  def book_search_result_path(book, group_id: nil)
+  def book_search_entry_path(group_id: nil)
+    origin = controller_path == "book_searches" ? book_search_origin_path : validated_jjaek_return_path(request.fullpath)
+    book_search_path(group_id: group_id, search_origin: origin)
+  end
+
+  def book_search_origin_path
+    validated_jjaek_return_path(params[:search_origin], include_search_origin: false)
+  end
+
+  def book_search_result_path(book, group_id: nil, return_path:)
     existing_id = book[:existing_book_id] || book[:shelved_book_id]
-    options = { group_id: group_id, return_to: book_search_return_path }
+    options = { group_id: group_id, return_to: return_path }
     return book_path(existing_id, options) if existing_id.present?
 
     lookup_books_path(options.merge(search_result_token: book[:search_result_token]))
   end
 
   def book_search_return_path
-    validated_jjaek_return_path(params[:return_to]) ||
-      validated_jjaek_return_path(book_search_path(query: @query, page: @page, group_id: @group&.id))
+    validated_jjaek_return_path(book_search_path(query: @query, page: @page, group_id: @group&.id,
+                                              search_origin: book_search_origin_path))
   end
 
   def book_search_bookshelf_select_id(book)

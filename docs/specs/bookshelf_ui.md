@@ -831,7 +831,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
   소속·운영 상태·작성·조회 권한은 기존 Group/Jjaek 정책으로 강제한다.
 - 활동 생성·피드 노출·항목 제거 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
 
-공통 책 검색 모달은 `docs/specs/book_search_mvp.md`를 따른다. 책 검색 대상과 책짹 게시 대상은
+책 검색 단일 독립 페이지는 `docs/specs/book_search_mvp.md`를 따른다. 책 검색 대상과 책짹 게시 대상은
 개념적으로 구분하며, 동아리 책장과 선행 모델은 만들지 않는다.
 개인 BookshelfEntry와 BookActivity에는 동아리 소속을 추가하지 않는다.
 
@@ -869,4 +869,4 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
   public 책장도 stranger/follow-only에게 상태·스티커를 공개하지 않는다.
 - private 책장 정보는 타인에게 표시하지 않는다. 항목 제거 또는 상태·스티커가 모두 없으면 표시하지 않는다.
 - 목록에서는 허용된 서재 항목과 스티커를 일괄 조회하여 카드별 추가 쿼리를 만들지 않는다.
-- 상태·스티커 변경으로 BookActivity를 생성하지 않는다. 책 검색 모달과 책짹 작성 선택 카드는 위 책 상세 정책 및 `docs/specs/book_search_mvp.md`를 따른다.
+- 상태·스티커 변경으로 BookActivity를 생성하지 않는다. 책 검색 단일 독립 페이지와 책짹 작성 선택 카드는 위 책 상세 정책 및 `docs/specs/book_search_mvp.md`를 따른다.

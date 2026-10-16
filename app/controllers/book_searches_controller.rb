@@ -17,7 +17,6 @@ class BookSearchesController < ApplicationController
       prepare_local_results
       prepare_external_results
     end
-    render partial: "book_searches/modal_results" if params[:modal] == "1"
   end
 
   private
@@ -52,7 +51,7 @@ class BookSearchesController < ApplicationController
     @has_next_page ||= @meta[:is_end] == false
   rescue BookSearches::KakaoAdapter::Error
     @external_search_failed = true
-    flash.now[:alert] = t("book_search.errors.generic") unless params[:modal] == "1"
+    flash.now[:alert] = t("book_search.errors.generic")
   end
 
   def normalized_page

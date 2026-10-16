@@ -1,7 +1,5 @@
 ko:
   search_ui:
-    close: "닫기"
-    loading: "책 검색을 불러오는 중입니다."
     local_results: "북짹에 등록된 책"
     external_unavailable: "외부 책 검색을 사용할 수 없습니다. 북짹에 등록된 책에서 선택하거나 잠시 후 다시 검색해 주세요."
     untitled: "제목 정보 없음"

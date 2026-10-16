@@ -16,7 +16,7 @@
 
       <% if current_user == @user %>
         <div class="flex shrink-0 flex-wrap gap-2">
-          <%= link_to t("book_search.nav"), book_search_path, data: { book_search_modal: true }, class: "rounded-xl bg-stone-900 px-3 py-2 text-sm font-semibold text-white" %>
+          <%= link_to t("book_search.nav"), book_search_entry_path, class: "rounded-xl bg-stone-900 px-3 py-2 text-sm font-semibold text-white" %>
           <% if @profile_bookshelves&.size.to_i > 1 %>
             <%= link_to t("users.library.transfer.open"),
                         transfer_user_library_path(@user, source_bookshelf_id: @selected_bookshelf&.id),

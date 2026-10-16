@@ -70,7 +70,7 @@ RSpec.describe "Book posting destinations", type: :request do
     form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
     expect(form).to be_present
     writing_section = form.ancestors("section").first
-    link = writing_section.at_css("a[href='#{book_search_path(group_id: group.id)}']")
+    link = writing_section.at_css("a[href='#{book_search_path(group_id: group.id, search_origin: group_path(group))}']")
     expect(link).to be_present
     expect(link.text).to eq(I18n.t("jjaeks.actions.publish_group_book"))
     expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("groups.jjaeks.tabs.general"))
