@@ -101,5 +101,4 @@ RSpec.describe BookActivityPolicy do
     expect(described_class::Scope.new(viewer, BookActivity.all).resolve).not_to include(activity)
     expect(described_class.new(viewer, activity.reload).show?).to be(false)
   end
-
 end

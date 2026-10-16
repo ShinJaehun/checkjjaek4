@@ -33,7 +33,7 @@ RSpec.describe "Standalone book search", type: :system do
   it "opens the search page without a query and writes a personal book jjaek for a shelved book" do
     book = Book.create!(title: "Personal search book")
     user.bookshelf_entries.create!(book: book)
-    counts = [Book.count, BookshelfEntry.count]
+    counts = [ Book.count, BookshelfEntry.count ]
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
 
     visit root_path
@@ -47,7 +47,7 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_no_button(I18n.t("book_search.actions.add_to_shelf"))
     click_link I18n.t("book_search.actions.open_internal")
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
-    expect([Book.count, BookshelfEntry.count]).to eq(counts)
+    expect([ Book.count, BookshelfEntry.count ]).to eq(counts)
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "Personal search reading note"
     click_button I18n.t("jjaeks.actions.publish_book")
     expect(page).to have_text("Personal search reading note")

@@ -82,7 +82,7 @@ class ApplicationController < ActionController::Base
       .where(user_id: records.map(&:user_id), book_id: records.map(&:book_id))
       .includes(:sticker_definitions)
     entries.each do |entry|
-      @current_reading_states[[entry.user_id, entry.book_id]] = entry
+      @current_reading_states[[ entry.user_id, entry.book_id ]] = entry
     end
   end
 

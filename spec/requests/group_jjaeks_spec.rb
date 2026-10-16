@@ -716,5 +716,4 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(BookActivity.last).to have_attributes(user: member, bookshelf_entry: entry, action: "added_to_shelf")
     expect(entry.bookshelf.user).to eq(member)
   end
-
 end

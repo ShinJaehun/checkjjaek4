@@ -8,7 +8,7 @@ RSpec.describe "Standalone book search", type: :request do
 
   it "links directly from home, library, and club with a validated origin" do
     shelf = user.bookshelves.create!(name: "Search source", visibility: :private)
-    origins = [root_path, user_library_path(user, bookshelf_id: shelf.id, sort: "title"), group_path(group)]
+    origins = [ root_path, user_library_path(user, bookshelf_id: shelf.id, sort: "title"), group_path(group) ]
 
     origins.each do |origin|
       get origin
@@ -67,7 +67,7 @@ RSpec.describe "Standalone book search", type: :request do
   it "falls back to the club or own library without a valid origin" do
     other = User.create!(name: "Other", email: "search-other@example.com", password: "password123!")
     private_group = Group.create!(name: "Inaccessible", group_admin: other, group_type: :private_group, lifecycle_status: :active)
-    [nil, "https://example.com", "//example.com", "/users/sign_out", group_path(private_group), [root_path]].each do |origin|
+    [ nil, "https://example.com", "//example.com", "/users/sign_out", group_path(private_group), [ root_path ] ].each do |origin|
       get book_search_path, params: { search_origin: origin }
       expect(Nokogiri::HTML(response.body).at_css("a[data-back-link]")["href"]).to eq(user_library_path(user))
 

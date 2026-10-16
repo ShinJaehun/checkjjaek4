@@ -28,7 +28,7 @@ RSpec.describe BookSearches::SearchService do
 
   it "accepts partial fields and ignores malformed documents" do
     allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
-      "documents" => [nil, "bad", { "title" => "Partial title" }], "meta" => nil
+      "documents" => [ nil, "bad", { "title" => "Partial title" } ], "meta" => nil
     )
     result = described_class.call(query: "Partial", page: 1)
     expect(result[:results]).to eq([

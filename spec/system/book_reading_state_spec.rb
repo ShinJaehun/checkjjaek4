@@ -131,5 +131,4 @@ RSpec.describe "Book reading state", type: :system do
     expect(entry.reload.status).to eq("finished")
     expect(entry.sticker_definition_ids).to be_empty
   end
-
 end

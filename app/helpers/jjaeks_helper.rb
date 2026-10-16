@@ -20,7 +20,7 @@ module JjaeksHelper
   def current_reading_state_for(jjaek)
     return if jjaek.deleted?
 
-    @current_reading_states.to_h[[jjaek.user_id, jjaek.book_id]]
+    @current_reading_states.to_h[[ jjaek.user_id, jjaek.book_id ]]
   end
 
   def jjaek_hide_reason_options
@@ -182,32 +182,32 @@ module JjaeksHelper
   private
 
   def jjaek_return_destination(route, query)
-    case [route[:controller], route[:action]]
-    when ["homes", "show"]
-      [root_path, []]
-    when ["discoveries", "show"]
-      [discovery_path, []] if policy(:discovery).show?
-    when ["notifications", "index"]
-      [notifications_path, []] if policy(Notification).index?
-    when ["book_searches", "show"]
+    case [ route[:controller], route[:action] ]
+    when [ "homes", "show" ]
+      [ root_path, [] ]
+    when [ "discoveries", "show" ]
+      [ discovery_path, [] ] if policy(:discovery).show?
+    when [ "notifications", "index" ]
+      [ notifications_path, [] ] if policy(Notification).index?
+    when [ "book_searches", "show" ]
       return unless policy(:book_search).show?
       if query[:group_id].present?
         return unless query[:group_id].is_a?(String)
         return unless policy(Group.find(query[:group_id])).create_jjaek?
       end
-      [book_search_path, %i[query page group_id]]
-    when ["users/libraries", "show"]
+      [ book_search_path, %i[query page group_id] ]
+    when [ "users/libraries", "show" ]
       user = User.find(route[:user_id])
       return unless policy(user).show? && policy(user).show_library?
       if query[:bookshelf_id].present?
         return unless query[:bookshelf_id].is_a?(String)
         return unless policy_scope(user.bookshelves).exists?(id: query[:bookshelf_id])
       end
-      [user_library_path(user), %i[bookshelf_id sort]]
-    when ["users", "show"]
+      [ user_library_path(user), %i[bookshelf_id sort] ]
+    when [ "users", "show" ]
       user = User.find(route[:id])
-      [user_path(user), []] if policy(user).show?
-    when ["books", "show"]
+      [ user_path(user), [] ] if policy(user).show?
+    when [ "books", "show" ]
       book = Book.find(route[:id])
       return unless policy(book).show?
       if query[:group_id].present?
@@ -215,29 +215,29 @@ module JjaeksHelper
         group = Group.find(query[:group_id])
         return unless policy(group).create_jjaek?
       end
-      [book_path(book), [:group_id]]
-    when ["groups", "index"]
-      [groups_path, []] if policy(Group).index?
-    when ["groups", "show"], ["groups/contents", "index"]
+      [ book_path(book), [ :group_id ] ]
+    when [ "groups", "index" ]
+      [ groups_path, [] ] if policy(Group).index?
+    when [ "groups", "show" ], [ "groups/contents", "index" ]
       group = Group.find(route[:id])
       if route[:controller] == "groups/contents"
-        [content_group_path(group), GroupContentReturnContext::FILTER_KEYS] if policy(group).view_content_inventory?
+        [ content_group_path(group), GroupContentReturnContext::FILTER_KEYS ] if policy(group).view_content_inventory?
       elsif policy(group).show?
-        [group_path(group), []]
+        [ group_path(group), [] ]
       end
-    when ["admin/users", "content"]
+    when [ "admin/users", "content" ]
       user = User.find(route[:id])
-      [content_admin_user_path(user), %i[content q location status sort all_page]] if policy(user).view_admin_inventory?
-    when ["admin/groups", "content"]
+      [ content_admin_user_path(user), %i[content q location status sort all_page] ] if policy(user).view_admin_inventory?
+    when [ "admin/groups", "content" ]
       group = Group.find(route[:id])
-      keys = [*GroupContentReturnContext::FILTER_KEYS, :q, :group_type, :status, :operation_status, :sort, :page]
-      [content_admin_group_path(group), keys] if policy(group).view_admin_details?
-    when ["requotes", "index"]
+      keys = [ *GroupContentReturnContext::FILTER_KEYS, :q, :group_type, :status, :operation_status, :sort, :page ]
+      [ content_admin_group_path(group), keys ] if policy(group).view_admin_details?
+    when [ "requotes", "index" ]
       source = Jjaek.find(route[:jjaek_id])
-      [jjaek_requotes_path(source), []] if !source.deleted? && policy(source).view_requotes?
-    when ["jjaeks", "show"]
+      [ jjaek_requotes_path(source), [] ] if !source.deleted? && policy(source).view_requotes?
+    when [ "jjaeks", "show" ]
       jjaek = Jjaek.find(route[:id])
-      [jjaek_path(jjaek), []] if !jjaek.deleted? && policy(jjaek).show?
+      [ jjaek_path(jjaek), [] ] if !jjaek.deleted? && policy(jjaek).show?
     end
   end
 

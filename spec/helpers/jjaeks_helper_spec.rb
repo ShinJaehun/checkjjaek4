@@ -126,7 +126,7 @@ RSpec.describe JjaeksHelper, type: :helper do
   end
 
   it "drops invalid search origins and rechecks their access" do
-    origins = ["https://example.com", "//example.com", "/\\example.com", "/users/sign_out", "/users/999999999", group_path(group), [root_path]]
+    origins = [ "https://example.com", "//example.com", "/\\example.com", "/users/sign_out", "/users/999999999", group_path(group), [ root_path ] ]
     origins.each do |origin|
       candidate = book_search_path(query: "book", page: 2, search_origin: origin)
       expect(helper.validated_jjaek_return_path(candidate)).to eq(book_search_path(query: "book", page: 2))
