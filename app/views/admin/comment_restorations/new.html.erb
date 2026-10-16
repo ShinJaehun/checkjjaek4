@@ -1,3 +1,6 @@
+<div class="mx-auto mb-4 w-full max-w-3xl">
+  <%= render "shared/back_link", path: @return_path %>
+</div>
 <section class="mx-auto w-full max-w-3xl rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
   <h1 class="text-2xl font-semibold text-stone-900"><%= t("comments.moderation.restore_title") %></h1>
   <p class="mt-2 text-sm text-stone-600"><%= t("comments.moderation.restore_description") %></p>
@@ -20,6 +23,6 @@
 
   <%= render "form" %>
   <%= link_to t("comments.moderation.cancel"),
-              jjaek_path(@jjaek, anchor: dom_id(@comment)),
+              @return_path,
               class: "mt-5 inline-block text-sm font-medium text-stone-600 underline" %>
 </section>

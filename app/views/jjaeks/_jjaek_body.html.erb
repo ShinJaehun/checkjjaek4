@@ -4,13 +4,13 @@
       <%= render "books/thumbnail",
                  title: jjaek.book.title,
                  thumbnail: jjaek.book.thumbnail,
-                 url: book_path(jjaek.book),
+                 url: book_path(jjaek.book, book_navigation_params),
                  size: :medium %>
     </div>
 
     <div class="min-w-0 flex-1">
       <div>
-        <%= link_to jjaek.book.title, book_path(jjaek.book), class: "text-base font-semibold leading-6 text-stone-900 hover:text-stone-700" %>
+        <%= link_to jjaek.book.title, book_path(jjaek.book, book_navigation_params), class: "text-base font-semibold leading-6 text-stone-900 hover:text-stone-700" %>
         <div class="mt-1 text-xs leading-5 text-stone-500"><%= jjaek.book.authors_text.presence || "-" %></div>
       </div>
 

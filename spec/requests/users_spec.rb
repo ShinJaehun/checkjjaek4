@@ -208,7 +208,7 @@ RSpec.describe "Users", type: :request do
       expect(summary.css("[data-reading-status-row]").size).to eq(4)
       expect(summary.css("[data-reading-stickers-row]").size).to eq(4)
       books.each do |book|
-        expect(summary.at_css(%(a[href="#{book_path(book)}"]))).to be_present
+        expect(summary.at_css(%(a[href="#{book_path(book, return_to: user_path(viewer))}"]))).to be_present
       end
       expect(page.at_css(%(a[href="#{user_library_path(viewer)}"]))).to be_present
     end
@@ -251,7 +251,7 @@ RSpec.describe "Users", type: :request do
       expect(overflow["title"]).to eq(stickers.drop(3).map(&:name).join(", "))
       expect(overflow["aria-label"]).to include(stickers.drop(3).map(&:name).join(", "))
       expect(overflow["tabindex"]).to eq("0")
-      expect(card.at_css(%(a[href="#{book_path(book)}"]))).to be_present
+      expect(card.at_css(%(a[href="#{book_path(book, return_to: user_path(viewer))}"]))).to be_present
     end
 
     it "shows an empty public books message to unrelated users without library controls" do

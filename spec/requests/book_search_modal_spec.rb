@@ -19,7 +19,17 @@ RSpec.describe "Shared book search", type: :request do
     expect(page.at_css('turbo-frame#book_search_modal_results')).to be_present
     expect(page.at_css('input[name="group_id"]')["value"]).to eq(group.id.to_s)
     expect(page.at_css('input[name="modal"]')["value"]).to eq("1")
-    expect(page.at_css(%(a[href="#{book_path(book, group_id: group.id)}"]))["data-turbo-frame"]).to eq("_top")
+    book_link = page.css("a[data-turbo-frame='_top']").find do |link|
+      URI.parse(link["href"]).path == book_path(book)
+    end
+    expect(book_link).to be_present
+    link_params = Rack::Utils.parse_query(URI.parse(book_link["href"]).query)
+    expect(link_params["group_id"]).to eq(group.id.to_s)
+    return_uri = URI.parse(link_params.fetch("return_to"))
+    expect(return_uri.path).to eq(book_search_path)
+    expect(Rack::Utils.parse_query(return_uri.query)).to include(
+      "group_id" => group.id.to_s, "page" => "1", "query" => "Local"
+    )
     expect(page.text).to include(I18n.t("search_ui.external_unavailable"), group.name, I18n.t("books.thumbnail.no_thumbnail"))
     expect(response.body).not_to include("<!DOCTYPE html>")
   end
@@ -42,7 +52,16 @@ RSpec.describe "Shared book search", type: :request do
     get book_search_path, params: { query: "Same local", modal: "1" }
     cards = Nokogiri::HTML(response.body).css("article")
     expect(cards.map { |card| card["id"] }.uniq.size).to eq(2)
-    expect(cards.map { |card| card.at_css("a")["href"] }).to eq(books.map { |book| book_path(book) })
+    links = cards.map { |card| URI.parse(card.at_css("a")["href"]) }
+    expect(links.map(&:path)).to eq(books.map { |book| book_path(book) })
+    links.each do |link|
+      return_to = Rack::Utils.parse_query(link.query).fetch("return_to")
+      return_uri = URI.parse(return_to)
+      expect(return_uri.path).to eq(book_search_path)
+      expect(Rack::Utils.parse_query(return_uri.query)).to include(
+        "page" => "1", "query" => "Same local"
+      )
+    end
   end
 
   it "uses signed previews for partial external results without inventing a book id" do

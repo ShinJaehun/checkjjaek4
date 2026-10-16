@@ -585,7 +585,7 @@ RSpec.describe "Notifications", type: :request do
     expect(article.text).to include(I18n.t("jjaeks.moderation.reasons.other"))
     expect(article.text).not_to include(actor.name, "PRIVATE_INTERNAL_NOTE")
     expect(article.at_css("img")).to be_nil
-    expect(article.at_css("a")["href"]).to eq(jjaek_path(jjaek))
+    expect(article.at_css("a")["href"]).to eq(jjaek_path(jjaek, return_to: notifications_path))
   end
 
   it "falls back to the club list when a group operation target is no longer readable" do
@@ -625,7 +625,7 @@ RSpec.describe "Notifications", type: :request do
 
     get notifications_path
 
-    expect(parse_html.at_css("article a")["href"]).to eq(jjaek_path(jjaek, anchor: "comment_#{comment.id}"))
+    expect(parse_html.at_css("article a")["href"]).to eq(jjaek_path(jjaek, return_to: notifications_path, anchor: "comment_#{comment.id}"))
   end
 
   it "does not link to a moderated jjaek that the recipient can no longer read" do

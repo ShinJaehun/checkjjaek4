@@ -22,6 +22,8 @@
     }
   </style>
 
+  <%= render "shared/back_link", path: user_library_path(@user, bookshelf_id: @source_bookshelf.id) %>
+
   <header class="rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-sm">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <div class="min-w-0">
@@ -35,9 +37,6 @@
                 data-action="bookshelf-transfer#toggleSelectionMode">
           <%= t("users.library.transfer.select_mode") %>
         </button>
-        <%= link_to t("users.library.transfer.back_to_library"),
-                    user_library_path(@user, bookshelf_id: @source_bookshelf.id),
-                    class: "rounded-xl border border-stone-200 px-3 py-1.5 text-sm font-semibold text-stone-700" %>
       </div>
     </div>
   </header>

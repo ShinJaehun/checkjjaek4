@@ -23,7 +23,7 @@ module BookActivitiesHelper
 
   def book_activity_card_message(activity)
     user_link = link_to(activity.user.name, user_path(activity.user), class: "font-semibold text-stone-900 hover:text-stone-700")
-    book_link = link_to(activity.book.title, book_path(activity.book), class: "font-semibold text-stone-900 hover:text-stone-700")
+    book_link = link_to(activity.book.title, book_path(activity.book, book_navigation_params), class: "font-semibold text-stone-900 hover:text-stone-700")
     badge_label = book_activity_badge_label(activity)
     badge = book_activity_badge(badge_label) if badge_label.present?
 

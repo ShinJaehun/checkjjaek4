@@ -3,7 +3,7 @@
     <%= render "books/thumbnail",
                title: bookshelf_entry.book.title,
                thumbnail: bookshelf_entry.book.thumbnail,
-               url: book_path(bookshelf_entry.book),
+               url: book_path(bookshelf_entry.book, book_navigation_params),
                size: :small %>
 
     <div class="min-w-0">

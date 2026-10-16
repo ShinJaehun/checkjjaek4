@@ -16,12 +16,12 @@
         <%= render "books/thumbnail",
                    title: quoted_jjaek.book.title,
                    thumbnail: quoted_jjaek.book.thumbnail,
-                   url: book_path(quoted_jjaek.book),
+                   url: book_path(quoted_jjaek.book, book_navigation_params),
                    size: :small %>
       </div>
 
       <div class="min-w-0 flex-1">
-        <%= link_to quoted_jjaek.book.title, book_path(quoted_jjaek.book), class: "text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
+        <%= link_to quoted_jjaek.book.title, book_path(quoted_jjaek.book, book_navigation_params), class: "text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
         <div class="mt-1 text-xs leading-5 text-stone-500"><%= quoted_jjaek.book.authors_text.presence || "-" %></div>
         <p class="mt-2 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-stone-700"><%= quoted_jjaek.content %></p>
       </div>

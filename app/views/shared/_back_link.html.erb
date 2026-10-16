@@ -1,0 +1,10 @@
+<div class="flex justify-start">
+  <%= link_to path,
+              class: "inline-flex min-h-10 items-center gap-2 rounded-lg text-sm font-medium text-stone-600 hover:text-stone-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stone-500",
+              data: { back_link: true, jjaek_back: local_assigns[:jjaek_back] } do %>
+    <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="m12 19-7-7 7-7M5 12h14" />
+    </svg>
+    <span><%= local_assigns[:label] || t("jjaeks.actions.back") %></span>
+  <% end %>
+</div>

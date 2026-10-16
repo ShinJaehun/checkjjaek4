@@ -190,7 +190,7 @@ RSpec.describe "Groups", type: :request do
 
     get group_path(group)
 
-    title_card = Nokogiri::HTML(response.body).at_css("section > section:first-child")
+    title_card = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
     type_badge = title_card.at_css("[data-group-type='public_group']")
     status_badge = title_card.at_css("[data-field='current-status']")
     expect(title_card.at_css("h1").text.strip).to eq(group.name)
@@ -354,7 +354,7 @@ RSpec.describe "Groups", type: :request do
     groups.each do |group|
       get group_path(group)
       expect(response).to have_http_status(:ok)
-      title_card = Nokogiri::HTML(response.body).at_css("section > section:first-child")
+      title_card = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
       expect(title_card.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.suspended"))
       expect(title_card.at_css("[data-field='current-status']")["class"]).to include("bg-red-50")
       expect(response.body).to include(
@@ -589,7 +589,7 @@ RSpec.describe "Groups", type: :request do
       get group_members_path(group)
 
       page = Nokogiri::HTML(response.body)
-      header = page.at_css("section > section:first-child")
+      header = page.at_css("h1").ancestors("section").first
       admin_row = page.at_css("#group_membership_#{group.group_memberships.find_by!(user: user).id}")
       member_row = page.at_css("#group_membership_#{group.group_memberships.find_by!(user: member).id}")
 
@@ -597,7 +597,7 @@ RSpec.describe "Groups", type: :request do
       expect(header.text).to include("회원 관리", "승인 동아리", "운영 중", "현재 관리자", user.name)
       expect(header.at_css("[data-group-type='approval_group']")["class"]).to include("bg-amber-100")
       expect(header.at_css("[data-field='current-status']")["class"]).to include("bg-emerald-100")
-      expect(header.at_css(%(a[href="#{group_path(group)}"])).text.strip).to eq("동아리로 돌아가기")
+      expect(page.at_css(%(main a[data-back-link="true"][href="#{group_path(group)}"])).text.strip).to eq("돌아가기")
       expect(page.css(%(a[href="#{group_path(group)}"])).one?).to be(true)
       expect(header.at_css(%(img[alt="#{user.name}"]))).to be_present
       expect(header.at_css("[data-membership-role='admin']").text.strip).to eq("동아리 관리자")
@@ -626,16 +626,16 @@ RSpec.describe "Groups", type: :request do
       get group_members_path(group, context: "admin")
 
       page = Nokogiri::HTML(response.body)
-      header = page.at_css("section > section:first-child")
-      expect(header.at_css(%(a[href="#{admin_groups_path}"])).text.strip).to eq("동아리 관리로")
+      header = page.at_css("h1").ancestors("section").first
+      expect(page.at_css(%(main a[data-back-link="true"][href="#{admin_groups_path}"])).text.strip).to eq("동아리 관리로")
       expect(page.at_css(%(a[href="#{group_path(group)}"]))).to be_nil
 
       sign_in user
       get group_members_path(group, context: "admin")
 
       member_page = Nokogiri::HTML(response.body)
-      member_header = member_page.at_css("section > section:first-child")
-      expect(member_header.at_css(%(a[href="#{group_path(group)}"])).text.strip).to eq("동아리로 돌아가기")
+      member_header = member_page.at_css("h1").ancestors("section").first
+      expect(member_page.at_css(%(main a[data-back-link="true"][href="#{group_path(group)}"])).text.strip).to eq("돌아가기")
       expect(member_page.at_css(%(a[href="#{admin_groups_path}"]))).to be_nil
     end
 
@@ -655,7 +655,7 @@ RSpec.describe "Groups", type: :request do
 
       get group_members_path(group)
 
-      header = Nokogiri::HTML(response.body).at_css("section > section:first-child")
+      header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
       expect(header.text).to include(group.name, "승인 동아리", "운영 정지")
       expect(header.text).not_to include("운영 중")
     end
@@ -723,7 +723,7 @@ RSpec.describe "Groups", type: :request do
 
       get edit_group_path(group)
       expect(response).to have_http_status(:ok)
-      title_card = Nokogiri::HTML(response.body).at_css("section > section:first-child")
+      title_card = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
       expect(title_card.at_css("[data-group-type='approval_group']").text.strip).to eq(I18n.t("groups.types.approval_group"))
       expect(title_card.at_css("[data-group-type='approval_group']")["class"]).to include("bg-amber-100")
       expect(title_card.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.active"))
@@ -743,12 +743,12 @@ RSpec.describe "Groups", type: :request do
       get group_path(pending_group)
       expect(response.body).not_to include("Initial purpose")
       expect(response.body).to include("동아리 관리")
-      pending_title_card = Nokogiri::HTML(response.body).at_css("section > section:first-child")
+      pending_title_card = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
       expect(pending_title_card.at_css(%(a[href="#{content_group_path(pending_group)}"]))).to be_nil
 
       get edit_group_path(pending_group)
       page = Nokogiri::HTML(response.body)
-      title_card = page.at_css("section > section:first-child")
+      title_card = page.at_css("h1").ancestors("section").first
       expect(title_card.at_css("[data-group-type='public_group']").text.strip).to eq(I18n.t("groups.types.public_group"))
       expect(title_card.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.pending_approval"))
       expect(title_card.at_css("[data-field='current-status']")["class"]).to include("bg-amber-100")
@@ -909,7 +909,7 @@ RSpec.describe "Groups", type: :request do
       expect(group.lifecycle_events.reactivation_requested.sole.actor).to eq(user)
 
       get edit_group_path(group)
-      status_badge = Nokogiri::HTML(response.body).at_css("section > section:first-child [data-field='current-status']")
+      status_badge = Nokogiri::HTML(response.body).at_css("[data-field='current-status']")
       expect(status_badge.text.strip).to eq(I18n.t("groups.current_statuses.reactivation_pending"))
       expect(status_badge["class"]).to include("bg-amber-100")
 
@@ -1106,7 +1106,7 @@ RSpec.describe "Groups", type: :request do
 
       get group_members_path(group)
       members_page = Nokogiri::HTML(response.body)
-      expect(members_page.at_css("section > section:first-child").text).to include("현재 관리자", user.name)
+      expect(members_page.at_css("h1").ancestors("section").first.text).to include("현재 관리자", user.name)
       expect(members_page.at_css("#group_membership_#{former_admin_membership.id} a[href='#{new_group_admin_transfer_path(group)}']")).to be_present
       expect(members_page.at_css(%(form[action="#{group_admin_transfers_path(group)}"]))).to be_nil
 

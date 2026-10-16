@@ -1,5 +1,7 @@
 module Admin
   class JjaekRestorationsController < ApplicationController
+    include GroupContentReturnContext
+
     before_action :prepare_page
 
     def new; end
@@ -9,7 +11,7 @@ module Admin
       @moderation_action.assign_attributes(action_params)
       Jjaeks::Restore.new(@jjaek, actor: current_user, **action_params).call!
 
-      redirect_to jjaek_path(@jjaek), notice: t("admin.jjaeks.notices.restored")
+      redirect_to @return_path, notice: t("admin.jjaeks.notices.restored")
     rescue Jjaeks::Restore::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
       @jjaek.reload
       @current_hide_action = @jjaek.current_hide_action
@@ -29,6 +31,7 @@ module Admin
       authorize @jjaek, :restore?
       @current_hide_action = @jjaek.current_hide_action
       @moderation_action = ModerationAction.new
+      prepare_moderation_detail_return(default_path: jjaek_path(@jjaek))
     end
 
     def moderation_action_params

@@ -11,6 +11,7 @@ export default class extends Controller {
     this.opener = link
     const url = new URL(link.href)
     url.searchParams.set("modal", "1")
+    url.searchParams.set("return_to", window.location.pathname + window.location.search)
     this.frameTarget.src = url.href
     this.previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"

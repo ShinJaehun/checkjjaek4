@@ -9,9 +9,15 @@ module BookSearchesHelper
 
   def book_search_result_path(book, group_id: nil)
     existing_id = book[:existing_book_id] || book[:shelved_book_id]
-    return book_path(existing_id, group_id:) if existing_id.present?
+    options = { group_id: group_id, return_to: book_search_return_path }
+    return book_path(existing_id, options) if existing_id.present?
 
-    lookup_books_path(search_result_token: book[:search_result_token], group_id:)
+    lookup_books_path(options.merge(search_result_token: book[:search_result_token]))
+  end
+
+  def book_search_return_path
+    validated_jjaek_return_path(params[:return_to]) ||
+      validated_jjaek_return_path(book_search_path(query: @query, page: @page, group_id: @group&.id))
   end
 
   def book_search_bookshelf_select_id(book)

@@ -12,14 +12,15 @@
 <% platform_restore_available = comment_policy.restore? %>
 <% group_hide_available = comment_policy.hide_as_group_admin? %>
 <% group_restore_available = comment_policy.restore_as_group_admin? %>
+<% moderation_navigation_params = comments_context.to_sym == :detail ? jjaek_detail_return_params(jjaek) : jjaek_navigation_params %>
 <% moderation_action = if platform_hide_available
-  { path: new_admin_jjaek_comment_hide_path(jjaek, comment), label: t("admin.jjaeks.actions.hide") }
+  { path: new_admin_jjaek_comment_hide_path(jjaek, comment, moderation_navigation_params), label: t("admin.jjaeks.actions.hide") }
 elsif platform_restore_available
-  { path: new_admin_jjaek_comment_restoration_path(jjaek, comment), label: t("admin.jjaeks.actions.restore") }
+  { path: new_admin_jjaek_comment_restoration_path(jjaek, comment, moderation_navigation_params), label: t("admin.jjaeks.actions.restore") }
 elsif group_hide_available
-  { path: new_jjaek_comment_group_hide_path(jjaek, comment), label: t("admin.jjaeks.actions.hide") }
+  { path: new_jjaek_comment_group_hide_path(jjaek, comment, moderation_navigation_params), label: t("admin.jjaeks.actions.hide") }
 elsif group_restore_available
-  { path: new_jjaek_comment_group_restoration_path(jjaek, comment), label: t("admin.jjaeks.actions.restore") }
+  { path: new_jjaek_comment_group_restoration_path(jjaek, comment, moderation_navigation_params), label: t("admin.jjaeks.actions.restore") }
 end %>
 
 <article id="<%= dom_id(comment) %>" class="rounded-2xl bg-stone-50 px-4 py-3" data-controller="comment-edit">

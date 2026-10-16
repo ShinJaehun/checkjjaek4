@@ -39,10 +39,10 @@ class BookshelfEntriesController < ApplicationController
 
       respond_to do |format|
         format.turbo_stream
-        format.html { redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created") }
+        format.html { redirect_to book_path(@book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to])), notice: t("bookshelf_entries.notices.created") }
       end
     else
-      redirect_to book_path(@book, group_id: group_context_id), notice: t("bookshelf_entries.notices.created")
+      redirect_to book_path(@book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to])), notice: t("bookshelf_entries.notices.created")
     end
   rescue ActiveRecord::RecordInvalid => error
     redirect_back fallback_location: book_search_path(group_id: group_context_id),
@@ -71,7 +71,7 @@ class BookshelfEntriesController < ApplicationController
     respond_to do |format|
       format.json { render json: reading_state }
       format.html do
-        redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id), notice: t("bookshelf_entries.notices.updated")
+        redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to])), notice: t("bookshelf_entries.notices.updated")
       end
     end
   rescue ActiveRecord::RecordInvalid => error

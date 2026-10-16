@@ -7,10 +7,14 @@ module GroupContentReturnContext
 
   private
 
+  def prepare_moderation_detail_return(default_path:)
+    @return_context_params = view_context.jjaek_detail_return_params(@jjaek)
+    @return_path = jjaek_path(@jjaek, @return_context_params.merge(anchor: URI.parse(default_path).fragment))
+  end
+
   def prepare_group_content_return(default_path:)
     @group_content_return = params[:return_to] == "group_content" && @jjaek.group.present?
-    @return_context_params = {}
-    @return_path = default_path
+    prepare_moderation_detail_return(default_path: default_path)
     return unless @group_content_return
 
     filters = GroupContentReturnContext.filter_params(params)

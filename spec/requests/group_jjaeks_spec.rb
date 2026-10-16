@@ -706,7 +706,12 @@ RSpec.describe "Group Jjaeks", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(Nokogiri::HTML(response.body).at_css("a[href='#{book_path(book, group_id: group.id)}']")).to be_present
+    book_link = Nokogiri::HTML(response.body).css("a[href]").find do |link|
+      URI.parse(link["href"]).path == book_path(book)
+    end
+    expect(book_link).to be_present
+    link_params = Rack::Utils.parse_query(URI.parse(book_link["href"]).query)
+    expect(link_params["group_id"]).to eq(group.id.to_s)
     entry = member.bookshelf_entries.find_by!(book: book)
     expect(BookActivity.last).to have_attributes(user: member, bookshelf_entry: entry, action: "added_to_shelf")
     expect(entry.bookshelf.user).to eq(member)

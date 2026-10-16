@@ -217,7 +217,7 @@ RSpec.describe "Comment moderation display", type: :request do
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(response.body).to include(
       %(action="replace" target="comments_panel_home_jjaek_#{jjaek.id}"),
-      %(href="#{new_admin_jjaek_comment_hide_path(jjaek, comment)}")
+      %(href="#{new_admin_jjaek_comment_hide_path(jjaek, comment)}?return_to=)
     )
     expect(response.body).not_to include(%(name="moderation_action[public_reason]"))
   end
@@ -232,7 +232,9 @@ RSpec.describe "Comment moderation display", type: :request do
         params: { comments_context: :group },
         headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
-    expect(response.body).to include(%(href="#{new_jjaek_comment_group_hide_path(group_jjaek, group_comment)}"))
+    expect(response.body).to include(
+      %(href="#{new_jjaek_comment_group_hide_path(group_jjaek, group_comment)}?return_to=)
+    )
     expect(response.body).not_to include(%(name="moderation_action[public_reason]"))
   end
 end

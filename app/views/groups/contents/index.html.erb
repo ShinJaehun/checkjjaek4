@@ -1,4 +1,5 @@
 <section id="group_content_inventory" class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2 space-y-5">
+  <div class="mx-auto max-w-5xl"><%= render "shared/back_link", path: group_path(@group) %></div>
   <section class="mx-auto max-w-5xl rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
     <div class="flex flex-wrap items-start justify-between gap-5">
       <div>
@@ -11,8 +12,6 @@
           </span>
         </div>
       </div>
-      <%= link_to t("groups.content_inventory.back"), group_path(@group),
-                  class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
     </div>
   </section>
 

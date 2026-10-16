@@ -1,5 +1,7 @@
 module Admin
   class CommentHidesController < ApplicationController
+    include GroupContentReturnContext
+
     before_action :prepare_page
 
     def new; end
@@ -9,7 +11,7 @@ module Admin
       @moderation_action.assign_attributes(action_params)
       Comments::Hide.new(@comment, actor: current_user, **action_params).call!
 
-      redirect_to return_path, notice: t("comments.moderation.notices.hidden")
+      redirect_to @return_path, notice: t("comments.moderation.notices.hidden")
     rescue Comments::Hide::Error, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
       @comment.reload
       @error_message = t("comments.moderation.alerts.hide_failed")
@@ -30,14 +32,11 @@ module Admin
 
       authorize @comment, :hide?
       @moderation_action = ModerationAction.new
+      prepare_moderation_detail_return(default_path: jjaek_path(@jjaek, anchor: ActionView::RecordIdentifier.dom_id(@comment)))
     end
 
     def moderation_action_params
       params.require(:moderation_action).permit(:public_reason, :internal_note).to_h.symbolize_keys
-    end
-
-    def return_path
-      jjaek_path(@jjaek, anchor: ActionView::RecordIdentifier.dom_id(@comment))
     end
   end
 end

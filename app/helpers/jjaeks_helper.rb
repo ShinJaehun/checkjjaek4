@@ -89,7 +89,20 @@ module JjaeksHelper
   end
 
   def jjaek_back_path(default_path: root_path)
-    validated_jjaek_return_path(params[:return_to]) || validated_jjaek_return_path(default_path) || root_path
+    path = validated_jjaek_return_path(params[:return_to])
+    path = nil if path && URI.parse(path).path == request.path
+    path || validated_jjaek_return_path(default_path) || root_path
+  end
+
+  def jjaek_detail_return_params(jjaek = @jjaek)
+    path = validated_jjaek_return_path(params[:return_to])
+    path = nil if path && URI.parse(path).path == jjaek_path(jjaek)
+    path ? { return_to: path } : {}
+  end
+
+  def book_navigation_params
+    path = validated_jjaek_return_path(request.fullpath)
+    path ? { return_to: path } : {}
   end
 
   def jjaek_default_return_path(jjaek)
@@ -168,6 +181,25 @@ module JjaeksHelper
     case [route[:controller], route[:action]]
     when ["homes", "show"]
       [root_path, []]
+    when ["discoveries", "show"]
+      [discovery_path, []] if policy(:discovery).show?
+    when ["notifications", "index"]
+      [notifications_path, []] if policy(Notification).index?
+    when ["book_searches", "show"]
+      return unless policy(:book_search).show?
+      if query[:group_id].present?
+        return unless query[:group_id].is_a?(String)
+        return unless policy(Group.find(query[:group_id])).create_jjaek?
+      end
+      [book_search_path, %i[query page group_id]]
+    when ["users/libraries", "show"]
+      user = User.find(route[:user_id])
+      return unless policy(user).show? && policy(user).show_library?
+      if query[:bookshelf_id].present?
+        return unless query[:bookshelf_id].is_a?(String)
+        return unless policy_scope(user.bookshelves).exists?(id: query[:bookshelf_id])
+      end
+      [user_library_path(user), %i[bookshelf_id sort]]
     when ["users", "show"]
       user = User.find(route[:id])
       [user_path(user), []] if policy(user).show?
@@ -196,9 +228,12 @@ module JjaeksHelper
       group = Group.find(route[:id])
       keys = [*GroupContentReturnContext::FILTER_KEYS, :q, :group_type, :status, :operation_status, :sort, :page]
       [content_admin_group_path(group), keys] if policy(group).view_admin_details?
+    when ["requotes", "index"]
+      source = Jjaek.find(route[:jjaek_id])
+      [jjaek_requotes_path(source), []] if !source.deleted? && policy(source).view_requotes?
     when ["jjaeks", "show"]
       jjaek = Jjaek.find(route[:id])
-      [jjaek_path(jjaek), []] if policy(jjaek).show?
+      [jjaek_path(jjaek), []] if !jjaek.deleted? && policy(jjaek).show?
     end
   end
 
@@ -278,6 +313,6 @@ module JjaeksHelper
   end
 
   def jjaek_context_book_link(book)
-    link_to(book.title, book_path(book), class: "font-semibold text-stone-900 hover:text-stone-700")
+    link_to(book.title, book_path(book, book_navigation_params), class: "font-semibold text-stone-900 hover:text-stone-700")
   end
 end

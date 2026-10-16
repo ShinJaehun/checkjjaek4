@@ -1,4 +1,5 @@
 <section class="mx-auto flex w-full max-w-6xl flex-col gap-6">
+  <%= render "shared/back_link", path: jjaek_back_path(default_path: @group.present? ? group_path(@group) : user_library_path(current_user)) %>
   <section class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.75fr)] lg:items-start">
     <%= render "books/book_header", book: @book %>
 

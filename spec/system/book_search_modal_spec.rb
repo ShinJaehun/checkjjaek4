@@ -43,7 +43,9 @@ RSpec.describe "Book search modal", type: :system do
       expect(page).to have_text(I18n.t("search_ui.external_unavailable"))
       click_link I18n.t("book_search.actions.open_internal")
     end
-    expect(page).to have_current_path(book_path(book, group_id: group.id))
+    expect(page).to have_current_path(
+      book_path(book, group_id: group.id, return_to: group_path(group))
+    )
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_group_book"), visible: :all)
     expect(page).to have_select(I18n.t("jjaeks.form.posting_group"), selected: group.name)
   end
@@ -65,7 +67,9 @@ RSpec.describe "Book search modal", type: :system do
     click_button I18n.t("bookshelf_entries.new.title")
     expect(page).to have_current_path(%r{\A/books/\d+}, ignore_query: true)
     book = Book.find_by!(title: "New modal book")
-    expect(page).to have_current_path(book_path(book, group_id: group.id))
+    expect(page).to have_current_path(
+      book_path(book, group_id: group.id, return_to: group_path(group))
+    )
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_group_book"), visible: :all)
   end
 end

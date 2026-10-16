@@ -1,4 +1,9 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
+  <% if @admin_navigation_context %>
+    <%= render "shared/back_link", path: admin_groups_path, label: t("admin.groups.actions.back") %>
+  <% else %>
+    <%= render "shared/back_link", path: group_path(@group) %>
+  <% end %>
   <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
     <div class="flex flex-wrap items-start justify-between gap-5">
       <div>
@@ -11,15 +16,6 @@
           </span>
         </div>
       </div>
-      <% if @admin_navigation_context %>
-        <%= link_to t("admin.groups.actions.back"),
-                    admin_groups_path,
-                    class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
-      <% else %>
-        <%= link_to t("groups.members.back"),
-                    group_path(@group),
-                    class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
-      <% end %>
     </div>
     <div class="mt-6 border-t border-stone-100 pt-4">
       <p class="text-xs font-medium text-stone-500"><%= t("groups.members.current_admin") %></p>

@@ -152,8 +152,8 @@ RSpec.describe "Admin group approvals", type: :request do
     opening_card = detail_page.at_css("[data-history-entry='opening_requested']")
     expect(response.body).to include("승인 대기", "운영 이력")
     expect(response.body).to include("콘텐츠")
-    expect(detail_page.at_css(%(#admin_group_identity a[href="#{admin_groups_path}"])).text.strip).to eq("동아리 관리로")
-    return_links = detail_page.css("a").select { |link| link.text.strip == "동아리 관리로" }
+    expect(detail_page.at_css(%(main a[data-back-link="true"][href="#{admin_groups_path}"])).text.strip).to eq("동아리 관리로")
+    return_links = detail_page.css(%(main a[data-back-link="true"]))
     expect(return_links.one?).to be(true)
     expect(detail_page.at_css(%(#admin_group_identity a[href="#{new_admin_group_approval_path(group)}"]))).to be_present
     expect(detail_page.at_css("#group_operation_moderation")).to be_present
@@ -700,7 +700,7 @@ RSpec.describe "Admin group approvals", type: :request do
     get detail_path
 
     detail_document = Nokogiri::HTML(response.body)
-    back_link = detail_document.at_css("#admin_group_identity a[href='#{admin_groups_path(inventory_params)}']")
+    back_link = detail_document.at_css("a[href='#{admin_groups_path(inventory_params)}']")
     expect(back_link["href"]).to eq(admin_groups_path(inventory_params))
     expect(detail_document.css("a[href='#{admin_groups_path(inventory_params)}']").one?).to be(true)
     expect(detail_document.at_css("a[href='#{content_admin_group_path(active_group, inventory_params)}']")).to be_present
@@ -808,7 +808,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(identity.at_css("[data-field='current-status']").text.strip).to eq("운영 중")
     expect(identity.text).to include(group_admin.name, I18n.l(active_group.created_at, format: :short))
     expect(identity.at_css("a[href='#{admin_group_path(active_group)}']").text.strip).to eq("세부 정보")
-    expect(identity.at_css("a[href='#{admin_groups_path}']").text.strip).to eq("동아리 관리로")
+    expect(document.at_css("main a[data-back-link='true'][href='#{admin_groups_path}']").text.strip).to eq("동아리 관리로")
     expect(controls.at_css("h2").text.strip).to eq("사용자 활동")
     expect(controls.text).to include("이 동아리의 게시물별로 댓글 문맥을 함께 확인합니다.")
     expect(controls.text).to include("게시물 4건")
@@ -1110,7 +1110,7 @@ RSpec.describe "Admin group approvals", type: :request do
     )
     expect(book_link["href"]).not_to include("all_page")
 
-    back_link = filtered_document.css("a").find { |link| link.text.include?("동아리 관리로") }
+    back_link = filtered_document.at_css(%(main a[data-back-link="true"]))
     expect(back_link["href"]).to eq(
       admin_groups_path(
         q: "Filtered content group",

@@ -552,7 +552,7 @@ BooksController#show
 
 - `JjaeksHelper`는 기존 문맥 문장에 동아리 배지와 받는 사람·원문 작성자의 프로필 썸네일을 구성한다.
 - 게시물 링크와 작성·수정 흐름은 단일 `return_to`를 전달한다. helper에서 허용된 내부 GET route, query key와 현재 Pundit 접근 권한을 검증하고, `JjaeksController`는 개인 작성·수정의 상세 redirect에도 검증된 출처를 유지한다.
-- 돌아가기 링크는 검증된 복귀 경로를 사용한다. 기존 moderation의 `GroupContentReturnContext`와 전용 액션 링크는 별도 흐름으로 유지한다.
+- 돌아가기 표현은 `shared/back_link`를 사용한다. 발견·알림, 서재·책 검색 결과도 명시적 허용 경로로 검증한다. 상세에서 시작한 moderation은 `GroupContentReturnContext`의 상세 복귀 문맥을 사용하고 기존 `group_content` 목록 직접 복귀는 유지한다. 삭제 시에는 변경 후 목적지를 다시 검증하여 삭제된 상세로 복귀하지 않는다.
 - 세부 표시와 복귀 정책은 `docs/specs/bookjjaek_reboot_spec.md`를 따른다.
 
 ---

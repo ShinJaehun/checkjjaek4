@@ -1,6 +1,6 @@
 <article class="rounded-2xl bg-stone-50 px-4 py-3">
   <div class="text-sm font-medium text-stone-900">
-    <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "hover:text-stone-700" %>
+    <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book, book_navigation_params), class: "hover:text-stone-700" %>
   </div>
   <% if bookshelf_entry.status.present? %>
     <div class="mt-1"><%= reading_status_badge(bookshelf_entry.status) %></div>

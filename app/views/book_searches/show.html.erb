@@ -1,4 +1,5 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
+  <%= render "shared/back_link", path: jjaek_back_path(default_path: @group.present? ? group_path(@group) : user_library_path(current_user)) %>
   <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
     <h1 class="text-3xl font-semibold tracking-tight text-stone-900"><%= t("book_search.title") %></h1>
     <p class="mt-2 text-sm leading-6 text-stone-500"><%= t("book_search.description") %></p>

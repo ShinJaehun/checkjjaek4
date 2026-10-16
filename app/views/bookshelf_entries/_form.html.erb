@@ -1,4 +1,5 @@
 <%= form_with model: bookshelf_entry, class: "space-y-4" do |form| %>
+  <%= hidden_field_tag :return_to, validated_jjaek_return_path(params[:return_to]) if validated_jjaek_return_path(params[:return_to]) %>
   <% show_book_info = local_assigns.fetch(:show_book_info, true) %>
 
   <% if bookshelf_entry.errors.any? %>

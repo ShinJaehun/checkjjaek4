@@ -7,7 +7,7 @@
 %>
 
 <div class="flex h-28 w-full min-w-0 shrink-0 flex-col" data-book-card-information>
-  <%= link_to book.title, book_path(book),
+  <%= link_to book.title, book_path(book, book_navigation_params),
               class: "block h-5 shrink-0 truncate text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700",
               title: book.title %>
   <p class="mt-1 h-5 shrink-0 truncate text-xs leading-5 text-stone-500" title="<%= metadata %>"><%= metadata %></p>

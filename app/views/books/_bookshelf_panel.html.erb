@@ -27,6 +27,7 @@
     <p><%= t("books.show.read_only_description") %></p>
     <div class="mt-4">
       <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
+        <%= hidden_field_tag :return_to, validated_jjaek_return_path(params[:return_to]) if validated_jjaek_return_path(params[:return_to]) %>
         <% if book.persisted? %>
           <%= hidden_field_tag :book_id, book.id %>
         <% else %>

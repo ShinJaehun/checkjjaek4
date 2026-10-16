@@ -10,7 +10,7 @@ class BooksController < ApplicationController
     @book = Book.find_or_initialize_from_search(attributes)
     authorize @book, :show?
     return redirect_to_invalid_search_result if @book.invalid?
-    return redirect_to book_path(@book, group_id: @group&.id) if @book.persisted?
+    return redirect_to book_path(@book, group_id: @group&.id, return_to: view_context.validated_jjaek_return_path(params[:return_to])) if @book.persisted?
 
     @search_result_token = params[:search_result_token]
     @bookshelves = current_user.bookshelves.default_first

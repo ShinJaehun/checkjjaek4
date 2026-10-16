@@ -261,7 +261,8 @@ RSpec.describe "Group content inventory", type: :request do
 
     get new_jjaek_group_hide_path(root)
     detail_page = Nokogiri::HTML(response.body)
-    expect(detail_page.at_css(%(a[href="#{jjaek_path(root)}"])).text.strip).to eq(I18n.t("jjaeks.moderation.group_admin.cancel"))
+    cancel = detail_page.css("a").find { |link| link.text.strip == I18n.t("jjaeks.moderation.group_admin.cancel") }
+    expect(cancel["href"]).to eq(jjaek_path(root))
     expect(detail_page.at_css(%(form[action^="#{jjaek_group_hides_path(root)}"]))["action"]).to eq(jjaek_group_hides_path(root))
     post jjaek_group_hides_path(root), params: { moderation_action: { public_reason: "other" } }
     expect(response).to redirect_to(jjaek_path(root))

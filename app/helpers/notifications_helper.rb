@@ -34,11 +34,11 @@ module NotificationsHelper
     when "book_friendship_accepted"
       user_path(notification.actor)
     when "profile_jjaek_created"
-      notification.notifiable ? jjaek_path(notification.notifiable) : root_path
+      notification.notifiable && policy(notification.notifiable).show? ? jjaek_path(notification.notifiable, return_to: notifications_path) : root_path
     when "requote_created"
-      readable_requote_notification?(notification) ? jjaek_path(notification.notifiable) : root_path
+      readable_requote_notification?(notification) ? jjaek_path(notification.notifiable, return_to: notifications_path) : root_path
     when "comment_created"
-      readable_comment_notification?(notification) ? jjaek_path(notification.notifiable.jjaek) : root_path
+      readable_comment_notification?(notification) ? jjaek_path(notification.notifiable.jjaek, return_to: notifications_path) : root_path
     else
       root_path
     end
@@ -198,7 +198,7 @@ module NotificationsHelper
   def readable_jjaek_path_or_fallback(jjaek, comment: nil)
     return user_path(current_user) unless jjaek
     if JjaekPolicy.new(current_user, jjaek).show?
-      return comment ? jjaek_path(jjaek, anchor: dom_id(comment)) : jjaek_path(jjaek)
+      return jjaek_path(jjaek, return_to: notifications_path, anchor: (dom_id(comment) if comment))
     end
 
     group = jjaek.group

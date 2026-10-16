@@ -118,7 +118,8 @@ class JjaeksController < ApplicationController
   def destroy
     group = @jjaek.group
     @jjaek.destroy_or_tombstone!
-    redirect_to destroy_success_path(group), notice: t("jjaeks.notices.destroyed"), status: :see_other
+    destination = view_context.jjaek_detail_return_params(@jjaek)[:return_to]
+    redirect_to destination || destroy_success_path(group), notice: t("jjaeks.notices.destroyed"), status: :see_other
   end
 
   private
@@ -241,9 +242,7 @@ class JjaeksController < ApplicationController
   end
 
   def post_return_params
-    path = view_context.validated_jjaek_return_path(params[:return_to])
-    path = nil if path == jjaek_path(@jjaek)
-    path ? { return_to: path } : {}
+    view_context.jjaek_detail_return_params(@jjaek)
   end
 
   def create_success_path

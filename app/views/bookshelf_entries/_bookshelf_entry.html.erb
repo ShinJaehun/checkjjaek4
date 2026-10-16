@@ -3,13 +3,13 @@
     <%= render "books/thumbnail",
                title: bookshelf_entry.book.title,
                thumbnail: bookshelf_entry.book.thumbnail,
-               url: book_path(bookshelf_entry.book),
+               url: book_path(bookshelf_entry.book, book_navigation_params),
                size: :medium %>
 
     <div class="min-w-0 flex-1">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book), class: "text-lg font-semibold text-stone-900 hover:text-stone-700" %>
+          <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book, book_navigation_params), class: "text-lg font-semibold text-stone-900 hover:text-stone-700" %>
           <p class="mt-1 text-sm text-stone-500"><%= bookshelf_entry.book.authors_text.presence || "-" %></p>
         </div>
         <% if bookshelf_entry.status.present? %>

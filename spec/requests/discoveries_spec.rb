@@ -45,8 +45,8 @@ RSpec.describe "Discoveries", type: :request do
     expect(frame.text).to include("REFRESH_BOOK", "REFRESH_BOOK_POST")
     expect(frame.text).not_to include("HIDDEN_REFRESH_BOOK_POST")
     expect(frame.at_css(%(a[href="#{discovery_path(refresh: "book")}"][data-turbo-frame="discovery_book_jjaeks"]))).to be_present
-    expect(frame.at_css(%(a[href="#{book_path(book)}"][data-turbo-frame="_top"]))).to be_present
-    expect(frame.at_css(%(a[href="#{jjaek_path(public_post)}"][data-turbo-frame="_top"]))).to be_present
+    expect(frame.at_css(%(a[href="#{book_path(book, return_to: discovery_path)}"][data-turbo-frame="_top"]))).to be_present
+    expect(frame.at_css(%(a[href="#{jjaek_path(public_post, return_to: discovery_path)}"][data-turbo-frame="_top"]))).to be_present
   end
 
   it "refreshes only the public general posts frame" do
@@ -65,7 +65,7 @@ RSpec.describe "Discoveries", type: :request do
     expect(frame.text).to include("REFRESH_GENERAL_POST")
     expect(frame.text).not_to include("PRIVATE_REFRESH_POST", "OWN_REFRESH_POST")
     expect(frame.at_css(%(a[href="#{discovery_path(refresh: "general")}"][data-turbo-frame="discovery_general_jjaeks"]))).to be_present
-    expect(frame.at_css(%(a[href="#{jjaek_path(public_post)}"][data-turbo-frame="_top"]))).to be_present
+    expect(frame.at_css(%(a[href="#{jjaek_path(public_post, return_to: discovery_path)}"][data-turbo-frame="_top"]))).to be_present
     expect(frame.at_css(%(a[href="#{user_path(writer)}"][data-turbo-frame="_top"]))).to be_present
     expect(frame.at_css(%(a[href="#{jjaek_path(own_post)}"]))).to be_nil
   end
