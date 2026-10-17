@@ -125,7 +125,7 @@ en:
     nav: "Home"
     title: "Bookjjaek"
     description: "Do you like reading books?"
-    feed_title: "Recent activity"
+    feed_title: "Recent updates"
     empty_feed: "No updates are available yet. Add a book to your shelf or follow another reader."
     new_jjaek_title: "Jjaek"
     actions:
@@ -1272,7 +1272,7 @@ en:
         target_label: "Target bookshelf"
         title: "Move books between bookshelves"
     profile:
-      activity_title: "Recent Activity"
+      activity_title: "Recent updates"
       invite_to_group: "Invite to %{group_name}"
       invite_to_group_menu: "Invite to a club"
       cancel_group_invitation: "Cancel invitation to %{group_name}"
@@ -1295,7 +1295,7 @@ en:
         position: "%{current} / %{total}"
       bookshelf_tabs: "Bookshelves"
       bookshelf_title: "Bookshelf"
-      empty_activity: "No recent activity yet."
+      empty_activity: "No updates yet."
       empty_bookshelf: "No visible books yet."
       empty_public_books: "No books to display yet."
       new_jjaek_title: "Jjaek"

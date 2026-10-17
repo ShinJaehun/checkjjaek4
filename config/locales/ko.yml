@@ -127,7 +127,7 @@ ko:
     nav: "홈"
     title: "책짹"
     description: "책 읽기... 좋아하세요?"
-    feed_title: "최근 활동"
+    feed_title: "최근 소식"
     empty_feed: "아직 소식에 보이는 항목이 없습니다. 책을 서재에 담거나 다른 독자를 소식받기 해보세요."
     new_jjaek_title: "짹"
     actions:
@@ -1274,7 +1274,7 @@ ko:
         target_label: "이동 대상 책장"
         title: "책장 이동"
     profile:
-      activity_title: "최근 활동"
+      activity_title: "최근 소식"
       invite_to_group: "%{group_name}에 초대"
       invite_to_group_menu: "동아리에 초대"
       cancel_group_invitation: "%{group_name}에 초대 취소"
@@ -1297,7 +1297,7 @@ ko:
         position: "%{current} / %{total}"
       bookshelf_tabs: "책장"
       bookshelf_title: "책장"
-      empty_activity: "아직 최근 활동이 없습니다."
+      empty_activity: "아직 소식이 없습니다."
       empty_bookshelf: "아직 보이는 책이 없습니다."
       empty_public_books: "아직 표시할 책이 없습니다."
       new_jjaek_title: "짹"

@@ -13,6 +13,24 @@ RSpec.describe "Requotes", type: :request do
   end
 
   describe "GET /jjaeks/:jjaek_id/requotes" do
+    it "redirects a missing personal source home instead of returning 404, like an inaccessible source" do
+      source = original
+      source_content = source.content
+      friendship.destroy!
+      missing_source_id = Jjaek.maximum(:id) + 1
+      sign_in viewer
+
+      get jjaek_requotes_path(missing_source_id)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+      expect(response.body).not_to include(source_content, original_author.name)
+
+      get jjaek_requotes_path(source)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+      expect(response.body).not_to include(source_content, original_author.name)
+    end
+
     it "shows an author a limited approval-group card alongside a readable requote in HTML and Turbo" do
       source = original_author.jjaeks.create!(book:, content: "AUTHOR_BOOK_SOURCE")
       group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Approval readers", group_type: :approval_group)
@@ -229,6 +247,7 @@ RSpec.describe "Requotes", type: :request do
       source.update!(hidden_at: Time.current)
       get jjaek_requotes_path(source)
       expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
       expect(response.body).not_to include(requote.content)
 
       source.update!(hidden_at: nil)
@@ -238,6 +257,7 @@ RSpec.describe "Requotes", type: :request do
 
       get jjaek_requotes_path(source)
       expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
       get jjaek_path(source)
       expect(response.body).not_to include(jjaek_requotes_path(source))
     end

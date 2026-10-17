@@ -144,8 +144,11 @@ class JjaeksController < ApplicationController
   def set_jjaek
     @jjaek = Jjaek.find(params[:id])
 
-    if @jjaek.group_id.present? && !policy(@jjaek).show?
-      raise ActiveRecord::RecordNotFound
+    unless policy(@jjaek).show?
+      raise ActiveRecord::RecordNotFound if @jjaek.group_id.present?
+
+      redirect_to root_path, alert: t("jjaeks.alerts.not_found_or_inaccessible")
+      return
     end
     authorize @jjaek
   end

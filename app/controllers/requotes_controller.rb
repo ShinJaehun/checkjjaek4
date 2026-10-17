@@ -1,6 +1,11 @@
 class RequotesController < ApplicationController
   def index
-    @jjaek = Jjaek.find(params[:jjaek_id])
+    @jjaek = Jjaek.find_by(id: params[:jjaek_id])
+    if @jjaek.nil? || (@jjaek.group_id.nil? && !policy(@jjaek).view_requotes?)
+      redirect_to root_path, alert: t("jjaeks.alerts.not_found_or_inaccessible")
+      return
+    end
+
     authorize @jjaek, :view_requotes?
 
     readable_requotes = policy_scope(Jjaek)

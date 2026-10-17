@@ -594,6 +594,17 @@ RSpec.describe "Jjaeks", type: :request do
   end
 
   describe "GET /jjaeks/:id" do
+    it "redirects an inaccessible personal Jjaek detail to home with a generic alert" do
+      inaccessible_jjaek = original_author.jjaeks.create!(content: "INACCESSIBLE_PERSONAL_DETAIL", visibility: :private_jjaek)
+      sign_in viewer
+
+      get jjaek_path(inaccessible_jjaek)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+      expect(response.body).not_to include("INACCESSIBLE_PERSONAL_DETAIL")
+    end
+
     it "keeps missing and inaccessible Group Jjaek show requests as not found" do
       private_group = Group.create!(
         lifecycle_status: :active,
