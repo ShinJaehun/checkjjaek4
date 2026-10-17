@@ -8,6 +8,8 @@
   <% bookshelf_sort = local_assigns[:bookshelf_sort] || "recent" %>
   <% bookshelf_view = local_assigns[:bookshelf_view] || @profile_bookshelf_view || "detail" %>
   <% bookshelf_sort_enabled = local_assigns[:show_move_control] && bookshelf_sort == "manual" && selected_bookshelf.present? %>
+  <% bookshelf_reorder_available = bookshelf_sort_enabled && bookshelf_entries.any? %>
+  <% mobile_reorder_enabled = bookshelf_sort_enabled && bookshelf_entries.size > 1 %>
   <% bookshelf_sort_options = local_assigns[:bookshelf_sort_options] || [] %>
   <% new_bookshelf = local_assigns[:new_bookshelf] %>
   <% managed_bookshelf = local_assigns[:managed_bookshelf] %>
@@ -78,7 +80,12 @@
   <% end %>
 
   <% if selected_bookshelf.present? %>
-    <section class="mt-0.5 relative z-0 overflow-visible rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(selected_bookshelf) %>">
+    <section class="mt-0.5 relative z-0 overflow-visible rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(selected_bookshelf) %>"
+             <% if bookshelf_reorder_available %>
+               data-controller="bookshelf-entries-sort"
+               data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
+               data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
+             <% end %>>
       <header class="flex flex-col gap-3 border-b border-stone-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between <%= bookshelf_header_class(selected_bookshelf) %>">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
@@ -91,6 +98,15 @@
         </div>
 
         <div class="flex flex-wrap items-end gap-2">
+          <% if mobile_reorder_enabled %>
+            <button type="button"
+                    class="rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700 md:hidden"
+                    data-bookshelf-entries-sort-target="modeButton"
+                    data-action="bookshelf-entries-sort#startEditing"><%= t("users.profile.bookshelf_sort.reorder_start") %></button>
+            <span class="hidden rounded-xl bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-700 md:hidden"
+                  data-bookshelf-entries-sort-target="editingStatus"
+                  role="status"><%= t("users.profile.bookshelf_sort.reorder_editing") %></span>
+          <% end %>
           <% if bookshelf_sort_options.any? %>
             <%= form_with url: bookshelf_section_path.call, method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
               <%= form.hidden_field :bookshelf_id, value: selected_bookshelf.id %>
@@ -122,17 +138,16 @@
         <div class="min-h-32">
           <% if bookshelf_entries.any? %>
             <div class="grid gap-3 <%= bookshelf_view == "compact" ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "sm:grid-cols-2" %>"
-                 <% if bookshelf_sort_enabled %>
-                   data-controller="bookshelf-entries-sort"
-                   data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
-                   data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
+                 <% if bookshelf_reorder_available %>
+                   data-bookshelf-entries-sort-target="list"
                  <% end %>>
               <% bookshelf_entries.each do |bookshelf_entry| %>
                 <%= render "bookshelf_entries/#{bookshelf_view == "compact" ? "compact_bookshelf_entry" : "profile_bookshelf_entry"}",
                            bookshelf_entry:,
                            show_status: show_status,
                            show_move_control: false,
-                           show_sort_handle: bookshelf_sort_enabled %>
+                           show_sort_handle: bookshelf_sort_enabled,
+                           show_mobile_reorder_controls: mobile_reorder_enabled %>
               <% end %>
             </div>
           <% else %>
@@ -141,8 +156,28 @@
             </section>
           <% end %>
         </div>
+        <% if mobile_reorder_enabled %>
+          <div class="hidden h-[calc(env(safe-area-inset-bottom)+6rem)] md:hidden"
+               data-bookshelf-entries-sort-target="bottomSpacer"></div>
+        <% end %>
       </div>
 
+      <% if mobile_reorder_enabled %>
+        <div class="fixed inset-x-0 bottom-0 z-40 hidden border-t border-stone-200 bg-white/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-2xl backdrop-blur md:hidden"
+             data-bookshelf-entries-sort-target="actionBar">
+          <div class="mx-auto flex max-w-4xl items-center justify-end gap-2">
+            <button type="button"
+                    class="rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700"
+                    data-bookshelf-entries-sort-target="cancelButton"
+                    data-action="bookshelf-entries-sort#cancelEditing"><%= t("users.profile.bookshelf_sort.reorder_cancel") %></button>
+            <button type="button"
+                    class="rounded-xl bg-stone-900 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    data-bookshelf-entries-sort-target="applyButton"
+                    data-action="bookshelf-entries-sort#applyOrder"
+                    disabled><%= t("users.profile.bookshelf_sort.reorder_apply") %></button>
+          </div>
+        </div>
+      <% end %>
     </section>
   <% end %>
 

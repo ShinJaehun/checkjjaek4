@@ -275,6 +275,7 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - target panel 동시 표시는 중간/큰 화면 전용이다.
 - 중간/큰 화면에서는 기존 source/target 2-panel Drag and Drop UX를 유지한다.
 - 모바일 진입 즉시 checkbox와 하단 action bar를 표시하고, 일반 Library와 같은 가로형 책 카드에서 선택을 시작한다.
+- checkbox는 카드 오른쪽 상단에 겹쳐 표시하며 표지와 책 정보 영역을 좁히지 않는다.
 - 처음 선택 권수는 0권이며, 책 카드를 여러 권 선택할 수 있다. `선택 해제`는 체크된 책만 비운다.
 - selection mode에서 선택된 카드는 border/ring/background로 구분한다.
 - selection mode에서 카드 영역을 탭하면 선택/해제할 수 있고, 제목 링크는 계속 책 상세로 이동한다.
@@ -296,7 +297,7 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 
 목표 동작:
 
-- self는 자신의 책장 안에서 책 카드 순서를 Drag and Drop으로 바꿀 수 있다.
+- self는 자신의 책장 안에서 PC에서는 Drag and Drop, 모바일에서는 위·아래 버튼으로 책 카드 순서를 바꿀 수 있다.
 - 순서 변경은 같은 책장 안에서 먼저 지원한다.
 - 책장 간 이동과 책장 안 정렬은 기능적으로 구분한다.
 
@@ -312,16 +313,19 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - `sort=manual`일 때 `position ASC, id ASC`로 정렬한다.
 - `PATCH /bookshelf_entries/reorder`는 같은 책장 안 전체 BookshelfEntry id를 전달받아 position을 재배정한다.
 - reorder 요청은 owner만 가능하며, 다른 책장/다른 사용자 entry id가 섞이거나 id가 누락되면 실패한다.
-- sort가 `manual`이고 owner 화면일 때 같은 목록 안 drop은 reorder로 처리한다.
-- 작은 “순서 변경” 버튼은 두지 않는다.
-- 책 카드를 같은 책장 안에서 드래그하면 카드 순서를 바꾸고 기존 reorder endpoint로 저장한다.
+- sort가 `manual`이고 owner 화면일 때 PC의 같은 목록 안 drop은 reorder로 처리한다.
+- 모바일은 책이 2권 이상일 때 책장 헤더의 `순서 변경` 버튼으로 편집 모드를 연다. 편집 중 헤더에는 `순서 변경 중`을 표시하고, 하단 고정 action bar의 `취소` 또는 `적용`으로 닫는다. 마지막 카드 아래 여백에는 모바일 safe area를 반영한다.
+- 위·아래 버튼은 카드 오른쪽에 겹쳐 표시하여 기존 카드 크기와 책 정보 배치를 유지한다. 첫 책의 위 버튼과 마지막 책의 아래 버튼은 비활성화한다.
+- 모바일 위·아래 버튼은 화면에서 한 칸씩 이동하며 저장 요청은 보내지 않는다. `취소`는 편집 전 순서를 복원하고, 변경 사항이 없으면 `적용`은 비활성화한다.
+- `적용`은 전체 책 순서를 기존 reorder endpoint로 한 번 저장한다. 저장 중 추가 조작을 막고 실패하면 새로고침해 서버 순서로 복구한다.
+- PC에서 책 카드를 같은 책장 안에서 드래그하면 카드 순서를 바꾸고 기존 reorder endpoint로 저장한다.
 - 기본 Library에는 책장 간 이동 UI를 두지 않는다.
 - 책장 이동 모드에서는 source 책장과 target 책장 두 list 사이에 SortableJS group을 적용한다.
 - 책장 이동 모드에서 책 카드를 target 책장 list에 놓으면 기존 책장 간 이동 흐름을 사용한다.
 - target 책장 list 안 원하는 위치에 놓으면 `before_entry_id` 기반으로 해당 위치에 삽입한다.
 - target 책장 header에 놓으면 `before_entry_id` 없이 target 책장 끝에 append한다.
 - 책장 간 이동은 move endpoint, 같은 책장 안 reorder는 reorder endpoint를 사용한다.
-- 기본 Library의 detail 카드와 책장 이동 모드의 compact 카드는 SortableJS drag source로 동작한다.
+- PC 기본 Library의 detail 카드와 책장 이동 모드의 compact 카드는 SortableJS drag source로 동작한다.
 - 썸네일과 카드 여백은 drag handle로 동작한다.
 - 책 제목 링크는 클릭 시 책 상세 링크로 동작한다.
 - 버튼, input, select, textarea, form 같은 control 요소는 reorder drag 시작 대상에서 제외한다.
@@ -329,7 +333,7 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - 본인 Library의 기본 정렬은 `manual`이다.
 - visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다.
 - 제목순, 저자순, 최근 추가순 같은 정렬은 별도 보기 옵션으로 유지할 수 있다.
-- 책 순서 DnD는 SortableJS를 사용한다.
+- PC 책 순서 DnD는 SortableJS를 사용하고 모바일 기본 Library에서는 비활성화한다.
 - 카드 안의 버튼, input, select, textarea, form 같은 control 요소에서는 drag가 시작되지 않도록 guard한다.
 - 같은 목록 안 drop은 reorder, 다른 책장 list drop은 move가 되도록 이벤트 경계를 분명히 나눈다.
 
@@ -349,9 +353,9 @@ controller 역할은 분리한다.
 
 ### 브라우저 스모크 체크리스트
 
-- `sort=manual`에서 owner에게만 순서 변경 handle이 보인다.
+- `sort=manual`에서 owner에게만 PC 순서 변경 handle과 모바일 순서 변경 버튼이 보인다.
 - 순서 변경 후 새로고침해도 같은 순서가 유지된다.
-- `recent`, `title`, `author`, `status` 정렬에서는 순서 변경 handle이 숨겨진다.
+- `recent`, `title`, `author`, `status` 정렬에서는 순서 변경 handle과 버튼이 숨겨진다.
 - 기본 Library는 detail 카드로 고정되고 detail/compact 전환 UI가 없다.
 - owner는 책장 이동 모드에 진입할 수 있다.
 - 책장 이동 모드에서 source / target 책장을 각각 바꿀 수 있다.
@@ -613,10 +617,10 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 - 허용되지 않은 `sort` 값은 기본 정렬 정책으로 fallback한다.
 - 책장 탭 이동 시 현재 `sort` 값을 유지한다.
 - 정렬은 선택된 책장 안의 접근 가능한 책 목록에만 적용한다.
-- 책 순서 변경 handle은 owner 화면에서 `sort=manual`일 때만 표시한다.
-- `recent`, `title`, `author`, `status` 정렬에서는 책 순서 변경 handle을 숨긴다.
+- 책 순서 변경 handle은 owner 화면에서 `sort=manual`일 때 PC에 표시한다. 모바일에서는 같은 조건에 책이 2권 이상이면 순서 변경 버튼을 표시한다.
+- `recent`, `title`, `author`, `status` 정렬에서는 책 순서 변경 handle과 버튼을 숨긴다.
 - 상태/스티커 노출 정책과 책장 visibility 정책은 바꾸지 않는다.
-- JavaScript 없이 동작해야 한다.
+- 정렬 방식 선택 form은 JavaScript 없이 동작해야 한다.
 
 정렬 UI는 tab/index와 책 목록 사이에 독립 form으로 끼우지 않고, 선택된 책장 header 오른쪽의 작은 컨트롤로 옮기는 방향을 우선한다.
 

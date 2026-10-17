@@ -1278,6 +1278,8 @@ en:
       cancel_group_invitation: "Cancel invitation to %{group_name}"
       bookshelf_sort:
         label: "Book sort"
+        move_down: "Move %{title} down one position"
+        move_up: "Move %{title} up one position"
         options:
           author: "Author"
           manual: "Custom order"
@@ -1285,6 +1287,10 @@ en:
           status: "Status"
           title: "Title"
         submit: "Sort"
+        reorder_apply: "Apply"
+        reorder_cancel: "Cancel"
+        reorder_editing: "Changing order"
+        reorder_start: "Change order"
       bookshelf_scroll:
         next: "Next bookshelf"
         previous: "Previous bookshelf"

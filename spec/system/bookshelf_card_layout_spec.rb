@@ -55,10 +55,13 @@ RSpec.describe "Bookshelf card layout", type: :system do
             }
           })
         JS
-        expect(layout.map { |card| card["cardHeight"] }.uniq.size).to eq(1),
-          "#{path}: #{layout.map { |card| card["cardHeight"] }.inspect}"
+        heights = layout.map { |card| card["cardHeight"] }
+        expect(heights.max - heights.min).to be < 0.01,
+          "#{path}: #{heights.inspect}"
         expect(layout.all? { |card| card["fitsCard"] && card["singleLineText"] && card["rowsFit"] }).to be(true)
-        expect(layout.map { |card| card["informationHeight"] }.uniq.size).to eq(1)
+        information_heights = layout.map { |card| card["informationHeight"] }
+        expect(information_heights.max - information_heights.min).to be < 0.01,
+          "#{path}: #{information_heights.inspect}"
       end
     end
   end

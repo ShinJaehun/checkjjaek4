@@ -122,7 +122,7 @@ class BookshelfEntriesController < ApplicationController
     BookshelfEntry.reorder_within!(bookshelf:, ordered_ids: params[:bookshelf_entry_ids])
     options = { bookshelf_id: bookshelf.id, sort: "manual" }
 
-    redirect_to user_library_path(current_user, options)
+    redirect_to user_library_path(current_user, options), status: :see_other
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound
     head :unprocessable_content
   end

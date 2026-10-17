@@ -1280,6 +1280,8 @@ ko:
       cancel_group_invitation: "%{group_name}에 초대 취소"
       bookshelf_sort:
         label: "책 정렬"
+        move_down: "%{title} 한 칸 아래로 이동"
+        move_up: "%{title} 한 칸 위로 이동"
         options:
           author: "저자순"
           manual: "사용자 지정순"
@@ -1287,6 +1289,10 @@ ko:
           status: "상태순"
           title: "제목순"
         submit: "정렬"
+        reorder_apply: "적용"
+        reorder_cancel: "취소"
+        reorder_editing: "순서 변경 중"
+        reorder_start: "순서 변경"
       bookshelf_scroll:
         next: "다음 책장"
         previous: "이전 책장"

@@ -36,7 +36,7 @@
                  size: :medium %>
     </div>
 
-    <div class="min-w-0 <%= "flex-1 pr-8 md:w-full md:pr-0" if transfer_selection %>">
+    <div class="min-w-0 <%= "flex-1 md:w-full" if transfer_selection %>">
       <%= render "bookshelf_entries/card_information",
                  bookshelf_entry: bookshelf_entry,
                  show_status: local_assigns.fetch(:show_status, false) %>

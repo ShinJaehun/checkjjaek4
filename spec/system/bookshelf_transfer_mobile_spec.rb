@@ -43,10 +43,23 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
     first_card = find("[data-bookshelf-entry-id='#{first_entry.id}']")
     expect(first_card).to have_css("input[type='checkbox']", visible: true)
     expect(first_card).to have_link("First transfer book")
+    expect(page.evaluate_script(<<~JS)).to be(true)
+      (() => {
+        const card = document.querySelector('[data-bookshelf-entry-id="#{first_entry.id}"]')
+        const information = card.querySelector('[data-book-card-information]').getBoundingClientRect()
+        const checkbox = card.querySelector('[data-bookshelf-transfer-target=selectionCheckboxWrapper]').getBoundingClientRect()
+        return information.right > checkbox.left
+      })()
+    JS
     first_card.click
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("1")
     expect(page).to have_button(I18n.t("bookshelf_entries.actions.move"), disabled: false)
     expect(first_card[:class]).to include("border-stone-900")
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-bookshelf-transfer-target=selectionCheckboxWrapper]')).position")).to eq("absolute")
+    first_card.find("input[type='checkbox']").click
+    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
+    first_card.find("input[type='checkbox']").click
+    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("1")
     first_card.click
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
     first_card.click
