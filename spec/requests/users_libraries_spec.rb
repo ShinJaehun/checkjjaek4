@@ -134,7 +134,9 @@ RSpec.describe "User libraries", type: :request do
     expect(response.body).not_to include("spike")
     expect(document.css(%([data-bookshelf-transfer-target="list"])).size).to eq(2)
     expect(document.at_css(%([data-controller="bookshelf-transfer"]))).to be_present
-    expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_present
+    expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
+    expect(document.at_css(%([data-bookshelf-transfer-target="selectionBar"]))).to be_present
+    expect(document.at_css(%([data-bookshelf-transfer-target="moveButton"][disabled]))).to be_present
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"][name="source_bookshelf_id"]))).to be_present
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"] option[value="#{selected_bookshelf.id}"]))&.text).to eq("Selected Shelf (1)")
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"] option[value="#{target_bookshelf.id}"]))&.text).to eq("Target Shelf (1)")

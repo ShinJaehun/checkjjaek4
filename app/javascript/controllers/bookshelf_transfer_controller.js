@@ -6,33 +6,35 @@ export default class extends Controller {
     "append",
     "entry",
     "list",
+    "moveButton",
     "movePanel",
     "selectedCount",
     "selectedIds",
     "selectionBar",
     "selectionCheckbox",
     "selectionCheckboxWrapper",
-    "selectionModeButton"
+    "sheetCloseButton",
+    "sheetSelectedCount"
   ]
   static values = {
-    cancelSelectionLabel: String,
     reorderUrl: String,
-    selectModeLabel: String,
     uiSourceBookshelfId: Number,
     uiTargetBookshelfId: Number
   }
 
   connect() {
-    this.selectionMode = false
     this.sortables = []
     this.desktopQuery = window.matchMedia("(min-width: 768px)")
     this.handleBreakpointChange = () => this.resetForBreakpoint()
     this.addBreakpointListener()
     this.syncSortables()
-    this.syncSelection()
+    this.clearSelection()
   }
 
   disconnect() {
+    if (this.hasMovePanelTarget && !this.movePanelTarget.classList.contains("hidden")) {
+      document.body.style.overflow = this.previousBodyOverflow
+    }
     this.removeBreakpointListener()
     this.destroySortables()
   }
@@ -51,29 +53,63 @@ export default class extends Controller {
     })
   }
 
-  toggleSelectionMode() {
-    if (this.selectionMode) {
-      this.exitSelectionMode()
-    } else {
-      this.enterSelectionMode()
-    }
-  }
-
   toggleEntrySelection(event) {
     event?.stopPropagation()
     this.syncSelection()
   }
 
   clearSelection() {
-    this.exitSelectionMode()
+    this.selectionCheckboxTargets.forEach((checkbox) => {
+      checkbox.checked = false
+    })
+    this.syncSelection()
   }
 
-  toggleMovePanel() {
+  openMovePanel(event) {
     if (!this.hasMovePanelTarget) return
     if (this.selectedEntryIds().length === 0) return
 
-    this.movePanelTarget.classList.toggle("hidden")
-    this.movePanelTarget.classList.toggle("grid")
+    this.movePanelOpener = event.currentTarget
+    this.previousBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    this.movePanelTarget.classList.remove("hidden")
+    this.movePanelTarget.classList.add("flex")
+    this.sheetCloseButtonTarget.focus()
+  }
+
+  closeMovePanel() {
+    if (!this.hasMovePanelTarget || this.movePanelTarget.classList.contains("hidden")) return
+
+    this.movePanelTarget.classList.add("hidden")
+    this.movePanelTarget.classList.remove("flex")
+    document.body.style.overflow = this.previousBodyOverflow
+    this.movePanelOpener?.focus()
+  }
+
+  closeOnBackdrop(event) {
+    if (event.target === event.currentTarget) this.closeMovePanel()
+  }
+
+  handleMovePanelKeydown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault()
+      this.closeMovePanel()
+      return
+    }
+
+    if (event.key !== "Tab") return
+
+    const buttons = Array.from(this.movePanelTarget.querySelectorAll("button:not([disabled])"))
+    const first = buttons[0]
+    const last = buttons[buttons.length - 1]
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
   }
 
   submitSourceSelect(event) {
@@ -83,7 +119,7 @@ export default class extends Controller {
   toggleCardSelection(event) {
     if (this.controlElement(event.target)) return
 
-    if (!this.selectionMode) return
+    if (this.desktopTransfer()) return
 
     const checkbox = this.checkboxForEntry(event.currentTarget)
     if (!checkbox) return
@@ -95,13 +131,22 @@ export default class extends Controller {
 
   syncSelection() {
     const selectedIds = this.selectedEntryIds()
+    const mobile = !this.desktopTransfer()
 
     if (this.hasSelectionBarTarget) {
-      this.selectionBarTarget.classList.toggle("hidden", !this.selectionMode || selectedIds.length === 0)
+      this.selectionBarTarget.classList.toggle("hidden", !mobile)
     }
 
     if (this.hasSelectedCountTarget) {
       this.selectedCountTarget.textContent = selectedIds.length
+    }
+
+    if (this.hasSheetSelectedCountTarget) {
+      this.sheetSelectedCountTarget.textContent = selectedIds.length
+    }
+
+    if (this.hasMoveButtonTarget) {
+      this.moveButtonTarget.disabled = selectedIds.length === 0
     }
 
     if (this.hasSelectedIdsTarget) {
@@ -110,19 +155,18 @@ export default class extends Controller {
       )
     }
 
-    if ((!this.selectionMode || selectedIds.length === 0) && this.hasMovePanelTarget) {
-      this.movePanelTarget.classList.add("hidden")
-      this.movePanelTarget.classList.remove("grid")
+    if (!mobile || selectedIds.length === 0) {
+      this.closeMovePanel()
     }
 
     this.selectionCheckboxWrapperTargets.forEach((wrapper) => {
-      wrapper.classList.toggle("hidden", !this.selectionMode)
-      wrapper.classList.toggle("inline-flex", this.selectionMode)
+      wrapper.classList.toggle("hidden", !mobile)
+      wrapper.classList.toggle("inline-flex", mobile)
     })
 
     this.entryTargets.forEach((entry) => {
       const checkbox = this.checkboxForEntry(entry)
-      const selected = checkbox?.checked
+      const selected = mobile && checkbox?.checked
 
       if (!checkbox) {
         this.clearEntrySelectionStyle(entry)
@@ -134,10 +178,6 @@ export default class extends Controller {
       entry.classList.toggle("ring-2", selected)
       entry.classList.toggle("ring-stone-900", selected)
     })
-
-    if (this.hasSelectionModeButtonTarget) {
-      this.selectionModeButtonTarget.textContent = this.selectionMode ? this.cancelSelectionLabelValue : this.selectModeLabelValue
-    }
   }
 
   startDragging(event) {
@@ -264,22 +304,6 @@ export default class extends Controller {
     return input
   }
 
-  enterSelectionMode() {
-    this.selectionMode = true
-    this.syncSelection()
-    this.syncSortables()
-  }
-
-  exitSelectionMode() {
-    this.selectionMode = false
-    this.selectionCheckboxTargets.forEach((checkbox) => {
-      checkbox.checked = false
-    })
-    this.element.querySelectorAll("[data-bookshelf-entry-id]").forEach((entry) => this.clearEntrySelectionStyle(entry))
-    this.syncSelection()
-    this.syncSortables()
-  }
-
   checkboxForEntry(entry) {
     return entry.querySelector("input[name^='transfer_selection_']")
   }
@@ -293,7 +317,7 @@ export default class extends Controller {
   }
 
   resetForBreakpoint() {
-    this.exitSelectionMode()
+    this.clearSelection()
     this.syncSortables()
   }
 

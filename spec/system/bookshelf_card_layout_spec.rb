@@ -21,6 +21,7 @@ RSpec.describe "Bookshelf card layout", type: :system do
   [ 390, 1280 ].each do |width|
     it "keeps two reading rows and unclipped, equal-height information at #{width}px" do
       driven_by :selenium, using: :headless_chrome, screen_size: [ width, 900 ]
+      page.driver.browser.manage.window.resize_to(width, 900)
       paths = [
         user_path(user),
         user_library_path(user),
@@ -54,7 +55,8 @@ RSpec.describe "Bookshelf card layout", type: :system do
             }
           })
         JS
-        expect(layout.map { |card| card["cardHeight"] }.uniq.size).to eq(1)
+        expect(layout.map { |card| card["cardHeight"] }.uniq.size).to eq(1),
+          "#{path}: #{layout.map { |card| card["cardHeight"] }.inspect}"
         expect(layout.all? { |card| card["fitsCard"] && card["singleLineText"] && card["rowsFit"] }).to be(true)
         expect(layout.map { |card| card["informationHeight"] }.uniq.size).to eq(1)
       end

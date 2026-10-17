@@ -269,19 +269,17 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - 작은 화면에서는 Drag and Drop 대신 선택 기반 책장 이동 UX를 제공한다.
 - 작은 화면에서는 source 책장 하나만 표시한다.
 - 작은 화면에서는 책장 탭 대신 현재 source 책장 이름이 보이는 compact dropdown으로 현재 선택/정리할 책장을 바꾼다.
-- 작은 화면의 target 책장 선택은 하단 action bar 안의 버튼 목록/panel에서만 제공한다.
+- 작은 화면의 target 책장 선택은 하단 action bar의 이동 버튼으로 여는 Bottom Sheet에서 제공하며 현재 source 책장은 대상에서 제외한다.
 - 작은 화면에서는 책장 안 순서 변경 Drag and Drop을 제공하지 않는다.
 - 작은 화면의 책장 간 이동은 selection mode 기반 bulk move로만 제공한다.
 - target panel 동시 표시는 중간/큰 화면 전용이다.
 - 중간/큰 화면에서는 기존 source/target 2-panel Drag and Drop UX를 유지한다.
-- target 책장은 이동 버튼을 누른 뒤 하단 action bar 안의 버튼 목록에서 선택한다.
-- 모바일 기본 상태에서는 checkbox와 action bar를 숨기고 compact 카드를 일반 카드처럼 표시한다.
-- 사용자는 선택 버튼으로 selection mode에 진입한다.
-- selection mode에서는 checkbox를 표시하고, 책 카드를 여러 권 선택할 수 있다.
+- 모바일 진입 즉시 checkbox와 하단 action bar를 표시하고, 일반 Library와 같은 가로형 책 카드에서 선택을 시작한다.
+- 처음 선택 권수는 0권이며, 책 카드를 여러 권 선택할 수 있다. `선택 해제`는 체크된 책만 비운다.
 - selection mode에서 선택된 카드는 border/ring/background로 구분한다.
 - selection mode에서 카드 영역을 탭하면 선택/해제할 수 있고, 제목 링크는 계속 책 상세로 이동한다.
-- 책을 하나 이상 선택하면 하단 fixed action bar에 선택 권수, 이동 버튼, 선택 해제 버튼을 표시한다.
-- 이동 버튼을 누르면 단순 form/select로 대상 책장을 선택한다.
+- selection mode의 하단 fixed action bar에 선택 권수, 이동 버튼, 선택 해제 버튼을 표시한다. 선택 항목이 없으면 이동 버튼은 비활성화한다.
+- Bottom Sheet 안에서 대상 책장 목록을 스크롤할 수 있고, 닫기·취소·바깥 영역 탭·Escape로 닫아도 선택 상태는 유지한다.
 - 제출은 `PATCH /bookshelf_entries/bulk_move`를 사용한다.
 - `bookshelf_entry_ids[]`는 요청 순서를 보존해 처리한다.
 - `target_bookshelf_id`는 반드시 현재 사용자 소유 책장이어야 한다.
@@ -290,9 +288,6 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - 선택 기반 이동은 위치 지정 삽입을 지원하지 않는다.
 - 작은 화면에서 bulk move 성공 후에는 이동한 target 책장을 source로 열어 보여준다.
 
-후속 과제:
-
-- 모바일 대상 책장 선택을 bottom sheet 형태로 개선한다.
 - 선택 기반 이동에서 특정 위치 삽입을 지원할지 별도 검토한다.
 
 ### 책장 안 책 순서 변경
@@ -632,7 +627,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 기본 Library와 책장 이동 모드는 보기 방식을 분리한다.
 
 - 기본 Library는 detail 카드로 고정한다.
-- 책장 이동 모드는 compact 카드로 고정한다.
+- 책장 이동 모드는 모바일에서 가로형 detail 배치, md 이상에서 세로형 compact 배치로 고정한다.
 - 보기 모드는 DB, session, 사용자 preference에 저장하지 않는다.
 - 기본 Library에는 detail/compact 전환 UI를 두지 않는다.
 - compact 카드는 책을 빠르게 훑고 책장 간 이동하는 데 집중한다.
@@ -855,7 +850,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 - 상태는 첫 번째 줄에 아이콘·텍스트로, 스티커는 두 번째 줄에 작은 SVG 아이콘을 최대 3개 표시한다.
   남은 스티커는 순서를 유지한 이름 목록을 title·aria-label로 제공하는 포커스 가능한 `+N`으로 요약한다.
 - 책 정보 영역은 7rem, 상태·스티커 줄은 각각 1.75rem를 예약한다. 데이터가 없거나 열람 권한이 없어도 줄의 공간은 유지하되 배지·이름은 출력하지 않는다.
-- 가로형 프로필·Library 카드는 9rem, 표지가 위에 있는 compact transfer 카드는 16rem로 통일한다.
+- 가로형 프로필·Library·모바일 transfer 카드는 9rem, md 이상에서 표지가 위에 있는 compact transfer 카드는 16rem로 통일한다.
   내용 개수에 따라 높이가 바뀌지 않으며 스티커는 줄바꿈하거나 잘라서 높이를 맞추지 않는다.
   프로필 carousel과 Library 정렬·DnD·이동 선택의 기존 속성과 동작은 유지한다.
 - 위 목록 외의 책짹은 상태·스티커가 모두 없으면 표시 영역을 만들지 않는다.
