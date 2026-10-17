@@ -46,6 +46,7 @@ Rails 프로젝트에 공통인 spec-driven 개발 절차, 역할 분담, 승인
   `docs/testing/rspec_strategy.md`
 
 작업에 관련된 spec의 판단 근거가 architecture 또는 정책 문서에 있으면 함께 확인한다.
+후속 후보의 기록은 확정된 정책과 구분하고, 구현 여부는 현재 시스템 문서에서 확인한다.
 `docs/archive/*`와 `docs/legacy/*`는 사용자가 요청하거나 active 문서만으로 판단할 수
 없을 때만 참고하며 현재 기준으로 사용하지 않는다.
 

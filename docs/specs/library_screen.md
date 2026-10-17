@@ -292,15 +292,22 @@ self만 가능한 기능:
 
 ---
 
-## 후속 검토 대상
+## 현재 범위와 후속 검토 대상
 
-현재 Library Screen 정리 범위에서는 다음을 하지 않는다.
+현재 Library Screen 구현은 다음 구조를 도입하지 않는다.
 
 - `Library` 모델 생성
 - DB 구조 변경
 - 기존 Bookshelf / BookshelfEntry 모델 변경
+
+추가 기능으로 검토할 후보는 다음과 같다.
+
 - 별도 책장 관리 전용 dashboard 도입
 - 사용자별 책 문맥 화면 도입
+- 작은 화면의 서재 탐색·책장 이동 UI 추가 개선
+
+작은 화면의 책장 전환과 선택 기반 책장 이동은 이미 구현되어 있다.
+추가 개선 범위는 사용성 확인 뒤 별도로 정한다.
 
 BookActivity는 현재 관계와 현재 책장의 visibility를 함께 적용하며, 별도 visibility를 갖지 않는다. 이 연동은 이미 구현되었으며 상세 정책은 `docs/specs/book_activity_mvp.md`를 따른다.
 
@@ -318,10 +325,7 @@ BookActivity는 현재 관계와 현재 책장의 visibility를 함께 적용하
 6. 프로필 화면에는 공개 가능한 책 목록 요약과 self / accepted book_friend 대상 “서재 보기” 링크만 남긴다.
 7. `/bookshelf_entries` index 화면과 route는 제거되었고, `BookshelfEntry`의 생성/수정/이동/삭제 흐름만 유지한다.
 
-후속 확장 후보:
-
-- 별도 책장 관리 화면
-- 사용자별 책 문맥 화면
+후속 후보는 위 `현재 범위와 후속 검토 대상` 절에서 관리한다.
 
 ---
 

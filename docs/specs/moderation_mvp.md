@@ -493,10 +493,12 @@ Acceptance criteria:
 #### 후속 범위
 
 - teacher/Classroom moderation
-- 신고 queue, notification, rate limit
+- 신고 queue
 
-Comment moderation은 아래 canonical 정책대로 구현되어 있다. 신고, notification,
-Classroom 역할, 새로운 moderation framework와 작성자 삭제 lifecycle 변경은 이 범위에 포함하지 않는다.
+Comment moderation은 아래 canonical 정책대로 구현되어 있다. 신고와 Classroom 역할,
+새로운 moderation framework와 작성자 삭제 lifecycle 변경은 이 구현 단위에 포함하지 않는다.
+알림은 `docs/specs/notifications_mvp.md`, 기본 rate limit은 `docs/specs/basic_rate_limiting.md`에
+따라 별도로 구현되어 있다.
 
 이 구현 단위는 새 moderation schema나 framework를 추가하지 않는다.
 
@@ -930,3 +932,7 @@ Group operation 전체 이력 UI, hidden Comment와 operation 상태의 inventor
 가입·로그인·콘텐츠 작성·반복 mutation 및 Group 요청의 기본 rate limit은 구현되어 있으며
 `docs/specs/basic_rate_limiting.md`를 따른다. 고급 abuse-prevention 정책은 별도 후속 판단 범위다.
 Classroom·managed student account와 teacher moderation은 별도 단계에서 다룬다.
+신고 접수·queue와 별도 `platform_moderator` 역할은 미구현 후속 후보이며 권한·처리 흐름은
+별도 설계가 필요하다. 관리자 검색·조사 기능의 고급 기간 필터와 전역 콘텐츠 inventory는
+필요성·권한·성능을 확인한 뒤 고도화한다. 현재 완료된 숨김·복구·운영 정지와
+문맥별 콘텐츠 inventory를 이 후보에 포함하지 않는다.

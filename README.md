@@ -209,7 +209,7 @@
 
 ### 2. 책 검색
 
-책 검색은 Kakao 책 검색 API를 사용합니다.
+책 검색은 `/book_search` 단일 페이지에서 기존 DB 책과 Kakao 책 검색 API 결과를 보여줍니다.
 
 검색 결과에서는 다음을 할 수 있습니다.
 
@@ -564,20 +564,19 @@ docs
 
 ## 앞으로의 개선 방향
 
-앞으로는 다음과 같은 기능을 확장할 수 있습니다.
+다음 설계 대상은 Classroom입니다. 교사·학생 계정과 교실 콘텐츠의 경계는
+[제품 명세](docs/specs/bookjjaek_reboot_spec.md)에서 확인하고, 기존 Group 정책은
+[동아리 명세](docs/specs/groups_mvp.md)를 따릅니다.
 
-- Classroom 기반 독서 활동
-- 온라인 독서 연구 노트
-- 책 추천과 통계
-- 독서 취향 기반 추천
-- 책짹 태그와 해시태그
-- 책짹/다시짹 UX 개선
-- 책별 타임라인 강화
-- 사용자 아바타/프로필 이미지 개선
-- 모바일 서재 UI 개선
-- 무한 스크롤 또는 페이지네이션 고도화
-- 책 검색 UX 개선
-- 피드 필터와 추천 피드
+그 밖의 장기 검토 아이디어는 독서 연구 노트, 책 추천·통계·개인화,
+태그·해시태그, 사용자 아바타·프로필 이미지, 책별 타임라인과 다시짹 UX,
+피드 성능 측정·페이지네이션 및 필터·추천 피드입니다.
+이 목록만으로 기능 정책이나 구현 범위가 확정되지는 않습니다.
+
+개발은 Proposal → Specs → Design → Tasks와 Delta Specs 방식으로 진행합니다.
+후속 후보를 선택하면 기존 정책과의 차이를 논의해 Delta Specs를 작성하고,
+구현·검증이 완료되면 해당 canonical spec에 반영합니다.
+작은 변경에 별도의 Proposal·Design·Tasks 파일을 강제하지 않습니다.
 
 ---
 
@@ -590,6 +589,11 @@ docs
 - `docs/architecture/authorization.md`
 - `docs/architecture/jjaek_visibility.md`
 - `docs/specs/bookjjaek_reboot_spec.md`
+- `docs/specs/groups_mvp.md`
+- `docs/specs/moderation_mvp.md`
+- `docs/specs/notifications_mvp.md`
+- `docs/specs/book_search_mvp.md`
+- `docs/specs/library_screen.md`
 - `docs/testing/rspec_strategy.md`
 
 ---
