@@ -558,13 +558,13 @@ docs
 
 ### Group은 현재 구현, Classroom은 후속 개발
 
-현재 Group은 가입·초대, 게시물, 운영 lifecycle과 moderation을 제공합니다. 개인 영역과 Group 영역은 게시 문맥과 접근 권한을 구분하며, 홈에는 Group 게시물을 포함하지 않고 `/groups`에서 가입한 동아리의 통합 활동 피드를 제공합니다. 기준은 [Group 명세](docs/specs/groups_mvp.md)와 [동아리 활동 피드 명세](docs/specs/group_activity_feed.md)입니다. Classroom은 후속 개발 대상입니다.
+현재 Group은 가입·초대, 게시물, 운영 lifecycle과 moderation을 제공합니다. 개인 영역과 Group 영역은 게시 문맥과 접근 권한을 구분하며, 홈에는 Group 게시물을 포함하지 않고 `/groups`에서 가입한 동아리의 통합 활동 피드를 제공합니다. 기준은 [Group 명세](docs/specs/groups_mvp.md)와 [동아리 활동 피드 명세](docs/specs/group_activity_feed.md)입니다. Classroom은 주요 후속 개발 대상입니다.
 
 ---
 
 ## 앞으로의 개선 방향
 
-다음 설계 대상은 Classroom입니다. 교사·학생 계정과 교실 콘텐츠의 경계는
+Classroom의 교사·학생 계정과 교실 콘텐츠의 경계는
 [제품 명세](docs/specs/bookjjaek_reboot_spec.md)에서 확인하고, 기존 Group 정책은
 [동아리 명세](docs/specs/groups_mvp.md)를 따릅니다.
 

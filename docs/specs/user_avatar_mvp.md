@@ -3,6 +3,7 @@
 ## 상태
 
 이 문서는 checkjjaek4의 사용자 avatar 기능을 위한 활성 하위 spec이다.
+기본 32종 avatar의 배정·표시는 구현 완료되었고, 사용자 사진 업로드는 미구현 후속 작업이다.
 
 이 spec은 아래 문서를 전제로 한다.
 
@@ -222,7 +223,7 @@ MVP에서는 migration 또는 별도 task를 통해 기존 사용자에게 값�
 
 ## 후속 작업
 
-아래는 MVP 이후 작업이다.
+아래는 구현된 기본 avatar MVP 이후의 미구현 작업이다.
 
 - 사용자가 직접 custom avatar를 업로드하는 UI
 - Active Storage avatar variant 최적화

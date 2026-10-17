@@ -69,7 +69,7 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 실행하고 global admin은 회원·제한·감사 이력을 운영 조사 목적으로만 조회한다.
 개인 Jjaek의 동아리 다시짹과 같은 동아리 안의 다시짹은 구현되어 있으며
 상세 경로와 원문 삭제 후 처리는 `docs/specs/group_sharing_requotes.md`를 따른다.
-이메일·링크 초대는 기존 사용자 초대와 별개의 미구현 후속 후보로 남아 있다.
+이메일·초대 링크를 통한 가입은 기존 사용자 초대와 별개의 미구현 후속 후보로 남아 있다.
 신고 queue와 별도 platform moderator 역할은 `docs/specs/moderation_mvp.md`에서 다룬다.
 
 또한 여기서 사용하는 `visibility`, `discoverability`, `join policy`는 제품 정책을 설명하기 위한 개념적 구분이다. 실제 DB column, enum, association 구조를 확정하지 않는다.
@@ -373,8 +373,8 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 ## 미결정 사항
 
 - 동아리 생성 총량 제한, 계정 연령과 고급 남용 방지 조건 (기본 요청 rate limit은 구현됨)
-- 탈퇴 후 댓글 삭제를 제공하는 정확한 UI, 메시지와 동선
-- 승인 동아리 또는 비공개 동아리 탈퇴 후 원문 조회 권한을 잃은 상태에서 자기 콘텐츠 관리 진입을 제공하는 방식
+- 탈퇴 후 댓글 삭제를 제공하는 정확한 UI, 메시지와 동선 (권한 정책은 구현 완료, 접근 UX 개선 후보)
+- 승인 동아리 또는 비공개 동아리 탈퇴 후 원문 조회 권한을 잃은 상태에서 자기 콘텐츠 관리 진입을 제공하는 방식 (접근 UX 개선 후보)
 
 탈퇴 후 댓글의 보존·작성·수정·삭제 권한과 동아리 관리자의 moderation 책임,
 일반 로그인 사용자가 Group을 신청할 수 있는 방향 자체는 미결정 사항이 아니다.

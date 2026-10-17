@@ -581,12 +581,12 @@ ReJjaek은 새 Jjaek이지만,
 개인·동아리 다시짹은 `docs/specs/group_sharing_requotes.md`, moderation은
 `docs/specs/moderation_mvp.md`를 따른다.
 
-Classroom과 관리형 학생 계정은 현재 Group 구현과 구분하는 다음 설계 대상이다.
+Classroom과 관리형 학생 계정은 현재 Group 구현과 구분하는 주요 후속 개발 대상이다.
 프로젝트별 별도 Group 정책은 별도 후속 확장이다. Group 정책을 이 기능들에 자동 적용하지 않는다.
 
 ---
 
-## 다음 설계 대상: Classroom
+## 주요 후속 설계 대상: Classroom
 
 교사·교실·관리형 학생 계정과 학생 로그인, `ClassroomMembership`의 역할·접근 경계를
 별도 설계한다. 교실 전용 짹·책짹·댓글, 교실 운영 종료와 읽기 전용 아카이브도
