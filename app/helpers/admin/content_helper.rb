@@ -25,5 +25,18 @@ module Admin
     def admin_content_status_badge_classes(status)
       content_status_badge_classes(status)
     end
+
+    def admin_content_status(record, record_type:)
+      return :deleted if record_type == "Jjaek" && record.deleted?
+      return :hidden if record.hidden?
+
+      :active
+    end
+
+    def admin_content_body(record, record_type:)
+      return "-" if record_type == "Jjaek" && record.deleted?
+
+      truncate(record.content.to_s, length: 140, omission: " [...]").presence || "-"
+    end
   end
 end

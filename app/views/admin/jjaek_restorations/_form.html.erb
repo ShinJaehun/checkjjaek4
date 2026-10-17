@@ -11,14 +11,9 @@
                        class: "w-full rounded-xl border border-stone-300 px-3 py-2" %>
   </div>
 
-  <div class="space-y-2">
-    <%= form.label :internal_note, t("admin.jjaeks.moderation.internal_note"), class: "block text-sm font-medium text-stone-800" %>
-    <%= form.text_area :internal_note,
-                       rows: 3,
-                       aria: { describedby: "platform_internal_note_hint" },
-                       class: "w-full rounded-xl border border-stone-300 px-3 py-2" %>
-    <p id="platform_internal_note_hint" class="text-xs text-stone-500"><%= t("admin.jjaeks.moderation.internal_note_hint") %></p>
-  </div>
+  <%= render "shared/moderation_internal_note_field", form: form,
+             label_key: "admin.jjaeks.moderation.internal_note", hint_id: "platform_internal_note_hint",
+             hint_key: "admin.jjaeks.moderation.internal_note_hint" %>
 
   <%= form.submit t("admin.jjaeks.actions.restore"), class: "rounded-full bg-amber-800 px-5 py-2.5 text-sm font-medium text-white" %>
 <% end %>

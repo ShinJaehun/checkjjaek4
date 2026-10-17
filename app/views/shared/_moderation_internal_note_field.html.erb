@@ -1,0 +1,8 @@
+<div class="space-y-2">
+  <%= form.label :internal_note, t(label_key), class: "block text-sm font-medium text-stone-800" %>
+  <%= form.text_area :internal_note,
+                     rows: 3,
+                     aria: { describedby: hint_id },
+                     class: "w-full rounded-xl border border-stone-300 px-3 py-2" %>
+  <p id="<%= hint_id %>" class="text-xs text-stone-500"><%= t(hint_key) %></p>
+</div>

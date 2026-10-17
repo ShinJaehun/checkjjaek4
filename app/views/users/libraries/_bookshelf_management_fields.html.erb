@@ -1,0 +1,41 @@
+<% if bookshelf.errors.any? %>
+  <div class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <ul class="list-disc pl-5">
+      <% bookshelf.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<div>
+  <%= form.label :name, t("bookshelves.form.name"), class: "block text-xs font-medium text-stone-500" %>
+  <% name_options = { class: "mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" } %>
+  <% name_options[:placeholder] = t("bookshelves.form.name_placeholder") if mode == :create %>
+  <%= form.text_field :name,
+                      **name_options %>
+</div>
+
+<div>
+  <%= form.label :visibility, t("bookshelves.form.visibility"), class: "block text-xs font-medium text-stone-500" %>
+  <%= form.select :visibility,
+                  bookshelf_visibility_options.map { |visibility| [t("bookshelves.visibility.#{visibility}"), visibility] },
+                  {},
+                  class: "mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
+</div>
+
+<div>
+  <%= form.label :color_key, t("bookshelves.form.color_key"), class: "block text-xs font-medium text-stone-500" %>
+  <div class="mt-2 flex flex-wrap gap-2">
+    <% bookshelf_color_options.each do |color_key| %>
+      <% color_name = t("bookshelves.color_keys.#{color_key}") %>
+      <% radio_id = "bookshelf_#{mode}_color_key_#{color_key}" %>
+      <%= label_tag radio_id, class: "cursor-pointer", title: color_name do %>
+        <%= form.radio_button :color_key, color_key, id: radio_id, class: "peer sr-only" %>
+        <span class="block h-7 w-7 rounded-full border <%= color_swatch_classes.fetch(color_key, "border-stone-300 bg-stone-300") %> ring-offset-2 peer-checked:ring-2 peer-checked:ring-stone-900">
+          <span class="sr-only"><%= color_name %></span>
+        </span>
+      <% end %>
+    <% end %>
+  </div>
+</div>

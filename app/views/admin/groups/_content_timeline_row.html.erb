@@ -1,18 +1,6 @@
 <%
   root_row = record_type == "Jjaek"
   kind_key = admin_content_kind_key(kind, context: :group)
-  body = if root_row && record.deleted?
-    "-"
-  else
-    truncate(record.content.to_s, length: 140, omission: " [...]").presence || "-"
-  end
-  status = if root_row && record.deleted?
-    :deleted
-  elsif record.hidden?
-    :hidden
-  else
-    :active
-  end
 %>
 
 <tr id="group_timeline_<%= record_type.downcase %>_<%= record.id %>"
@@ -35,7 +23,7 @@
                   class: "text-sm font-medium text-stone-800 hover:underline" %>
     </div>
   </td>
-  <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body"><%= body %></td>
+  <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body"><%= admin_content_body(record, record_type: record_type) %></td>
   <td class="px-4 py-3.5 align-middle leading-6" data-field="reference">
     <% if root_row && kind == "book" && !record.deleted? && record.book %>
       <span class="text-stone-500"><%= t("admin.user_content.references.book") %> ·</span>
@@ -45,7 +33,7 @@
     <% end %>
   </td>
   <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
-    <%= content_status_badge(status) %>
+    <%= content_status_badge(admin_content_status(record, record_type: record_type)) %>
   </td>
   <td class="px-4 py-3.5 align-middle whitespace-nowrap"><%= l(record.created_at, format: :short) %></td>
   <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="actions">

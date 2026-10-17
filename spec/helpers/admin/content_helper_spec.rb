@@ -22,4 +22,18 @@ RSpec.describe Admin::ContentHelper, type: :helper do
     expect(helper.admin_content_status_label(:deleted)).to eq("삭제됨")
     expect(helper.admin_content_status_badge_classes(:deleted)).to include("bg-stone-200")
   end
+
+  it "shows a deleted Jjaek as deleted without exposing its body" do
+    record = double(content: "deleted body", deleted?: true, hidden?: true)
+
+    expect(helper.admin_content_status(record, record_type: "Jjaek")).to eq(:deleted)
+    expect(helper.admin_content_body(record, record_type: "Jjaek")).to eq("-")
+  end
+
+  it "keeps hidden Comment text available in the admin inventory" do
+    record = double(content: "hidden comment", hidden?: true)
+
+    expect(helper.admin_content_status(record, record_type: "Comment")).to eq(:hidden)
+    expect(helper.admin_content_body(record, record_type: "Comment")).to eq("hidden comment")
+  end
 end
