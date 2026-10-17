@@ -45,6 +45,25 @@ RSpec.describe Users::WithdrawAccount do
     expect(Book.exists?(book.id)).to be(true)
   end
 
+  it "keeps a handle private and unavailable for reuse after withdrawal" do
+    user.update!(handle: "leaving_reader")
+    old_handle = user.handle
+
+    described_class.new(user, current_password: password).call!
+
+    expect(user.reload.handle).to eq(old_handle)
+    expect(user.to_param).to eq(user.id.to_s)
+    expect { User.find_by_public_param!(old_handle) }.to raise_error(ActiveRecord::RecordNotFound)
+    expect(User.find_by_public_param!(user.id.to_s)).to eq(user)
+
+    other.handle = old_handle
+    expect(other).not_to be_valid
+    expect(other.errors[:handle]).to be_present
+    expect {
+      User.transaction(requires_new: true) { other.update_columns(handle: old_handle.upcase) }
+    }.to raise_error(ActiveRecord::RecordNotUnique)
+  end
+
   it "rejects an incorrect password, a second withdrawal, and a global admin without partial mutation" do
     expect { described_class.new(user, current_password: "wrong").call! }.to raise_error(described_class::InvalidPassword)
     expect(user.reload).not_to be_withdrawn

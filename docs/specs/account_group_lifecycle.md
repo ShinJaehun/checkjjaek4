@@ -22,6 +22,8 @@
 - 이름은 “탈퇴한 사용자”, 이메일은 원본을 보존하지 않는 비전송 placeholder로 교체하고 Devise 로그인을 차단한다.
 - 기존 avatar identity도 제거하고 모든 탈퇴 사용자를 동일한 공통 anonymous avatar로 표시한다.
 - 탈퇴 User row와 id는 과거 Jjaek·Comment의 역사적 reference로 계속 유지한다.
+- 공개 handle은 예외적으로 User row에 비공개 보존한다. 과거 주소가 다른 사용자의 프로필로 연결되지 않도록 영구 재사용을 막기 위한 목적이며, 탈퇴자의 공개 URL 생성이나 handle 조회에는 사용하지 않는다.
+- 탈퇴자의 과거 `/users/:handle`은 조회되지 않는다. 기존 `/users/:id`는 익명화된 User를 표시하는 정책을 유지한다. 보존된 handle은 화면에 노출하지 않는다.
 - 원래 이메일은 해제되므로 같은 이름·이메일·비밀번호로 다시 가입할 수 있지만, 이는 기존 계정 복구가 아니라 새로운 User row와 id 생성이다.
 - 재가입 후에도 과거 Jjaek·Comment는 새 User가 아니라 기존 withdrawn User id를 계속 참조한다.
 - 재가입한 새 User는 기존 탈퇴 계정과 무관한 새 avatar identity를 가진다.

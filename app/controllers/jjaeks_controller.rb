@@ -241,7 +241,7 @@ class JjaeksController < ApplicationController
   end
 
   def find_jjaek_group
-    path_group_id = request.path_parameters[:group_id]
+    path_group_id = request.path_parameters[:group_id].to_s.split("-", 2).first.presence
     form_group_id = params.dig(:jjaek, :group_id)
     quoting = params[:quoted_jjaek_id].present? ||
       params.dig(:jjaek, :quoted_jjaek_id).present?
@@ -270,7 +270,7 @@ class JjaeksController < ApplicationController
       params[:share_to_group].blank? && jjaek_target_user_id.blank?
     raise Pundit::NotAuthorizedError unless valid_book_post && destination.in?(%w[personal group])
 
-    path_group_id = request.path_parameters[:group_id]
+    path_group_id = request.path_parameters[:group_id].to_s.split("-", 2).first.presence
     form_group_id = params.dig(:jjaek, :group_id)
     if destination == "personal"
       raise Pundit::NotAuthorizedError if path_group_id.present? || form_group_id.present?

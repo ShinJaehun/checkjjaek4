@@ -66,6 +66,7 @@ module Users
 
     def anonymize!
       replacement_password = SecureRandom.hex(32)
+      # Keep handle reserved on the withdrawn row, but never use it for public lookup or URLs.
       user.update!(
         name: User::WITHDRAWN_NAME,
         email: "withdrawn-#{user.id}-#{SecureRandom.hex(8)}@users.invalid",

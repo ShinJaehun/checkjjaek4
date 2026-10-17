@@ -9,6 +9,33 @@ RSpec.describe "Groups", type: :request do
     expect(response).to redirect_to(new_user_session_path)
   end
 
+  it "uses the ID and Korean name in public URLs while retaining old names and numeric links" do
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "독서 모임", group_type: :public_group)
+    same_named_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "독서 모임", group_type: :public_group)
+    old_path = group_path(group)
+    expect(CGI.unescape(old_path)).to eq("/groups/#{group.id}-독서-모임")
+    expect(group_path(same_named_group)).not_to eq(old_path)
+
+    group.update!(name: "새 모임")
+    sign_in user
+
+    get old_path
+    expect(response).to have_http_status(:ok)
+    get "/groups/#{group.id}"
+    expect(response).to have_http_status(:ok)
+    get group_path(group)
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "resolves a nested member path by group ID even with a name suffix" do
+    group = Group.create!(lifecycle_status: :active, group_admin: user, name: "독서 모임", group_type: :public_group)
+    sign_in user
+
+    get group_members_path(group)
+
+    expect(response).to have_http_status(:ok)
+  end
+
   it "lets a signed-in user create a public group with an group_admin membership" do
     sign_in user
 
@@ -731,7 +758,7 @@ RSpec.describe "Groups", type: :request do
 
       patch group_path(group), params: { group: { name: "Updated", description: "After", group_type: "private_group" } }
 
-      expect(response).to redirect_to(group_path(group))
+      expect(response).to redirect_to(group_path(group.reload))
       expect(group.reload).to have_attributes(name: "Updated", description: "After", group_type: "approval_group")
     end
 

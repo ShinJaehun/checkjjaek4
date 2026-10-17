@@ -13,7 +13,7 @@ module Admin
     end
 
     def show
-      @user = User.find(params[:id])
+      @user = User.find_by_public_param!(params[:id])
       authorize @user, :view_admin_inventory?
       prepare_user_identity
       @can_suspend = policy(@user).suspend?
@@ -24,7 +24,7 @@ module Admin
     end
 
     def content
-      @user = User.find(params[:id])
+      @user = User.find_by_public_param!(params[:id])
       authorize @user, :view_admin_inventory?
       prepare_user_identity
       @content_section = permitted_content_section

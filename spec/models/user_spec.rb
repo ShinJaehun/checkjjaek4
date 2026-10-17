@@ -1,6 +1,42 @@
 require "rails_helper"
 
 RSpec.describe User, type: :model do
+  it "normalizes a handle and keeps it after first assignment" do
+    user = described_class.create!(name: "Handle", email: "handle-model@example.com", password: "password123!", handle: "Reader_42")
+
+    expect(user.reload.handle).to eq("reader_42")
+    expect(user.to_param).to eq("reader_42")
+    expect(user.update(handle: "another_name")).to be(false)
+    expect(user.reload.handle).to eq("reader_42")
+  end
+
+  it "keeps a numeric URL for a legacy account without a handle" do
+    user = described_class.create!(name: "Legacy", email: "legacy-handle@example.com", password: "password123!")
+
+    expect(user.handle).to be_nil
+    expect(user.to_param).to eq(user.id.to_s)
+  end
+
+  it "rejects invalid, reserved, and duplicate handles" do
+    described_class.create!(name: "First", email: "first-handle@example.com", password: "password123!", handle: "reader_one")
+    user = described_class.new(name: "Second", email: "second-handle@example.com", password: "password123!")
+
+    %w[12reader ab invalid-name admin READER_ONE].each do |handle|
+      user.handle = handle
+      expect(user).not_to be_valid
+      expect(user.errors[:handle]).to be_present
+    end
+  end
+
+  it "enforces case-insensitive handle uniqueness in the database" do
+    described_class.create!(name: "First", email: "first-db-handle@example.com", password: "password123!", handle: "reader_one")
+    second = described_class.create!(name: "Second", email: "second-db-handle@example.com", password: "password123!")
+
+    expect {
+      User.transaction(requires_new: true) { second.update_columns(handle: "READER_ONE") }
+    }.to raise_error(ActiveRecord::RecordNotUnique)
+  end
+
   it "is not a global admin by default" do
     user = described_class.new
 

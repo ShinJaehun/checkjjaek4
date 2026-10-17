@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  HANDLE_FORMAT = /\A[a-z][a-z0-9_]{2,29}\z/
+  RESERVED_HANDLES = %w[admin account books groups jjaeks users settings sign_in sign_out sign_up].freeze
   DEFAULT_AVATAR_INDEX_RANGE = (1..32).freeze
   WITHDRAWN_NAME = "탈퇴한 사용자"
   SUSPENSION_REASONS = %w[
@@ -23,6 +25,9 @@ class User < ApplicationRecord
          :validatable
 
   normalizes :email, with: ->(email) { email.strip.downcase }
+  normalizes :handle, with: ->(handle) { handle.downcase.presence }
+
+  attr_accessor :handle_required_for_registration
 
   has_many :bookshelf_entries, dependent: :destroy
   has_many :bookshelves, dependent: :destroy
@@ -97,6 +102,11 @@ class User < ApplicationRecord
            dependent: :destroy
 
   validates :name, presence: true
+  validates :handle, presence: true, if: :handle_required_for_registration
+  validates :handle, format: { with: HANDLE_FORMAT }, allow_nil: true
+  validates :handle, uniqueness: { case_sensitive: false }, allow_nil: true
+  validate :handle_is_available
+  validate :handle_cannot_change, on: :update
   validates :default_avatar_index,
             inclusion: { in: DEFAULT_AVATAR_INDEX_RANGE },
             allow_nil: true
@@ -108,6 +118,15 @@ class User < ApplicationRecord
 
   def withdrawn?
     withdrawn_at.present?
+  end
+
+  def to_param
+    withdrawn? ? id.to_s : handle_in_database.presence || id.to_s
+  end
+
+  def self.find_by_public_param!(param)
+    value = param.to_s
+    value.match?(/\A[0-9]+\z/) ? find(value) : active_accounts.find_by!(handle: value.downcase)
   end
 
   def suspended?
@@ -165,6 +184,16 @@ class User < ApplicationRecord
   end
 
   private
+
+  def handle_is_available
+    errors.add(:handle, :reserved) if handle.present? && RESERVED_HANDLES.include?(handle)
+  end
+
+  def handle_cannot_change
+    return unless will_save_change_to_handle? && handle_in_database.present?
+
+    errors.add(:handle, :immutable)
+  end
 
   def assign_default_avatar_index
     self.default_avatar_index ||= self.class.least_used_default_avatar_index

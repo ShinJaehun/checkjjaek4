@@ -19,7 +19,7 @@ module Admin
     private
 
     def prepare_page
-      @user = User.find(params[:user_id])
+      @user = User.find_by_public_param!(params[:user_id])
       authorize @user, :suspend?
       @has_administered_groups = @user.administered_groups.exists?
       @moderation_action = ModerationAction.new

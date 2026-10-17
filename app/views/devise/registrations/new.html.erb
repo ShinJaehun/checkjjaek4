@@ -15,6 +15,12 @@
     </div>
 
     <div class="space-y-2">
+      <%= form.label :handle, t("auth.form.handle"), class: "text-sm font-medium text-stone-700" %>
+      <%= form.text_field :handle, required: true, minlength: 3, maxlength: 30, autocomplete: "username", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" %>
+      <p class="text-xs text-stone-500"><%= t("user_handle.guidance") %></p>
+    </div>
+
+    <div class="space-y-2">
       <%= form.label :email, t("auth.form.email"), class: "text-sm font-medium text-stone-700" %>
       <%= form.email_field :email, autocomplete: "email", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" %>
     </div>

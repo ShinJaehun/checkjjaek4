@@ -48,6 +48,13 @@ class Group < ApplicationRecord
 
   after_create :create_group_admin_membership!
 
+  def to_param
+    return unless persisted?
+
+    slug = name.to_s.downcase.gsub(/[^\p{L}\p{N}]+/u, "-").gsub(/\A-+|-+\z/, "")
+    slug.present? ? "#{id}-#{slug}" : id.to_s
+  end
+
   def active_member?(user)
     user.present? && group_memberships.active.exists?(user: user)
   end

@@ -18,6 +18,18 @@
         <%= form.text_field :name, required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" %>
       </div>
 
+      <div>
+        <% if @user.handle_in_database.present? %>
+          <p class="mb-2 text-sm font-medium text-stone-800"><%= t("settings.profile.handle") %></p>
+          <p class="text-sm text-stone-700"><%= @user.handle_in_database %></p>
+        <% else %>
+          <%= form.label :handle, t("settings.profile.handle"), class: "mb-2 block text-sm font-medium text-stone-800" %>
+          <%= form.text_field :handle, minlength: 3, maxlength: 30, autocomplete: "username", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" %>
+          <p class="mt-2 text-xs text-stone-500"><%= t("settings.profile.handle_hint") %></p>
+          <p class="mt-2 text-xs text-stone-500"><%= t("user_handle.guidance") %></p>
+        <% end %>
+      </div>
+
       <%= form.submit t("settings.actions.save"), class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
     <% end %>
   </section>

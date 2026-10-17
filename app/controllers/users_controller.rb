@@ -2,7 +2,7 @@ class UsersController < ApplicationController
   include ProfileContext
 
   def show
-    @user = User.find(params[:id])
+    @user = User.find_by_public_param!(params[:id])
     authorize @user, :show?
     prepare_profile_context
     prepare_profile_jjaek_form(policy(@user))

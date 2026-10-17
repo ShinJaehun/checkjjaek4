@@ -1,6 +1,6 @@
 class Users::LibrariesController < ApplicationController
   def show
-    @user = User.find(params[:user_id])
+    @user = User.find_by_public_param!(params[:user_id])
     authorize @user, :show?
     return redirect_to user_path(@user) unless policy(@user).show_library?
 
@@ -9,7 +9,7 @@ class Users::LibrariesController < ApplicationController
   end
 
   def transfer
-    @user = User.find(params[:user_id])
+    @user = User.find_by_public_param!(params[:user_id])
     authorize @user, :show?
     return redirect_to user_path(@user) unless policy(@user).show_library?
     return redirect_to user_library_path(@user) unless current_user == @user

@@ -48,6 +48,36 @@ RSpec.describe "Settings", type: :request do
     )
   end
 
+  it "lets a legacy account set a handle once and keeps invalid input visible" do
+    sign_in user
+
+    patch account_settings_path, params: { user: { name: "Unsaved Reader", handle: "invalid-name" } }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("invalid-name")
+    expect(response.body).to include("Unsaved Reader")
+    expect(user.reload.handle).to be_nil
+    expect(user.name).to eq("Reader")
+
+    patch account_settings_path, params: { user: { name: "Reader", handle: "Reader_One" } }
+    expect(response).to redirect_to(account_settings_path)
+    expect(user.reload.handle).to eq("reader_one")
+
+    patch account_settings_path, params: { user: { handle: "changed_name" } }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(user.reload.handle).to eq("reader_one")
+  end
+
+  it "shows handle guidance only while the account has no handle" do
+    sign_in user
+
+    get account_settings_path
+    expect(response.body).to include(I18n.t("user_handle.guidance"))
+
+    user.update!(handle: "reader_one")
+    get account_settings_path
+    expect(response.body).not_to include(I18n.t("user_handle.guidance"))
+  end
+
   it "saves all three booleans, including unchecked checkboxes, then redirects back" do
     sign_in user
     user.update!(name: "Unchanged Reader")

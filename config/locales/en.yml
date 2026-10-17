@@ -2,6 +2,8 @@ en:
   devise:
     failure:
       withdrawn: "This account has been withdrawn."
+  user_handle:
+    guidance: "Your public handle is used in your profile URL and cannot be changed once set. Please choose carefully."
   account_withdrawals:
     nav: "Withdraw account"
     title: "Withdraw account"
@@ -28,8 +30,10 @@ en:
     description: "Manage your profile, relationships, and account."
     profile:
       title: "Profile"
-      description: "Change the name shown to others."
+      description: "Manage your display name and public address."
       name: "Name"
+      handle: "Public handle"
+      handle_hint: "3–30 lowercase letters, numbers, or underscores; start with a letter."
     interactions:
       title: "Relationships and invitations"
       description: "Changes apply only to new relationships going forward."
@@ -52,8 +56,16 @@ en:
   content_form:
     too_long: "Content must be %{count} characters or fewer."
   activerecord:
+    attributes:
+      user:
+        handle: "Public handle"
     errors:
       models:
+        user:
+          attributes:
+            handle:
+              reserved: "is reserved"
+              immutable: "cannot be changed once set"
         jjaek:
           attributes:
             content:
@@ -96,6 +108,7 @@ en:
     form:
       email: "Email"
       name: "Name"
+      handle: "Public handle"
       password: "Password"
       password_confirmation: "Confirm password"
     notices:

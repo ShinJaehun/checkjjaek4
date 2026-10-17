@@ -44,6 +44,25 @@ RSpec.describe "Account withdrawals", type: :request do
     expect(comment.reload.user).to eq(user)
   end
 
+  it "keeps a withdrawn handle out of public URLs while preserving the numeric anonymous profile" do
+    user.update!(handle: "former_reader")
+    old_path = user_path(user)
+    viewer = User.create!(name: "Viewer", email: "withdrawal-handle-viewer@example.com", password: password)
+    sign_in user
+
+    delete account_withdrawal_path, params: { account_withdrawal: { current_password: password } }
+
+    sign_in viewer
+
+    get "/users/#{user.id}"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("탈퇴한 사용자")
+    expect(response.body).not_to include("former_reader")
+
+    get old_path
+    expect(response).to have_http_status(:not_found)
+  end
+
   it "creates a new user id when registering again with the released identity fields" do
     original_id = user.id
     original_name = user.name
@@ -63,6 +82,7 @@ RSpec.describe "Account withdrawals", type: :request do
       post user_registration_path, params: {
         user: {
           name: original_name,
+          handle: "reader_again",
           email: original_email,
           password: password,
           password_confirmation: password

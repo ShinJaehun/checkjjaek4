@@ -1,12 +1,20 @@
 require "rails_helper"
 
 RSpec.describe "Authentication", type: :request do
+  it "shows the permanent profile address guidance on registration" do
+    get new_user_registration_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(I18n.t("user_handle.guidance"))
+  end
+
   describe "POST /users" do
     it "creates a user and redirects to the home feed" do
       expect {
         post user_registration_path, params: {
           user: {
             name: "New Reader",
+            handle: "new_reader",
             email: "new-reader@example.com",
             password: "password123!",
             password_confirmation: "password123!"
@@ -15,12 +23,25 @@ RSpec.describe "Authentication", type: :request do
       }.to change(User, :count).by(1)
 
       expect(response).to redirect_to(root_path)
+      expect(User.find_by!(email: "new-reader@example.com").handle).to eq("new_reader")
+    end
+
+    it "requires a handle for public registration" do
+      expect {
+        post user_registration_path, params: {
+          user: { name: "No Handle", email: "no-handle@example.com", password: "password123!", password_confirmation: "password123!" }
+        }
+      }.not_to change(User, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("No Handle")
     end
 
     it "does not permit global admin through registration params" do
       post user_registration_path, params: {
         user: {
           name: "Regular Reader",
+          handle: "regular_reader",
           email: "regular-reader@example.com",
           password: "password123!",
           password_confirmation: "password123!",

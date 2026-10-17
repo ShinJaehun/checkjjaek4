@@ -74,7 +74,7 @@ class BookFriendshipsController < ApplicationController
   private
 
   def set_user
-    @user = User.find(params[:user_id])
+    @user = User.find_by_public_param!(params[:user_id])
   end
 
   def redirect_target
