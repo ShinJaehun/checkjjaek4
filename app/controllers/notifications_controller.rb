@@ -9,6 +9,10 @@ class NotificationsController < ApplicationController
   private
 
   def mark_notifications_as_read
-    Notification.where(id: @unread_notification_ids).update_all(read_at: Time.current, updated_at: Time.current)
+    return if @unread_notification_ids.empty?
+
+    unread_notifications = current_user.received_notifications.unread.where(id: @unread_notification_ids)
+    updated_count = unread_notifications.update_all(read_at: Time.current, updated_at: Time.current)
+    Notification.broadcast_badge_to(current_user) if updated_count.positive?
   end
 end

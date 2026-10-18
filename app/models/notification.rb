@@ -48,6 +48,20 @@ class Notification < ApplicationRecord
   scope :unread, -> { where(read_at: nil) }
   scope :recent, -> { order(created_at: :desc) }
 
+  after_create_commit :broadcast_badge
+
+  def self.broadcast_badge_to(recipient)
+    unread_count = recipient.received_notifications.unread.count
+    Turbo::StreamsChannel.broadcast_update_to(
+      recipient, :notifications,
+      target: "notification-badge-container",
+      partial: "shared/notification_badge",
+      locals: { unread_count: }
+    )
+  rescue StandardError => error
+    Rails.logger.error("Notification badge broadcast failed: #{error.class}: #{error.message}")
+  end
+
   def self.notify_book_friendship_requested(book_friendship)
     notify_once(
       recipient: book_friendship.addressee,
@@ -145,5 +159,11 @@ class Notification < ApplicationRecord
     !moderation? && !group_lifecycle? &&
       !group_membership_approved? && !group_membership_request_rejected? &&
       !group_membership_removed?
+  end
+
+  private
+
+  def broadcast_badge
+    self.class.broadcast_badge_to(recipient)
   end
 end

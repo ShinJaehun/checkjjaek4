@@ -79,6 +79,34 @@ RSpec.describe Notification, type: :model do
     expect(described_class.recent).to eq([ newer, older ])
   end
 
+  it "broadcasts the unread badge only to the recipient after creation" do
+    expect(Turbo::StreamsChannel).to receive(:broadcast_update_to).with(
+      recipient, :notifications,
+      target: "notification-badge-container",
+      partial: "shared/notification_badge",
+      locals: { unread_count: 1 }
+    ).once
+
+    described_class.create!(recipient:, actor:, action: :profile_jjaek_created, notifiable: jjaek)
+  end
+
+  it "does not broadcast again for a duplicate notification" do
+    allow(Turbo::StreamsChannel).to receive(:broadcast_update_to)
+
+    2.times { described_class.notify_once(recipient:, actor:, action: :profile_jjaek_created, notifiable: jjaek) }
+
+    expect(described_class.where(recipient:).count).to eq(1)
+    expect(Turbo::StreamsChannel).to have_received(:broadcast_update_to).once
+  end
+
+  it "keeps notification creation successful when the badge broadcast fails" do
+    allow(Turbo::StreamsChannel).to receive(:broadcast_update_to).and_raise("Cable unavailable")
+
+    expect {
+      described_class.create!(recipient:, actor:, action: :profile_jjaek_created, notifiable: jjaek)
+    }.to change(described_class, :count).by(1)
+  end
+
   it "does not notify a profile jjaek recipient when the jjaek is not visible to them" do
     hidden_jjaek = actor.jjaeks.build(
       target_user: recipient,

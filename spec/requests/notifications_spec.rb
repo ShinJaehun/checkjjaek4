@@ -29,6 +29,20 @@ RSpec.describe "Notifications", type: :request do
     expect(badge.text.strip).to eq("1")
   end
 
+  it "subscribes each signed-in user only to their own notification stream" do
+    sign_in recipient
+    get root_path
+    recipient_stream = parse_html.at_css("turbo-cable-stream-source")&.[]("signed-stream-name")
+
+    sign_in actor
+    get root_path
+    actor_stream = parse_html.at_css("turbo-cable-stream-source")&.[]("signed-stream-name")
+
+    expect(recipient_stream).to be_present
+    expect(actor_stream).to be_present
+    expect(actor_stream).not_to eq(recipient_stream)
+  end
+
   it "renders the notification badge container when there are no unread notifications" do
     sign_in recipient
 
@@ -37,6 +51,16 @@ RSpec.describe "Notifications", type: :request do
     container = parse_html.at_css("#notification-badge-container")
     expect(container).not_to be_nil
     expect(container.at_css("#notification-badge")).to be_nil
+  end
+
+  it "disables Turbo prefetch on the notification link" do
+    sign_in recipient
+
+    get root_path
+
+    notification_link = parse_html.at_css("a[href='#{notifications_path}']")
+    expect(notification_link).not_to be_nil
+    expect(notification_link["data-turbo-prefetch"]).to eq("false")
   end
 
   it "shows the current user's notification list" do
@@ -361,6 +385,34 @@ RSpec.describe "Notifications", type: :request do
     get notifications_path
 
     expect(notification.reload.read_at).to be_present
+  end
+
+  it "broadcasts the remaining unread count after reading only the current user's notifications" do
+    jjaek = actor.jjaeks.create!(target_user: recipient, content: "PROFILE_NOTIFICATION", visibility: :book_friends)
+    notification = Notification.notify_profile_jjaek_created(jjaek)
+    other_user = User.create!(name: "Other", email: "other-notifications@example.com", password: "password123!", password_confirmation: "password123!")
+    other_notification = Notification.create!(recipient: other_user, actor:, action: :profile_jjaek_created, notifiable: jjaek)
+    sign_in recipient
+
+    expect(Turbo::StreamsChannel).to receive(:broadcast_update_to).with(
+      recipient, :notifications,
+      target: "notification-badge-container",
+      partial: "shared/notification_badge",
+      locals: { unread_count: 0 }
+    ).once
+
+    get notifications_path
+
+    expect(notification.reload.read_at).to be_present
+    expect(other_notification.reload.read_at).to be_nil
+    expect(parse_html.at_css("#notification-badge-container #notification-badge")).to be_nil
+  end
+
+  it "does not broadcast when opening a list with no unread notifications" do
+    sign_in recipient
+    expect(Turbo::StreamsChannel).not_to receive(:broadcast_update_to)
+
+    get notifications_path
   end
 
   it "renders newly unread notifications clearly before marking them read" do

@@ -5,10 +5,6 @@ module ApplicationHelper
     @unread_notifications_count ||= current_user.received_notifications.unread.count
   end
 
-  def show_notification_badge?
-    unread_notifications_count.positive?
-  end
-
   def group_lifecycle_stages(events)
     events.each_with_object([]) do |event, stages|
       case event.event_type

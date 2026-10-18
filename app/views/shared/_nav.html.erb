@@ -3,6 +3,7 @@
     <%= link_to "checkjjaek4", root_path, class: "text-xl font-semibold tracking-tight text-stone-900" %>
     <nav class="flex items-center gap-3 text-sm text-stone-700">
       <% if user_signed_in? %>
+        <%= turbo_stream_from current_user, :notifications %>
         <%= link_to t("home.nav"), root_path, class: "font-medium" %>
         <%= link_to t("discovery.nav"), discovery_path, class: "font-medium" %>
         <%= link_to t("book_search.nav"), book_search_entry_path(group_id: (@group.id if @group && policy(@group).create_jjaek?)), class: "font-medium" %>
@@ -12,10 +13,10 @@
           <%= link_to t("admin.users.nav"), admin_users_path, class: "font-medium" %>
           <%= link_to t("admin.groups.nav"), admin_groups_path, class: "font-medium" %>
         <% end %>
-        <%= link_to notifications_path, class: "font-medium" do %>
+        <%= link_to notifications_path, class: "font-medium", data: { turbo_prefetch: false } do %>
           <span><%= t("notifications.nav") %></span>
           <span id="notification-badge-container">
-            <%= render "shared/notification_badge" %>
+            <%= render "shared/notification_badge", unread_count: unread_notifications_count %>
           </span>
         <% end %>
         <%= link_to user_path(current_user), class: "flex items-center gap-2 font-medium" do %>

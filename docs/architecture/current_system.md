@@ -374,7 +374,7 @@
 - 가입 신청 취소는 사건 시점 Group admin에게 신청자 이름으로, 내보내기는 대상 회원에게 운영 주체 이름으로 알림. `joined`와 자발적 `left`는 운영 이력만 남김
 - 동아리 이용 제한·해제는 실제 `ModerationAction`의 Group/User attribution과 공개 사유로 대상 회원에게 commit 후 알림. 해제 후 회원 자격은 자동 복구되지 않으며, 삭제된 ban row 없이도 표시·목적지를 결정함
 - 비공개 동아리 초대·수락·거절·취소 Notification은 사건 시점의 invitee 또는 Group admin을 수신자로 확정하고 실제 actor를 표시함. 취소의 내부 event type은 `invitation_revoked`이며, 초대·취소는 `/groups`, 수락·거절은 현재 회원 관리 권한에 따라 회원 관리 또는 안전한 Group 목록으로 연결
-- unread count를 navbar에 표시
+- unread count를 navbar에 서버 렌더링으로 표시하고, Notification 생성 commit 및 실제 읽음 상태 변경 뒤 수신자 전용 ActionCable + Turbo Streams로 배지만 갱신
 - `/notifications` 진입 시 현재 사용자의 unread 알림을 read 처리
 - 책친구 요청 알림은 `/account/relationships#received-book-friend-requests`로 연결
 - 책친구 신청 수락 알림은 원래 신청자에게 전달하고, 수락한 사용자의 이름·avatar와 프로필 링크를 표시함
@@ -575,7 +575,7 @@ Turbo 1차 적용 상태:
 - 댓글은 상세 페이지와 home/profile/book/group inline comments panel에서 panel과 count/action 영역을 갱신한다.
 - 상세 페이지 ReJjaek 목록은 detail panel만 갱신한다.
 - flash는 stable wrapper 기반으로 일부 Turbo 성공 응답에서 갱신된다.
-- notification badge는 stable wrapper foundation만 완료했고 실제 Turbo 갱신은 보류 상태다.
+- notification badge는 stable wrapper를 유지하며 수신자 전용 Turbo Stream으로 갱신한다. 연결이 없을 때는 서버 렌더링 수를 사용한다.
 - relationships hub의 핵심 관계 action은 section 단위로 갱신한다.
 - 책 검색 결과의 `서재에 담기` 성공 케이스는 해당 result card만 갱신한다.
 - bookshelf 관련 Turbo화는 현재 HTML fallback 흐름을 유지하며, DnD 설계 이후 재검토한다.

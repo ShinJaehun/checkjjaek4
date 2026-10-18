@@ -412,7 +412,8 @@ Notification을 생성하지 않는다.
 - 책 서재 추가 알림
 - 책 상태/스티커 변경 알림
 - `BookActivity`
-- 실시간 ActionCable
+- 알림 목록의 실시간 갱신 (배지만 ActionCable + Turbo Streams 허용)
+- polling
 - 이메일 알림
 - 푸시 알림
 
@@ -429,10 +430,18 @@ Notification을 생성하지 않는다.
 `/notifications` 목록에 들어가면 현재 사용자의 unread 알림에
 `read_at`을 기록하여 읽음 처리한다.
 
+알림 링크에는 Turbo prefetch를 사용하지 않는다.
+마우스 호버에 의한 사전 GET 요청으로 알림이 읽음 처리되지 않도록 하며,
+실제 알림 목록에 진입했을 때만 읽음 처리한다.
+
 읽은 알림도 알림 목록에는 계속 남는다.
 읽은 알림은 읽지 않은 알림보다 시각적으로 약하게 표시한다.
 
 navbar badge에는 읽지 않은 알림만 카운트한다.
+알림 생성이 commit된 후와 `/notifications`에서 실제 unread 상태가 변경된 후에는
+수신자 전용 Turbo Stream으로 배지만 갱신한다. 개수는 Notification의 unread 상태에서
+계산하며 0개면 배지를 제거하고 컨테이너는 유지한다. 연결이 끊기거나 새로고침해도
+서버 렌더링으로 정확한 개수를 표시한다.
 
 MVP에서는 자동 만료, 자동 삭제, pruning, archive,
 사용자 직접 삭제 기능을 제공하지 않는다.
@@ -551,9 +560,6 @@ Notification을 생성하지 않는다.
 
 ## 후속 검토 대상 (미확정)
 
-현재 navbar의 unread badge는 페이지 렌더링 시점의 수를 표시한다.
-새 알림 생성·읽음 처리 직후 badge를 Turbo로 갱신하는 방식은 보류한다.
-실제 필요성이 확인되면 갱신 시점과 전달 방식을 별도로 설계한다.
 규모·응답시간·재시도 요구가 확인되면 기존 commit 후 best-effort delivery의
 background 처리 등 전달 방식 개선을 검토한다. 이 후보는 현재 확정된
 알림 action·수신자·읽음 정책을 변경하지 않는다.
