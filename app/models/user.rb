@@ -29,6 +29,10 @@ class User < ApplicationRecord
 
   attr_accessor :handle_required_for_registration
 
+  has_one_attached :avatar, service: (Rails.env.production? ? :oci_avatars : nil)
+  AVATAR_CONTENT_TYPES = %w[image/jpeg image/png image/webp].freeze
+  MAX_AVATAR_SIZE = 5.megabytes
+
   has_many :bookshelf_entries, dependent: :destroy
   has_many :bookshelves, dependent: :destroy
   has_many :books, through: :bookshelf_entries
@@ -110,9 +114,11 @@ class User < ApplicationRecord
   validates :default_avatar_index,
             inclusion: { in: DEFAULT_AVATAR_INDEX_RANGE },
             allow_nil: true
+  validate :avatar_format_and_size
 
   before_validation :assign_default_avatar_index, on: :create
   after_create :create_default_bookshelf!
+  after_update_commit :purge_avatar_after_withdrawal, if: -> { saved_change_to_withdrawn_at? && withdrawn? }
 
   scope :active_accounts, -> { where(withdrawn_at: nil) }
 
@@ -184,6 +190,17 @@ class User < ApplicationRecord
   end
 
   private
+
+  def avatar_format_and_size
+    return unless avatar.attached?
+
+    errors.add(:avatar, :invalid_format) unless AVATAR_CONTENT_TYPES.include?(avatar.blob.content_type)
+    errors.add(:avatar, :too_large) if avatar.blob.byte_size > MAX_AVATAR_SIZE
+  end
+
+  def purge_avatar_after_withdrawal
+    avatar.purge_later if avatar.attached?
+  end
 
   def handle_is_available
     errors.add(:handle, :reserved) if handle.present? && RESERVED_HANDLES.include?(handle)

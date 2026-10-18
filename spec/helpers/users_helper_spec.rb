@@ -59,6 +59,30 @@ RSpec.describe UsersHelper, type: :helper do
     expect(helper.user_avatar_image(user, size: 128, alt: "Reader")).to include("avatars/user_profile_03_128")
   end
 
+  it "uses square 128px and 512px variants for an uploaded avatar" do
+    user = User.create!(name: "Avatar helper", email: "avatar-helper@example.com", password: "password123!")
+    File.open(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")) do |file|
+      user.avatar.attach(io: file, filename: "avatar.png", content_type: "image/png")
+    end
+
+    [ 128, 512 ].each do |size|
+      expect(user.avatar).to receive(:variant).with(resize_to_fill: [ size, size ]).and_call_original
+      image = helper.user_avatar_image(user, size:, alt: user.name)
+      expect(image).to include("/rails/active_storage/representations/")
+      expect(image).not_to include("avatars/user_profile_")
+    end
+  end
+
+  it "keeps the withdrawn placeholder even if an uploaded blob has not yet been purged" do
+    user = User.create!(name: "Former avatar", email: "former-avatar-helper@example.com", password: "password123!")
+    File.open(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")) do |file|
+      user.avatar.attach(io: file, filename: "avatar.png", content_type: "image/png")
+    end
+    user.update_columns(withdrawn_at: Time.current)
+
+    expect(helper.user_avatar_image(user, size: 128, alt: user.name)).to include(helper.asset_path("avatars/withdrawn_user.svg"))
+  end
+
   it "keeps bookshelf tab color mapping keys aligned with Bookshelf color keys" do
     expect(described_class::BOOKSHELF_TAB_CLASSES_BY_COLOR_KEY.keys).to match_array(Bookshelf::COLOR_KEYS)
   end

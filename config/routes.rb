@@ -5,7 +5,10 @@ Rails.application.routes.draw do
   devise_for :users, controllers: { registrations: "users/registrations", sessions: "users/sessions" }
   resource :account_withdrawal, only: %i[show destroy]
   namespace :account do
-    resource :settings, only: %i[show update]
+    resource :settings, only: %i[show update] do
+      patch :avatar, on: :member, action: :update_avatar
+      delete :avatar, on: :member, action: :destroy_avatar
+    end
   end
   get "/account/relationships", to: "relationships#index", as: :account_relationships
   resources :notifications, only: :index

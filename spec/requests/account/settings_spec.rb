@@ -1,7 +1,14 @@
 require "rails_helper"
 
 RSpec.describe "Settings", type: :request do
+  include ActiveJob::TestHelper
+
   let!(:user) { User.create!(name: "Reader", email: "settings-reader@example.com", password: "password123!") }
+
+  def png_upload(index = 1)
+    path = Rails.root.join("app/assets/images/avatars/user_profile_#{index.to_s.rjust(2, '0')}_128.png")
+    Rack::Test::UploadedFile.new(path, "image/png")
+  end
 
   it "requires sign in" do
     get account_settings_path
@@ -10,6 +17,12 @@ RSpec.describe "Settings", type: :request do
     patch account_settings_path, params: { user: { allows_new_followers: "0" } }
     expect(response).to redirect_to(new_user_session_path)
     expect(user.reload.allows_new_followers).to be(true)
+
+    patch avatar_account_settings_path, params: { user: { avatar: png_upload } }
+    expect(response).to redirect_to(new_user_session_path)
+    delete avatar_account_settings_path
+    expect(response).to redirect_to(new_user_session_path)
+    expect(user.reload.avatar).not_to be_attached
   end
 
   it "shows separate profile and interaction forms and an account withdrawal link" do
@@ -119,5 +132,116 @@ RSpec.describe "Settings", type: :request do
 
     get account_withdrawal_path
     expect(response).to have_http_status(:ok)
+  end
+
+  it "uploads an avatar and shows it in settings without changing the existing profile fields" do
+    sign_in user
+
+    patch avatar_account_settings_path, params: { user: { avatar: png_upload } }
+
+    expect(response).to redirect_to(account_settings_path)
+    expect(user.reload.avatar).to be_attached
+    expect(user.name).to eq("Reader")
+
+    get account_settings_path
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#avatar-settings img")["src"]).to include("/rails/active_storage/representations/")
+    expect(page.at_css("#avatar-settings input[type='file'][name='user[avatar]']")).to be_present
+
+    patch account_settings_path, params: { user: { name: "Renamed reader" } }
+    expect(response).to redirect_to(account_settings_path)
+    expect(user.reload).to have_attributes(name: "Renamed reader")
+    expect(user.avatar).to be_attached
+  end
+
+  it "replaces the uploaded image and removes the previous attachment" do
+    sign_in user
+    patch avatar_account_settings_path, params: { user: { avatar: png_upload(1) } }
+    first_blob = user.reload.avatar.blob
+
+    perform_enqueued_jobs(only: ActiveStorage::PurgeJob) do
+      patch avatar_account_settings_path, params: { user: { avatar: png_upload(2) } }
+    end
+
+    expect(response).to redirect_to(account_settings_path)
+    expect(user.reload.avatar.blob_id).not_to eq(first_blob.id)
+    expect(ActiveStorage::Attachment.where(blob_id: first_blob.id)).to be_empty
+    expect(ActiveStorage::Blob.exists?(first_blob.id)).to be(false)
+  end
+
+  it "keeps the existing image when an SVG replacement is rejected" do
+    sign_in user
+    patch avatar_account_settings_path, params: { user: { avatar: png_upload } }
+    original_blob_id = user.reload.avatar.blob_id
+
+    Tempfile.create([ "invalid-avatar", ".svg" ]) do |file|
+      file.binmode
+      file.write('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+      file.flush
+      upload = Rack::Test::UploadedFile.new(file.path, "image/svg+xml")
+      patch avatar_account_settings_path, params: { user: { avatar: upload } }
+    end
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("activerecord.errors.models.user.attributes.avatar.invalid_format"))
+    expect(user.reload.avatar.blob_id).to eq(original_blob_id)
+    expect(Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]).to include("/rails/active_storage/representations/")
+  end
+
+  it "keeps the existing image when storage rejects a replacement upload" do
+    sign_in user
+    patch avatar_account_settings_path, params: { user: { avatar: png_upload(1) } }
+    original_blob_id = user.reload.avatar.blob_id
+    allow_any_instance_of(ActiveStorage::Blob).to receive(:upload_without_unfurling).and_raise("storage unavailable")
+
+    patch avatar_account_settings_path, params: { user: { avatar: png_upload(2) } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("settings.avatar.upload_failed"))
+    expect(user.reload.avatar.blob_id).to eq(original_blob_id)
+    expect(Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]).to include("/rails/active_storage/representations/")
+  end
+
+  it "rejects an oversized image without creating an attachment" do
+    sign_in user
+    Tempfile.create([ "large-avatar", ".png" ]) do |file|
+      file.binmode
+      file.write(File.binread(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")))
+      file.write("x" * (User::MAX_AVATAR_SIZE + 1))
+      file.flush
+      upload = Rack::Test::UploadedFile.new(file.path, "image/png")
+      patch avatar_account_settings_path, params: { user: { avatar: upload } }
+    end
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("activerecord.errors.models.user.attributes.avatar.too_large"))
+    expect(user.reload.avatar).not_to be_attached
+  end
+
+  it "removes an uploaded image and returns to the assigned default avatar" do
+    sign_in user
+    patch avatar_account_settings_path, params: { user: { avatar: png_upload } }
+    blob_id = user.reload.avatar.blob_id
+
+    perform_enqueued_jobs(only: ActiveStorage::PurgeJob) do
+      delete avatar_account_settings_path
+    end
+
+    expect(response).to redirect_to(account_settings_path)
+    expect(user.reload.avatar).not_to be_attached
+    expect(ActiveStorage::Blob.exists?(blob_id)).to be(false)
+    get account_settings_path
+    expect(Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]).to include("user_profile_#{user.default_avatar_index.to_s.rjust(2, '0')}_128")
+  end
+
+  it "changes only the signed-in user's avatar even if another id is submitted" do
+    other = User.create!(name: "Other", email: "other-avatar-settings@example.com", password: "password123!")
+    sign_in user
+
+    patch avatar_account_settings_path, params: { user: { id: other.id, avatar: png_upload } }
+
+    expect(response).to redirect_to(account_settings_path)
+    expect(user.reload.avatar).to be_attached
+    expect(other.reload.avatar).not_to be_attached
   end
 end

@@ -6,6 +6,15 @@ local:
   service: Disk
   root: <%= Rails.root.join("storage") %>
 
+oci_avatars:
+  service: S3
+  access_key_id: <%= ENV.fetch("OCI_AVATAR_ACCESS_KEY_ID") if Rails.env.production? %>
+  secret_access_key: <%= ENV.fetch("OCI_AVATAR_SECRET_ACCESS_KEY") if Rails.env.production? %>
+  region: <%= ENV.fetch("OCI_AVATAR_REGION") if Rails.env.production? %>
+  bucket: <%= ENV.fetch("OCI_AVATAR_BUCKET") if Rails.env.production? %>
+  endpoint: <%= ENV.fetch("OCI_AVATAR_ENDPOINT") if Rails.env.production? %>
+  force_path_style: true
+
 # Use bin/rails credentials:edit to set the AWS secrets (as aws:access_key_id|secret_access_key)
 # amazon:
 #   service: S3

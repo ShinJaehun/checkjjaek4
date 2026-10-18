@@ -167,7 +167,14 @@ module UsersHelper
   end
 
   def user_avatar_image(user, size:, **options)
-    image_tag user_avatar_path(user, size:), **options
+    size = avatar_size(size)
+    source = if user&.withdrawn? || !user&.avatar&.attached?
+      user_avatar_path(user, size:)
+    else
+      user.avatar.variant(resize_to_fill: [ size, size ])
+    end
+
+    image_tag source, **options
   end
 
   def user_avatar_link(user, image_class:, text_class:)

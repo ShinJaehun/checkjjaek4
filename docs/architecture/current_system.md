@@ -47,7 +47,8 @@
 - User·Group 공개 URL의 handle 및 ID-이름 주소 정책은 `docs/specs/public_urls.md`를 따른다.
 - `Group`: 일반 사용자 생성은 global admin 승인 기반, global admin 직접 생성은 즉시 active인 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active 상태와 별도 활동 moderation 상태
-- `/account/settings`에서 자기 이름과 새 책친구 신청·비공개 동아리 초대·소식받기 허용을 관리하고, 기존 계정 탈퇴 확인 화면으로 이동함. 상호작용 설정은 기존 관계에 소급 적용하지 않음 (`docs/specs/interaction_preferences.md`)
+- `/account/settings`에서 자기 이름, 프로필 이미지 업로드·교체·삭제와 새 책친구 신청·비공개 동아리 초대·소식받기 허용을 관리하고, 기존 계정 탈퇴 확인 화면으로 이동함. 상호작용 설정은 기존 관계에 소급 적용하지 않음 (`docs/specs/interaction_preferences.md`)
+- 업로드 아바타는 서버에서 JPEG·PNG·WebP와 원본 5MB 제한을 검증하고 128px·512px 정사각형 variant로 표시함. 기본 32종 아바타는 업로드가 없을 때 유지됨. 개발·테스트는 Disk, 운영은 비공개 OCI Object Storage 아바타 전용 S3 호환 서비스를 사용함
 - `/users/:id`는 사용자 프로필 surface로 유지하고, `/account/...`는 자기 계정 관리용 self-only 경로로 확장할 수 있으며 현재는 settings만 구현됨
 
 ---
@@ -347,6 +348,7 @@
 ### 5-2. 계정 탈퇴
 
 - 전용 확인 화면에서 현재 비밀번호를 재확인하고 하나의 transaction으로 처리함
+- 업로드한 아바타는 탈퇴 transaction commit 뒤 정리하며, rollback이면 보존함. 탈퇴 사용자 이미지는 기존 placeholder로 표시함
 - User row는 삭제하지 않고 `withdrawn_at`, 익명 이름과 비전송 placeholder 이메일로 갱신해 Jjaek·Comment 작성자 연결을 보존함
 - Follow, BookFriendship, Like, Notification, 일반 GroupMembership과 개인 서재·BookActivity를 정리함
 - active Group 관리자는 이전 또는 운영 종료 전 탈퇴할 수 없음

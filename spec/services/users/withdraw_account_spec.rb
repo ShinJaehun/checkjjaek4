@@ -1,9 +1,58 @@
 require "rails_helper"
 
 RSpec.describe Users::WithdrawAccount do
+  include ActiveJob::TestHelper
+
   let(:password) { "password123!" }
   let(:user) { User.create!(name: "Leaving", email: "leaving@example.com", password: password, password_confirmation: password) }
   let(:other) { User.create!(name: "Other", email: "withdrawal-other@example.com", password: password, password_confirmation: password) }
+
+  def attach_avatar(account)
+    File.open(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")) do |file|
+      account.avatar.attach(io: file, filename: "avatar.png", content_type: "image/png")
+    end
+  end
+
+  it "purges the uploaded avatar after successful withdrawal" do
+    attach_avatar(user)
+    blob_id = user.avatar.blob.id
+
+    perform_enqueued_jobs(only: ActiveStorage::PurgeJob) do
+      described_class.new(user, current_password: password).call!
+    end
+
+    expect(user.reload).to be_withdrawn
+    expect(user.avatar).not_to be_attached
+    expect(ActiveStorage::Blob.exists?(blob_id)).to be(false)
+  end
+
+  it "preserves the avatar when withdrawal fails and rolls back" do
+    attach_avatar(user)
+    blob_id = user.avatar.blob.id
+    allow_any_instance_of(described_class).to receive(:clean_personal_reading_data!).and_raise("cleanup failed")
+
+    expect {
+      described_class.new(user, current_password: password).call!
+    }.to raise_error("cleanup failed")
+
+    expect(user.reload).not_to be_withdrawn
+    expect(user.avatar.blob.id).to eq(blob_id)
+    expect(ActiveStorage::Blob.exists?(blob_id)).to be(true)
+  end
+
+  it "does not purge the avatar before an outer transaction commits" do
+    attach_avatar(user)
+    blob_id = user.avatar.blob.id
+
+    User.transaction do
+      described_class.new(user, current_password: password).call!
+      raise ActiveRecord::Rollback
+    end
+
+    expect(user.reload).not_to be_withdrawn
+    expect(user.avatar.blob.id).to eq(blob_id)
+    expect(ActiveStorage::Blob.exists?(blob_id)).to be(true)
+  end
 
   it "anonymizes the user, preserves social content, and removes relationships and reading operations data" do
     original_email = user.email

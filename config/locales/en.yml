@@ -36,6 +36,17 @@ en:
       name: "Name"
       handle: "Public handle"
       handle_hint: "3–30 lowercase letters, numbers, or underscores; start with a letter."
+    avatar:
+      title: "Profile image"
+      description: "Upload a JPEG, PNG, or WebP image up to 5MB. Removing it restores your default avatar."
+      upload: "Image file"
+      save: "Save image"
+      remove: "Remove uploaded image"
+      updated: "Profile image saved."
+      removed: "Profile image removed."
+      upload_failed: "The image could not be saved. Please try again."
+      preview_pending: "Preview · Not saved yet"
+      preview_invalid: "Choose a JPEG, PNG, or WebP file no larger than 5MB."
     interactions:
       title: "Relationships and invitations"
       description: "Changes apply only to new relationships going forward."
@@ -61,10 +72,14 @@ en:
     attributes:
       user:
         handle: "Public handle"
+        avatar: "Profile image"
     errors:
       models:
         user:
           attributes:
+            avatar:
+              invalid_format: "must be a JPEG, PNG, or WebP file"
+              too_large: "must be 5MB or smaller"
             handle:
               reserved: "is reserved"
               immutable: "cannot be changed once set"

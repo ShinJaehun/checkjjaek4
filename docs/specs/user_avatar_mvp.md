@@ -3,7 +3,7 @@
 ## 상태
 
 이 문서는 checkjjaek4의 사용자 avatar 기능을 위한 활성 하위 spec이다.
-기본 32종 avatar의 배정·표시는 구현 완료되었고, 사용자 사진 업로드는 미구현 후속 작업이다.
+기본 32종 avatar의 배정·표시와 A03 사용자 이미지 업로드를 다룬다.
 
 이 spec은 아래 문서를 전제로 한다.
 
@@ -21,7 +21,7 @@ checkjjaek4에서 사용자를 시각적으로 구분할 수 있도록 기본 av
 - 모든 사용자에게 기본 avatar를 제공한다.
 - 사용자가 직접 이미지를 업로드하지 않아도 프로필, 짹, 댓글 등에서 일관된 사용자 이미지를 보여준다.
 - 기존 `suksuk_praise`의 `user_profile_XX_128.png`, `user_profile_XX_512.png` asset을 재사용한다.
-- 나중에 Active Storage 기반 custom avatar로 확장할 수 있는 구조를 먼저 마련한다.
+- Active Storage 기반 사용자 이미지 업로드와 기본 avatar fallback을 제공한다.
 - bulk 사용자 생성 시 같은 avatar가 지나치게 몰리지 않도록 한다.
 
 ---
@@ -36,7 +36,7 @@ checkjjaek4에서 사용자를 시각적으로 구분할 수 있도록 기본 av
 - 신규 사용자 생성 시 기본 avatar index 자동 배정
 - avatar helper 추가
 - profile header, Jjaek 카드, 댓글 등 주요 사용자 표시 위치에 avatar 표시
-- 나중에 Active Storage custom avatar를 붙일 수 있도록 helper 구조 준비
+- Active Storage 사용자 이미지 업로드·교체·삭제와 128px·512px variant 표시
 
 ---
 
@@ -44,8 +44,6 @@ checkjjaek4에서 사용자를 시각적으로 구분할 수 있도록 기본 av
 
 이번 MVP에서는 아래를 구현하지 않는다.
 
-- 사용자가 직접 avatar 이미지를 업로드하는 UI
-- Active Storage custom avatar 업로드/삭제 화면
 - 이미지 crop/edit UI
 - 관리자용 avatar 변경 화면
 - 사용자가 기본 avatar를 직접 고르는 화면
@@ -105,11 +103,28 @@ avatars/user_profile_01_512.png
 
 ---
 
+## A03 Delta Specs — 사용자 이미지 업로드 `(확정)`
+
+### ADDED
+
+- `User`는 Active Storage의 아바타 한 개를 가진다. 새 이미지는 이전 이미지를 교체하고, 삭제하면 기존 기본 avatar index의 이미지로 돌아간다.
+- 서버는 JPEG, PNG, WebP만 허용하고 원본 파일 크기를 5MB 이하로 검증한다. SVG와 나머지 형식은 거부하며, 거부된 업로드는 저장된 아바타를 변경하지 않는다.
+- 본인만 계정 설정에서 미리보기·업로드·교체·삭제를 할 수 있다. 기존 계정 설정 저장 흐름은 유지한다.
+- 탈퇴 transaction이 성공한 뒤 업로드 아바타를 제거한다. 실패나 rollback이면 기존 이미지를 보존한다. 탈퇴 사용자의 표시에는 기존 placeholder를 사용한다.
+- 개발·테스트는 Disk, 운영은 비공개 OCI Object Storage 아바타 전용 버킷을 Active Storage S3 호환 서비스로 사용한다. 접속 정보는 환경변수로 주입한다.
+
+### MODIFIED
+
+- avatar helper는 업로드 이미지가 있으면 128px·512px variant를 우선 표시하고, 없으면 32종 기본 asset을 표시한다. 기존 호출 방식은 유지한다.
+
+### REMOVED / 범위 제외
+
+- crop/edit UI, 관리자 업로드, 기본 avatar 선택 UI, 게시물 사진 업로드는 이번 범위가 아니다.
+- D09 사진 공유는 후속 과제다. 사진은 별도 Object Storage 버킷을 사용할 예정이며 모델·업로드·서비스 경로는 이번에 만들지 않는다.
+
 ## Active Storage 확장 정책
 
-MVP에서는 custom avatar 업로드 UI를 만들지 않는다.
-
-다만 나중에 확장할 수 있도록 `User` 모델에는 아래 구조를 둘 수 있다.
+`User` 모델에는 아래 구조를 둔다.
 
 ```ruby
 has_one_attached :avatar
@@ -120,7 +135,7 @@ avatar 표시 helper는 아래 우선순위를 따른다.
 1. 사용자가 직접 업로드한 `avatar`가 있으면 Active Storage variant를 사용한다.
 2. 업로드 avatar가 없으면 `default_avatar_index` 기반 asset avatar를 사용한다.
 
-MVP에서는 2번 기본 avatar 표시를 우선 구현한다. 1번 custom avatar 업로드 기능은 후속 작업으로 둔다.
+업로드 이미지는 128px·512px variant로 표시한다. 원본은 5MB 이하로 제한한다.
 
 ---
 
@@ -141,7 +156,7 @@ user_avatar_image(user, size:, **options)
 - 값이 없거나 범위 밖이면 1번 avatar를 fallback으로 사용한다.
 - `size: 128`이면 `user_profile_XX_128.png`를 사용한다.
 - `size: 512`이면 `user_profile_XX_512.png`를 사용한다.
-- 향후 `user.avatar.attached?`가 true이면 Active Storage variant를 우선 사용할 수 있다.
+- `user.avatar.attached?`가 true이면 Active Storage variant를 우선 사용한다. 탈퇴 사용자는 항상 placeholder를 사용한다.
 
 ---
 
@@ -212,6 +227,7 @@ MVP에서는 migration 또는 별도 task를 통해 기존 사용자에게 값�
 - `user_avatar_path(user, size: 512)`은 `avatars/user_profile_XX_512.png`를 반환한다.
 - index가 nil이거나 범위 밖이면 fallback index를 사용한다.
 - `user_avatar_image`는 image tag를 반환한다.
+- 업로드 이미지가 있으면 요청한 크기의 variant를 반환하고, 없으면 기본 asset을 반환한다.
 
 ### Request / view
 
@@ -225,12 +241,10 @@ MVP에서는 migration 또는 별도 task를 통해 기존 사용자에게 값�
 
 아래는 구현된 기본 avatar MVP 이후의 미구현 작업이다.
 
-- 사용자가 직접 custom avatar를 업로드하는 UI
-- Active Storage avatar variant 최적화
-- avatar 변경 화면
 - 기본 avatar 선택 화면
 - 관리자 또는 교사용 bulk 사용자 생성 시 avatar 중복 최소화 개선
 - 알림 / 관계 화면 avatar 적용 확대
+- D09 게시물 사진 공유와 별도 Object Storage 버킷
 
 ---
 
@@ -240,8 +254,8 @@ MVP에서는 migration 또는 별도 task를 통해 기존 사용자에게 값�
 
 - `users.default_avatar_index`로 기본 avatar를 고정한다.
 - 기본 이미지는 `app/assets/images/avatars/user_profile_XX_128.png`, `user_profile_XX_512.png`를 사용한다.
-- helper는 기본 asset avatar와 향후 Active Storage custom avatar를 모두 고려해 설계한다.
+- helper는 기본 asset avatar와 Active Storage 업로드 avatar를 같은 호출 방식으로 표시한다.
 - 신규 사용자 생성 시에는 `default_avatar_index`를 자동 배정한다.
 - 단순 완전 랜덤보다는 현재 사용 빈도가 가장 낮은 avatar index 후보 중에서 랜덤 선택하는 방식을 우선 검토한다.
 
-`checkjjaek3`는 Active Storage custom avatar 구조를 참고하는 정도로만 본다. MVP에서는 기본 asset avatar 표시를 먼저 구현하고, custom avatar 업로드 UI는 후속 작업으로 둔다.
+`checkjjaek3`는 Active Storage custom avatar 구조를 참고하는 정도로만 본다. 기본 asset 배정은 유지하면서 A03 업로드 기능을 추가한다.

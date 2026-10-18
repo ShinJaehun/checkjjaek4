@@ -96,6 +96,30 @@ RSpec.describe User, type: :model do
     expect(user).not_to be_valid
   end
 
+  it "accepts a PNG avatar and rejects SVG without replacing the saved image" do
+    user = User.create!(name: "Avatar reader", email: "avatar-model@example.com", password: "password123!")
+    File.open(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")) do |file|
+      user.avatar.attach(io: file, filename: "avatar.png", content_type: "image/png")
+    end
+    original_blob_id = user.avatar.blob.id
+
+    user.avatar = { io: StringIO.new('<svg xmlns="http://www.w3.org/2000/svg"></svg>'), filename: "avatar.svg", content_type: "image/svg+xml" }
+
+    expect(user).not_to be_valid
+    expect(user.errors[:avatar]).to be_present
+    expect(User.find(user.id).avatar.blob.id).to eq(original_blob_id)
+  end
+
+  it "rejects an avatar larger than 5MB" do
+    user = User.create!(name: "Large avatar reader", email: "large-avatar-model@example.com", password: "password123!")
+    png_header = File.binread(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"))
+    user.avatar = { io: StringIO.new(png_header + "x" * (User::MAX_AVATAR_SIZE + 1)), filename: "large.png", content_type: "image/png" }
+
+    expect(user).not_to be_valid
+    expect(user.errors[:avatar]).to be_present
+    expect(User.find(user.id).avatar).not_to be_attached
+  end
+
   it "chooses from the least used default avatar indexes" do
     described_class.create!(
       name: "Used Avatar One",
