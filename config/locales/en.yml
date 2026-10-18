@@ -1,4 +1,6 @@
 en:
+  navigation:
+    menu: "Menu"
   devise:
     failure:
       withdrawn: "This account has been withdrawn."
