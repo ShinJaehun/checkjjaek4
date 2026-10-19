@@ -1,0 +1,16 @@
+<% if item.is_a?(BookActivity) %>
+  <article id="<%= dom_id(item, :book_friend_activity) %>" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-stone-700 shadow-sm" data-book-friend-activity>
+    <div class="flex items-start gap-3">
+      <%= link_to user_path(item.user) do %>
+        <%= user_avatar_image(item.user, size: 128, alt: item.user.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
+      <% end %>
+      <div class="min-w-0 flex-1">
+        <p class="leading-6"><%= book_activity_card_message(item, context: :book, sticker_definitions: @book_friend_sticker_definitions) %></p>
+        <p class="mt-1 text-xs text-stone-500"><%= l(item.created_at, format: :short) %></p>
+      </div>
+    </div>
+  </article>
+<% else %>
+  <%= render "jjaeks/jjaek", jjaek: item, book_friend_preview: true,
+             inline_comments_context: :book_friend, inline_comments_book: @book %>
+<% end %>

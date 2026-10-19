@@ -10,7 +10,7 @@
     <% end %>
   </div>
 
-  <% if quoted_jjaek.book.present? %>
+  <% if quoted_jjaek.book.present? && !local_assigns.fetch(:hide_book_details, false) %>
     <div class="mt-3 flex flex-col items-start gap-3 sm:flex-row">
       <div class="shrink-0 self-start">
         <%= render "books/thumbnail",

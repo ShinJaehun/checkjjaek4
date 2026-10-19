@@ -161,6 +161,10 @@ module JjaeksHelper
       raise ArgumentError, "book is required for book comments panel context" if book.blank?
 
       "comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"
+    when :book_friend
+      raise ArgumentError, "book is required for book friend comments panel context" if book.blank?
+
+      "comments_panel_book_friend_#{book.id}_jjaek_#{jjaek.id}"
     when :group
       return dom_id(jjaek, :comments_panel) if jjaek.group_id.blank?
 

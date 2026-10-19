@@ -1,7 +1,7 @@
 class CommentsController < ApplicationController
   include CommentModerationHistory
 
-  COMMENTS_CONTEXTS = %w[detail home profile book group].freeze
+  COMMENTS_CONTEXTS = %w[detail home profile book book_friend group].freeze
 
   before_action :set_readable_jjaek, except: :destroy
   before_action :set_destroy_jjaek, only: :destroy
@@ -161,6 +161,9 @@ class CommentsController < ApplicationController
       set_profile_comments_context
     when "book"
       set_book_comments_context
+    when "book_friend"
+      set_book_comments_context
+      @comments_context = :book_friend if @comments_context == :book
     when "group"
       set_group_comments_context
     else
@@ -213,7 +216,7 @@ class CommentsController < ApplicationController
   end
 
   def inline_comments_context?
-    %i[home profile book group].include?(@comments_context)
+    %i[home profile book book_friend group].include?(@comments_context)
   end
 
   def comment_params

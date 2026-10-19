@@ -17,12 +17,12 @@ RSpec.describe "Homes", type: :request do
 
       get root_path
 
-      expect(page_text).to include("Viewer님이 『내 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Viewer님이 책을 서재에 담았습니다.")
       expect(page_text).not_to include("서재에 담은 책")
     end
 
     it "shows shelf addition card links and thumbnail fallback" do
-      BookActivity.create!(
+      activity = BookActivity.create!(
         user: viewer,
         book: viewer_book,
         bookshelf_entry: viewer.bookshelf_entries.find_or_create_by!(book: viewer_book),
@@ -35,7 +35,10 @@ RSpec.describe "Homes", type: :request do
       expect(response.body).to include(user_path(viewer))
       expect(response.body).to include(book_path(viewer_book))
       expect(response.body).to include(I18n.t("book_activities.card.no_thumbnail"))
-      expect(page_text).to include("Viewer님이 『#{viewer_book.title}』를 서재에 담았습니다.")
+      card = Nokogiri::HTML(response.body).at_css("#book_activity_#{activity.id}")
+      expect(card.at_css("p.leading-6").text).to eq("Viewer님이 책을 서재에 담았습니다.")
+      expect(card.text).to include(viewer_book.title, viewer_book.authors_text)
+      expect(card.css("[data-reading-status], [data-reading-sticker]")).to be_empty
     end
 
     it "hides past additions from both feeds after a bookshelf becomes private" do
@@ -44,24 +47,24 @@ RSpec.describe "Homes", type: :request do
       shelf = book_friend.bookshelves.create!(name: "Feed shelf", visibility: :public)
       entry = book_friend.bookshelf_entries.create!(book: friend_book, bookshelf: shelf)
       entry.book_activities.create!(user: book_friend, book: friend_book, action: :added_to_shelf)
-      entry.book_activities.create!(user: book_friend, book: friend_book, action: :bookshelf_entry_updated, metadata: { to_status: "finished" })
+      update_activity = entry.book_activities.create!(user: book_friend, book: friend_book, action: :bookshelf_entry_updated, metadata: { to_status: "finished" })
       sign_in viewer
 
       [ root_path, user_path(book_friend) ].each do |path|
         get path
-        expect(page_text).to include("Book Friend님이 『#{friend_book.title}』를 서재에 담았습니다.")
-        expect(page_text).not_to include("Book Friend님이 『#{friend_book.title}』의 상태를 읽었어요로 바꿨습니다.")
+        expect(page_text).to include("Book Friend님이 책을 서재에 담았습니다.")
+        expect(response.body).not_to include(%(id="book_activity_#{update_activity.id}"))
       end
 
       shelf.update!(visibility: :private)
       [ root_path, user_path(book_friend) ].each do |path|
         get path
-        expect(page_text).not_to include("Book Friend님이 『#{friend_book.title}』를 서재에 담았습니다.")
+        expect(page_text).not_to include("Book Friend님이 책을 서재에 담았습니다.")
       end
 
       sign_in book_friend
       get root_path
-      expect(page_text).to include("Book Friend님이 『#{friend_book.title}』를 서재에 담았습니다.")
+      expect(page_text).to include("Book Friend님이 책을 서재에 담았습니다.")
     end
 
     it "links the shelf entry point to the current user's library" do
@@ -82,12 +85,12 @@ RSpec.describe "Homes", type: :request do
       get root_path
 
       expect(response.body).not_to include("FRIEND_ONLY_PUBLIC_JJAEK", "FRIEND_ONLY_BOOK_JJAEK")
-      expect(page_text).not_to include("Book Friend님이 『책친구 활동 책』를 서재에 담았습니다.")
+      expect(page_text).not_to include("Book Friend님이 책을 서재에 담았습니다.")
 
       get user_path(book_friend)
 
       expect(response.body).to include("FRIEND_ONLY_PUBLIC_JJAEK", "FRIEND_ONLY_BOOK_JJAEK")
-      expect(page_text).to include("Book Friend님이 『책친구 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Book Friend님이 책을 서재에 담았습니다.")
     end
 
     it "shows only public Jjaeks from a follow-only user in the home feed" do
@@ -114,7 +117,7 @@ RSpec.describe "Homes", type: :request do
       get root_path
 
       expect(response.body).to include("FOLLOWED_FRIEND_PUBLIC_JJAEK", "FOLLOWED_FRIEND_BOOK_JJAEK")
-      expect(page_text).to include("Book Friend님이 『책친구 활동 책』를 서재에 담았습니다.")
+      expect(page_text).to include("Book Friend님이 책을 서재에 담았습니다.")
     end
 
     it "does not show a stranger's Jjaeks or BookActivity in the home feed" do
@@ -188,7 +191,7 @@ RSpec.describe "Homes", type: :request do
       get root_path
 
       new_index = page_text.index(new_jjaek.content)
-      activity_index = page_text.index("Viewer님이 『#{middle_activity.book.title}』를 서재에 담았습니다.")
+      activity_index = page_text.index("Viewer님이 책을 서재에 담았습니다.")
       old_index = page_text.index(old_jjaek.content)
 
       expect(new_index).to be < activity_index

@@ -1,4 +1,4 @@
-<% if jjaek.book.present? %>
+<% if jjaek.book.present? && !local_assigns.fetch(:hide_book_details, false) %>
   <div class="mt-4 flex flex-col items-start gap-4 sm:flex-row">
     <div class="shrink-0 self-start">
       <%= render "books/thumbnail",
@@ -39,7 +39,8 @@
   <% else %>
     <% if policy(jjaek).view_quoted_source? %>
       <div class="mt-4">
-        <%= render "jjaeks/quoted_jjaek", quoted_jjaek: jjaek.quoted_jjaek %>
+        <%= render "jjaeks/quoted_jjaek", quoted_jjaek: jjaek.quoted_jjaek,
+                   hide_book_details: local_assigns.fetch(:hide_book_details, false) && jjaek.quoted_jjaek.book_id == jjaek.book_id %>
       </div>
     <% elsif jjaek.quoted_source_deleted? %>
       <div class="mt-4">

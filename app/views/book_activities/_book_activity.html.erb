@@ -1,19 +1,20 @@
-<article id="<%= dom_id(book_activity) %>" class="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-stone-700 shadow-sm">
-  <div class="flex gap-4">
-    <%= render "books/thumbnail",
-               title: book_activity.book.title,
-               thumbnail: book_activity.book.thumbnail,
-               url: book_path(book_activity.book),
-               size: :large %>
-
+<article id="<%= dom_id(book_activity) %>" class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-stone-700 shadow-sm">
+  <div class="flex items-start gap-3">
+    <%= link_to user_path(book_activity.user) do %>
+      <%= user_avatar_image(book_activity.user, size: 128, alt: book_activity.user.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
+    <% end %>
     <div class="min-w-0 flex-1">
-      <h3 class="text-lg font-semibold leading-6 text-stone-900"><%= link_to book_activity.book.title, book_path(book_activity.book) %></h3>
-      <p class="mb-4 mt-1 text-sm text-stone-500"><%= book_activity.book.authors_text.presence || "-" %></p>
-      <div class="flex items-start gap-3">
-        <%= user_avatar_image(book_activity.user, size: 128, alt: book_activity.user.name, class: "h-9 w-9 shrink-0 rounded-full object-cover") %>
-        <p class="leading-6"><%= book_activity_card_message(book_activity) %></p>
-      </div>
-      <p class="mt-2 text-xs text-stone-400"><%= l(book_activity.created_at, format: :short) %></p>
+      <p class="leading-6"><%= book_activity_card_message(book_activity) %></p>
+      <p class="mt-1 text-xs text-stone-500"><%= l(book_activity.created_at, format: :short) %></p>
+    </div>
+  </div>
+
+  <div class="mt-4 flex items-start gap-4">
+    <%= render "books/thumbnail", title: book_activity.book.title, thumbnail: book_activity.book.thumbnail,
+               url: book_path(book_activity.book), size: :small %>
+    <div class="min-w-0 flex-1">
+      <%= link_to book_activity.book.title, book_path(book_activity.book), class: "text-base font-semibold leading-6 text-stone-900 hover:text-stone-700" %>
+      <p class="mt-1 text-xs leading-5 text-stone-500"><%= book_activity.book.authors_text.presence || "-" %></p>
     </div>
   </div>
 </article>

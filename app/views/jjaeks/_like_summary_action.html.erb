@@ -1,4 +1,4 @@
-<div id="<%= dom_id(jjaek, :like_action) %>" class="contents">
+<div id="<%= dom_id(jjaek, local_assigns[:book_friend_preview] ? :book_friend_like_action : :like_action) %>" class="contents">
   <span><%= t("jjaeks.meta.likes", count: jjaek.likes_count) %></span>
   <%= render "jjaeks/like_action", jjaek: jjaek %>
 </div>

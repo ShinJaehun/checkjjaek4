@@ -975,6 +975,16 @@ ko:
       description: "이 짹을 다시짹한 글을 모아 봅니다."
       empty: "아직 다시짹이 없습니다."
   book_activities:
+    card_copy:
+      added_to_shelf:
+        feed: "님이 책을 서재에 담았습니다."
+        book: "님이 이 책을 서재에 담았습니다."
+      change_prefix:
+        feed: "님이 책의 "
+        book: "님이 이 책의 "
+      changed:
+        feed: "님이 책의 독서 기록을 변경했습니다."
+        book: "님이 이 책의 독서 기록을 변경했습니다."
     badges:
       status_cleared: "상태 비움"
     card:
@@ -1130,6 +1140,11 @@ ko:
       read_only_description: "이 책을 서재에 담아야 상태를 저장하고 책짹을 쓸 수 있습니다."
       requote_source: "%{name}님의 짹을 다시짹 중"
       timeline_title: "이 책의 책짹"
+      move_bookshelf: "책장 이동"
+      edit_reading_record: "독서 기록 편집"
+      save_reading_record: "독서 기록 저장"
+      write_book_jjaek: "책짹 작성"
+      friend_activity_title: "책 친구 활동"
   jjaeks:
     contexts:
       group_badge: "동아리"

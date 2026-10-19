@@ -23,7 +23,7 @@ elsif group_restore_available
   { path: new_jjaek_comment_group_restoration_path(jjaek, comment, moderation_navigation_params), label: t("admin.jjaeks.actions.restore") }
 end %>
 
-<article id="<%= dom_id(comment) %>" class="rounded-2xl bg-stone-50 px-4 py-3" data-controller="comment-edit">
+<article id="<%= comments_context.to_sym == :book_friend ? dom_id(comment, :book_friend) : dom_id(comment) %>" class="rounded-2xl bg-stone-50 px-4 py-3" data-controller="comment-edit">
   <div class="flex items-center justify-between gap-3">
     <div class="flex min-w-0 items-center gap-2">
       <%= user_avatar_image(comment.user, size: 128, alt: comment.user.name, class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
@@ -76,8 +76,8 @@ end %>
     <div class="mt-4">
       <%= render "jjaeks/moderation_history",
                 moderation_actions: moderation_actions,
-                section_id: dom_id(comment, :moderation_history),
-                list_id: dom_id(comment, :moderation_history_list) %>
+                section_id: dom_id(comment, comments_context.to_sym == :book_friend ? :book_friend_moderation_history : :moderation_history),
+                list_id: dom_id(comment, comments_context.to_sym == :book_friend ? :book_friend_moderation_history_list : :moderation_history_list) %>
     </div>
   <% end %>
 </article>

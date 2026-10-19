@@ -170,6 +170,23 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(%(value="#{book.id}"))
   end
 
+  it "uses a separate book friend comments panel and validates its book" do
+    sign_in user
+
+    get jjaek_comments_path(jjaek, comments_context: "book_friend", book_id: book.id),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.body).to include(%(target="comments_panel_book_friend_#{book.id}_jjaek_#{jjaek.id}"))
+    expect(response.body).to include(%(value="book_friend"))
+
+    other_book = Book.create!(title: "다른 책", authors_text: "저자")
+    get jjaek_comments_path(jjaek, comments_context: "book_friend", book_id: other_book.id),
+        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.body).to include(%(target="comments_panel_jjaek_#{jjaek.id}"))
+    expect(response.body).not_to include("comments_panel_book_friend_#{other_book.id}_jjaek_#{jjaek.id}")
+  end
+
   it "replaces the book comments panel on turbo stream comment creation with book context" do
     sign_in user
 

@@ -326,16 +326,29 @@ RSpec.describe "BookshelfEntries", type: :request do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
 
-    patch bookshelf_entry_path(entry), params: {
-      bookshelf_entry: {
-        status: :finished,
-        sticker_definition_ids: [ sticker.id ]
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: {
+          status: :finished,
+          sticker_definition_ids: [ sticker.id ]
+        }
       }
-    }
+    }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
     expect(entry.reload.status).to eq("finished")
     expect(entry.sticker_definitions).to include(sticker)
+    expect(BookActivity.last.metadata).to include(
+      "from_status" => "reading",
+      "to_status" => "finished",
+      "added_sticker_definition_ids" => [ sticker.id ]
+    )
+
+    activity = BookActivity.last
+    [ root_path, user_path(user) ].each do |path|
+      get path
+      expect(response.body).not_to include(%(id="book_activity_#{activity.id}"))
+    end
   end
 
   it "moves the user's own shelf entry to another owned bookshelf" do
@@ -734,7 +747,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.position).to eq(1)
   end
 
-  it "does not record activity when a shelf entry status changes" do
+  it "records a shelf entry status change once" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
 
@@ -745,7 +758,7 @@ RSpec.describe "BookshelfEntries", type: :request do
           sticker_definition_ids: []
         }
       }
-    }.not_to change(BookActivity, :count)
+    }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
     expect(entry.reload.status).to eq("finished")
@@ -766,7 +779,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.status).to be_nil
   end
 
-  it "does not record activity when a shelf entry status is cleared" do
+  it "records a shelf entry status clear once" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
 
@@ -777,7 +790,7 @@ RSpec.describe "BookshelfEntries", type: :request do
           sticker_definition_ids: []
         }
       }
-    }.not_to change(BookActivity, :count)
+    }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
     expect(entry.reload.status).to be_nil
@@ -797,7 +810,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.not_to change(BookActivity, :count)
   end
 
-  it "does not record activity when a sticker is added" do
+  it "records a sticker addition once" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
 
@@ -808,13 +821,13 @@ RSpec.describe "BookshelfEntries", type: :request do
           sticker_definition_ids: [ sticker.id ]
         }
       }
-    }.not_to change(BookActivity, :count)
+    }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
     expect(entry.reload.sticker_definition_ids).to eq([ sticker.id ])
   end
 
-  it "does not record activity when a sticker is removed" do
+  it "records a sticker removal once" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     entry.sticker_definitions << sticker
     sign_in user
@@ -826,7 +839,7 @@ RSpec.describe "BookshelfEntries", type: :request do
           sticker_definition_ids: []
         }
       }
-    }.not_to change(BookActivity, :count)
+    }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
     expect(entry.reload.sticker_definition_ids).to be_empty
@@ -864,54 +877,90 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response).to redirect_to(book_search_path)
   end
 
-  it "saves only status through JSON without replacing attached stickers" do
+  it "saves status through JSON without replacing attached stickers" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     entry.sticker_definitions << sticker
     sign_in user
 
     expect {
       patch bookshelf_entry_path(entry), params: { bookshelf_entry: { status: "finished" } }, as: :json
-    }.not_to change(BookActivity, :count)
+    }.to change(BookActivity, :count).by(1)
 
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body).to include("status" => "finished", "sticker_definition_ids" => [ sticker.id ])
     expect(entry.reload.sticker_definition_ids).to eq([ sticker.id ])
   end
 
-  it "adds and removes only the selected sticker, preserving status and other stickers" do
+  it "saves the selected sticker set while preserving status" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     other_sticker = StickerDefinition.create!(key: "autosave_other", name: "다른 스티커")
     entry.sticker_definitions << other_sticker
     sign_in user
 
     expect {
-      patch bookshelf_entry_path(entry), params: { sticker_definition_id: sticker.id, sticker_selected: true }, as: :json
-      expect(response).to have_http_status(:ok)
-      expect(entry.reload.sticker_definition_ids).to match_array([ sticker.id, other_sticker.id ])
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: { status: :reading, sticker_definition_ids: [ sticker.id, other_sticker.id ] }
+      }, as: :json
+    }.to change(BookActivity, :count).by(1)
+    expect(response).to have_http_status(:ok)
+    expect(entry.reload.sticker_definition_ids).to match_array([ sticker.id, other_sticker.id ])
 
-      patch bookshelf_entry_path(entry), params: { sticker_definition_id: sticker.id, sticker_selected: false }, as: :json
-      expect(response).to have_http_status(:ok)
-    }.not_to change(BookActivity, :count)
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: { status: :reading, sticker_definition_ids: [ other_sticker.id ] }
+      }, as: :json
+    }.to change(BookActivity, :count).by(1)
+    expect(response).to have_http_status(:ok)
 
     expect(entry.reload.status).to eq("reading")
     expect(entry.sticker_definition_ids).to eq([ other_sticker.id ])
   end
 
-  it "makes an explicit sticker selection idempotent" do
+  it "makes the same sticker set idempotent" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     sign_in user
 
-    2.times do
-      patch bookshelf_entry_path(entry), params: { sticker_definition_id: sticker.id, sticker_selected: true }, as: :json
-      expect(response).to have_http_status(:ok)
-    end
+    expect {
+      2.times do
+        patch bookshelf_entry_path(entry), params: {
+          bookshelf_entry: { status: :reading, sticker_definition_ids: [ sticker.id ] }
+        }, as: :json
+        expect(response).to have_http_status(:ok)
+      end
+    }.to change(BookActivity, :count).by(1)
     expect(entry.reload.bookshelf_entry_stickers.where(sticker_definition: sticker).count).to eq(1)
 
-    2.times do
-      patch bookshelf_entry_path(entry), params: { sticker_definition_id: sticker.id, sticker_selected: false }, as: :json
-      expect(response).to have_http_status(:ok)
-    end
+    expect {
+      2.times do
+        patch bookshelf_entry_path(entry), params: {
+          bookshelf_entry: { status: :reading, sticker_definition_ids: [] }
+        }, as: :json
+        expect(response).to have_http_status(:ok)
+      end
+    }.to change(BookActivity, :count).by(1)
     expect(entry.reload.sticker_definition_ids).to be_empty
+  end
+
+  it "rolls back state, stickers, and activity when activity recording fails" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+    failed_activity = BookActivity.new
+    failed_activity.errors.add(:base, "recording failed")
+    allow(BookActivities::RecordBookshelfEntryChange).to receive(:call) do |bookshelf_entry:, **_options|
+      bookshelf_entry.book_activities.create!(user:, book: user_book, action: :bookshelf_entry_updated)
+      raise ActiveRecord::RecordInvalid.new(failed_activity)
+    end
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: { status: :finished, sticker_definition_ids: [ sticker.id ] }
+      }
+    }.not_to change(BookActivity, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(entry.reload.status).to eq("reading")
+    expect(entry.sticker_definition_ids).to be_empty
+    expect(Nokogiri::HTML(response.body).at_css("details[open] form[action='#{bookshelf_entry_path(entry)}']")).to be_present
   end
 
   it "returns saved state and an error without persisting an invalid update" do
@@ -928,11 +977,13 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.sticker_definition_ids).to eq([ sticker.id ])
   end
 
-  it "does not autosave another user's shelf entry" do
+  it "does not update another user's shelf entry" do
     entry = book_friend.bookshelf_entries.find_by!(book: friend_book)
     sign_in user
 
-    patch bookshelf_entry_path(entry), params: { sticker_definition_id: sticker.id, sticker_selected: true }, as: :json
+    patch bookshelf_entry_path(entry), params: {
+      bookshelf_entry: { status: :wish, sticker_definition_ids: [ sticker.id ] }
+    }, as: :json
 
     expect(response).to have_http_status(:not_found)
     expect(entry.reload.sticker_definition_ids).to be_empty

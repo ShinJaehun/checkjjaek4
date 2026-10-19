@@ -101,4 +101,25 @@ RSpec.describe BookActivityPolicy do
     expect(described_class::Scope.new(viewer, BookActivity.all).resolve).not_to include(activity)
     expect(described_class.new(viewer, activity.reload).show?).to be(false)
   end
+
+  it "limits the book detail scope to accepted friends and current visible shelves without following" do
+    entry = activity.bookshelf_entry
+    shelf = profile_user.bookshelves.create!(name: "Detail activity shelf", visibility: :public)
+    entry.move_to_bookshelf!(shelf)
+    change = entry.book_activities.create!(user: profile_user, book:, action: :bookshelf_entry_updated, metadata: { to_status: "reading" })
+    own_entry = viewer.bookshelf_entries.create!(book:)
+    own_activity = own_entry.book_activities.create!(user: viewer, book:, action: :added_to_shelf)
+    friendship = BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+    scope = -> { described_class::BookFriendScope.new(viewer, BookActivity.where(book:)).resolve }
+
+    expect(scope.call).to include(activity, change)
+    expect(scope.call).not_to include(own_activity)
+
+    shelf.update!(visibility: :private)
+    expect(scope.call.where(id: [ activity.id, change.id ])).to be_empty
+
+    shelf.update!(visibility: :public)
+    friendship.destroy!
+    expect(scope.call.where(id: [ activity.id, change.id ])).to be_empty
+  end
 end

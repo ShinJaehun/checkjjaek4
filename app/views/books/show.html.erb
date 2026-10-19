@@ -11,15 +11,26 @@
                  sticker_definitions: @sticker_definitions,
                  search_result_token: @search_result_token,
                  group_id: @group&.id %>
-      <% if @bookshelf_entry.present? %>
-        <%= render "books/reading_state", bookshelf_entry: @bookshelf_entry, sticker_definitions: @sticker_definitions %>
-      <% end %>
     </div>
   </section>
 
   <% if @bookshelf_entry.present? %>
-    <section>
-      <%= render "books/jjaek_form_panel", book: @book, jjaek: @jjaek, quoted_jjaek: @quoted_jjaek %>
+    <details <%= "open" if @quoted_jjaek.present? || @jjaek&.errors&.any? %>>
+      <summary class="cursor-pointer rounded-full bg-stone-900 px-5 py-3 text-center text-sm font-semibold text-white"><%= t("books.show.write_book_jjaek") %></summary>
+      <div class="mt-4">
+        <%= render "books/jjaek_form_panel", book: @book, jjaek: @jjaek, quoted_jjaek: @quoted_jjaek %>
+      </div>
+    </details>
+  <% end %>
+
+  <% if @book_friend_activities.present? %>
+    <section class="space-y-4">
+      <h2 class="text-2xl font-semibold text-stone-900"><%= t("books.show.friend_activity_title") %></h2>
+      <div class="space-y-3">
+        <% @book_friend_activities.each do |item| %>
+          <%= render "books/friend_activity", item: item %>
+        <% end %>
+      </div>
     </section>
   <% end %>
 

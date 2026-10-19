@@ -19,4 +19,9 @@
   <%= turbo_stream.replace dom_id(@jjaek, :comment_action) do %>
     <%= render "jjaeks/comment_action", jjaek: @jjaek %>
   <% end %>
+  <% if @jjaek.book_id.present? && @jjaek.group_id.blank? %>
+    <%= turbo_stream.replace dom_id(@jjaek, :book_friend_comment_action) do %>
+      <%= render "jjaeks/comment_action", jjaek: @jjaek, book_friend_preview: true %>
+    <% end %>
+  <% end %>
 <% end %>

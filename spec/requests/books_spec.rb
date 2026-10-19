@@ -15,11 +15,11 @@ RSpec.describe "Books", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
-      expect(response.body).to include('data-controller="reading-state"')
-      state = Nokogiri::HTML(response.body).at_css('[data-controller="reading-state"]')
+      state = Nokogiri::HTML(response.body).at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}']")
+      expect(state).to be_present
       expect(state.at_css('[data-reading-status-card] legend').text).to eq(I18n.t("books.show.status_label"))
       expect(state.at_css('[data-reading-stickers-card] legend').text).to eq(I18n.t("bookshelf_entries.form.stickers"))
-      expect(state.css('[data-reading-state-target="message"]').size).to eq(1)
+      expect(state.ancestors("details").first["open"]).to be_nil
       expect(response.body).to include('name="jjaek[content]"')
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
     end
@@ -101,7 +101,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include('name="jjaek[content]"')
     end
 
-    it "keeps the personal form expanded with its visibility selector and no state save button" do
+    it "keeps the personal form collapsed with its visibility selector and a separate state save button" do
       user.bookshelf_entries.create!(book: book)
       sign_in user
 
@@ -110,11 +110,49 @@ RSpec.describe "Books", type: :request do
       page = Nokogiri::HTML(response.body)
       form = page.at_css("form[action='#{jjaeks_path}']")
       expect(form).to be_present
-      expect(form.ancestors("details")).to be_empty
+      expect(form.ancestors("details").first["open"]).to be_nil
       expect(form.at_css("input[name='jjaek[visibility]']")).to be_present
       expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
       expect(page.css("h2").map(&:text)).to include(I18n.t("jjaeks.actions.publish_book"))
-      expect(page.at_css("[data-controller='reading-state'] input[type='submit']")).to be_nil
+      expect(page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}'] input[type='submit']")).to be_present
+    end
+
+    it "opens the writing form for a requote and keeps the group and return context" do
+      user.bookshelf_entries.create!(book:)
+      author = User.create!(name: "Source author", email: "book-source-author@example.com", password: "password123!")
+      original = author.jjaeks.create!(book:, content: "QUOTE_SOURCE")
+      group = Group.create!(name: "Book club", group_admin: user, group_type: :public_group, lifecycle_status: :active)
+      sign_in user
+
+      get book_path(book, group_id: group.id, quote_id: original.id, return_to: root_path)
+
+      page = Nokogiri::HTML(response.body)
+      form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
+      expect(form).to be_present
+      expect(form.ancestors("details").first.attribute("open")).to be_present
+      expect(form.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(original.id.to_s)
+      expect(form.at_css("input[name='return_to']")["value"]).to eq(root_path)
+      reading_form = page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}']")
+      expect(reading_form.at_css("input[name='group_id']")["value"]).to eq(group.id.to_s)
+      expect(reading_form.at_css("input[name='quote_id']")["value"]).to eq(original.id.to_s)
+      expect(reading_form.at_css("input[name='return_to']")["value"]).to eq(root_path)
+
+      patch bookshelf_entry_path(user.bookshelf_entries.find_by!(book:)), params: {
+        group_id: group.id, quote_id: original.id, return_to: root_path,
+        bookshelf_entry: { status: :reading, sticker_definition_ids: [] }
+      }
+      expect(response).to redirect_to(book_path(book, group_id: group.id, quote_id: original.id, return_to: root_path))
+    end
+
+    it "opens the writing form after a validation error" do
+      user.bookshelf_entries.create!(book:)
+      sign_in user
+
+      post jjaeks_path, params: { jjaek: { book_id: book.id, content: "" } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
+      expect(form.ancestors("details").first.attribute("open")).to be_present
     end
 
     it "shows only public personal book jjaeks before the book is added to the library" do
@@ -128,7 +166,7 @@ RSpec.describe "Books", type: :request do
       get book_path(book)
 
       expect(response.body).to include(public_jjaek.content)
-      expect(response.body).not_to include(friend_jjaek.content, private_jjaek.content, 'data-controller="reading-state"', 'name="jjaek[content]"')
+      expect(response.body).not_to include(friend_jjaek.content, private_jjaek.content, 'name="bookshelf_entry[status]"', 'name="jjaek[content]"')
 
       user.bookshelf_entries.create!(book: book)
       get book_path(book)
@@ -168,16 +206,196 @@ RSpec.describe "Books", type: :request do
 
       follow_redirect!
 
-      expect(response.body).to include('data-controller="reading-state"')
+      expect(response.body).to include(%(action="#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}"))
       expect(response.body).to include('name="jjaek[content]"')
 
       document = Nokogiri::HTML(response.body)
       status_select = document.at_css('select[name="bookshelf_entry[status]"]')
-      status_choices = document.css('input[type="checkbox"][name="bookshelf_entry[status]"]')
+      status_choices = document.css('input[type="radio"][name="bookshelf_entry[status]"]')
 
       expect(status_select).to be_nil
-      expect(status_choices.map { |choice| choice["value"] }).to match_array(BookshelfEntry.statuses.keys)
-      expect(status_choices.select { |choice| choice["checked"].present? }.map { |choice| choice["value"] }).to be_empty
+      expect(status_choices.map { |choice| choice["value"] }).to match_array([ "", *BookshelfEntry.statuses.keys ])
+      expect(status_choices.select { |choice| choice.attribute("checked") }.map { |choice| choice["value"] }).to eq([ "" ])
+    end
+
+    it "shows only accepted friends' visible activity and readable personal book jjaeks" do
+      friend = User.create!(name: "Book friend", email: "book-preview-friend@example.com", password: "password123!")
+      private_friend = User.create!(name: "Private friend", email: "book-preview-private@example.com", password: "password123!")
+      stranger = User.create!(name: "Stranger", email: "book-preview-stranger@example.com", password: "password123!")
+      BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+      BookFriendship.create!(requester: user, addressee: private_friend, status: :accepted)
+      public_shelf = friend.bookshelves.create!(name: "Open shelf", visibility: :public)
+      private_shelf = private_friend.bookshelves.create!(name: "Secret shelf", visibility: :private)
+      public_entry = friend.bookshelf_entries.create!(book:, bookshelf: public_shelf)
+      private_entry = private_friend.bookshelf_entries.create!(book:, bookshelf: private_shelf)
+      visible_activity = public_entry.book_activities.create!(user: friend, book:, action: :added_to_shelf)
+      private_activity = private_entry.book_activities.create!(user: private_friend, book:, action: :status_changed)
+      own_entry = user.bookshelf_entries.create!(book:)
+      own_activity = own_entry.book_activities.create!(user:, book:, action: :added_to_shelf)
+      stranger_entry = stranger.bookshelf_entries.create!(book:)
+      stranger_activity = stranger_entry.book_activities.create!(user: stranger, book:, action: :added_to_shelf)
+      stranger_jjaek = stranger.jjaeks.create!(book:, content: "STRANGER_PUBLIC_PREVIEW")
+      public_jjaek = friend.jjaeks.create!(book:, content: "FRIEND_PUBLIC_PREVIEW")
+      private_jjaek = friend.jjaeks.create!(book:, content: "FRIEND_PRIVATE_PREVIEW", visibility: :private_jjaek)
+      hidden_jjaek = friend.jjaeks.create!(book:, content: "FRIEND_HIDDEN_PREVIEW")
+      hidden_jjaek.update_column(:hidden_at, Time.current)
+      deleted_jjaek = friend.jjaeks.create!(book:, content: "FRIEND_DELETED_PREVIEW")
+      deleted_jjaek.update_columns(content: "", deleted_at: Time.current)
+      sign_in user
+
+      get book_path(book)
+
+      page = Nokogiri::HTML(response.body)
+      preview = page.css("[data-book-friend-activity]")
+      preview_ids = preview.map { |card| card["id"] }
+      expect(page.css("h2").map(&:text)).to include("책 친구 활동")
+      expect(preview_ids).to include("book_friend_activity_book_activity_#{visible_activity.id}", "book_friend_activity_jjaek_#{public_jjaek.id}")
+      excluded_ids = [
+        "book_friend_activity_book_activity_#{private_activity.id}", "book_friend_activity_book_activity_#{own_activity.id}",
+        "book_friend_activity_book_activity_#{stranger_activity.id}", "book_friend_activity_jjaek_#{private_jjaek.id}",
+        "book_friend_activity_jjaek_#{hidden_jjaek.id}", "book_friend_activity_jjaek_#{deleted_jjaek.id}",
+        "book_friend_activity_jjaek_#{stranger_jjaek.id}"
+      ]
+      expect(preview_ids & excluded_ids).to be_empty
+      activity_card = preview.at_css("#book_friend_activity_book_activity_#{visible_activity.id}")
+      expect(activity_card.at_css("p.leading-6").text).to eq("Book friend님이 이 책을 서재에 담았습니다.")
+      expect(activity_card.css("[data-reading-status], [data-reading-sticker]")).to be_empty
+      expect(preview.text).to include("FRIEND_PUBLIC_PREVIEW")
+      preview_jjaek = preview.at_css("#book_friend_activity_jjaek_#{public_jjaek.id}")
+      expect(preview_jjaek.text).to include("Book friend님의 책짹")
+      expect(preview_jjaek.at_css("#book_friend_like_action_jjaek_#{public_jjaek.id}")).to be_present
+      expect(preview_jjaek.at_css("#book_friend_comment_action_jjaek_#{public_jjaek.id}")).to be_present
+      expect(preview_jjaek.at_css("#comments_panel_book_friend_#{book.id}_jjaek_#{public_jjaek.id}")).to be_present
+      expect(preview.css("a[href='#{user_path(friend)}']").size).to be >= 2
+      expect(preview.css("img[alt='#{friend.name}']").size).to be >= 2
+      expect(preview.css("a[href='#{book_path(book)}']")).to be_empty
+      expect(preview.text).not_to include(book.title, book.authors_text)
+      expect(page.css("#jjaek_#{public_jjaek.id}").size).to eq(1)
+    end
+
+    it "keeps duplicate friend and book-list Jjaek actions in separate DOM contexts" do
+      friend = User.create!(name: "Card friend", email: "book-preview-actions@example.com", password: "password123!")
+      BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+      user.bookshelf_entries.create!(book:)
+      jjaek = friend.jjaeks.create!(book:, content: "FRIEND_CARD_ACTIONS")
+      user.jjaeks.create!(book:, quoted_jjaek: jjaek, content: "MY_REQUOTE_FOR_FRIEND_CARD")
+      sign_in user
+
+      get book_path(book)
+
+      page = Nokogiri::HTML(response.body)
+      preview = page.at_css("#book_friend_activity_jjaek_#{jjaek.id}")
+      book_list = page.at_css("#jjaek_#{jjaek.id}")
+      expect(preview).to be_present
+      expect(book_list).to be_present
+      expect(preview.text).to include("Card friend님의 책짹", jjaek.content)
+      expect(preview.text).to include(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(preview.css("a[href='#{book_path(book)}']")).to be_empty
+      ids = [ preview, book_list ].flat_map { |card| [ card["id"], *card.css("[id]").map { |node| node["id"] } ] }
+      expect(ids.uniq.size).to eq(ids.size)
+      expect(preview.at_css("#book_friend_like_action_jjaek_#{jjaek.id}")).to be_present
+      expect(book_list.at_css("#like_action_jjaek_#{jjaek.id}")).to be_present
+      expect(preview.at_css("#book_friend_comment_action_jjaek_#{jjaek.id}")).to be_present
+      expect(book_list.at_css("#comment_action_jjaek_#{jjaek.id}")).to be_present
+      expect(preview.at_css("#comments_panel_book_friend_#{book.id}_jjaek_#{jjaek.id}")).to be_present
+      expect(book_list.at_css("#comments_panel_book_#{book.id}_jjaek_#{jjaek.id}")).to be_present
+
+      post jjaek_like_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"), %(target="book_friend_like_action_jjaek_#{jjaek.id}"))
+      expect(response.body).to include(I18n.t("jjaeks.meta.likes", count: 1))
+
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "FRIEND_PANEL_COMMENT" }, comments_context: "book_friend", book_id: book.id },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      expect(response.body).to include(%(target="comments_panel_book_friend_#{book.id}_jjaek_#{jjaek.id}"))
+      expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"), %(target="book_friend_comment_action_jjaek_#{jjaek.id}"))
+      expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1))
+      comment = jjaek.comments.find_by!(content: "FRIEND_PANEL_COMMENT")
+      expect(response.body).to include(%(id="book_friend_comment_#{comment.id}"))
+      expect(response.body).to include(%(id="book_friend_jjaek_#{jjaek.id}_new_comment"))
+
+      get jjaek_comments_path(jjaek, comments_context: "book", book_id: book.id),
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      expect(response.body).to include(%(id="comment_#{comment.id}"))
+      expect(response.body).not_to include(%(id="book_friend_comment_#{comment.id}"))
+
+      delete jjaek_like_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"), %(target="book_friend_like_action_jjaek_#{jjaek.id}"))
+
+      delete jjaek_comment_path(jjaek, comment),
+             params: { comments_context: "book", book_id: book.id },
+             headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      expect(response.body).to include(%(target="comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"))
+      expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"), %(target="book_friend_comment_action_jjaek_#{jjaek.id}"))
+    end
+
+    it "shows recorded status and sticker changes instead of the current bookshelf entry" do
+      friend = User.create!(name: "History friend", email: "book-preview-history@example.com", password: "password123!")
+      BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+      shelf = friend.bookshelves.create!(name: "Open shelf", visibility: :public)
+      entry = friend.bookshelf_entries.create!(book:, bookshelf: shelf, status: :wish)
+      added = StickerDefinition.create!(key: "loved_it", name: "좋았어요")
+      removed = StickerDefinition.create!(key: "recommended_to_me", name: "추천받았어요")
+      current = StickerDefinition.create!(key: "stayed_with_me", name: "마음에 남아요")
+      entry.sticker_definitions << current
+      activity = entry.book_activities.create!(user: friend, book:, action: :bookshelf_entry_updated, metadata: {
+        from_status: "reading", to_status: "finished",
+        added_sticker_definition_ids: [ added.id ], added_sticker_names: [ added.name ],
+        removed_sticker_definition_ids: [ removed.id ], removed_sticker_names: [ removed.name ]
+      })
+      legacy_activity = entry.book_activities.create!(user: friend, book:, action: :sticker_removed, metadata: { sticker_name: "옛 스티커" })
+      sign_in user
+
+      get book_path(book)
+
+      page = Nokogiri::HTML(response.body)
+      card = page.at_css("#book_friend_activity_book_activity_#{activity.id}")
+      expect(card.css("[data-reading-status]").map { |badge| badge["data-reading-status"] }).to eq([ "finished" ])
+      expect(card.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to eq([ "loved_it", "recommended_to_me" ])
+      expect(card.at_css("p.leading-6").css("[data-reading-status], [data-reading-sticker]").size).to eq(3)
+      expect(card.text).to include("붙였고", "제거했습니다")
+      expect(card.text).not_to include(current.name)
+      expect(page.at_css("#book_friend_activity_book_activity_#{legacy_activity.id}").text).to include("옛 스티커")
+    end
+
+    it "rechecks the friendship and current bookshelf visibility for old activity" do
+      friend = User.create!(name: "Visibility friend", email: "book-preview-visibility@example.com", password: "password123!")
+      friendship = BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+      shelf = friend.bookshelves.create!(name: "Changing shelf", visibility: :book_friends)
+      entry = friend.bookshelf_entries.create!(book:, bookshelf: shelf)
+      activity = entry.book_activities.create!(user: friend, book:, action: :bookshelf_entry_updated, metadata: { from_status: nil, to_status: "reading" })
+      sign_in user
+
+      get book_path(book)
+      expect(response.body).to include(%(id="book_friend_activity_book_activity_#{activity.id}"))
+
+      shelf.update!(visibility: :private)
+      get book_path(book)
+      expect(response.body).not_to include(%(id="book_friend_activity_book_activity_#{activity.id}"))
+
+      shelf.update!(visibility: :public)
+      friendship.destroy!
+      get book_path(book)
+      expect(response.body).not_to include(%(id="book_friend_activity_book_activity_#{activity.id}"))
+    end
+
+    it "limits the mixed friend preview to five recent records with stable ties" do
+      friend = User.create!(name: "Timeline friend", email: "book-preview-order@example.com", password: "password123!")
+      BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+      entry = friend.bookshelf_entries.create!(book:)
+      time = Time.zone.parse("2026-10-19 12:00:00")
+      activities = Array.new(4) do
+        entry.book_activities.create!(user: friend, book:, action: :added_to_shelf, created_at: time)
+      end
+      jjaeks = Array.new(4) do |index|
+        friend.jjaeks.create!(book:, content: "PREVIEW_ORDER_#{index}", created_at: time)
+      end
+      sign_in user
+
+      get book_path(book)
+
+      ids = Nokogiri::HTML(response.body).css("[data-book-friend-activity]").map { |card| card["id"] }
+      expect(ids).to eq(activities.reverse.map { |activity| "book_friend_activity_book_activity_#{activity.id}" } + [ "book_friend_activity_jjaek_#{jjaeks.last.id}" ])
     end
   end
 

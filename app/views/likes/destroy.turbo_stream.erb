@@ -2,6 +2,12 @@
   <%= turbo_stream.replace dom_id(@jjaek, :like_action) do %>
     <%= render "jjaeks/like_summary_action", jjaek: @jjaek %>
   <% end %>
+  <% if @jjaek.book_id.present? && @jjaek.group_id.blank? %>
+    <%= turbo_stream.replace dom_id(@jjaek, :book_friend_like_action) do %>
+      <%= render "jjaeks/like_summary_action", jjaek: @jjaek, book_friend_preview: true %>
+    <% end %>
+  <% end %>
 <% else %>
   <%= turbo_stream.remove dom_id(@jjaek, :like_action) %>
+  <%= turbo_stream.remove dom_id(@jjaek, :book_friend_like_action) if @jjaek.book_id.present? && @jjaek.group_id.blank? %>
 <% end %>

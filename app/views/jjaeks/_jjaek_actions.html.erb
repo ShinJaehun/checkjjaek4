@@ -2,15 +2,16 @@
 <% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
 <% inline_comments_book = local_assigns[:inline_comments_book] %>
 <% detail_context = local_assigns.fetch(:detail_context, false) %>
+<% book_friend_preview = local_assigns.fetch(:book_friend_preview, false) %>
 <% inline_comments_params = { comments_context: inline_comments_context } %>
 <% inline_comments_params[:profile_user_id] = inline_comments_profile_user.id if inline_comments_profile_user.present? %>
 <% inline_comments_params[:book_id] = inline_comments_book.id if inline_comments_book.present? %>
 
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
   <% if show_like_summary_action?(jjaek) %>
-    <%= render "jjaeks/like_summary_action", jjaek: jjaek %>
+    <%= render "jjaeks/like_summary_action", jjaek: jjaek, book_friend_preview: book_friend_preview %>
   <% end %>
-  <%= render "jjaeks/comment_action", jjaek: jjaek %>
+  <%= render "jjaeks/comment_action", jjaek: jjaek, book_friend_preview: book_friend_preview %>
   <% if inline_comments_context.present? %>
     <%= link_to t("comments.actions.view_inline"), jjaek_comments_path(jjaek, inline_comments_params), data: { turbo_stream: true }, class: "font-medium text-stone-700" %>
   <% end %>

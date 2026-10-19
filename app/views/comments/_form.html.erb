@@ -3,11 +3,16 @@
 <% comments_book = local_assigns[:comments_book] %>
 <% submit_key = local_assigns.fetch(:submit_key, "comments.actions.submit") %>
 <% edit_form = local_assigns.fetch(:edit_form, false) %>
+<% form_options = if comments_context.to_sym == :book_friend
+                    { namespace: "book_friend_jjaek_#{jjaek.id}_#{dom_id(comment)}", id: "book_friend_jjaek_#{jjaek.id}_#{dom_id(comment)}" }
+                  else
+                    {}
+                  end %>
 
-<%= form_with model: [jjaek, comment], class: "space-y-3" do |form| %>
-  <%= hidden_field_tag :comments_context, comments_context %>
-  <%= hidden_field_tag :profile_user_id, comments_profile_user.id if comments_profile_user.present? %>
-  <%= hidden_field_tag :book_id, comments_book.id if comments_book.present? %>
+<%= form_with model: [jjaek, comment], **form_options, class: "space-y-3" do |form| %>
+  <%= hidden_field_tag :comments_context, comments_context, id: nil %>
+  <%= hidden_field_tag :profile_user_id, comments_profile_user.id, id: nil if comments_profile_user.present? %>
+  <%= hidden_field_tag :book_id, comments_book.id, id: nil if comments_book.present? %>
 
   <%= render "shared/content_field", form: form, label_key: "comments.form.content", rows: 3 %>
 

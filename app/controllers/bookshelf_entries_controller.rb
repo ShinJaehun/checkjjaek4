@@ -27,10 +27,12 @@ class BookshelfEntriesController < ApplicationController
       assign_stickers(@bookshelf_entry)
       @bookshelf_entry.save!
 
-      BookActivities::RecordBookshelfEntryChange.call(
-        bookshelf_entry: @bookshelf_entry,
-        was_new_record: was_new_record
-      )
+      if was_new_record
+        BookActivities::RecordBookshelfEntryChange.call(
+          bookshelf_entry: @bookshelf_entry,
+          was_new_record: true
+        )
+      end
     end
 
     if book_search_result_source?
@@ -62,16 +64,25 @@ class BookshelfEntriesController < ApplicationController
     authorize @bookshelf_entry
 
     @bookshelf_entry.with_lock do
+      previous_status = @bookshelf_entry.status
+      previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
       @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
-      @bookshelf_entry.save!
       assign_stickers(@bookshelf_entry)
-      update_sticker if params[:sticker_definition_id].present?
+      @bookshelf_entry.save!
+      BookActivities::RecordBookshelfEntryChange.call(
+        bookshelf_entry: @bookshelf_entry,
+        was_new_record: false,
+        previous_status: previous_status,
+        previous_sticker_definition_ids: previous_sticker_definition_ids
+      )
     end
 
     respond_to do |format|
       format.json { render json: reading_state }
       format.html do
-        redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to])), notice: t("bookshelf_entries.notices.updated")
+        redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id, quote_id: params[:quote_id],
+          return_to: view_context.validated_jjaek_return_path(params[:return_to])),
+          notice: t("bookshelf_entries.notices.updated"), status: :see_other
       end
     end
   rescue ActiveRecord::RecordInvalid => error
@@ -236,8 +247,8 @@ class BookshelfEntriesController < ApplicationController
     @sticker_definitions = StickerDefinition.alphabetical
     @group = policy_scope(Group).find(group_context_id) if group_context_id
     authorize @group, :create_jjaek? if @group
-    @quoted_jjaek = nil
-    @jjaek = Jjaek.new(user: current_user, book: @book, group: @group)
+    @quoted_jjaek = policy_scope(@book.jjaeks).find_by(id: params[:quote_id]) if params[:quote_id].present?
+    @jjaek = Jjaek.new(user: current_user, book: @book, group: @group, quoted_jjaek: @quoted_jjaek)
     authorize @jjaek
     prepare_book_show_read_context
   end
@@ -250,18 +261,6 @@ class BookshelfEntriesController < ApplicationController
 
   def group_context_id
     params[:group_id].presence
-  end
-
-  def update_sticker
-    sticker = StickerDefinition.find(params[:sticker_definition_id])
-    selected = ActiveModel::Type::Boolean.new.cast(params[:sticker_selected])
-    attached = @bookshelf_entry.bookshelf_entry_stickers.find_by(sticker_definition: sticker)
-
-    if selected
-      @bookshelf_entry.bookshelf_entry_stickers.create!(sticker_definition: sticker) unless attached
-    else
-      attached&.destroy!
-    end
   end
 
   def reading_state

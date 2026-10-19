@@ -1,4 +1,4 @@
-<span id="<%= dom_id(jjaek, :comment_action) %>">
+<span id="<%= dom_id(jjaek, local_assigns[:book_friend_preview] ? :book_friend_comment_action : :comment_action) %>">
   <% navigation_params = jjaek_navigation_params %>
   <% navigation_params = navigation_params.except(:return_to) if navigation_params[:return_to] == jjaek_path(jjaek) %>
 

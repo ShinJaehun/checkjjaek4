@@ -969,6 +969,16 @@ en:
       description: "Browse the posts that ReJjaeked this Jjaek."
       empty: "No ReJjaeks yet."
   book_activities:
+    card_copy:
+      added_to_shelf:
+        feed: " added a book to their shelf."
+        book: " added this book to their shelf."
+      change_prefix:
+        feed: " updated a book: "
+        book: " updated this book: "
+      changed:
+        feed: " updated a reading record."
+        book: " updated the reading record for this book."
     badges:
       status_cleared: "Status cleared"
     card:
@@ -1124,6 +1134,11 @@ en:
       read_only_description: "Add this book to your shelf before you can save its state or write a Book Jjaek."
       requote_source: "ReJjaek from %{name}"
       timeline_title: "Book Jjaeks for this book"
+      move_bookshelf: "Move to another shelf"
+      edit_reading_record: "Edit reading record"
+      save_reading_record: "Save reading record"
+      write_book_jjaek: "Write a Book Jjaek"
+      friend_activity_title: "Book friend activity"
   jjaeks:
     contexts:
       group_badge: "Club"

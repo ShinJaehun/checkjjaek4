@@ -41,4 +41,13 @@ class BookActivityPolicy < ApplicationPolicy
       super
     end
   end
+
+  class BookFriendScope < Scope
+    def resolve
+      return scope.none unless user.present?
+
+      scope.joins(bookshelf_entry: :bookshelf)
+        .where(user_id: BookFriendship.connected_ids_for(user), bookshelves: { visibility: %w[public book_friends] })
+    end
+  end
 end

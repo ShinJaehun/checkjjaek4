@@ -95,7 +95,34 @@ class ApplicationController < ActionController::Base
     end
     @jjaeks = @feed_page.items
     prepare_current_reading_states_for(@jjaeks)
-    prepare_visible_requote_counts_for(@jjaeks)
+    prepare_book_friend_activities unless feed_only
+    prepare_visible_requote_counts_for(@jjaeks + Array(@book_friend_activities).grep(Jjaek))
+  end
+
+  def prepare_book_friend_activities
+    friend_ids = BookFriendship.connected_ids_for(current_user)
+    activities = policy_scope(BookActivity.where(book: @book), policy_scope_class: BookActivityPolicy::BookFriendScope)
+      .includes(:book, user: { avatar_attachment: :blob })
+      .order(created_at: :desc, id: :desc)
+      .limit(5)
+      .to_a
+    jjaeks = policy_scope(
+      @book.jjaeks.where(user_id: friend_ids, group_id: nil, hidden_at: nil, deleted_at: nil),
+      policy_scope_class: JjaekPolicy::BookScope
+    ).includes(:book, :likes, :comments, user: { avatar_attachment: :blob },
+      quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
+      .order(created_at: :desc, id: :desc).limit(5).to_a
+
+    @book_friend_activities = (activities + jjaeks)
+      .sort_by { |item| [ -item.created_at.to_r, item.is_a?(BookActivity) ? 0 : 1, -item.id ] }
+      .first(5)
+
+    sticker_ids = @book_friend_activities.grep(BookActivity).flat_map do |activity|
+      metadata = activity.metadata
+      Array(metadata["added_sticker_definition_ids"]) + Array(metadata["removed_sticker_definition_ids"]) +
+        Array(metadata["sticker_definition_ids"]) + Array(metadata["sticker_definition_id"])
+    end
+    @book_friend_sticker_definitions = sticker_ids.empty? ? {} : StickerDefinition.where(id: sticker_ids).index_by(&:id)
   end
 
   def prepare_current_reading_states_for(jjaeks)

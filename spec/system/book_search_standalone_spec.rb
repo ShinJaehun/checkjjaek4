@@ -46,6 +46,7 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_text(I18n.t("book_search.actions.in_shelf"))
     expect(page).to have_no_button(I18n.t("book_search.actions.add_to_shelf"))
     click_link I18n.t("book_search.actions.open_internal")
+    find("summary", text: "책짹 작성").click
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
     expect([ Book.count, BookshelfEntry.count ]).to eq(counts)
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "Personal search reading note"
@@ -97,6 +98,7 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_current_path(
       book_path(book, group_id: group.id, return_to: search_path)
     )
+    find("summary", text: "책짹 작성").click
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_group_book"), visible: :all)
     expect(page).to have_select(I18n.t("jjaeks.form.posting_group"), selected: group.name)
     find("a[data-back-link]").click

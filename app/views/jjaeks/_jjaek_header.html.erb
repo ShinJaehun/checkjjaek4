@@ -1,4 +1,6 @@
 <% show_actions = local_assigns.fetch(:show_actions, true) %>
+<% show_context = local_assigns.fetch(:show_context, true) %>
+<% book_friend_preview = local_assigns.fetch(:book_friend_preview, false) %>
 <% moderation_action = local_assigns[:moderation_action] %>
 
 <div class="flex items-start justify-between gap-3">
@@ -6,7 +8,11 @@
     <%= user_avatar_image(jjaek.user, size: 128, alt: jjaek.user.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
 
     <div class="min-w-0">
-      <% context_label = jjaek_context_label(jjaek) %>
+      <% context_label = if book_friend_preview
+        t("jjaeks.contexts.book_html", author_name: link_to(jjaek.user.name, user_path(jjaek.user), class: "font-semibold text-stone-900 hover:text-stone-700"))
+      elsif show_context
+        jjaek_context_label(jjaek)
+      end %>
       <% if context_label.present? %>
         <div class="text-sm text-stone-600">
           <%= context_label %>
@@ -26,7 +32,7 @@
         <% if jjaek.group_id.blank? %>
           · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
         <% end %>
-        <% if show_requote_book_link?(jjaek) %>
+        <% if show_context && !book_friend_preview && show_requote_book_link?(jjaek) %>
           ·
           <%= link_to jjaek.book.title, book_path(jjaek.book, book_navigation_params), class: "font-medium hover:text-stone-700" %>
         <% end %>
