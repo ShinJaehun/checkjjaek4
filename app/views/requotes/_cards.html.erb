@@ -1,0 +1,7 @@
+<% requotes.each do |requote, restricted| %>
+  <% if restricted %>
+    <%= render "requotes/restricted_requote", source: source_jjaek, requote: requote %>
+  <% else %>
+    <%= render "jjaeks/jjaek", jjaek: requote %>
+  <% end %>
+<% end %>

@@ -28,8 +28,7 @@ class BooksController < ApplicationController
     prepare_book_write_context if @bookshelf_entry.present? && !feed_page_request?
     prepare_book_show_read_context(feed_only: feed_page_request?)
     if feed_page_request?
-      render_feed_page(context: :book, next_url: book_path(@book, group_id: @group&.id,
-        return_to: view_context.validated_jjaek_return_path(params[:return_to]), cursor: @feed_page.next_cursor))
+      render_feed_page(context: :book, next_url: @feed_next_url)
     end
   end
 

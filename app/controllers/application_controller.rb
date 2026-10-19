@@ -89,6 +89,10 @@ class ApplicationController < ActionController::Base
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::BookScope)
     end
     @feed_page = FeedPage.new(jjaeks: @jjaeks.where(quoted_jjaek_id: nil), cursor: params[:cursor])
+    if @feed_page.next_cursor
+      @feed_next_url = book_path(@book, group_id: @group&.id,
+        return_to: view_context.validated_jjaek_return_path(params[:return_to]), cursor: @feed_page.next_cursor)
+    end
     @jjaeks = @feed_page.items
     prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)

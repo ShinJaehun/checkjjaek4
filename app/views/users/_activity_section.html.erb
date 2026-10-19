@@ -4,6 +4,6 @@
   </div>
 
   <%= render "feeds/list", page: @feed_page, context: :profile, profile_user: user,
-             next_url: @feed_page&.next_cursor && user_path(user, cursor: @feed_page.next_cursor),
+             next_url: @feed_next_url,
              empty_text: t("users.profile.empty_activity") %>
 </section>

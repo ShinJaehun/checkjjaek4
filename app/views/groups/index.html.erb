@@ -81,7 +81,7 @@
   <section class="space-y-4">
     <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("groups.index.recent_activity") %></h2>
     <%= render "feeds/list", page: @feed_page, context: :group,
-               next_url: @feed_page&.next_cursor && groups_path(cursor: @feed_page.next_cursor),
+               next_url: @feed_next_url,
                empty_text: t("groups.index.empty_activity") %>
   </section>
 </section>

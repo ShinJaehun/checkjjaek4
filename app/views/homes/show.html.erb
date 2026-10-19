@@ -31,7 +31,7 @@
     </div>
 
     <%= render "feeds/list", page: @feed_page, context: :home,
-               next_url: @feed_page&.next_cursor && root_path(cursor: @feed_page.next_cursor),
+               next_url: @feed_next_url,
                empty_text: t("home.empty_feed") %>
   </section>
 </section>

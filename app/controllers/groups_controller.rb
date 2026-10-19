@@ -14,10 +14,11 @@ class GroupsController < ApplicationController
                 user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
       .order(created_at: :desc, id: :desc)
     @feed_page = FeedPage.new(jjaeks: @group_activity_jjaeks, cursor: params[:cursor])
+    @feed_next_url = groups_path(cursor: @feed_page.next_cursor) if @feed_page.next_cursor
     @group_activity_jjaeks = @feed_page.items
     prepare_current_reading_states_for(@group_activity_jjaeks)
     prepare_visible_requote_counts_for(@group_activity_jjaeks)
-    return render_feed_page(context: :group, next_url: groups_path(cursor: @feed_page.next_cursor)) if feed_page_request?
+    return render_feed_page(context: :group, next_url: @feed_next_url) if feed_page_request?
 
     @groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
       .includes(:group_memberships, group_admin: { avatar_attachment: :blob })
@@ -33,7 +34,7 @@ class GroupsController < ApplicationController
     authorize @group
     if feed_page_request?
       prepare_group_jjaek_context
-      return render_feed_page(context: :group, next_url: group_path(@group, cursor: @feed_page.next_cursor))
+      return render_feed_page(context: :group, next_url: @feed_next_url)
     end
     prepare_group_show_context
     @jjaek = Jjaek.new(user: current_user, group: @group) if policy(@group).create_jjaek?

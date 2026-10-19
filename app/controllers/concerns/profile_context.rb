@@ -56,6 +56,7 @@ module ProfileContext
 
   def prepare_profile_activity_items
     @feed_page = FeedPage.new(jjaeks: @jjaeks, book_activities: @book_activities, cursor: params[:cursor])
+    @feed_next_url = user_path(@user, cursor: @feed_page.next_cursor) if @feed_page.next_cursor
     @profile_activity_items = @feed_page.items
     @jjaeks = @profile_activity_items.grep(Jjaek)
     @book_activities = @profile_activity_items.grep(BookActivity)

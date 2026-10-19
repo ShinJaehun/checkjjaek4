@@ -9,6 +9,7 @@ module HomeFeedContext
       .includes(:book, user: { avatar_attachment: :blob })
       .recent
     @feed_page = FeedPage.new(jjaeks: @feed_jjaeks, book_activities: @feed_book_activities, cursor: params[:cursor])
+    @feed_next_url = root_path(cursor: @feed_page.next_cursor) if @feed_page.next_cursor
     @feed_items = @feed_page.items
     @feed_jjaeks = @feed_items.grep(Jjaek)
     prepare_current_reading_states_for(@feed_jjaeks)

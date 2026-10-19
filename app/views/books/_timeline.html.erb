@@ -4,7 +4,6 @@
   </div>
 
   <%= render "feeds/list", page: @feed_page, context: :book, book:,
-             next_url: @feed_page&.next_cursor && book_path(book, group_id: @group&.id,
-               return_to: validated_jjaek_return_path(params[:return_to]), cursor: @feed_page.next_cursor),
+             next_url: @feed_next_url,
              empty_text: t("books.show.empty_jjaeks") %>
 </section>

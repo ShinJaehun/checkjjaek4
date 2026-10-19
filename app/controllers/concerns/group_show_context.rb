@@ -25,6 +25,7 @@ module GroupShowContext
       Jjaek.none
     end
     @feed_page = FeedPage.new(jjaeks: @jjaeks, cursor: params[:cursor])
+    @feed_next_url = group_path(@group, cursor: @feed_page.next_cursor) if @feed_page.next_cursor
     @jjaeks = @feed_page.items
     prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
