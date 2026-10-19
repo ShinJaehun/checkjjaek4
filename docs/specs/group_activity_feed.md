@@ -70,3 +70,59 @@
 - Classroom, Comment moderation, notification 변경
 - Group lifecycle·가입 정책 변경
 - 새 feed framework, schema와 migration
+
+
+## A12 Delta Specs — 목록 로딩 `(확정)`
+
+### Proposal — 목적과 범위
+
+전체 활동을 메모리에 적재하던 흐름을 제한된 페이지 조회로 바꾼다. 적용 대상은 홈 `/`,
+프로필 `/users/:id` 최근 활동, `/groups` 통합 활동, `/groups/:id` 글 목록,
+`/books/:id` 책짹 목록(개인·동아리 문맥)이다. 작성 폼·상단 정보·도서 카드와 다른 섹션,
+Pundit scope·visibility·moderation 정책은 유지한다. A05 사용자 목록·모달은 제외한다.
+
+### Specs — ADDED / MODIFIED / REMOVED
+
+- **ADDED:** 최초·후속 페이지는 각각 최대 20개다. 하단 접근 시 자동 로딩하며 진행 중 요청과
+  이미 성공한 같은 cursor 요청을 중복 실행하지 않는다. 다음 페이지가 없으면 로딩을 종료한다.
+- **ADDED:** 실패 시 기존 카드를 유지하고 자동 재요청을 멈춘다. 같은 다음 소식 링크로 재시도할 수 있다.
+  JavaScript가 없어도 이 링크의 HTML 페이지에서 다음 20개를 읽을 수 있다.
+- **ADDED:** 빈 목록은 기존 화면별 빈 상태, 마지막 페이지는 공통 종료 안내를 표시한다.
+  변조·잘못된 구조의 cursor는 HTML·Turbo 모두 `400 Bad Request`로 거부한다. 빈 cursor는 최초 페이지다.
+- **MODIFIED:** 모든 피드는 `created_at DESC, 타입 순위 DESC, id DESC`로 정렬한다.
+  타입 순위는 Jjaek=1, BookActivity=0으로, 동일 시각에는 Jjaek이 먼저이고 각 타입 안에서는 ID 내림차순이다.
+  단일 Jjaek 목록은 `created_at DESC, id DESC`가 된다.
+- **MODIFIED:** 기존 카드·댓글 문맥·좋아요·다시짹은 유지한다. 독서 상태·visible requote count는
+  실제 표시하는 페이지의 Jjaek에만 준비하고 작성자·대상 사용자·인용 원문 작성자의 avatar preload를 유지한다.
+- **REMOVED:** 홈·프로필에서 양쪽 전체 목록을 `to_a`로 읽어 합성하는 방식을 제거한다.
+
+### Design — cursor와 조회
+
+- `FeedPage`는 이미 권한이 적용된 Relation만 입력받는다. 마지막 표시 항목의
+  `[created_at(마이크로초), 타입 순위, id]`를 서명한 cursor를 사용하며 OFFSET은 사용하지 않는다.
+- 후속 조회는 정렬 tuple이 cursor보다 작은 항목만 선택한다. 다른 화면의 유효 cursor를 재사용해도
+  해당 요청의 현재 policy scope·동아리·책 문맥을 다시 적용하므로 권한을 확대하지 않는다.
+- 각 소스는 다음 페이지 확인용 1개를 포함해 최대 21개만 DB에서 읽는다. 혼합 피드는 최대 42개를
+  같은 tuple로 병합해 20개를 표시한다. 다음 cursor는 마지막 표시 항목을 기준으로 만든다.
+- cursor가 가리키던 row가 삭제돼도 tuple만으로 계속 읽는다. 이미 읽은 위치보다 최신인 새 글은
+  후속 페이지에 끼워 넣지 않으며 최초 페이지를 다시 열면 표시한다. 과거 시각으로 삽입된 글,
+  `created_at` 수정, 읽는 도중의 권한 변화까지 snapshot으로 고정하지는 않는다.
+- 명시적인 추가 조회는 GET + cursor + Turbo Stream 형식 + `X-Feed-Pagination: true` 헤더를
+  모두 갖춘 요청이다. `feed_page_request?`로 홈·프로필·동아리 목록·상세·책 상세에 같은 계약을 적용한다.
+  이때만 `feed-items`에 카드만 append하고 `feed-pagination`만 replace한다. 전용 헤더는
+  무한 스크롤 Stimulus fetch에만 붙이며 일반 링크나 폼 제출에는 붙이지 않는다.
+- 일반 방문과 폼 제출 후 리다이렉트는 Turbo Stream Accept 헤더가 남아 있어도 전체 HTML을 반환한다.
+  대상 화면의 `prepare_feed_response_format`이 요청과 template lookup 형식을 HTML로 맞춘다.
+  cursor만 있는 다음 링크도 기존 전체 화면과 해당 페이지를 렌더하므로 JavaScript 없이 이동할 수 있다.
+  전용 헤더만 있고 cursor가 없는 요청도 최초 HTML 화면이다.
+- 단일 Stimulus controller에서 IntersectionObserver·요청 상태·오류와 재시도를 처리한다.
+
+### Tasks / 검증
+
+1. 단일 동아리·책 피드를 cursor 조회로 제한한다.
+2. 홈·프로필의 두 Relation에 같은 cursor 경계를 적용해 제한 조회 후 합성한다.
+3. 동일 시각·타입 경계·추가/삭제·빈 결과·마지막 페이지·잘못된 cursor와 현재 권한 재검사를
+   Model/Request spec으로 고정한다. DB instantiation 수로 소스별 21개 상한도 확인한다.
+4. 자동 append·종료·실패 후 수동 재시도와 추가된 카드의 댓글 동작을 최소 System spec으로 확인한다.
+
+코드와 spec은 작성되어 있으며 실행 검증은 사용자 담당이다.

@@ -1,0 +1,10 @@
+<div class="space-y-4" data-controller="infinite-scroll">
+  <div id="feed-items" class="space-y-4">
+    <%= render "feeds/cards", items: page&.items || [], context:,
+               profile_user: local_assigns[:profile_user], book: local_assigns[:book] %>
+  </div>
+  <% if page.nil? || (page.items.empty? && params[:cursor].blank?) %>
+    <p class="rounded-3xl border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500"><%= empty_text %></p>
+  <% end %>
+  <%= render "feeds/pagination", page:, next_url: %>
+</div>

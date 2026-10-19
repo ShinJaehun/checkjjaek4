@@ -1,0 +1,9 @@
+<div id="feed-pagination" class="py-4 text-center text-sm text-stone-500" data-infinite-scroll-target="pagination" aria-live="polite">
+  <% if page&.next_cursor %>
+    <%= link_to t("feeds.next"), next_url, class: "underline", data: { infinite_scroll_target: "link", action: "infinite-scroll#load", turbo: false } %>
+    <p hidden data-infinite-scroll-target="loading"><%= t("feeds.loading") %></p>
+    <p hidden data-infinite-scroll-target="error" role="alert"><%= t("feeds.failed") %></p>
+  <% elsif page&.items&.any? || params[:cursor].present? %>
+    <p data-feed-end><%= t("feeds.end") %></p>
+  <% end %>
+</div>

@@ -3,17 +3,7 @@
     <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("users.profile.activity_title") %></h2>
   </div>
 
-  <% if activity_items.any? %>
-    <% activity_items.each do |activity_item| %>
-      <% if activity_item.is_a?(Jjaek) %>
-        <%= render "jjaeks/jjaek", jjaek: activity_item, inline_comments_context: :profile, inline_comments_profile_user: user %>
-      <% else %>
-        <%= render "book_activities/book_activity", book_activity: activity_item %>
-      <% end %>
-    <% end %>
-  <% else %>
-    <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
-      <%= t("users.profile.empty_activity") %>
-    </section>
-  <% end %>
+  <%= render "feeds/list", page: @feed_page, context: :profile, profile_user: user,
+             next_url: @feed_page&.next_cursor && user_path(user, cursor: @feed_page.next_cursor),
+             empty_text: t("users.profile.empty_activity") %>
 </section>

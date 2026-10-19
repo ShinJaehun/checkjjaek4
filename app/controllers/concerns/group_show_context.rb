@@ -24,6 +24,8 @@ module GroupShowContext
     else
       Jjaek.none
     end
+    @feed_page = FeedPage.new(jjaeks: @jjaeks, cursor: params[:cursor])
+    @jjaeks = @feed_page.items
     prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
   end

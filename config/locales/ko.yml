@@ -1,4 +1,9 @@
 ko:
+  feeds:
+    next: "다음 소식 보기"
+    loading: "소식을 불러오는 중입니다…"
+    failed: "소식을 불러오지 못했습니다. 다음 소식 보기를 눌러 다시 시도하세요."
+    end: "마지막 소식입니다."
   navigation:
     menu: "메뉴"
   devise:
@@ -174,6 +179,7 @@ ko:
       approval_required: "가입 승인 후 동아리 게시물을 볼 수 있습니다."
       empty_posts: "아직 볼 수 있는 동아리 게시물이 없습니다."
   pagination:
+    pages: "다시짹 목록 페이지"
     range: "전체 %{total}건 중 %{first}–%{last}"
     previous: "이전"
     next: "다음"

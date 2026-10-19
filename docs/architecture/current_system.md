@@ -73,7 +73,7 @@
 - 홈과 동아리 활동 피드 경계는 `docs/specs/group_activity_feed.md`를 따르며, 가입한 동아리의 통합 활동 피드는 `/groups`에서 제공함
 - BookActivity는 현재 사용자와 소식받는 accepted 책친구의 활동만 함께 섞임
 - follow-only / stranger의 BookActivity는 홈 피드에 노출하지 않음
-- Jjaek과 BookActivity는 `created_at` 기준으로 함께 정렬함
+- Jjaek과 BookActivity는 `FeedPage`로 소스별 최대 21개를 조회해 20개씩 합성하며 `created_at DESC, 타입(Jjaek 우선) DESC, id DESC`로 정렬함
 
 관련 코드:
 - controller: app/controllers/homes_controller.rb
@@ -583,6 +583,24 @@ Turbo 1차 적용 상태:
 - relationships hub의 핵심 관계 action은 section 단위로 갱신한다.
 - 책 검색 결과의 `서재에 담기` 성공 케이스는 해당 result card만 갱신한다.
 - bookshelf 관련 Turbo화는 현재 HTML fallback 흐름을 유지하며, DnD 설계 이후 재검토한다.
+
+---
+
+## 목록 로딩 (A12 / A04 / A11)
+
+- 홈·프로필 혼합 활동과 `/groups`·동아리 상세·책 상세(개인/동아리)의 Jjaek 목록은
+  `FeedPage`를 사용한다. 현재 policy scope에 서명된 timestamp/type/id cursor를 적용하며 소스당 최대 21개,
+  화면당 최대 20개만 반환한다. 독서 상태와 visible requote count는 표시 페이지에만 준비한다.
+- `feeds` partial과 `infinite-scroll` Stimulus controller가 IntersectionObserver로 다음 링크를 요청한다.
+  GET·cursor·Turbo Stream 형식·`X-Feed-Pagination: true`를 모두 만족할 때만 공통 `feed_page_request?`가
+  추가 조회로 판별해 카드 append·로딩 안내 replace를 반환한다. 중복 요청·종료·오류 재시도를 처리한다.
+  대상 다섯 화면의 `prepare_feed_response_format`은 나머지 Turbo Stream 형식 요청을 HTML로 렌더한다.
+  일반 방문·폼 리다이렉트·HTML 다음 링크는 기존 전체 화면을 제공하며 avatar preload는 유지한다.
+- 다시짹 목록은 기존 일반/제한 scope의 ID 합집합을 count·정렬·20개 단위 번호형 페이지 처리한 뒤
+  해당 ID만 hydrate한다. index와 detail-only Turbo panel은 같은 페이지 경계를 쓰며 제한 카드 정책을 유지한다.
+- 책 검색(A11)은 기존 로컬 DB/Kakao API 페이지별 조회와 이전/다음 링크를 유지한다.
+- 정책·cursor의 동시 변경 한계와 검증 기준은 `docs/specs/group_activity_feed.md` A12 및 `docs/specs/requotes_mvp.md` A04를 따른다.
+  관련 spec은 작성되었으며 실행 검증은 아직 수행하지 않았다.
 
 ---
 

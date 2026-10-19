@@ -1,6 +1,7 @@
 class GroupsController < ApplicationController
   include GroupShowContext
 
+  before_action :prepare_feed_response_format, only: %i[index show]
   before_action :set_group, only: %i[show edit update]
   before_action :prepare_group_creation, only: :create
   rate_limit to: 5, within: 24.hours, by: -> { current_user.id },
@@ -8,15 +9,19 @@ class GroupsController < ApplicationController
 
   def index
     authorize Group
-    @groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
-      .includes(:group_memberships, group_admin: { avatar_attachment: :blob })
-      .order(created_at: :desc, id: :desc)
     @group_activity_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupActivityScope)
       .includes(:book, :likes, :comments, :group, :moderation_actions,
                 user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
       .order(created_at: :desc, id: :desc)
+    @feed_page = FeedPage.new(jjaeks: @group_activity_jjaeks, cursor: params[:cursor])
+    @group_activity_jjaeks = @feed_page.items
     prepare_current_reading_states_for(@group_activity_jjaeks)
     prepare_visible_requote_counts_for(@group_activity_jjaeks)
+    return render_feed_page(context: :group, next_url: groups_path(cursor: @feed_page.next_cursor)) if feed_page_request?
+
+    @groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
+      .includes(:group_memberships, group_admin: { avatar_attachment: :blob })
+      .order(created_at: :desc, id: :desc)
     @invitations = current_user.group_memberships.invited
       .joins(:group)
       .merge(Group.active)
@@ -26,6 +31,10 @@ class GroupsController < ApplicationController
 
   def show
     authorize @group
+    if feed_page_request?
+      prepare_group_jjaek_context
+      return render_feed_page(context: :group, next_url: group_path(@group, cursor: @feed_page.next_cursor))
+    end
     prepare_group_show_context
     @jjaek = Jjaek.new(user: current_user, group: @group) if policy(@group).create_jjaek?
   end

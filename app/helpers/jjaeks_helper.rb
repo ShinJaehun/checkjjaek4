@@ -73,7 +73,7 @@ module JjaeksHelper
     path, filter_keys = jjaek_return_destination(route, query)
     return unless path
 
-    filters = query.permit(*filter_keys).to_h
+    filters = query.slice(*filter_keys).permit(*filter_keys).to_h
     if path == book_search_path && include_search_origin
       origin = validated_jjaek_return_path(query[:search_origin], include_search_origin: false)
       filters["search_origin"] = origin if origin

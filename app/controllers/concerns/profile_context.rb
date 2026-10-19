@@ -36,8 +36,6 @@ module ProfileContext
       else
         Jjaek.none
       end
-    prepare_current_reading_states_for(@jjaeks)
-    prepare_visible_requote_counts_for(@jjaeks)
   end
 
   def prepare_profile_book_activities
@@ -57,7 +55,12 @@ module ProfileContext
   end
 
   def prepare_profile_activity_items
-    @profile_activity_items = (@jjaeks.to_a + @book_activities.to_a).sort_by(&:created_at).reverse
+    @feed_page = FeedPage.new(jjaeks: @jjaeks, book_activities: @book_activities, cursor: params[:cursor])
+    @profile_activity_items = @feed_page.items
+    @jjaeks = @profile_activity_items.grep(Jjaek)
+    @book_activities = @profile_activity_items.grep(BookActivity)
+    prepare_current_reading_states_for(@jjaeks)
+    prepare_visible_requote_counts_for(@jjaeks)
     @show_profile_activity = @show_jjaeks || current_user == @user || @profile_activity_items.any?
   end
 end

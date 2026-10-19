@@ -8,7 +8,10 @@ module HomeFeedContext
     @feed_book_activities = policy_scope(BookActivity, policy_scope_class: BookActivityPolicy::FeedScope)
       .includes(:book, user: { avatar_attachment: :blob })
       .recent
-    @feed_items = (@feed_jjaeks.to_a + @feed_book_activities.to_a).sort_by(&:created_at).reverse
+    @feed_page = FeedPage.new(jjaeks: @feed_jjaeks, book_activities: @feed_book_activities, cursor: params[:cursor])
+    @feed_items = @feed_page.items
+    @feed_jjaeks = @feed_items.grep(Jjaek)
+    @feed_book_activities = @feed_items.grep(BookActivity)
     prepare_current_reading_states_for(@feed_jjaeks)
     prepare_visible_requote_counts_for(@feed_jjaeks)
   end

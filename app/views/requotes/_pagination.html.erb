@@ -1,0 +1,16 @@
+<% if @total_pages > 1 %>
+  <nav class="flex flex-wrap items-center justify-center gap-3 py-4 text-sm" aria-label="<%= t('pagination.pages') %>">
+    <% numbers = [ 1, @total_pages, *((@page - 2)..(@page + 2)) ].select { |number| number.between?(1, @total_pages) }.uniq.sort %>
+    <% numbers.each_with_index do |number, index| %>
+      <% if index.positive? && number > numbers[index - 1] + 1 %>
+        <span aria-hidden="true">…</span>
+      <% end %>
+      <% if number == @page %>
+        <span aria-current="page" class="font-semibold"><%= number %></span>
+      <% else %>
+        <%= link_to number, jjaek_requotes_path(@jjaek, jjaek_detail_return_params(@jjaek).merge(page: number)),
+                    class: "underline", data: { turbo_stream: (true if request.format.turbo_stream?) } %>
+      <% end %>
+    <% end %>
+  </nav>
+<% end %>

@@ -32,7 +32,7 @@
 - 책장을 private으로 변경하거나 항목을 private 책장으로 이동하면 과거 추가 활동도 다른 사용자에게 표시하지 않는다.
 - 현재 관계와 현재 책장 공개 범위를 조회 시 policy/scope에서 함께 확인한다.
 - global admin의 운영 조사용 ProfileScope 예외는 유지한다. 일반 홈·관계 scope의 권한은 확대하지 않는다.
-- Jjaek과 BookActivity는 기존대로 `created_at` 최신순으로 합성한다.
+- Jjaek과 BookActivity의 20개 단위 혼합 cursor 조회와 동일 시각 정렬은 `group_activity_feed.md`의 A12 Delta Specs를 따른다.
 - 책 상세 목록에는 BookActivity를 합성하지 않는다.
 
 ## 카드 표현

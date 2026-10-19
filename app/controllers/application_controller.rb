@@ -12,6 +12,7 @@ class ApplicationController < ActionController::Base
   before_action :configure_permitted_parameters, if: :devise_controller?
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+  rescue_from FeedPage::InvalidCursor, with: -> { head :bad_request }
 
   protected
 
@@ -29,6 +30,24 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  def feed_page_request?
+    request.get? && request.format.turbo_stream? &&
+      request.headers["X-Feed-Pagination"] == "true" && params[:cursor].present?
+  end
+
+  def prepare_feed_response_format
+    return unless request.format.turbo_stream?
+    return if feed_page_request?
+
+    # Turbo can retain its stream Accept header while following a form redirect.
+    request.format = :html
+    self.formats = [ :html ]
+  end
+
+  def render_feed_page(context:, next_url:)
+    render "feeds/page", locals: { page: @feed_page, context:, next_url:, profile_user: @user, book: @book }
+  end
 
   def authentication_rate_limit_exceeded
     self.resource = resource_class.new
@@ -56,9 +75,9 @@ class ApplicationController < ActionController::Base
     redirect_to new_user_session_path, alert: message, status: :see_other
   end
 
-  def prepare_book_show_read_context
-    @bookshelves = current_user.bookshelves.default_first
-    if @bookshelf_entry.present?
+  def prepare_book_show_read_context(feed_only: false)
+    @bookshelves = current_user.bookshelves.default_first unless feed_only
+    if @bookshelf_entry.present? && !feed_only
       @book_post_groups = policy_scope(Group, policy_scope_class: GroupPolicy::CreateJjaekScope)
         .order(:name, :id).select { |group| policy(group).create_jjaek? }
     end
@@ -69,7 +88,8 @@ class ApplicationController < ActionController::Base
     else
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::BookScope)
     end
-    @jjaeks = @jjaeks.where(quoted_jjaek_id: nil).recent
+    @feed_page = FeedPage.new(jjaeks: @jjaeks.where(quoted_jjaek_id: nil), cursor: params[:cursor])
+    @jjaeks = @feed_page.items
     prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
   end

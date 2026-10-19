@@ -1,4 +1,9 @@
 en:
+  feeds:
+    next: "Show more updates"
+    loading: "Loading updates…"
+    failed: "Could not load updates. Select Show more updates to retry."
+    end: "You have reached the end."
   navigation:
     menu: "Menu"
   devise:
@@ -172,6 +177,7 @@ en:
       approval_required: "Club posts are available after your membership is approved."
       empty_posts: "No club posts are available to read yet."
   pagination:
+    pages: "Requote pages"
     range: "%{first}–%{last} of %{total}"
     previous: "Previous"
     next: "Next"

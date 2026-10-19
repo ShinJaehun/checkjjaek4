@@ -1,0 +1,6 @@
+<%= turbo_stream.append "feed-items" do %>
+  <%= render "feeds/cards", items: page.items, context:, profile_user:, book: %>
+<% end %>
+<%= turbo_stream.replace "feed-pagination" do %>
+  <%= render "feeds/pagination", page:, next_url: %>
+<% end %>

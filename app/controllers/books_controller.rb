@@ -1,4 +1,5 @@
 class BooksController < ApplicationController
+  before_action :prepare_feed_response_format, only: :show
   before_action :set_book, only: :show
 
   def lookup
@@ -24,8 +25,12 @@ class BooksController < ApplicationController
     @group = find_group_context
     authorize @group, :create_jjaek? if @group.present?
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
-    prepare_book_write_context if @bookshelf_entry.present?
-    prepare_book_show_read_context
+    prepare_book_write_context if @bookshelf_entry.present? && !feed_page_request?
+    prepare_book_show_read_context(feed_only: feed_page_request?)
+    if feed_page_request?
+      render_feed_page(context: :book, next_url: book_path(@book, group_id: @group&.id,
+        return_to: view_context.validated_jjaek_return_path(params[:return_to]), cursor: @feed_page.next_cursor))
+    end
   end
 
   private

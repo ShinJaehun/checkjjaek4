@@ -122,11 +122,10 @@
 3. ReJjaek visibility validation 변경
 4. ReJjaek의 ReJjaek 허용
 5. modal UI
-6. pagination
-7. “다시짹한 사용자만” 보여주는 축약형 목록
-8. 기존 홈/프로필 피드 카드 레이아웃 변경
-9. 기존 ReJjaek 생성 관련 request spec 재배치
-10. 기존 ReJjaek 관련 model/policy 코드 리팩토링
+6. “다시짹한 사용자만” 보여주는 축약형 목록
+7. 기존 홈/프로필 피드 카드 레이아웃 변경
+8. 기존 ReJjaek 생성 관련 request spec 재배치
+9. 기존 ReJjaek 관련 model/policy 코드 리팩토링
 
 ### 버튼 노출
 
@@ -179,7 +178,7 @@ app/controllers/requotes_controller.rb
 2. `authorize @jjaek, :view_requotes?`로 원문 목록 접근 가능 여부를 확인한다.
 3. `policy_scope(Jjaek).where(quoted_jjaek_id: @jjaek.id)`로 viewer가 읽을 수 있는 A·B·C 다시짹을 가져온다.
 4. 원문 작성자에게는 `JjaekPolicy::RestrictedRequoteScope`로 읽을 수 없는 유효 동아리 다시짹의 제한 카드를 더한다. 원문의 개수에도 같은 두 scope를 사용한다.
-5. 전체 결과를 `recent` 순서로 표시한다.
+5. 일반·제한 scope의 ID 합집합에서 페이지 경계를 결정하고, 해당 페이지의 카드만 `created_at DESC, id DESC`로 표시한다.
 
 controller는 일반 카드와 제한 카드 여부를 함께 view에 넘기고, 기존 `jjaeks/_jjaek` 렌더링에 필요한 association을 preload한다.
 
@@ -314,9 +313,33 @@ spec/requests/requotes_spec.rb
 
 MVP 이후 아래를 검토할 수 있다.
 
-1. ReJjaek 목록 pagination
-2. “다시짹한 사용자만 보기” 축약 목록
-3. modal 형태의 빠른 목록
-4. ReJjaek count와 목록의 N+1 점검
-5. 기존 `jjaeks_spec.rb`에 흩어진 ReJjaek 생성/알림/상세 테스트 정리
-6. ReJjaek은 `book_id`를 직접 가지지 않는다는 모델 invariant 추가 여부 검토
+1. “다시짹한 사용자만 보기” 축약 목록
+2. modal 형태의 빠른 목록
+3. ReJjaek count와 목록의 N+1 점검
+4. 기존 `jjaeks_spec.rb`에 흩어진 ReJjaek 생성/알림/상세 테스트 정리
+5. ReJjaek은 `book_id`를 직접 가지지 않는다는 모델 invariant 추가 여부 검토
+
+
+## A04 Delta Specs — 번호형 페이지네이션 `(확정)`
+
+### Proposal / Specs
+
+- **ADDED:** `GET /jjaeks/:jjaek_id/requotes`에 20개 단위 번호형 페이지네이션을 적용한다.
+  일반 독자의 visible 카드와 원문 작성자 전용 제한 카드는 기존 두 scope를 사용하며 하나의 목록으로 센다.
+- **MODIFIED:** `created_at DESC, id DESC`로 결정적으로 정렬한 전체 허용 ID 목록에서 페이지를 선택한다.
+  일반·제한 카드를 따로 페이지 처리하거나 전체 객체를 로드한 뒤 slice하지 않는다.
+- **ADDED:** page 생략·정수 형식 아님·0 이하 값은 1페이지, 마지막 페이지 초과 값은 마지막 페이지로 보정한다.
+  빈 목록은 1페이지의 기존 빈 상태를 표시한다. 화면 번호 링크는 처음·끝·현재 주변과 생략 부호로 제한한다.
+- **MODIFIED:** HTML은 기존 index, Turbo는 기존 detail-only 다시짹 panel을 렌더하며 두 경로에 같은 번호 링크를 제공한다.
+  원문 읽기 권한·일반/제한 카드 partial·익명화·count 정책은 유지한다. A05 사용자 목록·모달은 제외한다.
+
+### Design / Tasks
+
+- 일반 scope와 `RestrictedRequoteScope`의 ID subquery를 OR로 합친 Relation에서 count와
+  `LIMIT 20 / OFFSET` ID 조회를 수행한다. 번호형 목록에만 OFFSET을 사용한다.
+- 선택된 ID에 대해서만 일반 카드의 association과 제한 카드의 최소 필드를 hydrate하고,
+  ID 페이지 순서로 합친다. 제한 카드는 원문 작성자에게만 조회하며 일반 scope와 중복되지 않는다.
+- 페이지별 현재 권한을 다시 적용한다. 연속된 요청 사이에 추가·삭제·권한 변경이 있으면 번호형 페이지의
+  위치와 전체 페이지 수는 달라질 수 있으며 고정 snapshot은 제공하지 않는다.
+- 일반/제한 카드의 동일 시각 혼합 경계, 잘못된 page·빈 결과·원문 권한·DB 객체 로드 상한과
+  HTML/Turbo panel 링크를 Request spec으로 검증한다. 실행 검증은 사용자 담당이다.

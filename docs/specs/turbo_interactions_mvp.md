@@ -156,7 +156,7 @@ ReJjaek은 visibility 정책 영향이 크다.
 ### 구현 기준
 
 - 기존 RequotesController#index와 policy_scope를 유지한다.
-- inline panel에서도 visible ReJjaek만 보여준다.
+- inline panel에서도 `requotes_mvp.md`의 일반/원문 작성자 전용 제한 카드 scope와 동일한 페이지 경계를 적용한다.
 - HTML fallback으로 기존 index 페이지 접근을 유지한다.
 
 ### 현재 구현
@@ -166,7 +166,7 @@ ReJjaek은 visibility 정책 영향이 크다.
 - 공통 Jjaek card action의 `_requote_link.html.erb`는 기존 `다시짹 N개` HTML 링크를 유지한다.
 - `GET /jjaeks/:jjaek_id/requotes` HTML 요청은 기존 ReJjaek index 페이지를 그대로 렌더한다.
 - Turbo Stream 요청은 `requotes_panel_jjaek_ID` target만 replace한다.
-- RequotesController#index의 기존 `authorize @jjaek, :requote?`와 `policy_scope(Jjaek)` 기반 visible ReJjaek 조회를 유지한다.
+- RequotesController#index는 `authorize @jjaek, :view_requotes?`로 원문 읽기 권한을 검사하며, 일반 카드는 `policy_scope(Jjaek)`로 제한한다. 원문 작성자 전용 제한 카드와 A04 번호형 페이지 처리 기준은 `requotes_mvp.md`를 따른다.
 - panel 안에서는 visible heading을 반복 표시하지 않고 `sr-only` heading만 유지한다.
 - ReJjaek policy, visibility, source deletion 로직은 변경하지 않는다.
 
