@@ -3,7 +3,7 @@ module GroupShowContext
 
   def prepare_group_show_context
     active_member_scope = @group.active_group_memberships.where.not(user_id: @group.group_admin_id)
-    @member_preview = active_member_scope.includes(:user).order(:created_at, :id).limit(5).map(&:user)
+    @member_preview = active_member_scope.includes(user: { avatar_attachment: :blob }).order(:created_at, :id).limit(5).map(&:user)
     @active_member_count = active_member_scope.count
     @membership = @group.group_memberships.find_by(user: current_user)
     @group_member_ban = @group.group_member_bans.find_by(user: current_user)
@@ -20,7 +20,7 @@ module GroupShowContext
       policy_scope(
         @group.jjaeks,
         policy_scope_class: JjaekPolicy::GroupContentScope
-      ).includes(:user, :book, :group, :moderation_actions, quoted_jjaek: [ :user, :book, :group ]).recent
+      ).includes(:book, :group, :moderation_actions, user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
     else
       Jjaek.none
     end

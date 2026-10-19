@@ -4,18 +4,18 @@ class GroupMembersController < ApplicationController
     authorize @group, :view_members?
     @admin_navigation_context = params[:context] == "admin" && current_user.global_admin?
 
-    @active_memberships = @group.group_memberships.active.includes(:user).order(:created_at)
+    @active_memberships = @group.group_memberships.active.includes(user: { avatar_attachment: :blob }).order(:created_at)
     @pending_memberships = if @group.approval_group?
-      @group.group_memberships.pending.includes(:user).order(:created_at)
+      @group.group_memberships.pending.includes(user: { avatar_attachment: :blob }).order(:created_at)
     else
       GroupMembership.none
     end
     @sent_invitations = if @group.private_group?
-      @group.group_memberships.invited.includes(:user).order(:created_at)
+      @group.group_memberships.invited.includes(user: { avatar_attachment: :blob }).order(:created_at)
     else
       GroupMembership.none
     end
-    @group_member_bans = @group.group_member_bans.includes(:user).order(created_at: :desc)
+    @group_member_bans = @group.group_member_bans.includes(user: { avatar_attachment: :blob }).order(created_at: :desc)
     @ban_actions_by_id = ban_actions_by_id
     @current_activity_suspensions_by_membership_id = current_activity_suspensions_by_membership_id
     @membership_history = membership_history

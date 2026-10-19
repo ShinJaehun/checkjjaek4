@@ -62,7 +62,8 @@ class ApplicationController < ActionController::Base
       @book_post_groups = policy_scope(Group, policy_scope_class: GroupPolicy::CreateJjaekScope)
         .order(:name, :id).select { |group| policy(group).create_jjaek? }
     end
-    book_jjaeks = @book.jjaeks.includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book ])
+    book_jjaeks = @book.jjaeks.includes(:book, :group, :likes, :comments,
+      user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })
     @jjaeks = if @group.present? && @bookshelf_entry.present?
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::GroupContentScope).where(group: @group)
     else

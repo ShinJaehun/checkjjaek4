@@ -229,7 +229,7 @@ class JjaeksController < ApplicationController
 
   def prepare_comments
     @comment = Comment.new(jjaek: @jjaek)
-    @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+    @comments = @jjaek.comments.includes(user: { avatar_attachment: :blob }).order(created_at: :asc)
     prepare_comment_moderation_histories(@comments)
   end
 

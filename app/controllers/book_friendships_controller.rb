@@ -33,8 +33,8 @@ class BookFriendshipsController < ApplicationController
     Notification.notify_book_friendship_accepted(friendship)
 
     if params[:return_to] == "relationships"
-      @received_book_friend_requests = current_user.received_book_friendships.pending.includes(:requester)
-      @book_friends = User.where(id: BookFriendship.connected_ids_for(current_user)).order(:name)
+      @received_book_friend_requests = current_user.received_book_friendships.pending.includes(requester: { avatar_attachment: :blob })
+      @book_friends = User.where(id: BookFriendship.connected_ids_for(current_user)).includes(avatar_attachment: :blob).order(:name)
       flash.now[:notice] = t("book_friendships.notices.accepted")
 
       respond_to do |format|
@@ -92,7 +92,7 @@ class BookFriendshipsController < ApplicationController
     if notice_key == :cancelled
       @relationship_section_id = "sent-book-friend-requests"
       @relationship_section_title = t("relationships.sections.sent_book_friend_requests")
-      @relationship_section_collection = current_user.requested_book_friendships.pending.includes(:addressee)
+      @relationship_section_collection = current_user.requested_book_friendships.pending.includes(addressee: { avatar_attachment: :blob })
       @relationship_section_row_partial = "relationships/book_friend_request_row"
       @relationship_section_row_locals = { direction: :sent }
       @relationship_section_empty_message = t("relationships.empty.sent_book_friend_requests")
@@ -100,7 +100,7 @@ class BookFriendshipsController < ApplicationController
       @relationship_section_id = "received-book-friend-requests"
       @relationship_section_class = "scroll-mt-6 space-y-4"
       @relationship_section_title = t("relationships.sections.received_book_friend_requests")
-      @relationship_section_collection = current_user.received_book_friendships.pending.includes(:requester)
+      @relationship_section_collection = current_user.received_book_friendships.pending.includes(requester: { avatar_attachment: :blob })
       @relationship_section_row_partial = "relationships/book_friend_request_row"
       @relationship_section_row_locals = { direction: :received }
       @relationship_section_empty_message = t("relationships.empty.received_book_friend_requests")

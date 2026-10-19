@@ -46,16 +46,18 @@ class DiscoveriesController < ApplicationController
       .limit(3)
       .pluck(:id)
     selected = author_ids.filter_map do |author_id|
-      scope.where(user_id: author_id).order(Arel.sql("RANDOM()"))
-        .includes(:user).first
+      scope.where(user_id: author_id).order(Arel.sql("RANDOM()")).first
     end
-    return selected if selected.size == 3
-
-    selected + scope.where.not(id: selected.map(&:id))
-      .order(Arel.sql("RANDOM()"))
-      .limit(3 - selected.size)
-      .includes(:user)
-      .to_a
+    if selected.size < 3
+      selected.concat(scope.where.not(id: selected.map(&:id))
+        .order(Arel.sql("RANDOM()"))
+        .limit(3 - selected.size)
+        .to_a)
+    end
+    ActiveRecord::Associations::Preloader.new(
+      records: selected, associations: { user: { avatar_attachment: :blob } }
+    ).call
+    selected
   end
 
   def prepare_recommended_library
@@ -87,7 +89,7 @@ class DiscoveriesController < ApplicationController
     @group_member_count = @group.active_group_memberships.where.not(user_id: @group.group_admin_id).count
     @group_member_preview = @group.active_group_memberships
       .where.not(user_id: @group.group_admin_id)
-      .includes(:user)
+      .includes(user: { avatar_attachment: :blob })
       .order(:created_at, :id)
       .limit(5)
       .map(&:user)
@@ -100,7 +102,7 @@ class DiscoveriesController < ApplicationController
     readable_source_ids = policy_scope(Jjaek).where(hidden_at: nil, deleted_at: nil).select(:id)
     readable_posts = group_posts.where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
       .or(group_posts.where(quoted_jjaek_id: readable_source_ids))
-    @group_posts = readable_posts.includes(:user, :book)
+    @group_posts = readable_posts.includes(:book, user: { avatar_attachment: :blob })
       .order(created_at: :desc, id: :desc)
       .limit(3)
       .to_a

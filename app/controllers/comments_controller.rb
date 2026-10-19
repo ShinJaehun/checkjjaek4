@@ -169,7 +169,7 @@ class CommentsController < ApplicationController
   end
 
   def prepare_comments_panel(comment:, editing_comment: nil)
-    @comments = @jjaek.comments.includes(:user).order(created_at: :asc)
+    @comments = @jjaek.comments.includes(user: { avatar_attachment: :blob }).order(created_at: :asc)
     if editing_comment.present?
       @comments = @comments.map { |record| record.id == editing_comment.id ? editing_comment : record }
     end

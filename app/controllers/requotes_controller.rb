@@ -10,7 +10,7 @@ class RequotesController < ApplicationController
 
     readable_requotes = policy_scope(Jjaek)
       .where(quoted_jjaek_id: @jjaek.id)
-      .includes(:user, :book, :group, :target_user, :likes, :comments, quoted_jjaek: [ :user, :book, :group ])
+      .includes(:book, :group, :likes, :comments, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
       .recent
 
     prepare_current_reading_states_for(readable_requotes)
@@ -20,7 +20,7 @@ class RequotesController < ApplicationController
         .new(current_user, Jjaek.where(quoted_jjaek_id: @jjaek.id))
         .resolve
         .select(:id, :user_id, :group_id, :quoted_jjaek_id, :created_at, :hidden_at, :deleted_at)
-        .preload(:user, :group)
+        .preload(:group, user: { avatar_attachment: :blob })
       @requotes.concat(restricted_requotes.map { |requote| [ requote, true ] })
       @requotes.sort_by! { |requote, _restricted| [ requote.created_at, requote.id ] }.reverse!
     end

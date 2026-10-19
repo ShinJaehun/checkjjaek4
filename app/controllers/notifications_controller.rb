@@ -1,7 +1,7 @@
 class NotificationsController < ApplicationController
   def index
     authorize Notification
-    @notifications = policy_scope(Notification).includes(:actor, :notifiable).recent.to_a
+    @notifications = policy_scope(Notification).includes(:notifiable, actor: { avatar_attachment: :blob }).recent.to_a
     @unread_notification_ids = @notifications.filter_map { |notification| notification.id if notification.unread? }
     mark_notifications_as_read
   end

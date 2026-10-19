@@ -144,10 +144,10 @@ class GroupContentThreadQuery
   def hydrate(rows)
     root_ids = rows.map { |row| row.fetch("jjaek_id").to_i }
     roots = @thread_scope.where(id: root_ids)
-      .includes(:user, :book)
+      .includes(:book, user: { avatar_attachment: :blob })
       .index_by(&:id)
     comments_by_root_id = @scoped_comments.where(jjaek_id: root_ids)
-      .includes(:user)
+      .includes(user: { avatar_attachment: :blob })
       .order(created_at: :desc, id: :desc)
       .group_by(&:jjaek_id)
 

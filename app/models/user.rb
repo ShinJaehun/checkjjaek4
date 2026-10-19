@@ -1,3 +1,5 @@
+require "image_processing/vips"
+
 class User < ApplicationRecord
   HANDLE_FORMAT = /\A[a-z][a-z0-9_]{2,29}\z/
   RESERVED_HANDLES = %w[admin account books groups jjaeks users settings sign_in sign_out sign_up].freeze
@@ -29,7 +31,7 @@ class User < ApplicationRecord
 
   attr_accessor :handle_required_for_registration
 
-  has_one_attached :avatar, service: (Rails.env.production? ? :oci_avatars : nil)
+  has_one_attached :avatar
   AVATAR_CONTENT_TYPES = %w[image/jpeg image/png image/webp].freeze
   MAX_AVATAR_SIZE = 5.megabytes
 
@@ -196,6 +198,47 @@ class User < ApplicationRecord
 
     errors.add(:avatar, :invalid_format) unless AVATAR_CONTENT_TYPES.include?(avatar.blob.content_type)
     errors.add(:avatar, :too_large) if avatar.blob.byte_size > MAX_AVATAR_SIZE
+    validate_avatar_image if errors[:avatar].empty? && attachment_changes["avatar"].present?
+  end
+
+  def validate_avatar_image
+    attachable = attachment_changes.fetch("avatar").attachable
+    io = case attachable
+    when Hash then attachable.fetch(:io)
+    when File then attachable
+    else attachable.tempfile if attachable.respond_to?(:tempfile)
+    end
+
+    if io
+      # Hash attachables can contain a StringIO; libvips needs a local file.
+      Tempfile.create([ "avatar-validation", ".image" ]) do |file|
+        file.binmode
+        io.rewind
+        IO.copy_stream(io, file)
+        file.flush
+        process_avatar_image(file)
+      end
+    else
+      avatar.blob.open { |file| process_avatar_image(file) }
+    end
+  rescue Vips::Error, ImageProcessing::Error, ActiveStorage::FileNotFoundError, ActiveStorage::IntegrityError
+    errors.add(:avatar, :invalid_format)
+  ensure
+    io&.rewind
+  end
+
+  def process_avatar_image(file)
+    image = Vips::Image.new_from_file(file.path, access: :sequential, fail_on: :warning)
+    unless %w[jpegload pngload webpload].include?(image.get("vips-loader"))
+      errors.add(:avatar, :invalid_format)
+      return
+    end
+
+    # Force decoding and the same resize used by the largest displayed variant.
+    result = ImageProcessing::Vips.source(file.path).loader(access: :sequential, fail_on: :warning)
+      .resize_to_fill(512, 512).convert("png").call
+  ensure
+    result&.close!
   end
 
   def purge_avatar_after_withdrawal

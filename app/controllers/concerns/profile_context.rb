@@ -45,7 +45,7 @@ module ProfileContext
       @user.book_activities,
       policy_scope_class: BookActivityPolicy::ProfileScope
     )
-      .includes(:user, :book)
+      .includes(:book, user: { avatar_attachment: :blob })
       .recent
   end
 
@@ -53,7 +53,7 @@ module ProfileContext
     policy_scope(
       @user.jjaeks,
       policy_scope_class: JjaekPolicy::ProfileScope
-    ).includes(:user, :book, :group, :target_user, :likes, :comments, :moderation_actions, quoted_jjaek: [ :user, :book, :group ]).recent
+    ).includes(:book, :group, :likes, :comments, :moderation_actions, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
   end
 
   def prepare_profile_activity_items

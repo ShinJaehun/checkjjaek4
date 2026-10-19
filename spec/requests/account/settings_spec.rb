@@ -173,6 +173,8 @@ RSpec.describe "Settings", type: :request do
     sign_in user
     patch avatar_account_settings_path, params: { user: { avatar: png_upload } }
     original_blob_id = user.reload.avatar.blob_id
+    get account_settings_path
+    original_src = Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]
 
     Tempfile.create([ "invalid-avatar", ".svg" ]) do |file|
       file.binmode
@@ -185,21 +187,60 @@ RSpec.describe "Settings", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include(I18n.t("activerecord.errors.models.user.attributes.avatar.invalid_format"))
     expect(user.reload.avatar.blob_id).to eq(original_blob_id)
-    expect(Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]).to include("/rails/active_storage/representations/")
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#avatar-settings img")["src"]).to eq(original_src)
+    expect(page.at_css("nav a[href='#{user_path(user)}'] img")["src"]).to eq(original_src)
   end
 
   it "keeps the existing image when storage rejects a replacement upload" do
     sign_in user
     patch avatar_account_settings_path, params: { user: { avatar: png_upload(1) } }
     original_blob_id = user.reload.avatar.blob_id
+    original_attachment_id = user.avatar_attachment.id
+    get account_settings_path
+    original_src = Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]
     allow_any_instance_of(ActiveStorage::Blob).to receive(:upload_without_unfurling).and_raise("storage unavailable")
 
-    patch avatar_account_settings_path, params: { user: { avatar: png_upload(2) } }
+    expect {
+      perform_enqueued_jobs(only: ActiveStorage::PurgeJob) do
+        patch avatar_account_settings_path, params: { user: { avatar: png_upload(2) } }
+      end
+    }.not_to change(ActiveStorage::Blob, :count)
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include(I18n.t("settings.avatar.upload_failed"))
     expect(user.reload.avatar.blob_id).to eq(original_blob_id)
-    expect(Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]).to include("/rails/active_storage/representations/")
+    expect(user.avatar_attachment.id).to eq(original_attachment_id)
+    expect(ActiveStorage::Blob.exists?(original_blob_id)).to be(true)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#avatar-settings img")["src"]).to eq(original_src)
+    expect(page.at_css("nav a[href='#{user_path(user)}'] img")["src"]).to eq(original_src)
+  end
+
+  it "rejects a damaged replacement before uploading and preserves both displayed avatars" do
+    sign_in user
+    patch avatar_account_settings_path, params: { user: { avatar: png_upload } }
+    original_blob_id = user.reload.avatar.blob_id
+    get account_settings_path
+    original_src = Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]
+    expect_any_instance_of(ActiveStorage::Blob).not_to receive(:upload_without_unfurling)
+
+    expect {
+      Tempfile.create([ "damaged-avatar", ".png" ]) do |file|
+        file.binmode
+        png = File.binread(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"))
+        file.write(png.byteslice(0, png.bytesize / 2))
+        file.flush
+        patch avatar_account_settings_path, params: { user: { avatar: Rack::Test::UploadedFile.new(file.path, "image/png") } }
+      end
+    }.not_to change(ActiveStorage::Blob, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("activerecord.errors.models.user.attributes.avatar.invalid_format"))
+    expect(user.reload.avatar.blob_id).to eq(original_blob_id)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#avatar-settings img")["src"]).to eq(original_src)
+    expect(page.at_css("nav a[href='#{user_path(user)}'] img")["src"]).to eq(original_src)
   end
 
   it "rejects an oversized image without creating an attachment" do

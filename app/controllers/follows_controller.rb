@@ -25,7 +25,7 @@ class FollowsController < ApplicationController
     follow.destroy!
 
     if params[:return_to] == "relationships"
-      @following_users = current_user.followees.order(:name)
+      @following_users = current_user.followees.includes(avatar_attachment: :blob).order(:name)
       flash.now[:notice] = t("follows.notices.destroyed")
 
       respond_to do |format|

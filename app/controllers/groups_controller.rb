@@ -9,11 +9,11 @@ class GroupsController < ApplicationController
   def index
     authorize Group
     @groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
-      .includes(:group_admin, :group_memberships)
+      .includes(:group_memberships, group_admin: { avatar_attachment: :blob })
       .order(created_at: :desc, id: :desc)
     @group_activity_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupActivityScope)
-      .includes(:user, :book, :target_user, :likes, :comments, :group, :moderation_actions,
-                quoted_jjaek: [ :user, :book, :group ])
+      .includes(:book, :likes, :comments, :group, :moderation_actions,
+                user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
       .order(created_at: :desc, id: :desc)
     prepare_current_reading_states_for(@group_activity_jjaeks)
     prepare_visible_requote_counts_for(@group_activity_jjaeks)

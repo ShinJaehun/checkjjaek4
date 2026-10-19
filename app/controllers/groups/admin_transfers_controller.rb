@@ -23,7 +23,7 @@ module Groups
       @admin_transfer_candidates = @group.active_group_memberships
         .moderation_status_normal
         .where.not(user_id: @group.group_admin_id)
-        .includes(:user)
+        .includes(user: { avatar_attachment: :blob })
         .map(&:user)
         .sort_by(&:name)
     end

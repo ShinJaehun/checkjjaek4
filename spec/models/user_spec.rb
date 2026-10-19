@@ -115,9 +115,71 @@ RSpec.describe User, type: :model do
     png_header = File.binread(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"))
     user.avatar = { io: StringIO.new(png_header + "x" * (User::MAX_AVATAR_SIZE + 1)), filename: "large.png", content_type: "image/png" }
 
+    expect(Vips::Image).not_to receive(:new_from_file)
     expect(user).not_to be_valid
     expect(user.errors[:avatar]).to be_present
     expect(User.find(user.id).avatar).not_to be_attached
+  end
+
+  { "jpg" => "image/jpeg", "png" => "image/png", "webp" => "image/webp" }.each do |extension, content_type|
+    it "accepts and saves a decodable #{extension} avatar" do
+      image = Vips::Image.new_from_file(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png").to_s)
+      user = described_class.create!(name: "Image reader", email: "#{extension}-avatar@example.com", password: "password123!")
+      user.avatar = {
+        io: StringIO.new(image.write_to_buffer(".#{extension}")),
+        filename: "avatar.#{extension}", content_type:
+      }
+
+      expect(user.save).to be(true)
+      expect(user.reload.avatar.blob.content_type).to eq(content_type)
+    end
+  end
+
+  it "rejects a disguised SVG even when its declared MIME type is accepted" do
+    user = described_class.create!(name: "Disguised image", email: "disguised-avatar@example.com", password: "password123!")
+    user.avatar = {
+      io: StringIO.new('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>'),
+      filename: "avatar.png", content_type: "image/png", identify: false
+    }
+
+    expect(user).not_to be_valid
+    expect(user.errors[:avatar]).to be_present
+    expect(user.reload.avatar).not_to be_attached
+  end
+
+  it "rejects damaged PNG pixels before replacing the saved avatar" do
+    user = described_class.create!(name: "Damaged image", email: "damaged-avatar@example.com", password: "password123!")
+    png = File.binread(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"))
+    user.avatar.attach(io: StringIO.new(png), filename: "original.png", content_type: "image/png")
+    original_blob_id = user.avatar.blob_id
+    user.avatar = { io: StringIO.new(png.byteslice(0, png.bytesize / 2)), filename: "damaged.png", content_type: "image/png" }
+
+    expect(user.save).to be(false)
+    expect(user.errors[:avatar]).to be_present
+    expect(user.reload.avatar.blob_id).to eq(original_blob_id)
+  end
+
+  it "returns a validation error when a decoder cannot transform an otherwise accepted upload" do
+    user = described_class.create!(name: "Decoder failure", email: "decoder-avatar@example.com", password: "password123!")
+    png = File.binread(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"))
+    user.avatar = { io: StringIO.new(png), filename: "avatar.png", content_type: "image/png" }
+    allow(ImageProcessing::Vips).to receive(:source).and_raise(Vips::Error, "decode failed")
+
+    expect(user.save).to be(false)
+    expect(user.errors[:avatar]).to be_present
+    expect(user.reload.avatar).not_to be_attached
+  end
+
+  it "does not download or decode an unchanged avatar when saving other settings" do
+    user = described_class.create!(name: "Existing image", email: "existing-avatar@example.com", password: "password123!")
+    File.open(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")) do |file|
+      user.avatar.attach(io: file, filename: "avatar.png", content_type: "image/png")
+    end
+    user.reload
+    expect(Vips::Image).not_to receive(:new_from_file)
+    expect_any_instance_of(ActiveStorage::Blob).not_to receive(:open)
+
+    expect(user.update(name: "Renamed reader")).to be(true)
   end
 
   it "chooses from the least used default avatar indexes" do

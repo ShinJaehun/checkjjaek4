@@ -29,8 +29,7 @@ module Account
           blob.purge_later if blob.persisted?
           Rails.logger.error("Avatar upload failed: #{error.class}: #{error.message}")
           @avatar_errors = [ t("settings.avatar.upload_failed") ]
-          @user = User.find(@user.id)
-          return render :show, status: :unprocessable_content
+          return render_avatar_failure
         end
 
         @user.avatar = blob
@@ -40,10 +39,7 @@ module Account
         blob.purge_later
       end
 
-      @avatar_errors = @user.errors.full_messages
-      @user = User.find(@user.id)
-      current_user.reload
-      render :show, status: :unprocessable_content
+      render_avatar_failure
     end
 
     def destroy_avatar
@@ -53,6 +49,12 @@ module Account
     end
 
     private
+
+    def render_avatar_failure
+      @avatar_errors ||= @user.errors.full_messages
+      @user = current_user.reload
+      render :show, status: :unprocessable_content
+    end
 
     def settings_params
       params.require(:user).permit(
