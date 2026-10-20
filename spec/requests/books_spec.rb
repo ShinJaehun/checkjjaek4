@@ -291,6 +291,8 @@ RSpec.describe "Books", type: :request do
       expect(preview.text).to include("Card friend님의 책짹", jjaek.content)
       expect(preview.text).to include(I18n.t("jjaeks.meta.requotes", count: 1))
       expect(preview.css("a[href='#{book_path(book)}']")).to be_empty
+      expect(preview.css("a").map { |link| link.text.strip }).not_to include(I18n.t("jjaeks.actions.view"))
+      expect(book_list.css("a").map { |link| link.text.strip }).to include(I18n.t("jjaeks.actions.view"))
       ids = [ preview, book_list ].flat_map { |card| [ card["id"], *card.css("[id]").map { |node| node["id"] } ] }
       expect(ids.uniq.size).to eq(ids.size)
       expect(preview.at_css("#book_friend_like_action_jjaek_#{jjaek.id}")).to be_present

@@ -26,7 +26,7 @@
                 new_group_jjaek_path(jjaek.group, jjaek_navigation_params.merge(quoted_jjaek_id: jjaek.id)),
                 class: "font-medium text-stone-700" %>
   <% end %>
-  <% unless detail_context %>
+  <% unless detail_context || book_friend_preview %>
     <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek, jjaek_navigation_params), class: "font-medium text-stone-700" %>
   <% end %>
 </div>

@@ -20,16 +20,13 @@
     <% end %>
   </div>
 
-  <div class="mt-4 space-y-4">
-    <% comments.each do |comment_record| %>
-      <%= render "comments/comment",
-                 jjaek: jjaek,
-                 comment: comment_record,
-                 moderation_actions: @comment_moderation_histories&.[](comment_record.id),
-                 comments_context: comments_context,
-                 comments_profile_user: comments_profile_user,
-                 comments_book: comments_book %>
-    <% end %>
+  <div id="<%= comments_panel_id %>_list" class="mt-4 space-y-4">
+    <%= render "comments/comments_list",
+               jjaek: jjaek,
+               comments: comments,
+               comments_context: comments_context,
+               comments_profile_user: comments_profile_user,
+               comments_book: comments_book %>
   </div>
 
   <% if can_create_comment %>

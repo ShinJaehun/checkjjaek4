@@ -1,0 +1,9 @@
+<% comments.each do |comment_record| %>
+  <%= render "comments/comment",
+             jjaek: jjaek,
+             comment: comment_record,
+             moderation_actions: @comment_moderation_histories&.[](comment_record.id),
+             comments_context: comments_context,
+             comments_profile_user: comments_profile_user,
+             comments_book: comments_book %>
+<% end %>

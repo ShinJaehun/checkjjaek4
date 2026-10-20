@@ -1,0 +1,13 @@
+<% if %i[book book_friend].include?(@comments_context) && @jjaek.group_id.blank? %>
+  <% other_context = @comments_context == :book ? :book_friend : :book %>
+  <% other_panel_id = comments_panel_dom_id(@jjaek, context: other_context, book: @comments_book) %>
+
+  <%= turbo_stream.update "#{other_panel_id}_list" do %>
+    <%= render "comments/comments_list",
+               jjaek: @jjaek,
+               comments: @comments,
+               comments_context: other_context,
+               comments_profile_user: nil,
+               comments_book: @comments_book %>
+  <% end %>
+<% end %>

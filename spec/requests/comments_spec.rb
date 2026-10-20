@@ -218,6 +218,112 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
   end
 
+  %w[book book_friend].each do |requested_context|
+    context "when syncing from the #{requested_context} panel" do
+      let(:other_context) { requested_context == "book" ? "book_friend" : "book" }
+      let(:panel_id) { "comments_panel_#{requested_context}_#{book.id}_jjaek_#{jjaek.id}" }
+      let(:other_panel_id) { "comments_panel_#{other_context}_#{book.id}_jjaek_#{jjaek.id}" }
+      let(:stream_headers) { { "Accept" => "text/vnd.turbo-stream.html" } }
+      let(:context_params) { { comments_context: requested_context, book_id: book.id } }
+
+      before { sign_in user }
+
+      %w[create update destroy].each do |operation|
+        it "syncs both open lists after #{operation} while preserving the other new-comment draft" do
+          page = Nokogiri::HTML.fragment("")
+          [ requested_context, other_context ].each do |panel_context|
+            get jjaek_comments_path(jjaek, comments_context: panel_context, book_id: book.id), headers: stream_headers
+            panel_html = Nokogiri::HTML.fragment(response.body).at_css("template").inner_html
+            page.add_child(Nokogiri::HTML.fragment(panel_html))
+          end
+          own_draft = page.at_css("##{panel_id} > div:last-child textarea")
+          other_draft = page.at_css("##{other_panel_id} > div:last-child textarea")
+          own_draft.content = "Submitted draft"
+          other_draft.content = "Unsubmitted draft"
+
+          case operation
+          when "create"
+            expect {
+              post jjaek_comments_path(jjaek), params: context_params.merge(comment: { content: "Synced comment" }), headers: stream_headers
+            }.to change(jjaek.comments, :count).by(1)
+          when "update"
+            patch jjaek_comment_path(jjaek, comment), params: context_params.merge(comment: { content: "Synced comment" }), headers: stream_headers
+            expect(comment.reload.content).to eq("Synced comment")
+          when "destroy"
+            expect {
+              delete jjaek_comment_path(jjaek, comment), params: context_params, headers: stream_headers
+            }.to change(jjaek.comments, :count).by(-1)
+          end
+
+          expect(response).to have_http_status(:ok)
+          streams = Nokogiri::HTML.fragment(response.body).css("turbo-stream")
+          expect(streams.map { |stream| [ stream["action"], stream["target"] ] }).to include(
+            [ "replace", panel_id ], [ "update", "#{other_panel_id}_list" ]
+          )
+          expect(streams.map { |stream| stream["target"] }).not_to include(other_panel_id)
+          other_list_stream = streams.find { |stream| stream["target"] == "#{other_panel_id}_list" }
+          expect(other_list_stream.css("form[action='#{jjaek_comments_path(jjaek)}']")).to be_empty
+          expect(other_list_stream.css("input[name='comments_context']").map { |input| input["value"] }).to all(eq(other_context))
+
+          # Apply the response's replace/update operations to the two open panels.
+          streams.each do |stream|
+            target = page.at_css("##{stream['target']}")
+            next unless target
+
+            html = stream.at_css("template").inner_html
+            if stream["action"] == "replace"
+              target.replace(html)
+            elsif stream["action"] == "update"
+              target.inner_html = html
+            end
+          end
+
+          [ panel_id, other_panel_id ].each do |id|
+            list = page.at_css("##{id}_list")
+            if operation == "destroy"
+              expect(list.text).not_to include("My comment")
+              expect(list.css("article")).to be_empty
+            else
+              expect(list.text).to include("Synced comment")
+            end
+          end
+          expect(page.at_css("##{other_panel_id} > div:last-child textarea")).to eq(other_draft)
+          expect(other_draft.text).to eq("Unsubmitted draft")
+          expect(page.at_css("##{panel_id} > div:last-child textarea").text).to be_blank
+          own_ids = page.css("##{panel_id} [id]").map { |node| node["id"] }
+          other_ids = page.css("##{other_panel_id} [id]").map { |node| node["id"] }
+          expect(own_ids & other_ids).to be_empty
+
+          # A closed panel has no list target, so the list update cannot open it.
+          get jjaek_comments_path(jjaek, comments_context: other_context, book_id: book.id, panel_state: "closed"), headers: stream_headers
+          closed_panel = Nokogiri::HTML.fragment(Nokogiri::HTML.fragment(response.body).at_css("template").inner_html)
+          expect(closed_panel.at_css("##{other_panel_id}")).to be_present
+          expect(closed_panel.at_css("##{other_panel_id}_list")).to be_nil
+        end
+      end
+
+      %w[create update].each do |operation|
+        it "keeps validation errors in the requested panel without syncing after failed #{operation}" do
+          invalid_content = "x" * 201
+          expect {
+            if operation == "create"
+              post jjaek_comments_path(jjaek), params: context_params.merge(comment: { content: invalid_content }), headers: stream_headers
+            else
+              patch jjaek_comment_path(jjaek, comment), params: context_params.merge(comment: { content: invalid_content }), headers: stream_headers
+            end
+          }.not_to change(jjaek.comments, :count)
+
+          expect(response).to have_http_status(:unprocessable_content)
+          expect(comment.reload.content).to eq("My comment")
+          streams = Nokogiri::HTML.fragment(response.body).css("turbo-stream")
+          expect(streams.map { |stream| stream["target"] }).to eq([ panel_id ])
+          expect(streams.css("textarea").map { |field| field.text.strip }).to include(invalid_content)
+          expect(response.body).to include(I18n.t("content_form.too_long", count: 200))
+        end
+      end
+    end
+  end
+
   it "falls back to the detail comments panel target for invalid comments context" do
     sign_in user
 
