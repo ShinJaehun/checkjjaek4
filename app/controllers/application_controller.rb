@@ -76,11 +76,7 @@ class ApplicationController < ActionController::Base
   end
 
   def prepare_book_show_read_context(feed_only: false)
-    @bookshelves = current_user.bookshelves.default_first unless feed_only
-    if @bookshelf_entry.present? && !feed_only
-      @book_post_groups = policy_scope(Group, policy_scope_class: GroupPolicy::CreateJjaekScope)
-        .order(:name, :id).select { |group| policy(group).create_jjaek? }
-    end
+    prepare_book_show_form_context unless feed_only
     book_jjaeks = @book.jjaeks.includes(:book, :group, :likes, :comments,
       user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })
     @jjaeks = if @group.present? && @bookshelf_entry.present?
@@ -97,6 +93,22 @@ class ApplicationController < ActionController::Base
     prepare_current_reading_states_for(@jjaeks)
     prepare_book_friend_activities unless feed_only
     prepare_visible_requote_counts_for(@jjaeks + Array(@book_friend_activities).grep(Jjaek))
+  end
+
+  def prepare_book_show_form_context
+    @bookshelves = current_user.bookshelves.default_first
+    @can_write_book_jjaek = @bookshelf_entry&.persisted? && @jjaek.present? && policy(@jjaek).create?
+    return unless @bookshelf_entry.present?
+
+    @book_post_groups = policy_scope(Group, policy_scope_class: GroupPolicy::CreateJjaekScope)
+      .order(:name, :id).select { |group| policy(group).create_jjaek? }
+    @select_book_post_destination = @quoted_jjaek.blank? && @book_post_groups.any?
+    @group_book_post = @jjaek&.group_id.present? && (@quoted_jjaek.present? || @select_book_post_destination)
+    @book_post_form_path = if @group_book_post && !@select_book_post_destination
+      group_jjaeks_path(@jjaek.group)
+    else
+      jjaeks_path
+    end
   end
 
   def prepare_book_friend_activities

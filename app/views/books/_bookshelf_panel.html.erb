@@ -37,6 +37,7 @@
     <% end %>
   </div>
 <% else %>
+  <% return_path = validated_jjaek_return_path(params[:return_to]) %>
   <div class="min-w-0 text-sm text-stone-500" data-controller="book-modal" data-action="turbo:before-cache@document->book-modal#close">
     <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-shelf-dialog" class="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50">
       <%= t("bookshelf_entries.new.title") %>
@@ -47,7 +48,7 @@
         <button type="button" data-action="book-modal#close" class="shrink-0 text-sm text-stone-600"><%= t("bookshelves.actions.close") %></button>
       </div>
       <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "min-w-0 space-y-5" do |form| %>
-        <%= hidden_field_tag :return_to, validated_jjaek_return_path(params[:return_to]) if validated_jjaek_return_path(params[:return_to]) %>
+        <%= hidden_field_tag :return_to, return_path if return_path %>
         <% if book.persisted? %>
           <%= hidden_field_tag :book_id, book.id %>
         <% else %>

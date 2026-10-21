@@ -13,6 +13,12 @@ module JjaeksHelper
     end
   end
 
+  def book_post_group_options(groups)
+    groups.map do |group|
+      [ group.name, group.id, { "data-destination-message" => t("books.show.group_destination", name: group.name) } ]
+    end
+  end
+
   def book_posting_card_classes
     "flex cursor-pointer items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-sm font-medium text-stone-600 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-950 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-amber-500"
   end

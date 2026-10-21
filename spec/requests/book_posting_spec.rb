@@ -16,6 +16,8 @@ RSpec.describe "Book posting destinations", type: :request do
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("personal")
     expect(page.at_css("select[name='jjaek[group_id]'][disabled]")).to be_present
+    group_option = page.at_css("select[name='jjaek[group_id]'] option[value='#{group.id}']")
+    expect(group_option["data-destination-message"]).to eq(I18n.t("books.show.group_destination", name: group.name))
     expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_nil
     expect(page.at_css("[data-book-posting-target='group'][hidden]")).to be_present
     expect(page.css("input[name='book_post_destination']").map { |input| input["value"] }).to eq(%w[personal group])

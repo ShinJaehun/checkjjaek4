@@ -1,15 +1,15 @@
-<% select_destination = quoted_jjaek.blank? && @book_post_groups.any? %>
-<% group_post = jjaek.group_id.present? && (quoted_jjaek.present? || select_destination) %>
+<% submit_label = t(@group_book_post ? "jjaeks.actions.publish_group_book" : "jjaeks.actions.publish_book") %>
+<% posting_destination = @group_book_post ? "group" : "personal" %>
 <section class="<%= local_assigns[:modal] ? 'p-6' : 'rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm' %>"
-         data-controller="<%= 'book-posting' if select_destination %>"
+         data-controller="<%= 'book-posting' if @select_book_post_destination %>"
          data-book-posting-personal-label-value="<%= t('jjaeks.actions.publish_book') %>"
          data-book-posting-group-label-value="<%= t('jjaeks.actions.publish_group_book') %>"
          data-book-posting-group-prompt-value="<%= t('jjaeks.form.choose_posting_group') %>"
          data-book-posting-no-groups-value="<%= t('jjaeks.form.no_postable_groups') %>">
   <% unless local_assigns[:modal] %>
-    <h2 data-book-posting-target="title" class="mb-3 text-xl font-semibold text-stone-900"><%= t(group_post ? "jjaeks.actions.publish_group_book" : "jjaeks.actions.publish_book") %></h2>
+    <h2 data-book-posting-target="title" class="mb-3 text-xl font-semibold text-stone-900"><%= submit_label %></h2>
   <% end %>
-  <% if group_post && !select_destination %>
+  <% if @group_book_post && !@select_book_post_destination %>
     <p class="mb-4 text-sm text-stone-600"><%= t("books.show.group_destination", name: jjaek.group.name) %></p>
   <% end %>
   <% if quoted_jjaek.present? %>
@@ -20,19 +20,18 @@
   <% end %>
 
   <div class="<%= quoted_jjaek.present? ? 'mt-5' : nil %>">
-    <% form_url = !select_destination && group_post ? group_jjaeks_path(jjaek.group) : jjaeks_path %>
-    <%= form_with model: jjaek, url: form_url, class: "space-y-4" do |form| %>
+    <%= form_with model: jjaek, url: @book_post_form_path, class: "space-y-4" do |form| %>
       <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
       <%= form.hidden_field :book_id, value: book.id %>
       <%= form.hidden_field :quoted_jjaek_id, value: quoted_jjaek&.id %>
 
-      <% if select_destination %>
+      <% if @select_book_post_destination %>
         <fieldset>
           <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("jjaeks.form.posting_location") %></legend>
           <div class="grid grid-cols-2 gap-3">
             <% { "personal" => "publish_book", "group" => "publish_group_book" }.each do |destination, label| %>
               <label class="<%= book_posting_card_classes %>">
-                <%= radio_button_tag :book_post_destination, destination, destination == (group_post ? "group" : "personal"),
+                <%= radio_button_tag :book_post_destination, destination, destination == posting_destination,
                                      data: { book_posting_target: "location", action: "change->book-posting#change" }, class: "sr-only" %>
                 <%= book_posting_icon(destination) %>
                 <span><%= t("jjaeks.actions.#{label}") %></span>
@@ -41,28 +40,25 @@
           </div>
         </fieldset>
 
-        <div data-book-posting-target="group" <%= 'hidden' unless group_post %> class="space-y-2">
+        <div data-book-posting-target="group" <%= 'hidden' unless @group_book_post %> class="space-y-2">
           <%= form.label :group_id, t("jjaeks.form.posting_group"), class: "text-sm font-medium text-stone-700" %>
-          <% group_options = @book_post_groups.map do |group|
-               [group.name, group.id, { "data-destination-message" => t("books.show.group_destination", name: group.name) }]
-             end %>
           <%= form.select :group_id,
-                          options_for_select(group_options, jjaek.group_id),
+                          options_for_select(book_post_group_options(@book_post_groups), jjaek.group_id),
                           { include_blank: t("jjaeks.form.choose_posting_group") },
-                          disabled: !group_post, required: group_post,
+                          disabled: !@group_book_post, required: @group_book_post,
                           data: { book_posting_target: "groupSelect", action: "change->book-posting#change" },
                           class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
-          <p data-book-posting-target="groupMessage" aria-live="polite" class="text-sm text-stone-600"><%= group_post ? t("books.show.group_destination", name: jjaek.group.name) : t("jjaeks.form.choose_posting_group") %></p>
+          <p data-book-posting-target="groupMessage" aria-live="polite" class="text-sm text-stone-600"><%= @group_book_post ? t("books.show.group_destination", name: jjaek.group.name) : t("jjaeks.form.choose_posting_group") %></p>
         </div>
       <% end %>
 
-      <% if select_destination || !group_post %>
-        <fieldset data-book-posting-target="personal" <%= 'hidden' if group_post %> class="space-y-2">
+      <% if @select_book_post_destination || !@group_book_post %>
+        <fieldset data-book-posting-target="personal" <%= 'hidden' if @group_book_post %> class="space-y-2">
           <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("jjaeks.form.visibility") %></legend>
           <div class="grid gap-2 sm:grid-cols-3">
             <% Jjaek.visibilities.each_key do |visibility| %>
               <label class="<%= book_posting_card_classes %>">
-                <%= form.radio_button :visibility, visibility, disabled: group_post, required: true,
+                <%= form.radio_button :visibility, visibility, disabled: @group_book_post, required: true,
                                       data: { book_posting_target: "visibility" }, class: "sr-only" %>
                 <%= book_posting_icon(visibility) %>
                 <span><%= t("jjaeks.visibility.#{visibility}") %></span>
@@ -72,13 +68,13 @@
         </fieldset>
       <% end %>
 
-      <% if !select_destination && quoted_jjaek.blank? %>
+      <% if !@select_book_post_destination && quoted_jjaek.blank? %>
         <p class="text-sm text-stone-500"><%= t("jjaeks.form.no_postable_groups") %></p>
       <% end %>
 
       <%= render "shared/content_field", form: form, label_key: "jjaeks.form.book_jjaek_content", rows: 8 %>
 
-      <%= form.submit t(group_post ? "jjaeks.actions.publish_group_book" : "jjaeks.actions.publish_book"), data: { book_posting_target: "submit" }, class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50 disabled:opacity-50" %>
+      <%= form.submit submit_label, data: { book_posting_target: "submit" }, class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50 disabled:opacity-50" %>
     <% end %>
   </div>
 </section>

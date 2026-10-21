@@ -1,9 +1,8 @@
 <section class="mx-auto flex w-full max-w-6xl flex-col gap-6">
   <%= render "shared/back_link", path: jjaek_back_path(default_path: @group.present? ? group_path(@group) : user_library_path(current_user)) %>
-  <% can_write_book_jjaek = @bookshelf_entry&.persisted? && @jjaek.present? && policy(@jjaek).create? %>
   <%= render "books/book_header",
              book: @book,
-             jjaek: can_write_book_jjaek ? @jjaek : nil,
+             jjaek: @can_write_book_jjaek ? @jjaek : nil,
              quoted_jjaek: @quoted_jjaek,
              bookshelf_entry: @bookshelf_entry,
              bookshelves: @bookshelves,
