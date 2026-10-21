@@ -2,6 +2,7 @@
   book = bookshelf_entry.book
   metadata = [ book.authors_text.presence, book.publisher.presence ].compact.join(" · ").presence || "-"
   stickers = show_status ? bookshelf_entry.sticker_definitions.to_a : []
+  extra_names = stickers.drop(6).map { |sticker| reading_sticker_label(sticker) }
   remaining_stickers = stickers.drop(3)
   remaining_names = remaining_stickers.map { |sticker| reading_sticker_label(sticker) }.join(", ")
 %>
@@ -16,12 +17,20 @@
     <div class="flex h-7 min-w-0 items-center" data-reading-status-row>
       <%= reading_status_badge(bookshelf_entry.status) if show_status %>
     </div>
-    <div class="flex h-7 min-w-0 items-center gap-0.5" data-reading-stickers-row>
-      <% stickers.first(3).each do |sticker| %>
-        <%= reading_sticker_badge(sticker, icon_only: true) %>
+    <div class="flex h-7 min-w-0 items-center gap-0.5 overflow-hidden"
+         data-reading-stickers-row
+         data-controller="sticker-overflow"
+         data-sticker-overflow-extra-names-value="<%= extra_names.to_json %>"
+         data-sticker-overflow-summary-label-value="<%= t("bookshelf_entries.stickers.summary", count: "{count}") %>">
+      <% stickers.first(6).each_with_index do |sticker, index| %>
+        <span class="shrink-0" data-sticker-overflow-target="sticker" style="<%= 'display: none;' if index >= 3 %>">
+          <%= reading_sticker_badge(sticker, icon_only: true) %>
+        </span>
       <% end %>
-      <% if remaining_stickers.any? %>
-        <span class="<%= reading_badge_classes(:sticker, icon_only: true) %>"
+      <% if stickers.any? %>
+        <span class="<%= reading_badge_classes(:sticker, icon_only: true) %> whitespace-nowrap"
+              style="<%= 'display: none;' if remaining_stickers.empty? %>"
+              data-sticker-overflow-target="summary"
               title="<%= remaining_names %>"
               aria-label="<%= t("bookshelf_entries.stickers.summary", count: remaining_stickers.size) %>: <%= remaining_names %>"
               role="img"

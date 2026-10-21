@@ -75,6 +75,8 @@
 - follow-only / stranger의 BookActivity는 홈 피드에 노출하지 않음
 - Jjaek과 BookActivity는 `FeedPage`로 소스별 최대 21개를 조회해 20개씩 합성하며 `created_at DESC, 타입(Jjaek 우선) DESC, id DESC`로 정렬함
 
+- 홈은 기존 일반 짹 작성 폼과 피드 순서로 표시하며, 상단 소개 카드와 카드 내부 책 검색·서재 바로가기는 제공하지 않는다. 홈·프로필·동아리·책 상세의 피드 목록은 최대 768px의 가운데 정렬을 공유한다
+
 관련 코드:
 - controller: app/controllers/homes_controller.rb
 - view: app/views/homes/show.html.erb
@@ -83,7 +85,7 @@
 
 ### 2. 책 화면 (/books/:id)
 
-- 통합 책 타이틀 카드는 홈 타이틀과 같은 max-w-4xl(896px) 가운데 정렬이며, 아래 책친구 활동·책짹 목록은 max-w-3xl(768px)을 유지한다. 표지·서지 정보, 소개·외부 링크 다음에 구분선 하나로 책장 정보·독서 활동·책짹 버튼을 구분한다. 별도 내 서재·독서 활동 카드는 없다
+- 통합 책 타이틀 카드는 홈 작성 폼과 같은 max-w-4xl(896px) 가운데 정렬이며, 아래 책친구 활동·책짹 목록은 max-w-3xl(768px)을 유지한다. 표지·서지 정보, 소개·외부 링크 다음에 구분선 하나로 책장 정보·독서 활동·책짹 버튼을 구분한다. 별도 내 서재·독서 활동 카드는 없다
 - 모바일은 최대 너비 96px 표지 왼쪽·서지 정보 오른쪽, 소개·외부 링크는 그 아래 전체 너비다. md 이상은 기존 최대 160×224px 표지 왼쪽·서지 정보와 소개 오른쪽이다. 긴 소개의 펼침·접기와 반응형 정보의 단일 렌더링을 유지한다
 - 일반 상세는 viewer 기준 개인 원본 책짹 BookScope를 적용하고, 서재 미등록 시 공개 책짹만 표시한다. 서재 등록 후 동아리 맥락은 해당 동아리의 GroupContentScope 원본 책짹 목록을 표시한다
 - `books/:id`의 책짹 목록에는 ReJjaek을 직접 포함하지 않는다
@@ -122,7 +124,7 @@
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
 - stranger / follow-only는 프로필에서 `public` 책 목록을 flat summary 형태로 볼 수 있다
 - self / accepted book_friend는 프로필에서 접근 가능한 책 목록 요약을 볼 수 있다
-- 프로필 책 목록 요약은 현재 조회 순서를 유지한 채 4권씩 2열·2행 carousel page로 표시하고, 스티커는 최대 3개와 생략한 이름을 제공하는 `+N`으로 묶는다. 전체 서재 화면의 책장·정렬·관리 흐름은 그대로 둔다
+- 프로필 책 목록 요약은 현재 조회 순서를 유지한 채 4권씩 2열·2행 carousel page로 표시한다. 스티커는 실제 너비에 맞춰 최대 6개를 표시하고 공간이 부족할 때만 정확한 숨김 개수와 이름을 `+N`으로 제공한다. 전체 서재 화면의 책장·정렬·관리 흐름은 그대로 둔다
 - 프로필에서는 누구에게도 책장 탭, 책장 정렬 UI, 책장 관리 UI, 책 이동 UI를 보여주지 않는다
 - stranger / follow-only는 Library 링크를 볼 수 없다
 - self / accepted book_friend는 프로필에서 Library 링크를 볼 수 있다
@@ -203,7 +205,7 @@
 - compact book card는 한 화면에 더 많은 책이 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
 - compact / detail 카드의 썸네일과 카드 여백은 drag handle로 동작하며, 책 제목 링크는 클릭 시 책 상세로 이동한다
 - detail/compact 모두 저자와 출판사를 한 줄 metadata로 표시하고, 상태와 스티커를 카드 하단 footer row에 표시한다. 프로필·Library 목록은 스티커를 접근 가능한 이름과 title이 있는 아이콘 전용으로 표시하며, 상태는 아이콘·텍스트를 유지한다. 세 화면은 공통 `bookshelf_entries/card_information` partial에서 제목·메타정보 한 줄과 상태·스티커 각각 한 줄을 예약한다. 가로형 카드는 9rem, compact 카드는 16rem로 고정한다
-- 프로필·Library·transfer는 스티커 아이콘을 최대 3개 표시하고 생략한 이름을 `+N`의 title·aria-label로 제공한다. 독서 정보가 없어도 목록 카드의 두 줄 공간은 유지한다
+- 프로필·Library·transfer는 공통 sticker-overflow Stimulus가 실제 영역·아이콘·요약 배지 너비를 측정해 최대 6개 아이콘을 한 줄로 표시한다. 공간이 부족할 때만 정확한 숨김 개수와 이름을 `+N`의 title·aria-label로 제공하고, ResizeObserver로 창 크기·carousel 표시 변경에 대응한다. 독서 정보가 없어도 목록 카드의 두 줄 공간은 유지한다
 
 관련 코드:
 - controller: app/controllers/users/libraries_controller.rb

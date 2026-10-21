@@ -30,7 +30,7 @@ RSpec.describe "User libraries", type: :request do
     expect(card.text).not_to include(sticker.name)
   end
 
-  it "keeps the first three stickers in order and summarizes the rest on detail and compact cards" do
+  it "prepares all six ordered sticker icons and an accessible initial summary on detail and compact cards" do
     entry = user.bookshelf_entries.find_by!(book: book)
     stickers = %w[loved_it really_loved_it stayed_with_me want_to_reread recommended_to_me want_to_recommend].map do |key|
       StickerDefinition.create!(key: key, name: key)
@@ -47,7 +47,7 @@ RSpec.describe "User libraries", type: :request do
       expect(response).to have_http_status(:ok)
       card = Nokogiri::HTML(response.body).at_css("[data-bookshelf-entry-id='#{entry.id}']")
       icons = card.css("[data-reading-sticker]")
-      expect(icons.map { |icon| icon["data-reading-sticker"] }).to eq(stickers.first(3).map(&:key))
+      expect(icons.map { |icon| icon["data-reading-sticker"] }).to eq(stickers.map(&:key))
       expect(icons.all? { |icon| icon.at_css("svg") && icon.text.empty? && icon["title"] == icon["aria-label"] }).to be(true)
       overflow = card.at_css("[data-reading-sticker-overflow]")
       expect(overflow.text).to eq("+3")
@@ -55,6 +55,7 @@ RSpec.describe "User libraries", type: :request do
       expect(overflow["title"]).to eq(names)
       expect(overflow["aria-label"]).to include(names)
       expect(card.css("[data-reading-status-row], [data-reading-stickers-row]").size).to eq(2)
+      expect(card.at_css("[data-reading-stickers-row]")["data-controller"]).to eq("sticker-overflow")
     end
   end
 

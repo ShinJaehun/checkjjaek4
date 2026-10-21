@@ -31,8 +31,11 @@ RSpec.describe "Bookshelf card layout", type: :system do
         visit path
         expect(page).to have_css("[data-book-card-information]", count: 2)
         within("[data-bookshelf-entry-id='#{entry.id}']") do
-          expect(page).to have_css("[data-reading-sticker]", count: 3)
-          expect(page).to have_css("[data-reading-sticker-overflow]", text: "+4")
+          expect(page).to have_css("[data-reading-sticker-overflow]") do |overflow|
+            visible_count = page.all("[data-reading-sticker]").size
+            visible_count.between?(0, 6) && overflow.text == "+#{7 - visible_count}" &&
+              overflow["title"] == (visible_count...7).map { |index| "Layout sticker #{index}" }.join(", ")
+          end
         end
         layout = page.evaluate_script <<~JS
           Array.from(document.querySelectorAll('[data-book-card-information]')).map(info => {
@@ -47,7 +50,7 @@ RSpec.describe "Bookshelf card layout", type: :system do
               singleLineText: text.every(node => getComputedStyle(node).whiteSpace === 'nowrap' && getComputedStyle(node).textOverflow === 'ellipsis'),
               rowsFit: rows.length === 2 && rows.every(row => {
                 const bounds = row.getBoundingClientRect()
-                return bounds.height > 0 && Array.from(row.children).every(child => {
+                return bounds.height > 0 && Array.from(row.children).filter(child => getComputedStyle(child).display !== 'none').every(child => {
                   const badge = child.getBoundingClientRect()
                   return badge.bottom <= bounds.bottom + 1 && badge.top >= bounds.top - 1 && badge.right <= bounds.right + 1
                 })

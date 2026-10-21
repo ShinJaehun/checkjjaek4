@@ -639,7 +639,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 - 표지, 제목, 저자, 상태/별점 정도를 중심으로 compact하게 표시한다.
 - detail 카드 제목은 한 줄 truncate로 표시한다.
 - 저자와 출판사는 한 줄 metadata로 표시한다.
-- 프로필·Library·transfer 카드의 스티커는 최대 3개의 아이콘과 남은 이름을 제공하는 `+N`으로 요약한다.
+- 프로필·Library·transfer 카드의 스티커는 실제 표시 영역 너비에 맞춰 최대 6개의 아이콘을 표시하고, 공간이 부족할 때 숨겨진 개수와 이름을 제공하는 `+N`으로 요약한다.
 - detail/compact 카드의 스티커는 아이콘 전용 배지로 표시하고 각각 `title`/`aria-label`로 이름을 제공한다.
 - detail/compact 카드 모두 상태와 스티커는 각각 한 줄의 공간을 유지한다. 제목·메타정보·두 줄의 독서 정보는 공통 partial을 사용한다.
 - detail/compact 모두 Library 카드 안에는 책장 이동 select/form을 두지 않는다.
@@ -798,7 +798,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 
 ## 책 상세와 개인 독서 관리
 
-- 책 타이틀 카드는 홈 타이틀 카드와 같은 최대 896px(max-w-4xl) 너비 및 가운데 정렬을 사용한다. 아래 책 친구 활동·책짹 목록은 기존 최대 768px(max-w-3xl)을 유지한다.
+- 책 타이틀 카드는 홈 작성 폼과 같은 최대 896px(max-w-4xl) 너비 및 가운데 정렬을 사용한다. 아래 책 친구 활동·책짹 목록은 기존 최대 768px(max-w-3xl)을 유지한다.
   타이틀 카드 안에서는 모바일에서도 표지 왼쪽·서지 정보 오른쪽으로 배치하고 긴 제목·저자·출판사·ISBN은 줄바꿈한다.
   모바일 소개와 외부 상세 보기 링크는 그 아래 전체 너비로 표시하고, PC에서는 기존처럼 표지 오른쪽에 서지 정보와 소개·외부 링크를 표시한다.
   같은 책 정보와 소개를 반응형마다 중복 렌더링하지 않는다.
@@ -873,8 +873,9 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
   선택 UI는 input과 저장 버튼을 사용하고 읽기 전용 UI는 공통 badge helper를 사용한다.
 - 프로필·Library·transfer의 책 정보는 공통 `bookshelf_entries/card_information` partial로 표시한다.
   제목과 저자·출판사는 각각 한 줄 truncate로 표시하며 원문은 title로 제공한다.
-- 상태는 첫 번째 줄에 아이콘·텍스트로, 스티커는 두 번째 줄에 작은 SVG 아이콘을 최대 3개 표시한다.
-  남은 스티커는 순서를 유지한 이름 목록을 title·aria-label로 제공하는 포커스 가능한 `+N`으로 요약한다.
+- 상태는 첫 번째 줄에 아이콘·텍스트로, 스티커는 두 번째 줄의 실제 너비에 맞춰 작은 SVG 아이콘을 최대 6개 표시한다.
+  남은 스티커는 정확한 숨김 개수와 순서를 유지한 이름 목록을 title·aria-label로 제공하는 포커스 가능한 `+N`으로 요약한다.
+  공통 card_information의 sticker-overflow Stimulus가 ResizeObserver로 너비 변경과 숨겨진 carousel 페이지의 표시를 감지해 아이콘·요약 너비를 측정한다. JS 적용 전에는 기존 3개 아이콘과 요약을 제공하며, 같은 아이콘을 중복 렌더링하지 않는다.
 - 책 정보 영역은 7rem, 상태·스티커 줄은 각각 1.75rem를 예약한다. 데이터가 없거나 열람 권한이 없어도 줄의 공간은 유지하되 배지·이름은 출력하지 않는다.
 - 가로형 프로필·Library·모바일 transfer 카드는 9rem, md 이상에서 표지가 위에 있는 compact transfer 카드는 16rem로 통일한다.
   내용 개수에 따라 높이가 바뀌지 않으며 스티커는 줄바꿈하거나 잘라서 높이를 맞추지 않는다.
