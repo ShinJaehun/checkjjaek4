@@ -1,30 +1,19 @@
 <section class="mx-auto flex w-full max-w-6xl flex-col gap-6">
   <%= render "shared/back_link", path: jjaek_back_path(default_path: @group.present? ? group_path(@group) : user_library_path(current_user)) %>
-  <section class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.75fr)] lg:items-start">
-    <%= render "books/book_header", book: @book %>
-
-    <div class="space-y-6">
-      <%= render "books/bookshelf_panel",
-                 book: @book,
-                 bookshelf_entry: @bookshelf_entry,
-                 bookshelves: @bookshelves,
-                 sticker_definitions: @sticker_definitions,
-                 search_result_token: @search_result_token,
-                 group_id: @group&.id %>
-    </div>
-  </section>
-
-  <% if @bookshelf_entry.present? %>
-    <details <%= "open" if @quoted_jjaek.present? || @jjaek&.errors&.any? %>>
-      <summary class="cursor-pointer rounded-full bg-stone-900 px-5 py-3 text-center text-sm font-semibold text-white"><%= t("books.show.write_book_jjaek") %></summary>
-      <div class="mt-4">
-        <%= render "books/jjaek_form_panel", book: @book, jjaek: @jjaek, quoted_jjaek: @quoted_jjaek %>
-      </div>
-    </details>
-  <% end %>
+  <% can_write_book_jjaek = @bookshelf_entry&.persisted? && @jjaek.present? && policy(@jjaek).create? %>
+  <%= render "books/book_header",
+             book: @book,
+             jjaek: can_write_book_jjaek ? @jjaek : nil,
+             quoted_jjaek: @quoted_jjaek,
+             bookshelf_entry: @bookshelf_entry,
+             bookshelves: @bookshelves,
+             search_result_token: @search_result_token,
+             group_id: @group&.id,
+             sticker_definitions: @sticker_definitions,
+             form_values: @reading_state_form_values || {} %>
 
   <% if @book_friend_activities.present? %>
-    <section class="space-y-4">
+    <section class="mx-auto w-full max-w-3xl space-y-4">
       <h2 class="text-2xl font-semibold text-stone-900"><%= t("books.show.friend_activity_title") %></h2>
       <div class="space-y-3">
         <% @book_friend_activities.each do |item| %>

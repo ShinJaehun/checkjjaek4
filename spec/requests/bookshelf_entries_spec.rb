@@ -501,7 +501,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.bookshelf).to eq(original_bookshelf)
   end
 
-  it "preserves the book show context and saved stickers when an update fails validation" do
+  it "preserves the book show context and submitted stickers without saving an invalid update" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "실패 화면 선택 책장", visibility: :private)
     original = book_friend.jjaeks.create!(book: user_book, content: "UPDATE_FAILURE_ORIGINAL", visibility: :book_friends)
@@ -514,7 +514,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     get book_path(user_book)
     normal_page = Nokogiri::HTML(response.body)
     normal_timeline_ids = normal_page.css("article[id^='jjaek_']").map { |article| article["id"] }
-    normal_bookshelf_ids = normal_page.css('select[name="bookshelf_id"] option').map { |option| option["value"] }
+    normal_bookshelf_ids = normal_page.css('input[type="radio"][name="bookshelf_id"]').map { |option| option["value"] }
 
     expect {
       patch bookshelf_entry_path(entry), params: {
@@ -530,10 +530,10 @@ RSpec.describe "BookshelfEntries", type: :request do
       expect(page.at_css("article#jjaek_#{excluded.id}")).to be_nil
     end
     expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
-    expect(page.css('select[name="bookshelf_id"] option').map { |option| option["value"] }).to eq(normal_bookshelf_ids)
+    expect(page.css('input[type="radio"][name="bookshelf_id"]').map { |option| option["value"] }).to eq(normal_bookshelf_ids)
     expect(normal_bookshelf_ids).to contain_exactly(entry.bookshelf_id.to_s, target_bookshelf.id.to_s)
-    expect(page.at_css('select[name="bookshelf_id"] option[selected]')["value"]).to eq(entry.bookshelf_id.to_s)
-    expect(page.at_css("input[name='bookshelf_entry[sticker_definition_ids][]'][value='#{sticker.id}'][checked]")).to be_nil
+    expect(page.at_css('input[type="radio"][name="bookshelf_id"][checked]')["value"]).to eq(entry.bookshelf_id.to_s)
+    expect(page.at_css("input[name='bookshelf_entry[sticker_definition_ids][]'][value='#{sticker.id}'][checked]")).to be_present
     expect(entry.reload.sticker_definition_ids).to be_empty
     entry.errors.add(:status, :inclusion)
     expect(page.text).to include(entry.errors.full_messages.to_sentence)
@@ -943,6 +943,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "rolls back state, stickers, and activity when activity recording fails" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
+    original = user.jjaeks.create!(book: user_book, content: "READING_FAILURE_QUOTE")
     sign_in user
     failed_activity = BookActivity.new
     failed_activity.errors.add(:base, "recording failed")
@@ -953,6 +954,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect {
       patch bookshelf_entry_path(entry), params: {
+        quote_id: original.id,
         bookshelf_entry: { status: :finished, sticker_definition_ids: [ sticker.id ] }
       }
     }.not_to change(BookActivity, :count)
@@ -960,7 +962,40 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(entry.reload.status).to eq("reading")
     expect(entry.sticker_definition_ids).to be_empty
-    expect(Nokogiri::HTML(response.body).at_css("details[open] form[action='#{bookshelf_entry_path(entry)}']")).to be_present
+    page = Nokogiri::HTML(response.body)
+    dialog = page.at_css("#book-reading-dialog")
+    expect(dialog.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
+    form = dialog.at_css("form[action='#{bookshelf_entry_path(entry)}']")
+    expect(form).to be_present
+    expect(form.at_css("input[name='bookshelf_entry[status]'][checked]")["value"]).to eq("finished")
+    expect(form.at_css("input[name='bookshelf_entry[sticker_definition_ids][]'][value='#{sticker.id}'][checked]")).to be_present
+    expect(form.at_css("[role='alert']").text).to include("recording failed")
+    expect(form.at_css("input[name='quote_id']")["value"]).to eq(original.id.to_s)
+    expect(page.at_css("#book-writing-dialog").ancestors("[data-book-modal-auto-open-value='true']")).to be_empty
+  end
+
+  it "preserves submitted status and sticker clearing when activity recording fails" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    entry.sticker_definitions << sticker
+    sign_in user
+    failed_activity = BookActivity.new
+    failed_activity.errors.add(:base, "recording failed")
+    allow(BookActivities::RecordBookshelfEntryChange).to receive(:call).and_raise(ActiveRecord::RecordInvalid.new(failed_activity))
+
+    expect {
+      patch bookshelf_entry_path(entry), params: {
+        bookshelf_entry: { status: "", sticker_definition_ids: [ "" ] }
+      }
+    }.not_to change(BookActivity, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(entry.reload.status).to eq("reading")
+    expect(entry.sticker_definition_ids).to eq([ sticker.id ])
+    dialog = Nokogiri::HTML(response.body).at_css("#book-reading-dialog")
+    expect(dialog.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
+    expect(dialog.at_css("input[name='bookshelf_entry[status]'][checked]")["value"]).to eq("")
+    expect(dialog.css("input[type='checkbox'][checked]")).to be_empty
+    expect(dialog.at_css("[role='alert']").text).to include("recording failed")
   end
 
   it "returns saved state and an error without persisting an invalid update" do

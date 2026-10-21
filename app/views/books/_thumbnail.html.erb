@@ -2,12 +2,14 @@
   image_size_classes = {
     small: "max-h-20 max-w-14",
     medium: "max-h-28 max-w-20",
-    large: "max-h-44 max-w-32"
+    large: "max-h-44 max-w-32",
+    book_detail: "max-h-36 max-w-24 md:max-h-56 md:max-w-40"
   }
   fallback_size_classes = {
     small: "h-20 w-14",
     medium: "h-28 w-20",
-    large: "h-44 w-32"
+    large: "h-44 w-32",
+    book_detail: "h-36 w-24 md:h-56 md:w-40"
   }
   image_size_class = image_size_classes.fetch(size.to_sym)
   fallback_size_class = fallback_size_classes.fetch(size.to_sym)

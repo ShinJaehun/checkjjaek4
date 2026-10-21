@@ -34,6 +34,10 @@
     </div>
   </div>
 <% else %>
+  <% if jjaek.book.present? && !local_assigns.fetch(:book_friend_preview, false) %>
+    <%= render "jjaeks/current_reading_state", jjaek: jjaek %>
+  <% end %>
+
   <% if jjaek.deleted? %>
     <div class="mt-4 whitespace-pre-wrap text-sm leading-6 text-stone-800"><%= t("jjaeks.labels.deleted") %></div>
   <% else %>

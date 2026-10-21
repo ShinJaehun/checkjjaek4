@@ -64,10 +64,20 @@ RSpec.describe "Feed pagination", type: :request do
       expect(page_document.at_css("html body header")).to be_present
       expect(page_document.css("turbo-stream")).to be_empty
       expect(card_ids).to eq([ "jjaek_#{posts.last.id}" ])
+      if %i[book group_book].include?(location)
+        card = page_document.at_css("#jjaek_#{posts.last.id}")
+        expect(card.text).not_to include(book.title, book.authors_text)
+        expect(card.css("img[alt='#{book.title}']")).to be_empty
+      end
 
       get url, headers: stream_headers
       expect(response.media_type).to eq("text/vnd.turbo-stream.html")
       expect(card_ids).to eq([ "jjaek_#{posts.last.id}" ])
+      if %i[book group_book].include?(location)
+        card = page_document.at_css("#jjaek_#{posts.last.id}")
+        expect(card.text).not_to include(book.title, book.authors_text)
+        expect(card.css("img[alt='#{book.title}']")).to be_empty
+      end
       expect(page_document.css("turbo-stream").map { |node| [ node["action"], node["target"] ] })
         .to eq([ %w[append feed-items], %w[replace feed-pagination] ])
       expect(page_document.at_css("header, textarea[name='jjaek[content]']")).to be_nil

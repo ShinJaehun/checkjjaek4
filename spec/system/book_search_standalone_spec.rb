@@ -46,11 +46,14 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_text(I18n.t("book_search.actions.in_shelf"))
     expect(page).to have_no_button(I18n.t("book_search.actions.add_to_shelf"))
     click_link I18n.t("book_search.actions.open_internal")
-    find("summary", text: "책짹 작성").click
+    find("button[aria-controls='book-writing-dialog']").click
+    expect(page).to have_css("dialog#book-writing-dialog[open]")
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
     expect([ Book.count, BookshelfEntry.count ]).to eq(counts)
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "Personal search reading note"
-    click_button I18n.t("jjaeks.actions.publish_book")
+    within("dialog#book-writing-dialog") do
+      click_button I18n.t("jjaeks.actions.publish_book")
+    end
     expect(page).to have_text("Personal search reading note")
     post = user.jjaeks.find_by!(content: "Personal search reading note")
     expect(post.book).to eq(book)
@@ -98,9 +101,12 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_current_path(
       book_path(book, group_id: group.id, return_to: search_path)
     )
-    find("summary", text: "책짹 작성").click
+    find("button[aria-controls='book-writing-dialog']").click
+    expect(page).to have_css("dialog#book-writing-dialog[open]")
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_group_book"), visible: :all)
     expect(page).to have_select(I18n.t("jjaeks.form.posting_group"), selected: group.name)
+    find("dialog#book-writing-dialog button[data-action='book-modal#close']").click
+    expect(page).to have_css("dialog#book-writing-dialog:not([open])", visible: :all)
     find("a[data-back-link]").click
     expect(page).to have_current_path(search_path)
     expect(page).to have_field(I18n.t("book_search.form.query"), with: "Stored search")
@@ -115,15 +121,23 @@ RSpec.describe "Standalone book search", type: :system do
     )
     search_path = book_search_path(group_id: group.id, page: 1, query: "New search", search_origin: group_path(group))
     visit group_path(group)
-    click_link I18n.t("book_search.nav"), match: :first
+    find("a[href='#{book_search_path(group_id: group.id, search_origin: group_path(group))}']", match: :first).click
     fill_in I18n.t("book_search.form.query"), with: "New search"
     click_button I18n.t("book_search.form.submit")
     click_link I18n.t("book_search.actions.open_internal")
     expect(page).to have_current_path(%r{\A/books/lookup}, ignore_query: true)
     expect(Book.find_by(title: "New search book")).to be_nil
-    click_button I18n.t("bookshelf_entries.new.title")
+    find("button[aria-controls='book-shelf-dialog']").click
+    expect(page).to have_css("dialog#book-shelf-dialog[open]")
+
+    within("dialog#book-shelf-dialog") do
+      click_button I18n.t("bookshelf_entries.new.title")
+    end
+
     expect(page).to have_current_path(%r{\A/books/\d+}, ignore_query: true)
     book = Book.find_by!(title: "New search book")
+    expect(user.bookshelf_entries.exists?(book: book)).to be(true)
+
     expect(page).to have_current_path(
       book_path(book, group_id: group.id, return_to: search_path)
     )

@@ -36,7 +36,7 @@ RSpec.describe "Book posting destinations", type: :request do
     expect(form.at_css("input[name='jjaek[visibility]'][disabled]")).to be_nil
     expect(form.at_css("textarea[name='jjaek[content]']")).to be_present
     expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
-    expect(page.at_css("[data-book-posting-target='title']").text).to eq(I18n.t("jjaeks.actions.publish_book"))
+    expect(page.at_css("#book-writing-dialog").css("h2").map(&:text)).to eq([ I18n.t("books.show.write_book_jjaek") ])
     expect(page.at_css("[data-controller='book-posting']")).to be_nil
   end
 
@@ -142,6 +142,9 @@ RSpec.describe "Book posting destinations", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     page = Nokogiri::HTML(response.body)
+    dialog = page.at_css("#book-writing-dialog")
+    expect(dialog.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
+    expect(dialog.at_css("textarea[name='jjaek[content]']")).to be_present
     expect(page.at_css("textarea[name='jjaek[content]']").text.delete_prefix("\n")).to eq(content)
     expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("group")
     expect(page.at_css("select[name='jjaek[group_id]'] option[selected]")["value"]).to eq(group.id.to_s)
@@ -155,6 +158,9 @@ RSpec.describe "Book posting destinations", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     page = Nokogiri::HTML(response.body)
+    dialog = page.at_css("#book-writing-dialog")
+    expect(dialog.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
+    expect(dialog.at_css("textarea[name='jjaek[content]']")).to be_present
     expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("personal")
     expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("book_friends")
     expect(page.at_css("select[name='jjaek[group_id]'][disabled]")).to be_present

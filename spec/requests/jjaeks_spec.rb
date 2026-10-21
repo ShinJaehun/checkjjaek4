@@ -132,7 +132,7 @@ RSpec.describe "Jjaeks", type: :request do
       get book_path(book)
       normal_page = Nokogiri::HTML(response.body)
       normal_timeline_ids = normal_page.css("article[id^='jjaek_']").map { |article| article["id"] }
-      normal_bookshelf_ids = normal_page.css('select[name="bookshelf_id"] option').map { |option| option["value"] }
+      normal_bookshelf_ids = normal_page.css('input[name="bookshelf_id"][type="radio"]').map { |input| input["value"] }
 
       expect {
         post jjaeks_path, params: {
@@ -154,9 +154,9 @@ RSpec.describe "Jjaeks", type: :request do
       [ private_original, group_original ].each do |excluded|
         expect(page.at_css("article#jjaek_#{excluded.id}")).to be_nil
       end
-      expect(page.css('select[name="bookshelf_id"] option').map { |option| option["value"] }).to eq(normal_bookshelf_ids)
+      expect(page.css('input[name="bookshelf_id"][type="radio"]').map { |input| input["value"] }).to eq(normal_bookshelf_ids)
       expect(normal_bookshelf_ids).to contain_exactly(entry.bookshelf_id.to_s, target_bookshelf.id.to_s)
-      expect(page.at_css('select[name="bookshelf_id"] option[selected]')["value"]).to eq(entry.bookshelf_id.to_s)
+      expect(page.at_css('input[name="bookshelf_id"][checked]')["value"]).to eq(entry.bookshelf_id.to_s)
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(submitted_content)
       expect(page.at_css('input[name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
       expect(page.text).to include(invalid_jjaek.errors.full_messages.to_sentence)

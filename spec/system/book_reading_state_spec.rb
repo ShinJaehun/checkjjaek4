@@ -18,7 +18,9 @@ RSpec.describe "Book reading state", type: :system do
   after { Warden.test_reset! }
 
   it "keeps selections local until one save records status and stickers together" do
-    find("summary", text: I18n.t("books.show.edit_reading_record")).click
+    find("button[aria-controls='book-reading-dialog']").click
+    expect(page).to have_css("dialog#book-reading-dialog[open]")
+
     choose I18n.t("bookshelf_entries.statuses.finished"), allow_label_click: true
     check first_sticker.name, allow_label_click: true
     check second_sticker.name, allow_label_click: true
@@ -40,7 +42,8 @@ RSpec.describe "Book reading state", type: :system do
   it "clears status and all stickers with one save" do
     entry.sticker_definitions << first_sticker
     visit book_path(book)
-    find("summary", text: I18n.t("books.show.edit_reading_record")).click
+    find("button[aria-controls='book-reading-dialog']").click
+    expect(page).to have_css("dialog#book-reading-dialog[open]")
     choose I18n.t("books.show.clear_status"), allow_label_click: true
     uncheck first_sticker.name, allow_label_click: true
 
@@ -56,24 +59,25 @@ RSpec.describe "Book reading state", type: :system do
     expect(entry.book_activities.reload.count).to eq(1)
   end
 
-  it "shows the saved selection in the open editor after a failed save" do
-    find("summary", text: I18n.t("books.show.edit_reading_record")).click
+  it "preserves submitted sticker selections without persisting an invalid status" do
+    find("button[aria-controls='book-reading-dialog']").click
+    expect(page).to have_css("dialog#book-reading-dialog[open]")
     choose I18n.t("bookshelf_entries.statuses.finished"), allow_label_click: true
     check first_sticker.name, allow_label_click: true
     page.execute_script("document.querySelector('input[name=\"bookshelf_entry[status]\"]:checked').value = 'invalid'")
     click_button I18n.t("books.show.save_reading_record")
 
-    expect(page).to have_css("details[open] form[action='#{bookshelf_entry_path(entry)}']")
-    expect(page).to have_checked_field(I18n.t("bookshelf_entries.statuses.reading"), visible: :all)
-    expect(page).to have_unchecked_field(first_sticker.name, visible: :all)
+    expect(page).to have_css("dialog#book-reading-dialog[open] form[action='#{bookshelf_entry_path(entry)}']")
+    expect(page).to have_checked_field(first_sticker.name, visible: :all)
     expect(entry.reload.status).to eq("reading")
     expect(entry.sticker_definition_ids).to be_empty
     expect(entry.book_activities.reload).to be_empty
   end
 
   it "keeps the book writing form collapsed until requested" do
-    expect(page).to have_css("details:not([open]) form[action='#{jjaeks_path}']", visible: :all)
-    find("summary", text: I18n.t("books.show.write_book_jjaek")).click
+    expect(page).to have_css("dialog#book-writing-dialog:not([open]) form[action='#{jjaeks_path}']", visible: :all)
+    find("button[aria-controls='book-writing-dialog']").click
+    expect(page).to have_css("dialog#book-writing-dialog[open]")
     expect(page).to have_field("jjaek[content]")
   end
 end

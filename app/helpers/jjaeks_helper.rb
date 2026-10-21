@@ -54,9 +54,13 @@ module JjaeksHelper
     t("admin.jjaeks.moderation.authorities.#{action.moderation_authority}")
   end
 
-  def jjaek_context_label(jjaek)
+  def jjaek_context_label(jjaek, hide_book_details: false)
     translation_key = jjaek_context_translation_key(jjaek)
     return if translation_key.blank?
+
+    if hide_book_details && translation_key == "jjaeks.contexts.group_book_html"
+      translation_key = "jjaeks.contexts.group_book_without_title_html"
+    end
 
     t(translation_key, **jjaek_context_translation_options(jjaek))
   end

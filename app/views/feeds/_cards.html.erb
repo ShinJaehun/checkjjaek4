@@ -2,7 +2,8 @@
   <% if item.is_a?(Jjaek) %>
     <%= render "jjaeks/jjaek", jjaek: item,
                inline_comments_context: context == :book && item.group_id.present? ? :group : context,
-               inline_comments_profile_user: profile_user, inline_comments_book: book %>
+               inline_comments_profile_user: profile_user, inline_comments_book: book,
+               hide_book_details: context == :book %>
   <% else %>
     <%= render "book_activities/book_activity", book_activity: item %>
   <% end %>

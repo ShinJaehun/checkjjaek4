@@ -1,12 +1,14 @@
 <% select_destination = quoted_jjaek.blank? && @book_post_groups.any? %>
 <% group_post = jjaek.group_id.present? && (quoted_jjaek.present? || select_destination) %>
-<section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm"
+<section class="<%= local_assigns[:modal] ? 'p-6' : 'rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm' %>"
          data-controller="<%= 'book-posting' if select_destination %>"
          data-book-posting-personal-label-value="<%= t('jjaeks.actions.publish_book') %>"
          data-book-posting-group-label-value="<%= t('jjaeks.actions.publish_group_book') %>"
          data-book-posting-group-prompt-value="<%= t('jjaeks.form.choose_posting_group') %>"
          data-book-posting-no-groups-value="<%= t('jjaeks.form.no_postable_groups') %>">
-  <h2 data-book-posting-target="title" class="mb-3 text-xl font-semibold text-stone-900"><%= t(group_post ? "jjaeks.actions.publish_group_book" : "jjaeks.actions.publish_book") %></h2>
+  <% unless local_assigns[:modal] %>
+    <h2 data-book-posting-target="title" class="mb-3 text-xl font-semibold text-stone-900"><%= t(group_post ? "jjaeks.actions.publish_group_book" : "jjaeks.actions.publish_book") %></h2>
+  <% end %>
   <% if group_post && !select_destination %>
     <p class="mb-4 text-sm text-stone-600"><%= t("books.show.group_destination", name: jjaek.group.name) %></p>
   <% end %>

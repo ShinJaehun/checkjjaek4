@@ -16,7 +16,7 @@ export default class extends Controller {
     this.groupTarget.hidden = !groupPost
     this.groupSelectTarget.disabled = !groupPost
     this.groupSelectTarget.required = groupPost
-    this.titleTarget.textContent = label
+    if (this.hasTitleTarget) this.titleTarget.textContent = label
     this.submitTarget.value = label
     this.submitTarget.disabled = groupPost && !this.groupSelectTarget.value
 

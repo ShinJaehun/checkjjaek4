@@ -1,3 +1,6 @@
+<% form_values = local_assigns[:form_values] || {} %>
+<% selected_status = form_values.fetch("status", bookshelf_entry.status) %>
+<% selected_sticker_ids = Array(form_values.fetch("sticker_definition_ids", bookshelf_entry.sticker_definition_ids)).map(&:to_s) %>
 <%= form_with model: bookshelf_entry, url: bookshelf_entry_path(bookshelf_entry), method: :patch, class: "space-y-5" do |form| %>
   <%= hidden_field_tag :group_id, @group.id if @group.present? %>
   <%= hidden_field_tag :quote_id, @quoted_jjaek&.id || params[:quote_id] if @quoted_jjaek.present? || params[:quote_id].present? %>
@@ -11,12 +14,12 @@
     <legend class="text-sm font-semibold text-stone-900"><%= t("books.show.status_label") %></legend>
     <div class="flex flex-wrap gap-2">
       <label class="<%= reading_badge_classes(:status, selectable: true) %>">
-        <%= form.radio_button :status, "", checked: bookshelf_entry.status.nil?, class: "sr-only" %>
+        <%= form.radio_button :status, "", checked: selected_status.blank?, class: "sr-only" %>
         <span><%= t("books.show.clear_status") %></span>
       </label>
       <% BookshelfEntry.statuses.keys.each do |status| %>
         <label class="<%= reading_badge_classes(:status, selectable: true) %>">
-          <%= form.radio_button :status, status, class: "sr-only" %>
+          <%= form.radio_button :status, status, checked: selected_status == status, class: "sr-only" %>
           <%= reading_status_content(status) %>
         </label>
       <% end %>
@@ -27,7 +30,7 @@
     <legend class="text-sm font-semibold text-stone-900"><%= t("bookshelf_entries.form.stickers") %></legend>
     <%= form.hidden_field :sticker_definition_ids, value: "", multiple: true %>
     <div class="flex flex-wrap gap-2">
-      <%= form.collection_check_boxes :sticker_definition_ids, sticker_definitions, :id, :name, include_hidden: false do |builder| %>
+      <%= form.collection_check_boxes :sticker_definition_ids, sticker_definitions, :id, :name, include_hidden: false, checked: selected_sticker_ids do |builder| %>
         <label class="<%= reading_badge_classes(:sticker, selectable: true) %>">
           <%= builder.check_box class: "sr-only" %>
           <%= reading_sticker_content(builder.object) %>

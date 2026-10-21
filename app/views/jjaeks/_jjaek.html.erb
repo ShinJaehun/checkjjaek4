@@ -5,6 +5,7 @@
 <% inline_comments_book = local_assigns[:inline_comments_book] %>
 <% detail_context = local_assigns.fetch(:detail_context, false) %>
 <% book_friend_preview = local_assigns.fetch(:book_friend_preview, false) %>
+<% hide_book_details = book_friend_preview || local_assigns.fetch(:hide_book_details, false) %>
 <% header_moderation_action = if detail_context && jjaek_policy.hide?
   { path: new_admin_jjaek_hide_path(jjaek, jjaek_detail_return_params(jjaek)), label: t("admin.jjaeks.actions.hide") }
 elsif detail_context && jjaek_policy.restore?
@@ -33,9 +34,12 @@ end %>
       <% elsif detail_context %>
         <%= render "jjaeks/jjaek_header", jjaek: jjaek, moderation_action: header_moderation_action %>
       <% else %>
-        <%= render "jjaeks/jjaek_header", jjaek: jjaek %>
+        <%= render "jjaeks/jjaek_header", jjaek: jjaek, hide_book_details: hide_book_details %>
       <% end %>
-      <%= render "jjaeks/jjaek_body", jjaek: jjaek, hide_book_details: book_friend_preview %>
+      <%= render "jjaeks/jjaek_body",
+                 jjaek: jjaek,
+                 hide_book_details: hide_book_details,
+                 book_friend_preview: book_friend_preview %>
 
       <% unless jjaek.hidden? %>
         <%= render "jjaeks/jjaek_actions",

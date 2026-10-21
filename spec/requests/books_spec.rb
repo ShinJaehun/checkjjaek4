@@ -8,20 +8,56 @@ RSpec.describe "Books", type: :request do
 
   describe "GET /books/:id" do
     it "allows the shelf owner to open the book page" do
-      user.bookshelf_entries.create!(book:, status: :reading)
+      entry = user.bookshelf_entries.create!(book:, status: :reading)
+      stickers = 2.times.map do |index|
+        StickerDefinition.create!(key: "book_detail_selected_#{index}", name: "선택 스티커 #{index}")
+      end
+      entry.sticker_definitions = stickers
       sign_in user
 
       get book_path(book)
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
-      state = Nokogiri::HTML(response.body).at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}']")
+      page = Nokogiri::HTML(response.body)
+      state = page.at_css("form[action='#{bookshelf_entry_path(entry)}']")
       expect(state).to be_present
       expect(state.at_css('[data-reading-status-card] legend').text).to eq(I18n.t("books.show.status_label"))
       expect(state.at_css('[data-reading-stickers-card] legend').text).to eq(I18n.t("bookshelf_entries.form.stickers"))
-      expect(state.ancestors("details").first["open"]).to be_nil
+      expect(state.ancestors("dialog").first["id"]).to eq("book-reading-dialog")
+      expect(state.ancestors("dialog").first["open"]).to be_nil
+      expect(state.ancestors("[data-book-modal-auto-open-value='false']")).not_to be_empty
+      header = page.at_css("h1").ancestors("section").first
+      expect(state.ancestors("section").first).to eq(header)
+      expect(header.text).to include(I18n.t("books.show.current_bookshelf"))
+      expect(header.css("h2").reject { |heading| heading.ancestors("dialog").any? }).to be_empty
+      expect(header.at_css("#book-reading-dialog h2").text).to eq(I18n.t("books.show.reading_record_title"))
+      expect(header.at_css("[data-reading-status='reading']")).to be_present
+      expect(header.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to match_array(stickers.map(&:key))
+      expect(header.text).not_to include(I18n.t("books.show.library_context_title"))
       expect(response.body).to include('name="jjaek[content]"')
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
+    end
+
+    it "renders the cover, bibliography, and expandable description once in the title card" do
+      book.update!(title: "긴 제목 " * 12, authors_text: "긴 저자 이름 " * 8,
+        publisher: "긴 출판사 이름 " * 8, isbn: "9780000000099",
+        thumbnail: "https://example.com/detail-cover.jpg", description: "책 소개 " * 80,
+        external_url: "https://example.com/detail")
+      user.bookshelf_entries.create!(book:)
+      sign_in user
+
+      get book_path(book)
+
+      expect(response).to have_http_status(:ok)
+      header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
+      expect(header.css("h1").map(&:text)).to eq([ book.title ])
+      expect(header.css("img[alt='#{book.title}']").size).to eq(1)
+      expect(header.css("dl dd").map(&:text)).to eq([ book.authors_text, book.publisher, book.isbn ])
+      expect(header.css("#book-description").map(&:text)).to eq([ book.description ])
+      expect(header.css("[data-controller='book-description']").size).to eq(1)
+      expect(header.at_css("button[aria-controls='book-description']")["data-action"]).to eq("book-description#toggle")
+      expect(header.css("a[href='#{book.external_url}']").map { |link| link.text.strip }).to eq([ I18n.t("books.show.external_link") ])
     end
 
     it "shows the current bookshelf context for a shelved book" do
@@ -36,17 +72,34 @@ RSpec.describe "Books", type: :request do
     end
 
     it "shows a bookshelf move form when the user has multiple bookshelves" do
-      bookshelf = user.bookshelves.create!(name: "현재 상세 책장", visibility: :private)
-      target_bookshelf = user.bookshelves.create!(name: "옮길 상세 책장", visibility: :private)
+      bookshelf = user.bookshelves.create!(name: "현재 상세 책장", visibility: :private, color_key: "red")
+      target_bookshelf = user.bookshelves.create!(name: "옮길 상세 책장", visibility: :private, color_key: "blue")
       entry = user.bookshelf_entries.create!(book:, bookshelf:)
+      group = Group.create!(name: "이동 문맥 동아리", group_admin: user, lifecycle_status: :active)
       sign_in user
 
-      get book_path(book)
+      get book_path(book, group_id: group.id)
 
       expect(response.body).to include(%(action="#{move_bookshelf_entry_path(entry)}"))
       expect(response.body).to include(%(name="bookshelf_id"))
       expect(response.body).to include(%(value="book"))
       expect(response.body).to include(target_bookshelf.name)
+      page = Nokogiri::HTML(response.body)
+      dialog = page.at_css("#book-move-dialog")
+      expect(dialog["open"]).to be_nil
+      expect(dialog["aria-labelledby"]).to eq("book-move-dialog-title")
+      form = dialog.at_css("form")
+      expect(form.at_css("input[name='_method']")["value"]).to eq("patch")
+      expect(form.at_css("input[name='return_to']")["value"]).to eq("book")
+      expect(form.at_css("input[name='group_id']")["value"]).to eq(group.id.to_s)
+      choices = form.css("input[type='radio'][name='bookshelf_id']")
+      expect(choices.map { |choice| choice["value"] }).to match_array(user.bookshelves.ids.map(&:to_s))
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq([ bookshelf.id.to_s ])
+      current_badge = choices.find { |choice| choice["value"] == bookshelf.id.to_s }.parent
+      target_badge = choices.find { |choice| choice["value"] == target_bookshelf.id.to_s }.parent
+      expect(current_badge["class"].split).to include("bg-red-50", "has-[:checked]:ring-2", "has-[:checked]:ring-stone-900")
+      expect(target_badge["class"].split).to include("bg-blue-50", "has-[:checked]:ring-2", "has-[:checked]:ring-stone-900")
+      expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("bookshelf_entries.actions.move"))
     end
 
     it "shows the book-context label for book-linked jjaeks" do
@@ -64,8 +117,16 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(user.name)
       expect(response.body).to include(user_path(user))
       expect(response.body).to include(book.title)
-      expect(response.body).to include(book_path(book))
       expect(response.body).to include("님의 책짹")
+
+      card = Nokogiri::HTML(response.body).at_css("#jjaek_#{book_jjaek.id}")
+      expect(card.text).not_to include(book.title, book.authors_text)
+      expect(card.css("img[alt='#{book.title}']")).to be_empty
+
+      get user_path(user)
+
+      feed_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{book_jjaek.id}")
+      expect(feed_card.text).to include(book.title, book.authors_text, book_jjaek.content)
     end
 
     it "shows only original book jjaeks on the book page while keeping the requote count on the original" do
@@ -91,7 +152,11 @@ RSpec.describe "Books", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
       expect(response.body).to include("다른 독자의 공개 Jjaek")
-      expect(response.body).to include(I18n.t("books.show.read_only_description"))
+      header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
+      expect(header.at_css("button[aria-controls='book-shelf-dialog']")).to be_present
+      expect(header.at_css("#book-shelf-dialog")).to be_present
+      expect(header.at_css("#book-reading-dialog")).to be_nil
+      expect(header.text).not_to include(I18n.t("books.show.library_context_title"), I18n.t("books.show.read_only_description"))
       expect(response.body).to include(%(action="#{bookshelf_entries_path}"))
       expect(response.body).to include(%(name="book_id"))
       expect(response.body).to include(%(value="#{book.id}"))
@@ -101,7 +166,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include('name="jjaek[content]"')
     end
 
-    it "keeps the personal form collapsed with its visibility selector and a separate state save button" do
+    it "keeps the personal writing modal closed with its visibility selector and a separate state save button" do
       user.bookshelf_entries.create!(book: book)
       sign_in user
 
@@ -110,11 +175,19 @@ RSpec.describe "Books", type: :request do
       page = Nokogiri::HTML(response.body)
       form = page.at_css("form[action='#{jjaeks_path}']")
       expect(form).to be_present
-      expect(form.ancestors("details").first["open"]).to be_nil
+      expect(form.ancestors("dialog").first["id"]).to eq("book-writing-dialog")
+      expect(form.ancestors("dialog").first["open"]).to be_nil
+      expect(page.at_css("[data-book-modal-auto-open-value='false']")).to be_present
       expect(form.at_css("input[name='jjaek[visibility]']")).to be_present
       expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
-      expect(page.css("h2").map(&:text)).to include(I18n.t("jjaeks.actions.publish_book"))
+      dialog = page.at_css("#book-writing-dialog")
+      expect(dialog.css("h2").map(&:text)).to eq([ I18n.t("books.show.write_book_jjaek") ])
+      expect(dialog.at_css("[data-book-posting-target='title']")).to be_nil
       expect(page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}'] input[type='submit']")).to be_present
+      header = page.at_css("h1").ancestors("section").first
+      expect(header.at_css("button[aria-controls='book-reading-dialog']").text.strip).to eq(I18n.t("books.show.edit_reading_record"))
+      expect(header.at_css("button[aria-controls='book-writing-dialog']").ancestors("[data-controller='book-modal']").first).to eq(dialog.parent)
+      expect(dialog.parent.css("dialog").map { |modal| modal["id"] }).to eq([ "book-writing-dialog" ])
     end
 
     it "opens the writing form for a requote and keeps the group and return context" do
@@ -129,7 +202,8 @@ RSpec.describe "Books", type: :request do
       page = Nokogiri::HTML(response.body)
       form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
       expect(form).to be_present
-      expect(form.ancestors("details").first.attribute("open")).to be_present
+      expect(form.ancestors("dialog").first["id"]).to eq("book-writing-dialog")
+      expect(form.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
       expect(form.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(original.id.to_s)
       expect(form.at_css("input[name='return_to']")["value"]).to eq(root_path)
       reading_form = page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}']")
@@ -152,7 +226,23 @@ RSpec.describe "Books", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
-      expect(form.ancestors("details").first.attribute("open")).to be_present
+      expect(form.ancestors("dialog").first["id"]).to eq("book-writing-dialog")
+      expect(form.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
+    end
+
+    it "reopens the writing modal with the submitted content and length error" do
+      user.bookshelf_entries.create!(book:)
+      sign_in user
+
+      submitted_content = "x" * 201
+      post jjaeks_path, params: { jjaek: { book_id: book.id, content: submitted_content } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
+      expect(form.at_css("textarea[name='jjaek[content]']").text.strip).to eq(submitted_content)
+      expect(form.text).to include(I18n.t("content_form.too_long", count: 200))
+      expect(form.ancestors("dialog").first["id"]).to eq("book-writing-dialog")
+      expect(form.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
     end
 
     it "shows only public personal book jjaeks before the book is added to the library" do
@@ -181,8 +271,8 @@ RSpec.describe "Books", type: :request do
       expect(response).to redirect_to(new_user_session_path)
     end
 
-    it "shows a bookshelf select in the read-only add form when the user has multiple bookshelves" do
-      user.bookshelves.create!(name: "따로 담을 책장", visibility: :private)
+    it "offers single-choice bookshelf badges in a closed registration modal and saves the chosen shelf" do
+      target_bookshelf = user.bookshelves.create!(name: "따로 담을 책장", visibility: :private)
       sign_in user
 
       get book_path(book)
@@ -190,6 +280,21 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(I18n.t("bookshelf_entries.form.target_bookshelf"))
       expect(response.body).to include(%(name="bookshelf_entry[bookshelf_id]"))
       expect(response.body).to include("따로 담을 책장")
+
+      page = Nokogiri::HTML(response.body)
+      dialog = page.at_css("#book-shelf-dialog")
+      expect(dialog["open"]).to be_nil
+      expect(dialog["aria-labelledby"]).to eq("book-shelf-dialog-title")
+      choices = dialog.css("input[type='radio'][name='bookshelf_entry[bookshelf_id]']")
+      expect(choices.map { |choice| choice["value"] }).to match_array(user.bookshelves.ids.map(&:to_s))
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq([ user.bookshelves.default_first.first.id.to_s ])
+      expect(page.at_css("#book-writing-dialog")).to be_nil
+      expect(page.at_css("input[name='bookshelf_entry[status]']")).to be_nil
+
+      post bookshelf_entries_path, params: { book_id: book.id, bookshelf_entry: { bookshelf_id: target_bookshelf.id } }
+
+      expect(response).to redirect_to(book_path(book))
+      expect(user.bookshelf_entries.find_by!(book:).bookshelf).to eq(target_bookshelf)
     end
 
     it "adds a read-only book to the shelf and returns to the writable book page" do
@@ -381,13 +486,13 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include(%(id="book_friend_activity_book_activity_#{activity.id}"))
     end
 
-    it "limits the mixed friend preview to five recent records with stable ties" do
+    it "limits the mixed friend preview to three recent records with stable ties" do
       friend = User.create!(name: "Timeline friend", email: "book-preview-order@example.com", password: "password123!")
       BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
       entry = friend.bookshelf_entries.create!(book:)
       time = Time.zone.parse("2026-10-19 12:00:00")
-      activities = Array.new(4) do
-        entry.book_activities.create!(user: friend, book:, action: :added_to_shelf, created_at: time)
+      activities = Array.new(4) do |index|
+        entry.book_activities.create!(user: friend, book:, action: :added_to_shelf, created_at: index < 2 ? time : time - 1.second)
       end
       jjaeks = Array.new(4) do |index|
         friend.jjaeks.create!(book:, content: "PREVIEW_ORDER_#{index}", created_at: time)
@@ -397,7 +502,7 @@ RSpec.describe "Books", type: :request do
       get book_path(book)
 
       ids = Nokogiri::HTML(response.body).css("[data-book-friend-activity]").map { |card| card["id"] }
-      expect(ids).to eq(activities.reverse.map { |activity| "book_friend_activity_book_activity_#{activity.id}" } + [ "book_friend_activity_jjaek_#{jjaeks.last.id}" ])
+      expect(ids).to eq(activities.first(2).reverse.map { |activity| "book_friend_activity_book_activity_#{activity.id}" } + [ "book_friend_activity_jjaek_#{jjaeks.last.id}" ])
     end
   end
 
@@ -419,6 +524,8 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include("검색한 책", "검색 저자", "검색 설명", "https://example.com/cover.jpg")
       expect(response.body).to include('name="search_result_token"', I18n.t("bookshelf_entries.new.title"))
       expect(response.body).not_to include('name="book_id"')
+      registration = Nokogiri::HTML(response.body).at_css("#book-shelf-dialog form")
+      expect(registration.at_css("input[name='search_result_token']")["value"]).to eq(token)
 
       expect {
         post bookshelf_entries_path, params: { search_result_token: token }

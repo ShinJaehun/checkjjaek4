@@ -19,7 +19,8 @@ RSpec.describe "Book posting location", type: :system do
 
   it "keeps the draft and visibility through location changes and posts to the selected club" do
     visit book_path(book)
-    find("summary", text: "책짹 작성").click
+    find("button[aria-controls='book-writing-dialog']").click
+    expect(page).to have_css("dialog#book-writing-dialog[open]")
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "게시 위치를 바꿔도 남아 있는 본문"
     choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
@@ -54,7 +55,8 @@ RSpec.describe "Book posting location", type: :system do
 
   it "defaults to the entering club and can publish the same draft as a personal book post" do
     visit book_path(book, group_id: group.id)
-    find("summary", text: "책짹 작성").click
+    find("button[aria-controls='book-writing-dialog']").click
+    expect(page).to have_css("dialog#book-writing-dialog[open]")
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_group_book"), visible: :all)
     expect(page).to have_select(I18n.t("jjaeks.form.posting_group"), selected: group.name)
     expect(page).to have_no_css('input[name="jjaek[visibility]"]:enabled')
@@ -63,7 +65,9 @@ RSpec.describe "Book posting location", type: :system do
     choose I18n.t("jjaeks.actions.publish_book"), allow_label_click: true
     choose I18n.t("jjaeks.visibility.book_friends"), allow_label_click: true
     expect(page).to have_field(I18n.t("jjaeks.form.book_jjaek_content"), with: "동아리에서 시작한 개인 책짹")
-    click_button I18n.t("jjaeks.actions.publish_book")
+    within("dialog#book-writing-dialog") do
+      click_button I18n.t("jjaeks.actions.publish_book")
+    end
 
     expect(page).to have_current_path(%r{\A/jjaeks/\d+\z}, ignore_query: true)
     post = user.jjaeks.order(:id).last
@@ -77,7 +81,8 @@ RSpec.describe "Book posting location", type: :system do
   it "hides club selection when none is writable and still publishes a personal book post" do
     membership.update!(moderation_status: :activity_suspended)
     visit book_path(book)
-    find("summary", text: "책짹 작성").click
+    find("button[aria-controls='book-writing-dialog']").click
+    expect(page).to have_css("dialog#book-writing-dialog[open]")
 
     expect(page).to have_no_css('input[name="book_post_destination"]')
     expect(page).to have_no_select(I18n.t("jjaeks.form.posting_group"))
@@ -86,7 +91,9 @@ RSpec.describe "Book posting location", type: :system do
     expect(page).to have_button(I18n.t("jjaeks.actions.publish_book"), disabled: false)
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "동아리 선택 없이 작성한 책짹"
     choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
-    click_button I18n.t("jjaeks.actions.publish_book")
+    within("dialog#book-writing-dialog") do
+      click_button I18n.t("jjaeks.actions.publish_book")
+    end
 
     expect(page).to have_current_path(%r{\A/jjaeks/\d+\z}, ignore_query: true)
     post = user.jjaeks.order(:id).last

@@ -93,6 +93,7 @@ class BookshelfEntriesController < ApplicationController
         render json: reading_state.merge(error: message), status: :unprocessable_content
       end
       format.html do
+        @reading_state_form_values = bookshelf_entry_params.slice(:status, :sticker_definition_ids).to_h
         @bookshelf_entry.errors.add(:base, message)
         prepare_book_show_failure
         render "books/show", status: :unprocessable_content
