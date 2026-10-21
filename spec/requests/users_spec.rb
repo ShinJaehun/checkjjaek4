@@ -158,6 +158,13 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(user_library_path(profile_user))
       expect(response.body).to include('name="jjaek[target_user_id]"')
       expect(response.body).to include(I18n.t("jjaeks.visibility.book_friends"))
+      form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
+      expect(form.ancestors("dialog")).to be_empty
+      choices = form.css("input[type='radio'][name='jjaek[visibility]']")
+      expect(choices.map { |input| input["value"] }).to eq(%w[public_jjaek book_friends])
+      expect(choices.select { |input| input["checked"] }.map { |input| input["value"] }).to eq([ "book_friends" ])
+      expect(choices.all? { |input| input.parent.name == "label" && input.parent.at_css("svg") }).to be(true)
+      expect(form.at_css("fieldset legend").text).to eq(I18n.t("jjaeks.form.visibility"))
     end
 
     it "shows the user's own summarized shelf, library link, and private jjaeks without a profile-context form" do
@@ -229,7 +236,7 @@ RSpec.describe "Users", type: :request do
       expect(summary.at_css("[data-profile-books-carousel-target='position']").text).to include("1 / 2")
     end
 
-    it "shows three profile sticker icons and an accessible summary of the remaining names" do
+    it "prepares up to six responsive profile sticker icons with an accessible initial summary" do
       book = Book.create!(title: "STICKER_OVERFLOW_BOOK", authors_text: "Author")
       entry = viewer.bookshelf_entries.create!(book:, status: :reading)
       stickers = 7.times.map do |index|
@@ -243,14 +250,17 @@ RSpec.describe "Users", type: :request do
       card = Nokogiri::HTML(response.body).at_css("[data-profile-books-summary] [data-bookshelf-entry-id='#{entry.id}']")
       expect(card.text).to include(I18n.t("bookshelf_entries.statuses.reading"))
       icons = card.css("[data-reading-sticker]")
-      expect(icons.map { |icon| icon["aria-label"] }).to eq(stickers.first(3).map(&:name))
-      expect(icons.map { |icon| icon["data-reading-sticker"] }).to eq(stickers.first(3).map(&:key))
+      expect(icons.map { |icon| icon["aria-label"] }).to eq(stickers.first(6).map(&:name))
+      expect(icons.map { |icon| icon["data-reading-sticker"] }).to eq(stickers.first(6).map(&:key))
       expect(icons.all? { |icon| icon.at_css("svg") && icon.text.empty? && icon["title"] == icon["aria-label"] }).to be(true)
       overflow = card.at_css("[data-reading-sticker-overflow]")
       expect(overflow.text).to eq("+4")
       expect(overflow["title"]).to eq(stickers.drop(3).map(&:name).join(", "))
       expect(overflow["aria-label"]).to include(stickers.drop(3).map(&:name).join(", "))
       expect(overflow["tabindex"]).to eq("0")
+      row = card.at_css("[data-reading-stickers-row]")
+      expect(row["data-controller"]).to eq("sticker-overflow")
+      expect(JSON.parse(row["data-sticker-overflow-extra-names-value"])).to eq(stickers.drop(6).map(&:name))
       expect(card.at_css(%(a[href="#{book_path(book, return_to: user_path(viewer))}"]))).to be_present
     end
 
@@ -882,7 +892,7 @@ RSpec.describe "Users", type: :request do
       page = Nokogiri::HTML(response.body)
       expect(page.at_css(invitation_form)).to be_present
       expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
-      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("book_friends")
+      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
       expect(page.text).to include("내용을 입력해 주세요.")
     end
@@ -932,8 +942,8 @@ RSpec.describe "Users", type: :request do
       expect(page.at_css(requote_link).text).to eq(normal_page.at_css(requote_link).text)
       expect(response.body).not_to include(profile_private_jjaek.content, excluded_jjaek.content, private_book.title)
       expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
-      expect(page.css('select[name="jjaek[visibility]"] option').map { |option| option["value"] }).to eq(%w[public_jjaek book_friends])
-      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("public_jjaek")
+      expect(page.css('input[type="radio"][name="jjaek[visibility]"]').map { |option| option["value"] }).to eq(%w[public_jjaek book_friends])
+      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("public_jjaek")
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
       expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     end

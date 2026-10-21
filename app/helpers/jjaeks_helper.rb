@@ -1,5 +1,5 @@
 module JjaeksHelper
-  def book_posting_icon(key)
+  def jjaek_option_icon(key)
     paths = {
       "personal" => "M4 3h7a3 3 0 0 1 3 3v15a5 5 0 0 0-5-2H4V3Zm10 3h6v13h-1a5 5 0 0 0-5 2",
       "group" => "M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-6 9v-2a6 6 0 0 1 12 0v2M16 4a4 4 0 0 1 0 8m1 3a5 5 0 0 1 5 5",
@@ -19,7 +19,7 @@ module JjaeksHelper
     end
   end
 
-  def book_posting_card_classes
+  def jjaek_option_card_classes
     "flex cursor-pointer items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-sm font-medium text-stone-600 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-950 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-amber-500"
   end
 

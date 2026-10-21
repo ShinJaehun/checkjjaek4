@@ -30,10 +30,10 @@
           <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("jjaeks.form.posting_location") %></legend>
           <div class="grid grid-cols-2 gap-3">
             <% { "personal" => "publish_book", "group" => "publish_group_book" }.each do |destination, label| %>
-              <label class="<%= book_posting_card_classes %>">
+              <label class="<%= jjaek_option_card_classes %>">
                 <%= radio_button_tag :book_post_destination, destination, destination == posting_destination,
                                      data: { book_posting_target: "location", action: "change->book-posting#change" }, class: "sr-only" %>
-                <%= book_posting_icon(destination) %>
+                <%= jjaek_option_icon(destination) %>
                 <span><%= t("jjaeks.actions.#{label}") %></span>
               </label>
             <% end %>
@@ -57,10 +57,10 @@
           <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("jjaeks.form.visibility") %></legend>
           <div class="grid gap-2 sm:grid-cols-3">
             <% Jjaek.visibilities.each_key do |visibility| %>
-              <label class="<%= book_posting_card_classes %>">
+              <label class="<%= jjaek_option_card_classes %>">
                 <%= form.radio_button :visibility, visibility, disabled: @group_book_post, required: true,
                                       data: { book_posting_target: "visibility" }, class: "sr-only" %>
-                <%= book_posting_icon(visibility) %>
+                <%= jjaek_option_icon(visibility) %>
                 <span><%= t("jjaeks.visibility.#{visibility}") %></span>
               </label>
             <% end %>

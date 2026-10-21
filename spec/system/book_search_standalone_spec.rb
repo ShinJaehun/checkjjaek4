@@ -37,6 +37,7 @@ RSpec.describe "Standalone book search", type: :system do
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
 
     visit root_path
+    click_button "메뉴"
     click_link I18n.t("book_search.nav"), match: :first
     expect(page).to have_current_path(book_search_path(search_origin: root_path))
     expect(page).to have_field(I18n.t("book_search.form.query"), with: "")
@@ -65,7 +66,7 @@ RSpec.describe "Standalone book search", type: :system do
     Book.create!(title: "Replacement book")
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
     visit group_path(group)
-    click_link I18n.t("book_search.nav"), match: :first
+    find("a[href='#{book_search_path(group_id: group.id, search_origin: group_path(group))}']", match: :first).click
     fill_in I18n.t("book_search.form.query"), with: "Paged repeat"
     click_button I18n.t("book_search.form.submit")
     expect_search_path(query: "Paged repeat")

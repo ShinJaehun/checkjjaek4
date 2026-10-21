@@ -11,6 +11,30 @@ RSpec.describe "Homes", type: :request do
   let(:stranger_book) { Book.create!(title: "낯선 활동 책", authors_text: "저자") }
 
   describe "GET /" do
+    it "starts with the inline general Jjaek form and feed without the introduction card" do
+      sign_in viewer
+
+      get root_path
+
+      expect(response).to have_http_status(:ok)
+      main = Nokogiri::HTML(response.body).at_css("main")
+      expect(main.at_css("h1")).to be_nil
+      expect(main.text).not_to include(
+        I18n.t("home.description"), I18n.t("home.actions.search_books"), I18n.t("home.actions.my_shelf")
+      )
+      form = main.at_css("form[action='#{jjaeks_path}']")
+      expect(form).to be_present
+      expect(form.ancestors("dialog")).to be_empty
+      expect(form.at_css("textarea[name='jjaek[content]']")).to be_present
+      visibility_choices = form.css("input[type='radio'][name='jjaek[visibility]']")
+      expect(visibility_choices.map { |input| input["value"] }).to eq(Jjaek.visibilities.keys)
+      expect(visibility_choices.select { |input| input["checked"] }.map { |input| input["value"] }).to eq([ "public_jjaek" ])
+      expect(visibility_choices.all? { |input| input.parent.name == "label" && input.parent.at_css("svg") }).to be(true)
+      expect(form.at_css("fieldset legend").text).to eq(I18n.t("jjaeks.form.visibility"))
+      expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_short"))
+      expect(main.at_css("#feed-items")).to be_present
+    end
+
     it "shows the viewer's own BookActivity in the home feed" do
       BookActivity.create!(user: viewer, book: viewer_book, bookshelf_entry: viewer.bookshelf_entries.find_or_create_by!(book: viewer_book), action: :added_to_shelf)
       sign_in viewer

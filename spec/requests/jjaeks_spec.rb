@@ -93,7 +93,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(page.at_css(requote_link).text).to eq(normal_page.at_css(requote_link).text)
       expect(response.body).not_to include(private_jjaek.content, private_requote.content, group_jjaek.content, group_book_jjaek.content)
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
-      expect(page.at_css('select[name="jjaek[visibility]"] option[selected]')["value"]).to eq("private_jjaek")
+      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("private_jjaek")
       expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     end
 
