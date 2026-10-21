@@ -307,6 +307,11 @@ ko:
       recent_activity: "최근 동아리 활동"
       empty_my_groups: "아직 가입한 동아리가 없습니다."
       empty_activity: "아직 동아리 활동이 없습니다."
+      carousel:
+        label: "내 동아리 목록 페이지"
+        previous: "이전"
+        next: "다음"
+        position: "%{current} / %{total}"
     new:
       title: "동아리 개설 신청"
       description: "동아리 정보와 개설 목적을 제출하면 관리자 승인 후 운영을 시작할 수 있습니다."

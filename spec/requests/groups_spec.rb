@@ -169,6 +169,106 @@ RSpec.describe "Groups", type: :request do
     expect(response.body).not_to include(public_group.name)
   end
 
+  describe "joined group grid and carousel" do
+    [ 0, 1, 6, 7, 9, 12, 13 ].each do |count|
+      it "keeps the sorted #{count} groups in grids of up to six cards" do
+        time = Time.zone.parse("2026-10-19 12:00:00")
+        groups = count.times.map do |index|
+          Group.create!(lifecycle_status: :active, group_admin: user, name: "Sorted club #{index}", group_type: :approval_group, created_at: time)
+        end
+        sign_in user
+
+        get groups_path
+
+        expect(response).to have_http_status(:ok)
+        page = Nokogiri::HTML(response.body)
+        grids = page.css("[data-group-grid]")
+        carousel = page.at_css("[data-controller='group-carousel']")
+        expected_paths = groups.reverse.map { |group| group_path(group) }
+        if count.zero?
+          expect(grids).to be_empty
+          expect(page.text).to include(I18n.t("groups.index.empty_my_groups"))
+        elsif count <= 6
+          expect(grids.size).to eq(1)
+          expect(grids.first.css("article h3 a").map { |link| link["href"] }).to eq(expected_paths)
+        else
+          pages = carousel.css("[data-group-carousel-target='page']")
+          expected_pages = expected_paths.each_slice(6).to_a
+          expect(pages.size).to eq(expected_pages.size)
+          expect(grids.size).to eq(pages.size)
+          pages.each_with_index do |group_page, index|
+            expect(group_page.css("[data-group-grid]").size).to eq(1)
+            expect(group_page.css("article h3 a").map { |link| link["href"] }).to eq(expected_pages[index])
+            expect(group_page.key?("hidden")).to eq(index.positive?)
+          end
+          expect(carousel.at_css("[data-group-carousel-target='viewport']")["tabindex"]).to eq("0")
+          expect(carousel.css("button[aria-controls='my-groups-carousel']").size).to eq(2)
+          expect(carousel.at_css("[data-group-carousel-target='previous']").key?("disabled")).to be(true)
+          expect(carousel.at_css("[data-group-carousel-target='next']").key?("disabled")).to be(false)
+          expect(carousel.at_css("[data-group-carousel-target='position']").text.strip).to eq("1 / #{expected_pages.size}")
+        end
+        expect(carousel).to be_nil if count <= 6
+        expect(page.css("[data-group-grid] article h3 a").map { |link| link["href"] }).to eq(expected_paths)
+      end
+    end
+
+    it "preserves card information, manager-only notices, and batched queries across pages" do
+      other_owner = User.create!(name: "Another owner", email: "carousel-owner@example.com", password: "password123!")
+      applicant = User.create!(name: "Applicant", email: "carousel-applicant@example.com", password: "password123!")
+      time = Time.zone.parse("2026-10-19 12:00:00")
+      groups = 9.times.map do |index|
+        owner = index == 8 ? other_owner : user
+        group = Group.create!(lifecycle_status: :active, group_admin: owner, name: "Card club #{index}", group_type: :approval_group, created_at: time - index.minutes)
+        group.group_memberships.create!(user:, status: :active) if owner != user
+        group
+      end
+      [ groups.first, groups[6] ].each do |group|
+        group.group_memberships.create!(user: other_owner, status: :pending)
+        group.group_memberships.create!(user: applicant, status: :pending)
+      end
+      groups.last.group_memberships.create!(user: applicant, status: :pending)
+      sign_in user
+      group_queries = 0
+      aggregate_queries = 0
+      membership_rows = 0
+      track_queries = lambda do |_name, _started, _finished, _id, payload|
+        group_queries += 1 if payload[:name] == "Group Load"
+        if payload[:name] == "GroupMembership Count" && payload[:sql].match?(/\bGROUP BY\b/i)
+          aggregate_queries += 1
+        end
+      end
+      track_memberships = lambda do |_name, _started, _finished, _id, payload|
+        membership_rows += payload[:record_count] if payload[:class_name] == "GroupMembership"
+      end
+
+      ActiveSupport::Notifications.subscribed(track_queries, "sql.active_record") do
+        ActiveSupport::Notifications.subscribed(track_memberships, "instantiation.active_record") do
+          get groups_path
+        end
+      end
+
+      expect(response).to have_http_status(:ok)
+      expect(group_queries).to eq(1)
+      expect(aggregate_queries).to eq(1)
+      expect(membership_rows).to eq(9)
+      page = Nokogiri::HTML(response.body)
+      group_pages = page.css("[data-group-carousel-target='page']")
+      [ groups.first, groups[6] ].each_with_index do |group, page_index|
+        card = group_pages[page_index].at_css("a[href='#{group_path(group)}']").ancestors("article").first
+        expect(card.at_css("h3").text.strip).to eq(group.name)
+        expect(card.at_css("[data-group-type='approval_group']").text.strip).to eq(I18n.t("groups.types.approval_group"))
+        expect(card.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.active"))
+        expect(card.at_css("[data-field='membership-status']").text.strip).to eq(I18n.t("group_memberships.statuses.active"))
+        expect(card.at_css("a[href='#{user_path(user)}'] img")["alt"]).to eq(user.name)
+        expect(card.at_css("a[href='#{group_members_path(group)}']").text.strip).to eq("가입 승인 대기 2건")
+      end
+      member_card = page.at_css("[data-controller='group-carousel'] a[href='#{group_path(groups.last)}']").ancestors("article").first
+      expect(member_card.at_css("a[href='#{user_path(other_owner)}'] img")["alt"]).to eq(other_owner.name)
+      expect(member_card.at_css("a[href='#{group_members_path(groups.last)}']")).to be_nil
+      expect(member_card.text).not_to include("가입 승인 대기")
+    end
+  end
+
   describe "pending join request notices" do
     let(:approval_group) { Group.create!(lifecycle_status: :active, group_admin: user, name: "Approval requests", group_type: :approval_group) }
     let(:applicant) { User.create!(name: "First applicant", email: "pending-notice-first@example.com", password: "password123!") }

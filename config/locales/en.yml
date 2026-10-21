@@ -304,6 +304,11 @@ en:
         other: "%{count} join requests awaiting approval"
       description: "Find a reading community to read and talk with."
       empty: "No clubs are available to discover yet."
+      carousel:
+        label: "Joined club list pages"
+        previous: "Previous"
+        next: "Next"
+        position: "%{current} / %{total}"
     new:
       title: "Apply to open a club"
       description: "Submit the club details and purpose. Operations can begin after administrator approval."

@@ -1,0 +1,24 @@
+<article class="flex w-full min-w-0 flex-col rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
+  <h3 class="min-w-0 text-xl font-semibold text-stone-900">
+    <%= link_to group.name, group_path(group), class: "block truncate", title: group.name %>
+  </h3>
+  <div class="mt-3 flex flex-wrap items-center gap-2">
+    <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
+    <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
+    <% if membership %>
+      <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700" data-field="membership-status"><%= t("group_memberships.statuses.#{membership.status}") %></span>
+    <% end %>
+  </div>
+  <% if pending_count.positive? %>
+    <%= link_to t("groups.index.pending_join_requests", count: pending_count),
+                group_members_path(group),
+                class: "mt-3 inline-flex max-w-full rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700" %>
+  <% end %>
+  <div class="mt-auto min-w-0 pt-4">
+    <p class="text-xs text-stone-500"><%= t("groups.group_admin_label") %></p>
+    <%= link_to user_path(group.group_admin), class: "mt-2 flex min-w-0 items-center gap-2 text-sm font-medium text-stone-800" do %>
+      <%= user_avatar_image(group.group_admin, size: 128, alt: group.group_admin.name, class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
+      <span class="min-w-0 truncate"><%= group.group_admin.name %></span>
+    <% end %>
+  </div>
+</article>
