@@ -49,7 +49,7 @@
     <% if @groups.any? %>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <% @groups.each do |group| %>
-          <% membership = group.group_memberships.find { |item| item.user_id == current_user.id } %>
+          <% membership = @memberships_by_group_id[group.id] %>
           <article class="flex min-w-0 flex-col rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
             <h3 class="min-w-0 text-xl font-semibold text-stone-900">
               <%= link_to group.name, group_path(group), class: "block truncate", title: group.name %>
@@ -61,6 +61,12 @@
                 <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700" data-field="membership-status"><%= t("group_memberships.statuses.#{membership.status}") %></span>
               <% end %>
             </div>
+            <% pending_count = @pending_membership_counts.fetch(group.id, 0) %>
+            <% if pending_count.positive? %>
+              <%= link_to t("groups.index.pending_join_requests", count: pending_count),
+                          group_members_path(group),
+                          class: "mt-3 inline-flex max-w-full rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700" %>
+            <% end %>
             <div class="mt-auto min-w-0 pt-4">
               <p class="text-xs text-stone-500"><%= t("groups.group_admin_label") %></p>
               <%= link_to user_path(group.group_admin), class: "mt-2 flex min-w-0 items-center gap-2 text-sm font-medium text-stone-800" do %>

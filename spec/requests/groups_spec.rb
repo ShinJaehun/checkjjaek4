@@ -169,6 +169,157 @@ RSpec.describe "Groups", type: :request do
     expect(response.body).not_to include(public_group.name)
   end
 
+  describe "pending join request notices" do
+    let(:approval_group) { Group.create!(lifecycle_status: :active, group_admin: user, name: "Approval requests", group_type: :approval_group) }
+    let(:applicant) { User.create!(name: "First applicant", email: "pending-notice-first@example.com", password: "password123!") }
+    let(:second_applicant) { User.create!(name: "Second applicant", email: "pending-notice-second@example.com", password: "password123!") }
+
+    before { sign_in user }
+
+    it "shows the administrator the pending count as a member-management link" do
+      approval_group.group_memberships.create!(user: applicant, status: :pending)
+      approval_group.group_memberships.create!(user: second_applicant, status: :pending)
+
+      get groups_path
+
+      expect(response).to have_http_status(:ok)
+      page = Nokogiri::HTML(response.body)
+      card = page.at_css(%(a[href="#{group_path(approval_group)}"])).ancestors("article").first
+      expect(card.at_css(%(a[href="#{group_members_path(approval_group)}"])).text.strip).to eq("가입 승인 대기 2건")
+      expect(card.at_css("[data-group-type='approval_group']")).to be_present
+      expect(card.at_css("[data-field='current-status']")).to be_present
+      expect(card.at_css(%(a[href="#{user_path(user)}"]))).to be_present
+    end
+
+    it "does not show the pending count to an ordinary member" do
+      group = Group.create!(lifecycle_status: :active, group_admin: applicant, name: "Another administrator", group_type: :approval_group)
+      group.group_memberships.create!(user:, status: :active)
+      group.group_memberships.create!(user: second_applicant, status: :pending)
+
+      get groups_path
+
+      expect(response).to have_http_status(:ok)
+      page = Nokogiri::HTML(response.body)
+      card = page.at_css(%(a[href="#{group_path(group)}"])).ancestors("article").first
+      expect(card.at_css(%(a[href="#{group_members_path(group)}"]))).to be_nil
+      expect(card.text).not_to include("가입 승인 대기")
+    end
+
+    it "does not show a notice when only active or invited memberships exist" do
+      approval_group.group_memberships.create!(user: applicant, status: :active)
+      approval_group.group_memberships.create!(user: second_applicant, status: :invited)
+
+      get groups_path
+
+      expect(response).to have_http_status(:ok)
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css(%(a[href="#{group_path(approval_group)}"]))).to be_present
+      expect(page.at_css(%(a[href="#{group_members_path(approval_group)}"]))).to be_nil
+      expect(response.body).not_to include("가입 승인 대기")
+    end
+
+    it "does not show pending notices for public or private groups" do
+      groups = %i[public_group private_group].map do |group_type|
+        group = Group.create!(lifecycle_status: :active, group_admin: user, name: "No notice #{group_type}", group_type:)
+        group.group_memberships.create!(user: applicant, status: :pending)
+        group
+      end
+
+      get groups_path
+
+      expect(response).to have_http_status(:ok)
+      page = Nokogiri::HTML(response.body)
+      groups.each do |group|
+        expect(page.at_css(%(a[href="#{group_path(group)}"]))).to be_present
+        expect(page.at_css(%(a[href="#{group_members_path(group)}"]))).to be_nil
+      end
+      expect(response.body).not_to include("가입 승인 대기")
+    end
+
+    it "excludes requests after approval, rejection, or cancellation" do
+      memberships = 3.times.map do |index|
+        requester = User.create!(name: "Resolved applicant #{index}", email: "resolved-applicant-#{index}@example.com", password: "password123!")
+        approval_group.group_memberships.create!(user: requester, status: :pending)
+      end
+      remaining = approval_group.group_memberships.create!(user: applicant, status: :pending)
+      approved, rejected, cancelled = memberships
+
+      get groups_path
+      expect(response.body).to include("가입 승인 대기 4건")
+
+      patch group_group_membership_path(approval_group, approved)
+      expect(approved.reload).to be_active
+      delete reject_group_group_membership_path(approval_group, rejected)
+      expect(GroupMembership.exists?(rejected.id)).to be(false)
+      sign_in cancelled.user
+      delete group_group_membership_path(approval_group, cancelled)
+      expect(GroupMembership.exists?(cancelled.id)).to be(false)
+      sign_in user
+
+      get groups_path
+
+      expect(response).to have_http_status(:ok)
+      link = Nokogiri::HTML(response.body).at_css(%(a[href="#{group_members_path(approval_group)}"]))
+      expect(link.text.strip).to eq("가입 승인 대기 1건")
+      expect(remaining.reload).to be_pending
+    end
+
+    it "separates counts for multiple administered groups with one aggregate query" do
+      other_group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Second approval group", group_type: :approval_group)
+      approval_group.group_memberships.create!(user: applicant, status: :pending)
+      approval_group.group_memberships.create!(user: second_applicant, status: :pending)
+      other_group.group_memberships.create!(user: applicant, status: :pending)
+      aggregate_queries = []
+      track_counts = lambda do |_name, _started, _finished, _id, payload|
+        if payload[:name] == "GroupMembership Count" && payload[:sql].match?(/\bGROUP BY\b/i)
+          aggregate_queries << payload[:sql]
+        end
+      end
+
+      ActiveSupport::Notifications.subscribed(track_counts, "sql.active_record") do
+        get groups_path
+      end
+
+      expect(response).to have_http_status(:ok)
+      expect(aggregate_queries.size).to eq(1)
+      page = Nokogiri::HTML(response.body)
+      { approval_group => 2, other_group => 1 }.each do |group, count|
+        card = page.at_css(%(a[href="#{group_path(group)}"])).ancestors("article").first
+        link = card.at_css(%(a[href="#{group_members_path(group)}"]))
+        expect(link.text.strip).to eq("가입 승인 대기 #{count}건")
+      end
+    end
+  end
+
+  it "loads only the current user's memberships for the joined group cards" do
+    owner = User.create!(name: "Group owner", email: "membership-list-owner@example.com", password: "password123!")
+    other = User.create!(name: "Other member", email: "membership-list-other@example.com", password: "password123!")
+    groups = %i[public_group private_group].map do |group_type|
+      group = Group.create!(lifecycle_status: :active, group_admin: owner, name: "Joined #{group_type}", group_type:)
+      group.group_memberships.create!(user:, status: :active)
+      group.group_memberships.create!(user: other, status: :pending)
+      group
+    end
+    sign_in user
+    membership_rows = 0
+    track_memberships = lambda do |_name, _started, _finished, _id, payload|
+      membership_rows += payload[:record_count] if payload[:class_name] == "GroupMembership"
+    end
+
+    ActiveSupport::Notifications.subscribed(track_memberships, "instantiation.active_record") do
+      get groups_path
+    end
+
+    expect(response).to have_http_status(:ok)
+    expect(membership_rows).to eq(2)
+    page = Nokogiri::HTML(response.body)
+    groups.each do |group|
+      card = page.at_css(%(a[href="#{group_path(group)}"])).ancestors("article").first
+      expect(card.at_css("[data-field='membership-status']").text.strip).to eq(I18n.t("group_memberships.statuses.active"))
+      expect(card.text).to include(owner.name)
+    end
+  end
+
   it "shows shared group badges and the current admin on three-column group cards" do
     groups = {
       public_group: Group.create!(lifecycle_status: :active, group_admin: user, name: "Public readers", description: "Read together", group_type: :public_group),
@@ -429,6 +580,97 @@ RSpec.describe "Groups", type: :request do
     pending_membership = approval_group.group_memberships.create!(user:, status: :pending)
     get group_path(approval_group)
     expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{group_group_membership_path(approval_group, pending_membership)}"]))).to be_present
+  end
+
+  describe "participation buttons" do
+    let(:owner) { User.create!(name: "Participation owner", email: "participation-owner@example.com", password: "password123!") }
+
+    { public_group: "join", approval_group: "request" }.each do |group_type, action|
+      it "offers #{action} to a nonmember of an active #{group_type}" do
+        group = Group.create!(lifecycle_status: :active, group_admin: owner, name: "Open #{group_type}", group_type:)
+        sign_in user
+
+        get group_path(group)
+
+        expect(response).to have_http_status(:ok)
+        form = Nokogiri::HTML(response.body).at_css(%(form[action="#{group_group_memberships_path(group)}"]))
+        expect(form).to be_present
+        expect(form.text.strip).to eq(I18n.t("group_memberships.actions.#{action}"))
+      end
+    end
+
+    %i[public_group approval_group private_group].each do |group_type|
+      it "keeps leaving an active #{group_type} available to an activity-suspended member" do
+        group = Group.create!(lifecycle_status: :active, group_admin: owner, name: "Member #{group_type}", group_type:)
+        membership = group.group_memberships.create!(user:, status: :active, moderation_status: :activity_suspended)
+        sign_in user
+
+        get group_path(group)
+
+        expect(response).to have_http_status(:ok)
+        page = Nokogiri::HTML(response.body)
+        form = page.at_css(%(form[action="#{group_group_membership_path(group, membership)}"]))
+        expect(form.text.strip).to eq(I18n.t("group_memberships.actions.leave"))
+        expect(form.at_css("input[name='_method']")["value"]).to eq("delete")
+        expect(page.at_css(%(form[action="#{group_group_memberships_path(group)}"]))).to be_nil
+      end
+    end
+
+    it "keeps the pending notice and cancellation without offering another application" do
+      group = Group.create!(lifecycle_status: :active, group_admin: owner, name: "Pending application", group_type: :approval_group)
+      membership = group.group_memberships.create!(user:, status: :pending)
+      sign_in user
+
+      get group_path(group)
+
+      expect(response).to have_http_status(:ok)
+      page = Nokogiri::HTML(response.body)
+      form = page.at_css(%(form[action="#{group_group_membership_path(group, membership)}"]))
+      expect(form.text.strip).to eq(I18n.t("group_memberships.actions.cancel"))
+      expect(form.parent.text).to include(I18n.t("group_memberships.statuses.pending"))
+      expect(page.at_css(%(form[action="#{group_group_memberships_path(group)}"]))).to be_nil
+    end
+
+    it "keeps leaving an inactive group available to a member" do
+      group = Group.create!(lifecycle_status: :active, group_admin: owner, name: "Closed membership", group_type: :private_group)
+      membership = group.group_memberships.create!(user:, status: :active)
+      group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      sign_in user
+
+      get group_path(group)
+
+      expect(response).to have_http_status(:ok)
+      page = Nokogiri::HTML(response.body)
+      form = page.at_css(%(form[action="#{group_group_membership_path(group, membership)}"]))
+      expect(form.text.strip).to eq(I18n.t("group_memberships.actions.leave"))
+      expect(page.at_css(%(form[action="#{group_group_memberships_path(group)}"]))).to be_nil
+    end
+
+    it "does not grant group detail access to an invited private-group user" do
+      group = Group.create!(lifecycle_status: :active, group_admin: owner, name: "Invitation access", group_type: :private_group)
+      group.group_memberships.create!(user:, status: :invited)
+      sign_in user
+
+      get group_path(group)
+
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
+    end
+
+    it "does not offer joining during approval or closure even to an operational investigator" do
+      user.update!(global_admin: true)
+      pending_group = Group.create!(group_admin: owner, name: "Awaiting approval", application_purpose: "Read together")
+      closed_group = Group.create!(lifecycle_status: :active, group_admin: owner, name: "Closed group")
+      closed_group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+      sign_in user
+
+      [ pending_group, closed_group ].each do |group|
+        get group_path(group)
+
+        expect(response).to have_http_status(:ok)
+        expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{group_group_memberships_path(group)}"]))).to be_nil
+      end
+    end
   end
 
   it "blocks group settings, lifecycle closure, and admin transfer while operation is suspended" do

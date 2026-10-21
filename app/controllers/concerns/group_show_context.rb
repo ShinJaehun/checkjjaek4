@@ -10,6 +10,11 @@ module GroupShowContext
     @current_group_ban_action = @group_member_ban&.current_ban_action
     @current_operation_suspension = @group.current_operation_suspension_action
     @current_activity_suspension = @membership&.current_activity_suspension_action if @membership&.activity_suspended?
+    joining_membership = GroupMembership.new(
+      group: @group, user: current_user, status: @group.public_group? ? :active : :pending
+    )
+    @can_create_membership = policy(joining_membership).create?
+    @can_destroy_membership = @membership.present? && policy(@membership).destroy?
     prepare_group_jjaek_context
   end
 

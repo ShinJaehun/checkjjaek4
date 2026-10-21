@@ -303,6 +303,7 @@ ko:
       title: "독서 동아리"
       description: "내 동아리와 최근 독서 활동을 확인합니다."
       my_groups: "내 동아리"
+      pending_join_requests: "가입 승인 대기 %{count}건"
       recent_activity: "최근 동아리 활동"
       empty_my_groups: "아직 가입한 동아리가 없습니다."
       empty_activity: "아직 동아리 활동이 없습니다."

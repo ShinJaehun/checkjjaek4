@@ -21,24 +21,24 @@
         <% elsif @group_member_ban.present? %>
           <span class="rounded-full bg-red-50 px-4 py-2 text-sm font-medium text-red-700"><%= t("group_member_bans.status") %></span>
         <% elsif @membership&.active? %>
-          <%= button_to t("group_memberships.actions.leave"),
-                        group_group_membership_path(@group, @membership),
-                        method: :delete,
-                        class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
-        <% elsif @membership&.pending? %>
-          <div class="flex items-center gap-3">
-            <span class="text-sm font-medium text-amber-700"><%= t("group_memberships.statuses.pending") %></span>
-            <%= button_to t("group_memberships.actions.cancel"),
+          <% if @can_destroy_membership %>
+            <%= button_to t("group_memberships.actions.leave"),
                           group_group_membership_path(@group, @membership),
                           method: :delete,
                           class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+          <% end %>
+        <% elsif @membership&.pending? %>
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-medium text-amber-700"><%= t("group_memberships.statuses.pending") %></span>
+            <% if @can_destroy_membership %>
+              <%= button_to t("group_memberships.actions.cancel"),
+                            group_group_membership_path(@group, @membership),
+                            method: :delete,
+                            class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+            <% end %>
           </div>
-        <% elsif @group.active? && @group.operation_active? && @group.public_group? %>
-          <%= button_to t("group_memberships.actions.join"),
-                        group_group_memberships_path(@group),
-                        class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
-        <% elsif @group.active? && @group.operation_active? && @group.approval_group? %>
-          <%= button_to t("group_memberships.actions.request"),
+        <% elsif @can_create_membership %>
+          <%= button_to t(@group.public_group? ? "group_memberships.actions.join" : "group_memberships.actions.request"),
                         group_group_memberships_path(@group),
                         class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
         <% end %>

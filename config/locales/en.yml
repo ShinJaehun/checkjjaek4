@@ -299,6 +299,9 @@ en:
           restore_group_operation: "Operation restored"
     index:
       title: "Reading clubs"
+      pending_join_requests:
+        one: "%{count} join request awaiting approval"
+        other: "%{count} join requests awaiting approval"
       description: "Find a reading community to read and talk with."
       empty: "No clubs are available to discover yet."
     new:

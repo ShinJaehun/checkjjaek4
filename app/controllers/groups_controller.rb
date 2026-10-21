@@ -21,8 +21,13 @@ class GroupsController < ApplicationController
     return render_feed_page(context: :group, next_url: @feed_next_url) if feed_page_request?
 
     @groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
-      .includes(:group_memberships, group_admin: { avatar_attachment: :blob })
+      .includes(group_admin: { avatar_attachment: :blob })
       .order(created_at: :desc, id: :desc)
+    @memberships_by_group_id = current_user.group_memberships
+      .where(group_id: @groups.map(&:id)).index_by(&:group_id)
+    managed_approval_group_ids = @groups.select { |group| group.approval_group? && group.group_admin?(current_user) }.map(&:id)
+    @pending_membership_counts = GroupMembership.pending.where(group_id: managed_approval_group_ids)
+      .group(:group_id).count
     @invitations = current_user.group_memberships.invited
       .joins(:group)
       .merge(Group.active)
