@@ -261,6 +261,20 @@ RSpec.describe "Comments", type: :request do
             [ "replace", panel_id ], [ "update", "#{other_panel_id}_list" ]
           )
           expect(streams.map { |stream| stream["target"] }).not_to include(other_panel_id)
+          if operation == "update"
+            expect(streams.map { |stream| stream["target"] }).not_to include(
+              "comment_action_jjaek_#{jjaek.id}", "book_friend_comment_action_jjaek_#{jjaek.id}"
+            )
+          else
+            expect(streams.map { |stream| [ stream["action"], stream["target"] ] }).to include(
+              [ "replace", "comment_action_jjaek_#{jjaek.id}" ],
+              [ "replace", "book_friend_comment_action_jjaek_#{jjaek.id}" ]
+            )
+            expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: operation == "create" ? 2 : 0))
+          end
+          expect(streams.map { |stream| stream["target"] }).not_to include(
+            "like_action_jjaek_#{jjaek.id}", "book_friend_like_action_jjaek_#{jjaek.id}"
+          )
           other_list_stream = streams.find { |stream| stream["target"] == "#{other_panel_id}_list" }
           expect(other_list_stream.css("form[action='#{jjaek_comments_path(jjaek)}']")).to be_empty
           expect(other_list_stream.css("input[name='comments_context']").map { |input| input["value"] }).to all(eq(other_context))
@@ -320,6 +334,52 @@ RSpec.describe "Comments", type: :request do
           expect(streams.css("textarea").map { |field| field.text.strip }).to include(invalid_content)
           expect(response.body).to include(I18n.t("content_form.too_long", count: 200))
         end
+      end
+    end
+  end
+
+  %w[detail home profile].each do |requested_context|
+    context "when updating from the #{requested_context} comments panel" do
+      let(:panel_id) do
+        case requested_context
+        when "profile" then "comments_panel_profile_#{author.id}_jjaek_#{jjaek.id}"
+        when "home" then "comments_panel_home_jjaek_#{jjaek.id}"
+        else "comments_panel_jjaek_#{jjaek.id}"
+        end
+      end
+      let(:context_params) { { comments_context: requested_context, profile_user_id: author.id } }
+      let(:stream_headers) { { "Accept" => "text/vnd.turbo-stream.html" } }
+
+      before { sign_in user }
+
+      it "replaces the selected panel and flash without changing count or like targets" do
+        patch jjaek_comment_path(jjaek, comment),
+              params: context_params.merge(comment: { content: "Updated in #{requested_context}" }), headers: stream_headers
+
+        expect(response).to have_http_status(:ok)
+        expect(comment.reload.content).to eq("Updated in #{requested_context}")
+        streams = Nokogiri::HTML.fragment(response.body).css("turbo-stream")
+        expect(streams.map { |stream| [ stream["action"], stream["target"] ] }).to eq([
+          [ "replace", panel_id ], [ "update", "flash-messages" ]
+        ])
+        expect(response.body).to include(I18n.t("comments.notices.updated"))
+        expect(streams.at_css("template input[name='comments_context']")["value"]).to eq(requested_context)
+        if requested_context == "profile"
+          expect(streams.at_css("template input[name='profile_user_id']")["value"]).to eq(author.id.to_s)
+        end
+      end
+
+      it "keeps submitted invalid content and errors in the selected panel alone" do
+        invalid_content = "x" * 201
+        patch jjaek_comment_path(jjaek, comment),
+              params: context_params.merge(comment: { content: invalid_content }), headers: stream_headers
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(comment.reload.content).to eq("My comment")
+        streams = Nokogiri::HTML.fragment(response.body).css("turbo-stream")
+        expect(streams.map { |stream| [ stream["action"], stream["target"] ] }).to eq([ [ "replace", panel_id ] ])
+        expect(streams.css("textarea").map { |field| field.text.strip }).to include(invalid_content)
+        expect(response.body).to include(I18n.t("content_form.too_long", count: 200))
       end
     end
   end

@@ -1,7 +1,7 @@
 <% comments_context = local_assigns.fetch(:comments_context, :detail) %>
 <% comments_profile_user = local_assigns[:comments_profile_user] %>
 <% comments_book = local_assigns[:comments_book] %>
-<% comments_panel_id = local_assigns.fetch(:comments_panel_id, comments_panel_dom_id(jjaek, context: comments_context, profile_user: comments_profile_user, book: comments_book)) %>
+<% comments_panel_id = local_assigns.fetch(:comments_panel_id) { comments_panel_dom_id(jjaek, context: comments_context, profile_user: comments_profile_user, book: comments_book) } %>
 <% close_comments_params = { comments_context: comments_context, panel_state: :closed } %>
 <% close_comments_params[:profile_user_id] = comments_profile_user.id if comments_profile_user.present? %>
 <% close_comments_params[:book_id] = comments_book.id if comments_book.present? %>
