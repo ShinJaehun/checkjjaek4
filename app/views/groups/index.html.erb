@@ -48,7 +48,7 @@
     <% groups = @groups.to_a %>
     <div class="flex items-center justify-between gap-3">
       <h2 class="min-w-0 text-2xl font-semibold tracking-tight text-stone-900"><%= t("groups.index.my_groups") %></h2>
-      <% if groups.size >= 2 %>
+      <% if @can_manage_group_list %>
         <%= link_to edit_groups_membership_order_path,
                     class: "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700" do %>
           <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -62,11 +62,12 @@
       <% if groups.one? %>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3" data-group-grid>
           <% groups.each do |group| %>
-            <%= render "groups/group_card", group: group,
+            <%= render(@past_group_states.key?(group.id) ? "groups/past_group_card" : "groups/group_card", group: group,
+                       past_state: @past_group_states[group.id],
                        membership: @memberships_by_group_id[group.id],
                        pending_count: @pending_membership_counts.fetch(group.id, 0),
                        member_preview: @member_previews_by_group_id.fetch(group.id, []),
-                       active_member_count: @active_member_counts_by_group_id.fetch(group.id, 0) %>
+                       active_member_count: @active_member_counts_by_group_id.fetch(group.id, 0)) %>
           <% end %>
         </div>
       <% else %>
@@ -80,11 +81,12 @@
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3" data-group-grid>
               <% groups.each_with_index do |group, index| %>
                 <div class="min-w-0" data-group-carousel-target="card" <%= "hidden" if index >= 3 %>>
-                  <%= render "groups/group_card", group: group,
+                  <%= render(@past_group_states.key?(group.id) ? "groups/past_group_card" : "groups/group_card", group: group,
+                             past_state: @past_group_states[group.id],
                              membership: @memberships_by_group_id[group.id],
                              pending_count: @pending_membership_counts.fetch(group.id, 0),
                              member_preview: @member_previews_by_group_id.fetch(group.id, []),
-                             active_member_count: @active_member_counts_by_group_id.fetch(group.id, 0) %>
+                             active_member_count: @active_member_counts_by_group_id.fetch(group.id, 0)) %>
                 </div>
               <% end %>
             </div>

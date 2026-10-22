@@ -81,7 +81,7 @@ RSpec.describe "Personal group membership order", type: :request do
     expect(index_group_paths).to eq(memberships.map { |membership| group_path(membership.group) })
   end
 
-  it "appends a new join and automatically omits a membership that was left" do
+  it "appends a new join and moves a left group behind current memberships" do
     sign_in user
     patch groups_membership_order_path, params: { membership_ids: memberships.map(&:id) }
     joining = Group.create!(group_admin: owner, name: "New public club", lifecycle_status: :active, created_at: 1.year.ago)
@@ -94,7 +94,9 @@ RSpec.describe "Personal group membership order", type: :request do
 
     expect(response).to redirect_to(groups_path)
     get groups_path
-    expect(index_group_paths).to eq([ memberships.first, memberships.last ].map { |membership| group_path(membership.group) } + [ group_path(joining) ])
+    expect(index_group_paths).to eq([ memberships.first, memberships.last ].map { |membership| group_path(membership.group) } + [ group_path(joining), group_path(memberships.second.group_id) ])
+    get edit_groups_membership_order_path
+    expect(edit_membership_ids).not_to include(memberships.second.id)
   end
 
   it "uses the saved order across three-card desktop pages while editing all clubs on one page" do

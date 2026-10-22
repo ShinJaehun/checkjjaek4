@@ -129,22 +129,22 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 ## 내 동아리 목록 표시
 
 - `/groups`는 독서 동아리 타이틀 → 내 동아리 → 최근 동아리 소식의 단일 열 구조를 유지하며 사이드바를 추가하지 않는다. 최근 동아리 소식의 기존 짹·책짹 피드, 정렬·조회 정책, 무한 스크롤·댓글·액션은 유지한다.
-- 내 동아리는 현재 사용자의 `GroupPolicy::MembershipScope`를 기준으로 한다. 개인 순서를 저장하기 전에는 기존 동아리 최신 생성순(`groups.created_at DESC, groups.id DESC`)으로 표시한다. 0개는 기존 빈 상태, 1개는 정적 그리드로 표시한다.
+- 내 동아리의 현재 회원 목록은 `GroupPolicy::MembershipScope`, 과거 실제 참여 목록은 `PastMembershipScope`를 기준으로 하며 현재 회원 뒤에 과거 동아리를 표시한다. 목록에서 제외한 동아리는 표시하지 않는다. 개인 순서를 저장하기 전에는 기존 동아리 최신 생성순(`groups.created_at DESC, groups.id DESC`)으로 표시한다. 0개는 기존 빈 상태, 1개는 정적 그리드로 표시한다.
 - 2개 이상이면 하나의 캐러셀에서 모바일(`md` 미만) 1개, 태블릿(`md` 이상·`lg` 미만) 2개, PC(`lg` 이상) 3개를 한 줄에 표시한다. 예: PC의 4개는 `[1~3] / [4]`, 7개는 `[1~3] / [4~6] / [7]`이다. 전체 개인 순서를 유지하고 카드 중복이나 추가 목록을 만들지 않는다.
 - 이전/다음 버튼, 방향키·Home·End, 가로 스와이프와 `1 / 3` 형태의 페이지 표시를 유지한다. 첫 페이지의 이전 버튼과 마지막 페이지의 다음 버튼은 비활성화하며, 해당 화면 너비에서 한 페이지면 탐색 컨트롤을 숨긴다. 현재 페이지 외의 카드는 숨겨 키보드 탐색 대상에서 제외한다. 화면 크기 변경 시 포커스된 카드 또는 현재 첫 카드를 포함하는 페이지를 표시하며, 숨겨지는 카드·컨트롤의 포커스는 viewport로 옮긴다. 모든 동아리는 너비 변경 후에도 탐색할 수 있다.
-- 단일 그리드와 캐러셀의 모든 페이지는 같은 group_card partial을 사용하며 가입 상태·운영 상태·관리자 정보·가입 승인 대기 링크를 동일하게 표시한다. 기존 policy scope, 현재 사용자 membership 일괄 조회와 pending 단일 집계를 유지하고, 이미 로드한 목록을 분할하여 추가 DB 조회나 중복 카드 없이 렌더링한다.
+- 현재 회원 카드는 단일 그리드와 캐러셀의 모든 페이지에서 같은 group_card partial을 사용하며 가입 상태·운영 상태·관리자 정보·가입 승인 대기 링크를 동일하게 표시한다. 기존 policy scope, 현재 사용자 membership 일괄 조회와 pending 단일 집계를 유지하고, 이미 로드한 목록을 분할하여 추가 DB 조회나 중복 카드 없이 렌더링한다.
 - 카드의 제목·배지·가입 승인 대기 링크를 유지하면서 padding·배지 사이 간격을 줄인다. 관리자 아바타·이름과 회원 정보를 하단 한 줄에 표시하고 별도 관리자·회원 라벨의 수직 공간은 제거한다. 관리자 역할과 회원 영역은 기존 번역을 사용한 접근성 label로 구분한다. 관리자·회원 프로필 링크, 활성 일반 회원 아바타 최대 3개와 전체 회원 수는 유지한다. 회원 아바타는 작게 겹쳐 표시하고 회원 수는 기존 `groups.active_member_count`를 사용한다. 관리자는 일반 회원 수·미리보기에서 제외하고 `GroupMembership.active`만 집계한다. pending·invited는 제외하며 활동 정지와 membership의 active 여부는 구분한다.
 - 회원 미리보기는 membership의 가입 시각(`created_at`)과 ID 오름차순이다. 각 아바타는 `user_avatar_image`를 사용하고 해당 회원 프로필로 연결한다. 일반 회원이 0명이면 회원 아바타 없이 “회원 0명”을 표시한다.
-- 회원 정보는 현재 내 동아리 목록에 대해서만 일괄 조회한다. SQL window count와 순위를 사용해 전체 활성 일반 회원 수를 계산하면서 Group마다 최대 3개의 membership만 로드하고 사용자·아바타도 preload한다. count와 preview를 partial의 명시적인 local로 전달하며 카드별 쿼리, 다른 동아리 정보 혼입이나 접근 범위 확대를 허용하지 않는다. 상세 화면과 순서 변경 화면의 회원 표시·정렬 저장 로직은 변경하지 않는다.
+- 회원 정보는 현재 회원인 동아리 카드에 대해서만 일괄 조회한다. SQL window count와 순위를 사용해 전체 활성 일반 회원 수를 계산하면서 Group마다 최대 3개의 membership만 로드하고 사용자·아바타도 preload한다. count와 preview를 partial의 명시적인 local로 전달하며 카드별 쿼리, 다른 동아리 정보 혼입이나 접근 범위 확대를 허용하지 않는다. 상세 화면의 회원 표시와 기존 membership 순서 저장 검증은 유지한다.
 
 ### 개인별 표시 순서 `(현재 구현)`
 
-- “내 동아리” 제목 옆의 “순서 변경”으로 `/groups/membership_order/edit`에 진입한다. 캐러셀 페이지 구분 없이 내 동아리 전체를 한 목록으로 편집한다.
+- “내 동아리” 제목 옆의 “순서 변경”으로 `/groups/membership_order/edit`에 진입한다. 캐러셀 페이지 구분 없이 현재 회원 동아리를 정렬하고 과거 동아리와 목록에서 제외한 동아리도 같은 화면에서 관리한다. 현재 2개 이상이거나 과거/제외/제거 가능한 동아리가 있으면 진입 버튼을 표시한다.
 - 순서 편집 화면은 번호·별도 손잡이 없이 PC에서 기존 SortableJS로 카드 전체를 드래그하고 모바일에서만 ↑·↓ 버튼을 표시한다. 모바일 버튼의 aria-label은 유지하고 첫 항목의 위로·마지막 항목의 아래로 버튼은 비활성화한다.
 - 저장 전 조작은 화면 안에서만 반영한다. 저장하면 `PATCH /groups/membership_order`를 통해 전체 순서를 저장하고 `/groups`로 돌아간다. 취소는 저장하지 않고 `/groups`로 돌아간다.
-- `GroupMembership.position`에 사용자별 순서를 저장하며 별도 설정 테이블이나 Group 공통 순서를 만들지 않는다. 기존 membership과 새 membership의 기본값은 `NULL`이고 기존 데이터 backfill은 필요하지 않다.
+- `GroupMembership.position`에 사용자별 순서를 저장하며 순서용 별도 설정 테이블이나 Group 공통 순서를 만들지 않는다. membership과 독립적인 목록 숨김만 `GroupListHiding`에 저장한다. 기존 membership과 새 membership의 기본값은 `NULL`이고 기존 데이터 backfill은 필요하지 않다.
 - 저장된 position의 오름차순을 먼저 표시하고 position이 없는 새 가입 동아리는 그 뒤에 기존 동아리 최신 생성순으로 표시한다. 가입 승인·초대 수락으로 새롭게 active가 된 membership도 같은 규칙을 따른다. 탈퇴·내보내기·이용 제한으로 membership이 삭제되면 순서도 함께 사라진다. 남은 position의 빈 번호는 정리하지 않으며 같은 동아리에 재가입해도 새 membership으로 뒤에 표시한다.
-- 정렬 대상은 `MembershipScope`가 허용한 Group에 대한 본인의 active membership 전체다. pending·invited membership과 신규 개설 거절·취소 Group은 포함하지 않는다. Group lifecycle·운영 정지·회원 활동 정지에 따른 기존 목록·읽기·관리 권한은 변경하지 않는다.
+- 정렬 대상은 `MembershipScope`가 허용한 Group에 대한 본인의 목록에서 제외하지 않은 active membership 전체다. 과거 동아리는 정렬 대상에 포함하지 않는다. pending·invited membership과 신규 개설 거절·취소 Group은 포함하지 않는다. Group lifecycle·운영 정지·회원 활동 정지에 따른 기존 목록·읽기·관리 권한은 변경하지 않는다.
 - 서버는 요청 membership ID 배열과 현재 편집 대상 전체를 transaction 안에서 비교해 중복·누락·타인·대상 밖·잘못된 ID와 변경된 목록을 거부한다. 사용자별 저장을 직렬화하고 해당 사용자의 membership 행을 잠가 현재 상태를 검사한다. position 저장과 저장 중 추가된 membership에 대한 재검사까지 원자적으로 처리한다.
 - 실패하면 position 변경을 rollback하고 현재 목록과 오류를 HTTP 422로 표시한다. 성공한 순서는 새로고침 후에도 유지하며 다른 사용자의 순서에는 영향을 주지 않는다.
 - 기존 group_card partial·최근 동아리 소식의 피드와 개인별 순서 저장 로직을 유지한다. 먼저 전체 개인별 순서를 정한 뒤 `group_carousel_controller.js`가 화면 너비에 따라 1·2·3개씩 표시한다. 조회·검증·저장 로직은 `GroupMembership`, 순서 편집 조작은 별도 `group_membership_sort_controller.js`가 담당한다.
@@ -177,7 +177,7 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 - 동아리 Jjaek의 가시성은 해당 동아리의 접근 정책을 따른다.
 - 공개 동아리에서는 동아리 비회원인 로그인 사용자도 글을 읽을 수 있지만 작성할 수 없다.
 - 승인 동아리와 비공개 동아리에서는 현재 멤버만 글을 읽고 작성할 수 있다.
-- 동아리 접근 권한이 없는 경로를 통해 동아리 Jjaek을 조회할 수 없어야 한다.
+- 일반 열람에서는 동아리 접근 권한이 없는 경로를 통해 동아리 Jjaek을 조회할 수 없어야 한다. 아래 “내 글 정리” 예외는 본인 작성 내용 확인·삭제만 허용하며 일반 열람 권한을 부여하지 않는다.
 
 동아리 문맥을 기존 `visibility_rank`만으로 표현할 수 있다고 전제하지 않는다.
 
@@ -192,6 +192,27 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 동아리 피드 작성 선택은 `짹 / 동아리 책짹`이고 책 상세 작성 카드에는 중복 선택 버튼을 두지 않는다.
 개인 독서 기록과 BookActivity에는 동아리 소속을 추가하지 않는다.
 세부 화면과 실패 복원 기준은 `docs/specs/bookshelf_ui.md`를 따른다.
+
+---
+
+## 현재·과거 동아리와 자기 콘텐츠 정리 — Delta Specs
+
+### MODIFIED: 내 동아리와 개인별 목록 관리
+
+- `/groups`는 현재 active membership 동아리(기존 개인별 저장 순서), 과거 실제 참여 동아리(최근 회원 자격 종료 우선)를 차례로 표시한다. 운영 종료·운영 정지·회원 활동 정지는 탈퇴가 아니다. 단순 신청·미수락 초대는 과거 참여로 인정하지 않는다.
+- 실제 참여는 `GroupMembershipEvent`의 가입·승인·초대 수락·탈퇴·내보내기·관리자 역할 이력과 이용 제한 `ModerationAction`의 보존된 Group/User attribution으로 확인한다. 회원 상태 표시는 자발적 탈퇴에 “탈퇴함”, 관리자 내보내기에 “탈퇴 처리”, 현재 이용 제한에 “이용 제한”을 사용한다. 상태가 불명확하거나 이용 제한만 해제된 경우 중립적인 “이전 회원” 배지를 사용한다.
+- 과거 카드에는 현재 동아리 이름·유형·운영 상태와 회원 자격 종료 상태 배지를 표시한다. `/groups`와 순서 편집·제외 영역은 기존 `past_group_card` partial을 재사용하며 옅은 회색 배경·차분한 테두리를 적용하고 blur·전체 opacity 및 카드별 참여 설명은 사용하지 않는다. 관리자·회원 정보·아바타·회원 수는 표시하지 않는다. 목록의 이 식별 정보 표시만 허용하며 제한 상세 화면이나 일반 콘텐츠 접근 권한은 확대하지 않는다. `/groups`의 링크는 숫자 ID 경로를 유지하고 편집 화면의 이름에는 링크를 추가하지 않는다. 기존 현재 회원 카드와 1/2/3개 반응형 캐러셀·최근 동아리 소식 읽기 scope는 유지한다.
+- `/groups/membership_order/edit`에서 현재 회원의 순서 저장과 목록에서 제거/복원을 제공한다. “활동하지 않는 동아리” 영역은 회원 자격이 종료된 과거 동아리만 포함하고 영역 설명으로 이를 명시한다. 운영 종료·운영 정지·회원 활동 정지 중에도 active membership이 유지된 동아리는 기존 정렬 목록에 남으며 과거 회원으로 분류하지 않는다. 과거 동아리 ID는 membership 순서 저장에 포함하지 않는다. 정상 활동 가능한 현재 동아리는 제거할 수 없다. 과거·운영 종료·운영 정지·회원 활동 정지 동아리는 확인 후 제거하며 같은 화면의 제외 영역에서 복원한다.
+- 목록 제거는 사용자/동아리 unique constraint를 가진 `GroupListHiding`에 저장한다. Group·membership·콘텐츠·감사 이력은 보존한다. 현재 회원의 숨김 여부와 관계없이 기존 membership 순서는 유지한다.
+- Group이 active·운영 정지 없음이고 본인의 active·활동 정지 없음 membership이 유지/복구되면 숨김 설정을 자동 삭제한다. 모든 제한이 해소되어야 한다. 탈퇴·내보내기·이용 제한 이후에는 재가입/초대 수락이 필요하며, 이용 제한 해제나 Group 재운영만으로 membership은 복구하지 않는다. 자동 복귀 뒤 재정지되어도 이전 숨김 설정은 재적용하지 않는다.
+
+### ADDED: 기존 동아리 상세의 제한 화면
+
+- 별도의 사용자 관리 페이지를 만들지 않는다. `/groups/:id`는 기존 읽기 권한이 있으면 일반 상세를 유지한다(탈퇴 후 공개 동아리 포함). 읽기 권한 없는 과거 실제 회원에게만 자기 콘텐츠 제한 화면을 제공하며 일반 상세 데이터 준비 전에 분기한다.
+- 서버에서 current user, 실제 참여 이력, 해당 Group을 검증한다. 본인의 삭제되지 않은 동아리 짹·책짹과 댓글만 종류별 50개씩 페이지네이션한다. 댓글은 tombstone 부모 아래에서도 정리할 수 있다. 타인·다른 Group·개인 영역은 제외한다.
+- 숫자 Group ID, 콘텐츠 종류·본인 본문·작성 시각·삭제 버튼만 표시한다. 현재 Group 이름·책·인용 원문·다른 사용자·부모 본문·회원/관리자 정보와 내부 피드 링크를 표시하지 않는다. 숨김 글·댓글 및 숨김 부모 아래 댓글은 본문 대신 안내만 표시한다.
+- 기존 `JjaekPolicy#destroy?`, `CommentPolicy#destroy?`, `Jjaek#destroy_or_tombstone!`와 댓글 삭제 처리를 사용한다. 댓글 있는 Jjaek의 tombstone·댓글·moderation 이력은 보존한다. 삭제 후 고정 return context를 검증하고 삭제한 콘텐츠의 Group ID 경로로 303 복귀한다. 클라이언트가 다른 Group이나 외부 URL을 복귀 대상으로 지정할 수 없다.
+- 일반 Group/Jjaek/Comment·홈·프로필·피드 열람 scope, `GroupPolicy#read_jjaeks?`, `JjaekPolicy#show?`, 수정·작성·인용 원문 권한과 기존 membership/moderation/lifecycle은 완화하지 않는다.
 
 ---
 

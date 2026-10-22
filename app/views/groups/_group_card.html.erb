@@ -7,6 +7,9 @@
     <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
     <% if membership %>
       <span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700" data-field="membership-status"><%= t("group_memberships.statuses.#{membership.status}") %></span>
+      <% if membership.activity_suspended? %>
+        <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"><%= t("group_memberships.moderation.statuses.activity_suspended") %></span>
+      <% end %>
     <% end %>
   </div>
   <% if pending_count.positive? %>

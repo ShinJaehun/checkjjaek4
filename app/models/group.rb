@@ -29,6 +29,7 @@ class Group < ApplicationRecord
   has_many :group_membership_removals, dependent: :destroy
   has_many :group_membership_events, dependent: :delete_all
   has_many :group_member_bans, dependent: :destroy
+  has_many :group_list_hidings, dependent: :delete_all
   has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
   has_many :members, through: :active_group_memberships, source: :user
   has_many :jjaeks, dependent: :restrict_with_error
@@ -47,6 +48,7 @@ class Group < ApplicationRecord
   validate :lifecycle_status_transition_must_be_valid
 
   after_create :create_group_admin_membership!
+  after_update :restore_eligible_list_entries, if: -> { saved_change_to_lifecycle_status? || saved_change_to_operation_suspended_at? }
 
   scope :pending_opening_applications, -> { pending_approval.where(closed_at: nil) }
   scope :ended_applications, -> { where(lifecycle_status: %i[rejected cancelled]) }
@@ -146,6 +148,10 @@ class Group < ApplicationRecord
   end
 
   private
+
+  def restore_eligible_list_entries
+    GroupListHiding.restore_eligible_for!(group_id: id)
+  end
 
   def admin_transfer_actor?(actor)
     group_admin?(actor) || actor&.global_admin?

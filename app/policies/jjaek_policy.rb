@@ -5,6 +5,17 @@ class JjaekPolicy < ApplicationPolicy
     end
   end
 
+  class GroupCleanupScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      readable_group_ids = GroupPolicy::ReadableContentScope.new(user, Group).resolve.select(:id)
+      past_group_ids = GroupPolicy::PastMembershipScope.new(user, Group).resolve.select(:id)
+      scope.where(user_id: user.id, deleted_at: nil, group_id: past_group_ids)
+        .where.not(group_id: readable_group_ids)
+    end
+  end
+
   def view_admin_inventory?
     user.present? && user.global_admin? && record.user_id != user.id
   end

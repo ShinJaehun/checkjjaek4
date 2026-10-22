@@ -433,8 +433,9 @@ RSpec.describe "Group memberships", type: :request do
     delete group_group_membership_path(private_group, invitation)
     expect(GroupMembershipRemoval.exists?(group: private_group, user: member)).to be(false)
     get group_path(private_group)
-    expect(response).to redirect_to(groups_path)
-    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(I18n.t("groups.restricted_content.empty"))
+    expect(response.body).not_to include(private_group.name)
   end
 
   it "does not let the group_admin leave" do

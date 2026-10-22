@@ -64,6 +64,7 @@ class User < ApplicationRecord
            inverse_of: :group_admin,
            dependent: :restrict_with_error
   has_many :group_memberships, dependent: :destroy
+  has_many :group_list_hidings, dependent: :delete_all
   has_many :group_member_bans, dependent: :destroy
   has_many :group_membership_removals, dependent: :destroy
   has_many :performed_group_membership_removals,

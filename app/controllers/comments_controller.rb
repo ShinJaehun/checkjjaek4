@@ -91,6 +91,11 @@ class CommentsController < ApplicationController
     authorize @comment
     @comment.destroy!
 
+    if params[:return_to] == "group_restricted_content" && @jjaek.group.present? && policy(@jjaek.group).cleanup_content?
+      redirect_to group_path(@jjaek.group_id, content: "comments"), notice: t("comments.notices.destroyed"), status: :see_other
+      return
+    end
+
     unless policy(@jjaek).show?
       redirect_to groups_path, notice: t("comments.notices.destroyed"), status: :see_other
       return

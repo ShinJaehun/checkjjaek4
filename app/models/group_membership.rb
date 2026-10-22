@@ -20,6 +20,7 @@ class GroupMembership < ApplicationRecord
 
   before_destroy :prevent_group_admin_membership_destroy
   after_save :clear_removal_marker, if: -> { active? && saved_change_to_status? }
+  after_save :restore_eligible_list_entry, if: -> { saved_change_to_status? || saved_change_to_moderation_status? }
 
   def self.displayed_for(user:, groups:)
     active.where(user:, group_id: groups.select(:id)).joins(:group)
@@ -57,11 +58,19 @@ class GroupMembership < ApplicationRecord
     active? && moderation_status_normal?
   end
 
+  def removable_from_list?
+    active? && (group.inactive? || group.pending_reactivation_request? || group.operation_suspended? || activity_suspended?)
+  end
+
   def current_activity_suspension_action
     ModerationAction.current_activity_suspension_for(self)
   end
 
   private
+
+  def restore_eligible_list_entry
+    GroupListHiding.restore_eligible_for!(group_id:, user_id:)
+  end
 
   def group_admin_must_be_active
     return unless group&.group_admin_id == user_id

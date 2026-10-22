@@ -1,0 +1,22 @@
+<article class="flex h-full w-full min-w-0 flex-col rounded-2xl border border-stone-300 bg-stone-50 p-4" data-past-group-id="<%= group.id %>">
+  <h3 class="min-w-0 text-lg font-semibold text-stone-900">
+    <% if local_assigns.fetch(:link_name, true) %>
+      <%= link_to group.name, group_path(group.id), class: "block truncate", title: group.name %>
+    <% else %>
+      <span class="block truncate" title="<%= group.name %>"><%= group.name %></span>
+    <% end %>
+  </h3>
+  <div class="mt-2 flex flex-wrap items-center gap-1">
+    <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
+    <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
+    <span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700" data-field="membership-status"><%= t("groups.past_membership.statuses.#{past_state.fetch(:status)}") %></span>
+  </div>
+  <% if local_assigns[:list_action] == :hide %>
+    <%= button_to t("groups.membership_order.hide"), hide_groups_membership_order_path(group_id: group.id), method: :patch,
+                  form: { data: { turbo_confirm: t("groups.membership_order.hide_confirmation") } },
+                  class: "mt-3 text-sm text-red-700 underline" %>
+  <% elsif local_assigns[:list_action] == :restore %>
+    <%= button_to t("groups.membership_order.restore"), restore_groups_membership_order_path(group_id: group.id), method: :patch,
+                  class: "mt-3 text-sm text-stone-700 underline" %>
+  <% end %>
+</article>

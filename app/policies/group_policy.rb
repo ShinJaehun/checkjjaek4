@@ -23,6 +23,42 @@ class GroupPolicy < ApplicationPolicy
     end
   end
 
+  class PastMembershipScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      event_group_ids = GroupMembershipEvent.participations.where(user:).select(:group_id)
+      banned_group_ids = GroupMembershipEvent.ban_history_for(user).select(:membership_group_id)
+      current_group_ids = GroupMembership.active.where(user:).select(:group_id)
+      scope.where(id: event_group_ids).or(scope.where(id: banned_group_ids)).where.not(id: current_group_ids)
+    end
+  end
+
+  def cleanup_content?
+    user.present? && !read_jjaeks? && PastMembershipScope.new(user, Group).resolve.exists?(record.id)
+  end
+
+  def hide_from_list?
+    return false unless user.present?
+    membership = record.group_memberships.active.find_by(user:)
+    return PastMembershipScope.new(user, Group).resolve.exists?(record.id) unless membership
+
+    membership.removable_from_list?
+  end
+
+  class ReadableContentScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      groups = scope.where.not(lifecycle_status: %i[rejected cancelled])
+      return groups if user.global_admin?
+
+      membership_group_ids = GroupMembership.active.where(user:).select(:group_id)
+      groups.where(lifecycle_status: %i[active inactive], id: membership_group_ids)
+        .or(groups.active.public_group)
+    end
+  end
+
   def index?
     user.present?
   end

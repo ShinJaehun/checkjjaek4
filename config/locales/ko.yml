@@ -324,7 +324,38 @@ ko:
         previous: "이전"
         next: "다음"
         position: "%{current} / %{total}"
+    restricted_content:
+      title: "내가 작성한 콘텐츠"
+      description: "현재 읽을 수 없는 동아리에 남은 내 글과 댓글을 확인하고 삭제할 수 있습니다."
+      empty: "정리할 콘텐츠가 없습니다."
+      group: "동아리 #%{id}"
+      hidden: "숨김 처리된 콘텐츠입니다. 본문은 표시하지 않습니다."
+      delete: "삭제"
+      delete_confirmation: "이 콘텐츠를 삭제할까요?"
+      sections:
+        jjaeks: "짹·책짹"
+        comments: "댓글"
+      kinds:
+        general: "짹"
+        book: "책짹"
+        comment: "댓글"
+    past_membership:
+      title: "활동하지 않는 동아리"
+      description: "회원 자격이 종료된 동아리입니다."
+      group: "동아리 #%{id}"
+      statuses:
+        left: "탈퇴함"
+        removed: "탈퇴 처리"
+        banned: "이용 제한"
+        former: "이전 회원"
     membership_order:
+      hide: "목록에서 제거"
+      hide_confirmation: "내 동아리 목록에서 제거할까요? 회원 자격과 콘텐츠는 유지되며 이 화면에서 복원할 수 있습니다."
+      hidden: "내 동아리 목록에서 제거했습니다."
+      restore: "목록에 복원"
+      restored: "내 동아리 목록에 복원했습니다."
+      excluded: "목록에서 제외한 동아리"
+      empty_excluded: "목록에서 제외한 동아리가 없습니다."
       action: "순서 변경"
       title: "내 동아리 순서 변경"
       description: "PC에서는 손잡이를 드래그하고, 모바일에서는 위·아래 버튼으로 순서를 바꾼 뒤 저장해 주세요."

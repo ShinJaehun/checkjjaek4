@@ -308,7 +308,7 @@ Library 안에서 볼 수 있는 책장:
 - 비공개 동아리는 동아리 관리자와 active member가 목록과 기본 상세를 조회할 수 있다
 - 일반 사용자는 공개·승인·비공개 동아리를 생성할 수 있다
 - 공개 동아리는 즉시 active membership을 만들고, 승인 동아리는 pending 가입 요청을 만든다
-- 개인별 내 동아리 정렬은 `GroupPolicy::MembershipScope` 안의 본인 active membership 전체만 대상으로 한다. `Groups::MembershipOrdersController`는 로그인 사용자에게 편집·저장을 허용하고 `GroupMembership.reorder_for!`는 잠금·transaction 안에서 전체 membership ID를 비교해 타인·중복·누락·변경된 목록을 거부한다. position은 개인 표시 순서만 바꾸며 Group 접근·관리·콘텐츠 권한을 부여하지 않는다
+- 개인별 내 동아리 정렬은 `GroupPolicy::MembershipScope` 안의 본인의 목록에서 제외하지 않은 active membership만 대상으로 한다. 과거 동아리는 별도의 참여 이력 scope로 표시하며 membership 정렬에 섞지 않는다. `Groups::MembershipOrdersController`는 로그인 사용자에게 편집·저장을 허용하고 `GroupMembership.reorder_for!`는 잠금·transaction 안에서 전체 membership ID를 비교해 타인·중복·누락·변경된 목록을 거부한다. position은 개인 표시 순서만 바꾸며 Group 접근·관리·콘텐츠 권한을 부여하지 않는다
 - 동아리 관리자만 자기 동아리의 pending membership을 active로 승인할 수 있다
 - 비공개 동아리 관리자만 membership이 없는 사용자를 `invited` 상태로 초대할 수 있다
 - 초대받은 당사자만 초대를 수락해 `active`로 바꾸거나 거절해 삭제할 수 있다
@@ -336,6 +336,21 @@ Library 안에서 볼 수 있는 책장:
 동아리 콘텐츠 읽기는 공개 동아리의 로그인 사용자 또는 승인/비공개 동아리의 active member에게 허용하고,
 작성은 모든 동아리 종류에서 active member에게만 허용한다.
 동아리 Jjaek은 active 작성자가 수정·삭제할 수 있고, 탈퇴하거나 내보내진 작성자도 자기 기존 글은 삭제할 수 있다.
+과거 실제 회원은 `GroupPolicy::PastMembershipScope`에서 참여 사건 또는 이용 제한 감사 attribution으로 확인한다.
+현재 active membership은 이 scope에서 제외하며 신청·초대만 한 사용자는 포함하지 않는다.
+과거 동아리 목록 카드에는 현재 이름·유형·운영 상태와 본인 회원 상태만 표시한다. 관리자·회원 정보는 표시하지 않으며 이 카드 표현 예외로 일반 상세·콘텐츠 권한이나 제한 상세의 metadata 노출 범위를 넓히지 않는다.
+`/groups/:id`의 `cleanup_content?`는 현재 읽기 불가와 과거 참여를 함께 검사하여 일반 상세 준비 전에
+자기 콘텐츠 제한 화면을 제공한다. 현재 읽을 수 있는 공개 동아리 등의 일반 상세는 유지한다.
+`ReadableContentScope`는 기존 `read_jjaeks?`와 같은 범위를 계산하고 Jjaek·Comment의 `GroupCleanupScope`는
+과거 참여·현재 읽기 불가·본인 소유를 SQL에서 강제한다. controller에서 해당 Group ID를 추가 제한한다.
+타인·다른 동아리·부모 본문·인용 원문·현재 Group 이름과 metadata는 노출하지 않으며, 숨김 본문도 표시하지 않는다.
+Jjaek tombstone은 제외하고 그 아래 자기 댓글은 포함한다. 삭제는 기존 `destroy?`와 처리를 유지하며
+`group_restricted_content` return context 및 현재 `cleanup_content?`를 검사한 뒤 실제 콘텐츠 Group의 숫자 ID 경로로만 복귀한다.
+일반 `show?`·읽기·수정·작성·피드 scope와 인용 원문 권한은 확대하지 않는다.
+`hide_from_list?`는 현재 활동 불가능하거나 과거 실제 회원인 동아리만 허용한다. 숨김/복원 대상은 서버의
+현재/과거 scope로 제한하고 Group → User 잠금 안에서 본인의 `GroupListHiding`만 변경한다.
+숨김은 membership·운영 감사·콘텐츠와 독립적이며 활동 자격 회복 시 해당 설정을 transaction 안에서 삭제한다.
+상세 정책은 `docs/specs/groups_mvp.md`의 Delta Specs를 따른다.
 동아리 관리자의 타인 Jjaek·Comment 숨김/복구, 전체 공개 개인 원문의 동아리 공유와 같은 동아리 내부 인용 다시짹을 제공한다.
 active 공개 동아리의 Jjaek·책짹을 개인 영역으로 ReJjaek하는 기능은 제공한다.
 Group Jjaek의 일반 조회 권한은 위 정책을 따르지만 현재 홈 `FeedScope`에서는 모든 Group Jjaek이 제외된다.

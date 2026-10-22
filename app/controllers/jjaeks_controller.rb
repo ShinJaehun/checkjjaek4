@@ -123,6 +123,11 @@ class JjaeksController < ApplicationController
   def destroy
     group = @jjaek.group
     @jjaek.destroy_or_tombstone!
+    if group.present? && policy(group).cleanup_content?
+      destination = params[:return_to] == "group_restricted_content" ? group_path(group.id) : groups_path
+      redirect_to destination, notice: t("jjaeks.notices.destroyed"), status: :see_other
+      return
+    end
     destination = view_context.jjaek_detail_return_params(@jjaek)[:return_to]
     redirect_to destination || destroy_success_path(group), notice: t("jjaeks.notices.destroyed"), status: :see_other
   end

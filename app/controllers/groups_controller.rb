@@ -20,7 +20,8 @@ class GroupsController < ApplicationController
     prepare_visible_requote_counts_for(@group_activity_jjaeks)
     return render_feed_page(context: :group, next_url: @feed_next_url) if feed_page_request?
 
-    groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
+    hidden_group_ids = current_user.group_list_hidings.select(:group_id)
+    groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope).where.not(id: hidden_group_ids)
     memberships = GroupMembership.displayed_for(user: current_user, groups:)
       .preload(group: { group_admin: { avatar_attachment: :blob } }).to_a
     @groups = memberships.map(&:group)
@@ -29,6 +30,17 @@ class GroupsController < ApplicationController
     managed_approval_group_ids = @groups.select { |group| group.approval_group? && group.group_admin?(current_user) }.map(&:id)
     @pending_membership_counts = GroupMembership.pending.where(group_id: managed_approval_group_ids)
       .group(:group_id).count
+    past_group_scope = policy_scope(Group, policy_scope_class: GroupPolicy::PastMembershipScope)
+      .where.not(id: hidden_group_ids)
+    @past_group_states = {}
+    if past_group_scope.exists?
+      past_groups = past_group_scope
+        .select(:id, :name, :group_type, :lifecycle_status, :operation_suspended_at, :closed_at).index_by(&:id)
+      @past_group_states = GroupMembershipEvent.past_states_for(user: current_user, groups: past_groups.values)
+      @groups.concat(@past_group_states.keys.map { |id| past_groups.fetch(id) })
+    end
+    @can_manage_group_list = @groups.size >= 2 || @past_group_states.any? || current_user.group_list_hidings.exists? ||
+      memberships.any?(&:removable_from_list?)
     @invitations = current_user.group_memberships.invited
       .joins(:group)
       .merge(Group.active)
@@ -37,6 +49,10 @@ class GroupsController < ApplicationController
   end
 
   def show
+    if policy(@group).cleanup_content?
+      authorize @group, :cleanup_content?
+      return prepare_restricted_content
+    end
     authorize @group
     if feed_page_request?
       prepare_group_jjaek_context
@@ -115,6 +131,19 @@ class GroupsController < ApplicationController
 
   private
 
+  def prepare_restricted_content
+    @content_section = params[:content] == "comments" ? "comments" : "jjaeks"
+    scope = if @content_section == "comments"
+      policy_scope(Comment, policy_scope_class: CommentPolicy::GroupCleanupScope)
+        .where(jjaeks: { group_id: @group.id })
+        .select("comments.*, jjaeks.hidden_at AS parent_hidden_at")
+    else
+      policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupCleanupScope).where(group_id: @group.id)
+    end
+    @content_page = Admin::InventoryPage.new(scope.order(created_at: :desc, id: :desc), page: params[:page])
+    render "groups/restricted_content/show", formats: :html
+  end
+
   def prepare_group_card_members
     @active_member_counts_by_group_id = {}
     @member_previews_by_group_id = {}
@@ -169,7 +198,12 @@ class GroupsController < ApplicationController
   end
 
   def set_group
-    @group = policy_scope(Group).find(params[:id])
+    # Group#to_param includes its current name. Historical access only needs the numeric ID.
+    group_id = params[:id].to_s.split("-", 2).first
+    if action_name == "show"
+      @group = policy_scope(Group, policy_scope_class: GroupPolicy::PastMembershipScope).find_by(id: group_id)
+    end
+    @group ||= policy_scope(Group).find(params[:id])
   rescue ActiveRecord::RecordNotFound
     raise unless action_name == "show"
 

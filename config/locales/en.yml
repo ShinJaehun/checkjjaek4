@@ -322,7 +322,38 @@ en:
         previous: "Previous"
         next: "Next"
         position: "%{current} / %{total}"
+    restricted_content:
+      title: "My content"
+      description: "Review and delete your posts and comments left in clubs you can no longer read."
+      empty: "There is no content to clean up."
+      group: "Club #%{id}"
+      hidden: "This content is hidden. Its body is not displayed."
+      delete: "Delete"
+      delete_confirmation: "Delete this content?"
+      sections:
+        jjaeks: "Posts and book posts"
+        comments: "Comments"
+      kinds:
+        general: "Post"
+        book: "Book post"
+        comment: "Comment"
+    past_membership:
+      title: "Clubs you no longer participate in"
+      description: "Clubs where your active membership has ended."
+      group: "Club #%{id}"
+      statuses:
+        left: "Left"
+        removed: "Removed by admin"
+        banned: "Access restricted"
+        former: "Former member"
     membership_order:
+      hide: "Remove from list"
+      hide_confirmation: "Remove this club from your list? Your membership and content will be preserved. You can restore it here."
+      hidden: "Club removed from your list."
+      restore: "Restore to list"
+      restored: "Club restored to your list."
+      excluded: "Clubs excluded from list"
+      empty_excluded: "No clubs are excluded from your list."
       action: "Change order"
       title: "Reorder my clubs"
       description: "Drag the handles on a computer, or use the up and down buttons on mobile, then save your order."

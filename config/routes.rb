@@ -36,7 +36,10 @@ Rails.application.routes.draw do
     end
   end
   namespace :groups do
-    resource :membership_order, only: %i[edit update]
+    resource :membership_order, only: %i[edit update] do
+      patch :hide
+      patch :restore
+    end
   end
   resources :groups, only: %i[index show new create edit update] do
     get :content, on: :member, to: "groups/contents#index"

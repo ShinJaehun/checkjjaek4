@@ -692,7 +692,7 @@ RSpec.describe "Groups", type: :request do
     expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
   end
 
-  it "redirects a removed private group member's stale URL with an explanation" do
+  it "shows a restricted detail for a removed private group member without exposing internal data" do
     group_admin = User.create!(name: "Group admin", email: "removed-private-group-admin@example.com", password: "password123!")
     private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Removed private", group_type: :private_group)
     membership = private_group.group_memberships.create!(user:, status: :active)
@@ -703,15 +703,16 @@ RSpec.describe "Groups", type: :request do
     sign_in user
     get group_path(private_group)
 
-    expect(response).to redirect_to(groups_path)
-    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.removed"))
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(I18n.t("groups.past_membership.group", id: private_group.id), I18n.t("groups.restricted_content.empty"))
+    expect(response.body).not_to include(private_group.name, group_admin.name)
 
     get group_path(private_group)
-    expect(response).to redirect_to(groups_path)
-    expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.removed"))
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include(private_group.name, group_admin.name)
   end
 
-  it "prioritizes a current private group ban over removal UX and shows only the public reason" do
+  it "shows a restricted detail after a private group ban while preserving the ban audit" do
     group_admin = User.create!(name: "Group admin", email: "banned-private-group-admin@example.com", password: "password123!")
     private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Banned private", group_type: :private_group)
     membership = private_group.group_memberships.create!(user:, status: :active)
@@ -726,13 +727,14 @@ RSpec.describe "Groups", type: :request do
 
     get group_path(private_group)
 
-    expect(response).to redirect_to(groups_path)
-    expect(flash[:alert]).to eq(I18n.t("group_member_bans.alerts.access_restricted", reason: "MEMBER BAN REASON"))
-    expect(flash[:alert]).not_to include("PRIVATE OPERATIONS NOTE")
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(I18n.t("groups.restricted_content.empty"))
+    expect(response.body).not_to include(private_group.name, "PRIVATE OPERATIONS NOTE")
+    expect(private_group.group_member_bans.find_by!(user:).current_ban_action.public_reason).to eq("MEMBER BAN REASON")
     expect(GroupMembershipRemoval.exists?(group: private_group, user:)).to be(false)
   end
 
-  it "keeps public and approval details visible to banned users without participation actions" do
+  it "keeps readable public details and restricts approval details for banned former members" do
     group_admin = User.create!(name: "Group admin", email: "banned-visible-group-admin@example.com", password: "password123!")
     public_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Banned public", group_type: :public_group)
     approval_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Banned approval", group_type: :approval_group)
@@ -752,7 +754,12 @@ RSpec.describe "Groups", type: :request do
       get group_path(group)
       page = Nokogiri::HTML(response.body)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("동아리 이용 제한", "VISIBLE BAN REASON")
+      if group.public_group?
+        expect(response.body).to include("동아리 이용 제한", "VISIBLE BAN REASON")
+      else
+        expect(response.body).to include(I18n.t("groups.restricted_content.empty"))
+        expect(response.body).not_to include(group.name, group_admin.name)
+      end
       expect(response.body).not_to include("HIDDEN BAN NOTE")
       expect(page.at_css(%(form[action="#{group_group_memberships_path(group)}"]))).to be_nil
     end
@@ -933,7 +940,7 @@ RSpec.describe "Groups", type: :request do
     expect(group.reload).to have_attributes(name: "Original name", lifecycle_status: "active", group_admin: group_admin)
   end
 
-  it "does not expose a private group stale URL after the member leaves" do
+  it "shows a restricted private group detail after the member leaves" do
     group_admin = User.create!(name: "Group admin", email: "left-private-group-admin@example.com", password: "password123!")
     private_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Left private", group_type: :private_group)
     membership = private_group.group_memberships.create!(user:, status: :active)
@@ -943,8 +950,12 @@ RSpec.describe "Groups", type: :request do
     expect(GroupMembershipRemoval.where(group: private_group, user:)).to be_empty
     get group_path(private_group)
 
-    expect(response).to redirect_to(groups_path)
-    expect(flash[:alert]).to eq(I18n.t("groups.alerts.not_found_or_inaccessible"))
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(
+      I18n.t("groups.past_membership.group", id: private_group.id),
+      I18n.t("groups.restricted_content.empty")
+    )
+    expect(response.body).not_to include(private_group.name, group_admin.name)
   end
 
   it "keeps a nonexistent group indistinguishable from an unauthorized group" do
