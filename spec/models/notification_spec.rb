@@ -41,7 +41,9 @@ RSpec.describe Notification, type: :model do
       "group_member_unbanned" => 31,
       "book_friendship_accepted" => 32,
       "group_opening_rejected" => 33,
-      "group_opening_cancelled" => 34
+      "group_opening_cancelled" => 34,
+      "group_reactivation_rejected" => 35,
+      "group_reactivation_withdrawn" => 36
     )
   end
 

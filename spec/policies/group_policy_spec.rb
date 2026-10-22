@@ -19,10 +19,48 @@ RSpec.describe GroupPolicy do
       expect(described_class::CreateJjaekScope.new(group_admin, Group).resolve).not_to include(group)
       [ group_admin, viewer, admin ].each do |actor|
         policy = described_class.new(actor, group)
-        %i[update? approve? reject? cancel_application? read_jjaeks? create_jjaek? close? request_reactivation? transfer_admin?].each do |permission|
+        %i[update? approve? reject? cancel_application? withdraw_reactivation? read_jjaeks? create_jjaek? close? request_reactivation? transfer_admin?].each do |permission|
           expect(policy.public_send(permission)).to be(false), "#{actor.name} should not have #{permission} on #{status}"
         end
       end
+    end
+  end
+
+  describe "reactivation decisions" do
+    it "allows only a global admin to reject and only the current group admin to withdraw" do
+      admin = User.create!(name: "Reviewer", email: "reactivation-policy@example.com", password: "password123!", global_admin: true)
+      group = Group.create!(group_admin:, name: "Returning", lifecycle_status: :active)
+      group.group_memberships.create!(user: viewer, status: :active)
+      group.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "Finished")
+      group.update!(lifecycle_status: :pending_approval)
+
+      expect(described_class.new(admin, group).reject?).to be(true)
+      expect(described_class.new(group_admin, group).withdraw_reactivation?).to be(true)
+      [ group_admin, viewer, nil ].each do |actor|
+        expect(described_class.new(actor, group).reject?).to be(false)
+      end
+      [ admin, viewer, nil ].each do |actor|
+        expect(described_class.new(actor, group).withdraw_reactivation?).to be(false)
+      end
+      expect(described_class.new(group_admin, group).cancel_application?).to be(false)
+
+      group.update!(group_admin: viewer)
+      expect(described_class.new(group_admin, group).withdraw_reactivation?).to be(false)
+      expect(described_class.new(viewer, group).withdraw_reactivation?).to be(true)
+      group.update!(lifecycle_status: :inactive)
+      expect(described_class.new(admin, group).reject?).to be(false)
+      expect(described_class.new(viewer, group).withdraw_reactivation?).to be(false)
+    end
+
+    it "does not permit withdrawing an initial application or an approved reactivation" do
+      group = Group.create!(group_admin:, name: "Initial", application_purpose: "Read")
+      expect(described_class.new(group_admin, group).withdraw_reactivation?).to be(false)
+      expect(described_class.new(group_admin, group).cancel_application?).to be(true)
+      group.update!(lifecycle_status: :active)
+      group.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "Finished")
+      group.update!(lifecycle_status: :pending_approval)
+      group.update!(lifecycle_status: :active)
+      expect(described_class.new(group_admin, group).withdraw_reactivation?).to be(false)
     end
   end
 

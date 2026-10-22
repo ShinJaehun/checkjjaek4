@@ -141,7 +141,7 @@ RSpec.describe "Group opening application governance", type: :request do
       expect(group.lifecycle_events.opening_rejected).to be_empty
     end
 
-    it "does not offer or accept rejection of a reactivation request" do
+    it "keeps reactivation rejection separate from initial opening rejection and cancellation" do
       group = application
       group.update!(lifecycle_status: :active)
       group.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "Finished")
@@ -149,15 +149,16 @@ RSpec.describe "Group opening application governance", type: :request do
       sign_in admin
       get new_admin_group_approval_path(group)
       expect(response).to have_http_status(:ok)
-      expect(Nokogiri::HTML(response.body).at_css("form[action*='/approvals/reject']")).to be_nil
+      expect(Nokogiri::HTML(response.body).at_css("form[action*='/approvals/reject']")).to be_present
       post reject_admin_group_approvals_path(group), params: { group_lifecycle_event: { detail: "No" } }
-      expect(response).to redirect_to(root_path)
-      expect(group.reload).to be_pending_approval
+      expect(response).to redirect_to(admin_group_path(group))
+      expect(group.reload).to be_inactive
+      expect(group.lifecycle_events.reactivation_rejected.sole).to have_attributes(actor: admin, detail: "No")
       expect(group.lifecycle_events.opening_rejected).to be_empty
       sign_in owner
       post group_application_cancellation_path(group)
       expect(response).to redirect_to(root_path)
-      expect(group.reload).to be_pending_approval
+      expect(group.reload).to be_inactive
       expect(group.lifecycle_events.opening_cancelled).to be_empty
     end
   end

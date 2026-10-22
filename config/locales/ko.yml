@@ -275,6 +275,8 @@ ko:
         operations_closed: "종료"
         reactivation_requested: "재운영 신청"
         reactivation_approved: "재운영 승인"
+        reactivation_rejected: "재운영 신청 거절"
+        reactivation_withdrawn: "재운영 신청 철회"
       details:
         rejection_reason: "거절 사유"
         application_purpose: "개설 목적"
@@ -356,6 +358,10 @@ ko:
       closed_at: "종료: %{time}"
       reactivation_description: "다시 운영하려면 관리자 승인이 필요합니다."
     reactivation_request:
+      pending_title: "재운영 승인 대기"
+      withdraw: "재운영 신청 철회"
+      withdraw_description: "승인 전에는 신청을 철회할 수 있습니다. 철회 후에도 기존 회원과 콘텐츠는 보존됩니다."
+      withdraw_confirmation: "재운영 신청을 철회할까요? 동아리는 운영 종료 상태로 돌아가며, 나중에 다시 신청할 수 있습니다."
       title: "동아리 재운영 요청"
       description: "현재 운영 종료 정보와 요청할 동아리를 확인해 주세요. 요청 후 시스템 관리자 승인이 필요합니다."
     admin_transfer:
@@ -408,6 +414,7 @@ ko:
       created: "동아리 생성 신청이 접수되었습니다."
       closed: "동아리 운영을 종료했습니다."
       reactivation_requested: "동아리 재활성화 요청이 접수되었습니다."
+      reactivation_withdrawn: "동아리 재운영 신청을 철회했습니다."
       updated: "동아리를 수정했습니다."
       admin_transferred: "동아리 관리자 권한을 이전했습니다."
     alerts:
@@ -417,6 +424,7 @@ ko:
       rate_limited: "동아리 개설이 일시적으로 제한되었습니다. 24시간 동안 동아리 개설 요청이 너무 많이 발생했습니다. 24시간 후 다시 시도해 주세요."
       close_failed: "동아리 운영을 종료할 수 없습니다."
       reactivation_request_failed: "동아리 재운영을 요청할 수 없습니다."
+      reactivation_withdrawal_failed: "동아리 재운영 신청을 철회할 수 없습니다."
       admin_transfer_failed: "동아리 관리자 권한을 이전할 수 없습니다."
     jjaeks:
       tabs:
@@ -686,6 +694,7 @@ ko:
         actions: "작업"
       actions:
         reject: "개설 신청 거절"
+        reject_reactivation: "재운영 신청 거절"
         suspend_operation: "운영 정지"
         restore_operation: "운영 복구"
         approve: "운영 승인"
@@ -702,11 +711,13 @@ ko:
         description: "신청 내용과 현재 운영 상태를 확인한 뒤 승인해 주세요."
       notices:
         rejected: "동아리 개설 신청을 거절했습니다."
+        reactivation_rejected: "동아리 재운영 신청을 거절했습니다."
         approved: "동아리 운영을 승인했습니다."
         operation_suspended: "동아리 운영을 정지했습니다."
         operation_restored: "동아리 운영을 복구했습니다."
       alerts:
         rejection_failed: "동아리 개설 신청을 거절할 수 없습니다. 사유와 현재 상태를 확인해 주세요."
+        reactivation_rejection_failed: "동아리 재운영 신청을 거절할 수 없습니다. 사유와 현재 상태를 확인해 주세요."
         approval_failed: "동아리 운영을 승인할 수 없습니다."
         operation_suspend_failed: "동아리 운영을 정지할 수 없습니다."
         operation_restore_failed: "동아리 운영을 복구할 수 없습니다."
@@ -983,6 +994,8 @@ ko:
       group_operations_closed: "동아리 운영진에서 %{group_name} 동아리 운영을 종료했습니다."
       group_reactivation_requested: "동아리 재운영 신청: %{group_name}"
       group_reactivation_approved: "운영팀에서 %{group_name} 동아리 재운영을 승인했습니다."
+      group_reactivation_rejected: "운영팀에서 %{group_name} 동아리 재운영 신청을 거절했습니다. 사유: %{reason}"
+      group_reactivation_withdrawn: "%{group_name} 동아리 재운영 신청이 철회되었습니다."
       group_admin_role_revoked: "%{group_name} 동아리의 관리자 권한이 해제되었습니다."
       group_admin_role_granted: "%{group_name} 동아리의 관리자 권한이 부여되었습니다."
       group_membership_requested_to_join: "%{actor_name}님이 %{group_name} 동아리 가입을 신청했습니다."

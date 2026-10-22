@@ -9,7 +9,9 @@ RSpec.describe GroupLifecycleEvent, type: :model do
       "reactivation_requested" => 3,
       "reactivation_approved" => 4,
       "opening_rejected" => 5,
-      "opening_cancelled" => 6
+      "opening_cancelled" => 6,
+      "reactivation_rejected" => 7,
+      "reactivation_withdrawn" => 8
     )
 
     event = described_class.new(detail: "a" * 501)
@@ -48,5 +50,27 @@ RSpec.describe GroupLifecycleEvent, type: :model do
     expect(opening.update(detail: "Changed application")).to be(false)
     expect(rejection.reload.detail).to eq("a" * 500)
     expect(opening.reload.detail).to eq("Read")
+  end
+
+  it "validates and preserves the reason on reactivation rejection without requiring a withdrawal reason" do
+    actor = User.create!(name: "Reviewer", email: "reactivation-event@example.com", password: "password123!", global_admin: true)
+    group = Group.create!(group_admin: actor, name: "Closed", lifecycle_status: :active)
+    group.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "Finished")
+    rejection = described_class.new(group:, actor:, event_type: :reactivation_rejected)
+
+    [ nil, "", "  ", "a" * 501 ].each do |reason|
+      rejection.detail = reason
+      expect(rejection).not_to be_valid
+      expect(rejection.errors[:detail]).to be_present
+    end
+    rejection.detail = "a" * 500
+    rejection.save!
+    expect(rejection.update(detail: "Replacement")).to be(false)
+    expect(rejection.reload.detail).to eq("a" * 500)
+
+    withdrawal = described_class.create!(group:, actor:, event_type: :reactivation_withdrawn)
+    expect(withdrawal.detail).to be_nil
+    expect(withdrawal.update(event_type: :reactivation_approved)).to be(false)
+    expect(withdrawal.reload).to be_reactivation_withdrawn
   end
 end

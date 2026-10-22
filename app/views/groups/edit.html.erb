@@ -12,7 +12,16 @@
     </div>
   </section>
 
-  <% if @group.active? %>
+  <% if policy(@group).withdraw_reactivation? %>
+    <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-6">
+      <h2 class="text-xl font-semibold text-stone-900"><%= t("groups.reactivation_request.pending_title") %></h2>
+      <p class="mt-2 text-sm text-stone-700"><%= t("groups.reactivation_request.withdraw_description") %></p>
+      <%= button_to t("groups.reactivation_request.withdraw"),
+                    withdraw_group_reactivation_requests_path(@group),
+                    form: { data: { turbo_confirm: t("groups.reactivation_request.withdraw_confirmation") } },
+                    class: "mt-4 rounded-full border border-amber-400 px-5 py-2.5 text-sm font-medium" %>
+    </section>
+  <% elsif @group.active? %>
     <section class="rounded-3xl border border-red-200 bg-red-50/60 p-6">
       <h2 class="text-xl font-semibold text-red-900"><%= t("groups.management.close_title") %></h2>
       <p class="mt-2 text-sm text-red-700"><%= t("groups.management.close_description") %></p>

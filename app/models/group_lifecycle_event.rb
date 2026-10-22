@@ -7,7 +7,9 @@ class GroupLifecycleEvent < ApplicationRecord
          reactivation_requested: 3,
          reactivation_approved: 4,
          opening_rejected: 5,
-         opening_cancelled: 6
+         opening_cancelled: 6,
+         reactivation_rejected: 7,
+         reactivation_withdrawn: 8
        },
        validate: true
 
@@ -15,7 +17,7 @@ class GroupLifecycleEvent < ApplicationRecord
   belongs_to :actor, class_name: "User", inverse_of: :group_lifecycle_events
 
   validates :detail, length: { maximum: 500 }, allow_nil: true
-  validates :detail, presence: true, if: :opening_rejected?
+  validates :detail, presence: true, if: -> { opening_rejected? || reactivation_rejected? }
   validate :only_pending_opening_detail_can_change, on: :update
 
   private

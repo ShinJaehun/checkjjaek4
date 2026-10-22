@@ -102,11 +102,15 @@ class GroupPolicy < ApplicationPolicy
   end
 
   def reject?
-    manage_approvals? && record.pending_opening_application?
+    manage_approvals? && (record.pending_opening_application? || record.pending_reactivation_request?)
   end
 
   def cancel_application?
     user.present? && record.group_admin?(user) && record.pending_opening_application?
+  end
+
+  def withdraw_reactivation?
+    user.present? && record.group_admin?(user) && record.pending_reactivation_request?
   end
 
   def view_admin_details?

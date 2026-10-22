@@ -273,6 +273,8 @@ en:
         operations_closed: "Closed"
         reactivation_requested: "Reactivation requested"
         reactivation_approved: "Reactivation approved"
+        reactivation_rejected: "Reactivation rejected"
+        reactivation_withdrawn: "Reactivation withdrawn"
       details:
         rejection_reason: "Rejection reason"
         application_purpose: "Opening purpose"
@@ -353,6 +355,10 @@ en:
       closed_at: "Closed at: %{time}"
       reactivation_description: "Administrator approval is required to operate again."
     reactivation_request:
+      pending_title: "Reactivation awaiting approval"
+      withdraw: "Withdraw reactivation request"
+      withdraw_description: "You can withdraw before approval. Existing members and content will be preserved."
+      withdraw_confirmation: "Withdraw this reactivation request? The club will return to its closed state, and you can apply again later."
       title: "Request club reactivation"
       description: "Review the closed club before submitting. A system administrator must approve the request."
     admin_transfer:
@@ -403,6 +409,7 @@ en:
       created: "Your club application was submitted."
       closed: "The club was closed."
       reactivation_requested: "The club reactivation request was submitted."
+      reactivation_withdrawn: "The club reactivation request was withdrawn."
       updated: "Club updated."
       admin_transferred: "Club admin rights were transferred."
     alerts:
@@ -412,6 +419,7 @@ en:
       rate_limited: "Club creation is temporarily limited. Too many club creation requests were made within 24 hours. Please try again in 24 hours."
       close_failed: "The club could not be closed."
       reactivation_request_failed: "Club reactivation could not be requested."
+      reactivation_withdrawal_failed: "The club reactivation request could not be withdrawn."
       admin_transfer_failed: "Club admin rights could not be transferred."
   admin:
     actions:
@@ -674,6 +682,7 @@ en:
         actions: "Actions"
       actions:
         reject: "Reject opening application"
+        reject_reactivation: "Reject reactivation request"
         suspend_operation: "Suspend operation"
         restore_operation: "Restore operation"
         approve: "Approve"
@@ -690,11 +699,13 @@ en:
         description: "Review the request and current operation status before approving it."
       notices:
         rejected: "The club opening application was rejected."
+        reactivation_rejected: "The club reactivation request was rejected."
         approved: "The club was approved."
         operation_suspended: "Club operation was suspended."
         operation_restored: "Club operation was restored."
       alerts:
         rejection_failed: "The opening application could not be rejected. Check the reason and current status."
+        reactivation_rejection_failed: "The reactivation request could not be rejected. Check the reason and current status."
         approval_failed: "The club could not be approved."
         operation_suspend_failed: "Club operation could not be suspended."
         operation_restore_failed: "Club operation could not be restored."
@@ -979,6 +990,8 @@ en:
       group_operations_closed: "The club team closed %{group_name}."
       group_reactivation_requested: "Club reactivation request: %{group_name}"
       group_reactivation_approved: "The team approved the reopening of %{group_name}."
+      group_reactivation_rejected: "The team rejected the reactivation request for %{group_name}. Reason: %{reason}"
+      group_reactivation_withdrawn: "The reactivation request for %{group_name} was withdrawn."
       group_admin_role_revoked: "Your admin role for %{group_name} was removed."
       group_admin_role_granted: "You were granted the admin role for %{group_name}."
       group_membership_requested_to_join: "%{actor_name} requested to join %{group_name}."

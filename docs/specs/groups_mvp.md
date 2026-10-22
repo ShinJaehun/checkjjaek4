@@ -33,7 +33,7 @@
 - 동아리 안의 `짹`과 `책짹` 작성·조회
 - 권한 있는 사용자의 작성자 프로필에서 동아리의 `짹`과 `책짹` 조회
 - 일반 사용자의 동아리 신청과 global admin 승인·최초 개설 신청 거절, 신청자 본인의 승인 전 취소
-- 동아리 관리자의 동아리 운영 종료와 재활성화 요청·재승인
+- 동아리 관리자의 동아리 운영 종료와 재활성화 요청·재승인, 시스템 관리자의 재운영 신청 거절과 현재 동아리 관리자의 신청 철회
 - 신규 신청의 개설 목적과 운영 종료 사유·시각 기록
 - 신청·승인·운영 종료·재활성화·재승인의 시각과 목적/사유 snapshot을 운영 이력으로 누적
 - Group lifecycle은 `lifecycle_status`와 `GroupLifecycleEvent`, global admin의 platform 운영 정지는 `operation_suspended_at`과 Group 대상 `ModerationAction`으로 서로 분리
@@ -146,6 +146,7 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 - 일반 사용자의 동시 신규 개설 승인 대기는 최대 1개다. 최초 `pending_approval`이며 `closed_at`이 없는 신청만 집계하고 생성 POST에서 User 행 잠금으로 동시 요청까지 제한한다. 재활성화 승인 대기·운영 중·운영 종료·과거 거절/취소는 제외하며, 기존 5회/24시간 rate limit과 회원 가입 정책은 유지한다.
 - 최초 신청은 global admin이 필수 500자 이하 사유로 거절하거나 현재 group admin 본인이 확인 후 취소할 수 있다. `rejected` / `cancelled`와 `opening_rejected` / `opening_cancelled` event로 결과·처리자·시각을 보존한다. 승인·거절·취소 시 Group 행 잠금 안에서 현재 권한과 상태를 다시 검사한다.
 - 거절·취소된 Group은 내 동아리 운영 목록·발견·활동 피드에서 제외한다. 신청자와 global admin만 관리 문맥에서 결과·사유·이력을 확인하며 같은 Group의 재승인·재활성화는 허용하지 않는다. 다시 신청하려면 새 Group을 생성한다.
+- `closed_at`이 있는 재운영 승인 대기는 global admin이 필수 500자 이하 사유로 거절하거나 현재 group admin 본인이 확인 후 사유 없이 철회할 수 있다. 두 경로는 `inactive`로 복귀하고 `reactivation_rejected` / `reactivation_withdrawn` event로 구분한다. 종료 metadata·콘텐츠·membership·기존 이력을 보존하며 같은 Group에서 재신청할 수 있다. 상태와 이력은 Group 잠금 아래 원자적으로 처리하고 중복 결정을 차단한다. 상세 정책과 기존 공개 범위는 `docs/specs/account_group_lifecycle.md`를 따른다.
 - global admin이 직접 생성한 동아리는 승인 대기를 거치지 않고 즉시 `active`로 시작한다. 이는 다른 사용자가 만든 pending 동아리의 자동 승인을 뜻하지 않는다.
 - 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 group admin과 global admin만 확인한다.
 - 승인·운영 lifecycle의 상세 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.

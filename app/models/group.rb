@@ -55,6 +55,10 @@ class Group < ApplicationRecord
     pending_approval? && closed_at.nil?
   end
 
+  def pending_reactivation_request?
+    pending_approval? && closed_at.present?
+  end
+
   def application_ended?
     rejected? || cancelled?
   end
@@ -162,6 +166,7 @@ class Group < ApplicationRecord
 
   def closure_reason_must_be_present_when_closing
     return unless will_save_change_to_lifecycle_status? && inactive? && closure_reason.blank?
+    return if ending_reactivation_request?
     return if cancelling_reactivation_for_withdrawal?
 
     errors.add(:closure_reason, :blank)
@@ -177,9 +182,15 @@ class Group < ApplicationRecord
       %w[active inactive],
       %w[inactive pending_approval]
     ])
+    return if ending_reactivation_request?
     return if cancelling_reactivation_for_withdrawal?
 
     errors.add(:lifecycle_status, :invalid_transition)
+  end
+
+  def ending_reactivation_request?
+    lifecycle_status_in_database == "pending_approval" && inactive? && closed_at_in_database.present? &&
+      !will_save_change_to_closed_at? && !will_save_change_to_closure_reason?
   end
 
   def create_group_admin_membership!

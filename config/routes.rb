@@ -40,7 +40,9 @@ Rails.application.routes.draw do
     resources :members, only: :index, controller: "group_members"
     resources :closures, only: %i[new create], module: :groups
     resource :application_cancellation, only: :create, module: :groups
-    resources :reactivation_requests, only: %i[new create], module: :groups
+    resources :reactivation_requests, only: %i[new create], module: :groups do
+      post :withdraw, on: :collection
+    end
     resources :admin_transfers, only: %i[new create], module: :groups
     resources :group_memberships, only: %i[create update destroy] do
       post :invite, on: :collection

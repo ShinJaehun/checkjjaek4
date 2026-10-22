@@ -80,7 +80,7 @@ Group이 승인 대기·운영 종료·개설 거절·개설 취소 상태라면
 - 개설 목적은 동아리 관리자 관리·신청 결과 화면과 global admin 승인·관리 화면에서만 확인한다.
 - global admin만 Group을 승인해 운영 중으로 전환할 수 있다.
 - global admin은 동아리 개설 목적을 포함한 신청 정보를 확인해 승인한다.
-- 개설 신청·최초 승인·개설 거절·개설 취소·운영 종료·재활성화 요청·재승인은 처리자와 발생 시각을 운영 이력에 누적한다.
+- 개설 신청·최초 승인·개설 거절·개설 취소·운영 종료·재활성화 요청·재승인·재운영 거절·철회는 처리자와 발생 시각을 운영 이력에 누적한다.
 - 개설 신청에는 당시 개설 목적, 운영 종료에는 당시 종료 사유를 snapshot으로 보존한다.
 
 Group 생성 요청의 기본 rate limit은 `docs/specs/basic_rate_limiting.md`에 따라 구현되어 있다.
@@ -96,7 +96,7 @@ Group 생성 요청의 기본 rate limit은 `docs/specs/basic_rate_limiting.md`�
 - Group과 기존 이력을 삭제하지 않는다. 일반 내 동아리 목록·발견·활동 피드에서 제외하며, 신청자와 global admin만 신청 결과 및 운영 이력을 확인한다. 신청 화면의 최근 결과 10건에서 과거 신청으로 진입할 수 있다. 다른 일반 사용자에게 신청 내용·거절 사유를 노출하지 않는다.
 - 일반 취소는 계정 탈퇴용 `cancel_pending_application_for_withdrawal!`과 별도 처리한다. 탈퇴 시 최초 pending Group 정리·재운영 pending 취소 정책은 그대로 유지하며 이미 거절·취소된 Group과 이력은 보존한다.
 
-운영 중 Group 총량 제한과 고급 spam/abuse scoring은 미구현이다. 재활성화 거절도 이번 범위에 포함하지 않는다.
+운영 중 Group 총량 제한과 고급 spam/abuse scoring은 미구현이다.
 
 ---
 
@@ -141,6 +141,10 @@ Group은 삭제하지 않고 재운영 신청만 취소해 inactive로 되돌린
 
 > 운영 종료 → 재활성화 요청 → 승인 대기 → global admin 승인 → 운영 중
 
+승인 대기의 종료 경로는 다음과 같다.
+
+> 재운영 승인 대기 → global admin 거절 또는 현재 group admin 본인의 신청 철회 → 운영 종료
+
 기존 동아리 관리자는 동아리 관리 화면의 전용 Action page에서 재활성화를 요청할 수 있다.
 재활성화 요청은 기존 종료 사유·시각을 보존하며 global admin 승인 목록에서 신규 개설 신청과 구분한다.
 동아리 관리자는 자기 Group의 시각 중심 운영 이력을 관리 화면에서 열람한다. 개설 목적과 종료 사유 snapshot은
@@ -148,7 +152,17 @@ global admin의 운영 상세에서 확인하며 admin 목록에는 운영 이�
 운영 metadata·이력·내부 콘텐츠를 운영 목적으로 조사하고 필요한 관리자 이전을 수행할 수 있다. 이 권한은 일반 Group
 수정·종료·재활성화 요청·membership 관리 권한을 자동으로 부여하지 않는다.
 현재 동아리 관리자만 요청할 수 있고 global admin이 승인한다.
-admin의 재활성화 거절 상태와 사유 처리는 후속 결정으로 남긴다.
+
+### 재운영 신청 거절·철회 `(현재 구현)`
+
+- `pending_approval`이면서 `closed_at`이 존재하는 재운영 승인 대기만 대상이다. `closed_at`이 없는 신규 개설 신청과 구분한다.
+- global admin만 거절할 수 있으며 사유는 필수이고 최대 500자다. `reactivation_rejected` event의 detail에 당시 사유를 보존하고 신청자인 현재 Group admin에게 거절 결과와 해당 사유를 알린다.
+- 현재 group admin 본인만 관리 화면의 확인 절차를 거쳐 철회할 수 있다. 철회 사유는 요구하지 않는다. `reactivation_withdrawn` event를 남기고 사건 시점에 탈퇴·정지되지 않은 유효한 global admin에게 철회 사실을 알린다. 각 알림에서 actor 본인은 제외한다.
+- 두 경로 모두 기존 `inactive`로 복귀한다. 신규 개설 거절·취소의 `rejected` / `cancelled`를 사용하거나 별도 Group 상태를 추가하지 않는다.
+- `closed_at`과 `closure_reason`, 기존 콘텐츠·membership·운영 이력을 그대로 보존한다. 새 event에 처리자·발생 시각을 기록하며, 거절 사유는 다른 운영 종료 사유를 덮어쓰지 않는다.
+- 승인·거절·철회는 Group 행 잠금과 transaction 안에서 권한과 현재 상태를 다시 검사한다. 상태 변경과 event 저장은 함께 commit/rollback되며 알림은 기존 notifier를 통해 commit 이후 전달한다. 이미 승인·거절·철회된 대기를 중복 처리할 수 없다. 재운영 신청 생성도 잠금 안에서 권한·상태를 다시 검사한다.
+- 거절·철회 후에는 같은 Group의 기존 재운영 신청 경로를 다시 사용할 수 있다. 과거 신청·처리 이력은 새 신청과 함께 보존한다.
+- 사유와 운영 이력은 기존 현재 Group admin의 관리 화면과 global admin 운영 상세에서만 표시한다. 일반 회원은 기존 inactive 콘텐츠 읽기 권한만 유지하며, 비회원에게 Group·사유·이력 접근을 새로 허용하지 않는다. 알림의 수신자·내용·목적지는 `docs/specs/notifications_mvp.md`를 따른다.
 
 ---
 
@@ -176,4 +190,3 @@ Classroom은 이번 lifecycle 설계 범위가 아니다.
 ## 후속 결정
 
 - 운영 중 Group 총량 제한과 고급 spam/abuse 대응 (신규 승인 대기 1개 제한과 기본 요청 rate limit은 구현됨)
-- 재활성화 요청에 대한 admin 거절 상태와 사유 처리

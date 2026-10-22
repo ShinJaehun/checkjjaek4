@@ -41,7 +41,8 @@
       <%= form.text_area :detail, required: true, maxlength: 500, rows: 4,
                          class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" %>
       <p class="text-xs text-stone-500"><%= t("admin.groups.approval.rejection_hint") %></p>
-      <%= form.submit t("admin.groups.actions.reject"), class: "rounded-full bg-red-700 px-5 py-2.5 text-sm font-medium text-white" %>
+      <% rejection_label = @rejection_event.reactivation_rejected? ? "reject_reactivation" : "reject" %>
+      <%= form.submit t("admin.groups.actions.#{rejection_label}"), class: "rounded-full bg-red-700 px-5 py-2.5 text-sm font-medium text-white" %>
     <% end %>
   <% end %>
   <%= link_to t("admin.groups.operation_moderation.cancel"),

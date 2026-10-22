@@ -250,7 +250,8 @@
 - Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 전용 승인 Action page로 연결함
 - 일반 사용자의 신규 `pending_approval`이면서 `closed_at`이 없는 신청은 동시에 1개로 제한함. `GroupsController#create`는 User 행 잠금 아래 검사·생성·event 기록을 수행하며 기존 5회/24시간 rate limit과 global admin 직접 생성 예외를 유지함
 - lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·개설 거절·개설 취소·종료·재활성화·재승인으로 누적되며 목적·종료 사유·거절 사유 snapshot과 처리자·시각을 보존함. 승인/거절은 기존 admin 승인 화면, 일반 취소는 별도 `Groups::ApplicationCancellationsController`에서 Group 행 잠금 아래 처리함
-- 거절·취소는 `rejected` / `cancelled` 종료 상태이며 같은 Group의 운영·재승인·재활성화를 차단함. `MembershipScope`의 내 동아리 목록과 일반 활동에서 제외하고, 신청자·global admin은 기존 Group 결과 화면에서 이력을 확인함. 개설 신청 화면은 본인의 최근 종료 신청 10건을 제공함
+- 재운영 거절은 기존 `Admin::GroupApprovalsController#reject`, 철회는 `Groups::ReactivationRequestsController#withdraw`에서 처리함. `closed_at`이 있는 pending만 대상으로 하고 행 잠금 안에서 policy·상태를 재검사해 `inactive` 복귀와 `reactivation_rejected` / `reactivation_withdrawn` event를 함께 저장함. 종료 metadata·콘텐츠·membership을 보존하며 같은 Group에서 재신청할 수 있음. 철회는 관리 화면의 확인 버튼을 사용하고 재운영 요청 생성도 User → Group 잠금 아래 재검사함
+- 신규 개설 거절·취소는 `rejected` / `cancelled` 종료 상태이며 같은 Group의 운영·재승인·재활성화를 차단함. `MembershipScope`의 내 동아리 목록과 일반 활동에서 제외하고, 신청자·global admin은 기존 Group 결과 화면에서 이력을 확인함. 개설 신청 화면은 본인의 최근 종료 신청 10건을 제공함
 - 동아리 관리자는 동아리 관리에서 `GroupLifecycleEvent`와 Group 대상 `ModerationAction`을 실제 event 단위의 최신순 운영 이력으로 확인하며 platform 내부 메모는 볼 수 없음
 - global admin은 admin 전용 show에서 lifecycle과 platform moderation을 반영한 통합 현재 상태, 목적·사유·내부 메모를 포함한 전체 운영 이력과 내부 콘텐츠를 조사함. 목록 query parameter를 보존한 돌아가기 경로도 제공함
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
@@ -379,7 +380,7 @@
 
 ### 6. 알림 화면 (/notifications)
 
-- `Notification` 모델 기반 알림 inbox. Group lifecycle 7개 사건(개설 거절·취소 포함), 관리자 이전
+- `Notification` 모델 기반 알림 inbox. Group lifecycle 9개 사건(개설 거절·취소 및 재운영 거절·철회 포함), 관리자 이전
   2개 사건, 승인제 가입 workflow 3개 사건, 비공개 동아리 초대 workflow 4개 사건과 가입 신청 취소·내보내기는 실제
   `GroupLifecycleEvent`/`GroupMembershipEvent`를 source로 commit 이후 전달
 - 가입 신청 취소는 사건 시점 Group admin에게 신청자 이름으로, 내보내기는 대상 회원에게 운영 주체 이름으로 알림. `joined`와 자발적 `left`는 운영 이력만 남김

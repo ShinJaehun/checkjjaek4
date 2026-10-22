@@ -273,6 +273,7 @@ Library 안에서 볼 수 있는 책장:
 
 - 일반 사용자가 만든 동아리는 `pending_approval`이며 global admin만 `active`로 승인할 수 있다
 - 최초 개설 승인 대기(`closed_at` 없음)는 global admin만 사유를 남겨 거절하고, 현재 group admin 본인만 취소할 수 있다. 승인·거절·취소는 Group 잠금 안에서 policy를 재검사한다. `rejected` / `cancelled` 결과·이력은 신청자와 global admin만 조회하며 수정·운영·재승인·재활성화는 허용하지 않는다. 일반 내 동아리 목록에서는 제외한다. 세부 기준은 `docs/specs/account_group_lifecycle.md`를 따른다
+- 재운영 승인 대기(`closed_at` 있음)는 global admin만 필수 사유로 거절하고 현재 group admin 본인만 확인 후 철회한다. `reject?` / `withdraw_reactivation?`를 Group 잠금 안에서 재검사하며 두 경로 모두 기존 종료 metadata·콘텐츠·membership을 보존하고 `inactive`로 복귀한다. 사유·이력은 기존 관리자 관리 문맥에만 표시하며 상세 정책은 `docs/specs/account_group_lifecycle.md`를 따른다
 - 신규 신청의 개설 목적은 동아리 관리자 관리·신청 결과 화면과 global admin 승인·관리 화면에서만 노출한다
 - `active` 동아리만 기존 group type에 따른 일반 발견·가입·초대·작성 흐름을 제공한다
 - 동아리 관리자만 active 동아리를 `inactive`로 종료하고 inactive 동아리를 다시 승인 대기로 전환할 수 있다

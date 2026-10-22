@@ -34,7 +34,9 @@ class Notification < ApplicationRecord
     group_member_unbanned: 31,
     book_friendship_accepted: 32,
     group_opening_rejected: 33,
-    group_opening_cancelled: 34
+    group_opening_cancelled: 34,
+    group_reactivation_rejected: 35,
+    group_reactivation_withdrawn: 36
   }, validate: true
 
   belongs_to :recipient, class_name: "User", inverse_of: :received_notifications
@@ -144,6 +146,7 @@ class Notification < ApplicationRecord
       group_opening_requested group_opening_approved group_operations_closed
       group_opening_rejected group_opening_cancelled
       group_reactivation_requested group_reactivation_approved
+      group_reactivation_rejected group_reactivation_withdrawn
       group_admin_role_revoked group_admin_role_granted
     ])
   end

@@ -21,7 +21,32 @@ RSpec.describe Group, type: :model do
       )
     ).to be(true)
     expect(group.update(lifecycle_status: :pending_approval)).to be(true)
-    expect(group.update(lifecycle_status: :inactive)).to be(false)
+    closed_attributes = group.attributes.slice("closed_at", "closure_reason")
+    expect(group.update(lifecycle_status: :inactive)).to be(true)
+    expect(group.reload.attributes.slice("closed_at", "closure_reason")).to eq(closed_attributes)
+    expect(group.update(lifecycle_status: :active)).to be(false)
+  end
+
+  it "returns only a pending reactivation to inactive with its original closure metadata" do
+    group = described_class.create!(group_admin:, name: "Initial", application_purpose: "Read together")
+    expect(group.update(lifecycle_status: :inactive, closure_reason: "Invented", closed_at: Time.current)).to be(false)
+    group.reload.update!(lifecycle_status: :active)
+    group.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+    group.update!(lifecycle_status: :pending_approval)
+    expect(group).to be_pending_reactivation_request
+    expect(group).not_to be_pending_opening_application
+    expect(group.update(lifecycle_status: :inactive, closure_reason: "Changed")).to be(false)
+    expect(group.reload.update(lifecycle_status: :inactive, closed_at: nil)).to be(false)
+  end
+
+  it "preserves a legacy blank closure reason when ending a pending reactivation" do
+    group = described_class.create!(group_admin:, name: "Legacy closure", lifecycle_status: :active)
+    group.update_columns(lifecycle_status: :inactive, closed_at: Time.current)
+    group.update!(lifecycle_status: :pending_approval)
+
+    expect(group.update(lifecycle_status: :inactive)).to be(true)
+    expect(group.reload.closure_reason).to be_nil
+    expect(group.closed_at).to be_present
   end
 
   it "allows regular attributes to be updated without a lifecycle transition" do
@@ -100,7 +125,7 @@ RSpec.describe Group, type: :model do
   end
 
   describe "#cancel_reactivation_for_withdrawal!" do
-    it "cancels only a reactivation request without allowing the transition generally" do
+    it "cancels a reactivation request while preserving closure metadata" do
       group = described_class.create!(
         group_admin: group_admin,
         name: "Reactivation",
@@ -115,9 +140,6 @@ RSpec.describe Group, type: :model do
         closed_at: closed_at
       )
       group.update!(lifecycle_status: :pending_approval)
-
-      expect(group.update(lifecycle_status: :inactive)).to be(false)
-      expect(group.reload).to be_pending_approval
 
       group.cancel_reactivation_for_withdrawal!
 

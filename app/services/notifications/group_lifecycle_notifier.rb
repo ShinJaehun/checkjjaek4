@@ -8,6 +8,8 @@ module Notifications
       [ "GroupLifecycleEvent", "operations_closed" ] => :group_operations_closed,
       [ "GroupLifecycleEvent", "reactivation_requested" ] => :group_reactivation_requested,
       [ "GroupLifecycleEvent", "reactivation_approved" ] => :group_reactivation_approved,
+      [ "GroupLifecycleEvent", "reactivation_rejected" ] => :group_reactivation_rejected,
+      [ "GroupLifecycleEvent", "reactivation_withdrawn" ] => :group_reactivation_withdrawn,
       [ "GroupMembershipEvent", "admin_role_revoked" ] => :group_admin_role_revoked,
       [ "GroupMembershipEvent", "admin_role_granted" ] => :group_admin_role_granted
     }.freeze

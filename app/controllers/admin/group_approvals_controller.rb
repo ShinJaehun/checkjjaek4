@@ -33,15 +33,18 @@ module Admin
       @rejection_event.detail = params.fetch(:group_lifecycle_event, {}).permit(:detail)[:detail]
       @group.with_lock do
         authorize @group, :reject?
-        @group.update!(lifecycle_status: :rejected)
+        @rejection_event.event_type = @group.pending_reactivation_request? ? :reactivation_rejected : :opening_rejected
+        @group.update!(lifecycle_status: @group.pending_reactivation_request? ? :inactive : :rejected)
         @rejection_event.save!
         Notifications::GroupLifecycleNotifier.schedule(event: @rejection_event, recipient_ids: [ @group.group_admin_id ])
       end
 
-      redirect_to @approval_return_path, notice: t("admin.groups.notices.rejected")
+      notice_key = @rejection_event.reactivation_rejected? ? "reactivation_rejected" : "rejected"
+      redirect_to @approval_return_path, notice: t("admin.groups.notices.#{notice_key}")
     rescue ActiveRecord::RecordInvalid
       @group.reload
-      @error_message = t("admin.groups.alerts.rejection_failed")
+      error_key = @group.pending_reactivation_request? ? "reactivation_rejection_failed" : "rejection_failed"
+      @error_message = t("admin.groups.alerts.#{error_key}")
       render :new, status: :unprocessable_content
     end
 
@@ -58,7 +61,8 @@ module Admin
       end
 
       authorize @group, action_name == "reject" ? :reject? : :approve?
-      @rejection_event = GroupLifecycleEvent.new(group_id: @group.id, actor: current_user, event_type: :opening_rejected)
+      event_type = @group.pending_reactivation_request? ? :reactivation_rejected : :opening_rejected
+      @rejection_event = GroupLifecycleEvent.new(group_id: @group.id, actor: current_user, event_type:)
       @action_params = @return_params.to_h
       @action_params[:return_to] = "inventory" if params[:return_to] == "inventory"
       @approval_return_path = if params[:return_to] == "inventory"
