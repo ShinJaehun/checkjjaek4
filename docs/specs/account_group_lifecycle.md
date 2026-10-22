@@ -53,15 +53,17 @@ Group lifecycle은 공간 자체가 운영 가능한지를 나타낸다. 사용�
 - 승인 대기
 - 운영 중
 - 운영 종료
+- 최초 개설 신청 거절
+- 최초 개설 신청 취소
 
-구현에서는 `pending_approval` / `active` / `inactive`를 사용해
+구현에서는 `pending_approval` / `active` / `inactive`와 신규 신청의 종료 상태인 `rejected` / `cancelled`를 사용해
 `GroupMembership.pending`과 Group 승인 대기를 구분한다.
 
 반면 `GroupMembership`의 `pending` / `invited` / `active`는
 한 사용자가 특정 Group 안에서 어떤 상태인지를 나타낸다. 두 상태 축은 서로 독립적이다.
 
 기존 Group의 public / approval / private도 접근·가입 방식이며 Group lifecycle과 독립적이다.
-Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 정상 운영 활동을 허용하지 않는다.
+Group이 승인 대기·운영 종료·개설 거절·개설 취소 상태라면 public Group이어도 정상 운영 활동을 허용하지 않는다.
 
 ---
 
@@ -75,15 +77,26 @@ Group이 승인 대기 또는 운영 종료 상태라면 public Group이어도 �
 - 일반 회원 가입과 일반 Group Jjaek·Comment 활동을 허용하지 않는다.
 - 동아리 관리자는 자신의 신청 상태를 확인할 수 있어야 한다.
 - 신규 신청자는 일반 소개와 별도로 최대 500자의 동아리 개설 목적을 제출한다.
-- 개설 목적은 동아리 관리자 관리 화면과 global admin 승인 화면에서만 확인한다.
+- 개설 목적은 동아리 관리자 관리·신청 결과 화면과 global admin 승인·관리 화면에서만 확인한다.
 - global admin만 Group을 승인해 운영 중으로 전환할 수 있다.
 - global admin은 동아리 개설 목적을 포함한 신청 정보를 확인해 승인한다.
-- 개설 신청·최초 승인·운영 종료·재활성화 요청·재승인은 발생 시각과 함께 운영 이력에 누적한다.
+- 개설 신청·최초 승인·개설 거절·개설 취소·운영 종료·재활성화 요청·재승인은 처리자와 발생 시각을 운영 이력에 누적한다.
 - 개설 신청에는 당시 개설 목적, 운영 종료에는 당시 종료 사유를 snapshot으로 보존한다.
 
 Group 생성 요청의 기본 rate limit은 `docs/specs/basic_rate_limiting.md`에 따라 구현되어 있다.
-승인 거절 상태 또는 row 삭제 여부, 거절 사유, Group 생성 총량 제한,
-spam/abuse scoring은 후속 결정으로 남긴다.
+
+### 신규 신청 제한·거절·취소
+
+- 일반 사용자의 동시 신규 개설 승인 대기는 최대 1개다. `pending_approval`이면서 `closed_at`이 없는 최초 신청만 집계한다. 운영 중·운영 종료·거절·취소·재활성화 승인 대기와 다른 동아리 membership은 집계하지 않는다. global admin의 직접 생성은 예외다.
+- 새 신청 화면과 생성 POST에서 검사하며, POST는 신청자 User 행 잠금 아래 제한 확인·생성·event 기록을 하나의 transaction으로 처리해 동시 요청의 우회를 막는다. 기존 사용자당 5회/24시간 rate limit은 별도로 유지한다. 제한 시 이유와 기존 신청 링크를 제공한다.
+- global admin만 최초 개설 승인 대기 신청을 거절할 수 있다. 거절 사유는 필수이며 최대 500자다. `rejected`로 전환하고 `opening_rejected` event의 detail에 사유를 보존한다. 신청자에게 결과와 사유를 알린다.
+- 현재 group admin 본인만 최초 개설 승인 대기 신청을 확인 절차 후 취소할 수 있다. 취소 사유는 요구하지 않는다. `cancelled`로 전환하고 `opening_cancelled` event로 처리자·시각을 보존하며 유효한 global admin에게 취소를 알린다.
+- 승인·거절·취소는 Group 행 잠금과 transaction 안에서 권한·현재 상태를 다시 검사한다. 상태와 event는 함께 commit/rollback되며 알림은 기존 notifier로 commit 후 전달한다. 승인 완료 후에는 거절·취소할 수 없다.
+- `rejected` / `cancelled`는 신규 개설 신청의 종료 상태다. 기존 `inactive` 의미를 재사용하지 않으며 같은 Group의 승인·재활성화·수정·운영을 허용하지 않는다. 다시 신청하려면 새 Group을 생성한다.
+- Group과 기존 이력을 삭제하지 않는다. 일반 내 동아리 목록·발견·활동 피드에서 제외하며, 신청자와 global admin만 신청 결과 및 운영 이력을 확인한다. 신청 화면의 최근 결과 10건에서 과거 신청으로 진입할 수 있다. 다른 일반 사용자에게 신청 내용·거절 사유를 노출하지 않는다.
+- 일반 취소는 계정 탈퇴용 `cancel_pending_application_for_withdrawal!`과 별도 처리한다. 탈퇴 시 최초 pending Group 정리·재운영 pending 취소 정책은 그대로 유지하며 이미 거절·취소된 Group과 이력은 보존한다.
+
+운영 중 Group 총량 제한과 고급 spam/abuse scoring은 미구현이다. 재활성화 거절도 이번 범위에 포함하지 않는다.
 
 ---
 
@@ -162,6 +175,5 @@ Classroom은 이번 lifecycle 설계 범위가 아니다.
 
 ## 후속 결정
 
-- Group 승인 거절 상태 또는 row 삭제 여부와 거절 사유
-- Group 생성 총량 제한과 고급 spam/abuse 대응 (기본 요청 rate limit은 구현됨)
+- 운영 중 Group 총량 제한과 고급 spam/abuse 대응 (신규 승인 대기 1개 제한과 기본 요청 rate limit은 구현됨)
 - 재활성화 요청에 대한 admin 거절 상태와 사유 처리

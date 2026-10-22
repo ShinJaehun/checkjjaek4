@@ -75,6 +75,8 @@ en:
     too_long: "Content must be %{count} characters or fewer."
   activerecord:
     attributes:
+      group_lifecycle_event:
+        detail: "Rejection reason"
       user:
         handle: "Public handle"
         avatar: "Profile image"
@@ -247,12 +249,16 @@ en:
       approval_group: "Approval club"
       private_group: "Private club"
     current_statuses:
+      rejected: "Opening rejected"
+      cancelled: "Opening cancelled"
       pending_approval: "Pending approval"
       active: "Active"
       inactive: "Closed"
       reactivation_pending: "Reactivation approval pending"
       suspended: "Operation suspended"
     lifecycle_messages:
+      rejected: "This opening application was rejected. Review the reason in the operation history. Create a new club to apply again."
+      cancelled: "This opening application was cancelled. The club cannot operate. Create a new club to apply again."
       pending_approval: "This club is awaiting approval. Joining and club activity are unavailable until approval."
       inactive: "This club is closed. Only existing active members can read its past content."
     lifecycle_history:
@@ -260,12 +266,15 @@ en:
       empty: "No operations history has been recorded."
       not_recorded: "Not recorded"
       events:
+        opening_rejected: "Opening rejected"
+        opening_cancelled: "Opening cancelled"
         opening_requested: "Opening requested"
         opening_approved: "Approved"
         operations_closed: "Closed"
         reactivation_requested: "Reactivation requested"
         reactivation_approved: "Reactivation approved"
       details:
+        rejection_reason: "Rejection reason"
         application_purpose: "Opening purpose"
         closure_reason: "Closure reason"
         reactivation_reason: "Reactivation request reason"
@@ -309,6 +318,11 @@ en:
         previous: "Previous"
         next: "Next"
         position: "%{current} / %{total}"
+    applications:
+      limit_reached: "You can have only one initial opening application awaiting approval at a time. Wait for your existing application to be resolved before applying again."
+      recent_results: "Recent opening application results"
+      cancel: "Cancel opening application"
+      cancel_confirmation: "Cancel this opening application? It cannot be approved afterward. You will need to create a new club to apply again."
     new:
       title: "Apply to open a club"
       description: "Submit the club details and purpose. Operations can begin after administrator approval."
@@ -385,12 +399,15 @@ en:
       sent_title: "Sent invitations"
       sent_empty: "No invitations sent yet."
     notices:
+      application_cancelled: "The club opening application was cancelled."
       created: "Your club application was submitted."
       closed: "The club was closed."
       reactivation_requested: "The club reactivation request was submitted."
       updated: "Club updated."
       admin_transferred: "Club admin rights were transferred."
     alerts:
+      application_failed: "The opening application could not be saved. Please try again."
+      application_cancellation_failed: "The club opening application could not be cancelled."
       not_found_or_inaccessible: "The club could not be found or accessed."
       rate_limited: "Club creation is temporarily limited. Too many club creation requests were made within 24 hours. Please try again in 24 hours."
       close_failed: "The club could not be closed."
@@ -656,6 +673,7 @@ en:
         created: "Created"
         actions: "Actions"
       actions:
+        reject: "Reject opening application"
         suspend_operation: "Suspend operation"
         restore_operation: "Restore operation"
         approve: "Approve"
@@ -666,13 +684,17 @@ en:
         initial: "Opening application"
         reactivation: "Reactivation request"
       approval:
+        rejection_reason: "Rejection reason"
+        rejection_hint: "Shared with the applicant. Required, up to 500 characters."
         title: "Approve club operations"
         description: "Review the request and current operation status before approving it."
       notices:
+        rejected: "The club opening application was rejected."
         approved: "The club was approved."
         operation_suspended: "Club operation was suspended."
         operation_restored: "Club operation was restored."
       alerts:
+        rejection_failed: "The opening application could not be rejected. Check the reason and current status."
         approval_failed: "The club could not be approved."
         operation_suspend_failed: "Club operation could not be suspended."
         operation_restore_failed: "Club operation could not be restored."
@@ -950,6 +972,8 @@ en:
       group_member_activity_restored: "%{authority} restored your activity in the %{group_name} club. Reason: %{reason}"
       group_member_banned: "%{authority} restricted your access to %{group_name}. Reason: %{reason}"
       group_member_unbanned: "%{authority} lifted your restriction from %{group_name}. Your membership was not automatically restored. Reason: %{reason}"
+      group_opening_rejected: "The team rejected the opening application for %{group_name}. Reason: %{reason}"
+      group_opening_cancelled: "The opening application for %{group_name} was cancelled."
       group_opening_requested: "New club opening request: %{group_name}"
       group_opening_approved: "The team approved the opening of %{group_name}."
       group_operations_closed: "The club team closed %{group_name}."

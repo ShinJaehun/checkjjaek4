@@ -10,7 +10,7 @@ class GroupPolicy < ApplicationPolicy
       return scope.none unless user.present?
 
       membership_group_ids = GroupMembership.active.where(user: user).select(:group_id)
-      scope.where(id: membership_group_ids)
+      scope.where(id: membership_group_ids, lifecycle_status: %i[pending_approval active inactive])
     end
   end
 
@@ -30,6 +30,7 @@ class GroupPolicy < ApplicationPolicy
   def show?
     return false unless user.present?
     return true if operational_investigator?
+    return record.group_admin?(user) if record.application_ended?
     return record.group_admin?(user) if record.pending_approval?
     return member_with_basic_access? if record.inactive?
     return true unless record.private_group?
@@ -38,7 +39,7 @@ class GroupPolicy < ApplicationPolicy
   end
 
   def create?
-    user.present? && record.group_admin_id == user.id && record.group_type.in?(Group::USER_CREATABLE_TYPES)
+    user.present? && user.active_account? && record.group_admin_id == user.id && record.group_type.in?(Group::USER_CREATABLE_TYPES)
   end
 
   def update?
@@ -49,6 +50,7 @@ class GroupPolicy < ApplicationPolicy
 
   def read_jjaeks?
     return false unless user.present?
+    return false if record.application_ended?
     return true if operational_investigator?
     return record.active_member?(user) if record.inactive?
 
@@ -60,7 +62,10 @@ class GroupPolicy < ApplicationPolicy
   end
 
   def view_members?
-    user.present? && (record.group_admin?(user) || operational_investigator?)
+    return false unless user.present?
+    return true if operational_investigator?
+
+    !record.application_ended? && record.group_admin?(user)
   end
 
   def view_content_inventory?
@@ -96,6 +101,14 @@ class GroupPolicy < ApplicationPolicy
     manage_approvals? && record.pending_approval?
   end
 
+  def reject?
+    manage_approvals? && record.pending_opening_application?
+  end
+
+  def cancel_application?
+    user.present? && record.group_admin?(user) && record.pending_opening_application?
+  end
+
   def view_admin_details?
     user.present? && user.global_admin?
   end
@@ -110,11 +123,11 @@ class GroupPolicy < ApplicationPolicy
       accessible_group_ids = GroupMembership.active.where(user: user).select(:group_id)
       active_discoverable = scope.active.where(group_type: %i[public_group approval_group])
       active_or_inactive_memberships = scope.where(lifecycle_status: %i[active inactive], id: accessible_group_ids)
-      administered_pending = scope.pending_approval.where(group_admin: user)
+      administered_applications = scope.where(lifecycle_status: %i[pending_approval rejected cancelled], group_admin: user)
 
       active_discoverable
         .or(active_or_inactive_memberships)
-        .or(administered_pending)
+        .or(administered_applications)
         .distinct
     end
   end

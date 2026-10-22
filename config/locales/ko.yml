@@ -77,6 +77,8 @@ ko:
     too_long: "내용은 %{count}자 이하로 입력해 주세요."
   activerecord:
     attributes:
+      group_lifecycle_event:
+        detail: "거절 사유"
       user:
         handle: "공개 주소 이름"
         avatar: "프로필 이미지"
@@ -249,12 +251,16 @@ ko:
       approval_group: "승인 동아리"
       private_group: "비공개 동아리"
     current_statuses:
+      rejected: "개설 신청 거절"
+      cancelled: "개설 신청 취소"
       pending_approval: "승인 대기"
       active: "운영 중"
       inactive: "운영 종료"
       reactivation_pending: "재운영 승인 대기"
       suspended: "운영 정지"
     lifecycle_messages:
+      rejected: "개설 신청이 거절되었습니다. 운영 이력에서 사유를 확인할 수 있습니다. 다시 신청하려면 새 동아리를 만들어 주세요."
+      cancelled: "개설 신청이 취소되었습니다. 이 동아리는 운영할 수 없으며, 새 동아리로 다시 신청할 수 있습니다."
       pending_approval: "동아리 승인 대기 중입니다. 승인 전에는 가입과 동아리 활동을 시작할 수 없습니다."
       inactive: "운영 종료된 동아리입니다. 기존 active 회원만 과거 콘텐츠를 읽을 수 있습니다."
     lifecycle_history:
@@ -262,12 +268,15 @@ ko:
       empty: "기록된 운영 이력이 없습니다."
       not_recorded: "기록 없음"
       events:
+        opening_rejected: "개설 신청 거절"
+        opening_cancelled: "개설 신청 취소"
         opening_requested: "개설 신청"
         opening_approved: "승인"
         operations_closed: "종료"
         reactivation_requested: "재운영 신청"
         reactivation_approved: "재운영 승인"
       details:
+        rejection_reason: "거절 사유"
         application_purpose: "개설 목적"
         closure_reason: "운영 종료 사유"
         reactivation_reason: "재운영 신청 사유"
@@ -312,6 +321,11 @@ ko:
         previous: "이전"
         next: "다음"
         position: "%{current} / %{total}"
+    applications:
+      limit_reached: "신규 개설 승인 대기 중인 동아리는 동시에 1개만 신청할 수 있습니다. 기존 신청의 처리가 끝난 후 다시 신청해 주세요."
+      recent_results: "최근 개설 신청 결과"
+      cancel: "개설 신청 취소"
+      cancel_confirmation: "개설 신청을 취소할까요? 취소한 신청은 다시 승인할 수 없으며, 새 동아리로 신청해야 합니다."
     new:
       title: "동아리 개설 신청"
       description: "동아리 정보와 개설 목적을 제출하면 관리자 승인 후 운영을 시작할 수 있습니다."
@@ -390,12 +404,15 @@ ko:
       sent_title: "보낸 초대"
       sent_empty: "아직 보낸 초대가 없습니다."
     notices:
+      application_cancelled: "동아리 개설 신청을 취소했습니다."
       created: "동아리 생성 신청이 접수되었습니다."
       closed: "동아리 운영을 종료했습니다."
       reactivation_requested: "동아리 재활성화 요청이 접수되었습니다."
       updated: "동아리를 수정했습니다."
       admin_transferred: "동아리 관리자 권한을 이전했습니다."
     alerts:
+      application_failed: "동아리 개설 신청을 저장할 수 없습니다. 다시 시도해 주세요."
+      application_cancellation_failed: "동아리 개설 신청을 취소할 수 없습니다."
       not_found_or_inaccessible: "동아리를 찾을 수 없거나 접근할 수 없습니다."
       rate_limited: "동아리 개설이 일시적으로 제한되었습니다. 24시간 동안 동아리 개설 요청이 너무 많이 발생했습니다. 24시간 후 다시 시도해 주세요."
       close_failed: "동아리 운영을 종료할 수 없습니다."
@@ -668,6 +685,7 @@ ko:
         created: "생성 시각"
         actions: "작업"
       actions:
+        reject: "개설 신청 거절"
         suspend_operation: "운영 정지"
         restore_operation: "운영 복구"
         approve: "운영 승인"
@@ -678,13 +696,17 @@ ko:
         initial: "개설 신청"
         reactivation: "재활성화 요청"
       approval:
+        rejection_reason: "거절 사유"
+        rejection_hint: "신청자에게 전달됩니다. 필수 입력 · 최대 500자"
         title: "동아리 운영 승인"
         description: "신청 내용과 현재 운영 상태를 확인한 뒤 승인해 주세요."
       notices:
+        rejected: "동아리 개설 신청을 거절했습니다."
         approved: "동아리 운영을 승인했습니다."
         operation_suspended: "동아리 운영을 정지했습니다."
         operation_restored: "동아리 운영을 복구했습니다."
       alerts:
+        rejection_failed: "동아리 개설 신청을 거절할 수 없습니다. 사유와 현재 상태를 확인해 주세요."
         approval_failed: "동아리 운영을 승인할 수 없습니다."
         operation_suspend_failed: "동아리 운영을 정지할 수 없습니다."
         operation_restore_failed: "동아리 운영을 복구할 수 없습니다."
@@ -954,6 +976,8 @@ ko:
       group_member_activity_restored: "%{authority}에서 %{group_name} 동아리 활동을 복구했습니다. 사유: %{reason}"
       group_member_banned: "%{authority}이 %{group_name} 이용을 제한했습니다. 사유: %{reason}"
       group_member_unbanned: "%{authority}이 %{group_name} 이용 제한을 해제했습니다. 회원 자격은 자동으로 복구되지 않습니다. 사유: %{reason}"
+      group_opening_rejected: "동아리 운영진이 %{group_name} 개설 신청을 거절했습니다. 사유: %{reason}"
+      group_opening_cancelled: "%{group_name} 개설 신청이 취소되었습니다."
       group_opening_requested: "새 동아리 개설 신청: %{group_name}"
       group_opening_approved: "운영팀에서 %{group_name} 동아리 개설을 승인했습니다."
       group_operations_closed: "동아리 운영진에서 %{group_name} 동아리 운영을 종료했습니다."

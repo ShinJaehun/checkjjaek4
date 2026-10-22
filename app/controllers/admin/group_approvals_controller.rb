@@ -1,13 +1,16 @@
 module Admin
   class GroupApprovalsController < ApplicationController
     before_action :prepare_page
+    rescue_from ActiveRecord::RecordNotFound do
+      redirect_to admin_groups_path(@return_params), alert: t("groups.alerts.not_found_or_inaccessible")
+    end
 
     def new; end
 
     def create
-      event_type = @group.closed_at.nil? ? :opening_approved : :reactivation_approved
-
-      Group.transaction do
+      @group.with_lock do
+        authorize @group, :approve?
+        event_type = @group.closed_at.nil? ? :opening_approved : :reactivation_approved
         recipient_ids = if event_type == :reactivation_approved
           @group.group_memberships.active.distinct.pluck(:user_id)
         else
@@ -26,6 +29,22 @@ module Admin
       render :new, status: :unprocessable_content
     end
 
+    def reject
+      @rejection_event.detail = params.fetch(:group_lifecycle_event, {}).permit(:detail)[:detail]
+      @group.with_lock do
+        authorize @group, :reject?
+        @group.update!(lifecycle_status: :rejected)
+        @rejection_event.save!
+        Notifications::GroupLifecycleNotifier.schedule(event: @rejection_event, recipient_ids: [ @group.group_admin_id ])
+      end
+
+      redirect_to @approval_return_path, notice: t("admin.groups.notices.rejected")
+    rescue ActiveRecord::RecordInvalid
+      @group.reload
+      @error_message = t("admin.groups.alerts.rejection_failed")
+      render :new, status: :unprocessable_content
+    end
+
     private
 
     def prepare_page
@@ -38,7 +57,8 @@ module Admin
         return
       end
 
-      authorize @group, :approve?
+      authorize @group, action_name == "reject" ? :reject? : :approve?
+      @rejection_event = GroupLifecycleEvent.new(group_id: @group.id, actor: current_user, event_type: :opening_rejected)
       @action_params = @return_params.to_h
       @action_params[:return_to] = "inventory" if params[:return_to] == "inventory"
       @approval_return_path = if params[:return_to] == "inventory"

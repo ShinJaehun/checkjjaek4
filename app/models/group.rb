@@ -20,7 +20,7 @@ class Group < ApplicationRecord
        default: :public_group,
        validate: true
   enum :lifecycle_status,
-       { pending_approval: 0, active: 1, inactive: 2 },
+       { pending_approval: 0, active: 1, inactive: 2, rejected: 3, cancelled: 4 },
        default: :pending_approval,
        validate: true
 
@@ -48,6 +48,17 @@ class Group < ApplicationRecord
 
   after_create :create_group_admin_membership!
 
+  scope :pending_opening_applications, -> { pending_approval.where(closed_at: nil) }
+  scope :ended_applications, -> { where(lifecycle_status: %i[rejected cancelled]) }
+
+  def pending_opening_application?
+    pending_approval? && closed_at.nil?
+  end
+
+  def application_ended?
+    rejected? || cancelled?
+  end
+
   def to_param
     return unless persisted?
 
@@ -68,7 +79,7 @@ class Group < ApplicationRecord
   end
 
   def operation_active?
-    !operation_suspended?
+    !operation_suspended? && !application_ended?
   end
 
   def current_operation_suspension_action
@@ -158,6 +169,9 @@ class Group < ApplicationRecord
 
   def lifecycle_status_transition_must_be_valid
     return unless persisted? && will_save_change_to_lifecycle_status?
+    if lifecycle_status_in_database == "pending_approval" && closed_at_in_database.nil? && closed_at.nil? && application_ended?
+      return
+    end
     return if lifecycle_status_change_to_be_saved.in?([
       %w[pending_approval active],
       %w[active inactive],

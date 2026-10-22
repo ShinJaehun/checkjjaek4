@@ -5,7 +5,9 @@ class GroupLifecycleEvent < ApplicationRecord
          opening_approved: 1,
          operations_closed: 2,
          reactivation_requested: 3,
-         reactivation_approved: 4
+         reactivation_approved: 4,
+         opening_rejected: 5,
+         opening_cancelled: 6
        },
        validate: true
 
@@ -13,6 +15,7 @@ class GroupLifecycleEvent < ApplicationRecord
   belongs_to :actor, class_name: "User", inverse_of: :group_lifecycle_events
 
   validates :detail, length: { maximum: 500 }, allow_nil: true
+  validates :detail, presence: true, if: :opening_rejected?
   validate :only_pending_opening_detail_can_change, on: :update
 
   private

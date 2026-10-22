@@ -32,6 +32,8 @@ module Admin
         result.where(lifecycle_status: :pending_approval, operation_suspended_at: nil).where.not(closed_at: nil)
       when "suspended"
         result.where.not(operation_suspended_at: nil)
+      when "rejected", "cancelled"
+        result.where(lifecycle_status: @params[:status])
       else
         result
       end

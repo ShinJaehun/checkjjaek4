@@ -15,16 +15,18 @@ RSpec.describe Notifications::GroupLifecycleNotifier do
     @commit_callbacks.shift&.call
   end
 
-  it "maps all seven events to their own audit rows" do
+  it "maps all lifecycle and admin transfer events to their own audit rows" do
     lifecycle_actions = {
       opening_requested: :group_opening_requested,
       opening_approved: :group_opening_approved,
       operations_closed: :group_operations_closed,
       reactivation_requested: :group_reactivation_requested,
-      reactivation_approved: :group_reactivation_approved
+      reactivation_approved: :group_reactivation_approved,
+      opening_rejected: :group_opening_rejected,
+      opening_cancelled: :group_opening_cancelled
     }
     lifecycle_actions.each do |event_type, notification_action|
-      event = GroupLifecycleEvent.create!(group:, actor:, event_type:)
+      event = GroupLifecycleEvent.create!(group:, actor:, event_type:, detail: event_type == :opening_rejected ? "Please clarify the purpose" : nil)
       deliver(event)
       expect(Notification.find_by!(recipient:, notifiable: event)).to have_attributes(actor:, action: notification_action.to_s)
     end

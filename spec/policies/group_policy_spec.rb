@@ -4,6 +4,28 @@ RSpec.describe GroupPolicy do
   let(:group_admin) { User.create!(name: "Group admin", email: "group-policy-group_admin@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:viewer) { User.create!(name: "Viewer", email: "group-policy-viewer@example.com", password: "password123!", password_confirmation: "password123!") }
 
+  %i[rejected cancelled].each do |status|
+    it "limits #{status} results to their applicant and global admin without operational permissions" do
+      admin = User.create!(name: "Reviewer", email: "terminal-policy-admin@example.com", password: "password123!", global_admin: true)
+      group = Group.create!(group_admin:, name: "Application", application_purpose: "Read together")
+      group.group_memberships.create!(user: viewer, status: :active)
+      group.update!(lifecycle_status: status)
+
+      expect(described_class.new(group_admin, group).show?).to be(true)
+      expect(described_class.new(admin, group).show?).to be(true)
+      expect(described_class.new(viewer, group).show?).to be(false)
+      expect(described_class::Scope.new(viewer, Group).resolve).not_to include(group)
+      expect(described_class::MembershipScope.new(group_admin, Group).resolve).not_to include(group)
+      expect(described_class::CreateJjaekScope.new(group_admin, Group).resolve).not_to include(group)
+      [ group_admin, viewer, admin ].each do |actor|
+        policy = described_class.new(actor, group)
+        %i[update? approve? reject? cancel_application? read_jjaeks? create_jjaek? close? request_reactivation? transfer_admin?].each do |permission|
+          expect(policy.public_send(permission)).to be(false), "#{actor.name} should not have #{permission} on #{status}"
+        end
+      end
+    end
+  end
+
   it "limits admin inventory scope to global admins" do
     admin = User.create!(name: "Admin", email: "inventory-policy-admin@example.com", password: "password123!", global_admin: true)
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private inventory", group_type: :private_group)

@@ -28,7 +28,9 @@ Rails.application.routes.draw do
     end
     resources :groups, only: %i[index show] do
       get :content, on: :member
-      resources :approvals, only: %i[new create], controller: "group_approvals"
+      resources :approvals, only: %i[new create], controller: "group_approvals" do
+        post :reject, on: :collection
+      end
       resources :operation_suspensions, only: %i[new create], controller: "group_operation_suspensions"
       resources :operation_restorations, only: %i[new create], controller: "group_operation_restorations"
     end
@@ -37,6 +39,7 @@ Rails.application.routes.draw do
     get :content, on: :member, to: "groups/contents#index"
     resources :members, only: :index, controller: "group_members"
     resources :closures, only: %i[new create], module: :groups
+    resource :application_cancellation, only: :create, module: :groups
     resources :reactivation_requests, only: %i[new create], module: :groups
     resources :admin_transfers, only: %i[new create], module: :groups
     resources :group_memberships, only: %i[create update destroy] do

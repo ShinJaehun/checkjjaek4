@@ -30,6 +30,39 @@ RSpec.describe Group, type: :model do
     expect(group.update(name: "Updated readers")).to be(true)
   end
 
+  %i[rejected cancelled].each do |status|
+    it "ends only an initial pending application as #{status} and forbids reopening it" do
+      group = described_class.create!(group_admin:, name: "Application", application_purpose: "Read together")
+
+      expect(group.update(lifecycle_status: status)).to be(true)
+      expect(group).to be_application_ended
+      expect(group).not_to be_operation_active
+      expect(described_class.ended_applications).to include(group)
+      expect(described_class.pending_opening_applications).not_to include(group)
+      %i[pending_approval active inactive].each do |next_status|
+        expect(group.reload.update(lifecycle_status: next_status, closure_reason: "Invalid reopening")).to be(false)
+      end
+    end
+
+    it "does not end an active or reactivation-pending group as #{status}" do
+      group = described_class.create!(group_admin:, name: "Existing club", lifecycle_status: :active)
+      expect(group.update(lifecycle_status: status)).to be(false)
+      group.reload.update!(lifecycle_status: :inactive, closure_reason: "Finished", closed_at: Time.current)
+      group.update!(lifecycle_status: :pending_approval)
+      expect(group.update(lifecycle_status: status)).to be(false)
+      expect(group.reload.update(lifecycle_status: status, closed_at: nil)).to be(false)
+    end
+  end
+
+  it "counts only pending initial applications, excluding pending reactivations" do
+    initial = described_class.create!(group_admin:, name: "Initial", application_purpose: "Read together")
+    returning = described_class.create!(group_admin:, name: "Returning", lifecycle_status: :active)
+    returning.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "Finished")
+    returning.update!(lifecycle_status: :pending_approval)
+
+    expect(described_class.pending_opening_applications).to contain_exactly(initial)
+  end
+
   it "requires a name" do
     group = described_class.new(group_admin: group_admin, name: "", group_type: :public_group)
 

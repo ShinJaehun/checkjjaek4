@@ -16,6 +16,7 @@
         <% if entry[:kind] == :lifecycle %>
           <% detail_label_key = {
                "opening_requested" => "application_purpose",
+               "opening_rejected" => "rejection_reason",
                "operations_closed" => "closure_reason",
                "reactivation_requested" => "reactivation_reason"
              }[record.event_type] %>

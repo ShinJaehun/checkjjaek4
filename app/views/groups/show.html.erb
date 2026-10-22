@@ -8,7 +8,7 @@
                  active_member_count: @active_member_count %>
 
       <div>
-        <% if @group.group_admin?(current_user) %>
+        <% if policy(@group).view_members? && @group.group_admin?(current_user) %>
           <div class="flex items-center gap-2">
             <%= link_to t("groups.members.management_title"), group_members_path(@group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
             <% if policy(@group).view_content_inventory? %>
@@ -53,7 +53,20 @@
   <% unless @group.active? %>
     <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 text-sm text-amber-900">
       <%= t("groups.lifecycle_messages.#{@group.lifecycle_status}") %>
+      <% if policy(@group).cancel_application? %>
+        <%= button_to t("groups.applications.cancel"), group_application_cancellation_path(@group),
+                      form: { data: { turbo_confirm: t("groups.applications.cancel_confirmation") } },
+                      class: "mt-4 rounded-full border border-amber-400 px-4 py-2 font-medium" %>
+      <% end %>
+      <% if @group.application_ended? && @group.group_admin?(current_user) %>
+        <%= link_to t("groups.actions.new"), new_group_path, class: "mt-4 inline-block font-medium underline" %>
+      <% end %>
     </section>
+  <% end %>
+
+  <% if @group.application_ended? %>
+    <%= render "groups/operation_history", lifecycle_events: @lifecycle_events,
+               operation_actions: @operation_moderation_actions, show_internal_notes: false %>
   <% end %>
 
   <% if @current_operation_suspension.present? %>

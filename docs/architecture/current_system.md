@@ -238,7 +238,7 @@
 - 로그인 사용자가 공개·승인·비공개 동아리를 만들 수 있고 공개·승인 동아리를 발견할 수 있음
 - `/groups`의 내 동아리는 모바일 1열·중간 폭 2열·데스크톱 3열 요약 카드로 표시하며, 소개는 상세 화면에서 보여주고 각 카드에서 관리자 프로필로 이동할 수 있음. 동아리 종류와 현재 운영 상태 badge는 동아리 상세·관리·회원 관리 화면 및 admin Group 화면과 같은 label·색상 규칙을 사용함
 - `/groups/:id`와 `/admin/groups/:id`의 타이틀은 이름·종류 badge·현재 상태 badge 아래에 관리자 avatar와 최대 5명의 active 일반 회원 avatar, 관리자 제외 일반 회원 수를 표시함. 관리자와 회원 preview avatar는 두 화면 모두 일반 사용자 프로필로 연결함. admin 상세의 회원 현황도 active 참여 인원에서 관리자를 제외하며, 생성 시각은 타이틀에서 표시하지 않음
-- 새 동아리는 승인 대기로 생성되며 global admin 승인 후 active로 운영됨
+- 일반 사용자의 새 동아리는 승인 대기로 생성되며 global admin 승인 후 active로 운영됨. global admin이 직접 생성하면 즉시 active로 시작함
 - 신규 신청은 일반 소개와 별도의 개설 목적을 제출하고 global admin 승인 목록에서 확인함
 - active 동아리 관리자는 동아리를 inactive로 운영 종료하거나 재활성화 승인을 요청할 수 있음
 - 운영 종료와 재활성화 요청은 동아리 관리 화면에서 전용 Action page로 진입해 확인·입력 후 수행함
@@ -248,14 +248,16 @@
 - global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·기본 상태/역할/종류 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음. Group은 lifecycle 상태, 재활성화 대기와 platform 운영 정지를 하나의 현재 상태 필터로 제공하며 운영 정지가 다른 lifecycle 표시보다 우선함. 가입·생성 기간 필터는 아직 없음
 - User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
 - Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 전용 승인 Action page로 연결함
-- lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·종료·재활성화·재승인 순서로 누적되며 개설 목적과 종료 사유 snapshot을 보존함
+- 일반 사용자의 신규 `pending_approval`이면서 `closed_at`이 없는 신청은 동시에 1개로 제한함. `GroupsController#create`는 User 행 잠금 아래 검사·생성·event 기록을 수행하며 기존 5회/24시간 rate limit과 global admin 직접 생성 예외를 유지함
+- lifecycle 전이는 `GroupLifecycleEvent`에 신청·승인·개설 거절·개설 취소·종료·재활성화·재승인으로 누적되며 목적·종료 사유·거절 사유 snapshot과 처리자·시각을 보존함. 승인/거절은 기존 admin 승인 화면, 일반 취소는 별도 `Groups::ApplicationCancellationsController`에서 Group 행 잠금 아래 처리함
+- 거절·취소는 `rejected` / `cancelled` 종료 상태이며 같은 Group의 운영·재승인·재활성화를 차단함. `MembershipScope`의 내 동아리 목록과 일반 활동에서 제외하고, 신청자·global admin은 기존 Group 결과 화면에서 이력을 확인함. 개설 신청 화면은 본인의 최근 종료 신청 10건을 제공함
 - 동아리 관리자는 동아리 관리에서 `GroupLifecycleEvent`와 Group 대상 `ModerationAction`을 실제 event 단위의 최신순 운영 이력으로 확인하며 platform 내부 메모는 볼 수 없음
 - global admin은 admin 전용 show에서 lifecycle과 platform moderation을 반영한 통합 현재 상태, 목적·사유·내부 메모를 포함한 전체 운영 이력과 내부 콘텐츠를 조사함. 목록 query parameter를 보존한 돌아가기 경로도 제공함
 - pending/inactive 동아리는 일반 발견과 새 가입·초대·글·댓글 작성에서 제외됨
 - inactive 동아리의 기존 active member는 과거 내부 콘텐츠를 읽을 수 있음
 - 단일 동아리 관리자는 내부적으로 `Group.group_admin_id`로 표현하며 항상 active membership을 가짐
 - active/inactive 동아리의 현재 관리자와 global admin은 다른 active member에게 관리자 권한을 원자적으로 이전하며, 권한 해제·부여를 `GroupMembershipEvent`로 함께 기록함
-- global admin의 일반 Group 목록에는 종류와 lifecycle 상태에 관계없이 모든 Group이 포함됨
+- global admin의 admin Group inventory에는 종류와 lifecycle 상태에 관계없이 모든 Group이 포함되며 개설 거절·취소 필터도 제공함
 - global admin은 public/book_friends/private Jjaek과 접근 관계가 없는 Group Jjaek·Comment도 admin inventory와 단건 상세에서 운영 목적으로 조사할 수 있음
 - 특정 User 프로필에서는 global admin에게 해당 작성자의 모든 visibility Jjaek을 표시하지만 일반 Jjaek scope와 홈 feed scope는 넓히지 않음
 - 이 운영 조사 권한은 일반 작성·반응 권한을 부여하지 않음
@@ -377,7 +379,7 @@
 
 ### 6. 알림 화면 (/notifications)
 
-- `Notification` 모델 기반 알림 inbox. Group lifecycle 5개 사건, 관리자 이전
+- `Notification` 모델 기반 알림 inbox. Group lifecycle 7개 사건(개설 거절·취소 포함), 관리자 이전
   2개 사건, 승인제 가입 workflow 3개 사건, 비공개 동아리 초대 workflow 4개 사건과 가입 신청 취소·내보내기는 실제
   `GroupLifecycleEvent`/`GroupMembershipEvent`를 source로 commit 이후 전달
 - 가입 신청 취소는 사건 시점 Group admin에게 신청자 이름으로, 내보내기는 대상 회원에게 운영 주체 이름으로 알림. `joined`와 자발적 `left`는 운영 이력만 남김

@@ -23,6 +23,8 @@ RSpec.describe "Group rate limits", type: :request do
         description: "Reading together", application_purpose: "Read more together"
       } }
       expect(response).to redirect_to(group_path(Group.order(:id).last))
+      # Resolve each application so the independent one-pending-application rule allows the next request.
+      Group.order(:id).last.update!(lifecycle_status: :active)
     end
 
     counts = [ Group.count, GroupMembership.count, GroupLifecycleEvent.count, Notification.count ]

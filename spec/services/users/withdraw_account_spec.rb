@@ -7,6 +7,24 @@ RSpec.describe Users::WithdrawAccount do
   let(:user) { User.create!(name: "Leaving", email: "leaving@example.com", password: password, password_confirmation: password) }
   let(:other) { User.create!(name: "Other", email: "withdrawal-other@example.com", password: password, password_confirmation: password) }
 
+  %i[rejected cancelled].each do |status|
+    it "preserves #{status} applications and their history when the applicant withdraws" do
+      group = Group.create!(group_admin: user, name: "Past application", application_purpose: "Read")
+      opening = group.lifecycle_events.create!(actor: user, event_type: :opening_requested, detail: "Read")
+      group.update!(lifecycle_status: status)
+      decision = group.lifecycle_events.create!(actor: other, event_type: status == :rejected ? :opening_rejected : :opening_cancelled,
+                                               detail: status == :rejected ? "Clarify the plan" : nil)
+
+      described_class.new(user, current_password: password).call!
+
+      expect(user.reload).to be_withdrawn
+      expect(group.reload.lifecycle_status).to eq(status.to_s)
+      expect(group.group_admin).to eq(user)
+      expect(group.lifecycle_events).to contain_exactly(opening, decision)
+      expect(group.group_memberships).to be_empty
+    end
+  end
+
   def attach_avatar(account)
     File.open(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")) do |file|
       account.avatar.attach(io: file, filename: "avatar.png", content_type: "image/png")

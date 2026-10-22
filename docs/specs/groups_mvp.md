@@ -32,7 +32,7 @@
 - membership 가입·신청·승인·거절·초대·수락·거절·취소·탈퇴·내보내기를 Group 단위 append-only 이력으로 보존
 - 동아리 안의 `짹`과 `책짹` 작성·조회
 - 권한 있는 사용자의 작성자 프로필에서 동아리의 `짹`과 `책짹` 조회
-- 일반 사용자의 동아리 신청과 global admin 승인
+- 일반 사용자의 동아리 신청과 global admin 승인·최초 개설 신청 거절, 신청자 본인의 승인 전 취소
 - 동아리 관리자의 동아리 운영 종료와 재활성화 요청·재승인
 - 신규 신청의 개설 목적과 운영 종료 사유·시각 기록
 - 신청·승인·운영 종료·재활성화·재승인의 시각과 목적/사유 snapshot을 운영 이력으로 누적
@@ -143,10 +143,13 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 - 비공개 동아리의 새 초대는 대상 사용자의 프로필에서 시작한다. 관리 중인 초대 가능한 비공개 동아리가 여러 개면 한 동아리를 선택해 한 번에 한 명만 초대한다. 기존 pending 초대는 대상 프로필과 `/groups/:id/members` 양쪽에서 취소할 수 있다. 두 화면 모두 같은 revoke action과 `GroupMembershipPolicy#revoke?`를 사용한다.
 - 초대 후보는 대상의 `accepts_group_invitations` 설정과 기존 membership·이용 제한을 반영하며, 최종 권한은 `GroupMembershipPolicy#invite?`가 확인한다. 초대 workflow Notification은 `docs/specs/notifications_mvp.md`를 따른다.
 - 일반 사용자의 생성을 운영 신청으로 보고, global admin 승인 전에는 정상 운영하지 않는다.
+- 일반 사용자의 동시 신규 개설 승인 대기는 최대 1개다. 최초 `pending_approval`이며 `closed_at`이 없는 신청만 집계하고 생성 POST에서 User 행 잠금으로 동시 요청까지 제한한다. 재활성화 승인 대기·운영 중·운영 종료·과거 거절/취소는 제외하며, 기존 5회/24시간 rate limit과 회원 가입 정책은 유지한다.
+- 최초 신청은 global admin이 필수 500자 이하 사유로 거절하거나 현재 group admin 본인이 확인 후 취소할 수 있다. `rejected` / `cancelled`와 `opening_rejected` / `opening_cancelled` event로 결과·처리자·시각을 보존한다. 승인·거절·취소 시 Group 행 잠금 안에서 현재 권한과 상태를 다시 검사한다.
+- 거절·취소된 Group은 내 동아리 운영 목록·발견·활동 피드에서 제외한다. 신청자와 global admin만 관리 문맥에서 결과·사유·이력을 확인하며 같은 Group의 재승인·재활성화는 허용하지 않는다. 다시 신청하려면 새 Group을 생성한다.
 - global admin이 직접 생성한 동아리는 승인 대기를 거치지 않고 즉시 `active`로 시작한다. 이는 다른 사용자가 만든 pending 동아리의 자동 승인을 뜻하지 않는다.
 - 신규 신청에는 일반 소개와 별도의 동아리 개설 목적을 제출하며 group admin과 global admin만 확인한다.
 - 승인·운영 lifecycle의 상세 기준은 `docs/specs/account_group_lifecycle.md`를 따른다.
-- 동아리 생성 요청의 기본 rate limit은 `docs/specs/basic_rate_limiting.md`에 따라 구현되어 있다. 동아리 생성 총량 제한, 계정 연령과 고급 남용 방지 조건은 아직 결정하지 않는다.
+- 동아리 생성 요청의 기본 rate limit은 `docs/specs/basic_rate_limiting.md`에 따라 구현되어 있다. 운영 중 동아리 총량 제한, 계정 연령과 고급 남용 방지 조건은 아직 결정하지 않는다.
 
 ---
 
@@ -382,7 +385,7 @@ Classroom의 구조와 상세 정책은 실제 Classroom 작업 시 결정한다
 
 ## 미결정 사항
 
-- 동아리 생성 총량 제한, 계정 연령과 고급 남용 방지 조건 (기본 요청 rate limit은 구현됨)
+- 운영 중 동아리 총량 제한, 계정 연령과 고급 남용 방지 조건 (신규 승인 대기 1개 제한과 기본 요청 rate limit은 구현됨)
 - 탈퇴 후 댓글 삭제를 제공하는 정확한 UI, 메시지와 동선 (권한 정책은 구현 완료, 접근 UX 개선 후보)
 - 승인 동아리 또는 비공개 동아리 탈퇴 후 원문 조회 권한을 잃은 상태에서 자기 콘텐츠 관리 진입을 제공하는 방식 (접근 UX 개선 후보)
 

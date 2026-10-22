@@ -42,16 +42,25 @@ class GroupsController < ApplicationController
       return render_feed_page(context: :group, next_url: @feed_next_url)
     end
     prepare_group_show_context
+    prepare_lifecycle_history if @group.application_ended?
     @jjaek = Jjaek.new(user: current_user, group: @group) if policy(@group).create_jjaek?
   end
 
   def new
     @group = current_user.administered_groups.build
     authorize @group
+    prepare_application_context
   end
 
   def create
-    created = Group.transaction do
+    created = current_user.with_lock do
+      @group.lifecycle_status = current_user.global_admin? ? :active : :pending_approval
+      authorize @group
+      prepare_application_context
+      if @pending_opening_application
+        @group.errors.add(:base, t("groups.applications.limit_reached"))
+        next false
+      end
       next false unless @group.save
 
       event = GroupLifecycleEvent.create!(
@@ -74,6 +83,9 @@ class GroupsController < ApplicationController
     else
       render :new, status: :unprocessable_content
     end
+  rescue ActiveRecord::RecordInvalid
+    @group.errors.add(:base, t("groups.alerts.application_failed"))
+    render :new, status: :unprocessable_content
   end
 
   def edit
@@ -106,6 +118,11 @@ class GroupsController < ApplicationController
     @group = current_user.administered_groups.build(create_group_params)
     @group.lifecycle_status = :active if current_user.global_admin?
     authorize @group
+  end
+
+  def prepare_application_context
+    @pending_opening_application = current_user.administered_groups.pending_opening_applications.first unless current_user.global_admin?
+    @past_applications = current_user.administered_groups.ended_applications.order(created_at: :desc, id: :desc).limit(10)
   end
 
   def group_creation_rate_limit_exceeded

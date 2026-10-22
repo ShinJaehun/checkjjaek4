@@ -29,6 +29,8 @@ module GroupsHelper
 
   def group_status_badge_classes(group)
     case group_current_status_key(group)
+    when :rejected
+      "bg-red-50 text-red-700"
     when :active
       "bg-emerald-100 text-emerald-800"
     when :pending_approval, :reactivation_pending

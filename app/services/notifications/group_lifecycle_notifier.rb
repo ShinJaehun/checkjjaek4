@@ -3,6 +3,8 @@ module Notifications
     ACTIONS = {
       [ "GroupLifecycleEvent", "opening_requested" ] => :group_opening_requested,
       [ "GroupLifecycleEvent", "opening_approved" ] => :group_opening_approved,
+      [ "GroupLifecycleEvent", "opening_rejected" ] => :group_opening_rejected,
+      [ "GroupLifecycleEvent", "opening_cancelled" ] => :group_opening_cancelled,
       [ "GroupLifecycleEvent", "operations_closed" ] => :group_operations_closed,
       [ "GroupLifecycleEvent", "reactivation_requested" ] => :group_reactivation_requested,
       [ "GroupLifecycleEvent", "reactivation_approved" ] => :group_reactivation_approved,

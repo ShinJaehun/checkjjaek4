@@ -114,14 +114,15 @@ module NotificationsHelper
     return t("notifications.lifecycle.unavailable") unless event
 
     group_name = event.group&.name || t("notifications.lifecycle.group_fallback")
-    t("notifications.messages.#{notification.action}", group_name:)
+    reason = event.detail if notification.group_opening_rejected?
+    t("notifications.messages.#{notification.action}", group_name:, reason:)
   end
 
   def group_lifecycle_notification_target_path(notification)
     group = notification.notifiable&.group
     return groups_path unless group
 
-    if notification.group_opening_requested? || notification.group_reactivation_requested?
+    if notification.group_opening_requested? || notification.group_reactivation_requested? || notification.group_opening_cancelled?
       GroupPolicy.new(current_user, group).view_admin_details? ? admin_group_path(group) : groups_path
     else
       readable_group_path_or_fallback(group)

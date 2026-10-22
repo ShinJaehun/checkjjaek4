@@ -638,7 +638,7 @@ RSpec.describe "Admin group approvals", type: :request do
     document = Nokogiri::HTML(response.body)
     expect(document.at_css("select[name='operation_status']")).to be_nil
     expect(document.css("select[name='status'] option").map { |option| option.text.strip }).to eq(
-      [ "전체", "승인 대기", "운영 중", "운영 종료", "재운영 승인 대기", "운영 정지" ]
+      [ "전체", "승인 대기", "운영 중", "운영 종료", "재운영 승인 대기", "운영 정지", "개설 신청 거절", "개설 신청 취소" ]
     )
     {
       normal_group => [ "운영 중", "bg-emerald-100" ],

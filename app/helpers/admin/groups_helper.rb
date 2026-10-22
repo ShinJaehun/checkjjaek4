@@ -6,6 +6,8 @@ module Admin
       inactive
       reactivation_pending
       suspended
+      rejected
+      cancelled
     ].freeze
 
     def admin_group_status_filter_options

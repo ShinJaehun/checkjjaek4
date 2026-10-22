@@ -173,7 +173,7 @@ Group 이름과 목적지 확인에는 audit row의 `membership_group_id` attrib
 
 ## Group lifecycle Notification 정책 `(확정·구현)`
 
-아래 7개 사건의 recipient와 공개 범위는 확정한다. Notification은 기존
+아래 9개 사건의 recipient와 공개 범위는 확정한다. Notification은 기존
 `GroupLifecycleEvent` 또는 관리자 이전의 `GroupMembershipEvent`를 전달하는
 inbox record다. 두 관리자 이전 event를 새 generic transfer event로 합치거나
 새 schema를 만들지 않는다. 실제 actor는 event row와 `Notification.actor`에
@@ -183,6 +183,8 @@ inbox record다. 두 관리자 이전 event를 새 generic transfer event로 합
 | --- | --- | --- | --- |
 | `opening_requested` | 해당 `GroupLifecycleEvent` | 현재 `global_admin`이고 `withdrawn_at`·`suspended_at`이 모두 없는 User, actor 제외 | Group 이름과 새 개설 신청 사실 |
 | `opening_approved` | 해당 `GroupLifecycleEvent` | Group admin, actor 제외 | Group 이름과 개설 승인 사실 |
+| `opening_rejected` | 해당 `GroupLifecycleEvent` | 신청 사건의 Group admin, actor 제외 | Group 이름·거절 결과·해당 event의 거절 사유 |
+| `opening_cancelled` | 해당 `GroupLifecycleEvent` | 취소 사건 시점에 유효한 global admin, actor 제외 | Group 이름·개설 신청 취소 사실 |
 | `operations_closed` | 해당 `GroupLifecycleEvent` | 종료 사건 시점의 모든 active `GroupMembership` User, actor 제외 | Group 이름과 운영 종료 사실 |
 | `reactivation_requested` | 해당 `GroupLifecycleEvent` | 현재 `global_admin`이고 `withdrawn_at`·`suspended_at`이 모두 없는 User, actor 제외 | Group 이름과 재운영 신청 사실 |
 | `reactivation_approved` | 해당 `GroupLifecycleEvent` | 승인 사건 시점의 모든 active `GroupMembership` User, actor 제외 | Group 이름과 재운영 승인 사실 |
@@ -202,7 +204,7 @@ Notification 본문에 복사하지 않고, 권한이 있는 global admin이 현
 확인한다. `operations_closed.detail` / `closure_reason`은 audit에 보존하지만
 일반 active 회원 Notification에는 표시하지 않는다. 현재 일반 회원 Group 화면보다
 정보 공개 범위를 넓히지 않는다. 나머지 사건에도 존재하지 않는 공개 사유를
-추정하거나 다른 event의 detail을 가져와 표시하지 않는다. 관리자 이전 알림은
+추정하거나 다른 event의 detail을 가져와 표시하지 않는다. 개설 거절은 예외적으로 해당 event의 필수 사유를 신청자에게만 알림 본문으로 전달한다. 관리자 이전 알림은
 각 수신자의 권한 변화만 표현하며 두 event를 시각·순서로 묶어 상대 관리자 이름을
 추정하지 않는다.
 
@@ -223,15 +225,16 @@ actor와 recipient가 같으면 관리자 이전에도 예외 없이 생성하�
 보내고, 별도 global admin이 실행한 recovery에서는 이전 관리자에게 revoke,
 새 관리자에게 grant 알림을 보낸다. recovery actor 자신은 수신자일 때 제외한다.
 
-신청·재운영 신청 알림은 클릭 시점의 admin 상세 접근 권한이 있으면
+신청·재운영 신청·개설 취소 알림은 클릭 시점의 admin 상세 접근 권한이 있으면
 `admin_group_path`로, 권한 상실·대상 소멸 시 `groups_path` 등 안전한 화면으로
-연결한다. 승인·운영 종료·재운영 승인과 관리자 이전 알림은 현재
+연결한다. 개설 거절 알림은 신청 결과와 운영 이력을 확인하는 기존 Group 상세로 연결한다.
+승인·거절·운영 종료·재운영 승인과 관리자 이전 알림은 현재
 `GroupPolicy#show?`가 허용하면 `group_path`, 아니면 `groups_path`로 연결한다.
 이전 관리자가 권한 이전 직후 members 관리 권한을 잃을 수 있으므로
 `group_members_path`를 관리자 이전의 공통 목적지로 사용하지 않는다.
 Notification 자체는 read/admin 권한을 부여하지 않는다.
 
-위 7개 사건은 실제 event row를 source로 commit 이후 Notification을 생성한다.
+위 9개 사건은 실제 event row를 source로 commit 이후 Notification을 생성한다.
 
 ---
 
@@ -549,7 +552,7 @@ Group 운영 fan-out에서는 동일한 사용자 ID를 먼저 중복 제거한�
 - social Notification 5개
 - Platform moderation 8개
 - Group member moderation 4개: 활동 정지·복구, 이용 제한·해제
-- Group lifecycle·관리자 이전 7개
+- Group lifecycle·관리자 이전 9개
 - Group membership workflow 9개: 승인제 가입 3개, 비공개 동아리 초대 4개,
   가입 신청 취소, 내보내기
 
