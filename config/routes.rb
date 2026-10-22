@@ -35,6 +35,9 @@ Rails.application.routes.draw do
       resources :operation_restorations, only: %i[new create], controller: "group_operation_restorations"
     end
   end
+  namespace :groups do
+    resource :membership_order, only: %i[edit update]
+  end
   resources :groups, only: %i[index show new create edit update] do
     get :content, on: :member, to: "groups/contents#index"
     resources :members, only: :index, controller: "group_members"

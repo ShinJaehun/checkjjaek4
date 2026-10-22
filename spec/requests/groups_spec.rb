@@ -170,8 +170,8 @@ RSpec.describe "Groups", type: :request do
   end
 
   describe "joined group grid and carousel" do
-    [ 0, 1, 6, 7, 9, 12, 13 ].each do |count|
-      it "keeps the sorted #{count} groups in grids of up to six cards" do
+    [ 0, 1, 2, 3, 4, 6, 7, 9, 12, 13 ].each do |count|
+      it "keeps the sorted #{count} groups with up to three visible desktop cards" do
         time = Time.zone.parse("2026-10-19 12:00:00")
         groups = count.times.map do |index|
           Group.create!(lifecycle_status: :active, group_admin: user, name: "Sorted club #{index}", group_type: :approval_group, created_at: time)
@@ -188,26 +188,28 @@ RSpec.describe "Groups", type: :request do
         if count.zero?
           expect(grids).to be_empty
           expect(page.text).to include(I18n.t("groups.index.empty_my_groups"))
-        elsif count <= 6
+        elsif count == 1
           expect(grids.size).to eq(1)
           expect(grids.first.css("article h3 a").map { |link| link["href"] }).to eq(expected_paths)
         else
-          pages = carousel.css("[data-group-carousel-target='page']")
-          expected_pages = expected_paths.each_slice(6).to_a
-          expect(pages.size).to eq(expected_pages.size)
-          expect(grids.size).to eq(pages.size)
-          pages.each_with_index do |group_page, index|
-            expect(group_page.css("[data-group-grid]").size).to eq(1)
-            expect(group_page.css("article h3 a").map { |link| link["href"] }).to eq(expected_pages[index])
-            expect(group_page.key?("hidden")).to eq(index.positive?)
+          cards = carousel.css("[data-group-carousel-target='card']")
+          expected_pages = expected_paths.each_slice(3).to_a
+          expect(cards.size).to eq(count)
+          expect(grids.size).to eq(1)
+          actual_pages = cards.each_slice(3).map do |page_cards|
+            page_cards.map { |card| card.at_css("h3 a")["href"] }
           end
+          expect(actual_pages).to eq(expected_pages)
+          cards.each_with_index { |card, index| expect(card.key?("hidden")).to eq(index >= 3) }
+          expect(cards.reject { |card| card.key?("hidden") }.size).to eq([ count, 3 ].min)
+          expect(carousel.at_css("[data-group-carousel-target='controls']").key?("hidden")).to eq(count <= 3)
           expect(carousel.at_css("[data-group-carousel-target='viewport']")["tabindex"]).to eq("0")
           expect(carousel.css("button[aria-controls='my-groups-carousel']").size).to eq(2)
           expect(carousel.at_css("[data-group-carousel-target='previous']").key?("disabled")).to be(true)
-          expect(carousel.at_css("[data-group-carousel-target='next']").key?("disabled")).to be(false)
+          expect(carousel.at_css("[data-group-carousel-target='next']").key?("disabled")).to eq(count <= 3)
           expect(carousel.at_css("[data-group-carousel-target='position']").text.strip).to eq("1 / #{expected_pages.size}")
         end
-        expect(carousel).to be_nil if count <= 6
+        expect(carousel).to be_nil if count <= 1
         expect(page.css("[data-group-grid] article h3 a").map { |link| link["href"] }).to eq(expected_paths)
       end
     end
@@ -250,11 +252,12 @@ RSpec.describe "Groups", type: :request do
       expect(response).to have_http_status(:ok)
       expect(group_queries).to eq(1)
       expect(aggregate_queries).to eq(1)
-      expect(membership_rows).to eq(9)
+      # Nine memberships for the list, plus the one regular-member preview on the last card.
+      expect(membership_rows).to eq(10)
       page = Nokogiri::HTML(response.body)
-      group_pages = page.css("[data-group-carousel-target='page']")
-      [ groups.first, groups[6] ].each_with_index do |group, page_index|
-        card = group_pages[page_index].at_css("a[href='#{group_path(group)}']").ancestors("article").first
+      carousel_cards = page.css("[data-group-carousel-target='card']")
+      [ groups.first, groups[6] ].each do |group|
+        card = carousel_cards[groups.index(group)].at_css("article")
         expect(card.at_css("h3").text.strip).to eq(group.name)
         expect(card.at_css("[data-group-type='approval_group']").text.strip).to eq(I18n.t("groups.types.approval_group"))
         expect(card.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.active"))
@@ -266,6 +269,138 @@ RSpec.describe "Groups", type: :request do
       expect(member_card.at_css("a[href='#{user_path(other_owner)}'] img")["alt"]).to eq(other_owner.name)
       expect(member_card.at_css("a[href='#{group_members_path(groups.last)}']")).to be_nil
       expect(member_card.text).not_to include("가입 승인 대기")
+      expect(member_card.at_css("[data-field='active-member-count']").text).to eq(I18n.t("groups.active_member_count", count: 1))
+      expect(member_card.css("[data-member-preview] a").map { |link| link["href"] }).to eq([ user_path(user) ])
+    end
+  end
+
+  describe "member information on group cards" do
+    let(:club) { Group.create!(group_admin: user, name: "Member previews", group_type: :approval_group, lifecycle_status: :active) }
+
+    before { sign_in user }
+
+    def card_for(group)
+      Nokogiri::HTML(response.body).at_css("[data-group-grid] a[href='#{group_path(group)}']").ancestors("article").first
+    end
+
+    [ 0, 1, 2, 3 ].each do |count|
+      it "shows #{count} regular members while keeping the administrator separate" do
+        group = club
+        members = count.times.map do |index|
+          member = User.create!(name: "Card member #{index}", email: "card-member-#{index}@example.com", password: "password123!")
+          group.group_memberships.create!(user: member, status: :active)
+          member
+        end
+
+        get groups_path
+
+        expect(response).to have_http_status(:ok)
+        card = card_for(group)
+        expect(card.at_css("[data-group-members]")["aria-label"]).to eq(I18n.t("groups.group_members_label"))
+        expect(card.at_css("[data-field='active-member-count']").text).to eq(I18n.t("groups.active_member_count", count:))
+        admin_link = card.at_css("a[href='#{user_path(user)}']")
+        expect(admin_link["aria-label"]).to eq(I18n.t("groups.group_admin", name: user.name))
+        expect(admin_link.text).to include(user.name)
+        expect(admin_link.at_css("img")["alt"]).to eq(user.name)
+        preview_links = card.css("[data-member-preview] a")
+        expect(preview_links.map { |link| link["href"] }).to eq(members.map { |member| user_path(member) })
+        preview_links.zip(members).each do |link, member|
+          expect(link["title"]).to eq(member.name)
+          expect(link["aria-label"]).to eq(member.name)
+          expect(link.at_css("img")["alt"]).to eq(member.name)
+        end
+        expect(card.at_css("[data-member-preview]")).to be_nil if count.zero?
+      end
+    end
+
+    it "previews only the first three active regular members by join time and membership ID" do
+      group = club
+      joined_at = group.created_at + 1.hour
+      join_times = [ joined_at + 2.minutes, joined_at + 1.minute, joined_at + 1.minute, joined_at, joined_at + 3.minutes ]
+      members = join_times.each_with_index.map do |time, index|
+        member = User.create!(name: "Ranked member #{index}", email: "ranked-member-#{index}@example.com", password: "password123!")
+        group.group_memberships.create!(user: member, status: :active, created_at: time)
+        member
+      end
+      group.group_memberships.find_by!(user: members[3]).update!(moderation_status: :activity_suspended)
+      %i[pending invited].each do |status|
+        applicant = User.create!(name: "Excluded #{status}", email: "preview-#{status}@example.com", password: "password123!")
+        group.group_memberships.create!(user: applicant, status:, created_at: joined_at - 1.minute)
+      end
+
+      get groups_path
+
+      card = card_for(group)
+      expect(card.at_css("[data-field='active-member-count']").text).to eq(I18n.t("groups.active_member_count", count: 5))
+      links = card.css("[data-member-preview] a")
+      expect(links.map { |link| link["href"] }).to eq([ members[3], members[1], members[2] ].map { |member| user_path(member) })
+      expect(links.size).to eq(3)
+      expect(card.at_css("[data-group-members]").text).not_to include("Excluded")
+    end
+
+    it "keeps each group's member counts and profile previews separate" do
+      groups = [ club, Group.create!(group_admin: user, name: "Another club", group_type: :private_group, lifecycle_status: :active) ]
+      members_by_group_id = groups.each_with_index.to_h do |group, group_index|
+        members = (group_index + 1).times.map do |index|
+          member = User.create!(name: "Club #{group_index} member #{index}", email: "separate-#{group_index}-#{index}@example.com", password: "password123!")
+          group.group_memberships.create!(user: member, status: :active)
+          member
+        end
+        [ group.id, members ]
+      end
+
+      get groups_path
+
+      groups.each do |group|
+        members = members_by_group_id.fetch(group.id)
+        card = card_for(group)
+        expect(card.at_css("[data-field='active-member-count']").text).to eq(I18n.t("groups.active_member_count", count: members.size))
+        expect(card.css("[data-member-preview] a").map { |link| link["href"] }).to eq(members.map { |member| user_path(member) })
+      end
+    end
+
+    it "batches counts and avatars across carousel pages and loads at most three previews per group" do
+      members = 4.times.map do |index|
+        User.create!(name: "Batched member #{index}", email: "batched-member-#{index}@example.com", password: "password123!")
+      end
+      groups = 7.times.map do |index|
+        group = Group.create!(group_admin: user, name: "Batched club #{index}", group_type: :approval_group, lifecycle_status: :active)
+        members.each { |member| group.group_memberships.create!(user: member, status: :active) }
+        group
+      end
+      unlisted_group = Group.create!(group_admin: members.last, name: "Unlisted club", group_type: :private_group, lifecycle_status: :active)
+      unlisted_group.group_memberships.create!(user: members.first, status: :active)
+      query_counts = Hash.new(0)
+      membership_rows = 0
+      track_queries = lambda do |_name, _started, _finished, _id, payload|
+        query_counts[payload[:name]] += 1
+      end
+      track_memberships = lambda do |_name, _started, _finished, _id, payload|
+        membership_rows += payload[:record_count] if payload[:class_name] == "GroupMembership"
+      end
+
+      ActiveSupport::Notifications.subscribed(track_queries, "sql.active_record") do
+        ActiveSupport::Notifications.subscribed(track_memberships, "instantiation.active_record") do
+          get groups_path
+        end
+      end
+
+      expect(response).to have_http_status(:ok)
+      expect(query_counts["Group Load"]).to eq(1)
+      expect(query_counts["GroupMembership Load"]).to eq(2)
+      expect(query_counts["GroupMembership Count"]).to eq(1)
+      expect(query_counts["User Load"]).to be <= 3
+      expect(query_counts["ActiveStorage::Attachment Load"]).to be <= 3
+      expect(membership_rows).to eq(7 + 7 * 3)
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("[data-group-carousel-target='card']").size).to eq(7)
+      expect(page.at_css("[data-group-carousel-target='position']").text.strip).to eq("1 / 3")
+      groups.each do |group|
+        card = card_for(group)
+        expect(card.at_css("[data-field='active-member-count']").text).to eq(I18n.t("groups.active_member_count", count: 4))
+        expect(card.css("[data-member-preview] a").map { |link| link["href"] }).to eq(members.first(3).map { |member| user_path(member) })
+      end
+      expect(response.body).not_to include(unlisted_group.name)
     end
   end
 
@@ -391,7 +526,7 @@ RSpec.describe "Groups", type: :request do
     end
   end
 
-  it "loads only the current user's memberships for the joined group cards" do
+  it "loads the current user's memberships and active member previews for joined group cards" do
     owner = User.create!(name: "Group owner", email: "membership-list-owner@example.com", password: "password123!")
     other = User.create!(name: "Other member", email: "membership-list-other@example.com", password: "password123!")
     groups = %i[public_group private_group].map do |group_type|
@@ -411,12 +546,14 @@ RSpec.describe "Groups", type: :request do
     end
 
     expect(response).to have_http_status(:ok)
-    expect(membership_rows).to eq(2)
+    expect(membership_rows).to eq(4)
     page = Nokogiri::HTML(response.body)
     groups.each do |group|
       card = page.at_css(%(a[href="#{group_path(group)}"])).ancestors("article").first
       expect(card.at_css("[data-field='membership-status']").text.strip).to eq(I18n.t("group_memberships.statuses.active"))
       expect(card.text).to include(owner.name)
+      expect(card.at_css("[data-field='active-member-count']").text.strip).to eq("회원 1명")
+      expect(card.css("[data-member-preview] a").map { |link| link["href"] }).to eq([ user_path(user) ])
     end
   end
 
@@ -449,7 +586,7 @@ RSpec.describe "Groups", type: :request do
       expect(status_badge.text.strip).to eq("운영 중")
       expect(status_badge["class"]).to include("bg-emerald-100")
       expect(card.at_css("[data-field='membership-status']")).to be_present
-      expect(card.text).to include("동아리 관리자")
+      expect(card.at_css(%(a[href="#{user_path(user)}"]))["aria-label"]).to eq(I18n.t("groups.group_admin", name: user.name))
       admin_link = card.at_css(%(a[href="#{user_path(user)}"] img[alt="#{user.name}"]))
       expect(admin_link).to be_present
       expect(admin_link.parent.text).to include(user.name)
@@ -519,7 +656,10 @@ RSpec.describe "Groups", type: :request do
 
     get groups_path
 
-    expect(response.body).to include("최근 동아리 활동", newer.content, older.content, book.title, "동아리 관리자에 의해 숨겨진 짹입니다.")
+    expect(response.body).to include("최근 동아리 소식", newer.content, older.content, book.title, "동아리 관리자에 의해 숨겨진 짹입니다.")
+    headings = Nokogiri::HTML(response.body).css("h2").map { |heading| heading.text.strip }
+    expect(headings).to include("최근 동아리 소식")
+    expect(headings.index(I18n.t("groups.index.my_groups"))).to be < headings.index("최근 동아리 소식")
     expect(response.body.index(newer.content)).to be < response.body.index(older.content)
     expect(response.body).not_to include("OTHER GROUP ACTIVITY", "INVITED GROUP ACTIVITY", hidden.content)
   end

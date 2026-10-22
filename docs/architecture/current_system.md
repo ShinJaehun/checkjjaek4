@@ -236,7 +236,10 @@
 ### 5-1. 동아리 화면 (/groups)
 
 - 로그인 사용자가 공개·승인·비공개 동아리를 만들 수 있고 공개·승인 동아리를 발견할 수 있음
-- `/groups`의 내 동아리는 모바일 1열·중간 폭 2열·데스크톱 3열 요약 카드로 표시하며, 소개는 상세 화면에서 보여주고 각 카드에서 관리자 프로필로 이동할 수 있음. 동아리 종류와 현재 운영 상태 badge는 동아리 상세·관리·회원 관리 화면 및 admin Group 화면과 같은 label·색상 규칙을 사용함
+- `/groups`는 타이틀 → 내 동아리 → 최근 동아리 소식의 단일 열 구조임. 카드 padding과 배지 간격을 줄이고 관리자·회원 정보를 하단 한 줄에 배치하며 별도 역할 라벨은 접근성 label로 제공함. 종류·현재 운영 상태·회원 상태 badge, 동아리·프로필 링크와 가입 승인 대기 안내를 유지함. 최근 동아리 소식은 기존 피드 partial·조회·정렬·무한 스크롤·액션을 그대로 사용함
+- 내 동아리 카드는 관리자 아바타·이름과 활성 일반 회원 아바타 최대 3개·전체 일반 회원 수를 표시하며 각 아바타는 프로필로 연결함. `GroupsController#prepare_group_card_members`가 현재 목록의 Group별로 관리자·pending·invited를 제외하고 window count와 가입 시각·ID 순위를 함께 조회함. 순위 3위까지의 membership과 사용자·avatar만 일괄 preload하고 count·preview를 partial local로 전달해 카드별 추가 쿼리를 방지함. 상세 화면의 최대 5명 미리보기는 유지함
+- 내 동아리의 개인 순서는 nullable `GroupMembership.position`으로 보존함. `GroupMembership.displayed_for`가 기존 `GroupPolicy::MembershipScope` 안에서 본인의 active membership을 position 오름차순·NULL 마지막·동아리 최신 생성순으로 조회함. `GroupsController#index`의 일괄 조회와 전체 순서를 유지하고, 하나의 그리드에서 `group_carousel_controller.js`가 `matchMedia`로 모바일 1개·md 2개·lg 3개씩 표시함. 서버 HTML의 초기 표시는 PC 기준 3개이며 너비 변경 시 현재 카드·포커스를 보존하고 페이지 수·탐색 컨트롤을 갱신함. 0·1개에는 캐러셀을 만들지 않고 한 페이지면 컨트롤을 숨김
+- “순서 변경”은 `Groups::MembershipOrdersController`의 `/groups/membership_order/edit`와 PATCH 저장을 사용함. `GroupMembership.reorder_for!`가 User → membership 행의 `FOR NO KEY UPDATE` 잠금 아래 전체 ID 검증·position 저장·목록 재검사를 하나의 transaction으로 처리하며, 실패 시 현재 목록을 HTTP 422로 다시 표시함. 탈퇴로 position도 함께 삭제되며 새 active membership은 저장된 순서 뒤에 표시됨. 기존 SortableJS를 사용하는 별도 `group_membership_sort_controller.js`가 PC 드래그와 위·아래 이동을 담당하고 캐러셀 controller·동아리 카드·최근 활동은 유지함
 - `/groups/:id`와 `/admin/groups/:id`의 타이틀은 이름·종류 badge·현재 상태 badge 아래에 관리자 avatar와 최대 5명의 active 일반 회원 avatar, 관리자 제외 일반 회원 수를 표시함. 관리자와 회원 preview avatar는 두 화면 모두 일반 사용자 프로필로 연결함. admin 상세의 회원 현황도 active 참여 인원에서 관리자를 제외하며, 생성 시각은 타이틀에서 표시하지 않음
 - 일반 사용자의 새 동아리는 승인 대기로 생성되며 global admin 승인 후 active로 운영됨. global admin이 직접 생성하면 즉시 active로 시작함
 - 신규 신청은 일반 소개와 별도의 개설 목적을 제출하고 global admin 승인 목록에서 확인함

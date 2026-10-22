@@ -233,6 +233,7 @@ en:
       empty: "No matching group content."
     group_admin: "Club admin: %{name}"
     group_admin_label: "Club admin"
+    group_members_label: "Club members"
     active_member_count: "Members %{count}"
     operation_suspension:
       invitation_accept_unavailable: "Invitations cannot be accepted while club operation is suspended."
@@ -310,6 +311,7 @@ en:
           restore_group_operation: "Operation restored"
     index:
       title: "Reading clubs"
+      recent_activity: "Recent club news"
       pending_join_requests:
         one: "%{count} join request awaiting approval"
         other: "%{count} join requests awaiting approval"
@@ -320,6 +322,17 @@ en:
         previous: "Previous"
         next: "Next"
         position: "%{current} / %{total}"
+    membership_order:
+      action: "Change order"
+      title: "Reorder my clubs"
+      description: "Drag the handles on a computer, or use the up and down buttons on mobile, then save your order."
+      up: "↑ Up"
+      down: "↓ Down"
+      move_up: "Move %{name} up"
+      move_down: "Move %{name} down"
+      save: "Save"
+      saved: "Your club order was saved."
+      failed: "The order could not be saved. Your club list has changed or the request is invalid. Review the current list and save again."
     applications:
       limit_reached: "You can have only one initial opening application awaiting approval at a time. Wait for your existing application to be resolved before applying again."
       recent_results: "Recent opening application results"

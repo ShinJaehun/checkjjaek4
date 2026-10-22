@@ -235,6 +235,7 @@ ko:
       empty: "조건에 맞는 동아리 콘텐츠가 없습니다."
     group_admin: "동아리 관리자: %{name}"
     group_admin_label: "동아리 관리자"
+    group_members_label: "동아리 회원"
     active_member_count: "회원 %{count}명"
     operation_suspension:
       invitation_accept_unavailable: "운영 정지 중에는 초대를 수락할 수 없습니다."
@@ -315,7 +316,7 @@ ko:
       description: "내 동아리와 최근 독서 활동을 확인합니다."
       my_groups: "내 동아리"
       pending_join_requests: "가입 승인 대기 %{count}건"
-      recent_activity: "최근 동아리 활동"
+      recent_activity: "최근 동아리 소식"
       empty_my_groups: "아직 가입한 동아리가 없습니다."
       empty_activity: "아직 동아리 활동이 없습니다."
       carousel:
@@ -323,6 +324,17 @@ ko:
         previous: "이전"
         next: "다음"
         position: "%{current} / %{total}"
+    membership_order:
+      action: "순서 변경"
+      title: "내 동아리 순서 변경"
+      description: "PC에서는 손잡이를 드래그하고, 모바일에서는 위·아래 버튼으로 순서를 바꾼 뒤 저장해 주세요."
+      up: "↑ 위로"
+      down: "↓ 아래로"
+      move_up: "%{name} 위로 이동"
+      move_down: "%{name} 아래로 이동"
+      save: "저장"
+      saved: "내 동아리 순서를 저장했습니다."
+      failed: "순서를 저장할 수 없습니다. 내 동아리 목록이 변경되었거나 요청이 올바르지 않습니다. 현재 목록을 확인하고 다시 저장해 주세요."
     applications:
       limit_reached: "신규 개설 승인 대기 중인 동아리는 동시에 1개만 신청할 수 있습니다. 기존 신청의 처리가 끝난 후 다시 신청해 주세요."
       recent_results: "최근 개설 신청 결과"

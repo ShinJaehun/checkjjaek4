@@ -308,6 +308,7 @@ Library 안에서 볼 수 있는 책장:
 - 비공개 동아리는 동아리 관리자와 active member가 목록과 기본 상세를 조회할 수 있다
 - 일반 사용자는 공개·승인·비공개 동아리를 생성할 수 있다
 - 공개 동아리는 즉시 active membership을 만들고, 승인 동아리는 pending 가입 요청을 만든다
+- 개인별 내 동아리 정렬은 `GroupPolicy::MembershipScope` 안의 본인 active membership 전체만 대상으로 한다. `Groups::MembershipOrdersController`는 로그인 사용자에게 편집·저장을 허용하고 `GroupMembership.reorder_for!`는 잠금·transaction 안에서 전체 membership ID를 비교해 타인·중복·누락·변경된 목록을 거부한다. position은 개인 표시 순서만 바꾸며 Group 접근·관리·콘텐츠 권한을 부여하지 않는다
 - 동아리 관리자만 자기 동아리의 pending membership을 active로 승인할 수 있다
 - 비공개 동아리 관리자만 membership이 없는 사용자를 `invited` 상태로 초대할 수 있다
 - 초대받은 당사자만 초대를 수락해 `active`로 바꾸거나 거절해 삭제할 수 있다

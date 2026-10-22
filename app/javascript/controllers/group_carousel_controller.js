@@ -1,10 +1,30 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["viewport", "page", "previous", "next", "position"]
+  static targets = ["viewport", "card", "controls", "previous", "next", "position"]
 
   connect() {
-    this.showPage(0)
+    this.desktopQuery = window.matchMedia("(min-width: 1024px)")
+    this.tabletQuery = window.matchMedia("(min-width: 768px)")
+    this.handleBreakpointChange = () => this.resize()
+    this.desktopQuery.addEventListener("change", this.handleBreakpointChange)
+    this.tabletQuery.addEventListener("change", this.handleBreakpointChange)
+    this.index = 0
+    this.pageSize = 3
+    this.resize()
+  }
+
+  disconnect() {
+    this.desktopQuery.removeEventListener("change", this.handleBreakpointChange)
+    this.tabletQuery.removeEventListener("change", this.handleBreakpointChange)
+  }
+
+  resize() {
+    const focusedIndex = this.cardTargets.findIndex(card => card.contains(document.activeElement))
+    const firstCardIndex = focusedIndex >= 0 ? focusedIndex : this.index * this.pageSize
+    this.pageSize = this.desktopQuery.matches ? 3 : this.tabletQuery.matches ? 2 : 1
+    this.pageCount = Math.ceil(this.cardTargets.length / this.pageSize)
+    this.showPage(Math.floor(firstCardIndex / this.pageSize))
   }
 
   previous() {
@@ -16,19 +36,27 @@ export default class extends Controller {
   }
 
   showPage(index) {
-    if (index < 0 || index >= this.pageTargets.length) return
+    if (index < 0 || index >= this.pageCount) return
 
     // A swipe can start on a link; keep focus out of the page being hidden.
-    const focusedPage = this.pageTargets.find(page => page.contains(document.activeElement))
-    if (focusedPage && focusedPage !== this.pageTargets[index]) this.viewportTarget.focus({ preventScroll: true })
+    const start = index * this.pageSize
+    const end = start + this.pageSize
+    const focusedIndex = this.cardTargets.findIndex(card => card.contains(document.activeElement))
+    if (focusedIndex >= 0 && (focusedIndex < start || focusedIndex >= end)) {
+      this.viewportTarget.focus({ preventScroll: true })
+    }
+    if (this.pageCount === 1 && this.controlsTarget.contains(document.activeElement)) {
+      this.viewportTarget.focus({ preventScroll: true })
+    }
 
     this.index = index
-    this.pageTargets.forEach((page, pageIndex) => {
-      page.hidden = pageIndex !== index
+    this.cardTargets.forEach((card, cardIndex) => {
+      card.hidden = cardIndex < start || cardIndex >= end
     })
+    this.controlsTarget.hidden = this.pageCount === 1
     this.previousTarget.disabled = index === 0
-    this.nextTarget.disabled = index === this.pageTargets.length - 1
-    this.positionTarget.textContent = `${index + 1} / ${this.pageTargets.length}`
+    this.nextTarget.disabled = index === this.pageCount - 1
+    this.positionTarget.textContent = `${index + 1} / ${this.pageCount}`
   }
 
   navigate(event) {
@@ -45,7 +73,7 @@ export default class extends Controller {
         this.showPage(0)
         break
       case "End":
-        this.showPage(this.pageTargets.length - 1)
+        this.showPage(this.pageCount - 1)
         break
       default:
         return

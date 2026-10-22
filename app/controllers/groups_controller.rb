@@ -20,11 +20,12 @@ class GroupsController < ApplicationController
     prepare_visible_requote_counts_for(@group_activity_jjaeks)
     return render_feed_page(context: :group, next_url: @feed_next_url) if feed_page_request?
 
-    @groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
-      .includes(group_admin: { avatar_attachment: :blob })
-      .order(created_at: :desc, id: :desc)
-    @memberships_by_group_id = current_user.group_memberships
-      .where(group_id: @groups.map(&:id)).index_by(&:group_id)
+    groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope)
+    memberships = GroupMembership.displayed_for(user: current_user, groups:)
+      .preload(group: { group_admin: { avatar_attachment: :blob } }).to_a
+    @groups = memberships.map(&:group)
+    @memberships_by_group_id = memberships.index_by(&:group_id)
+    prepare_group_card_members
     managed_approval_group_ids = @groups.select { |group| group.approval_group? && group.group_admin?(current_user) }.map(&:id)
     @pending_membership_counts = GroupMembership.pending.where(group_id: managed_approval_group_ids)
       .group(:group_id).count
@@ -113,6 +114,33 @@ class GroupsController < ApplicationController
   end
 
   private
+
+  def prepare_group_card_members
+    @active_member_counts_by_group_id = {}
+    @member_previews_by_group_id = {}
+    return if @groups.empty?
+
+    ranked_memberships = GroupMembership.active.joins(:group)
+      .where(group_id: @groups.map(&:id))
+      .where("group_memberships.user_id <> groups.group_admin_id")
+      .select(<<~SQL.squish)
+        group_memberships.*,
+        COUNT(*) OVER (PARTITION BY group_memberships.group_id) AS active_member_count,
+        ROW_NUMBER() OVER (
+          PARTITION BY group_memberships.group_id
+          ORDER BY group_memberships.created_at, group_memberships.id
+        ) AS member_preview_rank
+      SQL
+
+    GroupMembership.from(ranked_memberships, :group_memberships)
+      .where("member_preview_rank <= ?", 3)
+      .order(:group_id, :created_at, :id)
+      .preload(user: { avatar_attachment: :blob })
+      .each do |membership|
+        @active_member_counts_by_group_id[membership.group_id] = membership[:active_member_count].to_i
+        (@member_previews_by_group_id[membership.group_id] ||= []) << membership.user
+      end
+  end
 
   def prepare_group_creation
     @group = current_user.administered_groups.build(create_group_params)

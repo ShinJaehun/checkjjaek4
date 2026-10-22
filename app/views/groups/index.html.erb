@@ -45,51 +45,66 @@
   <% end %>
 
   <section class="space-y-4">
-    <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("groups.index.my_groups") %></h2>
     <% groups = @groups.to_a %>
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="min-w-0 text-2xl font-semibold tracking-tight text-stone-900"><%= t("groups.index.my_groups") %></h2>
+      <% if groups.size >= 2 %>
+        <%= link_to edit_groups_membership_order_path,
+                    class: "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700" do %>
+          <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m3 8 4-4 4 4M7 4v16m6-4 4 4 4-4M17 20V4" />
+          </svg>
+          <span><%= t("groups.membership_order.action") %></span>
+        <% end %>
+      <% end %>
+    </div>
     <% if groups.any? %>
-      <% group_pages = groups.each_slice(6).to_a %>
-      <% if group_pages.one? %>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" data-group-grid>
+      <% if groups.one? %>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3" data-group-grid>
           <% groups.each do |group| %>
             <%= render "groups/group_card", group: group,
                        membership: @memberships_by_group_id[group.id],
-                       pending_count: @pending_membership_counts.fetch(group.id, 0) %>
+                       pending_count: @pending_membership_counts.fetch(group.id, 0),
+                       member_preview: @member_previews_by_group_id.fetch(group.id, []),
+                       active_member_count: @active_member_counts_by_group_id.fetch(group.id, 0) %>
           <% end %>
         </div>
       <% else %>
+        <% desktop_page_count = groups.each_slice(3).count %>
         <div class="space-y-3" data-controller="group-carousel">
           <div id="my-groups-carousel"
                class="touch-pan-y focus-visible:outline focus-visible:outline-2 focus-visible:outline-stone-500"
                role="region" aria-label="<%= t("groups.index.carousel.label") %>" tabindex="0"
                data-group-carousel-target="viewport"
                data-action="keydown->group-carousel#navigate touchstart->group-carousel#touchStart touchend->group-carousel#touchEnd touchcancel->group-carousel#touchCancel">
-            <% group_pages.each_with_index do |page_groups, page_index| %>
-              <div data-group-carousel-target="page" <%= "hidden" if page_index.positive? %>>
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" data-group-grid>
-                  <% page_groups.each do |group| %>
-                    <%= render "groups/group_card", group: group,
-                               membership: @memberships_by_group_id[group.id],
-                               pending_count: @pending_membership_counts.fetch(group.id, 0) %>
-                  <% end %>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3" data-group-grid>
+              <% groups.each_with_index do |group, index| %>
+                <div class="min-w-0" data-group-carousel-target="card" <%= "hidden" if index >= 3 %>>
+                  <%= render "groups/group_card", group: group,
+                             membership: @memberships_by_group_id[group.id],
+                             pending_count: @pending_membership_counts.fetch(group.id, 0),
+                             member_preview: @member_previews_by_group_id.fetch(group.id, []),
+                             active_member_count: @active_member_counts_by_group_id.fetch(group.id, 0) %>
                 </div>
-              </div>
-            <% end %>
+              <% end %>
+            </div>
           </div>
-          <div class="flex items-center justify-center gap-4">
-            <button type="button" disabled aria-controls="my-groups-carousel"
-                    class="rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-stone-500"
-                    data-group-carousel-target="previous" data-action="group-carousel#previous">
-              <%= t("groups.index.carousel.previous") %>
-            </button>
-            <span class="min-w-20 text-center text-sm text-stone-600" aria-live="polite" aria-atomic="true" data-group-carousel-target="position">
-              <%= t("groups.index.carousel.position", current: 1, total: group_pages.size) %>
-            </span>
-            <button type="button" aria-controls="my-groups-carousel"
-                    class="rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-stone-500"
-                    data-group-carousel-target="next" data-action="group-carousel#next">
-              <%= t("groups.index.carousel.next") %>
-            </button>
+          <div data-group-carousel-target="controls" <%= "hidden" if desktop_page_count == 1 %>>
+            <div class="flex items-center justify-center gap-4">
+              <button type="button" disabled aria-controls="my-groups-carousel"
+                      class="rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-stone-500"
+                      data-group-carousel-target="previous" data-action="group-carousel#previous">
+                <%= t("groups.index.carousel.previous") %>
+              </button>
+              <span class="min-w-20 text-center text-sm text-stone-600" aria-live="polite" aria-atomic="true" data-group-carousel-target="position">
+                <%= t("groups.index.carousel.position", current: 1, total: desktop_page_count) %>
+              </span>
+              <button type="button" aria-controls="my-groups-carousel" <%= "disabled" if desktop_page_count == 1 %>
+                      class="rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-stone-500"
+                      data-group-carousel-target="next" data-action="group-carousel#next">
+                <%= t("groups.index.carousel.next") %>
+              </button>
+            </div>
           </div>
         </div>
       <% end %>
