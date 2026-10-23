@@ -71,7 +71,7 @@ RSpec.describe "Libraries", type: :request do
       expect(response.body).not_to include(private_shelf.name)
     end
 
-    it "hides private library shelves from a global admin book friend while preserving profile investigation" do
+    it "hides private shelves and books from a global admin book friend in the library and profile" do
       viewer.update!(global_admin: true)
       BookFriendship.create!(requester: viewer, addressee: owner, status: :accepted)
       public_shelf = owner.bookshelves.create!(name: "ADMIN_FRIEND_PUBLIC_SHELF", visibility: :public)
@@ -97,7 +97,8 @@ RSpec.describe "Libraries", type: :request do
 
       get user_path(owner)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("ADMIN_FRIEND_PRIVATE_BOOK")
+      expect(response.body).to include("ADMIN_FRIEND_PUBLIC_BOOK", "ADMIN_FRIEND_SHARED_BOOK")
+      expect(response.body).not_to include("ADMIN_FRIEND_PRIVATE_BOOK")
     end
 
     it "denies a global admin full library and transfer access without book friendship" do

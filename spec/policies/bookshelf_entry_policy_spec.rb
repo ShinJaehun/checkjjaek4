@@ -93,7 +93,7 @@ RSpec.describe BookshelfEntryPolicy do
       expect(resolved).not_to include(private_entry)
     end
 
-    it "includes every bookshelf visibility for a global admin without granting mutations" do
+    it "applies normal profile visibility to a global admin without granting mutations" do
       global_admin = User.create!(name: "Global admin", email: "bookshelf-profile-global-admin@example.com", password: "password123!", global_admin: true)
       public_entry = profile_user.bookshelf_entries.create!(book: public_book)
       book_friends_entry = create_profile_entry(profile_user, book_friends_book, "book_friends")
@@ -102,7 +102,13 @@ RSpec.describe BookshelfEntryPolicy do
       resolved = described_class.new(global_admin, profile_user.bookshelf_entries).resolve
       mutation_policy = BookshelfEntryPolicy.new(global_admin, private_entry)
 
-      expect(resolved).to include(public_entry, book_friends_entry, private_entry)
+      expect(resolved).to include(public_entry)
+      expect(resolved).not_to include(book_friends_entry, private_entry)
+
+      BookFriendship.create!(requester: global_admin, addressee: profile_user, status: :accepted)
+      resolved = described_class.new(global_admin, profile_user.bookshelf_entries).resolve
+      expect(resolved).to include(public_entry, book_friends_entry)
+      expect(resolved).not_to include(private_entry)
       expect(mutation_policy.create?).to be(false)
       expect(mutation_policy.move?).to be(false)
       expect(mutation_policy.destroy?).to be(false)

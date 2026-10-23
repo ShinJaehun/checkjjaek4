@@ -36,7 +36,6 @@ class BookActivityPolicy < ApplicationPolicy
   class ProfileScope < Scope
     def resolve
       return scope.none unless user.present?
-      return scope.added_to_shelf.joins(:bookshelf_entry) if user.global_admin?
 
       super
     end

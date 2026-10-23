@@ -44,12 +44,19 @@ RSpec.describe BookActivityPolicy do
     expect(described_class::FeedScope.new(viewer, BookActivity.all).resolve).not_to include(activity)
   end
 
-  it "includes the investigated user's activity in profile scope for a global admin" do
+  it "applies normal profile activity visibility to a global admin" do
     global_admin = User.create!(name: "Global admin", email: "book-activity-global-admin@example.com", password: "password123!", global_admin: true)
 
-    expect(described_class::ProfileScope.new(global_admin, profile_user.book_activities).resolve).to include(activity)
+    expect(described_class::ProfileScope.new(global_admin, profile_user.book_activities).resolve).not_to include(activity)
     expect(described_class::Scope.new(global_admin, BookActivity.all).resolve).not_to include(activity)
     expect(described_class::FeedScope.new(global_admin, BookActivity.all).resolve).not_to include(activity)
+
+    BookFriendship.create!(requester: global_admin, addressee: profile_user, status: :accepted)
+    expect(described_class::ProfileScope.new(global_admin, profile_user.book_activities).resolve).to include(activity)
+
+    private_shelf = profile_user.bookshelves.create!(name: "Private activity shelf", visibility: :private)
+    activity.bookshelf_entry.move_to_bookshelf!(private_shelf)
+    expect(described_class::ProfileScope.new(global_admin, profile_user.book_activities).resolve).not_to include(activity)
   end
 
   it "keeps a stranger's profile activity hidden from an unrelated user" do

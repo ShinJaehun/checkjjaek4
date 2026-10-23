@@ -58,7 +58,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("users.profile.activity_title"))
     end
 
-    it "shows every profile jjaek to a global admin without exposing other users' content" do
+    it "preserves profile Jjaek investigation while limiting a global admin to public books without friendship" do
       global_admin = User.create!(name: "Global admin", email: "profile-global-admin@example.com", password: "password123!", global_admin: true)
       BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       create_profile_bookshelf_entry(
@@ -81,11 +81,67 @@ RSpec.describe "Users", type: :request do
 
       expect(response.body).to include("Profile Jjaek", "Book friend profile Jjaek", "Private profile Jjaek")
       expect(response.body).not_to include("Other private")
-      expect(page_text).to include("Profile User님이 책을 서재에 담았습니다.")
-      expect(response.body).to include("프로필 서재 전용 책", "ADMIN_BOOK_FRIENDS_BOOK", "ADMIN_PRIVATE_BOOK")
-      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"), I18n.t("bookshelf_entries.statuses.finished"))
+      expect(page_text).not_to include("Profile User님이 책을 서재에 담았습니다.")
+      expect(response.body).to include("프로필 서재 전용 책")
+      expect(response.body).not_to include("ADMIN_BOOK_FRIENDS_BOOK", "ADMIN_PRIVATE_BOOK")
+      expect(response.body).to include(I18n.t("bookshelf_entries.statuses.reading"))
       expect(response.body).not_to include(I18n.t("users.profile.view_library"))
       expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
+    end
+
+    [ false, true ].each do |global_admin|
+      it "hides current private books and activities from a #{global_admin ? 'global admin' : 'regular'} book friend" do
+        viewer.update!(global_admin: global_admin)
+        BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+        entries = [ :public, :book_friends ].map do |visibility|
+          _, entry = create_profile_bookshelf_entry(
+            user: profile_user, bookshelf_name: "PROFILE_#{visibility}_SHELF", visibility: visibility,
+            book_title: "PROFILE_#{visibility}_BOOK"
+          )
+          entry
+        end
+        private_shelf, private_entry = create_profile_bookshelf_entry(
+          user: profile_user, bookshelf_name: "PROFILE_PRIVATE_SHELF", visibility: :public,
+          book_title: "PROFILE_PRIVATE_BOOK"
+        )
+        entries << private_entry
+        activities = entries.map do |entry|
+          BookActivity.create!(user: profile_user, book: entry.book, bookshelf_entry: entry, action: :added_to_shelf)
+        end
+        sign_in viewer
+
+        get user_path(profile_user)
+        expect(response.body).to include(private_entry.book.title, %(id="book_activity_#{activities.last.id}"))
+
+        private_shelf.update!(visibility: :private)
+        get user_path(profile_user)
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(*entries.first(2).map { |entry| entry.book.title })
+        activities.first(2).each { |activity| expect(response.body).to include(%(id="book_activity_#{activity.id}")) }
+        expect(response.body).not_to include(private_entry.book.title, %(id="book_activity_#{activities.last.id}"))
+
+        entries.first.move_to_bookshelf!(private_shelf)
+        get user_path(profile_user)
+
+        expect(response.body).not_to include(entries.first.book.title, %(id="book_activity_#{activities.first.id}"))
+        expect(response.body).to include(entries.second.book.title, %(id="book_activity_#{activities.second.id}"))
+      end
+    end
+
+    it "shows a global admin their own private books and activities" do
+      viewer.update!(global_admin: true)
+      _, entry = create_profile_bookshelf_entry(
+        user: viewer, bookshelf_name: "ADMIN_OWN_PRIVATE_SHELF", visibility: :private,
+        book_title: "ADMIN_OWN_PRIVATE_BOOK"
+      )
+      activity = BookActivity.create!(user: viewer, book: entry.book, bookshelf_entry: entry, action: :added_to_shelf)
+      sign_in viewer
+
+      get user_path(viewer)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(entry.book.title, %(id="book_activity_#{activity.id}"))
     end
 
     it "applies group access to group jjaeks on an author's profile" do
