@@ -154,6 +154,81 @@ RSpec.describe "Group memberships", type: :request do
     expect(membership.reload).to be_active
   end
 
+  describe "membership changes before the group lock is acquired" do
+    [ :accept, :decline, :revoke ].each do |action|
+      it "rejects #{action} when the invitation has already been accepted" do
+        group = Group.create!(lifecycle_status: :active, group_admin:, name: "Concurrent invitation", group_type: :private_group)
+        invitation = group.group_memberships.create!(user: member, status: :invited)
+        sign_in(action == :revoke ? group_admin : member)
+
+        allow_any_instance_of(Group).to receive(:with_lock).and_wrap_original do |original, &block|
+          invitation.update!(status: :active)
+          original.call(&block)
+        end
+
+        counts = [ GroupMembership.count, GroupMembershipEvent.count, Notification.count, GroupMembershipRemoval.count ]
+
+        case action
+        when :accept
+          patch accept_group_group_membership_path(group, invitation)
+        when :decline
+          delete decline_group_group_membership_path(group, invitation)
+        when :revoke
+          delete revoke_group_group_membership_path(group, invitation)
+        end
+
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+        expect(invitation.reload).to be_active
+        expect([ GroupMembership.count, GroupMembershipEvent.count, Notification.count, GroupMembershipRemoval.count ]).to eq(counts)
+      end
+    end
+
+    it "handles an invitation deleted before locking without recording an acceptance" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Revoked before lock", group_type: :private_group)
+      invitation = group.group_memberships.create!(user: member, status: :invited)
+      sign_in member
+      event_count = GroupMembershipEvent.count
+      notification_count = Notification.count
+
+      allow_any_instance_of(Group).to receive(:with_lock).and_wrap_original do |original, &block|
+        invitation.destroy!
+        original.call(&block)
+      end
+
+      patch accept_group_group_membership_path(group, invitation)
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:alert]).to eq(I18n.t("group_memberships.alerts.stale_invitation"))
+      expect(GroupMembership.exists?(invitation.id)).to be(false)
+      expect(GroupMembershipEvent.count).to eq(event_count)
+      expect(Notification.count).to eq(notification_count)
+    end
+
+    it "records leaving rather than cancellation when a join request was approved before locking" do
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Approved before lock", group_type: :approval_group)
+      membership = group.group_memberships.create!(user: member, status: :pending)
+      sign_in member
+      notification_count = Notification.count
+
+      allow_any_instance_of(Group).to receive(:with_lock).and_wrap_original do |original, &block|
+        membership.active!
+        original.call(&block)
+      end
+
+      expect {
+        delete group_group_membership_path(group, membership)
+      }.to change(GroupMembershipEvent, :count).by(1)
+
+      expect(response).to redirect_to(groups_path)
+      expect(flash[:notice]).to eq(I18n.t("group_memberships.notices.left"))
+      expect(GroupMembership.exists?(membership.id)).to be(false)
+      expect(group.group_membership_events.order(:id).last).to have_attributes(event_type: "left", user_id: member.id, actor_id: member.id)
+      expect(Notification.count).to eq(notification_count)
+    end
+  end
+
   describe "stale membership management mutations" do
     it "redirects a stale approval without side effects" do
       group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Stale approval", group_type: :approval_group)

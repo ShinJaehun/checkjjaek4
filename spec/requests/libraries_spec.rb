@@ -71,6 +71,35 @@ RSpec.describe "Libraries", type: :request do
       expect(response.body).not_to include(private_shelf.name)
     end
 
+    it "hides private library shelves from a global admin book friend while preserving profile investigation" do
+      viewer.update!(global_admin: true)
+      BookFriendship.create!(requester: viewer, addressee: owner, status: :accepted)
+      public_shelf = owner.bookshelves.create!(name: "ADMIN_FRIEND_PUBLIC_SHELF", visibility: :public)
+      friend_shelf = owner.bookshelves.create!(name: "ADMIN_FRIEND_SHARED_SHELF", visibility: :book_friends)
+      private_shelf = owner.bookshelves.create!(name: "ADMIN_FRIEND_PRIVATE_SHELF", visibility: :private)
+      create_bookshelf_entry(user: owner, bookshelf: public_shelf, book_title: "ADMIN_FRIEND_PUBLIC_BOOK")
+      create_bookshelf_entry(user: owner, bookshelf: friend_shelf, book_title: "ADMIN_FRIEND_SHARED_BOOK")
+      create_bookshelf_entry(user: owner, bookshelf: private_shelf, book_title: "ADMIN_FRIEND_PRIVATE_BOOK")
+      sign_in viewer
+
+      [ public_shelf, friend_shelf, private_shelf ].each do |shelf|
+        get user_library_path(owner, bookshelf_id: shelf.id)
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(public_shelf.name, friend_shelf.name)
+        expect(response.body).not_to include(private_shelf.name, "ADMIN_FRIEND_PRIVATE_BOOK")
+      end
+
+      get user_library_path(owner, bookshelf_id: public_shelf.id)
+      expect(response.body).to include("ADMIN_FRIEND_PUBLIC_BOOK")
+      get user_library_path(owner, bookshelf_id: friend_shelf.id)
+      expect(response.body).to include("ADMIN_FRIEND_SHARED_BOOK")
+
+      get user_path(owner)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("ADMIN_FRIEND_PRIVATE_BOOK")
+    end
+
     it "denies a global admin full library and transfer access without book friendship" do
       global_admin = User.create!(name: "Global admin", email: "library-global-admin@example.com", password: "password123!", global_admin: true)
       public_shelf = owner.bookshelves.create!(name: "ADMIN_PUBLIC_SHELF", visibility: :public)

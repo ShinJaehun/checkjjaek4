@@ -47,4 +47,13 @@ class BookshelfPolicy < ApplicationPolicy
       %w[public book_friends]
     end
   end
+
+  class LibraryScope < Scope
+    def resolve
+      return scope.none unless user.present?
+
+      bookshelves = super
+      bookshelves.where(user_id: user.id).or(bookshelves.where(visibility: visible_to_book_friends))
+    end
+  end
 end

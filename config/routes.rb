@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+  # Avatars are uploaded through account settings; direct uploads are unused.
+  post "/rails/active_storage/direct_uploads", to: ->(_env) { [ 404, {}, [] ] }
+
   get "up" => "rails/health#show", as: :rails_health_check
   root "homes#show"
   resource :discovery, only: :show, controller: "discoveries", path: "discover"

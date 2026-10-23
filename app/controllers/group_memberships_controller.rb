@@ -32,8 +32,11 @@ class GroupMembershipsController < ApplicationController
   end
 
   def update
-    authorize @membership, :approve?
+    authorize @membership, :approve?, policy_class: GroupMembershipPolicy
     @group.with_lock do
+      set_membership_for_management_action
+      return if performed?
+
       authorize @membership, :approve?
       @membership.active!
       event = record_membership_event!(:approved)
@@ -66,8 +69,11 @@ class GroupMembershipsController < ApplicationController
   end
 
   def accept
-    authorize @membership, :accept?
+    authorize @membership, :accept?, policy_class: GroupMembershipPolicy
     @membership.group.with_lock do
+      set_own_invitation
+      return if performed?
+
       authorize @membership, :accept?
       @membership.active!
       event = record_membership_event!(:invitation_accepted)
@@ -79,8 +85,12 @@ class GroupMembershipsController < ApplicationController
   end
 
   def decline
-    authorize @membership, :decline?
+    authorize @membership, :decline?, policy_class: GroupMembershipPolicy
     @membership.group.with_lock do
+      set_own_invitation
+      return if performed?
+
+      authorize @membership, :decline?
       event = record_membership_event!(:invitation_declined)
       admin_id = event.group.group_admin_id
       @membership.destroy!
@@ -91,8 +101,11 @@ class GroupMembershipsController < ApplicationController
   end
 
   def reject
-    authorize @membership, :reject?
+    authorize @membership, :reject?, policy_class: GroupMembershipPolicy
     @group.with_lock do
+      set_membership_for_management_action
+      return if performed?
+
       authorize @membership, :reject?
       event = record_membership_event!(:request_rejected)
       @membership.destroy!
@@ -103,9 +116,12 @@ class GroupMembershipsController < ApplicationController
   end
 
   def revoke
-    authorize @membership, :revoke?
+    authorize @membership, :revoke?, policy_class: GroupMembershipPolicy
     return_path = invitation_return_path
     @group.with_lock do
+      set_membership_for_management_action
+      return if performed?
+
       authorize @membership, :revoke?
       event = record_membership_event!(:invitation_revoked)
       @membership.destroy!
@@ -116,8 +132,11 @@ class GroupMembershipsController < ApplicationController
   end
 
   def remove
-    authorize @membership, :remove?
+    authorize @membership, :remove?, policy_class: GroupMembershipPolicy
     @group.with_lock do
+      set_membership_for_management_action
+      return if performed?
+
       authorize @membership, :remove?
       event = record_membership_event!(:removed)
       removal = GroupMembershipRemoval.find_or_initialize_by(group: @group, user: @membership.user)
@@ -131,13 +150,18 @@ class GroupMembershipsController < ApplicationController
   end
 
   def destroy
-    authorize @membership
-    pending = @membership.pending?
-    @group.with_lock do
+    authorize @membership, :destroy?, policy_class: GroupMembershipPolicy
+    pending = @group.with_lock do
+      set_membership
+      return if performed?
+
+      authorize @membership
+      pending = @membership.pending?
       event = record_membership_event!(pending ? :join_request_cancelled : :left)
       admin_id = event.group.group_admin_id if pending
       @membership.destroy!
       Notifications::GroupMembershipNotifier.schedule(event:, recipient_ids: [ admin_id ]) if pending
+      pending
     end
 
     redirect_to groups_path,

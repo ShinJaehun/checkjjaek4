@@ -33,8 +33,9 @@ class Users::LibrariesController < ApplicationController
 
     return unless @show_bookshelf
 
-    @profile_bookshelves = policy_scope(@user.bookshelves).default_first
+    @profile_bookshelves = policy_scope(@user.bookshelves, policy_scope_class: BookshelfPolicy::LibraryScope).default_first
     visible_entries = policy_scope(@user.bookshelf_entries, policy_scope_class: BookshelfEntryPolicy::ProfileScope)
+      .where(bookshelf: @profile_bookshelves)
     @profile_bookshelf_entry_counts = visible_entries.group(:bookshelf_id).count
     @library_summary_bookshelves = if current_user == @user
       @profile_bookshelves.to_a

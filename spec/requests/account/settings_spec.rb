@@ -10,6 +10,22 @@ RSpec.describe "Settings", type: :request do
     Rack::Test::UploadedFile.new(path, "image/png")
   end
 
+  [ false, true ].each do |authenticated|
+    it "blocks unused direct uploads #{authenticated ? 'after sign in' : 'for guests'} without creating blobs" do
+      sign_in user if authenticated
+
+      expect {
+        post rails_direct_uploads_path, params: {
+          blob: { filename: "avatar.png", byte_size: 1, checksum: "ndTkYSaMgDT1yFZOFVxnpg==", content_type: "image/png" }
+        }, as: :json
+      }.not_to change(ActiveStorage::Blob, :count)
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.body).to be_empty
+      expect(user.reload.avatar).not_to be_attached
+    end
+  end
+
   it "requires sign in" do
     get account_settings_path
     expect(response).to redirect_to(new_user_session_path)
