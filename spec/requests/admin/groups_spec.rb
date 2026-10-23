@@ -694,8 +694,16 @@ RSpec.describe "Admin group approvals", type: :request do
 
     detail_path = admin_group_path(active_group, inventory_params)
     document = Nokogiri::HTML(response.body)
-    expect(document.at_css("#group_#{active_group.id} a[href='#{detail_path}']")).to be_present
-    expect(document.at_css("#group_#{active_group.id} a[href='#{content_admin_group_path(active_group, inventory_params)}']")).to be_present
+    detail_link = document.at_css("#group_#{active_group.id} a[href^='#{admin_group_path(active_group)}?']")
+    content_link = document.at_css("#group_#{active_group.id} a[href^='#{content_admin_group_path(active_group)}?']")
+
+    [ detail_link, content_link ].each do |link|
+      expect(link).to be_present
+      query = Rack::Utils.parse_nested_query(URI.parse(link["href"]).query)
+      expected_params = inventory_params.stringify_keys.transform_values(&:to_s)
+      expect(query).to include(expected_params)
+      expect(query["inventory"]).to eq(expected_params)
+    end
 
     get detail_path
 
@@ -1132,10 +1140,14 @@ RSpec.describe "Admin group approvals", type: :request do
         group_type: "public_group",
         status: "active",
         sort: "name",
-        page: 2
+        page: 2,
+        all_page: 2,
+        content: "comments",
+        content_q: "FILTER",
+        content_status: "active",
+        content_sort: "oldest"
       )
     )
-    expect(details_link["href"]).not_to include("content=", "content_", "all_page")
   end
 
   it "paginates complete Group threads by latest activity at the database boundary" do

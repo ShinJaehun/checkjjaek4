@@ -83,7 +83,7 @@ module JjaeksHelper
     path, filter_keys = jjaek_return_destination(route, query)
     return unless path
 
-    filters = query.slice(*filter_keys).permit(*filter_keys).to_h
+    filters = query.permit(*filter_keys).to_h
     if path == book_search_path && include_search_origin
       origin = validated_jjaek_return_path(query[:search_origin], include_search_origin: false)
       filters["search_origin"] = origin if origin
@@ -211,7 +211,7 @@ module JjaeksHelper
       end
       [ book_search_path, %i[query page group_id] ]
     when [ "users/libraries", "show" ]
-      user = User.find(route[:user_id])
+      user = User.find_by_public_param!(route[:user_id])
       return unless policy(user).show? && policy(user).show_library?
       if query[:bookshelf_id].present?
         return unless query[:bookshelf_id].is_a?(String)
@@ -219,7 +219,7 @@ module JjaeksHelper
       end
       [ user_library_path(user), %i[bookshelf_id sort] ]
     when [ "users", "show" ]
-      user = User.find(route[:id])
+      user = User.find_by_public_param!(route[:id])
       [ user_path(user), [] ] if policy(user).show?
     when [ "books", "show" ]
       book = Book.find(route[:id])
@@ -240,11 +240,13 @@ module JjaeksHelper
         [ group_path(group), [] ]
       end
     when [ "admin/users", "content" ]
-      user = User.find(route[:id])
-      [ content_admin_user_path(user), %i[content q location status sort all_page] ] if policy(user).view_admin_inventory?
+      user = User.find_by_public_param!(route[:id])
+      keys = [ *%i[content q location status sort all_page per_page], { inventory: %i[q status role sort page per_page] } ]
+      [ content_admin_user_path(user), keys ] if policy(user).view_admin_inventory?
     when [ "admin/groups", "content" ]
       group = Group.find(route[:id])
-      keys = [ *GroupContentReturnContext::FILTER_KEYS, :q, :group_type, :status, :operation_status, :sort, :page ]
+      keys = [ *GroupContentReturnContext::FILTER_KEYS, :q, :group_type, :status, :operation_status, :sort, :page, :per_page,
+               { inventory: %i[q group_type status operation_status sort page per_page] } ]
       [ content_admin_group_path(group), keys ] if policy(group).view_admin_details?
     when [ "requotes", "index" ]
       source = Jjaek.find(route[:jjaek_id])

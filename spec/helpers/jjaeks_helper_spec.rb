@@ -95,12 +95,46 @@ RSpec.describe JjaeksHelper, type: :helper do
   it "accepts accessible internal origins and preserves allowed management filters" do
     admin = User.create!(name: "Admin", email: "context-helper-admin@example.com", password: "password123!", global_admin: true)
     helper.define_singleton_method(:policy) { |record| Pundit.policy!(admin, record) }
-    filters = { content: "comments", q: "a & b", location: "personal", status: "hidden", sort: "oldest", all_page: "3" }
+    author.update!(handle: "context_author")
+    filters = { content: "comments", q: "a & b", location: "personal", status: "hidden", sort: "oldest", all_page: "3", per_page: "100",
+                inventory: { q: "Author", status: "active", role: "regular", sort: "name", page: "2", per_page: "50" } }
     origin = content_admin_user_path(author, filters)
 
     expect(helper.validated_jjaek_return_path(origin)).to eq(origin)
     expect(helper.validated_jjaek_return_path(root_path)).to eq(root_path)
     expect(helper.validated_jjaek_return_path(user_path(author))).to eq(user_path(author))
+  end
+
+  it "resolves handle and old numeric return paths after a user sets their handle" do
+    profile_path = user_path(viewer)
+    library_path = user_library_path(viewer, sort: "title")
+    viewer.update!(handle: "context_reader")
+
+    [ profile_path, user_path(viewer) ].each do |path|
+      expect(helper.validated_jjaek_return_path(path)).to eq(user_path(viewer))
+    end
+    [ library_path, user_library_path(viewer, sort: "title") ].each do |path|
+      expect(helper.validated_jjaek_return_path(path)).to eq(user_library_path(viewer, sort: "title"))
+    end
+    search_path = book_search_path(query: "book", search_origin: profile_path)
+    expect(helper.validated_jjaek_return_path(search_path)).to eq(book_search_path(query: "book", search_origin: user_path(viewer)))
+  end
+
+  it "preserves separate group inventory and content pagination while dropping unapproved return parameters" do
+    admin = User.create!(name: "Admin", email: "context-group-admin@example.com", password: "password123!", global_admin: true)
+    helper.define_singleton_method(:policy) { |record| Pundit.policy!(admin, record) }
+    filters = { content: "general", content_q: "thread", content_status: "active", content_sort: "oldest", all_page: "2", per_page: "100",
+                inventory: { q: "Readers", group_type: "private_group", status: "active", operation_status: "normal", sort: "name", page: "3", per_page: "50" } }
+    origin = content_admin_group_path(group, filters)
+
+    expect(helper.validated_jjaek_return_path(origin)).to eq(origin)
+    candidate = content_admin_group_path(group, filters.merge(return_to: "https://example.com",
+      inventory: filters[:inventory].merge(return_to: "//example.com", redirect_url: "https://example.com")))
+    expect(helper.validated_jjaek_return_path(candidate)).to eq(origin)
+
+    actor = viewer
+    helper.define_singleton_method(:policy) { |record| Pundit.policy!(actor, record) }
+    expect(helper.validated_jjaek_return_path(origin)).to be_nil
   end
 
   it "rejects external, unapproved, missing, and inaccessible paths" do

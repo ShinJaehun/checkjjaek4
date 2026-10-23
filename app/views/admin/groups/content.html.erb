@@ -1,5 +1,5 @@
 <section id="admin_group_content" class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2 space-y-5">
-  <div class="mx-auto max-w-5xl"><%= render "shared/back_link", path: admin_groups_path(@return_params), label: t("admin.groups.actions.back") %></div>
+  <div class="mx-auto max-w-5xl"><%= render "shared/back_link", path: admin_groups_path(@return_params[:inventory] || @return_params), label: t("admin.groups.actions.back") %></div>
   <section id="admin_group_activity_identity" class="mx-auto max-w-5xl rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
     <div class="flex flex-wrap items-start justify-between gap-5">
       <div>
@@ -19,7 +19,7 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <%= link_to t("admin.groups.actions.show"),
-                    admin_group_path(@group, @return_params),
+                    admin_group_path(@group, @return_params.merge(params.permit(:content, :content_q, :content_status, :content_sort, :all_page))),
                     class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
       </div>
     </div>
@@ -58,8 +58,11 @@
                   method: :get,
                   class: "flex flex-col gap-3 border-t border-stone-200 pt-4 lg:flex-row lg:items-center" do |f| %>
       <%= f.hidden_field :content, value: @content_section %>
-      <% @return_params.except(:per_page).each do |key, value| %>
+      <% @return_params.except(:per_page, :inventory).each do |key, value| %>
         <%= hidden_field_tag key, value %>
+      <% end %>
+      <% @return_params.fetch(:inventory, {}).each do |key, value| %>
+        <%= hidden_field_tag "inventory[#{key}]", value %>
       <% end %>
       <%= f.search_field :content_q,
                          value: params[:content_q],

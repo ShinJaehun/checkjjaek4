@@ -106,10 +106,10 @@
             <td class="px-4 py-3.5" data-field="actions">
               <div class="flex flex-wrap gap-2">
                 <%= link_to t("admin.groups.index.actions.show"),
-                            admin_group_path(group, request.query_parameters),
+                            admin_group_path(group, request.query_parameters.merge(inventory: request.query_parameters)),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
                 <%= link_to t("admin.actions.activity"),
-                            content_admin_group_path(group, request.query_parameters),
+                            content_admin_group_path(group, request.query_parameters.merge(inventory: request.query_parameters)),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
                 <%= link_to t("admin.groups.index.actions.members"),
                             group_members_path(group, context: "admin"),

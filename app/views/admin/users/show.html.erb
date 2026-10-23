@@ -1,12 +1,12 @@
 <section class="relative left-1/2 w-[95vw] max-w-none -translate-x-1/2">
-  <div class="mx-auto max-w-5xl mb-5"><%= render "shared/back_link", path: admin_users_path %></div>
+  <div class="mx-auto max-w-5xl mb-5"><%= render "shared/back_link", path: admin_users_path(@return_params[:inventory] || {}) %></div>
   <div class="mx-auto max-w-5xl space-y-6">
     <%= render "admin/users/identity",
                user: @user,
                account_status: @account_status,
                has_administered_groups: @has_administered_groups,
                action_label: t("admin.users.actions.activity"),
-               action_path: content_admin_user_path(@user) %>
+               action_path: content_admin_user_path(@user, @return_params) %>
 
     <section id="group_relationships" class="rounded-3xl border border-stone-200 bg-white p-5">
       <h2 class="text-lg font-semibold text-stone-900"><%= t("admin.users.sections.group_relationships") %></h2>

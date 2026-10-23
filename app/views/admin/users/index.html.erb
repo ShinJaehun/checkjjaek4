@@ -94,10 +94,10 @@
             <td class="px-4 py-3.5 whitespace-nowrap">
               <div class="flex flex-wrap gap-2">
                 <%= link_to t("admin.actions.show"),
-                            admin_user_path(user),
+                            admin_user_path(user, inventory: request.query_parameters),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
                 <%= link_to t("admin.actions.activity"),
-                            content_admin_user_path(user),
+                            content_admin_user_path(user, inventory: request.query_parameters),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
               </div>
             </td>

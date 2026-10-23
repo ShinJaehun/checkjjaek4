@@ -16,6 +16,8 @@ module Admin
       @user = User.find_by_public_param!(params[:id])
       authorize @user, :view_admin_inventory?
       prepare_user_identity
+      @return_params = params.permit(:content, :q, :location, :status, :sort, :all_page, :per_page,
+                                     inventory: %i[q status role sort page per_page])
       @can_suspend = policy(@user).suspend?
       @can_restore = policy(@user).restore?
       @account_history_entries = UserAccountHistoryQuery.new(@user).call
@@ -29,7 +31,9 @@ module Admin
       prepare_user_identity
       @content_section = permitted_content_section
       @content_location = permitted_content_location
-      @content_filter_params = params.permit(:q, :location, :status, :sort, :per_page)
+      @content_filter_params = params.permit(:q, :location, :status, :sort, :per_page,
+                                             inventory: %i[q status role sort page per_page])
+      @return_params = @content_filter_params.merge(params.permit(:content, :all_page))
 
       authored_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope)
         .where(user: @user)

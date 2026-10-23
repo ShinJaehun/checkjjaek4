@@ -31,6 +31,78 @@ RSpec.describe "Admin inventory pagination", type: :request do
     Rack::Utils.parse_nested_query(URI.parse(link["href"]).query)
   end
 
+  shared_examples "preserved admin navigation" do |kind|
+    it "keeps list and content state across details and direct content investigation" do
+      ordered_row_ids
+      sign_in admin
+      list_params = filters.stringify_keys.merge("page" => "2", "per_page" => "50")
+      get inventory_path, params: list_params
+      original_ids = row_ids
+      row = document.at_css(row_selector)
+      record_id = row["id"].delete_prefix("#{kind}_")
+      record = kind == :user ? User.find(record_id) : Group.find(record_id)
+      detail_path = kind == :user ? admin_user_path(record) : admin_group_path(record)
+      content_path = kind == :user ? content_admin_user_path(record) : content_admin_group_path(record)
+      detail_link = row.css("a").find { |link| URI.parse(link["href"]).path == detail_path }["href"]
+      content_link = row.css("a").find { |link| URI.parse(link["href"]).path == content_path }["href"]
+
+      [ detail_link, content_link ].each do |path|
+        get path
+        back = document.at_css("main a[data-back-link='true']")
+        expect(URI.parse(back["href"]).path).to eq(inventory_path)
+        expect(link_params(back)).to eq(list_params)
+        get back["href"]
+        expect(row_ids).to eq(original_ids)
+        expect(document.at_css("select[name='per_page'] option[selected]")["value"]).to eq("50")
+      end
+
+      author = kind == :user ? record : record.group_admin
+      51.times do |index|
+        author.jjaeks.create!(content: "NAV_CONTENT_#{index}", group: (record if kind == :group))
+      end
+      content_filters = if kind == :user
+        { "q" => "NAV_CONTENT", "status" => "active", "sort" => "oldest", "location" => "personal" }
+      else
+        { "content_q" => "NAV_CONTENT", "content_status" => "active", "content_sort" => "oldest" }
+      end
+      content_params = Rack::Utils.parse_nested_query(URI.parse(content_link).query)
+        .merge(content_filters).merge("content" => "general", "all_page" => "2", "per_page" => "50")
+      get content_path, params: content_params
+      content_selector = kind == :user ? "#admin_user_content_timeline tbody tr" : "#admin_group_content_timeline tbody[data-thread-id]"
+      original_content_ids = document.css(content_selector).map { |item| item["id"] || item["data-thread-id"] }
+      expect(original_content_ids.size).to eq(1)
+
+      summary_link = document.css("a").find { |link| URI.parse(link["href"]).path == detail_path }
+      get summary_link["href"]
+      activity_link = document.css("a").find { |link| URI.parse(link["href"]).path == content_path }
+      expect(link_params(activity_link)).to include(content_params)
+      get activity_link["href"]
+
+      form = document.at_css("select[name='per_page']").ancestors("form").first
+      list_params.each do |key, value|
+        expect(form.at_css("input[name='inventory[#{key}]']")["value"]).to eq(value)
+      end
+      expect(form.at_css("input[name='all_page']")).to be_nil
+
+      direct_link = document.css("#{content_selector} a").find { |link| URI.parse(link["href"]).path.start_with?("/jjaeks/") }
+      get direct_link["href"]
+      back = document.at_css("main a[data-back-link='true']")
+      expect(URI.parse(back["href"]).path).to eq(content_path)
+      expect(link_params(back)).to include(content_params)
+      get back["href"]
+      expect(document.css(content_selector).map { |item| item["id"] || item["data-thread-id"] }).to eq(original_content_ids)
+      expect(document.at_css("select[name='per_page'] option[selected]")["value"]).to eq("50")
+
+      # Content page size changes must preserve the original inventory conditions.
+      get content_path, params: content_params.except("all_page").merge("per_page" => "100")
+      expect(document.at_css("select[name='per_page'] option[selected]")["value"]).to eq("100")
+      back = document.at_css("main a[data-back-link='true']")
+      expect(link_params(back)).to eq(list_params)
+      get back["href"]
+      expect(row_ids).to eq(original_ids)
+    end
+  end
+
   shared_examples "a configurable admin inventory" do
     before { sign_in admin }
 
@@ -227,6 +299,7 @@ RSpec.describe "Admin inventory pagination", type: :request do
     end
 
     include_examples "a configurable admin inventory"
+    include_examples "preserved admin navigation", :user
   end
 
   context "Group list" do
@@ -245,6 +318,7 @@ RSpec.describe "Admin inventory pagination", type: :request do
     end
 
     include_examples "a configurable admin inventory"
+    include_examples "preserved admin navigation", :group
   end
 
   context "user content table" do
