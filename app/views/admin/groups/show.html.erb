@@ -11,7 +11,7 @@
           <%= link_to t("groups.members.management_title"),
                       group_members_path(@group, context: "admin"),
                       class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
-          <%= link_to t("admin.actions.content"),
+          <%= link_to t("admin.actions.activity"),
                       content_admin_group_path(@group, @return_params),
                       class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
           <% if policy(@group).approve? %>

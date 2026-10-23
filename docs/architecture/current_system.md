@@ -248,7 +248,7 @@
 - 운영 종료·재운영 요청·관리자 이전·승인·운영 정지·복구 Action page는 동아리 이름·종류·현재 상태·`group_admin`을 공통 context로 표시함. 현재 상태는 운영 정지와 재운영 승인 대기를 반영하는 공용 badge를 사용하고, 종료 시각·종료 사유 및 운영 이력은 과거 기록으로 별도 표시함
 - Group 상세는 콘텐츠와 사용자의 참여 상태에 집중하고, `/groups/:id/members`는 동아리 관리자의 회원 관리 및 global admin의 회원 조사 화면으로 사용함
 - `/groups/:id/edit`는 기본 설정과 운영 lifecycle·이력에 집중하며 관리자 이전은 회원 관리 화면에서 전용 Action page로 진입해 수행함
-- global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·기본 상태/역할/종류 필터·허용된 정렬·50건 단위 페이지네이션을 조합할 수 있음. Group은 lifecycle 상태, 재활성화 대기와 platform 운영 정지를 하나의 현재 상태 필터로 제공하며 운영 정지가 다른 lifecycle 표시보다 우선함. 가입·생성 기간 필터는 아직 없음
+- global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·기본 상태/역할/종류 필터·허용된 정렬·30/50/100건 선택 페이지네이션(기본 30건)을 조합할 수 있음. User 콘텐츠는 통합 테이블 항목, Group 콘텐츠는 전체 댓글을 포함한 root thread 단위로 같은 건수 선택을 제공함. 상세 정책은 `docs/specs/moderation_mvp.md`를 따름. Group은 lifecycle 상태, 재활성화 대기와 platform 운영 정지를 하나의 현재 상태 필터로 제공하며 운영 정지가 다른 lifecycle 표시보다 우선함. 가입·생성 기간 필터는 아직 없음
 - User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
 - Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 전용 승인 Action page로 연결함
 - 일반 사용자의 신규 `pending_approval`이면서 `closed_at`이 없는 신청은 동시에 1개로 제한함. `GroupsController#create`는 User 행 잠금 아래 검사·생성·event 기록을 수행하며 기존 5회/24시간 rate limit과 global admin 직접 생성 예외를 유지함

@@ -1,6 +1,6 @@
 module Admin
   class UserInventoryQuery
-    SORTS = { "recent" => { created_at: :desc }, "oldest" => { created_at: :asc }, "name" => { name: :asc, id: :asc } }.freeze
+    SORTS = { "recent" => { created_at: :desc, id: :desc }, "oldest" => { created_at: :asc, id: :asc }, "name" => { name: :asc, id: :asc } }.freeze
     ROLES = %w[global_admin group_admin regular].freeze
 
     def initialize(scope, params)

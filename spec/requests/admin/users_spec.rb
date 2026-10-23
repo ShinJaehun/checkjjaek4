@@ -228,8 +228,8 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(document.at_css("#user_#{reader.id} [data-field='account-status']")["class"]).to include("bg-emerald-100")
     expect(document.at_css("#user_#{withdrawn.id} [data-field='account-status']")["class"]).to include("bg-stone-200")
     expect(document.at_css("#user_#{reader.id} a[href='#{admin_user_path(reader)}']")).to be_present
-    expect(document.at_css("#user_#{reader.id} a[href='#{admin_user_path(reader)}']").text.strip).to eq("상세 보기")
-    expect(document.at_css("#user_#{reader.id} a[href='#{content_admin_user_path(reader)}']").text.strip).to eq("사용자 활동")
+    expect(document.at_css("#user_#{reader.id} a[href='#{admin_user_path(reader)}']").text.strip).to eq("상세")
+    expect(document.at_css("#user_#{reader.id} a[href='#{content_admin_user_path(reader)}']").text.strip).to eq("활동")
 
     expected_kind_colors = %w[bg-sky-100 bg-emerald-100 bg-violet-100 bg-sky-100 bg-emerald-100 bg-amber-100]
     activities.each_with_index do |(author, activity), index|
@@ -320,16 +320,16 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get admin_users_path, params: { q: "example.com", page: 2, sort: "unknown", status: "unknown" }
     expect(response).to have_http_status(:ok)
-    expect(listed_ids.size).to eq(1)
+    expect(listed_ids.size).to eq(21)
     expect(response.body).to include("q=example.com", "page=1")
 
     get admin_users_path, params: { page: "invalid", from: "ignored", to: "ignored", role: "invalid" }
     expect(response).to have_http_status(:ok)
-    expect(listed_ids.size).to eq(50)
+    expect(listed_ids.size).to eq(30)
 
     get admin_users_path, params: { page: 999 }
     expect(response).to have_http_status(:ok)
-    expect(listed_ids.size).to eq(2)
+    expect(listed_ids.size).to eq(22)
   end
 
   it "shows the user's personal and Group content with direct links without exposing secrets" do
@@ -376,10 +376,11 @@ RSpec.describe "Admin user inventory", type: :request do
     controls = document.at_css("#admin_user_activity_controls")
     expect(controls).to be_present
     expect(controls.at_css("h2").text.strip).to eq("사용자 활동")
-    expect(controls.text).to include("이 사용자가 작성한 짹과 댓글을 영역·유형별로 확인합니다.")
+    expect(controls.text).not_to include("이 사용자가 작성한 짹과 댓글을 영역·유형별로 확인합니다.")
     expect(controls.text).to match(/전체 \d+건/)
-    expect(controls.at_css("nav[aria-label='활동 영역']")).to be_present
-    expect(controls.at_css("nav[aria-label='활동 유형']")).to be_present
+    expect(controls.css("span").map { |label| label.text.strip }).to include("영역", "유형")
+    expect(controls.at_css("nav[aria-label='영역']")).to be_present
+    expect(controls.at_css("nav[aria-label='유형']")).to be_present
     expect(controls.at_css("form")).to be_present
     expect(controls.at_css("input[type='submit']")["value"]).to eq("검색")
     expect(controls.css("a").map { |link| link.text.strip }).to include("조건 초기화")
@@ -485,8 +486,8 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get content_admin_user_path(reader)
     document = Nokogiri::HTML(response.body)
-    area_navigation = document.at_css("nav[aria-label='활동 영역']")
-    type_navigation = document.at_css("nav[aria-label='활동 유형']")
+    area_navigation = document.at_css("nav[aria-label='영역']")
+    type_navigation = document.at_css("nav[aria-label='유형']")
     expect(document.at_css("#admin_user_activity_controls h2").text.strip).to eq("사용자 활동")
     expect(area_navigation.css("a").map { |link| link.text.strip }).to eq(
       [ "전체", "개인", "동아리" ]
@@ -543,8 +544,8 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(response).to have_http_status(:ok)
     invalid_document = Nokogiri::HTML(response.body)
     expect(invalid_document.css("#admin_user_content_timeline tbody tr").size).to eq(8)
-    expect(invalid_document.at_css("nav[aria-label='활동 영역'] a[aria-current='page']").text.strip).to eq("전체")
-    expect(invalid_document.at_css("nav[aria-label='활동 유형'] a[aria-current='page']").text.strip).to eq("전체")
+    expect(invalid_document.at_css("nav[aria-label='영역'] a[aria-current='page']").text.strip).to eq("전체")
+    expect(invalid_document.at_css("nav[aria-label='유형'] a[aria-current='page']").text.strip).to eq("전체")
 
     get content_admin_user_path(reader), params: {
       content: "comments",
@@ -557,21 +558,21 @@ RSpec.describe "Admin user inventory", type: :request do
     filtered_document = Nokogiri::HTML(response.body)
     expect(filtered_document.at_css("input[name='content']")["value"]).to eq("comments")
     expect(filtered_document.at_css("input[type='hidden'][name='location']")["value"]).to eq("group")
-    expect(filtered_document.at_css("nav[aria-label='활동 영역'] a[aria-current='page']").text.strip).to eq("동아리")
-    expect(filtered_document.at_css("nav[aria-label='활동 유형'] a[aria-current='page']").text.strip).to eq("댓글")
+    expect(filtered_document.at_css("nav[aria-label='영역'] a[aria-current='page']").text.strip).to eq("동아리")
+    expect(filtered_document.at_css("nav[aria-label='유형'] a[aria-current='page']").text.strip).to eq("댓글")
     reset_link = filtered_document.css("a").find { |link| link.text.strip == "조건 초기화" }
     expect(reset_link["href"]).to eq(content_admin_user_path(reader, content: "comments", location: "group"))
-    book_link = filtered_document.css("nav[aria-label='활동 유형'] a").find { |link| link.text.strip == "책짹" }
+    book_link = filtered_document.css("nav[aria-label='유형'] a").find { |link| link.text.strip == "책짹" }
     expect(book_link["href"]).to include(
       "content=book", "q=FILTER", "location=group", "status=active", "sort=oldest"
     )
     expect(book_link["href"]).not_to include("all_page")
-    personal_link = filtered_document.css("nav[aria-label='활동 영역'] a").find { |link| link.text.strip == "개인" }
+    personal_link = filtered_document.css("nav[aria-label='영역'] a").find { |link| link.text.strip == "개인" }
     expect(personal_link["href"]).to include(
       "content=comments", "location=personal", "q=FILTER", "status=active", "sort=oldest"
     )
     expect(personal_link["href"]).not_to include("all_page")
-    all_areas_link = filtered_document.css("nav[aria-label='활동 영역'] a").find { |link| link.text.strip == "전체" }
+    all_areas_link = filtered_document.css("nav[aria-label='영역'] a").find { |link| link.text.strip == "전체" }
     expect(all_areas_link["href"]).to include("content=comments", "q=FILTER", "status=active", "sort=oldest")
     expect(all_areas_link["href"]).not_to include("location=", "all_page")
   end
@@ -631,7 +632,7 @@ RSpec.describe "Admin user inventory", type: :request do
     get content_admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "recent" }
     first_page = Nokogiri::HTML(response.body)
     first_page_rows = first_page.css("#admin_user_content_timeline tbody tr")
-    expect(first_page_rows.size).to eq(50)
+    expect(first_page_rows.size).to eq(30)
     expect(first_page_rows.first(4).map(&:text).join).to match(
       /PAGED_GENERAL_0.*PAGED_COMMENT_0.*PAGED_GENERAL_1.*PAGED_COMMENT_1/m
     )
@@ -639,8 +640,9 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get content_admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "recent", all_page: 2 }
     second_page = Nokogiri::HTML(response.body)
-    expect(second_page.css("#admin_user_content_timeline tbody tr").size).to eq(1)
-    expect(second_page.css("#admin_user_content_timeline tbody tr").first.text).to include("PAGED_GENERAL_25")
+    expect(second_page.css("#admin_user_content_timeline tbody tr").size).to eq(21)
+    expect(second_page.css("#admin_user_content_timeline tbody tr").first.text).to include("PAGED_GENERAL_15")
+    expect(second_page.css("#admin_user_content_timeline tbody tr").last.text).to include("PAGED_GENERAL_25")
 
     get content_admin_user_path(reader), params: { content: "all", q: "PAGED", sort: "oldest" }
     oldest_first = Nokogiri::HTML(response.body).css("#admin_user_content_timeline tbody tr").first

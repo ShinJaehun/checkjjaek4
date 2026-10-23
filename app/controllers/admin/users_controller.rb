@@ -3,8 +3,8 @@ module Admin
     def index
       authorize User, :view_admin_inventory?
       users = policy_scope(User, policy_scope_class: UserPolicy::AdminInventoryScope)
-      scope = UserInventoryQuery.new(users, params).call
-      @inventory_page = InventoryPage.new(scope, page: params[:page])
+      scope = UserInventoryQuery.new(users, params).call.includes(avatar_attachment: :blob)
+      @inventory_page = InventoryPage.new(scope, page: params[:page], per_page: params[:per_page])
       @users = @inventory_page.records
       @latest_activities_by_user_id = LatestContentActivityQuery.new(
         owner_type: :user,
@@ -29,7 +29,7 @@ module Admin
       prepare_user_identity
       @content_section = permitted_content_section
       @content_location = permitted_content_location
-      @content_filter_params = params.permit(:q, :location, :status, :sort)
+      @content_filter_params = params.permit(:q, :location, :status, :sort, :per_page)
 
       authored_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope)
         .where(user: @user)

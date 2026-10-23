@@ -140,7 +140,7 @@ class GroupsController < ApplicationController
     else
       policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupCleanupScope).where(group_id: @group.id)
     end
-    @content_page = Admin::InventoryPage.new(scope.order(created_at: :desc, id: :desc), page: params[:page])
+    @content_page = Admin::InventoryPage.new(scope.order(created_at: :desc, id: :desc), page: params[:page], per_page: 50)
     render "groups/restricted_content/show", formats: :html
   end
 

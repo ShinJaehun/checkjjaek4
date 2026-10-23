@@ -179,6 +179,11 @@ en:
       approval_required: "Club posts are available after your membership is approved."
       empty_posts: "No club posts are available to read yet."
   pagination:
+    navigation: "Pagination"
+    first: "First"
+    last: "Last"
+    per_page: "Items per page"
+    per_page_option: "Show %{count}"
     pages: "Requote pages"
     range: "%{first}–%{last} of %{total}"
     previous: "Previous"
@@ -468,6 +473,7 @@ en:
   admin:
     actions:
       show: "Details"
+      activity: "Activity"
       content: "Manage content"
       back_to_details: "Back to details"
     jjaeks:
@@ -508,14 +514,13 @@ en:
         restore_failed: "The post could not be restored."
     user_content:
       title: "User activity"
-      description: "Review this user's Jjaeks and comments by area and type."
       total_count: "Total %{count}"
-      location_navigation_label: "Activity area"
+      location_navigation_label: "Area"
       location_navigation:
         all: "All"
         personal: "Personal"
         group: "Club"
-      navigation_label: "Activity type"
+      navigation_label: "Type"
       navigation:
         all: "All"
         general: "Jjaeks"
@@ -557,9 +562,8 @@ en:
       empty: "No activity."
     group_content:
       title: "User activity"
-      description: "Review each post in this club together with its comment context."
       total_count: "%{count} posts"
-      navigation_label: "Activity type"
+      navigation_label: "Type"
       navigation:
         all: "All"
         general: "Club Jjaeks"
@@ -711,7 +715,6 @@ en:
         empty: "No clubs are awaiting approval."
         actions:
           show: "Details"
-          content: "Content"
           members: "Members"
           approve: "Approve"
       filters:

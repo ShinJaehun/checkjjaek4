@@ -32,6 +32,7 @@
                    ),
                    {},
                    class: "rounded-xl border border-stone-200 px-3 py-2" %>
+      <%= render "admin/shared/page_size", form: f, page: @inventory_page %>
       <%= f.submit t("admin.users.index.search"),
                    class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
       <%= link_to t("admin.users.index.reset"),
@@ -95,7 +96,7 @@
                 <%= link_to t("admin.actions.show"),
                             admin_user_path(user),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
-                <%= link_to t("admin.users.actions.activity"),
+                <%= link_to t("admin.actions.activity"),
                             content_admin_user_path(user),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
               </div>
@@ -110,5 +111,5 @@
     <% end %>
   </div>
 
-  <%= render "shared/pagination", page: @inventory_page %>
+  <%= render "admin/shared/pagination", page: @inventory_page %>
 </section>

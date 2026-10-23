@@ -321,7 +321,7 @@ RSpec.describe "Cleaning up own content after losing group access", type: :reque
       leave_group
       get group_path(group.id), params: { content: section, user_id: other.id, host: "example.org", return_to: "https://example.org/steal" }
       first_ids = section == :comments ? cleanup_comment_ids : cleanup_post_ids
-      expect(first_ids.size).to eq(Admin::InventoryPage::PER_PAGE)
+      expect(first_ids.size).to eq(50)
       next_link = Nokogiri::HTML(response.body).css("a[href]").find { |link| link.text == I18n.t("pagination.next") }
       expect(next_link["href"]).to include("page=2")
       expect(next_link["href"]).to start_with(group_path(group.id))

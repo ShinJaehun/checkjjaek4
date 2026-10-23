@@ -1,6 +1,6 @@
 module Admin
   class GroupInventoryQuery
-    SORTS = { "recent" => { created_at: :desc }, "oldest" => { created_at: :asc }, "name" => { name: :asc, id: :asc } }.freeze
+    SORTS = { "recent" => { created_at: :desc, id: :desc }, "oldest" => { created_at: :asc, id: :asc }, "name" => { name: :asc, id: :asc } }.freeze
     LEGACY_OPERATION_STATUSES = %w[normal suspended].freeze
 
     def initialize(scope, params) = (@scope, @params = scope, params)

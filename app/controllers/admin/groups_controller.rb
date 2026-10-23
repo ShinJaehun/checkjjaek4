@@ -3,8 +3,8 @@ module Admin
     def index
       authorize Group, :view_admin_inventory?
       groups = policy_scope(Group, policy_scope_class: GroupPolicy::AdminInventoryScope)
-      scope = GroupInventoryQuery.new(groups, params).call.includes(:group_admin)
-      @inventory_page = InventoryPage.new(scope, page: params[:page])
+      scope = GroupInventoryQuery.new(groups, params).call.includes(group_admin: { avatar_attachment: :blob })
+      @inventory_page = InventoryPage.new(scope, page: params[:page], per_page: params[:per_page])
       @groups = @inventory_page.records
       @latest_activities_by_group_id = LatestContentActivityQuery.new(
         owner_type: :group,
@@ -28,15 +28,15 @@ module Admin
       @active_member_count = @membership_counts.fetch("active", 0) - (admin_membership_active ? 1 : 0)
       @member_preview = @group.active_group_memberships.where.not(user_id: @group.group_admin_id)
         .includes(:user).order(:created_at, :id).limit(5).map(&:user)
-      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
+      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page, :per_page)
     end
 
     def content
       @group = Group.find(params[:id])
       authorize @group, :view_admin_details?
       @content_section = permitted_content_section
-      @content_filter_params = params.permit(:content_q, :content_status, :content_sort)
-      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
+      @content_filter_params = params.permit(:content_q, :content_status, :content_sort, :per_page)
+      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page, :per_page)
 
       jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope)
         .where(group: @group)
@@ -49,7 +49,8 @@ module Admin
         jjaek_scope: jjaeks,
         comment_scope: comments,
         content_section: @content_section,
-        params:
+        params:,
+        per_page: InventoryPage.normalize_per_page(params[:per_page])
       ).call
       @content_threads = @thread_page.records
     end

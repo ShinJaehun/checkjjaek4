@@ -125,7 +125,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(group_admin_cell.text).to include(group_admin.name, group_admin.email)
     expect(group_admin_cell.at_css(%(img[alt="#{group_admin.name}"]))).to be_present
     group_actions = group_row.at_css("[data-field='actions']")
-    expect(group_actions.css("a").map { |link| link.text.strip }).to eq([ "상세", "콘텐츠", "회원", "승인" ])
+    expect(group_actions.css("a").map { |link| link.text.strip }).to eq([ "상세", "활동", "회원", "승인" ])
     expect(group_actions.at_css("a[href='#{admin_group_path(group)}']")).to be_present
     expect(group_actions.at_css("a[href='#{content_admin_group_path(group)}']")).to be_present
     expect(group_actions.at_css("a[href='#{group_members_path(group, context: "admin")}']")).to be_present
@@ -141,7 +141,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(active_name_cell.at_css("[data-group-type='private_group']").text.strip).to eq("비공개 동아리")
     expect(active_name_cell.at_css("[data-field='current-status']").text.strip).to eq("운영 중")
     active_actions = active_row.at_css("[data-field='actions']")
-    expect(active_actions.css("a").map { |link| link.text.strip }).to eq([ "상세", "콘텐츠", "회원" ])
+    expect(active_actions.css("a").map { |link| link.text.strip }).to eq([ "상세", "활동", "회원" ])
     expect(table.css("[data-field='actions'] a").map { |link| link.text.strip }).not_to include("운영 중지", "운영 정지", "운영 복구")
     expect(table.at_css("a[href*='operation_suspensions'], a[href*='operation_restorations']")).to be_nil
     expect(response.body).not_to include("운영 이력", "Create a reading circle")
@@ -151,7 +151,7 @@ RSpec.describe "Admin group approvals", type: :request do
     detail_page = Nokogiri::HTML(response.body)
     opening_card = detail_page.at_css("[data-history-entry='opening_requested']")
     expect(response.body).to include("승인 대기", "운영 이력")
-    expect(response.body).to include("콘텐츠")
+    expect(detail_page.at_css("#admin_group_identity a[href='#{content_admin_group_path(group)}']").text.strip).to eq("활동")
     expect(detail_page.at_css(%(main a[data-back-link="true"][href="#{admin_groups_path}"])).text.strip).to eq("동아리 관리로")
     return_links = detail_page.css(%(main a[data-back-link="true"]))
     expect(return_links.one?).to be(true)
@@ -727,7 +727,7 @@ RSpec.describe "Admin group approvals", type: :request do
     sign_in admin
 
     get admin_groups_path, params: { q: "club", page: 2 }
-    expect(listed_group_ids.size).to eq(1)
+    expect(listed_group_ids.size).to eq(21)
     expect(response.body).to include("q=club", "page=1")
   end
 
@@ -794,7 +794,7 @@ RSpec.describe "Admin group approvals", type: :request do
 
     detail = Nokogiri::HTML(response.body)
     expect(detail.at_css("#admin_group_content_timeline")).to be_nil
-    expect(detail.at_css("a[href='#{content_admin_group_path(active_group)}']")).to be_present
+    expect(detail.at_css("a[href='#{content_admin_group_path(active_group)}']").text.strip).to eq("활동")
 
     get content_admin_group_path(active_group)
 
@@ -810,8 +810,9 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(identity.at_css("a[href='#{admin_group_path(active_group)}']").text.strip).to eq("세부 정보")
     expect(document.at_css("main a[data-back-link='true'][href='#{admin_groups_path}']").text.strip).to eq("동아리 관리로")
     expect(controls.at_css("h2").text.strip).to eq("사용자 활동")
-    expect(controls.text).to include("이 동아리의 게시물별로 댓글 문맥을 함께 확인합니다.")
+    expect(controls.text).not_to include("이 동아리의 게시물별로 댓글 문맥을 함께 확인합니다.")
     expect(controls.text).to include("게시물 4건")
+    expect(controls.css("span").map { |label| label.text.strip }).to include("유형")
     expect(controls.at_css("form")).to be_present
     expect(controls.at_css("input[type='submit']")["value"]).to eq("검색")
     expect(controls.css("a").map { |link| link.text.strip }).to include("조건 초기화")
@@ -880,7 +881,7 @@ RSpec.describe "Admin group approvals", type: :request do
     comment_anchor = ActionView::RecordIdentifier.dom_id(comment)
     expect(comment_row.at_css("a[href='#{jjaek_path(general, anchor: comment_anchor, return_to: content_admin_group_path(active_group))}']")).to be_present
 
-    navigation = controls.at_css("nav[aria-label='활동 유형']")
+    navigation = controls.at_css("nav[aria-label='유형']")
     expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "동아리짹", "동아리 책짹", "댓글" ])
     expect(navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
     expect(navigation.text).not_to include("다시짹")
@@ -1089,6 +1090,7 @@ RSpec.describe "Admin group approvals", type: :request do
     }
     filtered_document = Nokogiri::HTML(response.body)
     expect(filtered_document.at_css("input[name='content']")["value"]).to eq("comments")
+    expect(filtered_document.at_css("nav[aria-label='유형'] a[aria-current='page']").text.strip).to eq("댓글")
     reset_link = filtered_document.css("a").find { |link| link.text.strip == "조건 초기화" }
     expect(reset_link["href"]).to eq(
       content_admin_group_path(
@@ -1172,7 +1174,7 @@ RSpec.describe "Admin group approvals", type: :request do
 
     first_page = Nokogiri::HTML(response.body)
     first_page_threads = first_page.css("#admin_group_content_timeline tbody[data-thread-id]")
-    expect(first_page_threads.size).to eq(50)
+    expect(first_page_threads.size).to eq(30)
     expect(first_page_threads.first["data-thread-id"].to_i).to eq(source.id)
     expect(first_page.at_css("tbody[data-thread-id='#{source.id}']").css("tr").map { |row| row["id"] }).to eq(
       [
@@ -1181,7 +1183,7 @@ RSpec.describe "Admin group approvals", type: :request do
         "group_timeline_jjaek_#{source.id}"
       ]
     )
-    expect(first_page.css("#admin_group_content_timeline tbody tr").size).to eq(52)
+    expect(first_page.css("#admin_group_content_timeline tbody tr").size).to eq(32)
     expect(response.body).to include(
       "content=all",
       "content_q=PAGED_GROUP",
@@ -1198,9 +1200,10 @@ RSpec.describe "Admin group approvals", type: :request do
       all_page: 2
     }
     second_page = Nokogiri::HTML(response.body)
-    expect(second_page.css("#admin_group_content_timeline tbody[data-thread-id]").size).to eq(1)
-    expect(second_page.css("#admin_group_content_timeline tbody tr").size).to eq(1)
-    expect(second_page.at_css("tbody[data-thread-id]")["data-thread-id"].to_i).to eq(other_roots.last.id)
+    expect(second_page.css("#admin_group_content_timeline tbody[data-thread-id]").size).to eq(21)
+    expect(second_page.css("#admin_group_content_timeline tbody tr").size).to eq(21)
+    expect(second_page.at_css("tbody[data-thread-id]")["data-thread-id"].to_i).to eq(other_roots[29].id)
+    expect(second_page.css("tbody[data-thread-id]").last["data-thread-id"].to_i).to eq(other_roots.last.id)
 
     get content_admin_group_path(active_group), params: { content_q: "PAGED_GROUP", content_sort: "oldest" }
     oldest_document = Nokogiri::HTML(response.body)

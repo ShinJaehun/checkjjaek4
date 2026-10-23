@@ -1,0 +1,9 @@
+<%= form.select :per_page,
+                options_for_select(
+                  Admin::InventoryPage::PER_PAGE_OPTIONS.map { |size| [t("pagination.per_page_option", count: size), size] },
+                  page.per_page
+                ),
+                {},
+                class: "rounded-xl border border-stone-200 px-3 py-2",
+                aria: { label: t("pagination.per_page") },
+                data: { controller: "page-size", action: "change->page-size#submit" } %>

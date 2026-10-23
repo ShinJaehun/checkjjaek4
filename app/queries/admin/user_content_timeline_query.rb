@@ -1,18 +1,18 @@
 module Admin
   class UserContentTimelineQuery
-    PER_PAGE = InventoryPage::PER_PAGE
     LOCATIONS = %w[personal group].freeze
     STATUSES = %w[active hidden deleted].freeze
     SORT_DIRECTIONS = { "recent" => "DESC", "oldest" => "ASC" }.freeze
     TimelineItem = Struct.new(:record_type, :record, :kind, keyword_init: true)
 
-    attr_reader :records, :page, :total_count
+    attr_reader :records, :page, :per_page, :total_count
 
     def initialize(jjaek_scope:, comment_scope:, content_section:, params:)
       @jjaek_scope = jjaek_scope
       @comment_scope = comment_scope
       @content_section = content_section
       @params = params
+      @per_page = InventoryPage.normalize_per_page(params[:per_page])
     end
 
     def call
@@ -34,8 +34,8 @@ module Admin
       page + 1 if page < total_pages
     end
 
-    def first_item = total_count.zero? ? 0 : (page - 1) * PER_PAGE + 1
-    def last_item = [ page * PER_PAGE, total_count ].min
+    def first_item = total_count.zero? ? 0 : (page - 1) * per_page + 1
+    def last_item = [ page * per_page, total_count ].min
 
     private
 
@@ -133,20 +133,20 @@ module Admin
     end
 
     def page_sql
-      offset = (page - 1) * PER_PAGE
+      offset = (page - 1) * per_page
       direction = SORT_DIRECTIONS.fetch(@params[:sort].to_s, SORT_DIRECTIONS["recent"])
       <<~SQL.squish
         SELECT record_type, record_id, created_at
         FROM (#{union_sql}) admin_user_content_timeline
         ORDER BY created_at #{direction}, record_type #{direction}, record_id #{direction}
-        LIMIT #{PER_PAGE} OFFSET #{offset}
+        LIMIT #{per_page} OFFSET #{offset}
       SQL
     end
 
     def normalized_page
       requested = Integer(@params[:all_page], exception: false).to_i
       requested = 1 if requested < 1
-      @total_pages = [ (total_count.to_f / PER_PAGE).ceil, 1 ].max
+      @total_pages = [ (total_count.to_f / per_page).ceil, 1 ].max
       [ requested, @total_pages ].min
     end
 

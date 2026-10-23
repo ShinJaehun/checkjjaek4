@@ -8,6 +8,7 @@
     <%= form_with url: admin_groups_path,
                   method: :get,
                   class: "flex flex-col gap-3 lg:flex-row lg:items-center" do |f| %>
+      <%= f.hidden_field :operation_status, value: params[:operation_status] if params[:operation_status].present? %>
       <%= f.search_field :q,
                          value: params[:q],
                          placeholder: t("admin.groups.filters.search"),
@@ -35,6 +36,7 @@
                    ),
                    {},
                    class: "rounded-xl border border-stone-200 px-3 py-2" %>
+      <%= render "admin/shared/page_size", form: f, page: @inventory_page %>
       <%= f.submit t("admin.groups.index.search"),
                    class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
       <%= link_to t("admin.groups.index.reset"),
@@ -106,7 +108,7 @@
                 <%= link_to t("admin.groups.index.actions.show"),
                             admin_group_path(group, request.query_parameters),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
-                <%= link_to t("admin.groups.index.actions.content"),
+                <%= link_to t("admin.actions.activity"),
                             content_admin_group_path(group, request.query_parameters),
                             class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
                 <%= link_to t("admin.groups.index.actions.members"),
@@ -129,5 +131,5 @@
     <% end %>
   </div>
 
-  <%= render "shared/pagination", page: @inventory_page %>
+  <%= render "admin/shared/pagination", page: @inventory_page %>
 </section>

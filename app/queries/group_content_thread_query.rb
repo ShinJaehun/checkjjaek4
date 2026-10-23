@@ -4,13 +4,14 @@ class GroupContentThreadQuery
   SORT_DIRECTIONS = { "recent" => "DESC", "oldest" => "ASC" }.freeze
   ContentThread = Struct.new(:root, :comments, :latest_activity_at, keyword_init: true)
 
-  attr_reader :records, :page, :total_count
+  attr_reader :records, :page, :per_page, :total_count
 
-  def initialize(jjaek_scope:, comment_scope:, content_section:, params:)
+  def initialize(jjaek_scope:, comment_scope:, content_section:, params:, per_page: PER_PAGE)
     @jjaek_scope = jjaek_scope
     @comment_scope = comment_scope
     @content_section = content_section
     @params = params
+    @per_page = per_page
   end
 
   def call
@@ -34,8 +35,8 @@ class GroupContentThreadQuery
     page + 1 if page < total_pages
   end
 
-  def first_item = total_count.zero? ? 0 : (page - 1) * PER_PAGE + 1
-  def last_item = [ page * PER_PAGE, total_count ].min
+  def first_item = total_count.zero? ? 0 : (page - 1) * per_page + 1
+  def last_item = [ page * per_page, total_count ].min
 
   private
 
@@ -107,7 +108,7 @@ class GroupContentThreadQuery
   end
 
   def page_sql
-    offset = (page - 1) * PER_PAGE
+    offset = (page - 1) * per_page
     direction = SORT_DIRECTIONS.fetch(@params[:content_sort].to_s, SORT_DIRECTIONS["recent"])
 
     @thread_scope.reorder(nil)
@@ -117,7 +118,7 @@ class GroupContentThreadQuery
         "GREATEST(jjaeks.created_at, COALESCE(latest_comments.latest_comment_at, jjaeks.created_at)) AS latest_activity_at"
       )
       .order(Arel.sql("latest_activity_at #{direction}, jjaeks.id #{direction}"))
-      .limit(PER_PAGE)
+      .limit(per_page)
       .offset(offset)
       .to_sql
   end
@@ -137,7 +138,7 @@ class GroupContentThreadQuery
   def normalized_page
     requested = Integer(@params[:all_page], exception: false).to_i
     requested = 1 if requested < 1
-    @total_pages = [ (total_count.to_f / PER_PAGE).ceil, 1 ].max
+    @total_pages = [ (total_count.to_f / per_page).ceil, 1 ].max
     [ requested, @total_pages ].min
   end
 
