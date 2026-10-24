@@ -3,7 +3,9 @@
     <%= turbo_stream_from current_user, :notifications %>
   <% end %>
   <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-y-3 px-5 py-4 lg:flex-nowrap">
-    <%= link_to "checkjjaek4", root_path, class: "mr-auto text-xl font-semibold tracking-tight text-stone-900" %>
+    <%= link_to root_path, class: "mr-auto shrink-0" do %>
+      <%= image_tag "logo/logo_black_mini.png", alt: "책짹4", width: 75, height: 50, class: "block h-auto w-[75px]" %>
+    <% end %>
     <nav class="contents text-sm text-stone-700 lg:flex lg:items-center lg:gap-3">
       <div id="mobile-navigation-links" class="order-3 hidden w-full flex-col gap-3 border-t border-stone-200 pt-3 lg:order-none lg:flex lg:w-auto lg:flex-row lg:items-center lg:border-0 lg:pt-0" data-mobile-navigation-target="links">
         <% if user_signed_in? %>

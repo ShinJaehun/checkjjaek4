@@ -32,7 +32,7 @@ RSpec.describe "Authentication rate limits", type: :request do
 
     expect(response).to have_http_status(:too_many_requests)
     expect(response.body).to include(I18n.t("auth.alerts.rate_limited"))
-    expect(response.body).to include(I18n.t("auth.registrations.title"))
+    expect(response.body).to include(I18n.t("auth.actions.sign_up"))
   end
 
   it "allows 120 login attempts from one IP across distinct emails and rejects the next" do
@@ -142,7 +142,7 @@ RSpec.describe "Authentication rate limits", type: :request do
       expect(response).to have_http_status(:too_many_requests)
       expect(response.media_type).to eq("text/html")
       expect(response.body).to include(I18n.t("auth.alerts.login_rate_limited"))
-      expect(response.body).to include(I18n.t("auth.sessions.title"))
+      expect(response.body).to include(I18n.t("auth.actions.sign_in"))
 
       60.times { attempt_registration }
       attempt_registration(headers: { "ACCEPT" => "text/vnd.turbo-stream.html, text/html" })

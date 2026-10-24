@@ -139,6 +139,7 @@ en:
       signed_out: "Signed out successfully."
     registrations:
       description: "Build your shelf first, then share book-linked writing."
+      have_account: "Already have an account?"
       title: "Create your reader account"
     sessions:
       description: "Track books on your shelf, read friends-only writing, and keep your reading graph close."
