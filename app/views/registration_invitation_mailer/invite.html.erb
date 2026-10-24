@@ -1,0 +1,3 @@
+<p><%= t("registration_invitations.mail.intro") %></p>
+<p><%= link_to t("registration_invitations.mail.action"), @registration_url %></p>
+<p><%= t("registration_invitations.mail.expires", expires_at: I18n.l(@expires_at, format: :long)) %></p>

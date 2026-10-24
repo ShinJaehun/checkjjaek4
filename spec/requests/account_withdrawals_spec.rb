@@ -78,8 +78,13 @@ RSpec.describe "Account withdrawals", type: :request do
     expect(withdrawn_user.email).not_to eq(original_email)
     expect(jjaek.reload.user_id).to eq(original_id)
 
+    admin = User.create!(name: "Invitation Admin", email: "withdrawal-invite-admin@example.com", password: password, global_admin: true)
+    invitation = RegistrationInvitation.new(email: original_email, invited_by: admin)
+    token = invitation.issue_token!
+    invitation.save!
+
     expect {
-      post user_registration_path, params: {
+      post user_registration_path, params: { invitation_token: token,
         user: {
           name: original_name,
           handle: "reader_again",

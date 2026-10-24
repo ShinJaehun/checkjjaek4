@@ -1,8 +1,20 @@
 require "rails_helper"
 
 RSpec.describe "Authentication", type: :request do
+  def registration_token(email)
+    admin = User.find_or_create_by!(email: "invitation-spec-admin@example.com") do |user|
+      user.name = "Invitation Admin"
+      user.password = "password123!"
+      user.global_admin = true
+    end
+    invitation = RegistrationInvitation.new(email:, invited_by: admin)
+    token = invitation.issue_token!
+    invitation.save!
+    token
+  end
+
   it "shows the permanent profile address guidance on registration" do
-    get new_user_registration_path
+    get new_user_registration_path(invitation_token: registration_token("guidance@example.com"))
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(I18n.t("user_handle.guidance"))
@@ -10,8 +22,9 @@ RSpec.describe "Authentication", type: :request do
 
   describe "POST /users" do
     it "creates a user and redirects to the home feed" do
+      token = registration_token("new-reader@example.com")
       expect {
-        post user_registration_path, params: {
+        post user_registration_path, params: { invitation_token: token,
           user: {
             name: "New Reader",
             handle: "new_reader",
@@ -27,8 +40,9 @@ RSpec.describe "Authentication", type: :request do
     end
 
     it "requires a handle for public registration" do
+      token = registration_token("no-handle@example.com")
       expect {
-        post user_registration_path, params: {
+        post user_registration_path, params: { invitation_token: token,
           user: { name: "No Handle", email: "no-handle@example.com", password: "password123!", password_confirmation: "password123!" }
         }
       }.not_to change(User, :count)
@@ -38,7 +52,7 @@ RSpec.describe "Authentication", type: :request do
     end
 
     it "does not permit global admin through registration params" do
-      post user_registration_path, params: {
+      post user_registration_path, params: { invitation_token: registration_token("regular-reader@example.com"),
         user: {
           name: "Regular Reader",
           handle: "regular_reader",

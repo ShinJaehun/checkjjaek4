@@ -17,10 +17,10 @@
           <% if current_user.global_admin? %>
             <%= link_to t("admin.users.nav"), admin_users_path, class: "font-medium" %>
             <%= link_to t("admin.groups.nav"), admin_groups_path, class: "font-medium" %>
+            <%= link_to t("registration_invitations.nav"), admin_registration_invitations_path, class: "font-medium" %>
           <% end %>
         <% else %>
           <%= link_to t("auth.actions.sign_in"), new_user_session_path, class: "font-medium lg:rounded-full lg:border lg:border-stone-300 lg:px-3 lg:py-1.5" %>
-          <%= link_to t("auth.actions.sign_up"), new_user_registration_path, class: "font-medium lg:rounded-full lg:bg-stone-900 lg:px-3 lg:py-1.5 lg:text-stone-50" %>
         <% end %>
       </div>
       <% if user_signed_in? %>

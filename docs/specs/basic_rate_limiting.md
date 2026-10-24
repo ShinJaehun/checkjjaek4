@@ -9,7 +9,7 @@
 ## 현재 구조
 
 - Rails 8.1.3.1의 `ActionController::RateLimiting#rate_limit`을 사용할 수 있다. 지정한 action의 요청을 캐시 카운터로 제한하고, 초과 시 기본적으로 `ActionController::TooManyRequests`와 HTTP 429를 사용한다.
-- 회원가입은 `Users::RegistrationsController#create`에서 Devise의 기존 create 흐름을 사용한다. 로그인은 `Users::SessionsController#create`가 정지 계정의 올바른 비밀번호 입력을 별도로 처리하고 그 외에는 Devise에 위임한다. 로그인 실패만 세는 별도 계측은 이번 범위에 없다.
+- 회원가입은 `Users::RegistrationsController#create`에서 기존 Devise 검증·로그인 동작과 rate limit을 유지하며 C08 이메일 초대를 확인한다. 로그인은 `Users::SessionsController#create`가 정지 계정의 올바른 비밀번호 입력을 별도로 처리하고 그 외에는 Devise에 위임한다. 로그인 실패만 세는 별도 계측은 이번 범위에 없다.
 - `ApplicationController`는 Devise 인증, 정지 세션 차단, Pundit 권한 처리를 담당한다. Devise controller는 일반 로그인 필수 before action의 예외다.
 - 운영 환경은 별도 cache DB를 사용하는 Solid Cache, 개발 환경은 프로세스별 MemoryStore, 테스트 환경은 NullStore다. Rate Limit request spec은 별도 MemoryStore로 카운터를 검증한다.
 - 좋아요의 사용자·글 고유성, 동아리 membership의 사용자·동아리 고유성, 일부 인용 다시짹 중복 방지와 동아리 쓰기의 row lock은 기존 중복·동시성 방어다. 요청 횟수 제한을 대신하지 않는다.

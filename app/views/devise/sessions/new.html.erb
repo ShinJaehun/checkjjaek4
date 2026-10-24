@@ -15,8 +15,5 @@
     <%= form.submit t("auth.actions.sign_in"), class: "w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50" %>
   <% end %>
 
-  <p class="mt-6 text-sm text-stone-500">
-    <%= t("auth.sessions.no_account") %>
-    <%= link_to t("auth.actions.sign_up"), new_user_registration_path, class: "font-medium text-stone-900" %>
-  </p>
+  <p class="mt-6 text-sm text-stone-500"><%= t("registration_invitations.sign_in_notice") %></p>
 <% end %>

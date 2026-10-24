@@ -1360,6 +1360,7 @@ ko:
   time:
     formats:
       short: "%Y-%m-%d %H:%M"
+      long: "%Y년 %-m월 %-d일 %H:%M"
   users:
     roles:
       global_admin: "시스템 관리자"

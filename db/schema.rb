@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_24_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -323,6 +323,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_010000) do
     t.index ["recipient_id"], name: "index_notifications_on_recipient_id"
   end
 
+  create_table "registration_invitations", force: :cascade do |t|
+    t.datetime "canceled_at"
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at", null: false
+    t.bigint "invited_by_id", null: false
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["email"], name: "index_pending_registration_invitations_on_email", unique: true, where: "((consumed_at IS NULL) AND (canceled_at IS NULL))"
+    t.index ["invited_by_id"], name: "index_registration_invitations_on_invited_by_id"
+    t.index ["token_digest"], name: "index_registration_invitations_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_registration_invitations_on_user_id"
+    t.check_constraint "NOT (consumed_at IS NOT NULL AND canceled_at IS NOT NULL)", name: "registration_invitations_single_terminal_state"
+    t.check_constraint "consumed_at IS NULL AND user_id IS NULL OR consumed_at IS NOT NULL AND user_id IS NOT NULL", name: "registration_invitations_user_when_consumed"
+  end
+
   create_table "sticker_definitions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "key", null: false
@@ -400,4 +418,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_010000) do
   add_foreign_key "moderation_actions", "users", column: "actor_id"
   add_foreign_key "notifications", "users", column: "actor_id"
   add_foreign_key "notifications", "users", column: "recipient_id"
+  add_foreign_key "registration_invitations", "users"
+  add_foreign_key "registration_invitations", "users", column: "invited_by_id"
 end

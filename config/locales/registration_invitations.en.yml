@@ -1,0 +1,34 @@
+en:
+  registration_invitations:
+    nav: "Sign-up invitations"
+    title: "Manage sign-up invitations"
+    description: "Send email invitations and check their status. Links are valid for 7 days."
+    sign_in_notice: "During beta, sign-up is available by email invitation only."
+    fields:
+      status: "Status"
+      expires_at: "Expires"
+      actions: "Actions"
+    status:
+      pending: "Pending"
+      expired: "Expired"
+      used: "Used"
+      canceled: "Canceled"
+    actions:
+      send: "Send invitation"
+      resend: "Resend"
+      cancel: "Cancel"
+    notices:
+      sent: "Invitation email sent."
+      resent: "A new invitation link was sent."
+      canceled: "Invitation canceled."
+    errors:
+      invalid: "A valid email invitation link is required."
+      duplicate: "A pending invitation already exists for this email."
+      cannot_resend: "This invitation cannot be resent."
+      cannot_cancel: "This invitation cannot be canceled."
+    mail:
+      subject: "Bookjjaek beta sign-up invitation"
+      intro: "You are invited to the Bookjjaek beta. Use the link below to sign up."
+      action: "Sign up for Bookjjaek"
+      expires: "This link is valid until %{expires_at}."
+      body: "You are invited to the Bookjjaek beta.\n\nSign up: %{url}\n\nThis link is valid until %{expires_at}."

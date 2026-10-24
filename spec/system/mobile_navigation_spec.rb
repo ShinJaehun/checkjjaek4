@@ -52,16 +52,20 @@ RSpec.describe "Responsive navigation", type: :system do
     expect(page).to have_css("header #notification-badge-container #notification-badge", visible: true)
   end
 
-  it "hides navigation and provides auth links on sign-in and sign-up pages" do
+  it "hides navigation and keeps invited sign-up linked back to sign-in" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 800 ]
     page.driver.browser.manage.window.resize_to(390, 800)
+    admin = User.create!(name: "Invitation admin", email: "mobile-nav-inviter@example.com", password: "password123!", global_admin: true)
+    invitation = RegistrationInvitation.new(email: "mobile-nav-invitee@example.com", invited_by: admin)
+    token = invitation.issue_token!
+    invitation.save!
 
     visit new_user_session_path
 
     expect(page).to have_no_css("header", visible: :all)
-    expect(page).to have_css("a[href='#{new_user_registration_path}']", visible: true)
+    expect(page).to have_text(I18n.t("registration_invitations.sign_in_notice"))
 
-    visit new_user_registration_path
+    visit new_user_registration_path(invitation_token: token)
 
     expect(page).to have_no_css("header", visible: :all)
     expect(page).to have_css("a[href='#{new_user_session_path}']", visible: true)
@@ -70,9 +74,9 @@ RSpec.describe "Responsive navigation", type: :system do
     visit new_user_session_path
 
     expect(page).to have_no_css("header", visible: :all)
-    expect(page).to have_css("a[href='#{new_user_registration_path}']", visible: true)
+    expect(page).to have_text(I18n.t("registration_invitations.sign_in_notice"))
 
-    visit new_user_registration_path
+    visit new_user_registration_path(invitation_token: token)
 
     expect(page).to have_no_css("header", visible: :all)
     expect(page).to have_css("a[href='#{new_user_session_path}']", visible: true)

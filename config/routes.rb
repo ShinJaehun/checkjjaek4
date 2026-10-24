@@ -16,6 +16,9 @@ Rails.application.routes.draw do
   get "/account/relationships", to: "relationships#index", as: :account_relationships
   resources :notifications, only: :index
   namespace :admin do
+    resources :registration_invitations, only: %i[index create destroy] do
+      post :resend, on: :member
+    end
     resources :jjaeks, only: [] do
       resources :hides, only: %i[new create], controller: "jjaek_hides"
       resources :restorations, only: %i[new create], controller: "jjaek_restorations"

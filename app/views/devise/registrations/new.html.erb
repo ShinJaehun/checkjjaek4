@@ -1,40 +1,45 @@
 <%= render layout: "devise/shared/auth_layout", locals: { registration: true } do %>
   <h1 class="text-center text-2xl font-semibold text-stone-900"><%= t("auth.actions.sign_up") %></h1>
 
-  <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "mt-8 space-y-4 lg:mt-5 lg:space-y-3" }) do |form| %>
-    <% if resource.errors.any? %>
-      <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        <%= resource.errors.full_messages.to_sentence %>
+  <% if @invitation.present? %>
+    <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "mt-8 space-y-4 lg:mt-5 lg:space-y-3" }) do |form| %>
+      <%= hidden_field_tag :invitation_token, @invitation_token %>
+      <% if resource.errors.any? %>
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <%= resource.errors.full_messages.to_sentence %>
+        </div>
+      <% end %>
+
+      <div class="space-y-2">
+        <%= form.label :name, t("auth.form.name"), class: "text-sm font-medium text-stone-700" %>
+        <%= form.text_field :name, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
       </div>
+
+      <div class="space-y-2">
+        <%= form.label :handle, t("auth.form.handle"), class: "text-sm font-medium text-stone-700" %>
+        <%= form.text_field :handle, required: true, minlength: 3, maxlength: 30, autocomplete: "username", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
+        <p class="text-xs text-stone-700 lg:text-stone-500"><%= t("user_handle.guidance") %></p>
+      </div>
+
+      <div class="space-y-2">
+        <%= form.label :email, t("auth.form.email"), class: "text-sm font-medium text-stone-700" %>
+        <p class="rounded-2xl border border-stone-300 px-4 py-3 text-sm text-stone-700 lg:py-2.5"><%= @invitation.email %></p>
+      </div>
+
+      <div class="space-y-2">
+        <%= form.label :password, t("auth.form.password"), class: "text-sm font-medium text-stone-700" %>
+        <%= form.password_field :password, autocomplete: "new-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
+      </div>
+
+      <div class="space-y-2">
+        <%= form.label :password_confirmation, t("auth.form.password_confirmation"), class: "text-sm font-medium text-stone-700" %>
+        <%= form.password_field :password_confirmation, autocomplete: "new-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
+      </div>
+
+      <%= form.submit t("auth.actions.sign_up"), class: "w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50" %>
     <% end %>
-
-    <div class="space-y-2">
-      <%= form.label :name, t("auth.form.name"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.text_field :name, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
-    </div>
-
-    <div class="space-y-2">
-      <%= form.label :handle, t("auth.form.handle"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.text_field :handle, required: true, minlength: 3, maxlength: 30, autocomplete: "username", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
-      <p class="text-xs text-stone-700 lg:text-stone-500"><%= t("user_handle.guidance") %></p>
-    </div>
-
-    <div class="space-y-2">
-      <%= form.label :email, t("auth.form.email"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.email_field :email, autocomplete: "email", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
-    </div>
-
-    <div class="space-y-2">
-      <%= form.label :password, t("auth.form.password"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.password_field :password, autocomplete: "new-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
-    </div>
-
-    <div class="space-y-2">
-      <%= form.label :password_confirmation, t("auth.form.password_confirmation"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.password_field :password_confirmation, autocomplete: "new-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white lg:py-2.5" %>
-    </div>
-
-    <%= form.submit t("auth.actions.sign_up"), class: "w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50" %>
+  <% else %>
+    <p class="mt-6 text-sm text-stone-700"><%= t("registration_invitations.sign_in_notice") %></p>
   <% end %>
 
   <p class="mt-6 text-sm text-stone-500 lg:mt-4">
