@@ -141,6 +141,7 @@ ko:
       signed_out: "로그아웃되었습니다."
     registrations:
       description: "내 서재를 먼저 만들고, 책에 연결된 Jjaek을 차근히 쌓아갑니다."
+      have_account: "이미 계정이 있나요?"
       title: "독자 계정을 만듭니다"
     sessions:
       description: "서재에 책을 담고, 소식받는 독자와 책친구의 Jjaek을 읽으며 독서 흐름을 이어갑니다."

@@ -52,23 +52,30 @@ RSpec.describe "Responsive navigation", type: :system do
     expect(page).to have_css("header #notification-badge-container #notification-badge", visible: true)
   end
 
-  it "offers sign in and sign up in the mobile menu for guests" do
+  it "hides navigation and provides auth links on sign-in and sign-up pages" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 800 ]
     page.driver.browser.manage.window.resize_to(390, 800)
 
     visit new_user_session_path
 
-    expect(page).to have_no_css("header #notification-badge-container")
-    expect(page).to have_no_css("header turbo-cable-stream-source")
-    click_button I18n.t("navigation.menu")
-    expect(page).to have_css("#mobile-navigation-links a[href='#{new_user_session_path}']", visible: true)
-    expect(page).to have_css("#mobile-navigation-links a[href='#{new_user_registration_path}']", visible: true)
-    expect(page.evaluate_script("document.querySelector('header').scrollWidth <= window.innerWidth")).to be(true)
+    expect(page).to have_no_css("header", visible: :all)
+    expect(page).to have_css("a[href='#{new_user_registration_path}']", visible: true)
+
+    visit new_user_registration_path
+
+    expect(page).to have_no_css("header", visible: :all)
+    expect(page).to have_css("a[href='#{new_user_session_path}']", visible: true)
 
     page.driver.browser.manage.window.resize_to(1280, 900)
-    expect(page).to have_no_css("header button[data-mobile-navigation-target='button']", visible: true)
-    expect(page).to have_css("#mobile-navigation-links a[href='#{new_user_session_path}']", visible: true)
-    expect(page).to have_css("#mobile-navigation-links a[href='#{new_user_registration_path}']", visible: true)
+    visit new_user_session_path
+
+    expect(page).to have_no_css("header", visible: :all)
+    expect(page).to have_css("a[href='#{new_user_registration_path}']", visible: true)
+
+    visit new_user_registration_path
+
+    expect(page).to have_no_css("header", visible: :all)
+    expect(page).to have_css("a[href='#{new_user_session_path}']", visible: true)
   end
 
   it "keeps the desktop links and global admin links visible without opening a menu" do
