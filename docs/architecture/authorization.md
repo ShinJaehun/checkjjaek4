@@ -87,12 +87,13 @@ checkjjaek4의 서버측 권한 판단은 Pundit policy 중심으로 유지한�
 - `self`는 전체 Jjaek을 볼 수 있다.
 - `stranger / follow`는 프로필 책 목록에서 상태와 스티커를 볼 수 없다.
 - `self / accepted book_friend`는 프로필 책 목록에서 상태와 스티커를 볼 수 있다.
-- 프로필 최근 활동은 연결된 항목이 있는 added_to_shelf BookActivity만 표시한다. self는 모든 책장, accepted book_friend는 현재 public/book_friends 책장의 활동만 볼 수 있다. private 변경·이동 시 과거 추가 활동도 숨기며 기존 admin 운영 조사 예외는 유지한다.
+- 프로필 최근 활동은 연결된 항목이 있는 added_to_shelf BookActivity만 표시한다. self는 모든 책장, accepted book_friend는 현재 public/book_friends 책장의 활동만 볼 수 있다. private 변경·이동 시 과거 추가 활동도 숨긴다.
 - accepted 책친구의 타인 프로필에서만 profile-context Jjaek 작성 진입을 사용할 수 있다. 자기 프로필에서는 일반 Jjaek을 홈(`/`)에서 작성한다.
 - Bookshelf 생성/수정/삭제/순서 변경은 Library에서 owner만 가능하며, 새 Bookshelf는 현재 사용자의 Bookshelf로만 생성한다.
 - 기본 Bookshelf는 수정/삭제/순서 변경할 수 없고, 책이 들어 있는 일반 Bookshelf는 삭제할 수 없다.
 - `BookshelfEntry`의 책장 이동은 Library에서 owner만 가능하며, 대상 Bookshelf도 현재 사용자의 Bookshelf여야 한다.
 - Library Screen 접근은 `self / accepted book_friend`에게만 허용하며, follow-only / stranger는 프로필로 redirect한다.
+- global admin 자격만으로 타인의 Library에 접근하거나 private 책장을 볼 수 없다.
  
 ### 목표 상태
 
@@ -361,10 +362,11 @@ global admin은 일반 Group 목록과 admin inventory에서 모든 Group을 볼
 Jjaek·Comment는 admin User·Group 상세의 전용 inventory scope에서 visibility와 Group 접근 관계없이 발견할 수 있다.
 `private_jjaek`의 나만 보기와 `book_friends` visibility도 일반 사용자 사이의 공개 범위이며 global admin의 운영 조사를 차단하지 않는다.
 global admin은 특정 User 프로필에서는 `ProfileScope`를 통해 그 작성자의 모든 visibility Jjaek을 조사한다.
-BookshelfEntry와 BookActivity도 profile 전용 scope를 통해 대상 사용자가 자기 프로필에서 보는 범위를 운영 목적으로 조사한다.
-이 권한은 full Library 접근이나 Bookshelf·BookshelfEntry mutation 권한을 부여하지 않는다.
+BookshelfEntry와 BookActivity의 프로필 scope에는 global admin 전체 조회 예외가 없다. 타인의 private 책장과 그 책의 BookActivity는 일반 프로필에 노출하지 않는다.
+이 조사 권한은 full Library 접근이나 Bookshelf·BookshelfEntry mutation 권한을 부여하지 않는다.
 일반 Jjaek scope와 홈 `FeedScope`에는 global admin 우회를 추가하지 않는다.
 운영 조사 권한은 Comment·Like·ReJjaek 등 일반 사용자 상호작용 권한으로 이어지지 않는다.
+`return_to`는 검증된 이동 맥락일 뿐 조회 권한의 근거가 아니며, 목적지의 policy와 scope를 우회하지 않는다.
 group admin은 운영 정지되지 않은 active 자기 Group의 타인 짹·책짹·Comment만 새로 숨길 수 있고,
 inactive 자기 Group에서는 새 숨김 없이 기존 group-origin hide의 복구만 허용한다. 같은 Group authority의 hide는
 현재 관리자가 복구할 수 있지만 global admin hide는 복구할 수 없다. pending 또는 operation suspended Group에서는

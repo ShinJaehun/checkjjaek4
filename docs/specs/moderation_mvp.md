@@ -698,14 +698,14 @@ global admin의 운영 조사는 기존 별도 권한을 사용하되 자기 Com
 
 ### global admin의 master operational authority
 
-global admin은 서비스 전체에 대한 최종 운영 책임과 운영 개입 권한을 가진다. 이는 전체 User·Group·Jjaek·Comment와
-일반 사용자가 볼 수 없는 비공개 콘텐츠를 조사하고, 현재 또는 향후 마련되는 명시적인 운영 조치를 수행할 근거다.
+global admin은 서비스 전체에 대한 최종 운영 책임과 운영 개입 권한을 가진다. 관리자 전용 User·Group 조사 화면과
+허용된 Jjaek·Comment 상세에서 일반 사용자가 볼 수 없는 비공개·숨김 콘텐츠를 조사하고, 명시적인 운영 조치를 수행한다.
 현재 Group 기능에서는 승인과 운영 정보 조사뿐 아니라 운영상 필요한 active/inactive Group 관리자 이전을 포함한다.
 
 이 권한은 모든 사용자 action을 대신 수행하는 superuser 권한이 아니다. 타인 이름의 Jjaek·Comment 작성, 타인의 원문
 수정이나 작성자 삭제를 가장한 hard delete, 타인을 대신한 Like, 개인 Library·Bookshelf 관리 대행은 허용하지 않는다.
 `ApplicationPolicy`에 모든 action을 허용하는 global admin bypass를 두지 않고 action별 운영 목적을 명시한다.
-Group 자체를 탐색하는 일반 Group scope와 특정 User를 조사하는 profile scope는 global admin에게 해당 문맥 전체를 제공한다.
+일반 Group scope와 `/groups/:id`에는 운영 조사용 global admin 예외가 있다. 특정 User의 일반 프로필에서는 Jjaek `ProfileScope`와 `/jjaeks/:id` 조회에 관리자 예외가 있지만, BookshelfEntry·BookActivity의 프로필 scope와 Library에는 관리자 전체 조회 예외가 없다.
 반면 일반 Jjaek scope와 홈 feed scope는 UI 의미를 보존하기 위해 넓히지 않으며 전체 사용자 콘텐츠 조사의 기본 진입점은
 admin inventory, 특정 User·Group 상세와 거기서 발견한 Jjaek 단건 상세다.
 
@@ -720,7 +720,7 @@ global admin의 비공개 콘텐츠 접근은 일반 사용자 열람 권한이 
 `private_jjaek`의 나만 보기와 `book_friends` visibility를 포함한 사용자 공개 설정은 이 운영 조사를 차단하지 않는다.
 현재 제품은 복수의 global admin을 허용한다. 서로 동등한 운영 권한을 가지며, 일반 moderation 권한으로
 자기 계정·콘텐츠 또는 다른 global admin의 계정·콘텐츠를 제재할 수 없다. 대상 계정이나 콘텐츠 작성자의 현재
-`global_admin?` 상태를 기준으로 판단한다. 권한 부여·회수와 비상 개입 절차는 이 범위에 포함하지 않는다.
+`global_admin?` 상태를 기준으로 판단한다. 현재 권한 부여·회수는 별도 감사가 있는 서버 전용 task로 처리하며 일반 moderation 웹 권한에 포함하지 않는다. 상세 구조는 `docs/architecture/current_system.md`를 따른다.
 group admin은 현재와 같이 Group당 정확히 한 명이며 이번 MVP에서 cardinality를 변경하지 않는다.
 
 teacher/Classroom policy는 Classroom 도메인이 만들어질 때 연결한다. 교사와 학생이 실제 사용하기 전에는
@@ -729,7 +729,7 @@ teacher의 자기 Classroom 관리 기능이 반드시 완성되어야 한다.
 `platform_moderator`는 global admin의 공개 SNS moderation 병목을 줄이기 위한 미래 위임 역할이다.
 이번 MVP에서는 role, DB 필드, UI, 권한을 구현하지 않는다. 이후 도입할 때 global admin 조건을 여러 policy에
 복사하지 않고 공통 platform moderation 권한으로 분리할 수 있어야 하며 `p_moderator` 같은 축약어를 사용하지 않는다.
-향후 위임 역할과 global admin 권한 부여 방식은 별도 정책에서 결정한다.
+향후 위임 역할의 권한 부여 방식은 별도 정책에서 결정한다.
 
 ---
 

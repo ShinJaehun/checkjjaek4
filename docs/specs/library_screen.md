@@ -223,6 +223,7 @@ Library Screen은 프로필보다 깊은 서재 화면이다.
 
 `follow`의 추가 의미는 Library 접근 권한이 아니라 홈 피드 구독이다.
 `stranger`와 `follow`는 프로필에서 public 책 목록을 볼 수 있지만, 상대의 Library Screen에는 접근할 수 없다.
+global admin도 관리자 자격만으로 일반 프로필의 `BookshelfEntry` 조회 범위를 넓히거나 타인의 Library Screen에 접근할 수 없다. 타인의 private 책장은 프로필과 Library 모두에서 제외한다.
 
 ### Library 접근 권한
 

@@ -124,13 +124,14 @@
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
 - stranger / follow-only는 프로필에서 `public` 책 목록을 flat summary 형태로 볼 수 있다
 - self / accepted book_friend는 프로필에서 접근 가능한 책 목록 요약을 볼 수 있다
+- `BookshelfEntryPolicy::ProfileScope`에는 global admin 전체 조회 예외가 없으며 타인의 private 책장은 프로필 요약에 표시하지 않는다
 - 프로필 책 목록 요약은 현재 조회 순서를 유지한 채 4권씩 2열·2행 carousel page로 표시한다. 스티커는 실제 너비에 맞춰 최대 6개를 표시하고 공간이 부족할 때만 정확한 숨김 개수와 이름을 `+N`으로 제공한다. 전체 서재 화면의 책장·정렬·관리 흐름은 그대로 둔다
 - 프로필에서는 누구에게도 책장 탭, 책장 정렬 UI, 책장 관리 UI, 책 이동 UI를 보여주지 않는다
 - stranger / follow-only는 Library 링크를 볼 수 없다
 - self / accepted book_friend는 프로필에서 Library 링크를 볼 수 있다
 - 최근 활동 섹션은 profile owner의 visible Jjaek과 visible BookActivity를 함께 보여준다
 - 실제 Jjaek 노출 범위는 기존 profile Jjaek 정책을 따른다
-- BookActivity 노출 범위는 `self / accepted book_friend` 기준이다
+- BookActivity 노출 범위는 `self / accepted book_friend` 기준이며 global admin 프로필 조회 예외는 없다
 - stranger / follow-only 사용자는 프로필 최근 활동에서 BookActivity를 볼 수 없다
 - 홈 피드는 현재 사용자와 소식받는 accepted book_friend의 BookActivity를 Jjaek과 함께 합성한다
 - 책장 탭, 책장 관리, 책 이동, 책 목록 정렬은 Library Screen에서만 제공한다
@@ -156,6 +157,7 @@
 - Library는 새 DB 모델이 아니라 화면/라우팅 개념이다
 - 내부 데이터 모델은 기존 `Bookshelf`와 `BookshelfEntry`를 그대로 사용한다
 - self / accepted book_friend만 접근할 수 있다
+- global admin 자격 자체로는 접근할 수 없으며 타인의 private 책장도 볼 수 없다
 - stranger / follow-only가 접근하면 프로필 화면으로 redirect된다
 - 접근 가능한 책장 탭, 선택된 책장 책 목록, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
 - 서재 타이틀 요약은 기존 policy scope 결과와 책장별 집계를 재사용한다. 표시 정책은 `docs/specs/library_screen.md`를 따른다
@@ -546,7 +548,7 @@ deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 p
 BookshelfEntry 제거 시 연결된 모든 활동을 dependent destroy로 정리한다.
 프로필은 self / accepted book_friend, 홈은 self / 소식받는 accepted book_friend 관계를 유지하며,
 다른 사용자의 활동은 연결된 항목의 현재 책장이 public/book_friends인 경우에만 표시한다.
-private 변경 또는 private 책장 이동은 과거 추가 활동에도 즉시 적용된다. 운영 조사용 ProfileScope admin 예외는 유지한다.
+private 변경 또는 private 책장 이동은 과거 추가 활동에도 즉시 적용된다.
 책 상세의 기존 책짹 목록에는 합성하지 않고 별도 책친구 활동 영역에 표시한다.
 생성·조회·삭제의 canonical 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
 

@@ -35,7 +35,7 @@
 - follow-only와 stranger에게는 public 책장의 활동도 표시하지 않는다.
 - 책장을 private으로 변경하거나 항목을 private 책장으로 이동하면 과거 추가 활동도 다른 사용자에게 표시하지 않는다.
 - 현재 관계와 현재 책장 공개 범위를 조회 시 policy/scope에서 함께 확인한다.
-- global admin의 운영 조사용 ProfileScope 예외는 유지한다. 일반 홈·관계 scope의 권한은 확대하지 않는다.
+- `BookActivityPolicy::ProfileScope`에는 global admin 전체 조회 예외가 없다. 관리자가 타인 프로필을 보더라도 private 책장의 활동은 표시하지 않으며, 일반 홈·관계 scope의 권한도 확대하지 않는다.
 - Jjaek과 BookActivity의 20개 단위 혼합 cursor 조회와 동일 시각 정렬은 `group_activity_feed.md`의 A12 Delta Specs를 따른다.
 - 책 상세의 기존 책짹 목록에는 BookActivity를 합성하지 않는다.
 - 별도 책친구 미리보기에는 accepted 책친구의 해당 책 활동을 현재 public/book_friends 책장에 연결된 항목으로 제한해 표시한다.
