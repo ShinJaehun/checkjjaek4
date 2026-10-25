@@ -88,6 +88,7 @@ production:
   primary: &primary_production
     <<: *default
     database: checkjjaek4_production
+    host: <%= ENV.fetch("CHECKJJAEK4_DATABASE_HOST", "db") %>
     username: checkjjaek4
     password: <%= ENV["CHECKJJAEK4_DATABASE_PASSWORD"] %>
   cache:

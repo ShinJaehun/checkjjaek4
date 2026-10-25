@@ -1,0 +1,46 @@
+name: checkjjaek
+
+services:
+  db:
+    image: postgres:16
+    container_name: checkjjaek_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: checkjjaek4_production
+      POSTGRES_USER: checkjjaek4
+      POSTGRES_PASSWORD: ${CHECKJJAEK4_DATABASE_PASSWORD:?set CHECKJJAEK4_DATABASE_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U checkjjaek4 -d checkjjaek4_production"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    image: ${APP_IMAGE:?set APP_IMAGE to a GHCR SHA tag in .env}
+    container_name: checkjjaek_web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      RAILS_ENV: production
+      RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
+      RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-3}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
+      SOLID_QUEUE_IN_PUMA: "1"
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-}
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:-}
+      CHECKJJAEK4_DATABASE_HOST: ${CHECKJJAEK4_DATABASE_HOST:-db}
+      CHECKJJAEK4_DATABASE_PASSWORD: ${CHECKJJAEK4_DATABASE_PASSWORD:?set CHECKJJAEK4_DATABASE_PASSWORD in .env}
+      OCI_AVATAR_ACCESS_KEY_ID: ${OCI_AVATAR_ACCESS_KEY_ID:?set OCI_AVATAR_ACCESS_KEY_ID in .env}
+      OCI_AVATAR_SECRET_ACCESS_KEY: ${OCI_AVATAR_SECRET_ACCESS_KEY:?set OCI_AVATAR_SECRET_ACCESS_KEY in .env}
+      OCI_AVATAR_REGION: ${OCI_AVATAR_REGION:?set OCI_AVATAR_REGION in .env}
+      OCI_AVATAR_BUCKET: ${OCI_AVATAR_BUCKET:?set OCI_AVATAR_BUCKET in .env}
+      OCI_AVATAR_ENDPOINT: ${OCI_AVATAR_ENDPOINT:?set OCI_AVATAR_ENDPOINT in .env}
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:80"
+
+volumes:
+  postgres_data:
