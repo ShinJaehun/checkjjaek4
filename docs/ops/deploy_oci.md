@@ -24,7 +24,7 @@ chmod 600 ~/apps/checkjjaek/.env
 | `CHECKJJAEK4_DATABASE_PASSWORD` | 필수. PostgreSQL `checkjjaek4` 역할과 Rails의 네 DB 공통 암호 |
 | `CHECKJJAEK4_DATABASE_HOST` | 선택. Compose 내부 DB 서비스 이름, 기본 `db` |
 | `SECRET_KEY_BASE` 또는 `RAILS_MASTER_KEY` | 둘 중 하나 필수. 기존 암호화 credentials를 쓴다면 master key 제공 |
-| `RAILS_LOG_LEVEL`, `RAILS_MAX_THREADS`, `WEB_CONCURRENCY` | 선택. 기본 `info`, `3`, `1`; 1GB VM에서는 먼저 이 값을 유지 |
+| `RAILS_LOG_LEVEL`, `RAILS_MAX_THREADS`, `WEB_CONCURRENCY` | 선택. 기본 `info`, `5`, `1`; OCI E2 Micro에서 확인한 스레드 설정 |
 | `OCI_AVATAR_ACCESS_KEY_ID`, `OCI_AVATAR_SECRET_ACCESS_KEY`, `OCI_AVATAR_REGION`, `OCI_AVATAR_BUCKET`, `OCI_AVATAR_ENDPOINT` | 현재 production의 `oci_avatars` 서비스에 모두 필수. 값과 스토리지 운영 절차는 E10에서 관리 |
 
 `RAILS_ENV=production`, 웹 컨테이너의 Thruster 포트 80, `SOLID_QUEUE_IN_PUMA=1`은 Compose에서 고정한다. Puma는 기존 설정대로 컨테이너 안의 3000 포트를 사용한다. SMTP는 E11 범위다. 운영 주소/도메인, GHCR 읽기 권한, Cloudflare와 Nginx 인증서도 서버에서 준비한다. GHCR 패키지가 private이면 서버에서 해당 패키지 `read:packages` 권한으로 `docker login ghcr.io`를 먼저 수행한다.
@@ -45,7 +45,7 @@ docker compose -p checkjjaek --env-file .env -f compose.prod.yml ps
 curl -fsS http://127.0.0.1:3000/up
 ```
 
-PostgreSQL 초기화는 `POSTGRES_DB=checkjjaek4_production`과 역할 `checkjjaek4`를 **빈 볼륨에서만** 만든다. `db:prepare`가 같은 컨테이너에 `checkjjaek4_production`, `_cache`, `_queue`, `_cable` 네 논리 DB와 각각의 schema를 준비한다. PostgreSQL 공식 이미지의 `POSTGRES_USER`는 DB 생성 권한을 가진 역할이므로 보조 DB도 생성할 수 있다. 이미 생성된 볼륨에서는 PostgreSQL 초기화가 재실행되지 않으며, `db:prepare`를 다시 실행하면 기존 데이터는 유지하고 필요한 migration만 적용한다. 웹 컨테이너의 기존 entrypoint도 서버 시작 시 `db:prepare`를 실행한다.
+PostgreSQL 초기화는 `POSTGRES_DB=checkjjaek4_production`과 역할 `checkjjaek4`를 **빈 볼륨에서만** 만든다. `db:prepare`가 같은 컨테이너에 `checkjjaek4_production`, `_cache`, `_queue`, `_cable` 네 논리 DB와 각각의 schema를 준비한다. Production seed는 기본 스티커 정의 6개만 생성한다. PostgreSQL 공식 이미지의 `POSTGRES_USER`는 DB 생성 권한을 가진 역할이므로 보조 DB도 생성할 수 있다. 이미 생성된 볼륨에서는 PostgreSQL 초기화가 재실행되지 않으며, `db:prepare`를 다시 실행하면 기존 데이터는 유지하고 필요한 migration만 적용한다. 웹 컨테이너의 기존 entrypoint도 서버 시작 시 `db:prepare`를 실행한다.
 
 다음으로 DB 네 개의 존재와 schema를 확인한다. 각 DB의 `schema_migrations` 조회가 성공해야 한다. 보조 DB의 migration 수는 0일 수 있다.
 

@@ -9,6 +9,10 @@ en:
   devise:
     failure:
       withdrawn: "This account has been withdrawn."
+    sessions:
+      signed_in: "Signed in successfully."
+      signed_out: "Signed out successfully."
+      already_signed_out: "Already signed out."
   user_handle:
     guidance: "Your public handle is used in your profile URL and cannot be changed once set. Please choose carefully."
   account_withdrawals:
@@ -81,6 +85,8 @@ en:
         handle: "Public handle"
         avatar: "Profile image"
     errors:
+      messages:
+        record_invalid: "Validation failed: %{errors}"
       models:
         user:
           attributes:

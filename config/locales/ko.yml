@@ -11,6 +11,10 @@ ko:
       invalid: "이메일 또는 비밀번호가 올바르지 않습니다."
       not_found_in_database: "이메일 또는 비밀번호가 올바르지 않습니다."
       withdrawn: "탈퇴한 계정입니다."
+    sessions:
+      signed_in: "로그인되었습니다."
+      signed_out: "로그아웃되었습니다."
+      already_signed_out: "이미 로그아웃되었습니다."
   user_handle:
     guidance: "공개 주소 이름은 프로필 주소에 사용되며, 한 번 설정하면 변경할 수 없습니다. 신중하게 선택해 주세요."
   account_withdrawals:
@@ -83,6 +87,8 @@ ko:
         handle: "공개 주소 이름"
         avatar: "프로필 이미지"
     errors:
+      messages:
+        record_invalid: "저장할 수 없습니다: %{errors}"
       models:
         user:
           attributes:

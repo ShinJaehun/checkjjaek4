@@ -84,6 +84,9 @@ RSpec.describe "Authentication", type: :request do
       }
 
       expect(response).to redirect_to(root_path)
+      expect(flash[:notice]).to eq("로그인되었습니다.")
+      follow_redirect!
+      expect(response.body).to include("로그인되었습니다.")
     end
 
     it "shows the same generic message for an unknown email and a wrong password" do
@@ -263,6 +266,12 @@ RSpec.describe "Authentication", type: :request do
       delete destroy_user_session_path
 
       expect(response).to redirect_to(new_user_session_path)
+      expect(flash[:notice]).to eq("로그아웃되었습니다.")
+      follow_redirect!
+      expect(response.body).to include("로그아웃되었습니다.")
+
+      delete destroy_user_session_path
+      expect(flash[:notice]).to eq("이미 로그아웃되었습니다.")
     end
   end
 end
