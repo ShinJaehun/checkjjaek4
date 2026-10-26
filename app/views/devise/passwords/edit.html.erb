@@ -1,0 +1,29 @@
+<%= render layout: "devise/shared/auth_layout" do %>
+  <h1 class="text-center text-2xl font-semibold text-stone-900"><%= t("auth.passwords.edit_title") %></h1>
+
+  <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :put, class: "mt-8 space-y-4", data: { turbo: false } }) do |form| %>
+    <%= form.hidden_field :reset_password_token %>
+
+    <% if resource.errors.any? %>
+      <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <%= resource.errors.full_messages.to_sentence %>
+      </div>
+    <% end %>
+
+    <div class="space-y-2">
+      <%= form.label :password, t("auth.form.password"), class: "text-sm font-medium text-stone-700" %>
+      <%= form.password_field :password, autofocus: true, autocomplete: "new-password", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white" %>
+    </div>
+
+    <div class="space-y-2">
+      <%= form.label :password_confirmation, t("auth.form.password_confirmation"), class: "text-sm font-medium text-stone-700" %>
+      <%= form.password_field :password_confirmation, autocomplete: "new-password", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white" %>
+    </div>
+
+    <%= form.submit t("auth.passwords.change_password"), class: "w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50" %>
+  <% end %>
+
+  <p class="mt-6 text-sm text-stone-500">
+    <%= link_to t("auth.actions.sign_in"), new_user_session_path, class: "font-medium text-stone-900" %>
+  </p>
+<% end %>

@@ -25,7 +25,12 @@
   </head>
 
   <body class="min-h-screen bg-[linear-gradient(180deg,#f5efe4_0%,#f8f7f3_38%,#fcfcfb_100%)] text-stone-900">
-    <% auth_page = %w[users/sessions users/registrations].include?(controller_path) && %w[new create].include?(action_name) %>
+    <% auth_actions = {
+      "users/sessions" => %w[new create],
+      "users/registrations" => %w[new create],
+      "users/passwords" => %w[new create edit update]
+    } %>
+    <% auth_page = auth_actions.fetch(controller_path, []).include?(action_name) %>
     <%= render "shared/nav" unless auth_page %>
 
     <main class="mx-auto flex w-full flex-col <%= auth_page ? "gap-0 p-0" : "max-w-6xl gap-6 px-5 py-8" %>">

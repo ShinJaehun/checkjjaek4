@@ -1,1 +1,1 @@
-<%= t("registration_invitations.mail.body", url: @registration_url, expires_at: I18n.l(@expires_at, format: :long)) %>
+<%= t("registration_invitations.mail.body", url: @registration_url, expires_at: @expires_at_text) %>

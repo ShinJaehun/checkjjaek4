@@ -24,10 +24,13 @@ chmod 600 ~/apps/checkjjaek/.env
 | `CHECKJJAEK4_DATABASE_PASSWORD` | 필수. PostgreSQL `checkjjaek4` 역할과 Rails의 네 DB 공통 암호 |
 | `CHECKJJAEK4_DATABASE_HOST` | 선택. Compose 내부 DB 서비스 이름, 기본 `db` |
 | `SECRET_KEY_BASE` 또는 `RAILS_MASTER_KEY` | 둘 중 하나 필수. 기존 암호화 credentials를 쓴다면 master key 제공 |
+| `RESEND_API_KEY` | 필수. Resend SMTP 인증 키. 웹 컨테이너에만 전달하며 Git에 저장하지 않음 |
 | `RAILS_LOG_LEVEL`, `RAILS_MAX_THREADS`, `WEB_CONCURRENCY` | 선택. 기본 `info`, `5`, `1`; OCI E2 Micro에서 확인한 스레드 설정 |
 | `OCI_AVATAR_ACCESS_KEY_ID`, `OCI_AVATAR_SECRET_ACCESS_KEY`, `OCI_AVATAR_REGION`, `OCI_AVATAR_BUCKET`, `OCI_AVATAR_ENDPOINT` | 현재 production의 `oci_avatars` 서비스에 모두 필수. 값과 스토리지 운영 절차는 E10에서 관리 |
 
-`RAILS_ENV=production`, 웹 컨테이너의 Thruster 포트 80, `SOLID_QUEUE_IN_PUMA=1`은 Compose에서 고정한다. Puma는 기존 설정대로 컨테이너 안의 3000 포트를 사용한다. SMTP는 E11 범위다. 운영 주소/도메인, GHCR 읽기 권한, Cloudflare와 Nginx 인증서도 서버에서 준비한다. GHCR 패키지가 private이면 서버에서 해당 패키지 `read:packages` 권한으로 `docker login ghcr.io`를 먼저 수행한다.
+`RAILS_ENV=production`, 웹 컨테이너의 Thruster 포트 80, `SOLID_QUEUE_IN_PUMA=1`은 Compose에서 고정한다. Puma는 기존 설정대로 컨테이너 안의 3000 포트를 사용한다. 운영 주소/도메인, GHCR 읽기 권한, Cloudflare와 Nginx 인증서도 서버에서 준비한다. GHCR 패키지가 private이면 서버에서 해당 패키지 `read:packages` 권한으로 `docker login ghcr.io`를 먼저 수행한다.
+
+운영 메일은 Resend SMTP(`smtp.resend.com:465`, TLS)를 사용한다. 배포 전에 Resend에서 발급한 키를 서버의 `~/apps/checkjjaek/.env`에 `RESEND_API_KEY=...`로 등록하고 파일 권한 `600`을 유지한다. `account@jjaek.kr` 발신 도메인의 Resend 검증을 확인한다. 새 이미지와 `compose.prod.yml`을 배포한 뒤 아래 기존 Compose 절차로 웹 컨테이너를 재생성한다. 키 값은 명령 인자나 로그에 출력하지 않는다. 관리자 초대 메일과 비밀번호 재설정 메일의 발신자는 `책짹 <account@jjaek.kr>`, 회신 주소는 `support@jjaek.kr`이며 링크는 `https://jjaek.kr`을 사용한다.
 
 ## 최초 배포와 DB 준비
 
