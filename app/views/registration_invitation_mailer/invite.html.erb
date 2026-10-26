@@ -1,3 +1,5 @@
-<p><%= t("registration_invitations.mail.intro") %></p>
-<p><%= link_to t("registration_invitations.mail.action"), @registration_url %></p>
-<p><%= t("registration_invitations.mail.expires", expires_at: I18n.l(@expires_at, format: :long)) %></p>
+<p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6;"><%= t("registration_invitations.mail.intro") %></p>
+<p style="margin: 0 0 24px;">
+  <%= link_to t("registration_invitations.mail.action"), @registration_url, style: "display: inline-block; padding: 12px 20px; border-radius: 8px; background-color: #1c1917; color: #ffffff; font-size: 15px; font-weight: bold; text-decoration: none;" %>
+</p>
+<p style="margin: 0; color: #57534e; font-size: 14px; line-height: 1.6;"><%= t("registration_invitations.mail.expires", expires_at: @expires_at_text) %></p>

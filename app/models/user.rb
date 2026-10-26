@@ -146,6 +146,15 @@ class User < ApplicationRecord
     !withdrawn?
   end
 
+  def reset_password(new_password, new_password_confirmation)
+    if withdrawn?
+      errors.add(:reset_password_token, :invalid)
+      return false
+    end
+
+    super
+  end
+
   def active_for_authentication?
     super && active_account?
   end

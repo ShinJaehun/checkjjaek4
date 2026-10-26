@@ -7,7 +7,11 @@ ko:
   navigation:
     menu: "메뉴"
   devise:
+    mailer:
+      reset_password_instructions:
+        subject: "책짹 비밀번호 재설정 안내"
     failure:
+      unauthenticated: "계속하려면 로그인하거나 회원가입해야 합니다."
       invalid: "이메일 또는 비밀번호가 올바르지 않습니다."
       not_found_in_database: "이메일 또는 비밀번호가 올바르지 않습니다."
       withdrawn: "탈퇴한 계정입니다."
@@ -15,6 +19,9 @@ ko:
       signed_in: "로그인되었습니다."
       signed_out: "로그아웃되었습니다."
       already_signed_out: "이미 로그아웃되었습니다."
+    passwords:
+      updated: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요."
+      updated_not_active: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요."
   user_handle:
     guidance: "공개 주소 이름은 프로필 주소에 사용되며, 한 번 설정하면 변경할 수 없습니다. 신중하게 선택해 주세요."
   account_withdrawals:
@@ -86,12 +93,21 @@ ko:
       user:
         handle: "공개 주소 이름"
         avatar: "프로필 이미지"
+        reset_password_token: "재설정 링크"
     errors:
       messages:
         record_invalid: "저장할 수 없습니다: %{errors}"
       models:
         user:
           attributes:
+            reset_password_token:
+              invalid: "가 올바르지 않거나 이미 사용되었습니다"
+              expired: "의 유효기간이 지났습니다"
+            password:
+              blank: "를 입력해 주세요"
+              too_short: "는 %{count}자 이상이어야 합니다"
+            password_confirmation:
+              confirmation: "이 일치하지 않습니다"
             avatar:
               invalid_format: "JPEG, PNG, WebP 파일만 올릴 수 있습니다"
               too_large: "5MB 이하 파일만 올릴 수 있습니다"
@@ -145,6 +161,19 @@ ko:
       password_confirmation: "비밀번호 확인"
     notices:
       signed_out: "로그아웃되었습니다."
+    passwords:
+      forgot_password: "비밀번호를 잊으셨나요?"
+      request_title: "비밀번호 재설정"
+      request_description: "가입한 이메일을 입력하면 재설정 안내를 보내드립니다."
+      send_instructions: "재설정 안내 받기"
+      request_sent: "해당 주소로 가입된 계정이 있다면 재설정 안내를 보냈습니다. 메일이 오지 않았다면 이메일 주소를 확인해 주세요."
+      rate_limited: "비밀번호 재설정 요청이 일시적으로 제한되었습니다. 1시간 후 다시 시도해 주세요."
+      edit_title: "새 비밀번호 입력"
+      change_password: "비밀번호 변경"
+      mail:
+        intro: "책짹 비밀번호를 재설정하려면 아래 링크를 사용해 주세요."
+        action: "비밀번호 재설정하기"
+        expires: "이 링크는 발송 후 6시간 동안 유효하며 한 번만 사용할 수 있습니다."
     registrations:
       description: "내 서재를 먼저 만들고, 책에 연결된 Jjaek을 차근히 쌓아갑니다."
       have_account: "이미 계정이 있나요?"

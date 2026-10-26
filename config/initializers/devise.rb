@@ -1,5 +1,6 @@
 Devise.setup do |config|
-  config.mailer_sender = "please-change-me-at-config-initializers-devise@example.com"
+  config.mailer_sender = "책짹 <account@jjaek.kr>"
+  config.mailer = "UsersMailer"
 
   require "devise/orm/active_record"
 
@@ -12,6 +13,7 @@ Devise.setup do |config|
   config.password_length = 6..128
   config.email_regexp = /\A[^@\s]+@[^@\s]+\z/
   config.reset_password_within = 6.hours
+  config.sign_in_after_reset_password = false
   config.sign_out_via = :delete
   config.responder.error_status = :unprocessable_content
 end

@@ -66,7 +66,27 @@ RSpec.describe "Registration invitations", type: :request do
     expect(invitation.token_digest).to eq(RegistrationInvitation.digest(token))
     expect(invitation.token_digest).not_to eq(token)
     expect(mail.to).to eq([ "new@example.com" ])
+    expect(mail.from).to eq([ "account@jjaek.kr" ])
+    expect(mail[:from].decoded).to include("책짹")
+    expect(mail.reply_to).to eq([ "support@jjaek.kr" ])
+    expect(mail.html_part.body.decoded).to include("invitation_token=")
+    expect(mail.text_part.body.decoded).to include("invitation_token=")
+    parsed_mail = Mail.read_from_string(mail.to_s)
+    logo = parsed_mail.attachments["bookjjaek-logo.png"]
+    expect(logo).to be_present
+    expect(logo.mime_type).to eq("image/png")
+    expect(logo.content_disposition).to start_with("inline")
+    expect(logo.url).to start_with("cid:")
+    expect(logo.body.decoded).to eq(File.binread(Rails.root.join("app/assets/images/logo/logo_black_mini.png")))
+    logo_image = Nokogiri::HTML(parsed_mail.html_part.body.decoded).at_css("img[src^='cid:']")
+    expect(logo_image).to be_present
+    expect(logo_image["src"]).to eq(logo.url)
+    expect(logo_image["alt"]).to eq("책짹")
     expect(invitation.expires_at).to be_within(1.minute).of(7.days.from_now)
+    korean_expiry = I18n.l(invitation.expires_at.in_time_zone("Asia/Seoul"), locale: :ko, format: :long)
+    expect(korean_expiry).to match(/\A\d{4}년 \d{1,2}월 \d{1,2}일 \d{2}:\d{2}\z/)
+    expect(parsed_mail.html_part.body.decoded.force_encoding(Encoding::UTF_8)).to include(korean_expiry)
+    expect(parsed_mail.text_part.body.decoded.force_encoding(Encoding::UTF_8)).to include(korean_expiry)
 
     post admin_registration_invitations_path, params: { registration_invitation: { email: "new@example.com" } }
     expect(response).to have_http_status(:unprocessable_content)
@@ -74,6 +94,29 @@ RSpec.describe "Registration invitations", type: :request do
 
     post admin_registration_invitations_path, params: { registration_invitation: { email: reader.email } }
     expect(response).to have_http_status(:unprocessable_content)
+  end
+
+  it "does not report a successful send when mail delivery raises" do
+    sign_in admin
+    delivery = double("mail delivery")
+    allow(delivery).to receive(:deliver_now).and_raise(StandardError, "SMTP unavailable")
+    allow(RegistrationInvitationMailer).to receive(:invite).and_return(delivery)
+
+    expect {
+      post admin_registration_invitations_path, params: { registration_invitation: { email: "failure@example.com" } }
+    }.to raise_error(StandardError, "SMTP unavailable")
+  end
+
+  it "uses an HTTPS registration link when the mailer has production URL options" do
+    invitation, token = issue_invitation
+    original_options = RegistrationInvitationMailer.default_url_options
+    RegistrationInvitationMailer.default_url_options = { host: "jjaek.kr", protocol: "https" }
+
+    mail = RegistrationInvitationMailer.invite(invitation, token).deliver_now
+    expect(mail.html_part.body.decoded).to include("https://jjaek.kr/users/sign_up?invitation_token=")
+    expect(mail.text_part.body.decoded).to include("https://jjaek.kr/users/sign_up?invitation_token=")
+  ensure
+    RegistrationInvitationMailer.default_url_options = original_options
   end
 
   it "invalidates the old link on resend and both links on cancel" do

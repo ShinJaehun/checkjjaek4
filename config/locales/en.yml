@@ -7,12 +7,18 @@ en:
   navigation:
     menu: "Menu"
   devise:
+    mailer:
+      reset_password_instructions:
+        subject: "Reset your Bookjjaek password"
     failure:
       withdrawn: "This account has been withdrawn."
     sessions:
       signed_in: "Signed in successfully."
       signed_out: "Signed out successfully."
       already_signed_out: "Already signed out."
+    passwords:
+      updated: "Your password has been changed. Sign in with your new password."
+      updated_not_active: "Your password has been changed. Sign in with your new password."
   user_handle:
     guidance: "Your public handle is used in your profile URL and cannot be changed once set. Please choose carefully."
   account_withdrawals:
@@ -84,12 +90,21 @@ en:
       user:
         handle: "Public handle"
         avatar: "Profile image"
+        reset_password_token: "Reset link"
     errors:
       messages:
         record_invalid: "Validation failed: %{errors}"
       models:
         user:
           attributes:
+            reset_password_token:
+              invalid: "is invalid or has already been used"
+              expired: "has expired"
+            password:
+              blank: "must be entered"
+              too_short: "must be at least %{count} characters"
+            password_confirmation:
+              confirmation: "does not match"
             avatar:
               invalid_format: "must be a JPEG, PNG, or WebP file"
               too_large: "must be 5MB or smaller"
@@ -143,6 +158,19 @@ en:
       password_confirmation: "Confirm password"
     notices:
       signed_out: "Signed out successfully."
+    passwords:
+      forgot_password: "Forgot your password?"
+      request_title: "Reset your password"
+      request_description: "Enter your account email to receive a reset link."
+      send_instructions: "Send reset instructions"
+      request_sent: "If the address belongs to an account, reset instructions have been sent. Check the address if no email arrives."
+      rate_limited: "Password reset requests are temporarily limited. Please try again in 1 hour."
+      edit_title: "Enter a new password"
+      change_password: "Change password"
+      mail:
+        intro: "Use the link below to reset your Bookjjaek password."
+        action: "Reset password"
+        expires: "This link is valid for 6 hours after sending and can be used once."
     registrations:
       description: "Build your shelf first, then share book-linked writing."
       have_account: "Already have an account?"
