@@ -1,17 +1,12 @@
 <% registration = local_assigns[:registration] %>
-<section class="relative mx-auto grid min-h-screen w-full items-center gap-8 px-4 py-6 lg:flex lg:min-h-0 lg:items-start lg:gap-8 lg:px-0 lg:py-0">
-  <%= image_tag "logo/main_bk_mobile_640.webp", alt: "", class: "pointer-events-none absolute inset-0 h-full w-full object-cover object-[45%_center] lg:hidden" %>
-
-  <picture class="hidden lg:block lg:w-auto lg:min-w-0 lg:max-w-none lg:basis-[134.26vh] lg:grow-0 lg:shrink <%= 'lg:sticky lg:top-0 lg:self-start' if registration %>">
+<section class="relative mx-auto grid min-h-screen w-full items-center px-4 py-6 lg:flex lg:justify-end lg:px-10">
+  <picture class="pointer-events-none absolute inset-0 h-full w-full">
     <source media="(min-width: 1024px)" srcset="<%= asset_path("logo/main_bk.jpg") %>">
-    <%# 134.26vh follows the desktop image's 960:715 ratio and caps its height at the viewport. %>
-    <%= image_tag "logo/main_bk_mobile_640.webp", alt: "", width: 640, height: 477, class: "block h-auto w-full lg:w-[min(100%,134.26vh)] lg:opacity-80" %>
+    <%= image_tag "logo/main_bk_mobile_640.webp", alt: "", width: 640, height: 477, class: "block h-full w-full object-cover object-[45%_center] lg:object-center" %>
   </picture>
 
-  <div class="contents lg:flex lg:basis-[360px] lg:grow lg:shrink-0 lg:self-stretch lg:items-center lg:justify-center">
-    <div class="relative z-10 mx-auto w-full max-w-[360px] rounded-[2rem] bg-white/65 px-6 py-8 shadow-lg backdrop-blur-sm lg:static lg:mx-0 lg:w-[360px] lg:max-w-none lg:shrink-0 lg:bg-white/85 lg:px-8 lg:shadow-md <%= 'lg:py-6' if registration %>">
-      <%= image_tag "logo/logo_black.png", alt: "책짹4", width: 205, height: 154, class: "mx-auto mb-6 h-auto w-40 #{'lg:mb-3 lg:w-32' if registration}" %>
-      <%= yield %>
-    </div>
+  <div class="relative z-10 mx-auto w-full max-w-[360px] rounded-[2rem] bg-white/65 px-6 py-8 shadow-lg backdrop-blur-sm lg:mx-0 lg:w-[360px] lg:shrink-0 lg:px-8 lg:shadow-md <%= 'lg:py-6' if registration %>">
+    <%= image_tag "logo/logo_black.png", alt: "책짹4", width: 205, height: 154, class: "mx-auto mb-6 h-auto w-40 #{'lg:mb-3 lg:w-32' if registration}" %>
+    <%= yield %>
   </div>
 </section>

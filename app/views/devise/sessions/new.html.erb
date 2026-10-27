@@ -4,12 +4,12 @@
   <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "mt-8 space-y-4", data: { turbo: false } }) do |form| %>
     <div class="space-y-2">
       <%= form.label :email, t("auth.form.email"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.email_field :email, autofocus: true, autocomplete: "email", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white" %>
+      <%= form.email_field :email, autofocus: true, autocomplete: "email", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
     </div>
 
     <div class="space-y-2">
       <%= form.label :password, t("auth.form.password"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.password_field :password, autocomplete: "current-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white" %>
+      <%= form.password_field :password, autocomplete: "current-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
     </div>
 
     <%= form.submit t("auth.actions.sign_in"), class: "w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50" %>

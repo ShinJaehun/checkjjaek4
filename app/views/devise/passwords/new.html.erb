@@ -5,7 +5,7 @@
   <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { class: "mt-8 space-y-4", data: { turbo: false } }) do |form| %>
     <div class="space-y-2">
       <%= form.label :email, t("auth.form.email"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.email_field :email, autofocus: true, autocomplete: "email", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white" %>
+      <%= form.email_field :email, autofocus: true, autocomplete: "email", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
     </div>
 
     <%= form.submit t("auth.passwords.send_instructions"), class: "w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50" %>
