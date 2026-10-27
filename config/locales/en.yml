@@ -194,7 +194,7 @@ en:
       no_account: "Need an account?"
       title: "Start from your shelf"
   home:
-    nav: "Home"
+    nav: "Updates"
     title: "Bookjjaek"
     description: "Do you like reading books?"
     feed_title: "Recent updates"
