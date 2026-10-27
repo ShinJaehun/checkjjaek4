@@ -12,12 +12,12 @@
 
     <div class="space-y-2">
       <%= form.label :password, t("auth.form.password"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.password_field :password, autofocus: true, autocomplete: "new-password", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white" %>
+      <%= form.password_field :password, autofocus: true, autocomplete: "new-password", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
     </div>
 
     <div class="space-y-2">
       <%= form.label :password_confirmation, t("auth.form.password_confirmation"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.password_field :password_confirmation, autocomplete: "new-password", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm max-lg:bg-white" %>
+      <%= form.password_field :password_confirmation, autocomplete: "new-password", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
     </div>
 
     <%= form.submit t("auth.passwords.change_password"), class: "w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50" %>
