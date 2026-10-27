@@ -14,6 +14,22 @@ module Account
       end
     end
 
+    def update_password
+      @user = current_user
+      attributes = password_params
+
+      if attributes[:password].blank?
+        @user.errors.add(:password, :blank)
+      elsif @user.update_with_password(attributes)
+        sign_out @user
+        return redirect_to new_user_session_path, notice: t("devise.passwords.updated"), status: :see_other
+      end
+
+      @password_errors = @user.errors.full_messages
+      @user = current_user.reload
+      render :show, formats: :html, status: :unprocessable_content
+    end
+
     def update_avatar
       @user = current_user
       upload = params.dig(:user, :avatar)
@@ -49,6 +65,12 @@ module Account
     end
 
     private
+
+    def password_params
+      attributes = params.require(:user).permit(:current_password, :password, :password_confirmation)
+      attributes[:password_confirmation] ||= ""
+      attributes
+    end
 
     def render_avatar_failure
       @avatar_errors ||= @user.errors.full_messages

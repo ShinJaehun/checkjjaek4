@@ -9,6 +9,7 @@ Rails.application.routes.draw do
   resource :account_withdrawal, only: %i[show destroy]
   namespace :account do
     resource :settings, only: %i[show update] do
+      patch :password, on: :member, action: :update_password
       patch :avatar, on: :member, action: :update_avatar
       delete :avatar, on: :member, action: :destroy_avatar
     end

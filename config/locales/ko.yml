@@ -11,6 +11,7 @@ ko:
       reset_password_instructions:
         subject: "책짹 비밀번호 재설정 안내"
     failure:
+      already_authenticated: "이미 로그인되어 있습니다."
       unauthenticated: "계속하려면 로그인하거나 회원가입해야 합니다."
       invalid: "이메일 또는 비밀번호가 올바르지 않습니다."
       not_found_in_database: "이메일 또는 비밀번호가 올바르지 않습니다."
@@ -19,6 +20,8 @@ ko:
       signed_in: "로그인되었습니다."
       signed_out: "로그아웃되었습니다."
       already_signed_out: "이미 로그아웃되었습니다."
+    registrations:
+      signed_up: "회원가입이 완료되었습니다."
     passwords:
       updated: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요."
       updated_not_active: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요."
@@ -77,6 +80,12 @@ ko:
       allows_new_followers:
         label: "새 소식받기 허용"
         description: "다른 사용자가 내 소식을 새로 받아볼 수 있습니다."
+    password:
+      title: "비밀번호 변경"
+      description: "변경 후 로그아웃됩니다. 새 비밀번호로 다시 로그인해 주세요."
+      current_password: "현재 비밀번호"
+      new_password: "새 비밀번호"
+      password_confirmation: "새 비밀번호 확인"
     account:
       title: "계정"
       description: "계정 탈퇴는 별도의 확인 화면에서 진행합니다."
@@ -91,6 +100,9 @@ ko:
       group_lifecycle_event:
         detail: "거절 사유"
       user:
+        current_password: "현재 비밀번호"
+        password: "비밀번호"
+        password_confirmation: "비밀번호 확인"
         handle: "공개 주소 이름"
         avatar: "프로필 이미지"
         reset_password_token: "재설정 링크"
@@ -103,9 +115,13 @@ ko:
             reset_password_token:
               invalid: "가 올바르지 않거나 이미 사용되었습니다"
               expired: "의 유효기간이 지났습니다"
+            current_password:
+              blank: "를 입력해 주세요"
+              invalid: "가 올바르지 않습니다"
             password:
               blank: "를 입력해 주세요"
               too_short: "는 %{count}자 이상이어야 합니다"
+              too_long: "는 %{count}자 이하여야 합니다"
             password_confirmation:
               confirmation: "이 일치하지 않습니다"
             avatar:

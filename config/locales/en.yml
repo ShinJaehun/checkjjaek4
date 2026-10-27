@@ -74,6 +74,12 @@ en:
       allows_new_followers:
         label: "Allow new followers"
         description: "Others can start following your updates."
+    password:
+      title: "Change password"
+      description: "You will be signed out after changing your password. Sign in again with your new password."
+      current_password: "Current password"
+      new_password: "New password"
+      password_confirmation: "Confirm new password"
     account:
       title: "Account"
       description: "Account withdrawal continues on a separate confirmation page."
@@ -88,6 +94,9 @@ en:
       group_lifecycle_event:
         detail: "Rejection reason"
       user:
+        current_password: "Current password"
+        password: "Password"
+        password_confirmation: "Password confirmation"
         handle: "Public handle"
         avatar: "Profile image"
         reset_password_token: "Reset link"
@@ -100,9 +109,13 @@ en:
             reset_password_token:
               invalid: "is invalid or has already been used"
               expired: "has expired"
+            current_password:
+              blank: "must be entered"
+              invalid: "is incorrect"
             password:
               blank: "must be entered"
               too_short: "must be at least %{count} characters"
+              too_long: "must be %{count} characters or fewer"
             password_confirmation:
               confirmation: "does not match"
             avatar:

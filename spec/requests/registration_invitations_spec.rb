@@ -173,6 +173,7 @@ RSpec.describe "Registration invitations", type: :request do
       post user_registration_path, params: { invitation_token: token, user: registration_attributes("spoof@example.com").merge(global_admin: true) }
     }.to change(User, :count).by(1)
     expect(response).to redirect_to(root_path)
+    expect(flash[:notice]).to eq("회원가입이 완료되었습니다.")
     user = User.find_by!(email: "new-reader@example.com")
     expect(user).not_to be_global_admin
     expect(User.exists?(email: "spoof@example.com")).to be(false)
@@ -187,6 +188,10 @@ RSpec.describe "Registration invitations", type: :request do
   it "does not allow a signed-in admin to register another user" do
     invitation, token = issue_invitation
     sign_in admin
+
+    get new_user_registration_path(invitation_token: token)
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq("이미 로그인되어 있습니다.")
 
     expect {
       post user_registration_path, params: { invitation_token: token, user: registration_attributes }

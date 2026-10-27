@@ -48,6 +48,7 @@
 - `Group`: 일반 사용자 생성은 global admin 승인 기반, global admin 직접 생성은 즉시 active인 pending_approval/active/inactive 운영 상태
 - `GroupMembership`: 사용자와 동아리 사이의 pending/invited/active 상태와 별도 활동 moderation 상태
 - `/account/settings`에서 자기 이름, 프로필 이미지 업로드·교체·삭제와 새 책친구 신청·비공개 동아리 초대·소식받기 허용을 관리하고, 기존 계정 탈퇴 확인 화면으로 이동함. 상호작용 설정은 기존 관계에 소급 적용하지 않음 (`docs/specs/interaction_preferences.md`)
+- 같은 설정 화면의 비밀번호 변경은 `PATCH /account/settings/password`에서 Devise의 현재 비밀번호·유효성 검증으로 처리함. 실패하면 입력값을 비우고 오류를 표시하며, 성공하면 로그아웃 후 새 비밀번호로 로그인하도록 안내함 (`docs/specs/account_password_settings.md`)
 - 업로드 아바타는 서버에서 JPEG·PNG·WebP와 원본 5MB 제한을 검증하고 128px·512px 정사각형 variant로 표시함. 기본 32종 아바타는 업로드가 없을 때 유지됨. 개발·테스트는 Disk, 운영은 비공개 OCI Object Storage 아바타 전용 S3 호환 서비스를 사용함
 - `/users/:id`는 사용자 프로필 surface로 유지하고, `/account/...`는 자기 계정 관리용 self-only 경로로 확장할 수 있으며 현재는 settings만 구현됨
 
