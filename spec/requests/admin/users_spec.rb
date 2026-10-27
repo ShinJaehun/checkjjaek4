@@ -24,15 +24,20 @@ RSpec.describe "Admin user inventory", type: :request do
     sign_in admin
     get root_path
     expect(application_nav_links).to include(
+      "소식" => root_path,
       "사용자 관리" => admin_users_path,
       "동아리 관리" => admin_groups_path
     )
+    expect(application_nav_links).not_to have_key("홈")
     expect(application_nav_links).not_to have_key("운영 관리")
+    expect(Nokogiri::HTML(response.body).css("#mobile-navigation-links > span[aria-hidden='true']").size).to eq(1)
 
     sign_in reader
     get root_path
+    expect(application_nav_links).to include("소식" => root_path)
     expect(application_nav_links).not_to have_key("사용자 관리")
     expect(application_nav_links).not_to have_key("동아리 관리")
+    expect(Nokogiri::HTML(response.body).css("#mobile-navigation-links > span[aria-hidden='true']")).to be_empty
 
     Group.create!(group_admin: reader, name: "Reader managed", group_type: :public_group, application_purpose: "Read")
     get root_path

@@ -200,7 +200,7 @@ ko:
       no_account: "계정이 없나요?"
       title: "서재부터 시작합니다"
   home:
-    nav: "홈"
+    nav: "소식"
     title: "책짹"
     description: "책 읽기... 좋아하세요?"
     feed_title: "최근 소식"
