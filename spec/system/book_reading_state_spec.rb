@@ -74,10 +74,10 @@ RSpec.describe "Book reading state", type: :system do
     expect(entry.book_activities.reload).to be_empty
   end
 
-  it "keeps the book writing form collapsed until requested" do
-    expect(page).to have_css("dialog#book-writing-dialog:not([open]) form[action='#{jjaeks_path}']", visible: :all)
-    find("button[aria-controls='book-writing-dialog']").click
-    expect(page).to have_css("dialog#book-writing-dialog[open]")
+  it "shows the book writing form inline alongside the reading modal" do
+    expect(page).to have_css("#book-jjaek-form form[action='#{jjaeks_path}']")
+    expect(page).to have_no_css("#book-writing-dialog")
+    expect(page).to have_css("dialog#book-reading-dialog:not([open])", visible: :all)
     expect(page).to have_field("jjaek[content]")
   end
 end

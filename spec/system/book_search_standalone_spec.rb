@@ -47,12 +47,11 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_text(I18n.t("book_search.actions.in_shelf"))
     expect(page).to have_no_button(I18n.t("book_search.actions.add_to_shelf"))
     click_link I18n.t("book_search.actions.open_internal")
-    find("button[aria-controls='book-writing-dialog']").click
-    expect(page).to have_css("dialog#book-writing-dialog[open]")
+    expect(page).to have_css("#book-jjaek-form form")
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
     expect([ Book.count, BookshelfEntry.count ]).to eq(counts)
     fill_in I18n.t("jjaeks.form.book_jjaek_content"), with: "Personal search reading note"
-    within("dialog#book-writing-dialog") do
+    within("#book-jjaek-form") do
       click_button I18n.t("jjaeks.actions.publish_book")
     end
     expect(page).to have_text("Personal search reading note")
@@ -102,12 +101,10 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_current_path(
       book_path(book, group_id: group.id, return_to: search_path)
     )
-    find("button[aria-controls='book-writing-dialog']").click
-    expect(page).to have_css("dialog#book-writing-dialog[open]")
+    expect(page).to have_css("#book-jjaek-form form")
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_group_book"), visible: :all)
     expect(page).to have_select(I18n.t("jjaeks.form.posting_group"), selected: group.name)
-    find("dialog#book-writing-dialog button[data-action='book-modal#close']").click
-    expect(page).to have_css("dialog#book-writing-dialog:not([open])", visible: :all)
+    expect(page).to have_no_css("#book-writing-dialog")
     find("a[data-back-link]").click
     expect(page).to have_current_path(search_path)
     expect(page).to have_field(I18n.t("book_search.form.query"), with: "Stored search")

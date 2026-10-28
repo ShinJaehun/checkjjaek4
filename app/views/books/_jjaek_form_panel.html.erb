@@ -1,14 +1,11 @@
 <% submit_label = t(@group_book_post ? "jjaeks.actions.publish_group_book" : "jjaeks.actions.publish_book") %>
 <% posting_destination = @group_book_post ? "group" : "personal" %>
-<section class="<%= local_assigns[:modal] ? 'p-6' : 'rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm' %>"
+<section id="book-jjaek-form" aria-label="책짹 작성" class="mx-auto w-full max-w-3xl rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm"
          data-controller="<%= 'book-posting' if @select_book_post_destination %>"
          data-book-posting-personal-label-value="<%= t('jjaeks.actions.publish_book') %>"
          data-book-posting-group-label-value="<%= t('jjaeks.actions.publish_group_book') %>"
          data-book-posting-group-prompt-value="<%= t('jjaeks.form.choose_posting_group') %>"
          data-book-posting-no-groups-value="<%= t('jjaeks.form.no_postable_groups') %>">
-  <% unless local_assigns[:modal] %>
-    <h2 data-book-posting-target="title" class="mb-3 text-xl font-semibold text-stone-900"><%= submit_label %></h2>
-  <% end %>
   <% if @group_book_post && !@select_book_post_destination %>
     <p class="mb-4 text-sm text-stone-600"><%= t("books.show.group_destination", name: jjaek.group.name) %></p>
   <% end %>
@@ -72,7 +69,7 @@
         <p class="text-sm text-stone-500"><%= t("jjaeks.form.no_postable_groups") %></p>
       <% end %>
 
-      <%= render "shared/content_field", form: form, label_key: "jjaeks.form.book_jjaek_content", rows: 8 %>
+      <%= render "shared/content_field", form: form, label_key: "jjaeks.form.book_jjaek_content", rows: 4 %>
 
       <%= form.submit submit_label, data: { book_posting_target: "submit" }, class: "ui-button ui-button-primary" %>
     <% end %>

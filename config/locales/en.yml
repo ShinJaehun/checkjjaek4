@@ -1280,7 +1280,7 @@ en:
       move_bookshelf: "Move to another shelf"
       edit_reading_record: "Reading activity"
       save_reading_record: "Save reading record"
-      write_book_jjaek: "Book Jjaek"
+      write_book_jjaek: "Write a book post about this book"
       friend_activity_title: "Book friend activity"
   jjaeks:
     contexts:

@@ -166,7 +166,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include('name="jjaek[content]"')
     end
 
-    it "keeps the personal writing modal closed with its visibility selector and a separate state save button" do
+    it "shows the personal writing form inline with its visibility selector and a separate reading modal" do
       user.bookshelf_entries.create!(book: book)
       sign_in user
 
@@ -175,22 +175,25 @@ RSpec.describe "Books", type: :request do
       page = Nokogiri::HTML(response.body)
       form = page.at_css("form[action='#{jjaeks_path}']")
       expect(form).to be_present
-      expect(form.ancestors("dialog").first["id"]).to eq("book-writing-dialog")
-      expect(form.ancestors("dialog").first["open"]).to be_nil
+      expect(form.ancestors("dialog")).to be_empty
       expect(page.at_css("[data-book-modal-auto-open-value='false']")).to be_present
       expect(form.at_css("input[name='jjaek[visibility]']")).to be_present
       expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
-      dialog = page.at_css("#book-writing-dialog")
-      expect(dialog.css("h2").map(&:text)).to eq([ I18n.t("books.show.write_book_jjaek") ])
-      expect(dialog.at_css("[data-book-posting-target='title']")).to be_nil
+      panel = page.at_css("#book-jjaek-form")
+      expect(panel["aria-label"]).to eq("책짹 작성")
+      expect(panel.at_css("textarea")["rows"]).to eq("4")
+      expect(panel.at_css("[data-book-posting-target='title']")).to be_nil
       expect(page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}'] input[type='submit']")).to be_present
       header = page.at_css("h1").ancestors("section").first
       expect(header.at_css("button[aria-controls='book-reading-dialog']").text.strip).to eq(I18n.t("books.show.edit_reading_record"))
-      expect(header.at_css("button[aria-controls='book-writing-dialog']").ancestors("[data-controller='book-modal']").first).to eq(dialog.parent)
-      expect(dialog.parent.css("dialog").map { |modal| modal["id"] }).to eq([ "book-writing-dialog" ])
+      expect(panel.ancestors("section")).not_to include(header)
+      expect(page.at_css("#book-writing-dialog")).to be_nil
+      expect(page.at_css("button[aria-controls='book-writing-dialog']")).to be_nil
+      expect(page.at_css("#book-reading-dialog")).to be_present
+      expect(header.next_element).to eq(panel)
     end
 
-    it "opens the writing form for a requote and keeps the group and return context" do
+    it "shows the inline writing form for a requote and keeps the group and return context" do
       user.bookshelf_entries.create!(book:)
       author = User.create!(name: "Source author", email: "book-source-author@example.com", password: "password123!")
       original = author.jjaeks.create!(book:, content: "QUOTE_SOURCE")
@@ -202,8 +205,8 @@ RSpec.describe "Books", type: :request do
       page = Nokogiri::HTML(response.body)
       form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
       expect(form).to be_present
-      expect(form.ancestors("dialog").first["id"]).to eq("book-writing-dialog")
-      expect(form.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
+      expect(form.ancestors("dialog")).to be_empty
+      expect(form.ancestors("#book-jjaek-form")).not_to be_empty
       expect(form.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(original.id.to_s)
       expect(form.at_css("input[name='return_to']")["value"]).to eq(root_path)
       reading_form = page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}']")
@@ -218,7 +221,7 @@ RSpec.describe "Books", type: :request do
       expect(response).to redirect_to(book_path(book, group_id: group.id, quote_id: original.id, return_to: root_path))
     end
 
-    it "opens the writing form after a validation error" do
+    it "shows errors in the inline writing form after a validation error" do
       user.bookshelf_entries.create!(book:)
       sign_in user
 
@@ -226,11 +229,12 @@ RSpec.describe "Books", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
-      expect(form.ancestors("dialog").first["id"]).to eq("book-writing-dialog")
-      expect(form.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
+      expect(form.ancestors("dialog")).to be_empty
+      expect(form.ancestors("#book-jjaek-form")).not_to be_empty
+      expect(form.at_css("[role='alert']:not([hidden])")).to be_present
     end
 
-    it "reopens the writing modal with the submitted content and length error" do
+    it "preserves the inline draft and length error after failed submission" do
       user.bookshelf_entries.create!(book:)
       sign_in user
 
@@ -241,8 +245,8 @@ RSpec.describe "Books", type: :request do
       form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
       expect(form.at_css("textarea[name='jjaek[content]']").text.strip).to eq(submitted_content)
       expect(form.text).to include(I18n.t("content_form.too_long", count: 200))
-      expect(form.ancestors("dialog").first["id"]).to eq("book-writing-dialog")
-      expect(form.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
+      expect(form.ancestors("dialog")).to be_empty
+      expect(form.ancestors("#book-jjaek-form")).not_to be_empty
     end
 
     it "shows only public personal book jjaeks before the book is added to the library" do
