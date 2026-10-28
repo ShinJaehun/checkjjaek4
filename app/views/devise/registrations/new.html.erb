@@ -36,7 +36,7 @@
         <%= form.password_field :password_confirmation, autocomplete: "new-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
       </div>
 
-      <%= form.submit t("auth.actions.sign_up"), class: "w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50" %>
+      <%= form.submit t("auth.actions.sign_up"), class: "ui-button ui-button-primary w-full" %>
     <% end %>
   <% else %>
     <p class="mt-6 text-sm text-stone-700"><%= t("registration_invitations.sign_in_notice") %></p>

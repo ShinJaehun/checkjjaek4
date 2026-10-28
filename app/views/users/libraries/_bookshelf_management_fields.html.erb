@@ -30,9 +30,9 @@
     <% bookshelf_color_options.each do |color_key| %>
       <% color_name = t("bookshelves.color_keys.#{color_key}") %>
       <% radio_id = "bookshelf_#{mode}_color_key_#{color_key}" %>
-      <%= label_tag radio_id, class: "cursor-pointer", title: color_name do %>
+      <%= label_tag radio_id, class: "inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center", title: color_name do %>
         <%= form.radio_button :color_key, color_key, id: radio_id, class: "peer sr-only" %>
-        <span class="block h-7 w-7 rounded-full border <%= color_swatch_classes.fetch(color_key, "border-stone-300 bg-stone-300") %> ring-offset-2 peer-checked:ring-2 peer-checked:ring-stone-900">
+        <span class="block h-7 w-7 rounded-full border <%= color_swatch_classes.fetch(color_key, "border-stone-300 bg-stone-300") %> ring-offset-2 peer-checked:ring-2 peer-checked:ring-stone-900 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-stone-900">
           <span class="sr-only"><%= color_name %></span>
         </span>
       <% end %>

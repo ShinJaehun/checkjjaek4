@@ -96,7 +96,7 @@
                    class: "rounded-xl border border-stone-200 px-3 py-2" %>
       <%= render "admin/shared/page_size", form: f, page: @timeline_page %>
       <%= f.submit t("admin.user_content.filters.apply"),
-                   class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
+                   class: "ui-button ui-button-primary whitespace-nowrap" %>
       <%= link_to t("admin.user_content.filters.reset"),
                   content_admin_user_path(@user, @return_params.slice(:inventory).merge(content: @content_section, location: @content_location).compact),
                   class: "whitespace-nowrap px-2 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 hover:underline" %>

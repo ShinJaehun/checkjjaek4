@@ -30,25 +30,16 @@ module BookshelfEntriesHelper
   end
 
   def reading_badge_classes(kind, selectable: false, icon_only: false)
-    base = "inline-flex min-w-0 max-w-full items-center gap-1.5 border text-xs font-medium"
-    spacing = if selectable
-      "ui-choice"
-    else
-      icon_only ? "shrink-0 p-0.5" : "px-2.5 py-1"
+    if selectable
+      return kind == :status ? "ui-choice ui-choice-status" : "ui-choice ui-choice-sticker"
     end
-    shape = kind == :status ? "rounded-lg" : "rounded-full"
-    colors = if selectable
-      if kind == :status
-        "border-stone-300 bg-white text-stone-700 has-[:checked]:border-stone-700 has-[:checked]:bg-stone-100 has-[:checked]:text-stone-900"
-      else
-        "border-stone-300 bg-white text-stone-700 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-900"
-      end
-    else
-      kind == :status ? "border-stone-300 bg-stone-100 text-stone-700" : "border-amber-200 bg-amber-50 text-amber-900"
-    end
-    interaction = "cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stone-500" if selectable
 
-    [ base, spacing, shape, colors, interaction ].compact.join(" ")
+    base = "inline-flex min-w-0 max-w-full items-center gap-1.5 border text-xs font-medium"
+    spacing = icon_only ? "shrink-0 p-0.5" : "px-2.5 py-1"
+    shape = kind == :status ? "rounded-lg" : "rounded-full"
+    colors = kind == :status ? "border-stone-300 bg-stone-100 text-stone-700" : "border-amber-200 bg-amber-50 text-amber-900"
+
+    [ base, spacing, shape, colors ].join(" ")
   end
 
   def reading_status_content(status)

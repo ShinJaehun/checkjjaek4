@@ -57,7 +57,7 @@
         <% action_label = @can_suspend ? t("admin.users.actions.suspend") : t("admin.users.actions.restore") %>
         <%= link_to action_label,
                     action_path,
-                    class: "mt-4 inline-flex rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+                    class: "ui-button ui-button-warning mt-4" %>
       </section>
     <% end %>
 

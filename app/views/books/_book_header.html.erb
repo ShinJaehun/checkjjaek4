@@ -40,7 +40,7 @@
 
       <% if book.external_url.present? %>
         <div class="mt-5">
-          <%= link_to t("books.show.external_link"), book.external_url, target: "_blank", rel: "noopener", class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:border-stone-400 hover:text-stone-900" %>
+          <%= link_to t("books.show.external_link"), book.external_url, target: "_blank", rel: "noopener", class: "ui-button ui-button-secondary" %>
         </div>
       <% end %>
     </div>

@@ -2,40 +2,86 @@
 
 @layer components {
   .ui-button {
-    @apply inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 py-2 text-center text-sm font-semibold shadow-sm transition-colors touch-manipulation;
-    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900;
+    --button-bg: #fafaf9;
+    --button-hover-bg: #f5f5f4;
+    --button-active-bg: #e7e5e4;
+    --button-border: #d6d3d1;
+    --button-color: #292524;
+    --button-focus: #57534e;
+
+    @apply inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 py-2 text-center text-sm font-semibold touch-manipulation;
+    color: var(--button-color);
+    background-color: var(--button-bg);
+    border-color: var(--button-border);
+    box-shadow: none;
+    transition: background-color 150ms ease;
   }
 
   .ui-button-primary {
-    @apply border-stone-900 bg-stone-900 text-white;
+    --button-bg: #276749;
+    --button-hover-bg: #20583e;
+    --button-active-bg: #1a4731;
+    --button-border: #20583e;
+    --button-color: #fff;
+    --button-focus: #276749;
   }
 
   .ui-button-secondary {
-    @apply border-stone-300 bg-stone-50 text-stone-800;
+    --button-bg: #fafaf9;
   }
 
+  .ui-button-danger {
+    --button-bg: #b91c1c;
+    --button-hover-bg: #991b1b;
+    --button-active-bg: #7f1d1d;
+    --button-border: #991b1b;
+    --button-color: #fff;
+    --button-focus: #b91c1c;
+  }
+
+  .ui-button-warning {
+    --button-bg: #92400e;
+    --button-hover-bg: #78350f;
+    --button-active-bg: #632c0c;
+    --button-border: #78350f;
+    --button-color: #fff;
+    --button-focus: #92400e;
+  }
+
+  .ui-button:focus-visible {
+    outline: 2px solid var(--button-focus);
+    outline-offset: 3px;
+  }
+
+  @media (hover: hover) {
+    .ui-button:not(:disabled):not([aria-disabled="true"]):hover {
+      background-color: var(--button-hover-bg);
+    }
+  }
+
+  /* Pressed styles follow hover so a mouse press keeps its active color. */
   .ui-button:not(:disabled):not([aria-disabled="true"]):active {
-    @apply shadow-none;
-  }
-
-  .ui-button-primary:not(:disabled):not([aria-disabled="true"]):active {
-    @apply bg-stone-700;
-  }
-
-  .ui-button-secondary:not(:disabled):not([aria-disabled="true"]):active {
-    @apply bg-stone-200;
+    background-color: var(--button-active-bg);
   }
 
   .ui-button:disabled,
   .ui-button[aria-disabled="true"] {
-    @apply cursor-not-allowed opacity-50 shadow-none;
+    cursor: not-allowed;
+    opacity: 0.5;
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ui-button {
+      transition: none;
+    }
   }
 
   .ui-choice {
-    @apply min-h-11 cursor-pointer gap-2 px-3 py-2 shadow-sm transition-colors touch-manipulation;
-    @apply has-[:checked]:ring-2 has-[:checked]:ring-stone-700 has-[:checked]:ring-offset-2;
-    @apply has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-stone-900;
-    @apply has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[:disabled]:shadow-none;
+    @apply inline-flex min-h-11 min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700 touch-manipulation;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+    box-shadow: none;
+    transform: none;
   }
 
   .ui-choice input[type="radio"],
@@ -43,21 +89,50 @@
     @apply size-4 shrink-0 accent-stone-900;
   }
 
-  .ui-choice:not(:has(:disabled)):active {
-    @apply shadow-none;
+  @media (hover: hover) {
+    .ui-choice:not(:has(:disabled)):not(:has(:checked)):hover {
+      @apply border-stone-500;
+    }
   }
 
-  @media (hover: hover) {
-    .ui-button-primary:not(:disabled):not([aria-disabled="true"]):hover {
-      @apply border-stone-700 bg-stone-700;
-    }
+  .ui-choice:has(:checked) {
+    @apply border-stone-500 bg-stone-100 text-stone-900;
+  }
 
-    .ui-button-secondary:not(:disabled):not([aria-disabled="true"]):hover {
-      @apply border-stone-500 bg-stone-100;
-    }
+  .ui-choice:has(:focus-visible) {
+    outline: 2px solid #44403c;
+    outline-offset: 3px;
+  }
 
-    .ui-choice:not(:has(:disabled)):hover {
-      @apply border-stone-500;
+  .ui-choice:has(:disabled) {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .ui-choice-status {
+    @apply text-xs;
+  }
+
+  .ui-choice-sticker {
+    @apply rounded-full text-xs;
+  }
+
+  .ui-choice-card {
+    @apply rounded-2xl p-4;
+  }
+
+  .ui-choice-sticker:has(:checked),
+  .ui-choice-card:has(:checked) {
+    @apply border-amber-600 bg-amber-50 text-amber-900;
+  }
+
+  .ui-choice-sticker input[type="checkbox"] {
+    @apply accent-amber-700;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ui-choice {
+      transition: none;
     }
   }
 }

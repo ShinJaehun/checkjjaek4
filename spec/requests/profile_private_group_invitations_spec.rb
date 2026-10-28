@@ -33,7 +33,7 @@ RSpec.describe "Private group invitations from profiles", type: :request do
     cancel_form = Nokogiri::HTML(response.body).at_css(%(form[action="#{revoke_group_group_membership_path(group, invitation)}"]))
     expect(cancel_form.text).to include(I18n.t("users.profile.cancel_group_invitation", group_name: group.name))
     expect(cancel_form.at_css('input[name="return_context"]')["value"]).to eq("profile")
-    expect(cancel_form.at_css('button')["class"]).to eq("rounded-full border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700")
+    expect(cancel_form.at_css('button')["class"].split).to include("ui-button", "ui-button-danger")
   end
 
   it "cancels an invitation from the profile and offers a new invitation again" do

@@ -10,7 +10,7 @@
     <div>
       <%= link_to t("jjaeks.actions.requote"),
                   new_jjaek_path(jjaek_navigation_params.merge(quoted_jjaek_id: @jjaek.id)),
-                  class: "inline-flex rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+                  class: "ui-button ui-button-primary" %>
     </div>
   <% end %>
 
@@ -20,7 +20,7 @@
       <%= link_to t("requotes.actions.view_panel"),
                   jjaek_requotes_path(@jjaek),
                   data: { turbo_stream: true },
-                  class: "inline-flex rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:border-stone-400 hover:text-stone-900" %>
+                  class: "ui-button ui-button-secondary" %>
     </div>
   <% end %>
 

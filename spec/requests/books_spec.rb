@@ -97,8 +97,8 @@ RSpec.describe "Books", type: :request do
       expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq([ bookshelf.id.to_s ])
       current_badge = choices.find { |choice| choice["value"] == bookshelf.id.to_s }.parent
       target_badge = choices.find { |choice| choice["value"] == target_bookshelf.id.to_s }.parent
-      expect(current_badge["class"].split).to include("bg-red-50", "has-[:checked]:ring-2", "has-[:checked]:ring-stone-900")
-      expect(target_badge["class"].split).to include("bg-blue-50", "has-[:checked]:ring-2", "has-[:checked]:ring-stone-900")
+      expect(current_badge["class"].split).to eq(%w[ui-choice])
+      expect(target_badge["class"]).to eq(current_badge["class"])
       expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("bookshelf_entries.actions.move"))
     end
 

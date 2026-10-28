@@ -75,7 +75,7 @@
                       class: "rounded-xl border border-stone-200 px-3 py-2",
                       aria: { label: t("groups.content_inventory.fields.sort") } %>
       <%= form.submit t("groups.content_inventory.filters.apply"),
-                      class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
+                      class: "ui-button ui-button-primary whitespace-nowrap" %>
       <%= link_to t("groups.content_inventory.filters.reset"),
                   content_group_path(@group, content: @content_section),
                   class: "whitespace-nowrap px-2 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 hover:underline" %>

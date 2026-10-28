@@ -40,11 +40,11 @@
     <% if root_row %>
       <%= link_to t("admin.user_content.actions.direct"),
                   jjaek_path(root, jjaek_navigation_params),
-                  class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+                  class: "ui-button ui-button-secondary" %>
     <% else %>
       <%= link_to t("admin.user_content.actions.direct"),
                   jjaek_path(root, jjaek_navigation_params.merge(anchor: dom_id(record))),
-                  class: "inline-flex rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50" %>
+                  class: "ui-button ui-button-secondary" %>
     <% end %>
   </td>
 </tr>

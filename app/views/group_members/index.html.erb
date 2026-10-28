@@ -49,7 +49,7 @@
               <% if @group.group_admin?(current_user) && policy(@group).transfer_admin? %>
                 <%= link_to t("groups.admin_transfer.submit"),
                             new_group_admin_transfer_path(@group),
-                            class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                            class: "ui-button ui-button-secondary" %>
               <% end %>
             <% elsif membership_policy.suspend_activity? || membership_policy.restore_activity? || membership_policy.remove? || membership_policy.ban_from_group? %>
               <div id="member-management-<%= membership.id %>" class="flex flex-wrap items-center gap-2" data-member-management>
@@ -59,7 +59,7 @@
                   <%= button_to t("group_memberships.actions.remove"),
                                 remove_group_group_membership_path(@group, membership),
                                 method: :delete,
-                                class: "rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700",
+                                class: "ui-button ui-button-danger",
                                 data: { member_action: "remove" } %>
                 <% end %>
 
@@ -95,13 +95,13 @@
                 <%= button_to t("group_memberships.actions.approve"),
                               group_group_membership_path(@group, membership),
                               method: :patch,
-                              class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+                              class: "ui-button ui-button-primary" %>
               <% end %>
               <% if policy(membership).reject? %>
                 <%= button_to t("group_memberships.actions.reject"),
                               reject_group_group_membership_path(@group, membership),
                               method: :delete,
-                              class: "rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700" %>
+                              class: "ui-button ui-button-danger" %>
               <% end %>
             </div>
           </div>
@@ -127,7 +127,7 @@
                 <%= button_to t("group_memberships.actions.revoke"),
                               revoke_group_group_membership_path(@group, membership),
                               method: :delete,
-                              class: "rounded-full border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700" %>
+                              class: "ui-button ui-button-danger" %>
               <% end %>
             </div>
           <% end %>
@@ -156,7 +156,7 @@
               <% if policy(ban).unban? %>
                 <%= link_to t("group_member_bans.moderation.unban.submit"),
                             new_group_group_member_ban_restoration_path(@group, ban),
-                            class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700",
+                            class: "ui-button ui-button-warning",
                             data: { member_action: "unban_from_group" } %>
               <% end %>
             </div>

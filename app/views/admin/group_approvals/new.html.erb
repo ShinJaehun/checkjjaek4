@@ -30,7 +30,7 @@
   <%= button_to t("admin.groups.actions.approve"),
                 admin_group_approvals_path(@group, @action_params),
                 method: :post,
-                class: "mt-6 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
+                class: "ui-button ui-button-primary mt-6" %>
   <% if policy(@group).reject? %>
     <%= form_with model: @rejection_event, url: reject_admin_group_approvals_path(@group, @action_params),
                   class: "mt-6 space-y-3 border-t border-stone-200 pt-6" do |form| %>
@@ -42,7 +42,7 @@
                          class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" %>
       <p class="text-xs text-stone-500"><%= t("admin.groups.approval.rejection_hint") %></p>
       <% rejection_label = @rejection_event.reactivation_rejected? ? "reject_reactivation" : "reject" %>
-      <%= form.submit t("admin.groups.actions.#{rejection_label}"), class: "rounded-full bg-red-700 px-5 py-2.5 text-sm font-medium text-white" %>
+      <%= form.submit t("admin.groups.actions.#{rejection_label}"), class: "ui-button ui-button-danger" %>
     <% end %>
   <% end %>
   <%= link_to t("admin.groups.operation_moderation.cancel"),

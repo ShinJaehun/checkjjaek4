@@ -22,7 +22,7 @@
             <%= link_to t("registration_invitations.nav"), admin_registration_invitations_path, class: "font-medium" %>
           <% end %>
         <% else %>
-          <%= link_to t("auth.actions.sign_in"), new_user_session_path, class: "font-medium lg:rounded-full lg:border lg:border-stone-300 lg:px-3 lg:py-1.5" %>
+          <%= link_to t("auth.actions.sign_in"), new_user_session_path, class: "ui-button ui-button-secondary" %>
         <% end %>
       </div>
       <% if user_signed_in? %>
@@ -33,14 +33,14 @@
           </span>
         <% end %>
       <% end %>
-      <button type="button" class="order-2 rounded-full border border-stone-300 px-3 py-1.5 font-medium lg:hidden" aria-controls="mobile-navigation-links<%= ' mobile-navigation-account' if user_signed_in? %>" aria-expanded="false" data-mobile-navigation-target="button" data-action="mobile-navigation#toggle"><%= t("navigation.menu") %></button>
+      <button type="button" class="ui-button ui-button-secondary order-2 lg:hidden" aria-controls="mobile-navigation-links<%= ' mobile-navigation-account' if user_signed_in? %>" aria-expanded="false" data-mobile-navigation-target="button" data-action="mobile-navigation#toggle"><%= t("navigation.menu") %></button>
       <% if user_signed_in? %>
         <div id="mobile-navigation-account" class="order-4 hidden w-full flex-col gap-3 pb-1 lg:order-none lg:flex lg:w-auto lg:flex-row lg:items-center lg:pb-0" data-mobile-navigation-target="links">
           <%= link_to user_path(current_user), class: "flex items-center gap-2 font-medium" do %>
             <%= user_avatar_image(current_user, size: 128, alt: current_user.name, class: "h-8 w-8 rounded-full object-cover") %>
             <span><%= current_user.name %></span>
           <% end %>
-          <%= button_to t("auth.actions.sign_out"), destroy_user_session_path, method: :delete, class: "rounded-full border border-stone-300 px-3 py-1.5" %>
+          <%= button_to t("auth.actions.sign_out"), destroy_user_session_path, method: :delete, class: "ui-button ui-button-secondary" %>
         </div>
       <% end %>
     </nav>

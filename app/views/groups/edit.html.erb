@@ -19,7 +19,7 @@
       <%= button_to t("groups.reactivation_request.withdraw"),
                     withdraw_group_reactivation_requests_path(@group),
                     form: { data: { turbo_confirm: t("groups.reactivation_request.withdraw_confirmation") } },
-                    class: "mt-4 rounded-full border border-amber-400 px-5 py-2.5 text-sm font-medium" %>
+                    class: "ui-button ui-button-warning mt-4" %>
     </section>
   <% elsif @group.active? %>
     <section class="rounded-3xl border border-red-200 bg-red-50/60 p-6">
@@ -27,7 +27,7 @@
       <p class="mt-2 text-sm text-red-700"><%= t("groups.management.close_description") %></p>
       <%= link_to t("groups.actions.close"),
                   new_group_closure_path(@group),
-                  class: "mt-5 inline-block rounded-full bg-red-700 px-5 py-2.5 text-sm font-medium text-white" %>
+                  class: "ui-button ui-button-danger mt-5" %>
     </section>
   <% elsif @group.inactive? %>
     <section class="rounded-3xl border border-amber-200 bg-amber-50/60 p-6">
@@ -38,7 +38,7 @@
       <p class="mt-4 text-sm text-stone-700"><%= t("groups.management.reactivation_description") %></p>
       <%= link_to t("groups.actions.request_reactivation"),
                   new_group_reactivation_request_path(@group),
-                  class: "mt-4 inline-block rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
+                  class: "ui-button ui-button-primary mt-4" %>
     </section>
   <% end %>
 

@@ -11,7 +11,7 @@
            data-bookshelf-entries-sort-handle
          <% end %>>
   <% if transfer_selection %>
-    <label class="absolute right-2 top-2 z-10 hidden h-9 w-9 items-center justify-center rounded-full border border-stone-300 bg-white/95 shadow-sm md:hidden"
+    <label class="absolute right-2 top-2 z-10 hidden h-9 w-9 items-center justify-center rounded-full border border-stone-300 bg-white/95 md:hidden"
            data-bookshelf-transfer-target="selectionCheckboxWrapper">
       <span class="sr-only"><%= t("users.library.transfer.select_book", title: bookshelf_entry.book.title) %></span>
       <%= check_box_tag "transfer_selection_#{bookshelf_entry.id}",

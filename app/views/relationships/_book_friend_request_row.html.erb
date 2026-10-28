@@ -8,12 +8,12 @@
                       user_book_friendship_path(friendship.requester),
                       method: :patch,
                       params: { return_to: "relationships" },
-                      class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+                      class: "ui-button ui-button-primary" %>
         <%= button_to t("users.actions.reject_book_friend_request"),
                       user_book_friendship_path(friendship.requester),
                       method: :delete,
                       params: { return_to: "relationships" },
-                      class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                      class: "ui-button ui-button-secondary" %>
       </div>
     <% else %>
       <%= user_avatar_link(friendship.addressee, image_class: "h-10 w-10 shrink-0 rounded-full object-cover", text_class: "font-medium text-stone-900") %>
@@ -21,7 +21,7 @@
                     user_book_friendship_path(friendship.addressee),
                     method: :delete,
                     params: { return_to: "relationships" },
-                    class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                    class: "ui-button ui-button-secondary" %>
     <% end %>
   </div>
 </article>

@@ -24,7 +24,7 @@
             <legend class="text-sm font-medium text-stone-600"><%= t("bookshelf_entries.form.move_bookshelf") %></legend>
             <div class="flex flex-wrap gap-2">
               <% bookshelves.each do |bookshelf| %>
-                <label class="ui-choice inline-flex max-w-full items-center gap-2 rounded-full border text-sm <%= bookshelf_tab_class(bookshelf, selected: false) %> has-[:checked]:ring-2 has-[:checked]:ring-stone-900 has-[:checked]:ring-offset-2 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-stone-500">
+                <label class="ui-choice">
                   <%= radio_button_tag :bookshelf_id, bookshelf.id, bookshelf.id == bookshelf_entry.bookshelf_id, required: true, class: "shrink-0" %>
                   <span class="min-w-0 break-words"><%= bookshelf.name %></span>
                 </label>
@@ -60,7 +60,7 @@
           <legend class="text-sm font-medium text-stone-600"><%= t("bookshelf_entries.form.target_bookshelf") %></legend>
           <div class="flex flex-wrap gap-2">
             <% bookshelves.each_with_index do |bookshelf, index| %>
-              <label class="ui-choice inline-flex max-w-full items-center gap-2 rounded-full border border-stone-300 bg-white text-sm text-stone-700 has-[:checked]:border-stone-900 has-[:checked]:bg-stone-900 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stone-500">
+              <label class="ui-choice">
                 <%= radio_button_tag "bookshelf_entry[bookshelf_id]", bookshelf.id, index.zero?, required: true, class: "shrink-0" %>
                 <span class="min-w-0 break-words"><%= bookshelf.name %></span>
               </label>
