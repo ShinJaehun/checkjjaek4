@@ -126,7 +126,7 @@
 
           <% if managed_bookshelf.present? && !managed_bookshelf.is_default? %>
             <button type="button"
-                    class="rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700"
+                    class="ui-button ui-button-secondary"
                     data-action="bookshelf-management-modal#openEdit">
               <%= t("bookshelves.form.edit_title") %>
             </button>

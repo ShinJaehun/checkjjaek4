@@ -15,12 +15,12 @@
     <legend class="text-sm font-semibold text-stone-900"><%= t("books.show.status_label") %></legend>
     <div class="flex flex-wrap gap-2">
       <label class="<%= reading_badge_classes(:status, selectable: true) %>">
-        <%= form.radio_button :status, "", checked: selected_status.blank?, class: "sr-only" %>
+        <%= form.radio_button :status, "", checked: selected_status.blank?, class: "shrink-0" %>
         <span><%= t("books.show.clear_status") %></span>
       </label>
       <% BookshelfEntry.statuses.keys.each do |status| %>
         <label class="<%= reading_badge_classes(:status, selectable: true) %>">
-          <%= form.radio_button :status, status, checked: selected_status == status, class: "sr-only" %>
+          <%= form.radio_button :status, status, checked: selected_status == status, class: "shrink-0" %>
           <%= reading_status_content(status) %>
         </label>
       <% end %>
@@ -33,12 +33,12 @@
     <div class="flex flex-wrap gap-2">
       <%= form.collection_check_boxes :sticker_definition_ids, sticker_definitions, :id, :name, include_hidden: false, checked: selected_sticker_ids do |builder| %>
         <label class="<%= reading_badge_classes(:sticker, selectable: true) %>">
-          <%= builder.check_box class: "sr-only" %>
+          <%= builder.check_box class: "shrink-0" %>
           <%= reading_sticker_content(builder.object) %>
         </label>
       <% end %>
     </div>
   </fieldset>
 
-  <%= form.submit t("books.show.save_reading_record"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+  <%= form.submit t("books.show.save_reading_record"), class: "ui-button ui-button-primary" %>
 <% end %>

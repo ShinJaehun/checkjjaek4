@@ -13,6 +13,18 @@ RSpec.describe "Authentication", type: :request do
     token
   end
 
+  it "uses the branded PNG favicon through the asset pipeline" do
+    get new_user_session_path
+
+    expect(response).to have_http_status(:ok)
+    icons = Nokogiri::HTML(response.body).css("head link[rel='icon']")
+    expect(icons.size).to eq(1)
+    expect(icons.first["href"]).to eq(ActionController::Base.helpers.asset_path("logo/checkjjaek_favicon_32.png"))
+    expect(icons.first["type"]).to eq("image/png")
+    expect(icons.first["sizes"]).to eq("32x32")
+    expect(response.body).not_to include('href="/icon.png"', 'href="/icon.svg"')
+  end
+
   it "shows the permanent profile address guidance on registration" do
     get new_user_registration_path(invitation_token: registration_token("guidance@example.com"))
 

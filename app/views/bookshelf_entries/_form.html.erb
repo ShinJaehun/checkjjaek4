@@ -26,7 +26,7 @@
     <div class="flex flex-wrap gap-2">
       <% BookshelfEntry.statuses.keys.each do |status| %>
         <label class="<%= reading_badge_classes(:status, selectable: true) %>">
-          <%= form.radio_button :status, status, class: "sr-only" %>
+          <%= form.radio_button :status, status, class: "shrink-0" %>
           <%= reading_status_content(status) %>
         </label>
       <% end %>
@@ -38,7 +38,7 @@
     <div class="flex flex-wrap gap-2">
       <%= form.collection_check_boxes :sticker_definition_ids, sticker_definitions, :id, :name do |builder| %>
         <label class="<%= reading_badge_classes(:sticker, selectable: true) %>">
-          <%= builder.check_box class: "sr-only" %>
+          <%= builder.check_box class: "shrink-0" %>
           <%= reading_sticker_content(builder.object) %>
         </label>
       <% end %>

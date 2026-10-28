@@ -61,14 +61,14 @@
            data-book-modal-auto-open-value="<%= !bookshelf_entry.errors.any? && (quoted_jjaek.present? || jjaek.errors.any?) %>"
            data-action="turbo:before-cache@document->book-modal#close">
         <div class="flex justify-end">
-          <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-writing-dialog" class="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">
+          <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-writing-dialog" class="ui-button ui-button-primary">
             <%= t("books.show.write_book_jjaek") %>
           </button>
         </div>
         <dialog id="book-writing-dialog" aria-labelledby="book-writing-dialog-title" data-book-modal-target="dialog" data-action="close->book-modal#restore" class="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-2xl overflow-y-auto rounded-3xl bg-white p-0 shadow-xl backdrop:bg-stone-900/40">
           <div class="flex items-center justify-between gap-4 px-6 pt-6">
             <h2 id="book-writing-dialog-title" class="text-lg font-semibold text-stone-900"><%= t("books.show.write_book_jjaek") %></h2>
-            <button type="button" data-action="book-modal#close" class="shrink-0 text-sm text-stone-600"><%= t("bookshelves.actions.close") %></button>
+            <button type="button" data-action="book-modal#close" class="ui-button ui-button-secondary shrink-0"><%= t("bookshelves.actions.close") %></button>
           </div>
           <%= render "books/jjaek_form_panel", book: book, jjaek: jjaek, quoted_jjaek: quoted_jjaek, modal: true %>
         </dialog>
