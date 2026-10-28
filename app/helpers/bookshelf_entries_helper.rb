@@ -31,13 +31,17 @@ module BookshelfEntriesHelper
 
   def reading_badge_classes(kind, selectable: false, icon_only: false)
     base = "inline-flex min-w-0 max-w-full items-center gap-1.5 border text-xs font-medium"
-    spacing = icon_only ? "shrink-0 p-0.5" : "px-2.5 py-1"
+    spacing = if selectable
+      "ui-choice"
+    else
+      icon_only ? "shrink-0 p-0.5" : "px-2.5 py-1"
+    end
     shape = kind == :status ? "rounded-lg" : "rounded-full"
     colors = if selectable
       if kind == :status
-        "border-stone-200 bg-white text-stone-500 has-[:checked]:border-stone-300 has-[:checked]:bg-stone-100 has-[:checked]:text-stone-700"
+        "border-stone-300 bg-white text-stone-700 has-[:checked]:border-stone-700 has-[:checked]:bg-stone-100 has-[:checked]:text-stone-900"
       else
-        "border-stone-200 bg-white text-stone-500 has-[:checked]:border-amber-200 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-900"
+        "border-stone-300 bg-white text-stone-700 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-900"
       end
     else
       kind == :status ? "border-stone-300 bg-stone-100 text-stone-700" : "border-amber-200 bg-amber-50 text-amber-900"

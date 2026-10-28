@@ -1,4 +1,6 @@
 ko:
+  site:
+    title: "책짹"
   feeds:
     next: "다음 소식 보기"
     loading: "소식을 불러오는 중입니다…"

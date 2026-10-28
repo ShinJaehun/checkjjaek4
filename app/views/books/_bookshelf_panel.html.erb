@@ -4,17 +4,17 @@
       <span class="mr-2 text-stone-500"><%= t("books.show.current_bookshelf") %></span>
       <%= link_to bookshelf_entry.bookshelf.name,
                   user_library_path(current_user, bookshelf_id: bookshelf_entry.bookshelf_id),
-                  class: "inline-block max-w-full break-words rounded-full border px-3 py-1 align-middle text-xs font-medium #{bookshelf_tab_class(bookshelf_entry.bookshelf, selected: false)} transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900" %>
+                  class: "inline-block max-w-full break-words rounded-lg border px-3 py-2 align-middle text-sm font-semibold underline decoration-current underline-offset-4 #{bookshelf_tab_class(bookshelf_entry.bookshelf, selected: false)} transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900" %>
     </p>
 
     <% if local_assigns[:bookshelves]&.size.to_i > 1 %>
-      <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-move-dialog" class="shrink-0 rounded-full border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700">
+      <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-move-dialog" class="ui-button ui-button-secondary shrink-0">
         <%= t("books.show.move_bookshelf") %>
       </button>
       <dialog id="book-move-dialog" aria-labelledby="book-move-dialog-title" data-book-modal-target="dialog" data-action="close->book-modal#restore" class="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-xl backdrop:bg-stone-900/40">
         <div class="mb-5 flex items-center justify-between gap-4">
           <h2 id="book-move-dialog-title" class="text-lg font-semibold text-stone-900"><%= t("books.show.move_bookshelf") %></h2>
-          <button type="button" data-action="book-modal#close" class="shrink-0 text-sm text-stone-600"><%= t("bookshelves.actions.close") %></button>
+          <button type="button" data-action="book-modal#close" class="ui-button ui-button-secondary shrink-0"><%= t("bookshelves.actions.close") %></button>
         </div>
         <%= form_with url: move_bookshelf_entry_path(bookshelf_entry), method: :patch, class: "min-w-0 space-y-5" do %>
           <%= hidden_field_tag :return_to, "book" %>
@@ -24,14 +24,14 @@
             <legend class="text-sm font-medium text-stone-600"><%= t("bookshelf_entries.form.move_bookshelf") %></legend>
             <div class="flex flex-wrap gap-2">
               <% bookshelves.each do |bookshelf| %>
-                <label class="inline-flex max-w-full cursor-pointer items-center rounded-full border px-4 py-2 text-sm <%= bookshelf_tab_class(bookshelf, selected: false) %> has-[:checked]:ring-2 has-[:checked]:ring-stone-900 has-[:checked]:ring-offset-2 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-stone-500">
-                  <%= radio_button_tag :bookshelf_id, bookshelf.id, bookshelf.id == bookshelf_entry.bookshelf_id, required: true, class: "sr-only" %>
+                <label class="ui-choice inline-flex max-w-full items-center gap-2 rounded-full border text-sm <%= bookshelf_tab_class(bookshelf, selected: false) %> has-[:checked]:ring-2 has-[:checked]:ring-stone-900 has-[:checked]:ring-offset-2 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-stone-500">
+                  <%= radio_button_tag :bookshelf_id, bookshelf.id, bookshelf.id == bookshelf_entry.bookshelf_id, required: true, class: "shrink-0" %>
                   <span class="min-w-0 break-words"><%= bookshelf.name %></span>
                 </label>
               <% end %>
             </div>
           </fieldset>
-          <%= submit_tag t("bookshelf_entries.actions.move"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+          <%= submit_tag t("bookshelf_entries.actions.move"), class: "ui-button ui-button-primary" %>
         <% end %>
       </dialog>
     <% end %>
@@ -39,13 +39,13 @@
 <% else %>
   <% return_path = validated_jjaek_return_path(params[:return_to]) %>
   <div class="min-w-0 text-sm text-stone-500" data-controller="book-modal" data-action="turbo:before-cache@document->book-modal#close">
-    <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-shelf-dialog" class="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50">
+    <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-shelf-dialog" class="ui-button ui-button-primary">
       <%= t("bookshelf_entries.new.title") %>
     </button>
     <dialog id="book-shelf-dialog" aria-labelledby="book-shelf-dialog-title" data-book-modal-target="dialog" data-action="close->book-modal#restore" class="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-xl backdrop:bg-stone-900/40">
       <div class="mb-5 flex items-center justify-between gap-4">
         <h2 id="book-shelf-dialog-title" class="text-lg font-semibold text-stone-900"><%= t("bookshelf_entries.new.title") %></h2>
-        <button type="button" data-action="book-modal#close" class="shrink-0 text-sm text-stone-600"><%= t("bookshelves.actions.close") %></button>
+        <button type="button" data-action="book-modal#close" class="ui-button ui-button-secondary shrink-0"><%= t("bookshelves.actions.close") %></button>
       </div>
       <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "min-w-0 space-y-5" do |form| %>
         <%= hidden_field_tag :return_to, return_path if return_path %>
@@ -60,14 +60,14 @@
           <legend class="text-sm font-medium text-stone-600"><%= t("bookshelf_entries.form.target_bookshelf") %></legend>
           <div class="flex flex-wrap gap-2">
             <% bookshelves.each_with_index do |bookshelf, index| %>
-              <label class="inline-flex max-w-full cursor-pointer items-center rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-700 has-[:checked]:border-stone-900 has-[:checked]:bg-stone-900 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stone-500">
-                <%= radio_button_tag "bookshelf_entry[bookshelf_id]", bookshelf.id, index.zero?, required: true, class: "sr-only" %>
+              <label class="ui-choice inline-flex max-w-full items-center gap-2 rounded-full border border-stone-300 bg-white text-sm text-stone-700 has-[:checked]:border-stone-900 has-[:checked]:bg-stone-900 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-stone-500">
+                <%= radio_button_tag "bookshelf_entry[bookshelf_id]", bookshelf.id, index.zero?, required: true, class: "shrink-0" %>
                 <span class="min-w-0 break-words"><%= bookshelf.name %></span>
               </label>
             <% end %>
           </div>
         </fieldset>
-        <%= form.submit t("bookshelf_entries.new.title"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50" %>
+        <%= form.submit t("bookshelf_entries.new.title"), class: "ui-button ui-button-primary" %>
       <% end %>
     </dialog>
   </div>

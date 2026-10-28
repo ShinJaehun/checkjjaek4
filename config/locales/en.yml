@@ -1,4 +1,6 @@
 en:
+  site:
+    title: "Checkjjaek"
   feeds:
     next: "Show more updates"
     loading: "Loading updates…"
