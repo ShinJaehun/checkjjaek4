@@ -253,6 +253,12 @@ class JjaekPolicy < ApplicationPolicy
     end
   end
 
+  class SearchScope < Scope
+    def resolve
+      super.where(hidden_at: nil, deleted_at: nil)
+    end
+  end
+
   class BookScope < Scope
     def resolve
       return scope.none unless user.present?

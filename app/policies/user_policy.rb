@@ -1,4 +1,10 @@
 class UserPolicy < ApplicationPolicy
+  class SearchScope < ApplicationPolicy::Scope
+    def resolve
+      user.present? ? scope.active_accounts : scope.none
+    end
+  end
+
   class AdminInventoryScope < Scope
     def resolve
       user&.global_admin? ? scope.all : scope.none

@@ -27,6 +27,25 @@ class GroupMembership < ApplicationRecord
       .order(arel_table[:position].asc.nulls_last, Group.arel_table[:created_at].desc, Group.arel_table[:id].desc)
   end
 
+  def self.card_previews_for(group_ids:)
+    ranked_memberships = active.joins(:group)
+      .where(group_id: group_ids)
+      .where("group_memberships.user_id <> groups.group_admin_id")
+      .select(<<~SQL.squish)
+        group_memberships.*,
+        COUNT(*) OVER (PARTITION BY group_memberships.group_id) AS active_member_count,
+        ROW_NUMBER() OVER (
+          PARTITION BY group_memberships.group_id
+          ORDER BY group_memberships.created_at, group_memberships.id
+        ) AS member_preview_rank
+      SQL
+
+    from(ranked_memberships, :group_memberships)
+      .where("member_preview_rank <= ?", 3)
+      .order(:group_id, :created_at, :id)
+      .preload(user: { avatar_attachment: :blob })
+  end
+
   def self.reorder_for!(user:, groups:, ordered_ids:)
     unless ordered_ids.is_a?(Array) && ordered_ids.all? { |id| id.to_s.match?(/\A[1-9]\d*\z/) }
       raise InvalidOrder

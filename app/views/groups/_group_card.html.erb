@@ -1,43 +1,48 @@
+<% show_details = local_assigns.fetch(:show_details, true) %>
 <article class="flex h-full w-full min-w-0 flex-col rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
   <h3 class="min-w-0 text-lg font-semibold text-stone-900">
     <%= link_to group.name, group_path(group), class: "block truncate", title: group.name %>
   </h3>
   <div class="mt-2 flex flex-wrap items-center gap-1">
     <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
-    <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
-    <% if membership %>
-      <span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700" data-field="membership-status"><%= t("group_memberships.statuses.#{membership.status}") %></span>
-      <% if membership.activity_suspended? %>
-        <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"><%= t("group_memberships.moderation.statuses.activity_suspended") %></span>
+    <% if show_details %>
+      <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
+      <% if membership %>
+        <span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700" data-field="membership-status"><%= t("group_memberships.statuses.#{membership.status}") %></span>
+        <% if membership.activity_suspended? %>
+          <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"><%= t("group_memberships.moderation.statuses.activity_suspended") %></span>
+        <% end %>
       <% end %>
     <% end %>
   </div>
-  <% if pending_count.positive? %>
-    <%= link_to t("groups.index.pending_join_requests", count: pending_count),
-                group_members_path(group),
-                class: "mt-2 inline-flex max-w-full rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700" %>
-  <% end %>
-  <div class="mt-auto flex min-w-0 items-center justify-between gap-3 pt-3">
-    <%= link_to user_path(group.group_admin),
-                class: "flex min-w-0 flex-1 items-center gap-1.5 text-sm font-medium text-stone-800",
-                title: t("groups.group_admin", name: group.group_admin.name),
-                aria: { label: t("groups.group_admin", name: group.group_admin.name) } do %>
-      <%= user_avatar_image(group.group_admin, size: 128, alt: group.group_admin.name, class: "h-6 w-6 shrink-0 rounded-full object-cover") %>
-      <span class="min-w-0 truncate"><%= group.group_admin.name %></span>
+  <% if show_details %>
+    <% if pending_count.positive? %>
+      <%= link_to t("groups.index.pending_join_requests", count: pending_count),
+                  group_members_path(group),
+                  class: "mt-2 inline-flex max-w-full rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700" %>
     <% end %>
-    <div class="flex shrink-0 items-center gap-1.5" role="group" aria-label="<%= t("groups.group_members_label") %>" data-group-members>
-      <% if member_preview.any? %>
-        <div class="flex shrink-0 -space-x-2" data-member-preview>
-          <% member_preview.each do |member| %>
-            <%= link_to user_path(member),
-                        class: "relative shrink-0 rounded-full bg-stone-100 p-0.5 ring-1 ring-stone-200 hover:z-10 focus:z-10",
-                        title: member.name, aria: { label: member.name } do %>
-              <%= user_avatar_image(member, size: 128, alt: member.name, class: "h-5 w-5 rounded-full object-cover") %>
+    <div class="mt-auto flex min-w-0 items-center justify-between gap-3 pt-3">
+      <%= link_to user_path(group.group_admin),
+                  class: "flex min-w-0 flex-1 items-center gap-1.5 text-sm font-medium text-stone-800",
+                  title: t("groups.group_admin", name: group.group_admin.name),
+                  aria: { label: t("groups.group_admin", name: group.group_admin.name) } do %>
+        <%= user_avatar_image(group.group_admin, size: 128, alt: group.group_admin.name, class: "h-6 w-6 shrink-0 rounded-full object-cover") %>
+        <span class="min-w-0 truncate"><%= group.group_admin.name %></span>
+      <% end %>
+      <div class="flex shrink-0 items-center gap-1.5" role="group" aria-label="<%= t("groups.group_members_label") %>" data-group-members>
+        <% if member_preview.any? %>
+          <div class="flex shrink-0 -space-x-2" data-member-preview>
+            <% member_preview.each do |member| %>
+              <%= link_to user_path(member),
+                          class: "relative shrink-0 rounded-full bg-stone-100 p-0.5 ring-1 ring-stone-200 hover:z-10 focus:z-10",
+                          title: member.name, aria: { label: member.name } do %>
+                <%= user_avatar_image(member, size: 128, alt: member.name, class: "h-5 w-5 rounded-full object-cover") %>
+              <% end %>
             <% end %>
-          <% end %>
-        </div>
-      <% end %>
-      <span class="whitespace-nowrap text-xs text-stone-600" data-field="active-member-count"><%= t("groups.active_member_count", count: active_member_count) %></span>
+          </div>
+        <% end %>
+        <span class="whitespace-nowrap text-xs text-stone-600" data-field="active-member-count"><%= t("groups.active_member_count", count: active_member_count) %></span>
+      </div>
     </div>
-  </div>
+  <% end %>
 </article>

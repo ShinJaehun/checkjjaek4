@@ -44,8 +44,19 @@ checkjjaek4의 서버측 권한 판단은 Pundit policy 중심으로 유지한�
 - `app/policies/book_activity_policy.rb`
 - `app/policies/book_friendship_policy.rb`
 - `app/policies/book_search_policy.rb`
+- `app/policies/search_policy.rb`
 - `app/policies/group_policy.rb`
 - `app/policies/group_membership_policy.rb`
+
+---
+
+## 통합 검색
+
+통합 검색의 페이지 접근은 `SearchPolicy`, 결과 범위는 사용자 `SearchScope`, Jjaek `SearchScope`, Group `NameSearchScope`로 제한한다.
+Jjaek 검색은 기존 일반 조회 scope에서 숨김·삭제 항목을 제외하며 운영 조사 우회를 추가하지 않는다.
+Group 이름 검색은 비회원에게 운영 중인 비공개 동아리 이름·공개 상태·링크만 허용하는 예외이고 상세·내부 콘텐츠의 권한은 확대하지 않는다.
+검색 결과의 관리자·회원 정보는 기존 Group 목록 scope로 제한하고 독서 상태는 기존 `BookshelfEntryPolicy::ReadingStateScope`를 따른다.
+기준은 `docs/specs/unified_search.md`를 따른다.
 
 ---
 

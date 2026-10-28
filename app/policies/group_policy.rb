@@ -172,6 +172,15 @@ class GroupPolicy < ApplicationPolicy
     end
   end
 
+  class NameSearchScope < ApplicationPolicy::Scope
+    def resolve
+      return scope.none unless user.present?
+
+      visible_group_ids = Scope.new(user, scope).resolve.reselect(:id)
+      scope.where(id: visible_group_ids).or(scope.active)
+    end
+  end
+
   private
 
   def operational_investigator?

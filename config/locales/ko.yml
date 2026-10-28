@@ -1039,14 +1039,14 @@ ko:
       received_book_friend_requests: "받은 책친구 요청"
       sent_book_friend_requests: "보낸 책친구 요청"
       book_friends: "책친구"
-      following_users: "내가 소식받는 사람"
-      followers: "나를 소식받는 사람"
+      following_users: "내가 소식 받는 사람"
+      followers: "내 소식을 받는 사람"
     empty:
       received_book_friend_requests: "받은 책친구 요청이 없습니다."
       sent_book_friend_requests: "보낸 책친구 요청이 없습니다."
       book_friends: "책친구가 없습니다."
       following_users: "소식받는 사용자가 없습니다."
-      followers: "나를 소식받는 사용자가 없습니다."
+      followers: "내 소식을 받는 사람이 없습니다."
   notifications:
     nav: "알림"
     title: "알림"
