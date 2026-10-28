@@ -1,6 +1,6 @@
 <% if membership_policy.ban_from_group? %>
   <%= link_to t("group_member_bans.moderation.ban.submit"),
               new_group_group_membership_member_ban_path(@group, membership),
-              class: "rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700",
+              class: "ui-button ui-button-danger",
               data: { member_action: "ban_from_group" } %>
 <% end %>

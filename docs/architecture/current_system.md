@@ -108,7 +108,7 @@
 - 새 책짹 폼의 게시 위치는 일반 진입에서 personal, group_id 진입에서 해당 group이 기본값이다. `book-posting` Stimulus가 SVG 라디오 카드의 게시 위치·개인 공개 범위와 동아리 선택을 전환하고 본문을 유지하며 실행 버튼을 갱신한다. 인용 작성은 기존 고정 게시 경로를 유지하고, 인용 진입·작성 오류 시 작성 모달을 자동으로 열며 제출값·오류를 보존한다
 - 동아리 목록과 새 책짹의 명시적 게시 대상은 `GroupPolicy::CreateJjaekScope`로 제한한다. `POST /jjaeks`에서 목적지·Book·group_id를 검증하고 기존 Jjaek policy로 저장을 인가한다. 공유·다시짹은 기존 경로를 유지한다 초기 조회·작성 실패·독서 활동 실패 화면의 작성 가능 여부·게시 위치·폼 경로는 공통 Controller의 `prepare_book_show_form_context`에서 준비하며, 동아리 option의 표시값은 기존 JjaeksHelper에서 만든다
 - 동아리 피드의 작성 선택은 짹/동아리 책짹이며 책 상세 입력 카드의 중복 탭은 제거했다
-- 담긴 책장 이름은 기존 책장 색상의 rounded-full 배지이며 `user_library_path(current_user, bookshelf_id:)` 링크다. 긴 이름은 줄바꿈한다. 책장이 2개 이상이면 책장 이동 버튼으로 라디오 배지 모달을 열고 현재 책장을 기본 선택한다. 기존 색상과 별도의 선택 ring을 사용하며 이동 버튼으로 PATCH 경로·return_to=book·group_id를 유지한다
+- 담긴 책장 이름은 기존 책장 색상의 `user_library_path(current_user, bookshelf_id:)` 링크다. 긴 이름은 줄바꿈한다. 책장이 2개 이상이면 책장 이동 버튼으로 radio 모달을 열고 현재 책장을 기본 선택한다. 이동 대상은 책장 고유 색상 없이 평면형 `.ui-choice`의 체크 표시·stone 테두리·배경으로 구분하며 이동 버튼으로 PATCH 경로·return_to=book·group_id를 유지한다
 - 서재에 담기·책장 이동·독서 활동·책짹 모달은 각각 고유 ID와 book-modal Stimulus 범위를 사용한다. 닫기·Escape·포커스 복귀·모바일 내부 스크롤·body scroll lock·Turbo cache 닫기를 유지한다
 - 별도 책친구 활동은 현재 accepted 관계와 public/book_friends 책장의 연결 항목에 허용된 BookActivity(상태·스티커 변경 포함), 기존 가시성 안의 개인 책짹을 합쳐 최근 3건 표시한다. 홈의 소식받기 조건은 적용하지 않으며 본인 활동은 제외한다. 기존 책짹 목록에는 BookActivity를 섞지 않는다
 

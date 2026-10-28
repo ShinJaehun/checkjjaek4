@@ -73,12 +73,12 @@
           </p>
           <div class="flex items-center gap-2">
             <button type="button"
-                    class="rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700"
+                    class="ui-button ui-button-secondary"
                     data-action="bookshelf-transfer#clearSelection">
               <%= t("users.library.transfer.clear_selection") %>
             </button>
             <button type="button"
-                    class="rounded-xl bg-stone-900 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    class="ui-button ui-button-primary"
                     data-bookshelf-transfer-target="moveButton"
                     data-action="bookshelf-transfer#openMovePanel"
                     disabled>
@@ -134,7 +134,7 @@
 
         <footer class="shrink-0 border-t border-stone-200 px-4 py-3">
           <button type="button"
-                  class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700"
+                  class="ui-button ui-button-secondary w-full"
                   data-action="bookshelf-transfer#closeMovePanel"><%= t("users.library.transfer.cancel_move") %></button>
         </footer>
       <% end %>

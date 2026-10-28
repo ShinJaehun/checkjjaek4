@@ -1,11 +1,11 @@
 <% if membership_policy.suspend_activity? %>
   <%= link_to t("group_memberships.management.actions.suspend_activity"),
               new_group_group_membership_activity_suspension_path(@group, membership),
-              class: "rounded-full border border-red-200 px-4 py-2 text-sm font-medium text-red-700",
+              class: "ui-button ui-button-warning",
               data: { member_action: "suspend_activity" } %>
 <% elsif membership_policy.restore_activity? %>
   <%= link_to t("group_memberships.management.actions.restore_activity"),
               new_group_group_membership_activity_restoration_path(@group, membership),
-              class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700",
+              class: "ui-button ui-button-warning",
               data: { member_action: "restore_activity" } %>
 <% end %>

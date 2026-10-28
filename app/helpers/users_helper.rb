@@ -205,10 +205,10 @@ module UsersHelper
   end
 
   def primary_profile_action_class
-    "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50"
+    "ui-button ui-button-primary"
   end
 
   def secondary_profile_action_class
-    "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700"
+    "ui-button ui-button-secondary"
   end
 end

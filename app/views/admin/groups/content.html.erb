@@ -20,7 +20,7 @@
       <div class="flex flex-wrap gap-2">
         <%= link_to t("admin.groups.actions.show"),
                     admin_group_path(@group, @return_params.merge(params.permit(:content, :content_q, :content_status, :content_sort, :all_page))),
-                    class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                    class: "ui-button ui-button-secondary" %>
       </div>
     </div>
   </section>
@@ -93,7 +93,7 @@
                    class: "rounded-xl border border-stone-200 px-3 py-2" %>
       <%= render "admin/shared/page_size", form: f, page: @thread_page %>
       <%= f.submit t("admin.group_content.filters.apply"),
-                   class: "whitespace-nowrap rounded-xl bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800" %>
+                   class: "ui-button ui-button-primary whitespace-nowrap" %>
       <%= link_to t("admin.group_content.filters.reset"),
                   content_admin_group_path(@group, @return_params.merge(content: @content_section)),
                   class: "whitespace-nowrap px-2 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 hover:underline" %>

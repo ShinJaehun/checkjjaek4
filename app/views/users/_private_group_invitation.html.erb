@@ -3,7 +3,7 @@
   <%= button_to t("users.profile.invite_to_group", group_name: group.name),
                 invite_group_group_memberships_path(group),
                 params: { user_id: user.id, return_context: "profile" },
-                class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50" %>
+                class: "ui-button ui-button-secondary" %>
 <% elsif groups.many? %>
   <details class="relative">
     <summary class="cursor-pointer rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50">
@@ -25,5 +25,5 @@
                 revoke_group_group_membership_path(membership.group, membership),
                 method: :delete,
                 params: { return_context: "profile" },
-                class: "rounded-full border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700" %>
+                class: "ui-button ui-button-danger" %>
 <% end %>

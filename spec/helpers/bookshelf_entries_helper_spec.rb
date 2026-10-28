@@ -20,8 +20,8 @@ RSpec.describe BookshelfEntriesHelper, type: :helper do
     expect(status_badge.inner_html).to eq(Nokogiri::HTML.fragment(helper.reading_status_content("reading")).to_html)
     expect(sticker_badge.inner_html).to eq(Nokogiri::HTML.fragment(helper.reading_sticker_content(sticker)).to_html)
     expect(sticker_badge["class"]).to eq(helper.reading_badge_classes(:sticker))
-    expect(helper.reading_badge_classes(:status, selectable: true)).to include("has-[:checked]", "has-[:focus-visible]")
-    expect(helper.reading_badge_classes(:sticker, selectable: true)).to include("has-[:checked]", "has-[:focus-visible]")
+    expect(helper.reading_badge_classes(:status, selectable: true).split).to eq(%w[ui-choice ui-choice-status])
+    expect(helper.reading_badge_classes(:sticker, selectable: true).split).to eq(%w[ui-choice ui-choice-sticker])
   end
 
   it "renders icon-only stickers with the same icon, title, accessible name, and colors" do

@@ -17,16 +17,16 @@
       <% selected_admin_id = candidate_ids.include?(@selected_admin_id.to_s) ? @selected_admin_id : @admin_transfer_candidates.first.id %>
       <fieldset>
         <legend class="mb-2 text-sm font-medium text-stone-700"><%= t("groups.admin_transfer.target") %></legend>
-        <div class="max-h-80 divide-y divide-stone-100 overflow-x-hidden overflow-y-auto rounded-2xl border border-stone-200" data-admin-transfer-candidates>
+        <div class="max-h-80 space-y-2 overflow-x-hidden overflow-y-auto p-1" data-admin-transfer-candidates>
           <% @admin_transfer_candidates.each do |candidate| %>
             <% input_id = dom_id(candidate, :admin_transfer_candidate) %>
-            <label for="<%= input_id %>" class="flex cursor-pointer items-center gap-3 bg-white p-3 hover:bg-stone-50" data-admin-transfer-candidate>
+            <label for="<%= input_id %>" class="ui-choice w-full" data-admin-transfer-candidate>
               <%= radio_button_tag :new_admin_id,
                                    candidate.id,
                                    candidate.id.to_s == selected_admin_id.to_s,
                                    id: input_id,
                                    required: true,
-                                   class: "shrink-0 border-stone-300 text-stone-900" %>
+                                   class: "shrink-0" %>
               <%= user_avatar_image(candidate, size: 128, alt: candidate.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
               <span class="min-w-0 flex-1">
                 <span class="block truncate text-sm font-medium text-stone-900"><%= candidate.name %></span>
@@ -40,7 +40,7 @@
           <% end %>
         </div>
       </fieldset>
-      <%= submit_tag t("groups.admin_transfer.submit"), class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
+      <%= submit_tag t("groups.admin_transfer.submit"), class: "ui-button ui-button-primary" %>
     <% end %>
   <% else %>
     <p class="mt-5 text-sm text-stone-500"><%= t("groups.admin_transfer.no_candidates") %></p>

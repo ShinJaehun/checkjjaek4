@@ -100,7 +100,7 @@
         <div class="flex flex-wrap items-end gap-2">
           <% if mobile_reorder_enabled %>
             <button type="button"
-                    class="rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700 md:hidden"
+                    class="ui-button ui-button-secondary md:hidden"
                     data-bookshelf-entries-sort-target="modeButton"
                     data-action="bookshelf-entries-sort#startEditing"><%= t("users.profile.bookshelf_sort.reorder_start") %></button>
             <span class="hidden rounded-xl bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-700 md:hidden"
@@ -120,7 +120,7 @@
               </div>
 
               <%= form.submit t("users.profile.bookshelf_sort.submit"),
-                              class: "rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700" %>
+                              class: "ui-button ui-button-secondary" %>
             <% end %>
           <% end %>
 
@@ -167,11 +167,11 @@
              data-bookshelf-entries-sort-target="actionBar">
           <div class="mx-auto flex max-w-4xl items-center justify-end gap-2">
             <button type="button"
-                    class="rounded-xl border border-stone-200 px-3 py-2 text-sm font-semibold text-stone-700"
+                    class="ui-button ui-button-secondary"
                     data-bookshelf-entries-sort-target="cancelButton"
                     data-action="bookshelf-entries-sort#cancelEditing"><%= t("users.profile.bookshelf_sort.reorder_cancel") %></button>
             <button type="button"
-                    class="rounded-xl bg-stone-900 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    class="ui-button ui-button-primary"
                     data-bookshelf-entries-sort-target="applyButton"
                     data-action="bookshelf-entries-sort#applyOrder"
                     disabled><%= t("users.profile.bookshelf_sort.reorder_apply") %></button>

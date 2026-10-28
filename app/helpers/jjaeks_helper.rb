@@ -20,7 +20,7 @@ module JjaeksHelper
   end
 
   def jjaek_option_card_classes
-    "flex cursor-pointer items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-sm font-medium text-stone-600 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50 has-[:checked]:text-amber-950 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-amber-500"
+    "ui-choice ui-choice-card"
   end
 
   def current_reading_state_for(jjaek)

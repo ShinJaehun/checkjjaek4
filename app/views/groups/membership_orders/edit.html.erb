@@ -44,7 +44,7 @@
       </ul>
       <%= form_with url: groups_membership_order_path, method: :patch, id: "group-membership-order", class: "flex items-center gap-4" do |form| %>
         <%= form.submit t("groups.membership_order.save"), disabled: @memberships.empty?,
-                        class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-40" %>
+                        class: "ui-button ui-button-primary" %>
         <%= link_to t("groups.actions.cancel"), groups_path, class: "text-sm font-medium text-stone-600 underline" %>
       <% end %>
     </div>

@@ -10,14 +10,14 @@
         <div class="flex flex-wrap gap-2">
           <%= link_to t("groups.members.management_title"),
                       group_members_path(@group, context: "admin"),
-                      class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                      class: "ui-button ui-button-secondary" %>
           <%= link_to t("admin.actions.activity"),
                       content_admin_group_path(@group, @return_params),
-                      class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                      class: "ui-button ui-button-secondary" %>
           <% if policy(@group).approve? %>
             <%= link_to t("admin.groups.actions.approve"),
                         new_admin_group_approval_path(@group, @return_params),
-                        class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+                        class: "ui-button ui-button-primary" %>
           <% end %>
         </div>
       </div>
@@ -37,11 +37,11 @@
       <% if @can_suspend_operation %>
         <%= link_to t("admin.groups.actions.suspend_operation"),
                     new_admin_group_operation_suspension_path(@group, @return_params),
-                    class: "mt-4 inline-block rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+                    class: "ui-button ui-button-warning mt-4" %>
       <% elsif @can_restore_operation %>
         <%= link_to t("admin.groups.actions.restore_operation"),
                     new_admin_group_operation_restoration_path(@group, @return_params),
-                    class: "mt-4 inline-block rounded-full bg-amber-800 px-4 py-2 font-medium text-white" %>
+                    class: "ui-button ui-button-warning mt-4" %>
       <% end %>
     </section>
 

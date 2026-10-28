@@ -40,7 +40,7 @@
                      color_swatch_classes: color_swatch_classes %>
 
           <%= form.submit t("bookshelves.actions.create"),
-                          class: "w-full rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white" %>
+                          class: "ui-button ui-button-primary w-full" %>
         <% end %>
       </div>
     <% end %>
@@ -59,7 +59,7 @@
                      color_swatch_classes: color_swatch_classes %>
 
           <%= form.submit t("bookshelves.actions.update"),
-                          class: "w-full rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white" %>
+                          class: "ui-button ui-button-primary w-full" %>
         <% end %>
 
         <% order_controls = bookshelf_order_controls.fetch(managed_bookshelf.id, {}) %>
@@ -70,7 +70,7 @@
                             move_up_bookshelf_path(managed_bookshelf),
                             method: :patch,
                             params: { return_to: return_to },
-                            class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
+                            class: "ui-button ui-button-secondary" %>
             <% end %>
 
             <% if order_controls[:move_down] %>
@@ -78,7 +78,7 @@
                             move_down_bookshelf_path(managed_bookshelf),
                             method: :patch,
                             params: { return_to: return_to },
-                            class: "rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold text-stone-700" %>
+                            class: "ui-button ui-button-secondary" %>
             <% end %>
           </div>
         <% end %>
@@ -89,7 +89,7 @@
                         method: :delete,
                         params: { return_to: return_to },
                         form: { data: { turbo_confirm: t("bookshelves.confirm_destroy") } },
-                        class: "mt-4 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700" %>
+                        class: "ui-button ui-button-danger mt-4" %>
         <% else %>
           <p class="mt-4 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-600">
             <%= t("bookshelves.alerts.not_empty") %>

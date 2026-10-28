@@ -10,12 +10,12 @@
       <div>
         <% if policy(@group).view_members? && @group.group_admin?(current_user) %>
           <div class="flex items-center gap-2">
-            <%= link_to t("groups.members.management_title"), group_members_path(@group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+            <%= link_to t("groups.members.management_title"), group_members_path(@group), class: "ui-button ui-button-secondary" %>
             <% if policy(@group).view_content_inventory? %>
-              <%= link_to t("groups.actions.manage_content"), content_group_path(@group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+              <%= link_to t("groups.actions.manage_content"), content_group_path(@group), class: "ui-button ui-button-secondary" %>
             <% end %>
             <% if policy(@group).edit? %>
-              <%= link_to t("groups.actions.edit"), edit_group_path(@group), class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+              <%= link_to t("groups.actions.edit"), edit_group_path(@group), class: "ui-button ui-button-secondary" %>
             <% end %>
           </div>
         <% elsif @group_member_ban.present? %>
@@ -25,7 +25,7 @@
             <%= button_to t("group_memberships.actions.leave"),
                           group_group_membership_path(@group, @membership),
                           method: :delete,
-                          class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                          class: "ui-button ui-button-secondary" %>
           <% end %>
         <% elsif @membership&.pending? %>
           <div class="flex items-center gap-3">
@@ -34,13 +34,13 @@
               <%= button_to t("group_memberships.actions.cancel"),
                             group_group_membership_path(@group, @membership),
                             method: :delete,
-                            class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+                            class: "ui-button ui-button-secondary" %>
             <% end %>
           </div>
         <% elsif @can_create_membership %>
           <%= button_to t(@group.public_group? ? "group_memberships.actions.join" : "group_memberships.actions.request"),
                         group_group_memberships_path(@group),
-                        class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+                        class: "ui-button ui-button-primary" %>
         <% end %>
       </div>
     </div>
@@ -56,7 +56,7 @@
       <% if policy(@group).cancel_application? %>
         <%= button_to t("groups.applications.cancel"), group_application_cancellation_path(@group),
                       form: { data: { turbo_confirm: t("groups.applications.cancel_confirmation") } },
-                      class: "mt-4 rounded-full border border-amber-400 px-4 py-2 font-medium" %>
+                      class: "ui-button ui-button-warning mt-4" %>
       <% end %>
       <% if @group.application_ended? && @group.group_admin?(current_user) %>
         <%= link_to t("groups.actions.new"), new_group_path, class: "mt-4 inline-block font-medium underline" %>
@@ -103,7 +103,7 @@
       <%= form_with model: [@group, @jjaek], class: "mt-4 space-y-4" do |form| %>
         <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
         <%= render "shared/content_field", form: form, label_key: "jjaeks.form.jjaek_content", rows: 5 %>
-        <%= form.submit t("groups.jjaeks.tabs.general"), class: "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+        <%= form.submit t("groups.jjaeks.tabs.general"), class: "ui-button ui-button-primary" %>
       <% end %>
     </section>
   <% end %>

@@ -17,7 +17,7 @@
       <%= form.password_field :current_password, required: true, autocomplete: "current-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm" %>
     </div>
     <div class="flex items-center gap-3">
-      <%= form.submit t("account_withdrawals.submit"), class: "rounded-full bg-red-700 px-5 py-2.5 text-sm font-medium text-white" %>
+      <%= form.submit t("account_withdrawals.submit"), class: "ui-button ui-button-danger" %>
       <%= link_to t("account_withdrawals.cancel"), user_path(current_user), class: "text-sm text-stone-600 underline" %>
     </div>
   <% end %>

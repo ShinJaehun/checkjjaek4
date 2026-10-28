@@ -38,7 +38,7 @@
   <% end %>
 
   <div class="flex items-center gap-3">
-    <%= form.submit t(group.new_record? ? "groups.actions.create" : "groups.actions.update"), class: "rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white" %>
+    <%= form.submit t(group.new_record? ? "groups.actions.create" : "groups.actions.update"), class: "ui-button ui-button-primary" %>
     <%= link_to t("groups.actions.cancel"),
                 group.persisted? ? group_path(group) : groups_path,
                 class: "text-sm font-medium text-stone-600" %>
