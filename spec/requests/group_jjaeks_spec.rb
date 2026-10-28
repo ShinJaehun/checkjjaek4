@@ -627,7 +627,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to have_http_status(:ok)
     page = Nokogiri::HTML(response.body)
     form = page.at_css("form[action='#{jjaeks_path}']")
-    expect(page.at_css("#book-writing-dialog-title").text).to eq(I18n.t("jjaeks.actions.publish_book"))
+    expect(page.at_css("#book-jjaek-form")["aria-label"]).to eq("책짹 작성")
     expect(page.text).to include(I18n.t("books.show.group_destination", name: group.name))
     expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_group_book"))
     expect(form.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("group")

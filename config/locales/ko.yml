@@ -1287,7 +1287,7 @@ ko:
       move_bookshelf: "책장 이동"
       edit_reading_record: "독서 활동"
       save_reading_record: "독서 기록 저장"
-      write_book_jjaek: "책짹"
+      write_book_jjaek: "이 책에 책짹 쓰기"
       friend_activity_title: "책 친구 활동"
   jjaeks:
     contexts:

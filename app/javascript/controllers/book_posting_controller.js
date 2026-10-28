@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["location", "personal", "group", "groupSelect", "groupMessage", "visibility", "title", "submit"]
+  static targets = ["location", "personal", "group", "groupSelect", "groupMessage", "visibility", "submit"]
   static values = { personalLabel: String, groupLabel: String, groupPrompt: String, noGroups: String }
 
   connect() {
@@ -16,7 +16,6 @@ export default class extends Controller {
     this.groupTarget.hidden = !groupPost
     this.groupSelectTarget.disabled = !groupPost
     this.groupSelectTarget.required = groupPost
-    if (this.hasTitleTarget) this.titleTarget.textContent = label
     this.submitTarget.value = label
     this.submitTarget.disabled = groupPost && !this.groupSelectTarget.value
 

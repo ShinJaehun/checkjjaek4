@@ -2,14 +2,16 @@
   <%= render "shared/back_link", path: jjaek_back_path(default_path: @group.present? ? group_path(@group) : user_library_path(current_user)) %>
   <%= render "books/book_header",
              book: @book,
-             jjaek: @can_write_book_jjaek ? @jjaek : nil,
-             quoted_jjaek: @quoted_jjaek,
              bookshelf_entry: @bookshelf_entry,
              bookshelves: @bookshelves,
              search_result_token: @search_result_token,
              group_id: @group&.id,
              sticker_definitions: @sticker_definitions,
              form_values: @reading_state_form_values || {} %>
+
+  <% if @can_write_book_jjaek %>
+    <%= render "books/jjaek_form_panel", book: @book, jjaek: @jjaek, quoted_jjaek: @quoted_jjaek %>
+  <% end %>
 
   <% if @book_friend_activities.present? %>
     <section class="mx-auto w-full max-w-3xl space-y-4">
