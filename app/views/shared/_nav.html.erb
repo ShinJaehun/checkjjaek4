@@ -11,6 +11,7 @@
         <% if user_signed_in? %>
           <%= link_to t("home.nav"), root_path, class: "font-medium" %>
           <%= link_to t("discovery.nav"), discovery_path, class: "font-medium" %>
+          <%= link_to t("unified_search.nav"), search_path, class: "font-medium" %>
           <%= link_to t("book_search.nav"), book_search_entry_path(group_id: (@group.id if @group && policy(@group).create_jjaek?)), class: "font-medium" %>
           <%= link_to t("bookshelf_entries.nav"), user_library_path(current_user), class: "font-medium" %>
           <%= link_to t("groups.nav"), groups_path, class: "font-medium" %>

@@ -48,6 +48,7 @@ RSpec.describe "Relationships", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(I18n.t("relationships.title"))
     expect(response.body).to include(I18n.t("relationships.description"))
+    expect(parse_html.at_css("#followers h2").text).to eq("내 소식을 받는 사람")
     expect(response.body).to include("user_profile_")
     expect(response.body).to include("_128")
   end

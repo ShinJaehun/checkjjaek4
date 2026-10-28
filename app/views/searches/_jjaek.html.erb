@@ -1,0 +1,4 @@
+<%= render "jjaeks/jjaek",
+           jjaek: result,
+           preview: true,
+           detail_path: jjaek_path(result, return_to: search_path(search_results_params(page: @result_page&.page))) %>

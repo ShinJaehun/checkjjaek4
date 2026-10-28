@@ -149,26 +149,10 @@ class GroupsController < ApplicationController
     @member_previews_by_group_id = {}
     return if @groups.empty?
 
-    ranked_memberships = GroupMembership.active.joins(:group)
-      .where(group_id: @groups.map(&:id))
-      .where("group_memberships.user_id <> groups.group_admin_id")
-      .select(<<~SQL.squish)
-        group_memberships.*,
-        COUNT(*) OVER (PARTITION BY group_memberships.group_id) AS active_member_count,
-        ROW_NUMBER() OVER (
-          PARTITION BY group_memberships.group_id
-          ORDER BY group_memberships.created_at, group_memberships.id
-        ) AS member_preview_rank
-      SQL
-
-    GroupMembership.from(ranked_memberships, :group_memberships)
-      .where("member_preview_rank <= ?", 3)
-      .order(:group_id, :created_at, :id)
-      .preload(user: { avatar_attachment: :blob })
-      .each do |membership|
-        @active_member_counts_by_group_id[membership.group_id] = membership[:active_member_count].to_i
-        (@member_previews_by_group_id[membership.group_id] ||= []) << membership.user
-      end
+    GroupMembership.card_previews_for(group_ids: @groups.map(&:id)).each do |membership|
+      @active_member_counts_by_group_id[membership.group_id] = membership[:active_member_count].to_i
+      (@member_previews_by_group_id[membership.group_id] ||= []) << membership.user
+    end
   end
 
   def prepare_group_creation

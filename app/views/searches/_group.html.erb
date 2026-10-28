@@ -1,0 +1,7 @@
+<%= render "groups/group_card",
+           group: @search_group_details.fetch(result.id, result),
+           show_details: @search_group_details.key?(result.id),
+           membership: nil,
+           pending_count: 0,
+           member_preview: @search_group_member_previews.fetch(result.id, []),
+           active_member_count: @search_group_member_counts.fetch(result.id, 0) %>

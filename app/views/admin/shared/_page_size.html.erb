@@ -1,7 +1,7 @@
 <%= form.select :per_page,
                 options_for_select(
                   Admin::InventoryPage::PER_PAGE_OPTIONS.map { |size| [t("pagination.per_page_option", count: size), size] },
-                  page.per_page
+                  local_assigns.fetch(:per_page) { page.per_page }
                 ),
                 {},
                 class: "rounded-xl border border-stone-200 px-3 py-2",

@@ -201,6 +201,8 @@ module JjaeksHelper
       [ root_path, [] ]
     when [ "discoveries", "show" ]
       [ discovery_path, [] ] if policy(:discovery).show?
+    when [ "searches", "show" ]
+      [ search_path, %i[q type per_page page] ] if policy(:search).show?
     when [ "notifications", "index" ]
       [ notifications_path, [] ] if policy(Notification).index?
     when [ "book_searches", "show" ]

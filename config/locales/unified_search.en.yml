@@ -1,0 +1,18 @@
+en:
+  unified_search:
+    nav: "Search"
+    title: "Search Bookjjaek"
+    query_label: "Search term"
+    placeholder: "Search users, posts, book posts, and groups"
+    submit: "Search"
+    types_label: "Search result types"
+    types:
+      all: "All"
+      users: "Users"
+      jjaeks: "Posts"
+      book_jjaeks: "Book posts"
+      groups: "Groups"
+    prompt: "Enter a search term to find users, posts, book posts, and groups."
+    no_results: "No results found for “%{query}”."
+    view_all: "View all %{type}"
+    group_access_notice: "Finding a group by name does not grant access to its details or posts. Existing access rules apply."
