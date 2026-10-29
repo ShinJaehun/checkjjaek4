@@ -430,9 +430,9 @@
 - 대상 책장을 선택하지 않으면 기본 책장 “내 책장”에 담김
 - Book의 제목·저자·출판사를 DB에서 검색하고, 기존 `BookSearches::SearchService`와 `KakaoAdapter`의 외부 결과를 `검색 결과` 한 목록에 기존 순서·중복 제거 정책대로 표시함. 각 검색의 페이지네이션은 유지하고 외부 API 건수를 전체 결과 건수로 표시하지 않음. 외부 장애 시 DB 결과와 안내를 유지함
 - DB·외부 검색은 현재 사용자 소유 BookshelfEntry와 Bookshelf를 일괄 조회해 실제 책장을 카드에 전달함. 등록된 책은 기본 책장의 `내 서재에 있음` 또는 일반 책장의 `{실제 책장 이름}에 있음` 비활성 버튼을 표시함. POST 성공 시 기존 Turbo Stream으로 해당 카드만 교체하고 실제 등록 책장을 표시하며, 재등록은 기존 책장·BookActivity를 유지함
-- 로그인 사용자의 Navbar 책 검색은 공통 Navbar에서 한 번 렌더링하는 입력 전용 dialog를 열고 GET으로 `/book_search`에 제출함. 기존 `book-modal`과 검색 폼 partial을 재사용하며 입력창 autofocus·닫기·Esc·포커스 복귀·body scroll lock·Turbo 이동/캐시 전 닫기를 제공함. 모바일 메뉴는 열기 전에 접고 닫은 뒤 메뉴 버튼으로 포커스를 복귀함
+- 로그인 사용자의 Navbar·본인 Library 책 검색은 공통 Navbar에서 한 번 렌더링하는 global-book-search-dialog를 열고 GET으로 `/book_search`에 제출함. 공통 `book-modal`은 layout body가 소유하며 중첩된 동아리·카드·책장 모달 범위와 분리됨. 기존 검색 폼 partial·입력창 autofocus·닫기·Esc·실행 버튼으로 포커스 복귀·body scroll lock·Turbo 이동/캐시 전 닫기를 유지함. Navbar의 모바일 메뉴는 열기 전에 접고 닫은 뒤 메뉴 버튼으로 포커스를 복귀함
 - Navbar 검색은 group_id를 전달하지 않고 검증된 search_origin만 복귀 경로로 보존함. 동아리 책짹 작성 버튼은 기존 작성 권한 조건 안에서 같은 검색 모달 partial·폼과 book-modal을 별도 범위·고유 ID로 재사용하며, 동아리 게시 안내와 group_id를 명시적으로 전달함. 닫기·Esc·포커스 복귀와 Turbo 이동/캐시 전 닫기를 공통 처리함
-- Library 검색은 기존 독립 페이지로 직접 이동하며, 두 모달도 GET 제출 후 같은 결과 페이지로 이동함. 결과·재검색 폼·pagination·서재 등록은 해당 페이지에 유지함
+- Library 검색은 공통 모달을 재사용하고 현재 서재 경로·책장·정렬을 검증된 search_origin으로 유지함. 모든 검색 모달은 GET 제출 후 같은 결과 페이지로 이동하며 결과·재검색 폼·pagination·서재 등록은 해당 페이지에 유지함. 직접 진입용 book_search_entry_path는 사용처가 없어 제거했으며 `/book_search`는 오류 복귀에도 계속 사용함
 - 검색어가 없으면 입력 폼만 표시하고 외부 검색과 빈 결과 메시지는 생략함. 같은 폼으로 다시 검색하면 group_id·최초 출발 화면을 유지하며 page를 전달하지 않아 첫 페이지에서 시작함
 - 전역 검색은 동아리에서 열어도 책 상세의 일반 책짹이 기본 선택됨. 명시적인 동아리 작성 검색은 group_id를 상세·등록·작성에 유지하고 해당 동아리를 기본 선택함. 게시 위치는 기존 책 상세 작성 폼에서 선택하며 이미 등록된 책은 중복 등록하지 않음
 - 검색 페이지의 출발 화면은 `search_origin`, 상세/lookup/등록에서 돌아갈 검색 결과는 `return_to`로 구분함. 검색어·페이지·group_id와 검증된 출발 문맥을 유지하며, 상세에서 검색 결과로 돌아온 뒤 출발 화면으로 복귀할 수 있음
