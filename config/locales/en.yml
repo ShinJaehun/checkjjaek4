@@ -980,6 +980,8 @@ en:
     title: "Book Search"
     description: "Find a book first before linking it to activity."
     placeholder: "Which book are you looking for?"
+    modal:
+      group_destination: "Post to %{group_name} club"
     form:
       query: "Query"
       submit: "Search"
@@ -1005,6 +1007,7 @@ en:
       isbn: "ISBN"
     actions:
       add_to_shelf: "Add to shelf"
+      close: "Close"
       in_shelf: "In my library"
       open_internal: "Open book detail"
   follows:

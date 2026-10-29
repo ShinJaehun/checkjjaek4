@@ -28,7 +28,7 @@ RSpec.describe "Book navigation", type: :request do
     sign_in reader
     get book_search_path, params: { query: "Navigation", page: "1", search_origin: origin }
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("input[name='search_origin']")["value"]).to eq(origin)
+    expect(page.at_css("main input[name='search_origin']")["value"]).to eq(origin)
     expect(back_link["href"]).to eq(origin)
     pagination = page.css("nav a").find { |link| link.text == I18n.t("book_search.pagination.next") }
     expect(Rack::Utils.parse_query(URI.parse(pagination["href"]).query)).to include(

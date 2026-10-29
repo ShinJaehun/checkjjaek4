@@ -1,9 +1,11 @@
+<% search_origin = local_assigns.fetch(:search_origin) { book_search_origin_path } %>
+<% query_id = local_assigns.fetch(:query_id, "query") %>
 <%= form_with url: book_search_path, method: :get, local: true, class: "mt-6 space-y-3" do |form| %>
   <%= form.hidden_field :group_id, value: local_assigns[:group_id] if local_assigns[:group_id].present? %>
-  <%= hidden_field_tag :search_origin, book_search_origin_path if book_search_origin_path %>
+  <%= hidden_field_tag :search_origin, search_origin, id: nil if search_origin %>
   <div class="space-y-2">
-    <%= form.label :query, t("book_search.form.query"), class: "text-sm font-medium text-stone-700" %>
-    <%= form.text_field :query, value: query, placeholder: t("book_search.placeholder"), class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
+    <%= form.label :query, t("book_search.form.query"), for: query_id, class: "text-sm font-medium text-stone-700" %>
+    <%= form.text_field :query, id: query_id, value: query, autofocus: local_assigns[:autofocus], placeholder: t("book_search.placeholder"), class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
   </div>
 
   <%= form.submit t("book_search.form.submit"), name: nil, class: "ui-button ui-button-primary" %>

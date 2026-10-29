@@ -8,8 +8,11 @@ module BookSearchesHelper
   end
 
   def book_search_entry_path(group_id: nil)
-    origin = controller_path == "book_searches" ? book_search_origin_path : validated_jjaek_return_path(request.fullpath)
-    book_search_path(group_id: group_id, search_origin: origin)
+    book_search_path(group_id: group_id, search_origin: book_search_entry_origin_path)
+  end
+
+  def book_search_entry_origin_path
+    controller_path == "book_searches" ? book_search_origin_path : validated_jjaek_return_path(request.fullpath)
   end
 
   def book_search_origin_path

@@ -72,10 +72,22 @@ RSpec.describe "Book posting destinations", type: :request do
     form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
     expect(form).to be_present
     writing_section = form.ancestors("section").first
-    link = writing_section.at_css("a[href='#{book_search_path(group_id: group.id, search_origin: group_path(group))}']")
-    expect(link).to be_present
-    expect(link.text).to eq(I18n.t("jjaeks.actions.publish_group_book"))
+    button = writing_section.at_css("button[aria-controls='group-book-search-dialog']")
+    expect(button).to be_present
+    expect(button.text).to eq(I18n.t("jjaeks.actions.publish_group_book"))
+    expect(writing_section.at_css("#group-book-search-dialog input[name='group_id']")["value"]).to eq(group.id.to_s)
     expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("groups.jjaeks.tabs.general"))
+  end
+
+  it "keeps global search available but hides the club writing dialog when posting is suspended" do
+    membership.update!(moderation_status: :activity_suspended)
+
+    get group_path(group)
+
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#global-book-search-dialog")).to be_present
+    expect(page.at_css("button[aria-controls='group-book-search-dialog']")).to be_nil
+    expect(page.at_css("#group-book-search-dialog")).to be_nil
   end
 
   it "lists only clubs in which the user currently has writing permission" do

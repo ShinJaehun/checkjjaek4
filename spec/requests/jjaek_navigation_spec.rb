@@ -71,7 +71,7 @@ RSpec.describe "Jjaek navigation", type: :request do
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("input[name='return_to']")["value"]).to eq(user_path(other))
     expect(page.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(source.id.to_s)
-    expect(page.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_requote"))
+    expect(page.at_css("main input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_requote"))
 
     post jjaeks_path, params: { return_to: user_path(other), jjaek: { quoted_jjaek_id: source.id, content: "" } }
     expect(response).to have_http_status(:unprocessable_content)

@@ -91,12 +91,12 @@
   <% end %>
 
   <% if @jjaek.present? %>
-    <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+    <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm" data-controller="book-modal"
+             data-action="turbo:before-visit@document->book-modal#close turbo:before-cache@document->book-modal#close">
       <div class="flex items-center gap-2">
         <span class="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white"><%= t("groups.jjaeks.tabs.general") %></span>
-        <%= link_to t("groups.jjaeks.tabs.book"),
-                    book_search_entry_path(group_id: @group.id),
-                    class: "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+        <button type="button" aria-haspopup="dialog" aria-controls="group-book-search-dialog" data-action="book-modal#open"
+                class="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700"><%= t("groups.jjaeks.tabs.book") %></button>
       </div>
 
       <p class="mt-4 text-sm text-stone-500"><%= t("groups.jjaeks.general_description") %></p>
@@ -105,6 +105,7 @@
         <%= render "shared/content_field", form: form, label_key: "jjaeks.form.jjaek_content", rows: 5 %>
         <%= form.submit t("groups.jjaeks.tabs.general"), class: "ui-button ui-button-primary" %>
       <% end %>
+      <%= render "book_searches/search_modal", id_prefix: "group-book-search", group: @group %>
     </section>
   <% end %>
 

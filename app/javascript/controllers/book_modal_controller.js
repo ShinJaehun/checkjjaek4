@@ -16,6 +16,9 @@ export default class extends Controller {
     if (!this.hasDialogTarget || this.dialogTarget.open) return
 
     this.opener = event?.currentTarget || this.element.querySelector("[aria-haspopup='dialog']")
+    if (this.opener && this.opener.getClientRects().length === 0) {
+      this.opener = document.activeElement
+    }
     this.previousOverflow = document.body.style.overflow
     this.dialogTarget.showModal()
     document.body.style.overflow = "hidden"
