@@ -17,7 +17,7 @@ RSpec.describe "Standalone book search", type: :system do
     if page.has_button?(I18n.t("navigation.menu"), visible: true)
       click_button I18n.t("navigation.menu")
     end
-    within("header") { click_button I18n.t("book_search.nav") }
+    within("header[data-controller='mobile-navigation']") { click_button I18n.t("book_search.nav") }
     expect(page).to have_css("#global-book-search-dialog[open]")
     expect(page).to have_css("#global-book-search-query:focus")
   end
@@ -119,6 +119,61 @@ RSpec.describe "Standalone book search", type: :system do
   end
 
   [ 390, 1280 ].each do |width|
+    it "reuses the global dialog from the library and returns to its shelf at #{width}px" do
+      shelf = user.bookshelves.create!(name: "Library search shelf", visibility: :private)
+      book = Book.create!(title: "Library modal book")
+      user.bookshelf_entries.create!(book: book, bookshelf: shelf)
+      origin = user_library_path(user, bookshelf_id: shelf.id, sort: "title")
+      allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+      page.driver.browser.manage.window.resize_to(width, 900)
+      visit origin
+
+      find("main button[aria-controls='global-book-search-dialog']").click
+      expect(page).to have_current_path(origin)
+      expect(page).to have_css("#global-book-search-dialog", count: 1, visible: :all)
+      expect(page).to have_css("#global-book-search-dialog[open]")
+      expect(page).to have_css("#global-book-search-query:focus")
+      within("#global-book-search-dialog") { click_button I18n.t("book_search.actions.close") }
+      expect(page).to have_no_css("#global-book-search-dialog[open]")
+      expect(page).to have_css("main button[aria-controls='global-book-search-dialog']:focus")
+
+      find("main button[aria-controls='global-book-search-dialog']").click
+      expect(page).to have_css("#global-book-search-query:focus")
+      find("#global-book-search-query").send_keys(:escape)
+      expect(page).to have_no_css("#global-book-search-dialog[open]")
+      expect(page).to have_css("main button[aria-controls='global-book-search-dialog']:focus")
+      expect(page).to have_no_css("body[style*='overflow: hidden']")
+
+      open_global_search
+      within("#global-book-search-dialog") { click_button I18n.t("book_search.actions.close") }
+      expect(page).to have_no_css("#global-book-search-dialog[open]")
+      find("main button[aria-controls='global-book-search-dialog']").click
+      fill_in I18n.t("book_search.form.query"), with: "Library modal"
+      click_button I18n.t("book_search.form.submit")
+      expect(page).to have_current_path(book_search_path, ignore_query: true)
+      expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(
+        "query" => "Library modal", "search_origin" => origin
+      )
+      page.go_back
+      expect(page).to have_current_path(origin)
+      expect(page).to have_no_css("#global-book-search-dialog[open]")
+      expect(page).to have_no_css("body[style*='overflow: hidden']")
+
+      find("main button[aria-controls='global-book-search-dialog']").click
+      expect(page).to have_css("#global-book-search-query:focus")
+      fill_in I18n.t("book_search.form.query"), with: "Library modal"
+      click_button I18n.t("book_search.form.submit")
+      expect(page).to have_current_path(book_search_path, ignore_query: true)
+      click_link I18n.t("book_search.actions.open_internal")
+      results_path = book_search_path(query: "Library modal", page: 1, search_origin: origin)
+      expect(page).to have_current_path(book_path(book, return_to: results_path))
+      expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
+      find("a[data-back-link]").click
+      expect(page).to have_current_path(results_path)
+      find("a[data-back-link]").click
+      expect(page).to have_current_path(origin)
+    end
+
     it "closes and restores focus and Turbo cache correctly at #{width}px" do
       allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
       page.driver.browser.manage.window.resize_to(width, 900)

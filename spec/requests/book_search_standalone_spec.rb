@@ -32,21 +32,25 @@ RSpec.describe "Standalone book search", type: :request do
     end
   end
 
-  it "keeps direct library search with its validated origin" do
+  it "opens the shared search dialog from the library while keeping its validated origin" do
     shelf = user.bookshelves.create!(name: "Search source", visibility: :private)
     origin = user_library_path(user, bookshelf_id: shelf.id, sort: "title")
     get origin
-    links = Nokogiri::HTML(response.body).css("main a").select do |link|
-      URI.parse(link["href"]).path == book_search_path
-    end
-    expect(links).not_to be_empty
-    links.each do |link|
-      query = Rack::Utils.parse_query(URI.parse(link["href"]).query)
-      expect(query["search_origin"]).to eq(origin)
-      expect(query["group_id"]).to be_nil
-    end
+    page = Nokogiri::HTML(response.body)
+    button = page.at_css("main button[aria-controls='global-book-search-dialog']")
+    expect(button.text).to eq(I18n.t("book_search.nav"))
+    expect(button["data-action"]).to eq("book-modal#open")
+    expect(page.at_css("body")["data-controller"]).to eq("book-modal")
+    expect(page.at_css("header")["data-controller"]).to eq("mobile-navigation")
+    expect(page.css("#global-book-search-dialog").size).to eq(1)
+    expect(page.css("main a[href^='#{book_search_path}']")).to be_empty
+    form = page.at_css("#global-book-search-dialog form")
+    expect(form["action"]).to eq(book_search_path)
+    expect(form["method"]).to eq("get")
+    expect(form.at_css("input[name='search_origin']")["value"]).to eq(origin)
+    expect(form.at_css("input[name='group_id']")).to be_nil
 
-    get links.first["href"]
+    get form["action"], params: { query: "", search_origin: origin }
     expect(Nokogiri::HTML(response.body).at_css("a[data-back-link]")["href"]).to eq(origin)
   end
 

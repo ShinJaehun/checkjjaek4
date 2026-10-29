@@ -22,7 +22,9 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-[linear-gradient(180deg,#f5efe4_0%,#f8f7f3_38%,#fcfcfb_100%)] text-stone-900">
+  <body class="min-h-screen bg-[linear-gradient(180deg,#f5efe4_0%,#f8f7f3_38%,#fcfcfb_100%)] text-stone-900"
+        data-controller="book-modal"
+        data-action="turbo:before-visit@document->book-modal#close turbo:before-cache@document->book-modal#close">
     <% auth_actions = {
       "users/sessions" => %w[new create],
       "users/registrations" => %w[new create],
