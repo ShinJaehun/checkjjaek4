@@ -113,7 +113,7 @@ RSpec.describe "BookFriendships", type: :request do
     patch user_book_friendship_path(user), params: { return_to: "relationships" }
 
     expect(response).to have_http_status(:see_other)
-    expect(response).to redirect_to(account_relationships_path)
+    expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
     expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.stale_action"))
     expect(BookFriendship.count).to eq(friendship_count)
     expect(Notification.count).to eq(notification_count)
@@ -181,18 +181,18 @@ RSpec.describe "BookFriendships", type: :request do
 
     patch user_book_friendship_path(user), params: { return_to: "relationships" }
 
-    expect(response).to redirect_to(account_relationships_path)
+    expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
     expect(Notification.find_by!(action: :book_friendship_accepted)).to have_attributes(
       recipient: user, actor: other_user
     )
   end
 
-  it "updates received requests and book friends when accepting from the relationship hub with Turbo" do
+  it "updates the selected received tab and all counts when accepting from the relationship hub with Turbo" do
     friendship = BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user
 
     patch user_book_friendship_path(user),
-          params: { return_to: "relationships" },
+          params: { return_to: "relationships", tab: "received_book_friend_requests" },
           headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
@@ -200,11 +200,14 @@ RSpec.describe "BookFriendships", type: :request do
     expect(Notification.find_by!(action: :book_friendship_accepted, notifiable: friendship)).to have_attributes(
       recipient: user, actor: other_user
     )
-    expect(response.body).to include(%(action="replace" target="received-book-friend-requests"))
-    expect(response.body).to include(%(action="replace" target="book-friends"))
+    expect(response.body).to include(%(action="replace" target="relationships-panel"))
     expect(response.body).to include(%(action="update" target="flash-messages"))
     expect(response.body).to include(I18n.t("relationships.empty.received_book_friend_requests"))
-    expect(response.body).to include(user.name)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#relationships-count-book_friends").text).to eq("1")
+    expect(page.at_css("#relationships-count-received_book_friend_requests").text).to eq("0")
+    get account_relationships_path, params: { tab: "book_friends" }
+    expect(Nokogiri::HTML(response.body).at_css("#relationships-grid").text).to include(user.name)
   end
 
   it "falls back to the user profile for an unknown return_to value" do
@@ -224,7 +227,7 @@ RSpec.describe "BookFriendships", type: :request do
       delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
     }.not_to change(Notification, :count)
 
-    expect(response).to redirect_to(account_relationships_path)
+    expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.cancelled"))
   end
 
@@ -234,14 +237,15 @@ RSpec.describe "BookFriendships", type: :request do
 
     expect {
       delete user_book_friendship_path(other_user),
-             params: { return_to: "relationships" },
+             params: { return_to: "relationships", tab: "sent_book_friend_requests" },
              headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.to change(BookFriendship, :count).by(-1)
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(response.body).to include(%(action="replace" target="sent-book-friend-requests"))
+    expect(response.body).to include(%(action="replace" target="relationships-panel"))
     expect(response.body).to include(%(action="update" target="flash-messages"))
     expect(response.body).to include(I18n.t("relationships.empty.sent_book_friend_requests"))
+    expect(Nokogiri::HTML(response.body).at_css("#relationships-count-sent_book_friend_requests").text).to eq("0")
   end
 
   it "shows a reject notice when the addressee deletes a pending request" do
@@ -252,7 +256,7 @@ RSpec.describe "BookFriendships", type: :request do
       delete user_book_friendship_path(user), params: { return_to: "relationships" }
     }.not_to change(Notification, :count)
 
-    expect(response).to redirect_to(account_relationships_path)
+    expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.rejected"))
   end
 
@@ -262,14 +266,15 @@ RSpec.describe "BookFriendships", type: :request do
 
     expect {
       delete user_book_friendship_path(user),
-             params: { return_to: "relationships" },
+             params: { return_to: "relationships", tab: "received_book_friend_requests" },
              headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.to change(BookFriendship, :count).by(-1)
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(response.body).to include(%(action="replace" target="received-book-friend-requests"))
+    expect(response.body).to include(%(action="replace" target="relationships-panel"))
     expect(response.body).to include(%(action="update" target="flash-messages"))
     expect(response.body).to include(I18n.t("relationships.empty.received_book_friend_requests"))
+    expect(Nokogiri::HTML(response.body).at_css("#relationships-count-received_book_friend_requests").text).to eq("0")
   end
 
   it "shows a remove notice when deleting an accepted book friendship" do
@@ -280,7 +285,7 @@ RSpec.describe "BookFriendships", type: :request do
       delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
     }.not_to change(Notification, :count)
 
-    expect(response).to redirect_to(account_relationships_path)
+    expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
     expect(flash[:notice]).to eq(I18n.t("book_friendships.notices.removed"))
   end
 
@@ -312,9 +317,10 @@ RSpec.describe "BookFriendships", type: :request do
     }.to change(BookFriendship, :count).by(-1)
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(response.body).to include(%(action="replace" target="book-friends"))
+    expect(response.body).to include(%(action="replace" target="relationships-panel"))
     expect(response.body).to include(%(action="update" target="flash-messages"))
     expect(response.body).to include(I18n.t("relationships.empty.book_friends"))
+    expect(Nokogiri::HTML(response.body).at_css("#relationships-count-book_friends").text).to eq("0")
   end
 
   it "keeps remaining book friends when removing one book friendship from the relationship hub with Turbo" do
@@ -330,7 +336,7 @@ RSpec.describe "BookFriendships", type: :request do
     }.to change(BookFriendship, :count).by(-1)
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(response.body).to include(%(action="replace" target="book-friends"))
+    expect(response.body).to include(%(action="replace" target="relationships-panel"))
     expect(response.body).to include(%(action="update" target="flash-messages"))
     expect(response.body).not_to include(other_user.name)
     expect(response.body).to include(remaining_user.name)

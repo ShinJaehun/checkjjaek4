@@ -1,4 +1,6 @@
 class FollowsController < ApplicationController
+  include RelationshipManagement
+
   before_action :set_user
 
   def create
@@ -25,13 +27,7 @@ class FollowsController < ApplicationController
     follow.destroy!
 
     if params[:return_to] == "relationships"
-      @following_users = current_user.followees.includes(avatar_attachment: :blob).order(:name)
-      flash.now[:notice] = t("follows.notices.destroyed")
-
-      respond_to do |format|
-        format.turbo_stream
-        format.html { redirect_to redirect_target, notice: t("follows.notices.destroyed") }
-      end
+      render_relationships_change(notice: t("follows.notices.destroyed"))
     else
       redirect_to redirect_target, notice: t("follows.notices.destroyed")
     end
@@ -44,6 +40,6 @@ class FollowsController < ApplicationController
   end
 
   def redirect_target
-    params[:return_to] == "relationships" ? account_relationships_path : user_path(@user)
+    params[:return_to] == "relationships" ? relationships_return_path : user_path(@user)
   end
 end

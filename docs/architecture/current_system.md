@@ -230,12 +230,11 @@
 
 ### 5. 관계 화면 (/account/relationships)
 
-- 현재 구현된 관계 관리 허브 화면
-- 받은 책친구 요청
-- 보낸 책친구 요청
-- 책친구 목록
-- 내가 소식받는 사람
-- 나를 소식받는 사람
+- 책친구(기본)·받은 신청·보낸 신청·소식받는 중·내 소식 구독자 5개 탭과 전체 인원수 COUNT를 표시하며 모바일 탭은 가로 스크롤함
+- `RelationshipsQuery`가 현재 사용자 관계에 한정한 SQL scope와 COUNT를 사용하고, 선택한 탭만 사용자 이름 검색(handle 제외)·24건 limit/offset·avatar preload를 수행함. 책친구 ID는 SQL subquery로 조회함. 일반 통합 검색의 handle 검색은 유지함
+- 사용자 관계는 이름·ID ASC, 신청은 생성 시각·ID DESC로 정렬함. 검색·탭 전환 시 첫 페이지로 이동하고 탭 전환은 검색어를 유지함. 잘못된 탭/페이지는 정규화하고 페이지 상한을 보정함
+- 간결한 아바타·이름·handle 카드 그리드는 768px 미만 1열, 이상 최대 2열임. 기존 관계별 row partial과 공통 pagination partial을 재사용하며 24건 정책은 이 화면에만 적용함
+- `RelationshipManagement`를 관계 조회·mutation controller에서 공유함. 관계 변경은 `tab`·`q`·`page`를 보존하고 Turbo에서 `relationships-panel`과 flash를 교체함. HTML 및 마지막 페이지 소멸 시 Turbo는 유효한 페이지로 303 redirect함. 과거 관계별 section 교체 template은 제거함
 
 관련 코드:
 - controller: app/controllers/relationships_controller.rb
@@ -407,7 +406,7 @@
 - 비공개 동아리 초대·수락·거절·취소 Notification은 사건 시점의 invitee 또는 Group admin을 수신자로 확정하고 실제 actor를 표시함. 취소의 내부 event type은 `invitation_revoked`이며, 초대·취소는 `/groups`, 수락·거절은 현재 회원 관리 권한에 따라 회원 관리 또는 안전한 Group 목록으로 연결
 - unread count를 navbar에 서버 렌더링으로 표시하고, Notification 생성 commit 및 실제 읽음 상태 변경 뒤 수신자 전용 ActionCable + Turbo Streams로 배지만 갱신
 - `/notifications` 진입 시 현재 사용자의 unread 알림을 read 처리
-- 책친구 요청 알림은 `/account/relationships#received-book-friend-requests`로 연결
+- 책친구 요청 알림은 `/account/relationships?tab=received_book_friend_requests#received-book-friend-requests`로 연결
 - 책친구 신청 수락 알림은 원래 신청자에게 전달하고, 수락한 사용자의 이름·avatar와 프로필 링크를 표시함
 - profile-context Jjaek 알림은 관련 Jjaek 상세로 연결함. 댓글·ReJjaek 알림은 현재 해당 글을 읽을 수 있을 때 상세로 연결하고, 권한이 사라지면 원문·동아리 정보를 표시하지 않는 안내와 안전한 경로를 사용함
 - User 계정·Group 운영 정지/복구와 Jjaek·Comment 숨김/복구는 이번 조치의 `ModerationAction`을 참조하는 알림을 핵심 transaction commit 뒤 best-effort로 전달하며, group 수신자는 조치 시점 active membership으로 확정
@@ -611,7 +610,7 @@ Turbo 1차 적용 상태:
 - 상세 페이지 ReJjaek 목록은 detail panel만 갱신한다.
 - flash는 stable wrapper 기반으로 일부 Turbo 성공 응답에서 갱신된다.
 - notification badge는 stable wrapper를 유지하며 수신자 전용 Turbo Stream으로 갱신한다. 연결이 없을 때는 서버 렌더링 수를 사용한다.
-- relationships hub의 핵심 관계 action은 section 단위로 갱신한다.
+- relationships hub의 핵심 관계 action은 탭 건수와 선택 목록을 포함한 `relationships-panel`을 갱신한다. 마지막 페이지 소멸 시 유효한 페이지로 303 redirect한다.
 - 책 검색 결과의 `서재에 담기` 성공 케이스는 해당 result card만 갱신한다.
 - bookshelf 관련 Turbo화는 현재 HTML fallback 흐름을 유지하며, DnD 설계 이후 재검토한다.
 

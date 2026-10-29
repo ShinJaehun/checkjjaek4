@@ -1,0 +1,7 @@
+<%= turbo_stream.replace "relationships-panel" do %>
+  <%= render "relationships/panel" %>
+<% end %>
+
+<%= turbo_stream.update "flash-messages" do %>
+  <%= render "shared/flash" %>
+<% end %>

@@ -55,13 +55,25 @@
 
 `/account/relationships`는 현재 구현된 관계 관리 허브다.
 
-이 화면은 현재 아래를 관리한다.
+이 화면은 아래 다섯 관계를 탭으로 관리한다.
 
-- 받은 책친구 요청
-- 보낸 책친구 요청
-- 책친구 목록
-- 내가 소식받는 사람
-- 나를 소식받는 사람
+- 책친구 (기본 탭)
+- 받은 책친구 신청
+- 보낸 책친구 신청
+- 소식받는 중
+- 내 소식 구독자
+
+조회와 표시:
+- 각 탭은 검색어와 관계없이 현재 사용자의 해당 관계 전체 인원수를 COUNT 쿼리로 표시한다. 모바일에서는 탭을 가로 스크롤한다.
+- `tab`, `q`, `page`를 GET으로 전달하며 선택한 탭의 관계만 DB에서 사용자 이름으로 검색하고 페이지당 24건씩 조회한다. handle은 검색 대상에서 제외한다. 검색 label은 `이름 검색`, placeholder는 `이름으로 검색`이다. SQL wildcard 문자는 escape한다. 전체 관계 ID를 Ruby 배열로 가져와 페이지를 나누지 않는다. 일반 통합 검색(`/search`)의 handle 검색은 유지한다.
+- 책친구는 양방향 accepted 관계, 받은/보낸 신청은 해당 방향의 pending 관계, 소식 관계는 기존 Follow를 사용한다. 다른 사용자의 관계는 조회하지 않는다.
+- 책친구·소식 관계는 사용자 이름 ASC·사용자 ID ASC, 신청은 생성 시각 DESC·관계 ID DESC로 정렬한다. 잘못된 탭은 책친구, 잘못되거나 1보다 작은 페이지는 1로 정규화하며 마지막 페이지 초과 시 마지막 유효 페이지로 보정한다.
+- 검색어 변경은 현재 탭의 첫 페이지로 이동한다. 탭 전환은 검색어를 유지하고 첫 페이지로 이동한다.
+- 사용자 카드는 768px 미만에서 1열, 그 이상에서 최대 2열이다. 아바타·이름·공개 handle만 표시하며 긴 이름·handle은 줄바꿈한다. 자기소개와 관계 수는 카드에 표시하지 않는다.
+- 책친구 해제, 받은 신청 수락/거절, 보낸 신청 취소, 소식받기 해제는 기존 Pundit과 상태 전이를 유지한다. 내 소식 구독자 카드는 프로필 링크만 제공한다. 프로필의 관계 동작은 유지한다.
+- 관계 변경 요청은 현재 `tab`·`q`·`page`를 전달한다. 성공한 Turbo Stream은 탭 건수와 선택 목록·검색·페이지네이션을 담은 `relationships-panel`을 함께 교체하고 flash를 갱신한다. 선택하지 않은 탭의 사용자 목록은 로드하지 않는다.
+- HTML fallback은 정규화된 조회 상태로 303 redirect한다. 마지막 항목 제거로 현재 페이지가 사라지면 Turbo 요청도 유효한 페이지로 303 redirect하여 URL과 목록을 일치시킨다. 새 Stimulus나 클라이언트 상태 관리는 추가하지 않는다.
+- 기존 공통 pagination partial을 재사용하되 이 화면의 24건 정책이 다른 화면의 페이지 크기를 변경하지 않는다.
 
 원칙:
 - 프로필 화면은 관계 상태 확인과 관계 액션의 보조 경로로 남길 수 있다.
@@ -76,7 +88,7 @@ Notification의 canonical 기준은 `docs/specs/notifications_mvp.md`를 따른�
 
 현재 구현:
 - 받은 책친구 요청은 `book_friendship_requested` notification으로 생성된다.
-- 해당 알림은 `/account/relationships#received-book-friend-requests`로 연결된다.
+- 해당 알림은 `/account/relationships?tab=received_book_friend_requests#received-book-friend-requests`로 연결되어 받은 신청 탭을 연다.
 - 알림을 읽음 처리해도 `BookFriendship.pending` 상태는 바뀌지 않는다.
 - 책친구 요청을 수락하면 원래 신청자에게 `book_friendship_accepted` notification을 생성한다.
 - 수락 알림은 수락한 사용자의 이름과 avatar를 표시하고 해당 사용자 프로필로 연결된다.
