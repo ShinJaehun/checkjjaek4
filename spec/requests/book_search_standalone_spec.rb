@@ -6,25 +6,91 @@ RSpec.describe "Standalone book search", type: :request do
 
   before { sign_in user }
 
-  it "links directly from home, library, and club with a validated origin" do
+  it "offers one global input-only search dialog with a validated origin and no posting group" do
     shelf = user.bookshelves.create!(name: "Search source", visibility: :private)
-    origins = [ root_path, user_library_path(user, bookshelf_id: shelf.id, sort: "title"), group_path(group) ]
+    origins = [ root_path, user_library_path(user, bookshelf_id: shelf.id, sort: "title"), group_path(group),
+                book_search_path(group_id: group.id, search_origin: group_path(group)) ]
 
     origins.each do |origin|
       get origin
-      links = Nokogiri::HTML(response.body).css("a").select do |link|
-        URI.parse(link["href"]).path == book_search_path
-      end
-      expect(links).not_to be_empty
-      links.each do |link|
-        query = Rack::Utils.parse_query(URI.parse(link["href"]).query)
-        expect(query["search_origin"]).to eq(origin)
-        expect(query["group_id"]).to eq(group.id.to_s) if origin == group_path(group)
-      end
-
-      get links.first["href"]
-      expect(Nokogiri::HTML(response.body).at_css("a[data-back-link]")["href"]).to eq(origin)
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("#global-book-search-dialog").size).to eq(1)
+      expect(page.at_css("header button[aria-controls='global-book-search-dialog']").text).to eq(I18n.t("book_search.nav"))
+      dialog = page.at_css("#global-book-search-dialog")
+      expect(dialog["open"]).to be_nil
+      form = dialog.at_css("form")
+      expect(form["action"]).to eq(book_search_path)
+      expect(form["method"]).to eq("get")
+      expect(form.at_css("input[name='query']")["autofocus"]).to be_present
+      expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("book_search.form.submit"))
+      expect(form.css("input[name='group_id'], input[name='page']")).to be_empty
+      expected_origin = origin == origins.last ? group_path(group) : origin
+      expect(form.at_css("input[name='search_origin']")["value"]).to eq(expected_origin)
+      expect(dialog.css("article, turbo-frame")).to be_empty
+      expect(dialog.text).not_to include(I18n.t("book_search.modal.group_destination", group_name: group.name))
+      expect(page.css("#global-book-search-query").size).to eq(1)
     end
+  end
+
+  it "keeps direct library search with its validated origin" do
+    shelf = user.bookshelves.create!(name: "Search source", visibility: :private)
+    origin = user_library_path(user, bookshelf_id: shelf.id, sort: "title")
+    get origin
+    links = Nokogiri::HTML(response.body).css("main a").select do |link|
+      URI.parse(link["href"]).path == book_search_path
+    end
+    expect(links).not_to be_empty
+    links.each do |link|
+      query = Rack::Utils.parse_query(URI.parse(link["href"]).query)
+      expect(query["search_origin"]).to eq(origin)
+      expect(query["group_id"]).to be_nil
+    end
+
+    get links.first["href"]
+    expect(Nokogiri::HTML(response.body).at_css("a[data-back-link]")["href"]).to eq(origin)
+  end
+
+  it "offers a separate club search dialog with its posting destination and validated origin" do
+    get group_path(group)
+    page = Nokogiri::HTML(response.body)
+    expect(page.css("#group-book-search-dialog").size).to eq(1)
+    dialog = page.at_css("#group-book-search-dialog")
+    expect(dialog["open"]).to be_nil
+    expect(dialog.at_css("h2").text).to eq(I18n.t("book_search.title"))
+    expect(dialog.text).to include(I18n.t("book_search.modal.group_destination", group_name: group.name))
+    form = dialog.at_css("form")
+    expect(form["action"]).to eq(book_search_path)
+    expect(form["method"]).to eq("get")
+    expect(form.at_css("input[name='query']")["id"]).to eq("group-book-search-query")
+    expect(form.at_css("input[name='query']")["autofocus"]).to be_present
+    expect(form.at_css("input[name='group_id']")["value"]).to eq(group.id.to_s)
+    expect(form.at_css("input[name='search_origin']")["value"]).to eq(group_path(group))
+    expect(page.at_css("#global-book-search-dialog input[name='group_id']")).to be_nil
+    expect(page.at_css("#global-book-search-dialog").text).not_to include(
+      I18n.t("book_search.modal.group_destination", group_name: group.name)
+    )
+
+    get form["action"], params: { group_id: group.id, search_origin: group_path(group) }
+    expect(Nokogiri::HTML(response.body).at_css("a[data-back-link]")["href"]).to eq(group_path(group))
+  end
+
+  it "uses the club origin only for returning when a global search selects a shelved book" do
+    book = Book.create!(title: "Global club search book")
+    user.bookshelf_entries.create!(book: book)
+    allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+    get book_search_path, params: { query: "Global club", search_origin: group_path(group) }
+
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("main input[name='group_id']")).to be_nil
+    expect(page.at_css("a[data-back-link]")["href"]).to eq(group_path(group))
+    link = page.at_css("main article a")
+    results_path = book_search_path(query: "Global club", page: 1, search_origin: group_path(group))
+    expect(link["href"]).to eq(book_path(book, return_to: results_path))
+    get link["href"]
+    form = Nokogiri::HTML(response.body).at_css("#book-jjaek-form form")
+    expect(form["action"]).to eq(jjaeks_path)
+    expect(form.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("personal")
+    expect(form.at_css("select[name='jjaek[group_id]']")["disabled"]).to be_present
   end
 
   it "shows the search form without requesting results when the query is absent" do
@@ -212,8 +278,8 @@ RSpec.describe "Standalone book search", type: :request do
     page = Nokogiri::HTML(response.body)
     expect(page.css("article").size).to eq(1)
     expect(response.body).to include('name="group_id"')
-    expect(page.at_css('input[name="query"]')["value"]).to eq("Paged")
-    expect(page.at_css('input[name="search_origin"]')["value"]).to eq(group_path(group))
+    expect(page.at_css('main input[name="query"]')["value"]).to eq("Paged")
+    expect(page.at_css('main input[name="search_origin"]')["value"]).to eq(group_path(group))
     expect(page.at_css("a[data-back-link]")["href"]).to eq(group_path(group))
     search_path = book_search_path(query: "Paged", page: 2, group_id: group.id, search_origin: group_path(group))
     get page.at_css("article a")["href"]

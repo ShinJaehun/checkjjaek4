@@ -1,0 +1,14 @@
+<% id_prefix = local_assigns.fetch(:id_prefix, "global-book-search") %>
+<% group = local_assigns[:group] %>
+<dialog id="<%= id_prefix %>-dialog" aria-labelledby="<%= id_prefix %>-title" data-book-modal-target="dialog"
+        data-action="close->book-modal#restore" class="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-xl backdrop:bg-stone-900/40">
+  <div class="flex items-start justify-between gap-4">
+    <h2 id="<%= id_prefix %>-title" class="text-xl font-semibold text-stone-900"><%= t("book_search.title") %></h2>
+    <button type="button" data-action="book-modal#close" class="ui-button ui-button-secondary shrink-0"><%= t("book_search.actions.close") %></button>
+  </div>
+  <% if group.present? %>
+    <p class="mt-4 break-words rounded-2xl bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700"><%= t("book_search.modal.group_destination", group_name: group.name) %></p>
+  <% end %>
+  <%= render "book_searches/search_form", query: "", query_id: "#{id_prefix}-query", group_id: group&.id,
+             search_origin: book_search_entry_origin_path, autofocus: true %>
+</dialog>

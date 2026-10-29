@@ -987,6 +987,8 @@ ko:
     title: "책 검색"
     description: "읽은 책이나 읽고 싶은 책을 먼저 찾아봅니다."
     placeholder: "어떤 책을 찾고 있나요?"
+    modal:
+      group_destination: "%{group_name} 동아리에 게시"
     form:
       query: "검색어"
       submit: "검색"
@@ -1012,6 +1014,7 @@ ko:
       isbn: "ISBN"
     actions:
       add_to_shelf: "서재에 담기"
+      close: "닫기"
       in_shelf: "내 서재에 있음"
       open_internal: "책 상세 보기"
   follows:

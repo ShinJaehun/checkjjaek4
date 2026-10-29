@@ -13,12 +13,31 @@ RSpec.describe "Standalone book search", type: :system do
 
   after { Warden.test_reset! }
 
-  def expect_search_path(query:, page_number: nil)
+  def open_global_search
+    if page.has_button?(I18n.t("navigation.menu"), visible: true)
+      click_button I18n.t("navigation.menu")
+    end
+    within("header") { click_button I18n.t("book_search.nav") }
+    expect(page).to have_css("#global-book-search-dialog[open]")
+    expect(page).to have_css("#global-book-search-query:focus")
+  end
+
+  def open_club_search
+    within("main") { click_button I18n.t("groups.jjaeks.tabs.book") }
+    expect(page).to have_current_path(group_path(group))
+    expect(page).to have_css("#group-book-search-dialog[open]")
+    expect(page).to have_css("#group-book-search-query:focus")
+    within("#group-book-search-dialog") do
+      expect(page).to have_text(I18n.t("book_search.modal.group_destination", group_name: group.name))
+    end
+  end
+
+  def expect_search_path(query:, page_number: nil, group_id: group.id)
     expected_query = {
-      "group_id" => group.id.to_s,
       "query" => query,
       "search_origin" => group_path(group)
     }
+    expected_query["group_id"] = group_id.to_s if group_id
     expected_query["page"] = page_number.to_s if page_number
 
     expected_query.each do |key, value|
@@ -30,20 +49,25 @@ RSpec.describe "Standalone book search", type: :system do
     expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(expected_query)
   end
 
-  it "opens the search page without a query and writes a personal book jjaek for a shelved book" do
+  it "searches from the global dialog and writes a personal book jjaek for a shelved book" do
     book = Book.create!(title: "Personal search book")
     user.bookshelf_entries.create!(book: book)
     counts = [ Book.count, BookshelfEntry.count ]
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
 
     visit root_path
-    click_button "메뉴"
-    click_link I18n.t("book_search.nav"), match: :first
-    expect(page).to have_current_path(book_search_path(search_origin: root_path))
+    open_global_search
+    expect(page).to have_current_path(root_path)
     expect(page).to have_field(I18n.t("book_search.form.query"), with: "")
     expect(page).to have_no_text(I18n.t("book_search.empty.title"))
     fill_in I18n.t("book_search.form.query"), with: "Personal search"
     click_button I18n.t("book_search.form.submit")
+    expect(page).to have_current_path(book_search_path, ignore_query: true)
+    expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(
+      "query" => "Personal search",
+      "search_origin" => root_path
+    )
+    expect(page).to have_no_css("#global-book-search-dialog[open]")
     expect(page).to have_text(I18n.t("book_search.actions.in_shelf"))
     expect(page).to have_no_button(I18n.t("book_search.actions.add_to_shelf"))
     click_link I18n.t("book_search.actions.open_internal")
@@ -60,12 +84,83 @@ RSpec.describe "Standalone book search", type: :system do
     expect(post.group).to be_nil
   end
 
+  it "keeps global club searches personal through pagination, repeat searches, and return navigation" do
+    11.times { |index| Book.create!(title: "Paged global #{index}") }
+    book = Book.create!(title: "Replacement global book")
+    user.bookshelf_entries.create!(book: book)
+    allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+
+    visit group_path(group)
+    open_global_search
+    fill_in I18n.t("book_search.form.query"), with: "Paged global"
+    click_button I18n.t("book_search.form.submit")
+    expect_search_path(query: "Paged global", group_id: nil)
+    click_link I18n.t("book_search.pagination.next")
+    expect_search_path(query: "Paged global", page_number: 2, group_id: nil)
+    fill_in I18n.t("book_search.form.query"), with: "Replacement global"
+    click_button I18n.t("book_search.form.submit")
+    expect_search_path(query: "Replacement global", group_id: nil)
+    click_link I18n.t("book_search.actions.open_internal")
+    search_path = book_search_path(query: "Replacement global", page: 1, search_origin: group_path(group))
+    expect(page).to have_current_path(book_path(book, return_to: search_path))
+    expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
+    find("a[data-back-link]").click
+    expect(page).to have_current_path(search_path)
+    find("a[data-back-link]").click
+    expect(page).to have_current_path(group_path(group))
+  end
+
+  [ 390, 1280 ].each do |width|
+    it "closes and restores focus and Turbo cache correctly at #{width}px" do
+      allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+      page.driver.browser.manage.window.resize_to(width, 900)
+      visit root_path
+      if width < 1024
+        open_global_search
+        focus_selector = "header button[data-mobile-navigation-target='button']:focus"
+      else
+        within("header") { click_button I18n.t("book_search.nav") }
+        focus_selector = "header button[aria-controls='global-book-search-dialog']:focus"
+      end
+      expect(page).to have_css("#global-book-search-query:focus")
+      expect(page).to have_css("body[style*='overflow: hidden']")
+      expect(page).to have_css("header button[data-mobile-navigation-target='button'][aria-expanded='false']", visible: :all)
+      find("#global-book-search-query").send_keys(:escape)
+      expect(page).to have_no_css("#global-book-search-dialog[open]")
+      expect(page).to have_no_css("body[style*='overflow: hidden']")
+      expect(page).to have_css(focus_selector)
+
+      click_button I18n.t("navigation.menu") if width < 1024
+      within("header") { click_button I18n.t("book_search.nav") }
+      within("#global-book-search-dialog") { click_button I18n.t("book_search.actions.close") }
+      expect(page).to have_no_css("#global-book-search-dialog[open]")
+      expect(page).to have_css(focus_selector)
+
+      click_button I18n.t("navigation.menu") if width < 1024
+      within("header") { click_button I18n.t("book_search.nav") }
+      fill_in I18n.t("book_search.form.query"), with: "Cached search"
+      click_button I18n.t("book_search.form.submit")
+      expect(page).to have_current_path(book_search_path, ignore_query: true)
+      expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(
+        "query" => "Cached search",
+        "search_origin" => root_path
+      )
+      page.go_back
+      expect(page).to have_current_path(root_path)
+      expect(page).to have_no_css("#global-book-search-dialog[open]")
+      expect(page).to have_no_css("body[style*='overflow: hidden']")
+      click_button I18n.t("navigation.menu") if width < 1024
+      within("header") { click_button I18n.t("book_search.nav") }
+      expect(page).to have_css("#global-book-search-query:focus")
+    end
+  end
+
   it "searches again from page two without losing the original club origin" do
     11.times { |index| Book.create!(title: "Paged repeat #{index}") }
     Book.create!(title: "Replacement book")
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
     visit group_path(group)
-    find("a[href='#{book_search_path(group_id: group.id, search_origin: group_path(group))}']", match: :first).click
+    open_club_search
     fill_in I18n.t("book_search.form.query"), with: "Paged repeat"
     click_button I18n.t("book_search.form.submit")
     expect_search_path(query: "Paged repeat")
@@ -87,13 +182,46 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_current_path(group_path(group))
   end
 
+  it "closes the club dialog, restores its opener, and keeps global search separate" do
+    allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+    visit group_path(group)
+    open_club_search
+    fill_in I18n.t("book_search.form.query"), with: "Club draft"
+    find("#group-book-search-query").send_keys(:escape)
+    expect(page).to have_no_css("#group-book-search-dialog[open]")
+    expect(page).to have_css("button[aria-controls='group-book-search-dialog']:focus")
+    expect(page).to have_no_css("body[style*='overflow: hidden']")
+
+    open_global_search
+    within("#global-book-search-dialog") do
+      expect(page).to have_field(I18n.t("book_search.form.query"), with: "")
+      expect(page).to have_no_text(I18n.t("book_search.modal.group_destination", group_name: group.name))
+      click_button I18n.t("book_search.actions.close")
+    end
+    expect(page).to have_no_css("#global-book-search-dialog[open]")
+    open_club_search
+    expect(page).to have_field(I18n.t("book_search.form.query"), with: "Club draft")
+    within("#group-book-search-dialog") { click_button I18n.t("book_search.actions.close") }
+    expect(page).to have_no_css("#group-book-search-dialog[open]")
+    expect(page).to have_css("button[aria-controls='group-book-search-dialog']:focus")
+    open_club_search
+    fill_in I18n.t("book_search.form.query"), with: "Club cached"
+    click_button I18n.t("book_search.form.submit")
+    expect_search_path(query: "Club cached")
+    page.go_back
+    expect(page).to have_current_path(group_path(group))
+    expect(page).to have_no_css("#group-book-search-dialog[open]")
+    expect(page).to have_no_css("body[style*='overflow: hidden']")
+    open_club_search
+  end
+
   it "selects a stored book despite external failure, keeps club context, and defaults to club posting" do
     book = Book.create!(title: "Stored search book")
     user.bookshelf_entries.create!(book: book)
     allow(BookSearches::SearchService).to receive(:call).and_raise(BookSearches::KakaoAdapter::Error)
     search_path = book_search_path(group_id: group.id, page: 1, query: "Stored search", search_origin: group_path(group))
     visit group_path(group)
-    find("a[href='#{book_search_path(group_id: group.id, search_origin: group_path(group))}']", match: :first).click
+    open_club_search
     fill_in I18n.t("book_search.form.query"), with: "Stored search"
     click_button I18n.t("book_search.form.submit")
     expect(page).to have_text(I18n.t("search_ui.external_unavailable"))
@@ -105,11 +233,15 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_group_book"), visible: :all)
     expect(page).to have_select(I18n.t("jjaeks.form.posting_group"), selected: group.name)
     expect(page).to have_no_css("#book-writing-dialog")
+    choose I18n.t("jjaeks.actions.publish_book"), allow_label_click: true
+    expect(page).to have_checked_field(I18n.t("jjaeks.actions.publish_book"), visible: :all)
+    expect(page).to have_no_select(I18n.t("jjaeks.form.posting_group"))
     find("a[data-back-link]").click
     expect(page).to have_current_path(search_path)
     expect(page).to have_field(I18n.t("book_search.form.query"), with: "Stored search")
     find("a[data-back-link]").click
     expect(page).to have_current_path(group_path(group))
+    expect(page).to have_no_css("#group-book-search-dialog[open]")
   end
 
   it "previews and registers a partial external result before offering the club book form" do
@@ -119,7 +251,7 @@ RSpec.describe "Standalone book search", type: :system do
     )
     search_path = book_search_path(group_id: group.id, page: 1, query: "New search", search_origin: group_path(group))
     visit group_path(group)
-    find("a[href='#{book_search_path(group_id: group.id, search_origin: group_path(group))}']", match: :first).click
+    open_club_search
     fill_in I18n.t("book_search.form.query"), with: "New search"
     click_button I18n.t("book_search.form.submit")
     click_link I18n.t("book_search.actions.open_internal")
