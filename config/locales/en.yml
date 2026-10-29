@@ -1009,6 +1009,7 @@ en:
       add_to_shelf: "Add to shelf"
       close: "Close"
       in_shelf: "In my library"
+      in_bookshelf: "In %{bookshelf_name}"
       open_internal: "Open book detail"
   follows:
     alerts:

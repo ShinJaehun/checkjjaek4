@@ -28,12 +28,13 @@ class BookSearchesController < ApplicationController
       .limit(BookSearches::SearchService::DEFAULT_SIZE + 1).to_a
     @has_next_page = books.size > BookSearches::SearchService::DEFAULT_SIZE
     books = books.first(BookSearches::SearchService::DEFAULT_SIZE)
-    shelved_ids = current_user.bookshelf_entries.where(book_id: books.map(&:id)).pluck(:book_id)
+    entries_by_book_id = current_user.bookshelf_entries.where(book_id: books.map(&:id)).includes(:bookshelf).index_by(&:book_id)
     @local_results = books.map do |book|
       { title: book.title, authors_text: book.authors_text, publisher: book.publisher,
         thumbnail: book.thumbnail, isbn: book.isbn, contents_excerpt: book.description,
         url: book.external_url, existing_book_id: book.id,
-        shelved_book_id: (book.id if shelved_ids.include?(book.id)) }
+        shelved_book_id: (book.id if entries_by_book_id.key?(book.id)),
+        bookshelf_entry: entries_by_book_id[book.id] }
     end
     @has_previous_page = @page > 1
   end
@@ -74,7 +75,7 @@ class BookSearchesController < ApplicationController
     isbns = identities.filter_map { |isbn, _| isbn if isbn != :ambiguous }
     external_urls = identities.filter_map(&:last)
     books = shelved_books_matching(isbns:, external_urls:)
-    shelved_book_ids = current_user.bookshelf_entries.where(book_id: books.map(&:id)).pluck(:book_id)
+    entries_by_book_id = current_user.bookshelf_entries.where(book_id: books.map(&:id)).includes(:bookshelf).index_by(&:book_id)
     books_by_isbn = books.select { |book| book.canonical_isbn.present? }.index_by(&:canonical_isbn)
     books_by_external_url = books.select { |book| book.external_url.present? }.index_by(&:external_url)
 
@@ -90,7 +91,8 @@ class BookSearchesController < ApplicationController
           url_book
         end
 
-      book.merge(existing_book_id: shelved_book&.id, shelved_book_id: shelved_book_ids.include?(shelved_book&.id) ? shelved_book.id : nil)
+      entry = entries_by_book_id[shelved_book&.id]
+      book.merge(existing_book_id: shelved_book&.id, shelved_book_id: entry&.book_id, bookshelf_entry: entry)
     end
   end
 

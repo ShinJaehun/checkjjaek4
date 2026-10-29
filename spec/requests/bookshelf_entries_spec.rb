@@ -55,6 +55,54 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response.body).to include(%(action="update" target="flash-messages"))
     expect(response.body).to include(I18n.t("book_search.actions.in_shelf"))
     expect(response.body).not_to include(I18n.t("book_search.actions.add_to_shelf"))
+    card = Nokogiri::HTML(response.body).at_css("turbo-stream[action='replace'] template article")
+    expect(card.at_css("button[disabled]").text.strip).to eq(I18n.t("book_search.actions.in_shelf"))
+  end
+
+  [ :stored, :external ].each do |source|
+    it "replaces only the #{source} card with its actual bookshelf and preserves it on duplicate registration" do
+      shelf = user.bookshelves.create!(name: "선택한 실제 책장", visibility: :private)
+      group = Group.create!(name: "Shelf club", group_admin: user, group_type: :private_group, lifecycle_status: :active)
+      return_path = book_search_path(query: "Selection", page: 2, group_id: group.id, search_origin: group_path(group))
+      attributes = { title: "Selection book", isbn: "selection-turbo", url: "https://example.com/selection-turbo" }
+      if source == :stored
+        book = Book.create!(title: attributes[:title])
+        source_params = { book_id: book.id }
+        target = "book_search_result_stored_#{book.id}"
+      else
+        source_params = { search_result_token: BookSearches::ResultToken.issue(attributes, user: user) }
+        target = "book_search_result_#{Digest::SHA256.hexdigest(attributes[:isbn])[0, 12]}"
+      end
+      params = source_params.merge(bookshelf_entry_source: "book_search", group_id: group.id, return_to: return_path,
+                                   bookshelf_entry: { bookshelf_id: shelf.id })
+      sign_in user
+
+      expect {
+        post bookshelf_entries_path, params: params, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      }.to change(BookshelfEntry, :count).by(1).and change(BookActivity, :count).by(1)
+
+      entry = user.bookshelf_entries.order(:id).last
+      expect(entry.bookshelf).to eq(shelf)
+      expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+      page = Nokogiri::HTML(response.body)
+      replacements = page.css("turbo-stream[action='replace']")
+      expect(replacements.size).to eq(1)
+      expect(replacements.first["target"]).to eq(target)
+      card = replacements.first.at_css("template article")
+      expect(card["id"]).to eq(target)
+      expect(card.at_css("button[disabled]").text.strip).to eq(I18n.t("book_search.actions.in_bookshelf", bookshelf_name: shelf.name))
+      expect(card.at_css("a")["href"]).to eq(book_path(entry.book, group_id: group.id, return_to: return_path))
+      expect(card.css("form, dialog")).to be_empty
+      expect(page.at_css("turbo-stream[action='update'][target='flash-messages']")).to be_present
+
+      params[:bookshelf_entry] = { bookshelf_id: user.default_bookshelf.id }
+      expect {
+        post bookshelf_entries_path, params: params, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+      expect(entry.reload.bookshelf).to eq(shelf)
+      card = Nokogiri::HTML(response.body).at_css("turbo-stream[action='replace'] template article")
+      expect(card.at_css("button[disabled]").text.strip).to eq(I18n.t("book_search.actions.in_bookshelf", bookshelf_name: shelf.name))
+    end
   end
 
   it "adds a searched book to the selected owned bookshelf" do

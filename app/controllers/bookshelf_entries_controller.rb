@@ -238,7 +238,8 @@ class BookshelfEntriesController < ApplicationController
       isbn: attributes[:isbn],
       contents_excerpt: attributes[:description],
       url: attributes[:external_url],
-      shelved_book_id: @book.id
+      shelved_book_id: @book.id,
+      bookshelf_entry: @bookshelf_entry
     }
     @bookshelves = current_user.bookshelves.default_first
   end

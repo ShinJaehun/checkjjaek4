@@ -49,6 +49,14 @@ RSpec.describe "Standalone book search", type: :system do
     expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(expected_query)
   end
 
+  def expect_search_url(expected_path)
+    expected_uri = URI.parse(expected_path)
+    expect(page).to have_current_path(expected_uri.path, ignore_query: true)
+    expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(
+      Rack::Utils.parse_query(expected_uri.query)
+    )
+  end
+
   it "searches from the global dialog and writes a personal book jjaek for a shelved book" do
     book = Book.create!(title: "Personal search book")
     user.bookshelf_entries.create!(book: book)
@@ -242,6 +250,83 @@ RSpec.describe "Standalone book search", type: :system do
     find("a[data-back-link]").click
     expect(page).to have_current_path(group_path(group))
     expect(page).to have_no_css("#group-book-search-dialog[open]")
+  end
+
+  it "adds directly to the default shelf without a dialog when there is only one bookshelf" do
+    allow(BookSearches::SearchService).to receive(:call).and_return(
+      results: [ { title: "Single shelf result", url: "https://example.com/single-shelf-result" } ],
+      meta: { is_end: true }
+    )
+    visit root_path
+    open_global_search
+    fill_in I18n.t("book_search.form.query"), with: "Single shelf"
+    click_button I18n.t("book_search.form.submit")
+    search_path = book_search_path(query: "Single shelf", search_origin: root_path)
+    expect_search_url(search_path)
+
+    within("article") do
+      expect(page).to have_no_css("dialog", visible: :all)
+      click_button I18n.t("book_search.actions.add_to_shelf")
+      expect(page).to have_button(I18n.t("book_search.actions.in_shelf"), disabled: true)
+    end
+    expect_search_url(search_path)
+    book = Book.find_by!(title: "Single shelf result")
+    expect(user.bookshelf_entries.find_by!(book: book).bookshelf).to eq(user.default_bookshelf)
+  end
+
+  [ :global, :club ].each do |context|
+    it "selects a bookshelf and updates only the card while keeping the #{context} search context" do
+      shelf = user.bookshelves.create!(name: "모바일에서도 줄바꿈하는 긴 책장 이름" * 3, visibility: :private)
+      stored_book = Book.create!(title: "Shelf selection stored")
+      allow(BookSearches::SearchService).to receive(:call).and_return(
+        results: [ { title: "Shelf selection external", url: "https://example.com/shelf-selection" } ],
+        meta: { is_end: true }
+      )
+      origin = context == :club ? group_path(group) : root_path
+      visit origin
+      context == :club ? open_club_search : open_global_search
+      fill_in I18n.t("book_search.form.query"), with: "Shelf selection"
+      click_button I18n.t("book_search.form.submit")
+      search_path = book_search_path(query: "Shelf selection", group_id: (group.id if context == :club), search_origin: origin)
+      expect_search_url(search_path)
+      title = context == :club ? stored_book.title : "Shelf selection external"
+      card = find("article", text: title)
+      card_id = card["id"]
+      dialog_id = "#{card_id}_shelf_dialog"
+      within(card) { click_button I18n.t("book_search.actions.add_to_shelf") }
+      expect(page).to have_css("dialog[open]", count: 1)
+      within("##{dialog_id}") do
+        expect(page).to have_checked_field(user.default_bookshelf.name)
+        find("input[type='radio'][checked]").send_keys(:escape)
+      end
+      expect(page).to have_no_css("dialog[open]")
+      expect(page).to have_css("button[aria-controls='#{dialog_id}']:focus")
+      within("##{card_id}") { click_button I18n.t("book_search.actions.add_to_shelf") }
+      within("##{dialog_id}") do
+        choose shelf.name
+        click_button I18n.t("book_search.actions.add_to_shelf")
+      end
+
+      within("##{card_id}") do
+        expect(page).to have_button(I18n.t("book_search.actions.in_bookshelf", bookshelf_name: shelf.name), disabled: true)
+        expect(page).to have_no_button(I18n.t("book_search.actions.add_to_shelf"))
+      end
+      expect_search_url(search_path)
+      expect(page).to have_no_css("dialog[open]")
+      expect(page).to have_no_css("body[style*='overflow: hidden']")
+      expect(page).to have_css("article", count: 2)
+      other_title = context == :club ? "Shelf selection external" : stored_book.title
+      within(find("article", text: other_title)) { expect(page).to have_button(I18n.t("book_search.actions.add_to_shelf")) }
+      entry = user.bookshelf_entries.find_by!(book: Book.find_by!(title: title))
+      expect(entry.bookshelf).to eq(shelf)
+      expect(entry.book_activities.where(action: :added_to_shelf).count).to eq(1)
+      return_path = book_search_path(query: "Shelf selection", page: 1,
+                                     group_id: (group.id if context == :club), search_origin: origin)
+      within("##{card_id}") do
+        expect(page).to have_link(I18n.t("book_search.actions.open_internal"),
+                                  href: book_path(entry.book, group_id: (group.id if context == :club), return_to: return_path))
+      end
+    end
   end
 
   it "previews and registers a partial external result before offering the club book form" do

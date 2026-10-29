@@ -37,10 +37,35 @@ RSpec.describe "BookSearches", type: :request do
     expect(response.body).not_to include(">상세 보기<")
     expect(response.body).to include(I18n.t("book_search.pagination.page", page: 1))
     expect(response.body).not_to include(%(name="page"))
+    card = Nokogiri::HTML(response.body).at_css("main article")
+    expect(card.at_css("dialog")).to be_nil
+    expect(card.at_css("form")["action"]).to eq(bookshelf_entries_path)
+    expect(card.at_css("input[name='bookshelf_entry[bookshelf_id]']")).to be_nil
   end
 
-  it "shows a bookshelf select when the user has multiple bookshelves" do
-    user.bookshelves.create!(name: "읽을 책장", visibility: :private)
+  it "shows one result list with local and external books and removes matching duplicates" do
+    book = Book.create!(title: "Unified local", external_url: "https://example.com/unified-local")
+    sign_in user
+    allow(BookSearches::SearchService).to receive(:call).and_return(
+      results: [ { title: book.title, url: book.external_url },
+                 { title: "Unified external", url: "https://example.com/unified-external" } ],
+      meta: { pageable_count: 999, is_end: false }
+    )
+
+    get book_search_path, params: { query: "Unified" }
+
+    page = Nokogiri::HTML(response.body)
+    lists = page.css("section[aria-label='#{I18n.t("book_search.results.title")}']")
+    expect(lists.size).to eq(1)
+    expect(lists.first.css("article h3").map(&:text)).to eq([ book.title, "Unified external" ])
+    expect(page.text).not_to include(I18n.t("search_ui.local_results"))
+    expect(page.text).not_to include(I18n.t("book_search.results.meta", count: 999))
+    expect(page.text).to include(I18n.t("book_search.pagination.next"))
+  end
+
+  it "offers a separate radio selection dialog per card when the user has multiple bookshelves" do
+    shelf = user.bookshelves.create!(name: "읽을 책장", visibility: :private)
+    Book.create!(title: "책장 선택 내부 책")
     sign_in user
     allow(BookSearches::SearchService).to receive(:call).with(query: "책장 선택", page: 1).and_return(
       {
@@ -61,9 +86,27 @@ RSpec.describe "BookSearches", type: :request do
 
     get book_search_path, params: { query: "책장 선택" }
 
-    expect(response.body).to include(I18n.t("bookshelf_entries.form.target_bookshelf"))
-    expect(response.body).to include(%(name="bookshelf_entry[bookshelf_id]"))
-    expect(response.body).to include("읽을 책장")
+    page = Nokogiri::HTML(response.body)
+    cards = page.css("main article")
+    expect(cards.size).to eq(2)
+    dialog_ids = cards.map do |card|
+      dialog = card.at_css("dialog")
+      expect(dialog["open"]).to be_nil
+      expect(dialog.at_css("h2").text).to eq(I18n.t("book_search.actions.add_to_shelf"))
+      expect(card.at_css("button[aria-haspopup='dialog']")["aria-controls"]).to eq(dialog["id"])
+      expect(dialog.at_css("form")["method"]).to eq("post")
+      expect(dialog.at_css("form")["action"]).to eq(bookshelf_entries_path)
+      expect(dialog.at_css("legend").text).to eq(I18n.t("bookshelf_entries.form.target_bookshelf"))
+      radios = dialog.css("input[type='radio'][name='bookshelf_entry[bookshelf_id]']")
+      expect(radios.map { |radio| radio["value"] }).to eq([ user.default_bookshelf.id.to_s, shelf.id.to_s ])
+      expect(dialog.at_css("input[type='radio'][checked]")["value"]).to eq(user.default_bookshelf.id.to_s)
+      expect(dialog.text).to include(shelf.name)
+      expect(card.css("select")).to be_empty
+      dialog["id"]
+    end
+    expect(dialog_ids.uniq.size).to eq(cards.size)
+    radio_ids = page.css("main article input[type='radio']").map { |radio| radio["id"] }
+    expect(radio_ids.uniq.size).to eq(radio_ids.size)
   end
 
   it "marks a search result already in the current user's shelf" do
@@ -100,6 +143,26 @@ RSpec.describe "BookSearches", type: :request do
     expect(response.body).not_to include(I18n.t("book_search.actions.add_to_shelf"))
     expect(response.body).to include(book_path(book))
     expect(response.body).not_to include("/books/lookup")
+    expect(Nokogiri::HTML(response.body).at_css("main article button[disabled]").text.strip).to eq(I18n.t("book_search.actions.in_shelf"))
+  end
+
+  it "uses the actual owned bookshelf name for both local and external matches" do
+    shelf = user.bookshelves.create!(name: "실제로 담긴 책장", visibility: :private)
+    book = Book.create!(title: "Named shelf book", isbn: "9788996991342")
+    user.bookshelf_entries.create!(book: book, bookshelf: shelf)
+    sign_in user
+    allow(BookSearches::SearchService).to receive(:call).and_return(
+      results: [ { title: "External alias", isbn: "8996991341" } ], meta: { is_end: true }
+    )
+
+    [ "Named shelf", "External alias" ].each do |query|
+      get book_search_path, params: { query: query }
+      card = Nokogiri::HTML(response.body).at_css("main article")
+      expect(card.at_css("button[disabled]").text.strip).to eq(I18n.t("book_search.actions.in_bookshelf", bookshelf_name: shelf.name))
+      expect(card.at_css("form")).to be_nil
+      expect(card.at_css("dialog")).to be_nil
+      expect(card.at_css("a")["href"]).to start_with(book_path(book))
+    end
   end
 
   it "marks an ISBN-10 result when the matching ISBN-13 Book is already shelved" do
