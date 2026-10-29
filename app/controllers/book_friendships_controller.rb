@@ -1,4 +1,6 @@
 class BookFriendshipsController < ApplicationController
+  include RelationshipManagement
+
   before_action :set_user
 
   def create
@@ -33,14 +35,7 @@ class BookFriendshipsController < ApplicationController
     Notification.notify_book_friendship_accepted(friendship)
 
     if params[:return_to] == "relationships"
-      @received_book_friend_requests = current_user.received_book_friendships.pending.includes(requester: { avatar_attachment: :blob })
-      @book_friends = User.where(id: BookFriendship.connected_ids_for(current_user)).includes(avatar_attachment: :blob).order(:name)
-      flash.now[:notice] = t("book_friendships.notices.accepted")
-
-      respond_to do |format|
-        format.turbo_stream
-        format.html { redirect_to redirect_target, notice: t("book_friendships.notices.accepted") }
-      end
+      render_relationships_change(notice: t("book_friendships.notices.accepted"))
     else
       redirect_to redirect_target, notice: t("book_friendships.notices.accepted")
     end
@@ -58,14 +53,8 @@ class BookFriendshipsController < ApplicationController
     notice_key = destroy_notice_key(friendship)
     friendship.destroy!
 
-    if params[:return_to] == "relationships" && notice_key.in?(%i[cancelled rejected removed])
-      prepare_relationships_section(notice_key)
-      flash.now[:notice] = t("book_friendships.notices.#{notice_key}")
-
-      respond_to do |format|
-        format.turbo_stream
-        format.html { redirect_to redirect_target, notice: t("book_friendships.notices.#{notice_key}") }
-      end
+    if params[:return_to] == "relationships"
+      render_relationships_change(notice: t("book_friendships.notices.#{notice_key}"))
     else
       redirect_to redirect_target, notice: t("book_friendships.notices.#{notice_key}")
     end
@@ -78,7 +67,7 @@ class BookFriendshipsController < ApplicationController
   end
 
   def redirect_target
-    params[:return_to] == "relationships" ? account_relationships_path : user_path(@user)
+    params[:return_to] == "relationships" ? relationships_return_path : user_path(@user)
   end
 
   def destroy_notice_key(friendship)
@@ -86,31 +75,5 @@ class BookFriendshipsController < ApplicationController
     return :cancelled if friendship.requester_id == current_user.id
 
     :rejected
-  end
-
-  def prepare_relationships_section(notice_key)
-    if notice_key == :cancelled
-      @relationship_section_id = "sent-book-friend-requests"
-      @relationship_section_title = t("relationships.sections.sent_book_friend_requests")
-      @relationship_section_collection = current_user.requested_book_friendships.pending.includes(addressee: { avatar_attachment: :blob })
-      @relationship_section_row_partial = "relationships/book_friend_request_row"
-      @relationship_section_row_locals = { direction: :sent }
-      @relationship_section_empty_message = t("relationships.empty.sent_book_friend_requests")
-    elsif notice_key == :rejected
-      @relationship_section_id = "received-book-friend-requests"
-      @relationship_section_class = "scroll-mt-6 space-y-4"
-      @relationship_section_title = t("relationships.sections.received_book_friend_requests")
-      @relationship_section_collection = current_user.received_book_friendships.pending.includes(requester: { avatar_attachment: :blob })
-      @relationship_section_row_partial = "relationships/book_friend_request_row"
-      @relationship_section_row_locals = { direction: :received }
-      @relationship_section_empty_message = t("relationships.empty.received_book_friend_requests")
-    else
-      @relationship_section_id = "book-friends"
-      @relationship_section_title = t("relationships.sections.book_friends")
-      @relationship_section_collection = User.where(id: BookFriendship.connected_ids_for(current_user)).order(:name)
-      @relationship_section_row_partial = "relationships/book_friend_row"
-      @relationship_section_row_locals = {}
-      @relationship_section_empty_message = t("relationships.empty.book_friends")
-    end
   end
 end

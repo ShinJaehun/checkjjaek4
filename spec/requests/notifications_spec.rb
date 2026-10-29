@@ -454,7 +454,7 @@ RSpec.describe "Notifications", type: :request do
 
     get notifications_path
 
-    expect(response.body).to include("/account/relationships#received-book-friend-requests")
+    expect(response.body).to include(account_relationships_path(tab: "received_book_friend_requests", anchor: "received-book-friend-requests"))
   end
 
   it "shows an accepted request with the actor avatar and profile link after the friendship is deleted" do

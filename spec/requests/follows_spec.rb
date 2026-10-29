@@ -59,9 +59,13 @@ RSpec.describe "Follows", type: :request do
     sign_in user
     user.active_follows.create!(followee: other_user)
 
-    delete user_follow_path(other_user), params: { return_to: "relationships" }
+    delete user_follow_path(other_user), params: { return_to: "relationships", tab: "following_users", q: other_user.name, page: 1 }
 
-    expect(response).to redirect_to(account_relationships_path)
+    expect(response).to redirect_to(account_relationships_path(tab: "following_users", q: other_user.name, page: 1))
+    follow_redirect!
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#relationships-count-following_users").text).to eq("0")
+    expect(page.at_css("#relationships-panel input[name='q']")["value"]).to eq(other_user.name)
   end
 
   it "updates the following users section when unfollowing from the relationship hub with Turbo" do
@@ -70,14 +74,15 @@ RSpec.describe "Follows", type: :request do
 
     expect {
       delete user_follow_path(other_user),
-             params: { return_to: "relationships" },
+             params: { return_to: "relationships", tab: "following_users" },
              headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.to change(Follow, :count).by(-1)
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(response.body).to include(%(action="replace" target="following-users"))
+    expect(response.body).to include(%(action="replace" target="relationships-panel"))
     expect(response.body).to include(%(action="update" target="flash-messages"))
     expect(response.body).to include(I18n.t("relationships.empty.following_users"))
+    expect(Nokogiri::HTML(response.body).at_css("#relationships-count-following_users").text).to eq("0")
   end
 
   it "redirects back with an alert when the follow does not exist" do

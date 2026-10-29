@@ -1,0 +1,36 @@
+<div id="relationships-panel" class="min-w-0 space-y-5">
+  <nav aria-label="<%= t("relationships.tabs_label") %>" class="flex gap-2 overflow-x-auto pb-2">
+    <% RelationshipsQuery::TABS.each do |tab| %>
+      <%= link_to account_relationships_path(tab: tab, q: @relationship_page.query.presence),
+                  id: "relationships-tab-#{tab}",
+                  aria: { current: ("page" if tab == @relationship_page.tab) },
+                  class: "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium #{tab == @relationship_page.tab ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-300 bg-white text-stone-700'}" do %>
+        <span><%= t("relationships.tabs.#{tab}") %></span>
+        <span id="relationships-count-<%= tab %>" class="tabular-nums"><%= @relationship_page.counts.fetch(tab) %></span>
+      <% end %>
+    <% end %>
+  </nav>
+
+  <%= form_with url: account_relationships_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3" do |form| %>
+    <%= form.hidden_field :tab, value: @relationship_page.tab %>
+    <div class="min-w-0 flex-1 space-y-2">
+      <%= form.label :q, t("relationships.search.label"), class: "text-sm font-medium text-stone-700" %>
+      <%= form.search_field :q, value: @relationship_page.query, placeholder: t("relationships.search.placeholder"),
+                            class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+    <%= form.submit t("relationships.search.submit"), name: nil, class: "ui-button ui-button-primary" %>
+  <% end %>
+
+  <section id="<%= @relationship_page.tab.dasherize %>" aria-labelledby="relationships-list-title" class="scroll-mt-6 space-y-4">
+    <h2 id="relationships-list-title" class="text-xl font-semibold text-stone-900"><%= t("relationships.tabs.#{@relationship_page.tab}") %></h2>
+    <% if @relationship_page.records.any? %>
+      <div id="relationships-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <%= relationship_rows(@relationship_page) %>
+      </div>
+    <% else %>
+      <%= render "relationships/empty_state", message: @relationship_page.query.present? ? t("relationships.search.empty") : t("relationships.empty.#{@relationship_page.tab}") %>
+    <% end %>
+    <%= render "shared/pagination", page: @relationship_page,
+               query_params: @relationship_page.navigation_params.merge(controller: "relationships", action: "index").stringify_keys %>
+  </section>
+</div>

@@ -463,7 +463,7 @@ MVP에서는 자동 만료, 자동 삭제, pruning, archive,
 알림 항목 클릭 시 이동 경로는 아래처럼 둔다.
 
 - `book_friendship_requested`
-  - `/account/relationships#received-book-friend-requests`
+  - `/account/relationships?tab=received_book_friend_requests#received-book-friend-requests` (받은 신청 탭)
 - `book_friendship_accepted`
   - 수락한 사용자(`Notification.actor`)의 프로필
 - `profile_jjaek_created`

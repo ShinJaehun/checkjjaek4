@@ -1032,6 +1032,18 @@ en:
     nav: "Book friends"
     title: "Book friends"
     description: "Manage book friend requests and following relationships. Book-friends-only Jjaeks are visible only to book friends."
+    tabs_label: "Relationship types"
+    tabs:
+      book_friends: "Book friends"
+      received_book_friend_requests: "Received book friend requests"
+      sent_book_friend_requests: "Sent book friend requests"
+      following_users: "Following"
+      followers: "My subscribers"
+    search:
+      label: "Name search"
+      placeholder: "Search by name"
+      submit: "Search"
+      empty: "No search results."
     sections:
       received_book_friend_requests: "Received book friend requests"
       sent_book_friend_requests: "Sent book friend requests"

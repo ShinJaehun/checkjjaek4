@@ -230,28 +230,24 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 
 ---
 
-## 관계 화면 section 갱신
+## 관계 화면 탭 panel 갱신
 
 상태: 부분 완료 - 핵심 relationship hub actions 기준
 
-관계 화면은 section/row partial로 분리되어 있다.
+관계 화면은 탭·검색·선택 목록·페이지네이션을 담은 panel과 관계별 row partial로 분리되어 있다. 상세 조회 정책은 `docs/specs/social_relationships_mvp.md`를 따른다.
 
 구현 완료:
 
-- 소식받기 해제 시 `#following-users` section을 replace한다.
-- 보낸 책친구 요청 취소 시 `#sent-book-friend-requests` section을 replace한다.
-- 받은 책친구 요청 거절 시 `#received-book-friend-requests` section을 replace한다.
-- 받은 책친구 요청 수락 시 `#received-book-friend-requests`와 `#book-friends` section을 함께 replace한다.
-- 책친구 제거 시 `#book-friends` section을 replace한다.
+- 소식받기 해제, 보낸 신청 취소, 받은 신청 거절/수락, 책친구 해제는 `#relationships-panel`을 replace하여 전체 탭 건수와 선택한 탭의 목록을 함께 갱신한다.
 - 각 성공 Turbo Stream 응답은 `#flash-messages`를 update한다.
-- HTML fallback redirect는 유지한다.
-- 마지막 항목 제거 시 section partial의 empty state가 반영된다.
+- HTML fallback은 현재 탭·검색어·유효한 페이지로 303 redirect한다.
+- 마지막 항목 제거 시 empty state가 반영된다. 마지막 페이지가 사라지면 Turbo도 유효한 페이지로 303 redirect하며 URL과 목록을 일치시킨다.
 
 구현 원칙:
 
-- row 단위 제거가 아니라 `relationships/section` partial을 재사용한 section replace로 처리한다.
+- `relationships/panel` partial과 공통 `relationships/change` Turbo Stream 응답을 사용한다. 선택하지 않은 탭은 COUNT만 조회하고 사용자 목록은 로드하지 않는다. 과거 section 교체 template은 유지하지 않는다.
 - policy/state transition 로직은 변경하지 않는다.
-- relationships 전체 page replace는 하지 않는다.
+- 일반 성공 Turbo 응답은 panel만 교체하며, 마지막 페이지 소멸 시에는 위 303 redirect 정책을 따른다.
 - notification badge 갱신, ActionCable, Stimulus/JavaScript, modal은 추가하지 않는다.
 - 전체 relationships 기능이 Turbo화된 것은 아니며, relationship hub의 핵심 관계 action에 한정한다.
 
@@ -348,7 +344,7 @@ DnD 도입 시에는 Stimulus/SortableJS, 순서 저장 endpoint, Turbo 갱신 �
 6. home/profile/book inline comments panel 닫기 UX 적용 완료
 7. 상세 페이지 ReJjaek 목록 panel 적용 완료
 8. flash / notification badge 공통 갱신 검토
-9. 관계 화면 핵심 action section 갱신 적용 완료
+9. 관계 화면 핵심 action 탭 panel 갱신 적용 완료
 10. 책 검색 result card add-to-shelf 갱신 적용 완료
 
 ---
@@ -363,7 +359,7 @@ Turbo 1차 완료 기준:
 - 상세 페이지 ReJjaek panel은 현재 화면 안에서 panel만 갱신한다.
 - flash는 stable wrapper 기반으로 일부 Turbo 성공 응답에서 update된다.
 - notification badge는 stable wrapper foundation만 완료했고 실제 Turbo 갱신은 보류한다.
-- relationships hub의 핵심 관계 action은 section replace 구조를 갖는다.
+- relationships hub의 핵심 관계 action은 탭 건수와 선택 목록의 panel replace 구조를 갖는다.
 - 책 검색 결과 add-to-shelf 성공 케이스는 result card replace 구조를 갖는다.
 - HTML fallback이 유지된다.
 - 기존 request spec과 Turbo Stream 요청 spec이 통과한다.
@@ -372,7 +368,7 @@ Turbo MVP 완료 기준:
 
 - Jjaek card 내부 주요 상호작용이 필요한 화면 맥락 안에서 단계적으로 처리된다.
 - 좋아요, home/profile/book 댓글, 상세 페이지 ReJjaek 목록은 partial 갱신 구조를 갖는다.
-- relationships hub의 핵심 관계 action은 section replace 구조를 갖는다.
+- relationships hub의 핵심 관계 action은 탭 건수와 선택 목록의 panel replace 구조를 갖는다.
 - 책 검색 결과의 add-to-shelf 성공 케이스는 result card replace 구조를 갖는다.
 - Requotes 화면 inline comments panel은 별도 검토 대상으로 남긴다.
 - home/profile/book/requotes inline ReJjaek panel은 별도 검토 대상으로 남긴다.
@@ -389,6 +385,6 @@ Turbo MVP 완료 기준:
 - 상세 페이지 댓글 작성/삭제가 comments panel과 comment count를 갱신하는가.
 - home/profile/book에서 댓글 보기/작성/삭제/닫기가 정상 동작하는가.
 - Jjaek 상세 페이지에서 다시짹 보기가 panel만 갱신하는가.
-- 관계 화면에서 unfollow / 요청 취소 / 거절 / 수락 / 책친구 끊기가 section 단위로 갱신되는가.
+- 관계 화면에서 unfollow / 요청 취소 / 거절 / 수락 / 책친구 끊기 후 탭 건수·선택 목록·조회 상태가 갱신되며 마지막 페이지 소멸 시 유효한 페이지로 이동하는가.
 - 책 검색 결과에서 서재에 담기 후 해당 result card만 `내 서재에 있음` 상태로 바뀌는가.
 - 알림 badge unread count가 0이어도 wrapper DOM이 유지되는가.

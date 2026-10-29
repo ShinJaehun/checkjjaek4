@@ -1039,6 +1039,18 @@ ko:
     nav: "책친구"
     title: "책친구"
     description: "책친구 요청과 소식받기 관계를 관리합니다. 책친구 공개 글은 책친구에게만 보입니다."
+    tabs_label: "관계 유형"
+    tabs:
+      book_friends: "책친구"
+      received_book_friend_requests: "받은 책친구 신청"
+      sent_book_friend_requests: "보낸 책친구 신청"
+      following_users: "소식받는 중"
+      followers: "내 소식 구독자"
+    search:
+      label: "이름 검색"
+      placeholder: "이름으로 검색"
+      submit: "검색"
+      empty: "검색 결과가 없습니다."
     sections:
       received_book_friend_requests: "받은 책친구 요청"
       sent_book_friend_requests: "보낸 책친구 요청"
