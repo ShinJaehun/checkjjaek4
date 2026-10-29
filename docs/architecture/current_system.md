@@ -427,9 +427,10 @@
 - `book_searches#show` 기반 검색 화면
 - query string 기반 GET 검색
 - query string 기반 이전/다음 pagination 제공
-- 검색 결과에서 새 책을 `서재에 담기` 할 때 사용자의 책장이 2개 이상이면 대상 책장 select를 표시
+- 검색 결과의 `서재에 담기`는 책장이 하나이면 바로 등록하고, 2개 이상이면 기존 book-modal과 `ui-choice` 라디오를 사용하는 카드 전용 dialog를 표시함. 책장은 기본 책장 우선 순서이며 기본 책장을 미리 선택하고 카드별 dialog·input ID와 controller 범위를 분리함
 - 대상 책장을 선택하지 않으면 기본 책장 “내 책장”에 담김
-- Book의 제목·저자·출판사를 DB에서 검색하고, 기존 `BookSearches::SearchService`와 `KakaoAdapter`의 외부 결과를 함께 표시함. 외부 장애 시 DB 결과와 안내를 유지함
+- Book의 제목·저자·출판사를 DB에서 검색하고, 기존 `BookSearches::SearchService`와 `KakaoAdapter`의 외부 결과를 `검색 결과` 한 목록에 기존 순서·중복 제거 정책대로 표시함. 각 검색의 페이지네이션은 유지하고 외부 API 건수를 전체 결과 건수로 표시하지 않음. 외부 장애 시 DB 결과와 안내를 유지함
+- DB·외부 검색은 현재 사용자 소유 BookshelfEntry와 Bookshelf를 일괄 조회해 실제 책장을 카드에 전달함. 등록된 책은 기본 책장의 `내 서재에 있음` 또는 일반 책장의 `{실제 책장 이름}에 있음` 비활성 버튼을 표시함. POST 성공 시 기존 Turbo Stream으로 해당 카드만 교체하고 실제 등록 책장을 표시하며, 재등록은 기존 책장·BookActivity를 유지함
 - 로그인 사용자의 Navbar 책 검색은 공통 Navbar에서 한 번 렌더링하는 입력 전용 dialog를 열고 GET으로 `/book_search`에 제출함. 기존 `book-modal`과 검색 폼 partial을 재사용하며 입력창 autofocus·닫기·Esc·포커스 복귀·body scroll lock·Turbo 이동/캐시 전 닫기를 제공함. 모바일 메뉴는 열기 전에 접고 닫은 뒤 메뉴 버튼으로 포커스를 복귀함
 - Navbar 검색은 group_id를 전달하지 않고 검증된 search_origin만 복귀 경로로 보존함. 동아리 책짹 작성 버튼은 기존 작성 권한 조건 안에서 같은 검색 모달 partial·폼과 book-modal을 별도 범위·고유 ID로 재사용하며, 동아리 게시 안내와 group_id를 명시적으로 전달함. 닫기·Esc·포커스 복귀와 Turbo 이동/캐시 전 닫기를 공통 처리함
 - Library 검색은 기존 독립 페이지로 직접 이동하며, 두 모달도 GET 제출 후 같은 결과 페이지로 이동함. 결과·재검색 폼·pagination·서재 등록은 해당 페이지에 유지함

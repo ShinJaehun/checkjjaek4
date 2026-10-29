@@ -25,8 +25,19 @@
                     book_search_result_path(book, group_id: local_assigns[:group_id], return_path: return_path),
                     class: "ui-button ui-button-secondary" %>
 
-        <% if book[:shelved_book_id].present? %>
-          <span class="inline-flex rounded-full bg-stone-100 px-4 py-2 text-sm font-medium text-stone-600"><%= t("book_search.actions.in_shelf") %></span>
+        <% if book[:bookshelf_entry].present? %>
+          <% bookshelf = book[:bookshelf_entry].bookshelf %>
+          <button type="button" disabled class="ui-button ui-button-secondary max-w-full break-words text-left">
+            <span class="min-w-0 break-words">
+              <% if bookshelf.is_default? %>
+                <%= t("book_search.actions.in_shelf") %>
+              <% else %>
+                <%= t("book_search.actions.in_bookshelf", bookshelf_name: bookshelf.name) %>
+              <% end %>
+            </span>
+          </button>
+        <% elsif bookshelves.size > 1 %>
+          <%= render "book_searches/shelf_selection_modal", book: book, bookshelves: bookshelves, group_id: local_assigns[:group_id], return_path: return_path %>
         <% else %>
           <%= render "book_searches/add_to_shelf_form", book: book, bookshelves: bookshelves, group_id: local_assigns[:group_id], return_path: return_path %>
         <% end %>

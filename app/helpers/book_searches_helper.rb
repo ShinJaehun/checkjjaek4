@@ -31,8 +31,4 @@ module BookSearchesHelper
     validated_jjaek_return_path(book_search_path(query: @query, page: @page, group_id: @group&.id,
                                               search_origin: book_search_origin_path))
   end
-
-  def book_search_bookshelf_select_id(book)
-    "bookshelf_entry_bookshelf_id_#{book.object_id}"
-  end
 end

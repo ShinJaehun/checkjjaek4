@@ -1,22 +1,26 @@
-<% bookshelf_select_id = book_search_bookshelf_select_id(book) %>
-<%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "flex w-full min-w-0 flex-wrap items-end gap-3" do |form| %>
+<%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "min-w-0 space-y-5" do |form| %>
   <% if book[:search_result_token].present? %>
-    <%= hidden_field_tag :search_result_token, book[:search_result_token] %>
+    <%= hidden_field_tag :search_result_token, book[:search_result_token], id: nil %>
   <% else %>
-    <%= hidden_field_tag :book_id, book[:existing_book_id] %>
+    <%= hidden_field_tag :book_id, book[:existing_book_id], id: nil %>
   <% end %>
-  <%= hidden_field_tag :return_to, return_path %>
-  <%= hidden_field_tag :bookshelf_entry_source, "book_search" %>
-  <%= hidden_field_tag :group_id, local_assigns[:group_id] if local_assigns[:group_id].present? %>
+  <%= hidden_field_tag :return_to, return_path, id: nil %>
+  <%= hidden_field_tag :bookshelf_entry_source, "book_search", id: nil %>
+  <%= hidden_field_tag :group_id, local_assigns[:group_id], id: nil if local_assigns[:group_id].present? %>
 
   <% if bookshelves.size > 1 %>
-    <div class="w-full min-w-0 max-w-full space-y-1 sm:max-w-xs">
-      <%= label_tag bookshelf_select_id, t("bookshelf_entries.form.target_bookshelf"), class: "text-xs font-medium text-stone-600" %>
-      <%= select_tag "bookshelf_entry[bookshelf_id]",
-                     options_from_collection_for_select(bookshelves, :id, :name),
-                     id: bookshelf_select_id,
-                     class: "w-full max-w-full truncate rounded-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700" %>
-    </div>
+    <fieldset class="min-w-0 space-y-3">
+      <legend class="text-sm font-medium text-stone-600"><%= t("bookshelf_entries.form.target_bookshelf") %></legend>
+      <div class="flex flex-wrap gap-2">
+        <% bookshelves.each do |bookshelf| %>
+          <% input_id = "#{book_search_result_dom_id(book)}_bookshelf_#{bookshelf.id}" %>
+          <label for="<%= input_id %>" class="ui-choice max-w-full">
+            <%= radio_button_tag "bookshelf_entry[bookshelf_id]", bookshelf.id, bookshelf.is_default?, id: input_id, required: true, class: "shrink-0" %>
+            <span class="min-w-0 break-words"><%= bookshelf.name %></span>
+          </label>
+        <% end %>
+      </div>
+    </fieldset>
   <% end %>
 
   <%= form.submit t("book_search.actions.add_to_shelf"), class: "ui-button ui-button-primary shrink-0" %>
