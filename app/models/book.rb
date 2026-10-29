@@ -50,11 +50,12 @@ class Book < ApplicationRecord
 
   def self.find_or_initialize_from_search(attributes)
     attrs = attributes.to_h.symbolize_keys.slice(
-      :title, :authors_text, :publisher, :thumbnail, :isbn, :description, :external_url
+      :title, :authors_text, :translators_text, :publisher, :published_on, :thumbnail, :isbn, :description, :external_url
     )
 
     attrs[:title] = attrs[:title].to_s.strip
     attrs[:authors_text] = attrs[:authors_text].to_s.strip
+    attrs[:translators_text] = attrs[:translators_text].to_s.strip.presence
     attrs[:publisher] = attrs[:publisher].to_s.strip
     attrs[:thumbnail] = attrs[:thumbnail].to_s.strip.presence
     attrs[:thumbnail] = nil unless valid_http_url?(attrs[:thumbnail])

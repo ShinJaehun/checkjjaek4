@@ -41,11 +41,13 @@ RSpec.describe "Books", type: :request do
 
     it "renders the cover, bibliography, and expandable description once in the title card" do
       book.update!(title: "긴 제목 " * 12, authors_text: "긴 저자 이름 " * 8,
+        translators_text: "긴 역자 이름 " * 8, published_on: Date.new(2026, 4, 22),
         publisher: "긴 출판사 이름 " * 8, isbn: "9780000000099",
         thumbnail: "https://example.com/detail-cover.jpg", description: "책 소개 " * 80,
         external_url: "https://example.com/detail")
       user.bookshelf_entries.create!(book:)
       sign_in user
+      expect(BookSearches::KakaoAdapter).not_to receive(:search)
 
       get book_path(book)
 
@@ -53,11 +55,27 @@ RSpec.describe "Books", type: :request do
       header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
       expect(header.css("h1").map(&:text)).to eq([ book.title ])
       expect(header.css("img[alt='#{book.title}']").size).to eq(1)
-      expect(header.css("dl dd").map(&:text)).to eq([ book.authors_text, book.publisher, book.isbn ])
+      expect(header.css("dl dt").map(&:text)).to eq(%w[authors translators publisher published_on isbn].map { |key| I18n.t("books.show.#{key}") })
+      expect(header.css("dl dd").map(&:text)).to eq([ book.authors_text, book.translators_text, book.publisher, "2026. 4. 22.", book.isbn ])
       expect(header.css("#book-description").map(&:text)).to eq([ book.description ])
       expect(header.css("[data-controller='book-description']").size).to eq(1)
       expect(header.at_css("button[aria-controls='book-description']")["data-action"]).to eq("book-description#toggle")
       expect(header.css("a[href='#{book.external_url}']").map { |link| link.text.strip }).to eq([ I18n.t("books.show.external_link") ])
+    end
+
+    it "omits the labels and rows for missing metadata" do
+      book.update!(authors_text: " ", translators_text: nil, publisher: "제공된 출판사", published_on: nil, isbn: nil)
+      sign_in user
+
+      get book_path(book)
+
+      header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
+      expect(header.css("dl dt").map(&:text)).to eq([ I18n.t("books.show.publisher") ])
+      expect(header.css("dl dd").map(&:text)).to eq([ book.publisher ])
+      book.update!(publisher: nil)
+      get book_path(book)
+      header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
+      expect(header.css("dl")).to be_empty
     end
 
     it "shows the current bookshelf context for a shelved book" do
@@ -513,12 +531,16 @@ RSpec.describe "Books", type: :request do
   describe "GET /books/lookup" do
     it "previews a new search result without writing and adds it to the shelf on POST" do
       sign_in user
-      result = {
-        title: "검색한 책", authors_text: "검색 저자", publisher: "검색 출판사",
-        thumbnail: "https://example.com/cover.jpg", isbn: "9780000000001",
-        contents_excerpt: "검색 설명", url: "https://example.com/books/1"
-      }
-      token = search_result_token_for(result)
+      expect(BookSearches::KakaoAdapter).to receive(:search).with(query: "검색한 책", page: 1, size: 10).once.and_return(
+        "documents" => [ {
+          "title" => "검색한 책", "authors" => [ "검색 저자" ], "publisher" => "검색 출판사",
+          "translators" => [ "첫 역자", "둘째 역자" ], "datetime" => "2026-04-22T00:15:00.000+09:00",
+          "thumbnail" => "https://example.com/cover.jpg", "isbn" => "9780000000001",
+          "contents" => "검색 설명", "url" => "https://example.com/books/1"
+        } ], "meta" => { "is_end" => true }
+      )
+      get book_search_path, params: { query: "검색한 책" }
+      token = Nokogiri::HTML(response.body).at_css("input[name='search_result_token']")["value"]
 
       expect {
         get lookup_books_path, params: { search_result_token: token }
@@ -526,6 +548,8 @@ RSpec.describe "Books", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("검색한 책", "검색 저자", "검색 설명", "https://example.com/cover.jpg")
+      header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
+      expect(header.css("dl dd").map(&:text)).to eq([ "검색 저자", "첫 역자, 둘째 역자", "검색 출판사", "2026. 4. 22.", "9780000000001" ])
       expect(response.body).to include('name="search_result_token"', I18n.t("bookshelf_entries.new.title"))
       expect(response.body).not_to include('name="book_id"')
       registration = Nokogiri::HTML(response.body).at_css("#book-shelf-dialog form")
@@ -535,19 +559,26 @@ RSpec.describe "Books", type: :request do
         post bookshelf_entries_path, params: { search_result_token: token }
       }.to change(Book, :count).by(1).and change(BookshelfEntry, :count).by(1)
 
-      expect(response).to redirect_to(book_path(Book.find_by!(isbn: "9780000000001")))
+      stored_book = Book.find_by!(isbn: "9780000000001")
+      expect(response).to redirect_to(book_path(stored_book))
+      expect(stored_book.published_on).to eq(Date.new(2026, 4, 22))
+      expect(stored_book.translators_text).to eq("첫 역자, 둘째 역자")
+      follow_redirect!
+      expect(response.body).to include("첫 역자, 둘째 역자", "2026. 4. 22.")
     end
 
     it "redirects to an existing book without changing its metadata" do
       existing_book = Book.create!(
         title: "기존 책",
         authors_text: "기존 저자",
+        translators_text: "기존 역자", published_on: Date.new(2000, 1, 2),
         isbn: "9780000000002",
         external_url: "https://example.com/books/2"
       )
       sign_in user
       token = search_result_token_for({
         title: "기존 책 새 제목", authors_text: "검색 저자", publisher: "검색 출판사",
+        translators_text: "새 역자", published_on: Date.new(2026, 4, 22),
         thumbnail: nil, isbn: "9780000000002", contents_excerpt: "검색 설명",
         url: "https://example.com/books/2"
       })
@@ -558,6 +589,10 @@ RSpec.describe "Books", type: :request do
       }.not_to change { [ Book.count, BookshelfEntry.count ] }
 
       expect(response).to redirect_to(book_path(existing_book))
+      expect(existing_book.reload.attributes).to eq(original_attributes)
+      expect {
+        post bookshelf_entries_path, params: { search_result_token: token }
+      }.to change(BookshelfEntry, :count).by(1)
       expect(existing_book.reload.attributes).to eq(original_attributes)
     end
 

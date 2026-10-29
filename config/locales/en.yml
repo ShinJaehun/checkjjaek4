@@ -1,4 +1,7 @@
 en:
+  date:
+    formats:
+      book_publication: "%Y. %-m. %-d."
   site:
     title: "Checkjjaek"
   feeds:
@@ -1285,7 +1288,9 @@ en:
       current_bookshelf: "Shelved in"
       status_label: "Status"
       authors: "Authors"
+      translators: "Translators"
       publisher: "Publisher"
+      published_on: "Published on"
       isbn: "ISBN"
       empty_description: "No description is available for this book yet."
       empty_jjaeks: "No Book Jjaeks have been written for this book yet."

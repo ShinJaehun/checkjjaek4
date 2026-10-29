@@ -9,7 +9,9 @@ RSpec.describe BookSearches::SearchService do
           {
             "title" => "미움받을 용기",
             "authors" => [ "기시미 이치로", "고가 후미타케" ],
+            "translators" => [ "  첫 역자  ", "", nil, 123, { "name" => "invalid" }, "둘째 역자" ],
             "publisher" => "인플루엔셜",
+            "datetime" => "2026-04-22T00:15:00.000+09:00",
             "thumbnail" => "https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Fexample.com%2Fcover.jpg",
             "isbn" => "8996991341 9788996991342",
             "contents" => "소개",
@@ -22,6 +24,8 @@ RSpec.describe BookSearches::SearchService do
     result = described_class.call(query: "미움받을 용기", page: 2)
 
     expect(result[:results].first[:authors_text]).to eq("기시미 이치로, 고가 후미타케")
+    expect(result[:results].first[:translators_text]).to eq("첫 역자, 둘째 역자")
+    expect(result[:results].first[:published_on]).to eq(Date.new(2026, 4, 22))
     expect(result[:results].first[:thumbnail]).to eq("https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Fexample.com%2Fcover.jpg")
     expect(result[:meta][:total_count]).to eq(1)
   end
@@ -32,8 +36,33 @@ RSpec.describe BookSearches::SearchService do
     )
     result = described_class.call(query: "Partial", page: 1)
     expect(result[:results]).to eq([
-      { title: "Partial title", authors_text: "", publisher: "", thumbnail: nil, isbn: "", contents_excerpt: "", url: nil }
+      { title: "Partial title", authors_text: "", translators_text: nil, publisher: "", published_on: nil,
+        thumbnail: nil, isbn: "", contents_excerpt: "", url: nil }
     ])
+  end
+
+  it "normalizes missing and invalid publication dates to nil" do
+    dates = [ nil, "", "  ", "not-a-date", "2026-04", "2026-02-30T00:00:00+09:00", "2026-04-22T99:99:99+09:00", 123, {} ]
+    allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
+      "documents" => dates.map { |date| { "title" => "날짜 없는 책", "datetime" => date } }, "meta" => {}
+    )
+
+    results = described_class.call(query: "날짜", page: 1).fetch(:results)
+
+    expect(results.size).to eq(dates.size)
+    expect(results.map { |result| result[:published_on] }).to all(be_nil)
+  end
+
+  it "normalizes missing, blank, and malformed translator data to nil" do
+    translators = [ nil, [], [ " ", "" ], "역자", {}, 123, [ nil, 123, {} ] ]
+    allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
+      "documents" => translators.map { |value| { "title" => "역자 없는 책", "translators" => value } }, "meta" => {}
+    )
+
+    results = described_class.call(query: "역자", page: 1).fetch(:results)
+
+    expect(results.size).to eq(translators.size)
+    expect(results.map { |result| result[:translators_text] }).to all(be_nil)
   end
 
   it "treats an invalid provider response as an external search failure" do

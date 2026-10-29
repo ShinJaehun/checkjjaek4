@@ -1,4 +1,7 @@
 ko:
+  date:
+    formats:
+      book_publication: "%Y. %-m. %-d."
   site:
     title: "책짹"
   feeds:
@@ -1292,7 +1295,9 @@ ko:
       current_bookshelf: "담긴 책장"
       status_label: "상태"
       authors: "저자"
+      translators: "역자"
       publisher: "출판사"
+      published_on: "출간일"
       isbn: "ISBN"
       empty_description: "아직 이 책의 설명이 없습니다."
       empty_jjaeks: "아직 이 책에 남긴 책짹이 없습니다."

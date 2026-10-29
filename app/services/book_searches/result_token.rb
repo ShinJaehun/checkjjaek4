@@ -6,7 +6,9 @@ module BookSearches
       attributes = {
         title: result[:title],
         authors_text: result[:authors_text],
+        translators_text: result[:translators_text],
         publisher: result[:publisher],
+        published_on: result[:published_on]&.iso8601,
         thumbnail: result[:thumbnail],
         isbn: result[:isbn],
         description: result[:contents_excerpt],
