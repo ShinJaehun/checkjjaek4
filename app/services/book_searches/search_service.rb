@@ -19,12 +19,32 @@ module BookSearches
         {
           title: item["title"].to_s,
           authors_text: Array(item["authors"]).join(", "),
+          translators_text: normalize_translators(item["translators"]),
           publisher: item["publisher"].to_s,
+          published_on: normalize_published_on(item["datetime"]),
           thumbnail: valid_url(item["thumbnail"]),
           isbn: item["isbn"].to_s,
           contents_excerpt: item["contents"].to_s,
           url: valid_url(item["url"])
         }
+      end
+
+      def normalize_translators(value)
+        return unless value.is_a?(Array)
+
+        names = value.filter_map { |name| name.strip.presence if name.is_a?(String) }
+        names.join(", ").presence
+      end
+
+      def normalize_published_on(value)
+        return unless value.is_a?(String)
+
+        value = value.strip
+        return unless value.match?(/\A\d{4}-\d{2}-\d{2}(?:T|\z)/)
+
+        DateTime.iso8601(value).to_date
+      rescue Date::Error
+        nil
       end
 
       def valid_url(value)

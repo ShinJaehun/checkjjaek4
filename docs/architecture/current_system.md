@@ -95,6 +95,7 @@
 
 - 통합 책 타이틀 카드는 홈 작성 폼과 같은 max-w-4xl(896px) 가운데 정렬이며, 아래 책친구 활동·책짹 목록은 max-w-3xl(768px)을 유지한다. 표지·서지 정보, 소개·외부 링크 다음에 구분선 하나로 책장 정보·독서 활동을 구분한다. 별도 내 서재·독서 활동 카드는 없다
 - 모바일은 최대 너비 96px 표지 왼쪽·서지 정보 오른쪽, 소개·외부 링크는 그 아래 전체 너비다. md 이상은 기존 최대 160×224px 표지 왼쪽·서지 정보와 소개 오른쪽이다. 긴 소개의 펼침·접기와 반응형 정보의 단일 렌더링을 유지한다
+- Book의 nullable `published_on`(date)·`translators_text`(string)는 Kakao SearchService의 datetime·translators 정규화와 서명 토큰을 거쳐 새 Book 등록에 저장됨. 기존 Book 재사용 시 메타데이터를 보완하지 않으며 추가 API 호출이나 일괄 보완은 없음. 책 상세/미리보기의 `BooksHelper#book_metadata_rows`와 공통 header는 저자·역자·출판사·출간일·ISBN을 레이블/값 1열로 표시하고 누락 행은 생략함. 날짜는 locale의 book_publication 형식(`2026. 4. 22.`)을 사용하며 전체 값을 줄바꿈함
 - 일반 상세는 viewer 기준 개인 원본 책짹 BookScope를 적용하고, 서재 미등록 시 공개 책짹만 표시한다. 서재 등록 후 동아리 맥락은 해당 동아리의 GroupContentScope 원본 책짹 목록을 표시한다
 - `books/:id`의 책짹 목록에는 ReJjaek을 직접 포함하지 않는다
 - 원본 책짹 카드의 visible ReJjaek count는 유지한다
