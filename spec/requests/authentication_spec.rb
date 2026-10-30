@@ -25,11 +25,15 @@ RSpec.describe "Authentication", type: :request do
     expect(response.body).not_to include('href="/icon.png"', 'href="/icon.svg"')
   end
 
-  it "shows the permanent profile address guidance on registration" do
-    get new_user_registration_path(invitation_token: registration_token("guidance@example.com"))
+  it "shows the English handle requirement and permanent profile address guidance on registration" do
+    I18n.with_locale(:ko) do
+      get new_user_registration_path(invitation_token: registration_token("guidance@example.com"))
 
-    expect(response).to have_http_status(:ok)
-    expect(response.body).to include(I18n.t("user_handle.guidance"))
+      expect(response).to have_http_status(:ok)
+      expect(Nokogiri::HTML(response.body).at_css("label[for='user_handle']").text).to eq("공개 주소 이름 (영문)")
+      expect(response.body).to include("영문자로 시작하는 3~30자의 영문자·숫자·밑줄(_)을 사용하세요. 한글과 공백은 사용할 수 없습니다.")
+      expect(response.body).to include(I18n.t("user_handle.guidance"))
+    end
   end
 
   describe "POST /users" do

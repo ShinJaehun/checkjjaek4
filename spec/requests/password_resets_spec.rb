@@ -21,6 +21,19 @@ RSpec.describe "Password resets", type: :request do
     }
   end
 
+  it "shows Korean guidance when the reset link has no token" do
+    I18n.with_locale(:ko) do
+      guidance = "비밀번호 재설정 이메일에 있는 링크로 접속해 주세요. 링크의 전체 주소를 사용했는지 확인해 주세요."
+      get edit_user_password_path
+
+      expect(response).to redirect_to(new_user_session_path)
+      expect(flash[:alert]).to eq(guidance)
+      follow_redirect!
+      expect(response.body).to include(guidance)
+      expect(response.body).not_to match(/translation missing/i)
+    end
+  end
+
   it "links the sign-in screen to a reset request and sends a multipart email" do
     get new_user_session_path
     expect(response.body).to include(new_user_password_path, I18n.t("auth.passwords.forgot_password"))
@@ -93,6 +106,8 @@ RSpec.describe "Password resets", type: :request do
 
     change_password(token, password: "anotherpassword123!")
     expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("activerecord.errors.models.user.attributes.reset_password_token.invalid", locale: :ko, fallback: false, raise: true))
+    expect(response.body).not_to match(/translation missing/i)
     expect(reader.reload.valid_password?("anotherpassword123!")).to be(false)
 
     post user_session_path, params: { user: { email: reader.email, password: "newpassword123!" } }
@@ -106,6 +121,8 @@ RSpec.describe "Password resets", type: :request do
     travel_to(6.hours.from_now + 1.second) do
       change_password(token)
       expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include(I18n.t("activerecord.errors.models.user.attributes.reset_password_token.expired", locale: :ko, fallback: false, raise: true))
+      expect(response.body).not_to match(/translation missing/i)
       expect(reader.reload.valid_password?("password123!")).to be(true)
     end
   end

@@ -55,7 +55,7 @@ en:
       description: "Manage your display name and public address."
       name: "Name"
       handle: "Public handle"
-      handle_hint: "3–30 lowercase letters, numbers, or underscores; start with a letter."
+      handle_hint: "Use 3–30 English letters, numbers, or underscores (_), starting with an English letter. Korean characters and spaces are not allowed."
     avatar:
       title: "Profile image"
       description: "Upload a JPEG, PNG, or WebP image up to 5MB. Removing it restores your default avatar."
@@ -99,6 +99,8 @@ en:
       group_lifecycle_event:
         detail: "Rejection reason"
       user:
+        name: "Name"
+        email: "Email"
         current_password: "Current password"
         password: "Password"
         password_confirmation: "Password confirmation"
@@ -127,6 +129,9 @@ en:
               invalid_format: "must be a JPEG, PNG, or WebP file"
               too_large: "must be 5MB or smaller"
             handle:
+              invalid: "must be 3–30 English letters, numbers, or underscores (_), starting with an English letter"
+              blank: "must be entered"
+              taken: "is already in use"
               reserved: "is reserved"
               immutable: "cannot be changed once set"
         jjaek:
@@ -171,7 +176,7 @@ en:
     form:
       email: "Email"
       name: "Name"
-      handle: "Public handle"
+      handle: "Public handle (English)"
       password: "Password"
       password_confirmation: "Confirm password"
     notices:
@@ -369,12 +374,15 @@ en:
           restore_group_operation: "Operation restored"
     index:
       title: "Reading clubs"
+      my_groups: "My clubs"
       recent_activity: "Recent club news"
       pending_join_requests:
         one: "%{count} join request awaiting approval"
         other: "%{count} join requests awaiting approval"
       description: "Find a reading community to read and talk with."
       empty: "No clubs are available to discover yet."
+      empty_my_groups: "You have not joined any clubs yet."
+      empty_activity: "No club activity yet."
       carousel:
         label: "Joined club list pages"
         previous: "Previous"
@@ -497,6 +505,8 @@ en:
           invitation_revoked: "%{actor} cancelled the invitation sent to %{user}."
           left: "%{user} left the club."
           removed: "%{actor} removed %{user} from the club."
+          admin_role_revoked: "%{actor} removed %{user}'s admin role."
+          admin_role_granted: "%{actor} granted %{user} the admin role."
         moderation:
           suspend_activity: "%{actor} suspended %{user}'s club activity."
           restore_activity: "%{actor} restored %{user}'s club activity."
@@ -523,6 +533,14 @@ en:
       reactivation_request_failed: "Club reactivation could not be requested."
       reactivation_withdrawal_failed: "The club reactivation request could not be withdrawn."
       admin_transfer_failed: "Club admin rights could not be transferred."
+    jjaeks:
+      tabs:
+        general: "Jjaek"
+        book: "Club Book Jjaek"
+      title: "Club Jjaeks and Book Jjaeks"
+      empty: "No Jjaeks or Book Jjaeks have been added to this club yet."
+      general_description: "Leave a Jjaek in this club."
+      book_search_context: "Find a book for a Book Jjaek in %{group_name}."
   admin:
     actions:
       show: "Details"
@@ -809,14 +827,6 @@ en:
         approval_failed: "The club could not be approved."
         operation_suspend_failed: "Club operation could not be suspended."
         operation_restore_failed: "Club operation could not be restored."
-    jjaeks:
-      tabs:
-        general: "Jjaek"
-        book: "Club Book Jjaek"
-      title: "Club Jjaeks and Book Jjaeks"
-      empty: "No Jjaeks or Book Jjaeks have been added to this club yet."
-      general_description: "Leave a Jjaek in this club."
-      book_search_context: "Find a book for a Book Jjaek in %{group_name}."
   group_memberships:
     statuses:
       pending: "Pending approval"
@@ -1377,6 +1387,8 @@ en:
         other: "%{count} ReJjaeks"
     moderation:
       hidden_title: "This post was hidden by moderation."
+      hidden_by_system_admin: "This Jjaek was hidden by a system administrator."
+      hidden_book_by_system_admin: "This Book Jjaek was hidden by a system administrator."
       hidden_by_group_admin: "This Jjaek was hidden by a group administrator."
       hidden_book_by_group_admin: "This Book Jjaek was hidden by a group administrator."
       reason: "Hide reason"
