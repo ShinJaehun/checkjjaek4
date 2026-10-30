@@ -28,6 +28,26 @@ RSpec.describe User, type: :model do
     end
   end
 
+  it "shows a Korean validation message for an invalid handle format" do
+    I18n.with_locale(:ko) do
+      user = described_class.new(name: "Reader", email: "invalid-handle@example.com", password: "password123!", handle: "한글이름")
+
+      expect(user).not_to be_valid
+      expect(user.errors[:handle]).to eq([ "영문자로 시작하는 3~30자의 영문자·숫자·밑줄(_)을 사용해 주세요" ])
+    end
+  end
+
+  it "shows Korean default validation messages for a blank name and invalid email" do
+    I18n.with_locale(:ko) do
+      user = described_class.new(name: "", email: "invalid-email", password: "password123!")
+
+      expect(user).not_to be_valid
+      expect(user.errors[:name]).to eq([ "을(를) 입력해 주세요" ])
+      expect(user.errors[:email]).to eq([ "올바르지 않습니다" ])
+      expect(user.errors.full_messages.join(" ")).not_to match(/translation missing/i)
+    end
+  end
+
   it "enforces case-insensitive handle uniqueness in the database" do
     described_class.create!(name: "First", email: "first-db-handle@example.com", password: "password123!", handle: "reader_one")
     second = described_class.create!(name: "Second", email: "second-db-handle@example.com", password: "password123!")
