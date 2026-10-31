@@ -371,6 +371,8 @@
 - 신규 User 계정 정지와 Group 운영 정지는 각각 정의된 predefined 공개 사유를 선택하며 known key는 locale label로 표시하고 기존 자유 텍스트 감사 row는 그대로 표시함. 복구 공개 사유와 GroupMembership 활동 정지·복구 및 GroupMemberBan 제한·해제 사유는 자유 텍스트를 유지함
 - Group operation 전체 이력 UI는 구현되어 있음. 회원가입·로그인·짹·책짹·댓글·좋아요와 동아리 개설·가입·초대 요청에는 기본 rate limit이 적용됨. 동아리 제한은 권한 확인 뒤 사용자별 카운터를 사용하며, 개설은 5회/24시간, 가입·신청은 합산 15회/1시간, 초대는 30회/1시간임
 - 베타 신규 User 회원가입은 시스템 관리자의 이메일 초대 링크로만 가능함. `RegistrationInvitation`은 Group 초대와 별개이며 digest token, 7일 만료, 사용·취소 상태를 관리함. `Users::RegistrationsController`는 기존 Devise 가입 흐름의 검증과 로그인 동작을 유지하면서 초대 행 잠금 및 동일 transaction에서 User 생성·초대 사용을 처리함. 세부 정책은 `docs/specs/registration_invitations_c08.md`를 따름
+- `/privacy`와 `/terms`는 비로그인 공개 페이지이며 공통 푸터와 초대 가입 화면에서 연결됨. 새 초대 가입은 이용약관 동의를 서버에서 검증하고 User에 동의 시각·약관 버전을 남김. 기존 회원의 로그인과 계정 수정에는 동의 검증을 적용하지 않음
+- 사용 완료된 `RegistrationInvitation`은 초대 이메일과 사용 이력을 계속 보존하며 현재 계정 탈퇴 처리에서는 이 기록을 익명화하지 않음. 운영 보유기간과 탈퇴 후 처리 정책은 공개 전 별도 확인이 필요함
 
 ### 5-2. 계정 탈퇴
 

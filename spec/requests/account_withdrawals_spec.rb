@@ -68,6 +68,11 @@ RSpec.describe "Account withdrawals", type: :request do
     original_name = user.name
     original_email = user.email
     jjaek = user.jjaeks.create!(content: "Historical writing")
+    other = User.create!(name: "Other", email: "withdrawal-rejoin-other@example.com", password: password)
+    user.active_follows.create!(followee: other)
+    user.requested_book_friendships.create!(addressee: other, status: :accepted)
+    group = Group.create!(lifecycle_status: :active, group_admin: other, name: "Former club", group_type: :public_group)
+    group.group_memberships.create!(user: user, status: :active)
     sign_in user
 
     delete account_withdrawal_path, params: { account_withdrawal: { current_password: password } }
@@ -90,7 +95,8 @@ RSpec.describe "Account withdrawals", type: :request do
           handle: "reader_again",
           email: original_email,
           password: password,
-          password_confirmation: password
+          password_confirmation: password,
+          terms_accepted: "1"
         }
       }
     }.to change(User, :count).by(1)
@@ -101,6 +107,13 @@ RSpec.describe "Account withdrawals", type: :request do
     expect(new_user.name).to eq(original_name)
     expect(new_user).not_to be_withdrawn
     expect(new_user.default_avatar_index).to be_present
+    expect(new_user.active_follows).to be_empty
+    expect(new_user.requested_book_friendships).to be_empty
+    expect(new_user.received_book_friendships).to be_empty
+    expect(new_user.group_memberships).to be_empty
+    expect(new_user.book_activities).to be_empty
+    expect(new_user.administered_groups).to be_empty
+    expect(new_user).not_to be_global_admin
     expect(withdrawn_user.reload).to be_withdrawn
     expect(withdrawn_user.default_avatar_index).to be_nil
     expect(jjaek.reload.user_id).to eq(original_id)

@@ -491,7 +491,7 @@ RSpec.describe "Unified search", type: :request do
       expect(form.at_css("input[name='q']")["value"]).to eq("개수검색")
       expect(form.at_css("input[name='type']")["value"]).to eq("jjaeks")
       expect(form.at_css("[name='page']")).to be_nil
-      page.css("nav[aria-label] a").each do |link|
+      page.css("main nav[aria-label] a").each do |link|
         expect(Rack::Utils.parse_query(URI.parse(link["href"]).query))
           .to include("q" => "개수검색", "per_page" => size.to_s)
         expect(Rack::Utils.parse_query(URI.parse(link["href"]).query)).not_to have_key("page")
@@ -506,7 +506,7 @@ RSpec.describe "Unified search", type: :request do
 
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("select[name='per_page'] option[selected]")["value"]).to eq("30")
-    page.css("nav[aria-label] a").each do |link|
+    page.css("main nav[aria-label] a").each do |link|
       expect(Rack::Utils.parse_query(URI.parse(link["href"]).query)["per_page"]).to eq("30")
     end
   end

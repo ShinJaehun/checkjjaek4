@@ -45,6 +45,10 @@ RSpec.describe Users::WithdrawAccount do
   end
 
   it "preserves the avatar when withdrawal fails and rolls back" do
+    invitation = RegistrationInvitation.new(email: "leaving@example.com", invited_by: other)
+    invitation.issue_token!
+    invitation.save!
+    invitation.update!(consumed_at: Time.current, user: user)
     attach_avatar(user)
     blob_id = user.avatar.blob.id
     allow_any_instance_of(described_class).to receive(:clean_personal_reading_data!).and_raise("cleanup failed")
@@ -54,6 +58,7 @@ RSpec.describe Users::WithdrawAccount do
     }.to raise_error("cleanup failed")
 
     expect(user.reload).not_to be_withdrawn
+    expect(invitation.reload).to have_attributes(email: "leaving@example.com", user_id: user.id)
     expect(user.avatar.blob.id).to eq(blob_id)
     expect(ActiveStorage::Blob.exists?(blob_id)).to be(true)
   end
@@ -112,6 +117,64 @@ RSpec.describe Users::WithdrawAccount do
     expect(Book.exists?(book.id)).to be(true)
   end
 
+  it "clears the original email and user link from past invitations without changing their status or other members' invitations" do
+    original_email = "leaving@example.com"
+    canceled = RegistrationInvitation.new(email: original_email, invited_by: other)
+    canceled.issue_token!
+    canceled.save!
+    canceled.cancel!
+
+    used = RegistrationInvitation.new(email: original_email, invited_by: other)
+    used.issue_token!
+    used.save!
+    used.update!(consumed_at: Time.current, user: user)
+
+    expired_digest = RegistrationInvitation.digest(SecureRandom.hex(32))
+    RegistrationInvitation.insert!({
+      email: original_email, token_digest: expired_digest, expires_at: 1.day.ago,
+      invited_by_id: other.id, created_at: 8.days.ago, updated_at: 8.days.ago
+    })
+    expired = RegistrationInvitation.find_by!(token_digest: expired_digest)
+
+    unrelated = RegistrationInvitation.new(email: "other-invitation@example.com", invited_by: other)
+    unrelated.issue_token!
+    unrelated.save!
+    used_at = used.reload.consumed_at
+    canceled_at = canceled.reload.canceled_at
+    expired_at = expired.expires_at
+
+    described_class.new(user, current_password: password).call!
+
+    expect(user.reload.email).not_to eq(original_email)
+    { used => :used, canceled => :canceled, expired => :expired }.each do |invitation, status|
+      invitation.reload
+      expect(invitation.email).to eq("withdrawn-invitation-#{invitation.id}@users.invalid")
+      expect(invitation.user_id).to be_nil
+      expect(invitation.status).to eq(status)
+    end
+    expect(used.consumed_at).to eq(used_at)
+    expect(canceled.canceled_at).to eq(canceled_at)
+    expect(expired.expires_at).to eq(expired_at)
+    expect(RegistrationInvitation.where(email: original_email)).to be_empty
+    expect(unrelated.reload.email).to eq("other-invitation@example.com")
+  end
+
+  it "cancels a pending invitation if one still exists for the withdrawing email" do
+    digest = RegistrationInvitation.digest(SecureRandom.hex(32))
+    RegistrationInvitation.insert!({
+      email: user.email, token_digest: digest, expires_at: 7.days.from_now,
+      invited_by_id: other.id, created_at: Time.current, updated_at: Time.current
+    })
+    invitation = RegistrationInvitation.find_by!(token_digest: digest)
+
+    described_class.new(user, current_password: password).call!
+
+    expect(invitation.reload).to have_attributes(
+      email: "withdrawn-invitation-#{invitation.id}@users.invalid", canceled_at: be_present
+    )
+    expect(invitation).not_to be_active
+  end
+
   it "keeps a handle private and unavailable for reuse after withdrawal" do
     user.update!(handle: "leaving_reader")
     old_handle = user.handle
@@ -144,10 +207,15 @@ RSpec.describe Users::WithdrawAccount do
   end
 
   it "rejects withdrawal for a suspended user" do
+    invitation = RegistrationInvitation.new(email: "leaving@example.com", invited_by: other)
+    invitation.issue_token!
+    invitation.save!
+    invitation.update!(consumed_at: Time.current, user: user)
     user.update!(suspended_at: Time.current)
 
     expect { described_class.new(user, current_password: password).call! }.to raise_error(described_class::Suspended)
     expect(user.reload).not_to be_withdrawn
+    expect(invitation.reload).to have_attributes(email: "leaving@example.com", user_id: user.id)
   end
 
   it "blocks an active group admin and succeeds after admin transfer" do

@@ -22,7 +22,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-[linear-gradient(180deg,#f5efe4_0%,#f8f7f3_38%,#fcfcfb_100%)] text-stone-900"
+  <body class="flex min-h-screen flex-col bg-[linear-gradient(180deg,#f5efe4_0%,#f8f7f3_38%,#fcfcfb_100%)] text-stone-900"
         data-controller="book-modal"
         data-action="turbo:before-visit@document->book-modal#close turbo:before-cache@document->book-modal#close">
     <% auth_actions = {
@@ -33,11 +33,12 @@
     <% auth_page = auth_actions.fetch(controller_path, []).include?(action_name) %>
     <%= render "shared/nav" unless auth_page %>
 
-    <main class="mx-auto flex w-full flex-col <%= auth_page ? "gap-0 p-0" : "max-w-6xl gap-6 px-5 py-8" %>">
+    <main class="mx-auto flex w-full flex-1 flex-col <%= auth_page ? "gap-0 p-0" : "max-w-6xl gap-6 px-5 py-8" %>">
       <div id="flash-messages">
         <%= render "shared/flash" %>
       </div>
       <%= yield %>
     </main>
+    <%= render "shared/footer" unless auth_page %>
   </body>
 </html>

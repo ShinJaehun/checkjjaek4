@@ -24,6 +24,10 @@ module Users
         return head(:forbidden) unless invitation.active?
 
         build_resource(sign_up_params.merge(email: invitation.email))
+        if resource.terms_accepted == "1"
+          resource.terms_accepted_at = Time.current
+          resource.terms_version = User::TERMS_VERSION
+        end
         resource.save
         if resource.persisted?
           invitation.update!(consumed_at: Time.current, user: resource)
