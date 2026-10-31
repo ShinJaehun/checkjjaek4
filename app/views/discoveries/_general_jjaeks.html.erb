@@ -1,9 +1,6 @@
-<%= turbo_frame_tag "discovery_general_jjaeks", class: "min-w-0 border-t border-stone-300 pt-8 lg:border-t-0 lg:pl-10 lg:pt-0" do %>
-  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-300 pb-3">
+<section id="discovery_general_jjaeks" class="min-w-0 border-t border-stone-300 pt-8 lg:border-t-0 lg:pl-10 lg:pt-0">
+  <div class="border-b border-stone-300 pb-3">
     <h2 class="font-serif text-3xl font-semibold text-stone-950"><%= t("discovery.general_jjaeks.title") %></h2>
-    <%= link_to t("discovery.refresh"), discovery_path(refresh: "general"),
-                data: { turbo_frame: "discovery_general_jjaeks" },
-                class: "ui-button ui-button-secondary" %>
   </div>
   <% if @general_jjaeks.any? %>
     <div class="divide-y divide-stone-200">
@@ -28,4 +25,4 @@
   <% else %>
     <p class="mt-6 text-sm text-stone-500"><%= t("discovery.general_jjaeks.empty") %></p>
   <% end %>
-<% end %>
+</section>

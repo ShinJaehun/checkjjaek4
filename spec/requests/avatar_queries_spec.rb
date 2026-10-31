@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "Avatar query counts", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   let(:viewer) { User.create!(name: "Viewer", email: "avatar-queries-viewer@example.com", password: "password123!") }
   let(:group) { Group.create!(name: "Avatar readers", group_admin: viewer, group_type: :public_group, lifecycle_status: :active) }
 
@@ -29,7 +31,9 @@ RSpec.describe "Avatar query counts", type: :request do
       when :home then get root_path
       when :profile then get user_path(viewer)
       when :group then get group_path(group)
-      when :discovery then get discovery_path, params: { refresh: "general" }
+      when :discovery
+        tomorrow_in_seoul = Time.current.in_time_zone("Asia/Seoul").tomorrow.beginning_of_day + 12.hours
+        travel_to(tomorrow_in_seoul) { get discovery_path }
       end
     end
     expect(response).to have_http_status(:ok)
