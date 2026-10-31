@@ -2,6 +2,7 @@ en:
   date:
     formats:
       book_publication: "%Y. %-m. %-d."
+      discovery: "%A, %B %-d, %Y"
   site:
     title: "Checkjjaek"
   feeds:
@@ -216,7 +217,6 @@ en:
   discovery:
     nav: "Discover"
     title: "Discover"
-    refresh: "Refresh"
     read_jjaek: "Read post"
     book_jjaeks:
       title: "A book and its posts"

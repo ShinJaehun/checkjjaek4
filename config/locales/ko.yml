@@ -1,7 +1,16 @@
 ko:
   date:
+    day_names:
+      - 일요일
+      - 월요일
+      - 화요일
+      - 수요일
+      - 목요일
+      - 금요일
+      - 토요일
     formats:
       book_publication: "%Y. %-m. %-d."
+      discovery: "%Y년 %-m월 %-d일 %A"
   site:
     title: "책짹"
   feeds:
@@ -238,7 +247,6 @@ ko:
   discovery:
     nav: "발견"
     title: "발견"
-    refresh: "새로고침"
     read_jjaek: "원문 보기"
     book_jjaeks:
       title: "새로운 책과 책짹"

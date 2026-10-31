@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "Jjaek navigation", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   let(:reader) { User.create!(name: "Reader", email: "navigation-reader@example.com", password: "password123!") }
   let(:other) { User.create!(name: "Other", email: "navigation-other@example.com", password: "password123!") }
   let(:admin) { User.create!(name: "Admin", email: "navigation-admin@example.com", password: "password123!", global_admin: true) }
@@ -166,7 +168,8 @@ RSpec.describe "Jjaek navigation", type: :request do
     other.jjaeks.create!(group: public_group, content: "DISCOVERY_GROUP")
     sign_in reader
 
-    get discovery_path
+    tomorrow_in_seoul = Time.current.in_time_zone("Asia/Seoul").tomorrow.beginning_of_day + 12.hours
+    travel_to(tomorrow_in_seoul) { get discovery_path }
     page = Nokogiri::HTML(response.body)
     expect(page.css("a[data-back-link]")).to be_empty
     links = page.css("a[href^='/jjaeks/']")

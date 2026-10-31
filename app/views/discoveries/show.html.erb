@@ -1,6 +1,7 @@
 <section class="mx-auto w-full max-w-6xl space-y-12 pb-12">
-  <header class="border-b border-stone-400 pb-5">
-    <h1 class="text-right font-serif text-5xl font-bold tracking-tight text-stone-950 sm:text-6xl"><%= t("discovery.title") %></h1>
+  <header id="discovery_header" class="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-stone-400 pb-5">
+    <p class="text-left text-sm text-stone-600"><%= l(@publication_date, format: :discovery) %></p>
+    <h1 class="ml-auto shrink-0 text-right font-serif text-5xl font-bold tracking-tight text-stone-950 sm:text-6xl"><%= t("discovery.title") %></h1>
   </header>
 
   <div class="grid gap-10 lg:grid-cols-2 lg:gap-0">
@@ -8,7 +9,7 @@
     <%= render "discoveries/general_jjaeks" %>
   </div>
 
-  <section class="border-t-2 border-stone-800 pt-6">
+  <section id="discovery_library" class="border-t-2 border-stone-800 pt-6">
     <h2 class="font-serif text-3xl font-semibold text-stone-950"><%= t("discovery.library.title") %></h2>
     <% if @library_user %>
       <div class="mt-6 grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
@@ -39,7 +40,7 @@
     <% end %>
   </section>
 
-  <section class="border-t border-stone-400 pt-6">
+  <section id="discovery_group" class="border-t border-stone-400 pt-6">
     <h2 class="font-serif text-3xl font-semibold text-stone-950"><%= t("discovery.group.title") %></h2>
     <% if @group %>
       <div class="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-10">
@@ -77,8 +78,14 @@
                     </div>
                   </div>
                   <% if group_post.book %>
-                    <p class="mt-3 text-sm text-stone-600"><%= link_to group_post.book.title, book_path(group_post.book, return_to: discovery_path) %></p>
-                    <%= render "jjaeks/current_reading_state", jjaek: group_post %>
+                    <div class="mt-3 flex min-w-0 items-start gap-3">
+                      <%= render "books/thumbnail", title: group_post.book.title, thumbnail: group_post.book.thumbnail,
+                                 url: book_path(group_post.book, return_to: discovery_path), size: :discovery_group %>
+                      <div class="min-w-0">
+                        <p class="break-words text-sm text-stone-600"><%= link_to group_post.book.title, book_path(group_post.book, return_to: discovery_path) %></p>
+                        <%= render "jjaeks/current_reading_state", jjaek: group_post %>
+                      </div>
+                    </div>
                   <% end %>
                   <p class="mt-2 line-clamp-2 whitespace-pre-line break-words font-serif text-lg leading-7 text-stone-800"><%= group_post.content %></p>
                   <%= link_to t("discovery.read_jjaek"), jjaek_path(group_post, return_to: discovery_path), class: "mt-3 inline-block text-sm font-semibold underline underline-offset-4" %>

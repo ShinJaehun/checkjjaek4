@@ -918,6 +918,10 @@ RSpec.describe "Comments", type: :request do
       other_comment_ui = document.at_css("#comment_#{other_comment.id}")
 
       expect(own_comment_ui.at_css('[data-comment-edit-target="actions"]').text).to match(/수정.*삭제/m)
+      expect(own_comment_ui.at_css('[data-action="comment-edit#open"]')["class"]).to include("whitespace-nowrap", "shrink-0")
+      delete_form = own_comment_ui.at_css(%(form[action="#{jjaek_comment_path(group_jjaek, own_comment)}"]))
+      expect(delete_form["class"]).to include("shrink-0")
+      expect(delete_form.at_css("button")["class"]).to include("whitespace-nowrap")
       expect(own_comment_ui.at_css('[data-comment-edit-target="display"]')["class"]).not_to include("hidden")
       expect(own_comment_ui.at_css('[data-comment-edit-target="form"]')["class"]).to include("hidden")
       expect(

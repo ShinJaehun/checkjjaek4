@@ -24,26 +24,27 @@ elsif group_restore_available
 end %>
 
 <article id="<%= comments_context.to_sym == :book_friend ? dom_id(comment, :book_friend) : dom_id(comment) %>" class="rounded-2xl bg-stone-50 px-4 py-3" data-controller="comment-edit">
-  <div class="flex items-center justify-between gap-3">
-    <div class="flex min-w-0 items-center gap-2">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex min-w-0 flex-1 basis-36 items-center gap-2">
       <%= user_avatar_image(comment.user, size: 128, alt: comment.user.name, class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
-      <div class="text-sm font-medium text-stone-800"><%= comment.user.name %></div>
+      <div class="min-w-0 break-words text-sm font-medium text-stone-800"><%= comment.user.name %></div>
     </div>
-    <div class="flex items-center gap-3 <%= "hidden" if editing %>" data-comment-edit-target="actions">
+    <div class="flex max-w-full flex-wrap items-center justify-end gap-3 <%= "hidden" if editing %>" data-comment-edit-target="actions">
       <% if comment_policy.update? %>
-        <button type="button" class="text-xs font-medium text-stone-600" data-action="comment-edit#open"><%= t("comments.actions.edit") %></button>
+        <button type="button" class="shrink-0 whitespace-nowrap text-xs font-medium text-stone-600" data-action="comment-edit#open"><%= t("comments.actions.edit") %></button>
       <% end %>
       <% if comment_policy.destroy? %>
         <%= button_to t("comments.actions.delete"),
                       jjaek_comment_path(jjaek, comment),
                       method: :delete,
                       params: destroy_comments_params,
-                      class: "text-xs text-red-600" %>
+                      form: { class: "shrink-0" },
+                      class: "whitespace-nowrap text-xs text-red-600" %>
       <% end %>
       <% if moderation_action.present? %>
         <%= link_to moderation_action.fetch(:label),
                     moderation_action.fetch(:path),
-                    class: "ui-button ui-button-warning",
+                    class: "ui-button ui-button-warning shrink-0 whitespace-nowrap",
                     data: { comment_moderation_action: true } %>
       <% end %>
     </div>

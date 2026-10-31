@@ -4,11 +4,11 @@
 <% moderation_action = local_assigns[:moderation_action] %>
 <% hide_book_details = local_assigns.fetch(:hide_book_details, false) %>
 
-<div class="flex items-start justify-between gap-3">
-  <div class="flex min-w-0 items-start gap-3">
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div class="flex min-w-0 flex-1 basis-48 items-start gap-3">
     <%= user_avatar_image(jjaek.user, size: 128, alt: jjaek.user.name, class: "h-10 w-10 shrink-0 rounded-full object-cover") %>
 
-    <div class="min-w-0">
+    <div class="min-w-0 break-words">
       <% context_label = if book_friend_preview
         t("jjaeks.contexts.book_html", author_name: link_to(jjaek.user.name, user_path(jjaek.user), class: "font-semibold text-stone-900 hover:text-stone-700"))
       elsif show_context
@@ -42,13 +42,13 @@
   </div>
 
   <% if show_actions && (policy(jjaek).update? || policy(jjaek).destroy? || moderation_action.present?) %>
-    <div class="flex items-center gap-2 text-xs text-stone-500">
-      <%= link_to t("jjaeks.actions.edit"), edit_jjaek_path(jjaek, jjaek_navigation_params) if policy(jjaek).update? %>
-      <%= button_to t("jjaeks.actions.delete"), jjaek_path(jjaek, jjaek_navigation_params), method: :delete, form: { data: { turbo_confirm: t("jjaeks.confirmations.destroy") } }, class: "text-red-600" if policy(jjaek).destroy? %>
+    <div class="flex max-w-full flex-wrap items-center justify-end gap-2 text-xs text-stone-500">
+      <%= link_to t("jjaeks.actions.edit"), edit_jjaek_path(jjaek, jjaek_navigation_params), class: "shrink-0 whitespace-nowrap" if policy(jjaek).update? %>
+      <%= button_to t("jjaeks.actions.delete"), jjaek_path(jjaek, jjaek_navigation_params), method: :delete, form: { class: "shrink-0", data: { turbo_confirm: t("jjaeks.confirmations.destroy") } }, class: "whitespace-nowrap text-red-600" if policy(jjaek).destroy? %>
       <% if moderation_action.present? %>
         <%= link_to moderation_action.fetch(:label),
                     moderation_action.fetch(:path),
-                    class: "ui-button ui-button-warning",
+                    class: "ui-button ui-button-warning shrink-0 whitespace-nowrap",
                     data: { jjaek_moderation_action: true } %>
       <% end %>
     </div>

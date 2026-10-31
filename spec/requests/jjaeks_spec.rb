@@ -711,6 +711,20 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("GENERAL_EDIT_BODY")
     end
 
+    it "keeps a card's edit and delete controls together on narrow layouts" do
+      own_jjaek = viewer.jjaeks.create!(content: "MOBILE_CARD_CONTROLS", visibility: :public_jjaek)
+      sign_in viewer
+
+      get jjaek_path(own_jjaek)
+
+      card = Nokogiri::HTML(response.body).at_css("#jjaek_#{own_jjaek.id}")
+      edit_link = card.at_css(%(a[href^="#{edit_jjaek_path(own_jjaek)}"]))
+      delete_form = card.at_css(%(form[action^="#{jjaek_path(own_jjaek)}"]))
+      expect(edit_link["class"]).to include("whitespace-nowrap", "shrink-0")
+      expect(delete_form["class"]).to include("shrink-0")
+      expect(delete_form.at_css("button")["class"]).to include("whitespace-nowrap")
+    end
+
     it "shows the quoted original when editing a requote" do
       sign_in viewer
 
