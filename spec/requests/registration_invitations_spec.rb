@@ -164,6 +164,21 @@ RSpec.describe "Registration invitations", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "does not reopen an anonymized expired invitation for registration" do
+    invitation, token = issue_invitation
+    invitation.update!(expires_at: 31.days.ago)
+    RegistrationInvitations::AnonymizeDueEmails.new.call
+
+    expect(invitation.reload.email).to eq(invitation.anonymized_email)
+    get new_user_registration_path(invitation_token: token)
+    expect(response).to redirect_to(new_user_session_path)
+
+    expect {
+      post user_registration_path, params: { invitation_token: token, user: registration_attributes }
+    }.not_to change(User, :count)
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "binds the account email to the invitation and consumes it with the user" do
     invitation, token = issue_invitation
     get new_user_registration_path(invitation_token: token)

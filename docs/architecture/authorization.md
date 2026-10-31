@@ -45,6 +45,8 @@ checkjjaek4의 서버측 권한 판단은 Pundit policy 중심으로 유지한�
 - `app/policies/book_friendship_policy.rb`
 - `app/policies/book_search_policy.rb`
 - `app/policies/search_policy.rb`
+- `app/policies/discovery_policy.rb`
+- `app/policies/registration_invitation_policy.rb`
 - `app/policies/group_policy.rb`
 - `app/policies/group_membership_policy.rb`
 
@@ -57,6 +59,14 @@ Jjaek 검색은 기존 일반 조회 scope에서 숨김·삭제 항목을 제외
 Group 이름 검색은 비회원에게 운영 중인 비공개 동아리 이름·공개 상태·링크만 허용하는 예외이고 상세·내부 콘텐츠의 권한은 확대하지 않는다.
 검색 결과의 관리자·회원 정보는 기존 Group 목록 scope로 제한하고 독서 상태는 기존 `BookshelfEntryPolicy::ReadingStateScope`를 따른다.
 기준은 `docs/specs/unified_search.md`를 따른다.
+
+---
+
+## 발견과 회원가입 초대
+
+`DiscoveryPolicy#show?`는 로그인 사용자에게 발견 화면 접근을 허용한다. 추천 후보는 기존 Jjaek·BookshelfEntry·Group policy scope와 화면 전용 공개 조건을 함께 적용하며, 상세 접근 권한은 그대로 유지한다. 날짜별 선정 기준은 `docs/specs/discovery_page_mvp.md`를 따른다.
+
+`RegistrationInvitationPolicy`의 목록 scope와 발송·재발송·취소 권한은 현재 시스템 관리자에게만 열린다. 재발송·취소는 아직 사용·취소·이메일 정리되지 않은 초대에만 허용한다. 초대 링크를 통한 가입은 별도의 서버 검증과 초대 행 잠금으로 처리하며, 세부 기준은 `docs/specs/registration_invitations_c08.md`를 따른다.
 
 ---
 

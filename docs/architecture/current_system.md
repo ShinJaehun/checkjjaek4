@@ -63,7 +63,7 @@
   비공개 동아리는 비회원에게 이름·공개 상태·링크만 표시하고 기존 Group 목록 scope에서 허용된 동아리만 관리자·회원 미리보기를 표시한다.
   Group 목록과 검색은 `GroupMembership.card_previews_for`의 일괄 window query로 일반 회원 수·최대 3명 아바타를 조회한다. 상세 기준은 `docs/specs/unified_search.md`를 따른다.
 
-- 상단 내비게이션은 데스크톱에서 기존 링크를 한 줄로 표시한다. 모바일에서는 브랜드·알림 배지·메뉴 버튼을 상단에 두고, 나머지 링크와 로그아웃을 펼침 메뉴에 표시한다. 비로그인 사용자의 로그인·가입도 모바일 메뉴에서 접근한다.
+- 상단 내비게이션은 데스크톱에서 기존 링크를 한 줄로 표시한다. 모바일에서는 브랜드·알림 배지·메뉴 버튼을 상단에 두고, 나머지 링크와 로그아웃을 펼침 메뉴에 표시한다. 비로그인 사용자에게는 로그인 링크만 표시하며, 가입은 유효한 이메일 초대 링크로 진입한다.
 
 ### 발견 (/discover)
 
@@ -371,19 +371,21 @@
 - 신규 User 계정 정지와 Group 운영 정지는 각각 정의된 predefined 공개 사유를 선택하며 known key는 locale label로 표시하고 기존 자유 텍스트 감사 row는 그대로 표시함. 복구 공개 사유와 GroupMembership 활동 정지·복구 및 GroupMemberBan 제한·해제 사유는 자유 텍스트를 유지함
 - Group operation 전체 이력 UI는 구현되어 있음. 회원가입·로그인·짹·책짹·댓글·좋아요와 동아리 개설·가입·초대 요청에는 기본 rate limit이 적용됨. 동아리 제한은 권한 확인 뒤 사용자별 카운터를 사용하며, 개설은 5회/24시간, 가입·신청은 합산 15회/1시간, 초대는 30회/1시간임
 - 베타 신규 User 회원가입은 시스템 관리자의 이메일 초대 링크로만 가능함. `RegistrationInvitation`은 Group 초대와 별개이며 digest token, 7일 만료, 사용·취소 상태를 관리함. `Users::RegistrationsController`는 기존 Devise 가입 흐름의 검증과 로그인 동작을 유지하면서 초대 행 잠금 및 동일 transaction에서 User 생성·초대 사용을 처리함. 세부 정책은 `docs/specs/registration_invitations_c08.md`를 따름
-- `/privacy`와 `/terms`는 비로그인 공개 페이지이며 공통 푸터와 초대 가입 화면에서 연결됨. 새 초대 가입은 이용약관 동의를 서버에서 검증하고 User에 동의 시각·약관 버전을 남김. 기존 회원의 로그인과 계정 수정에는 동의 검증을 적용하지 않음
-- 사용 완료된 `RegistrationInvitation`은 초대 이메일과 사용 이력을 계속 보존하며 현재 계정 탈퇴 처리에서는 이 기록을 익명화하지 않음. 운영 보유기간과 탈퇴 후 처리 정책은 공개 전 별도 확인이 필요함
+- `/privacy`와 `/terms`는 비로그인 공개 페이지이며 공통 푸터와 초대 가입 화면에서 연결됨. 공통 푸터는 일반 화면에서는 layout에, 로그인·가입·비밀번호 재설정 화면에서는 배경 이미지가 있는 인증 영역 안에 한 번 표시됨. 새 초대 가입은 이용약관 동의를 서버에서 검증하고 User에 동의 시각·약관 버전을 남김. 기존 회원의 로그인과 계정 수정에는 동의 검증을 적용하지 않음
+- 미사용 만료 초대는 만료부터 30일, 취소 초대는 취소부터 30일 뒤 Solid Queue 일일 작업에서 이메일을 초대별 비식별 주소로 교체함. 사용 완료 초대는 회원 이용 중 보존함. 자발적 탈퇴 시에는 관련 초대 이메일과 User 연결을 즉시 정리하고, 예외적으로 활성 초대가 남아 있으면 취소함. 영구 제재자의 식별정보 보존·파기 절차는 별도 정책으로 남아 있음
 
 ### 5-2. 계정 탈퇴
 
 - 전용 확인 화면에서 현재 비밀번호를 재확인하고 하나의 transaction으로 처리함
 - 업로드한 아바타는 탈퇴 transaction commit 뒤 정리하며, rollback이면 보존함. 탈퇴 사용자 이미지는 기존 placeholder로 표시함
 - User row는 삭제하지 않고 `withdrawn_at`, 익명 이름과 비전송 placeholder 이메일로 갱신해 Jjaek·Comment 작성자 연결을 보존함
+- 관련 `RegistrationInvitation`의 원래 이메일과 User 연결을 같은 transaction에서 정리하며, 탈퇴 실패 시 함께 rollback함
 - Follow, BookFriendship, Like, Notification, 일반 GroupMembership과 개인 서재·BookActivity를 정리함
 - active Group 관리자는 이전 또는 운영 종료 전 탈퇴할 수 없음
 - 최초 개설 pending 신청은 관리자 외 membership·콘텐츠·예상 밖 event가 없을 때만 정리하며 아니면 탈퇴를 rollback함
 - 재운영 pending Group은 삭제하지 않고 inactive로 복귀시키며 `group_admin_id`와 withdrawn User, 콘텐츠, lifecycle history로 역사적 관리자 attribution을 보존함
 - withdrawn user 대상 Follow, 책친구, Group 초대와 profile-context Jjaek 생성을 차단함
+- 새 이메일 초대로 재가입하면 새 User ID를 사용하며 과거 관계·동아리 자격·독서 기록·관리자 권한과 익명 콘텐츠를 승계하지 않음. 정지 계정의 이메일은 이 탈퇴 처리로 변경하지 않음
 
 관련 코드:
 - controller:
@@ -615,7 +617,7 @@ Turbo 1차 적용 상태:
 - notification badge는 stable wrapper를 유지하며 수신자 전용 Turbo Stream으로 갱신한다. 연결이 없을 때는 서버 렌더링 수를 사용한다.
 - relationships hub의 핵심 관계 action은 탭 건수와 선택 목록을 포함한 `relationships-panel`을 갱신한다. 마지막 페이지 소멸 시 유효한 페이지로 303 redirect한다.
 - 책 검색 결과의 `서재에 담기` 성공 케이스는 해당 result card만 갱신한다.
-- bookshelf 관련 Turbo화는 현재 HTML fallback 흐름을 유지하며, DnD 설계 이후 재검토한다.
+- bookshelf 관련 Turbo화는 현재 HTML fallback 흐름을 유지하며, 구현된 DnD와 별도로 검토한다.
 
 ---
 
@@ -633,7 +635,6 @@ Turbo 1차 적용 상태:
   해당 ID만 hydrate한다. index와 detail-only Turbo panel은 같은 페이지 경계를 쓰며 제한 카드 정책을 유지한다.
 - 책 검색(A11)은 기존 로컬 DB/Kakao API 페이지별 조회와 이전/다음 링크를 유지한다.
 - 정책·cursor의 동시 변경 한계와 검증 기준은 `docs/specs/group_activity_feed.md` A12 및 `docs/specs/requotes_mvp.md` A04를 따른다.
-  관련 spec은 작성되었으며 실행 검증은 아직 수행하지 않았다.
 
 ---
 

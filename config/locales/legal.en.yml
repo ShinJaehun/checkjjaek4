@@ -25,7 +25,9 @@ en:
         - title: "Retention and deletion"
           paragraphs:
             - >-
-              We hold information while the service is in use. On withdrawal, the account name and email are replaced, and the avatar, bookshelves, reading records, relationships, and notifications are cleared. Invitations linked to the account and past invitations for the same email have their addresses replaced with non-identifying ones and their account links removed. Posts and comments remain under an anonymous author, and the former public handle is privately reserved. Information subject to a legal retention requirement is processed within its scope.
+              We hold information while the service is in use. On withdrawal, the account name and email are replaced, and the avatar, bookshelves, reading records, relationships, and notifications are cleared. Posts and comments remain under an anonymous author, and the former public handle is privately reserved. Information subject to a legal retention requirement is processed within its scope.
+            - >-
+              Invitation links are valid for seven days after sending or resending. The email address on an unused expired invitation is replaced with a non-identifying address 30 days after expiration; the same happens 30 days after cancellation for a canceled invitation. We retain the email address on a used invitation while the member uses the service. On voluntary withdrawal, we immediately anonymize related invitation email addresses and remove account links. Non-identifying operational history, including invitation status and timestamps, remains.
         - title: "External services"
           paragraphs:
             - >-

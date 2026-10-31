@@ -14,7 +14,7 @@ class RegistrationInvitationPolicy < ApplicationPolicy
   end
 
   def resend?
-    user&.global_admin? && record.consumed_at.nil? && record.canceled_at.nil?
+    user&.global_admin? && !record.anonymized_email? && record.consumed_at.nil? && record.canceled_at.nil?
   end
 
   def destroy?

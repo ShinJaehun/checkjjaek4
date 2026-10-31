@@ -86,7 +86,7 @@ module Users
         .or(RegistrationInvitation.where(email: user.email, user_id: nil))
 
       invitations.find_each do |invitation|
-        attributes = { email: "withdrawn-invitation-#{invitation.id}@users.invalid", user: nil }
+        attributes = { email: invitation.anonymized_email, user: nil }
         attributes[:canceled_at] = Time.current if invitation.active?
         invitation.update!(attributes)
       end

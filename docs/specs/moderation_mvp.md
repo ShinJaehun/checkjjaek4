@@ -73,6 +73,10 @@ suspend의 `internal_note`는 선택이다. restore에는 정지 사유와 별�
 새 key로 rewrite/migrate하지 않으며, 표시할 때 known key는 locale로 변환하고 legacy 자유 텍스트는 그대로 보여준다.
 계정 보안 잠금/security lock은 moderation suspend와 다른 상태이며 이 범위에 포함하지 않는다.
 
+### 영구 제재 `(후속 설계)`
+
+영구 제재는 아직 구현하지 않는다. 재가입 방지를 위한 식별값은 최대 2년 보관 후 파기하는 방향으로 설계한다. 기존 개인정보 처리, 이의신청과 식별값 파기 절차 및 실제 시행 기준은 별도 구현에서 확정한다. 현재 일시 정지는 기존 계정 보존·복구 정책을 유지하며 이 보존 방향을 적용하지 않는다.
+
 ### moderation 범위와 용어
 
 - **계정 정지 / 계정 복구**는 global admin이 현재 global admin이 아닌 `User`의 서비스 로그인과 신규 mutation을 제한·복구하는 현재 구현 기능이다.
@@ -649,7 +653,7 @@ global admin의 운영 조사는 기존 별도 권한을 사용하되 자기 Com
 - 댓글이 없지만 작성할 수 있으면 작성 panel을, 댓글 또는 hidden placeholder가 있으면 읽기 panel을 유지한다.
   마지막 댓글 삭제 뒤에도 HTML과 Turbo에 같은 empty-state를 적용한다. hide만으로 댓글 개수를 줄이지 않는다.
 - 권한 판단은 policy, 허용된 이력 조회·응답 준비는 controller, 표시 보조는 기존 helper/partial 책임으로 둔다.
-  view에서 role/origin 조건이나 감사 조회를 직접 조합하지 않는다. 새 댓글 moderation 문구는 구현 시 locales에 함께 정의한다.
+  view에서 role/origin 조건이나 감사 조회를 직접 조합하지 않는다. 댓글 moderation 문구는 한국어·영어 locale을 사용한다.
 
 ### non-goals
 
