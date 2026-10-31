@@ -1,12 +1,18 @@
 <% registration = local_assigns[:registration] %>
-<section class="relative mx-auto grid min-h-screen w-full items-center px-4 py-6 lg:flex lg:justify-end lg:px-10">
+<section class="relative mx-auto flex min-h-screen w-full flex-col">
   <picture class="pointer-events-none absolute inset-0 h-full w-full">
     <source media="(min-width: 1024px)" srcset="<%= asset_path("logo/main_bk.jpg") %>">
     <%= image_tag "logo/main_bk_mobile_640.webp", alt: "", width: 640, height: 477, class: "block h-full w-full object-cover object-[45%_center] lg:object-center" %>
   </picture>
 
-  <div class="relative z-10 mx-auto w-full max-w-[360px] rounded-[2rem] bg-white/65 px-6 py-8 shadow-lg backdrop-blur-sm lg:mx-0 lg:w-[360px] lg:shrink-0 lg:px-8 lg:shadow-md <%= 'lg:py-6' if registration %>">
-    <%= image_tag "logo/logo_black.png", alt: "책짹4", width: 205, height: 154, class: "mx-auto mb-6 h-auto w-40 #{'lg:mb-3 lg:w-32' if registration}" %>
-    <%= yield %>
+  <div class="relative z-10 flex flex-1 items-center justify-center px-4 py-6 lg:justify-end lg:px-10">
+    <div class="mx-auto w-full max-w-[360px] rounded-[2rem] bg-white/65 px-6 py-8 shadow-lg backdrop-blur-sm lg:mx-0 lg:w-[360px] lg:shrink-0 lg:px-8 lg:shadow-md <%= 'lg:py-6' if registration %>">
+      <%= image_tag "logo/logo_black.png", alt: "책짹4", width: 205, height: 154, class: "mx-auto mb-6 h-auto w-40 #{'lg:mb-3 lg:w-32' if registration}" %>
+      <%= yield %>
+    </div>
+  </div>
+
+  <div class="relative z-10 w-full">
+    <%= render "shared/footer", auth: true %>
   </div>
 </section>

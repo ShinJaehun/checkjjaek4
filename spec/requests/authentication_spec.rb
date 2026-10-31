@@ -46,7 +46,8 @@ RSpec.describe "Authentication", type: :request do
             handle: "new_reader",
             email: "new-reader@example.com",
             password: "password123!",
-            password_confirmation: "password123!"
+            password_confirmation: "password123!",
+            terms_accepted: "1"
           }
         }
       }.to change(User, :count).by(1)
@@ -59,7 +60,8 @@ RSpec.describe "Authentication", type: :request do
       token = registration_token("no-handle@example.com")
       expect {
         post user_registration_path, params: { invitation_token: token,
-          user: { name: "No Handle", email: "no-handle@example.com", password: "password123!", password_confirmation: "password123!" }
+          user: { name: "No Handle", email: "no-handle@example.com", password: "password123!",
+                  password_confirmation: "password123!", terms_accepted: "1" }
         }
       }.not_to change(User, :count)
 
@@ -75,6 +77,7 @@ RSpec.describe "Authentication", type: :request do
           email: "regular-reader@example.com",
           password: "password123!",
           password_confirmation: "password123!",
+          terms_accepted: "1",
           global_admin: true
         }
       }

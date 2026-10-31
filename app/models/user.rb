@@ -1,6 +1,7 @@
 require "image_processing/vips"
 
 class User < ApplicationRecord
+  TERMS_VERSION = "2026-10-31"
   HANDLE_FORMAT = /\A[a-z][a-z0-9_]{2,29}\z/
   RESERVED_HANDLES = %w[admin account books groups jjaeks users settings sign_in sign_out sign_up].freeze
   DEFAULT_AVATAR_INDEX_RANGE = (1..32).freeze
@@ -29,7 +30,7 @@ class User < ApplicationRecord
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :handle, with: ->(handle) { handle.downcase.presence }
 
-  attr_accessor :handle_required_for_registration
+  attr_accessor :handle_required_for_registration, :terms_accepted
 
   has_one_attached :avatar
   AVATAR_CONTENT_TYPES = %w[image/jpeg image/png image/webp].freeze
@@ -114,6 +115,7 @@ class User < ApplicationRecord
   validates :handle, uniqueness: { case_sensitive: false }, allow_nil: true
   validate :handle_is_available
   validate :handle_cannot_change, on: :update
+  validate :terms_acceptance_for_registration, if: :handle_required_for_registration
   validates :default_avatar_index,
             inclusion: { in: DEFAULT_AVATAR_INDEX_RANGE },
             allow_nil: true
@@ -202,6 +204,10 @@ class User < ApplicationRecord
   end
 
   private
+
+  def terms_acceptance_for_registration
+    errors.add(:base, I18n.t("legal.registration.consent_required")) unless terms_accepted == "1"
+  end
 
   def avatar_format_and_size
     return unless avatar.attached?

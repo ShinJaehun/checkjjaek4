@@ -1,5 +1,6 @@
 class RegistrationInvitation < ApplicationRecord
   VALIDITY_PERIOD = 7.days
+  ANONYMIZED_EMAIL_PATTERN = "withdrawn-invitation-%@users.invalid"
 
   belongs_to :invited_by, class_name: "User"
   belongs_to :user, optional: true
@@ -12,6 +13,7 @@ class RegistrationInvitation < ApplicationRecord
   validate :email_has_no_other_pending_invitation, on: :create
 
   scope :recent_first, -> { order(created_at: :desc, id: :desc) }
+  scope :with_original_email, -> { where("email NOT LIKE ?", ANONYMIZED_EMAIL_PATTERN) }
 
   def self.digest(token)
     Digest::SHA256.hexdigest(token.to_s)
@@ -24,7 +26,15 @@ class RegistrationInvitation < ApplicationRecord
   end
 
   def active?
-    consumed_at.nil? && canceled_at.nil? && expires_at.future?
+    !anonymized_email? && consumed_at.nil? && canceled_at.nil? && expires_at.future?
+  end
+
+  def anonymized_email
+    "withdrawn-invitation-#{id}@users.invalid"
+  end
+
+  def anonymized_email?
+    id.present? && email == anonymized_email
   end
 
   def status
@@ -44,7 +54,7 @@ class RegistrationInvitation < ApplicationRecord
   end
 
   def resend_token!
-    raise ActiveRecord::RecordInvalid, self if consumed_at? || canceled_at?
+    raise ActiveRecord::RecordInvalid, self if anonymized_email? || consumed_at? || canceled_at?
     if User.exists?(email: email)
       errors.add(:email, :taken)
       raise ActiveRecord::RecordInvalid, self
@@ -56,7 +66,7 @@ class RegistrationInvitation < ApplicationRecord
   end
 
   def cancel!
-    raise ActiveRecord::RecordInvalid, self if consumed_at? || canceled_at?
+    raise ActiveRecord::RecordInvalid, self if anonymized_email? || consumed_at? || canceled_at?
 
     update!(canceled_at: Time.current)
   end

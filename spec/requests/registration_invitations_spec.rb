@@ -14,7 +14,8 @@ RSpec.describe "Registration invitations", type: :request do
   end
 
   def registration_attributes(email = "new-reader@example.com")
-    { name: "New Reader", handle: "new_reader", email:, password: "password123!", password_confirmation: "password123!" }
+    { name: "New Reader", handle: "new_reader", email:, password: "password123!",
+      password_confirmation: "password123!", terms_accepted: "1" }
   end
 
   def delivered_token
@@ -163,14 +164,35 @@ RSpec.describe "Registration invitations", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "does not reopen an anonymized expired invitation for registration" do
+    invitation, token = issue_invitation
+    invitation.update!(expires_at: 31.days.ago)
+    RegistrationInvitations::AnonymizeDueEmails.new.call
+
+    expect(invitation.reload.email).to eq(invitation.anonymized_email)
+    get new_user_registration_path(invitation_token: token)
+    expect(response).to redirect_to(new_user_session_path)
+
+    expect {
+      post user_registration_path, params: { invitation_token: token, user: registration_attributes }
+    }.not_to change(User, :count)
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "binds the account email to the invitation and consumes it with the user" do
     invitation, token = issue_invitation
     get new_user_registration_path(invitation_token: token)
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("new-reader@example.com")
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('input[name="user[terms_accepted]"][type="checkbox"]')).to be_present
+    expect(page.at_css(%(a[href="#{terms_of_service_path}"]))).to be_present
+    expect(page.at_css(%(a[href="#{privacy_policy_path}"]))).to be_present
 
     expect {
-      post user_registration_path, params: { invitation_token: token, user: registration_attributes("spoof@example.com").merge(global_admin: true) }
+      post user_registration_path, params: { invitation_token: token,
+        user: registration_attributes("spoof@example.com").merge(global_admin: true,
+          terms_version: "spoofed", terms_accepted_at: 1.year.ago) }
     }.to change(User, :count).by(1)
     expect(response).to redirect_to(root_path)
     expect(flash[:notice]).to eq("회원가입이 완료되었습니다.")
@@ -179,10 +201,25 @@ RSpec.describe "Registration invitations", type: :request do
     expect(User.exists?(email: "spoof@example.com")).to be(false)
     expect(invitation.reload.user).to eq(user)
     expect(invitation.consumed_at).to be_present
+    expect(user.terms_version).to eq(User::TERMS_VERSION)
+    expect(user.terms_accepted_at).to be_within(1.minute).of(Time.current)
 
     sign_out user
     post user_registration_path, params: { invitation_token: token, user: registration_attributes }
     expect(response).to have_http_status(:forbidden)
+  end
+
+  it "rejects invitation sign-up without terms acceptance and keeps the invitation usable" do
+    invitation, token = issue_invitation
+
+    expect {
+      post user_registration_path, params: { invitation_token: token,
+        user: registration_attributes.except(:terms_accepted) }
+    }.not_to change(User, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include(I18n.t("legal.registration.consent_required"))
+    expect(invitation.reload.consumed_at).to be_nil
   end
 
   it "does not allow a signed-in admin to register another user" do

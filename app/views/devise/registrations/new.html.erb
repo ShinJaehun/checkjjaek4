@@ -37,6 +37,18 @@
         <%= form.password_field :password_confirmation, autocomplete: "new-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
       </div>
 
+      <div class="space-y-2 rounded-2xl border border-stone-200 bg-white/80 p-4">
+        <div class="flex items-start gap-3">
+          <%= form.check_box :terms_accepted, required: true, class: "mt-1 h-4 w-4 shrink-0 accent-stone-900" %>
+          <%= form.label :terms_accepted, t("legal.registration.agree_to_terms"), class: "text-sm leading-6 text-stone-800" %>
+        </div>
+        <p class="text-xs leading-5 text-stone-600">
+          <%= link_to t("legal.terms.title"), terms_of_service_path, target: "_blank", rel: "noopener", class: "underline underline-offset-4" %>
+          ·
+          <%= link_to t("legal.privacy.title"), privacy_policy_path, target: "_blank", rel: "noopener", class: "underline underline-offset-4" %>
+        </p>
+      </div>
+
       <%= form.submit t("auth.actions.sign_up"), class: "ui-button ui-button-primary w-full" %>
     <% end %>
   <% else %>

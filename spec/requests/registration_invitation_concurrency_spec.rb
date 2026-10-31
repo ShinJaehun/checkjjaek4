@@ -24,7 +24,7 @@ RSpec.describe "Concurrent invitation sign-up", type: :request do
             invitation_token: token,
             user: {
               name: "Concurrent Reader", handle: "concurrent_reader_#{suffix}", email: "wrong@example.com",
-              password: "password123!", password_confirmation: "password123!"
+              password: "password123!", password_confirmation: "password123!", terms_accepted: "1"
             }
           })
           session.response.status

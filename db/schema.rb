@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_29_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_31_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -340,7 +340,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_090000) do
     t.index ["token_digest"], name: "index_registration_invitations_on_token_digest", unique: true
     t.index ["user_id"], name: "index_registration_invitations_on_user_id"
     t.check_constraint "NOT (consumed_at IS NOT NULL AND canceled_at IS NOT NULL)", name: "registration_invitations_single_terminal_state"
-    t.check_constraint "consumed_at IS NULL AND user_id IS NULL OR consumed_at IS NOT NULL AND user_id IS NOT NULL", name: "registration_invitations_user_when_consumed"
+    t.check_constraint "consumed_at IS NULL AND user_id IS NULL OR consumed_at IS NOT NULL AND (user_id IS NOT NULL OR email::text = (('withdrawn-invitation-'::text || id::text) || '@users.invalid'::text))", name: "registration_invitations_user_when_consumed"
   end
 
   create_table "sticker_definitions", force: :cascade do |t|
@@ -367,6 +367,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_090000) do
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
     t.datetime "suspended_at"
+    t.datetime "terms_accepted_at"
+    t.string "terms_version"
     t.datetime "updated_at", null: false
     t.datetime "withdrawn_at"
     t.index "lower((handle)::text)", name: "index_users_on_lower_handle", unique: true, where: "(handle IS NOT NULL)"

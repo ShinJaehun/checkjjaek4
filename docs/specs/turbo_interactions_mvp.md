@@ -207,16 +207,16 @@ Turbo Stream을 여러 곳에서 쓰기 시작하면 flash도 독립 갱신 대�
 
 ### notification badge
 
-상태: foundation 완료 / Turbo 갱신 보류
+상태: foundation 완료 / 이후 알림 기능에서 실시간 갱신 구현
 
-현재 notification badge는 partial로 분리되어 있다.  
-Turbo Stream 교체 대상으로 쓸 수 있도록 stable wrapper foundation을 먼저 둔다.
+notification badge는 partial과 stable wrapper를 사용한다.
 
 현재 구현:
 
 - nav에 stable `#notification-badge-container` wrapper를 항상 렌더한다.
 - unread count가 0이어도 `#notification-badge-container`는 DOM에 남는다.
 - unread count가 있으면 기존 `#notification-badge`와 count가 wrapper 안에 표시된다.
+- 알림 생성 commit과 `/notifications` 진입 시 실제 읽음 상태 변경 뒤 수신자 전용 ActionCable + Turbo Stream으로 배지를 갱신한다. 연결이 끊기거나 페이지를 다시 열어도 서버 렌더링으로 현재 unread count를 표시한다.
 
 notification badge는 current_user의 unread count 기준이다.  
 따라서 댓글/다시짹 작성자의 현재 화면에서 직접 갱신하면 안 된다.
@@ -225,8 +225,7 @@ notification badge는 current_user의 unread count 기준이다.
 따라서 이 정책을 유지하는 동안 별도 `read_all` Turbo action은 우선순위가 낮다.
 
 명시적 `read_all` action은 나중에 알림 읽음 정책을 자동 read에서 명시적 read로 바꿀 때 별도 검토한다.
-알림 읽음/확인 흐름 Turbo화와 notification badge 갱신은 별도 단계로 둔다.
-ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
+알림 읽음/확인 흐름의 추가 Turbo화는 별도 단계로 둔다. 배지 갱신의 현재 기준은 `docs/specs/notifications_mvp.md`를 따른다.
 
 ---
 
@@ -266,7 +265,7 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 - `bookshelf_entry_source: "book_search"` 요청만 Turbo Stream으로 처리한다.
 - 책 검색 결과에서 `서재에 담기` 성공 시 해당 result card만 replace한다.
 - 성공 Turbo Stream 응답은 `#flash-messages`를 update한다.
-- replace 후 card는 `내 서재에 있음` 상태로 전환된다.
+- replace 후 card는 기본 책장일 때 `내 서재에 있음`, 일반 책장일 때 실제 책장 이름을 표시한다.
 - HTML fallback은 기존처럼 `book_path(@book)` redirect를 유지한다.
 
 구현 원칙:
@@ -292,13 +291,8 @@ ActionCable/실시간 broadcast도 이번 범위에서는 다루지 않는다.
 
 ## 책장 Turbo화 보류 기준
 
-책장 생성/수정/삭제, 책 이동, 책장 정렬, 책 순서 변경의 Turbo화는 이번 Turbo MVP wrap-up 범위에서 제외한다.
-
-bookshelf UI는 향후 Drag and Drop 인터페이스 도입 가능성이 높으므로, 지금 Turbo Stream을 먼저 적용하지 않는다.
-DnD 도입 시에는 Stimulus/SortableJS, 순서 저장 endpoint, Turbo 갱신 범위, 모바일 대체 UI를 함께 설계한다.
-
-현재는 HTML fallback 기반 흐름을 유지한다.
-따라서 bookshelf 관련 Turbo화는 “나중에 할 Turbo 후보”가 아니라 “DnD 설계 이후 재검토할 보류 항목”으로 둔다.
+책장 생성/수정/삭제, 책 이동, 책장 정렬, 책 순서 변경의 Turbo화는 이번 Turbo MVP wrap-up 범위에서 제외했다.
+책장 DnD와 모바일 대체 UI는 `docs/specs/bookshelf_ui.md`에 따라 구현되었고, 책장 변경은 현재 HTML fallback 흐름을 유지한다. Turbo 갱신 범위는 별도로 검토한다.
 
 ---
 
@@ -311,14 +305,11 @@ DnD 도입 시에는 Stimulus/SortableJS, 순서 저장 endpoint, Turbo 갱신 �
 - home/profile/book/requotes inline ReJjaek panel
 - Stimulus 기반 comments toggle
 - modal 기반 comments UI
-- notification badge Turbo 갱신
 - 알림 읽음/확인 흐름 Turbo화
-- 실시간 broadcast
 - 모든 Turbo action에 무조건 flash 추가
 - 같은 화면의 동일 Jjaek 다중 렌더 동시 갱신
 - 알림 읽음 정책 변경 및 read_all action
-- 책장 생성/수정/삭제/정렬/책 이동 Turbo화는 DnD 설계 이후 재검토
-- notification 실시간 push
+- 책장 생성/수정/삭제/정렬/책 이동 Turbo화
 - PWA/service worker
 - relationships 전체 페이지 Turbo Frame화
 - ActionCable/실시간 관계 반영
@@ -358,7 +349,7 @@ Turbo 1차 완료 기준:
 - 댓글 작성/삭제는 상세 페이지와 home/profile/book inline comments panel에서 panel과 count/action 영역을 갱신한다.
 - 상세 페이지 ReJjaek panel은 현재 화면 안에서 panel만 갱신한다.
 - flash는 stable wrapper 기반으로 일부 Turbo 성공 응답에서 update된다.
-- notification badge는 stable wrapper foundation만 완료했고 실제 Turbo 갱신은 보류한다.
+- notification badge는 stable wrapper foundation을 갖추었고, 이후 알림 기능에서 수신자 전용 실시간 갱신이 구현되었다.
 - relationships hub의 핵심 관계 action은 탭 건수와 선택 목록의 panel replace 구조를 갖는다.
 - 책 검색 결과 add-to-shelf 성공 케이스는 result card replace 구조를 갖는다.
 - HTML fallback이 유지된다.

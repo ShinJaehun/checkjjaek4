@@ -1,0 +1,76 @@
+en:
+  legal:
+    effective_date: "Effective date: %{date}"
+    contact_title: "Contact"
+    contact_body: "For questions about these policies or the service, email"
+    footer:
+      navigation: "Policies and contact"
+    registration:
+      agree_to_terms: "I agree to the Terms of Service. (Required)"
+      consent_required: "You must agree to the Terms of Service to sign up."
+    privacy:
+      title: "Privacy Policy"
+      intro: "Checkjjaek processes personal information to provide reading and community features to general members."
+      sections:
+        - title: "Information we process"
+          paragraphs:
+            - >-
+              At sign-up, we process the invited email address, name, public handle, password, and the time and version of Terms acceptance. We also process profile images and the bookshelves, reading records, posts, comments, likes, relationships, and notifications members choose to create.
+            - >-
+              We record IP address, request time, and path when the service is accessed. Password resets and moderation process the necessary request information and the subject, actor, reason, and time of an action.
+        - title: "Purposes and basis"
+          paragraphs:
+            - >-
+              We use information to verify invitations, provide account, reading, and community features, send notifications and service email, and respond to inquiries. Information needed for the service is processed to enter into or perform the service agreement. Security, abuse prevention, and moderation are carried out as allowed by applicable law; information needed for a legal obligation is processed to meet it.
+        - title: "Retention and deletion"
+          paragraphs:
+            - >-
+              We hold information while the service is in use. On withdrawal, the account name and email are replaced, and the avatar, bookshelves, reading records, relationships, and notifications are cleared. Posts and comments remain under an anonymous author, and the former public handle is privately reserved. Information subject to a legal retention requirement is processed within its scope.
+            - >-
+              Invitation links are valid for seven days after sending or resending. The email address on an unused expired invitation is replaced with a non-identifying address 30 days after expiration; the same happens 30 days after cancellation for a canceled invitation. We retain the email address on a used invitation while the member uses the service. On voluntary withdrawal, we immediately anonymize related invitation email addresses and remove account links. Non-identifying operational history, including invitation status and timestamps, remains.
+        - title: "External services"
+          paragraphs:
+            - >-
+              OCI is used to operate the service and store avatars, Cloudflare to proxy and secure connections, and Resend to send invitation and password reset email. These services process information needed for those tasks, such as connection data, recipient email addresses, and message contents.
+            - >-
+              Book search terms are sent to the Kakao Book Search API. The browser may contact an external image provider when a book cover is displayed.
+        - title: "Cookies"
+          paragraphs:
+            - >-
+              We use a session cookie for sign-in. Rejecting cookies in your browser may make sign-in unavailable.
+        - title: "Security measures"
+          paragraphs:
+            - >-
+              We use HTTPS, password protection, safeguards to limit the exposure of personal information in logs, private file storage, and server-side access checks.
+        - title: "Your rights"
+          paragraphs:
+            - >-
+              Members can manage available account information in settings and withdraw. Send requests to access, correct, delete, or suspend processing of personal information to the contact below. We will explain any applicable legal limit.
+    terms:
+      title: "Terms of Service"
+      intro: "These terms apply to general members using the Checkjjaek beta service."
+      sections:
+        - title: "Accounts and sign-up"
+          paragraphs:
+            - >-
+              Sign-up requires a valid email invitation from a system administrator. Members must provide accurate information and keep their password and account secure.
+        - title: "Service and visibility"
+          paragraphs:
+            - >-
+              Members can manage bookshelves and reading records and participate through posts, comments, and clubs. Access and participation depend on the visibility of personal posts and shelves and on a club's type, operating state, and membership. Public content may be visible to other users according to the service's access rules.
+        - title: "Member responsibilities"
+          paragraphs:
+            - >-
+              Members are responsible for their content and visibility settings. They must not violate others' rights or privacy or engage in impersonation, harassment, threats, spam, or other harmful activity.
+        - title: "Moderation"
+          paragraphs:
+            - >-
+              Under existing policies, operators may hide or restore posts and comments and suspend or restore accounts or club operations. Club administrators may manage member activity and content within their clubs.
+        - title: "Withdrawal and content"
+          paragraphs:
+            - >-
+              Withdrawal ends sign-in and new activity. Existing posts and comments may remain under an anonymous author; deleting individual content is handled separately.
+        - title: "Changes to these terms"
+          paragraphs:
+            - >-
+              Changes and their effective date will be posted on this page.

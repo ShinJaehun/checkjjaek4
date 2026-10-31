@@ -25,6 +25,7 @@ module Users
         user.with_lock do
           validate_withdrawal!
           cancel_pending_groups!
+          anonymize_registration_invitations!
           anonymize!
           clean_group_memberships!
           clean_social_data!
@@ -78,6 +79,17 @@ module Users
         reset_password_sent_at: nil,
         remember_created_at: nil
       )
+    end
+
+    def anonymize_registration_invitations!
+      invitations = RegistrationInvitation.where(user_id: user.id)
+        .or(RegistrationInvitation.where(email: user.email, user_id: nil))
+
+      invitations.find_each do |invitation|
+        attributes = { email: invitation.anonymized_email, user: nil }
+        attributes[:canceled_at] = Time.current if invitation.active?
+        invitation.update!(attributes)
+      end
     end
 
     def clean_group_memberships!
