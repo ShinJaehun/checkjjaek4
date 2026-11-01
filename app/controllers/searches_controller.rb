@@ -45,7 +45,10 @@ class SearchesController < ApplicationController
     when "jjaeks", "book_jjaeks"
       posts = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::SearchScope)
         .where("jjaeks.content ILIKE ?", pattern)
-        .includes(:book, user: { avatar_attachment: :blob })
+        .includes(:book, :group,
+                  user: { avatar_attachment: :blob },
+                  target_user: { avatar_attachment: :blob },
+                  quoted_jjaek: [ :book, :group, { user: { avatar_attachment: :blob } } ])
         .order(created_at: :desc, id: :desc)
       type == "jjaeks" ? posts.where(book_id: nil) : posts.where.not(book_id: nil)
     end
