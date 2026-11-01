@@ -27,7 +27,11 @@ class SearchesController < ApplicationController
       return redirect_to search_path(q: @query.presence, type: @type, per_page: @per_page) if tag_context_requested
     end
     @results = {}
-    return if @tag_mode ? @tag.blank? : @query.blank?
+    if !@tag_mode && @query.blank?
+      prepare_popular_tags
+      return
+    end
+    return if @tag_mode && @tag.blank?
 
     types = @type == "all" ? available_types : [ @type ]
     types.each do |type|
@@ -45,6 +49,19 @@ class SearchesController < ApplicationController
   end
 
   private
+
+  def prepare_popular_tags
+    visible_jjaek_ids = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::SearchScope).select(:id)
+    count_sql = "COUNT(DISTINCT jjaek_tags.jjaek_id)"
+    tags = JjaekTag.joins(:tag)
+      .where(jjaek_id: visible_jjaek_ids)
+      .group("tags.id", "tags.name")
+      .having("#{count_sql} >= 2")
+      .order(Arel.sql("#{count_sql} DESC"), "tags.name ASC")
+      .limit(8)
+      .pluck("tags.name")
+    @popular_tags = tags if tags.size >= 3
+  end
 
   def prepare_tag_scope!
     @tag_scope = params[:scope].presence || "all"

@@ -18,6 +18,7 @@ en:
       book_jjaeks: "Book posts"
       groups: "Groups"
     prompt: "Enter a search term or #tag to find users, posts, book posts, and groups."
+    popular_tags: "Popular tags"
     no_results: "No results found for “%{query}”."
     view_all: "View all %{type}"
     group_access_notice: "Finding a group by name does not grant access to its details or posts. Existing access rules apply."

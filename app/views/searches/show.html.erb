@@ -21,6 +21,17 @@
         <%= form.submit t("unified_search.submit"), class: "ui-button ui-button-primary shrink-0" %>
       </div>
     <% end %>
+    <% if @popular_tags.present? %>
+      <section aria-labelledby="popular-tags-title" class="mt-5 border-t border-stone-200 pt-5">
+        <h2 id="popular-tags-title" class="text-sm font-semibold text-stone-900"><%= t("unified_search.popular_tags") %></h2>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <% @popular_tags.each do |name| %>
+            <%= link_to "##{name}", search_path(tag: name),
+                        class: "inline-flex min-h-11 max-w-full min-w-0 items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold leading-5 text-amber-700 break-words [overflow-wrap:anywhere] transition-colors hover:border-amber-300 hover:bg-amber-100 hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700" %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
   </header>
 
   <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
