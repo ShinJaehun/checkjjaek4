@@ -30,6 +30,57 @@ RSpec.describe "Unified search", type: :request do
     end
   end
 
+  describe "popular tags" do
+    before { sign_in viewer }
+
+    def popular_tags_section
+      Nokogiri::HTML(response.body).at_css("section[aria-labelledby='popular-tags-title']")
+    end
+
+    it "ranks tags by distinct posts, breaks ties by name, and links to tag search only on the initial page" do
+      writer.jjaeks.create!(content: "#beta #beta")
+      2.times { writer.jjaeks.create!(content: "#beta") }
+      2.times { writer.jjaeks.create!(content: "#alpha #gamma") }
+      %w[delta epsilon eta iota theta zeta].each do |name|
+        2.times { writer.jjaeks.create!(content: "##{name}") }
+      end
+      writer.jjaeks.create!(content: "#single #single")
+
+      get search_path
+      links = popular_tags_section.css("a")
+      expect(links.map(&:text)).to eq(%w[#beta #alpha #delta #epsilon #eta #gamma #iota #theta])
+      expect(links.map { |link| link["href"] })
+        .to eq(%w[beta alpha delta epsilon eta gamma iota theta].map { |name| search_path(tag: name) })
+
+      get links.first["href"]
+      expect(search_section("jjaeks").text).to include("#beta")
+      expect(popular_tags_section).to be_nil
+
+      get search_path, params: { q: "beta" }
+      expect(popular_tags_section).to be_nil
+    end
+
+    it "excludes inaccessible posts from both counts and the three-tag display threshold" do
+      %w[alpha beta].each do |name|
+        2.times { writer.jjaeks.create!(content: "##{name}") }
+      end
+      group = Group.create!(group_admin: writer, name: "비공개 모임", group_type: :private_group, lifecycle_status: :active)
+      2.times { writer.jjaeks.create!(group:, content: "#club") }
+      2.times { writer.jjaeks.create!(content: "#private", visibility: :private_jjaek) }
+      2.times do
+        post = writer.jjaeks.create!(content: "#hidden")
+        post.update_columns(hidden_at: Time.current)
+      end
+
+      get search_path
+      expect(popular_tags_section).to be_nil
+
+      group.group_memberships.create!(user: viewer, status: :active)
+      get search_path
+      expect(popular_tags_section.css("a").map(&:text)).to eq(%w[#alpha #beta #club])
+    end
+  end
+
   it "shows an empty result message for every type when nothing matches" do
     sign_in viewer
     get search_path, params: { q: "존재하지않는검색어" }
