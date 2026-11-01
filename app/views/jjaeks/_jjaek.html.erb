@@ -31,7 +31,8 @@ end %>
   <% if content_visible %>
     <div class="<%= "mt-4 rounded-2xl border border-red-100 bg-white p-5 text-stone-900" if jjaek.hidden? %>">
       <% if preview %>
-        <%= render "jjaeks/jjaek_header", jjaek: jjaek, show_actions: false, show_context: false %>
+        <%= render "jjaeks/jjaek_header", jjaek: jjaek, show_actions: false,
+                   show_context: local_assigns.fetch(:show_preview_context, false) %>
       <% elsif book_friend_preview %>
         <%= render "jjaeks/jjaek_header", jjaek: jjaek, book_friend_preview: true %>
       <% elsif detail_context %>
