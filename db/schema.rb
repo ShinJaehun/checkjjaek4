@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_31_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_01_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -251,6 +251,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_31_010000) do
     t.index ["lifecycle_status"], name: "index_groups_on_lifecycle_status"
   end
 
+  create_table "jjaek_tags", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "jjaek_id", null: false
+    t.bigint "tag_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["jjaek_id", "tag_id"], name: "index_jjaek_tags_on_jjaek_id_and_tag_id", unique: true
+    t.index ["jjaek_id"], name: "index_jjaek_tags_on_jjaek_id"
+    t.index ["tag_id"], name: "index_jjaek_tags_on_tag_id"
+  end
+
   create_table "jjaeks", force: :cascade do |t|
     t.bigint "book_id"
     t.text "content", null: false
@@ -352,6 +362,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_31_010000) do
     t.index ["key"], name: "index_sticker_definitions_on_key", unique: true
   end
 
+  create_table "tags", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_tags_on_name", unique: true
+  end
+
   create_table "users", force: :cascade do |t|
     t.boolean "accepts_book_friend_requests", default: true, null: false
     t.boolean "accepts_group_invitations", default: true, null: false
@@ -411,6 +428,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_31_010000) do
   add_foreign_key "group_memberships", "groups"
   add_foreign_key "group_memberships", "users"
   add_foreign_key "groups", "users", column: "group_admin_id"
+  add_foreign_key "jjaek_tags", "jjaeks"
+  add_foreign_key "jjaek_tags", "tags"
   add_foreign_key "jjaeks", "books"
   add_foreign_key "jjaeks", "groups"
   add_foreign_key "jjaeks", "jjaeks", column: "quoted_jjaek_id"

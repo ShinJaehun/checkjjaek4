@@ -71,6 +71,39 @@ module JjaeksHelper
     t(translation_key, **jjaek_context_translation_options(jjaek))
   end
 
+  def jjaek_content_with_hashtags(content)
+    source = content.to_s
+    parts = []
+    offset = 0
+
+    while (match = Tag::HASHTAG_PATTERN.match(source, offset))
+      parts << source[offset...match.begin(0)]
+      parts << link_to(match[0], search_path(hashtag_search_params(match[1])),
+                       class: "font-semibold text-amber-700 hover:text-amber-800 underline underline-offset-2")
+      offset = match.end(0)
+    end
+    parts << source[offset..]
+    safe_join(parts)
+  end
+
+  def hashtag_search_params(name)
+    search_params = { tag: Tag.canonical_name(name) }
+    case request.path_parameters.values_at(:controller, :action)
+    when [ "groups", "show" ]
+      search_params.merge(scope: "group", group_id: @group.id)
+    when [ "users", "show" ]
+      search_params.merge(scope: "user", user_id: @user.id)
+    when [ "searches", "show" ]
+      type = @type.in?(%w[jjaeks book_jjaeks]) ? @type : "all"
+      search_params = search_params.merge(type:, per_page: @per_page)
+      return search_params unless @tag_mode
+
+      search_params.merge(scope: @tag_scope, group_id: @tag_group&.id, user_id: @tag_user&.id).compact
+    else
+      search_params
+    end
+  end
+
   def validated_jjaek_return_path(candidate, include_search_origin: true)
     return unless candidate.is_a?(String) && candidate.start_with?("/")
     return if candidate.start_with?("//") || candidate.match?(/[\\[:cntrl:]]/)
@@ -202,7 +235,13 @@ module JjaeksHelper
     when [ "discoveries", "show" ]
       [ discovery_path, [] ] if policy(:discovery).show?
     when [ "searches", "show" ]
-      [ search_path, %i[q type per_page page] ] if policy(:search).show?
+      return unless policy(:search).show?
+
+      if query.key?(:tag)
+        [ search_path, %i[tag scope group_id user_id type per_page page] ] if valid_tag_search_return_query?(query)
+      else
+        [ search_path, %i[q type per_page page] ]
+      end
     when [ "notifications", "index" ]
       [ notifications_path, [] ] if policy(Notification).index?
     when [ "book_searches", "show" ]
@@ -257,6 +296,31 @@ module JjaeksHelper
       jjaek = Jjaek.find(route[:id])
       [ jjaek_path(jjaek), [] ] if !jjaek.deleted? && policy(jjaek).show?
     end
+  end
+
+  def valid_tag_search_return_query?(query)
+    return false unless query[:tag].is_a?(String) && Tag.canonical_name(query[:tag].strip.delete_prefix("#"))
+
+    scope = query[:scope].presence || "all"
+    return false unless scope.in?(%w[all group user])
+    return false if query.key?(:group_id) && query.key?(:user_id)
+
+    if query.key?(:group_id)
+      group_id = query[:group_id]
+      return false unless group_id.is_a?(String) && group_id.match?(/\A[1-9]\d*\z/)
+      return false unless policy(Group.find(group_id)).read_jjaeks?
+    end
+    if query.key?(:user_id)
+      user_id = query[:user_id]
+      return false unless user_id.is_a?(String) && user_id.match?(/\A[1-9]\d*\z/)
+      user = User.find(user_id)
+      return false unless policy(user).show? && policy(user).show_profile_jjaeks?
+    end
+
+    return false if scope == "group" && !query.key?(:group_id)
+    return false if scope == "user" && !query.key?(:user_id)
+
+    true
   end
 
   def jjaek_context_translation_key(jjaek)

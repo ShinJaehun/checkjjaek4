@@ -31,6 +31,39 @@ RSpec.describe Jjaek, type: :model do
     expect(jjaek).to be_valid
   end
 
+  it "keeps one tag link per name across create and content edits" do
+    jjaek = user.jjaeks.create!(content: "#Reading #reading #독서_토론")
+    expect(jjaek.tags.pluck(:name)).to contain_exactly("reading", "독서_토론")
+
+    jjaek.update!(content: "#독서_토론 #1984")
+    expect(jjaek.tags.reload.pluck(:name)).to contain_exactly("독서_토론", "1984")
+
+    expect(jjaek.update(content: "")).to be(false)
+    expect(jjaek.tags.reload.pluck(:name)).to contain_exactly("독서_토론", "1984")
+  end
+
+  it "removes tag links on hard delete and tombstone" do
+    hard_deleted = user.jjaeks.create!(content: "#하드삭제")
+    tombstoned = user.jjaeks.create!(content: "#댓글보존")
+    tombstoned.comments.create!(user: other_user, content: "대화")
+
+    hard_deleted.destroy_or_tombstone!
+    tombstoned.destroy_or_tombstone!
+
+    expect(JjaekTag.where(jjaek_id: [ hard_deleted.id, tombstoned.id ])).to be_empty
+    expect(tombstoned.reload).to be_deleted
+  end
+
+  it "reconciles older rows safely when the backfill is repeated" do
+    jjaek = user.jjaeks.create!(content: "old content")
+    jjaek.update_columns(content: "#Backfill #backfill")
+
+    2.times { jjaek.refresh_tags! }
+
+    expect(jjaek.tags.pluck(:name)).to eq([ "backfill" ])
+    expect(JjaekTag.where(jjaek:).count).to eq(1)
+  end
+
   it "allows a jjaek without a book" do
     jjaek = described_class.new(user:, content: "책 없이 남기는 짹")
 
