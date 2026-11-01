@@ -59,6 +59,7 @@
 - 독립 통합 검색 `/search`는 사용자 이름·공개 handle, 일반 짹·책짹 본문, 동아리 이름을 GET으로 검색한다.
   전체 유형별 5건 미리보기와 개별 유형 30·50·100건 선택 페이지네이션을 제공하며 기존 책 검색은 유지한다.
   `SearchPolicy`, 사용자 `SearchScope`, Jjaek `SearchScope` 및 Group `NameSearchScope`로 결과 범위를 제한한다.
+  D01 태그 모드는 저장된 정확한 태그 연결로 짹·책짹만 검색하고, 클릭한 동아리·프로필 문맥 또는 전체 범위를 선택한다. 태그 연결은 작성·수정·삭제 때 갱신하며 기존 글은 수동 backfill한다.
   검색 결과는 기존 짹·책짹 카드의 읽기 전용 미리보기, 사용자 아바타·관계 배지·소식받기 수, 기존 동아리 카드를 사용한다.
   비공개 동아리는 비회원에게 이름·공개 상태·링크만 표시하고 기존 Group 목록 scope에서 허용된 동아리만 관리자·회원 미리보기를 표시한다.
   Group 목록과 검색은 `GroupMembership.card_previews_for`의 일괄 window query로 일반 회원 수·최대 3명 아바타를 조회한다. 상세 기준은 `docs/specs/unified_search.md`를 따른다.

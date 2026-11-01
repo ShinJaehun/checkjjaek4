@@ -5,10 +5,15 @@
     <h1 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("unified_search.title") %></h1>
     <%= form_with url: search_path, method: :get, class: "mt-5 space-y-2" do |form| %>
       <%= form.label :q, t("unified_search.query_label"), class: "text-sm font-medium text-stone-700" %>
+      <% if @tag_mode %>
+        <%= hidden_field_tag :scope, @tag_scope %>
+        <%= hidden_field_tag :group_id, @tag_group.id if @tag_group %>
+        <%= hidden_field_tag :user_id, @tag_user.id if @tag_user %>
+      <% end %>
       <%= hidden_field_tag :type, @type %>
       <%= hidden_field_tag :per_page, @per_page if @type == "all" %>
       <div class="flex flex-col gap-3 sm:flex-row">
-        <%= form.search_field :q, value: @query, placeholder: t("unified_search.placeholder"),
+        <%= form.search_field :q, value: search_input_value, placeholder: t("unified_search.placeholder"),
                               class: "min-h-11 min-w-0 flex-1 rounded-xl border border-stone-300 bg-white px-4 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900" %>
         <% unless @type == "all" %>
           <%= render "admin/shared/page_size", form: form, per_page: @per_page %>
@@ -18,15 +23,30 @@
     <% end %>
   </header>
 
-  <nav aria-label="<%= t("unified_search.types_label") %>" class="flex flex-wrap gap-2">
-    <% [ "all", *SearchesController::RESULT_TYPES ].each do |type| %>
-      <%= link_to t("unified_search.types.#{type}"), search_path(search_results_params(type: type)),
-                  aria: { current: ("page" if @type == type) },
-                  class: "ui-button #{@type == type ? 'ui-button-primary' : 'ui-button-secondary'}" %>
-    <% end %>
-  </nav>
+  <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <nav aria-label="<%= t("unified_search.types_label") %>" class="flex flex-wrap gap-2 lg:shrink-0">
+      <% types = @tag_mode ? %w[jjaeks book_jjaeks] : SearchesController::RESULT_TYPES %>
+      <% [ "all", *types ].each do |type| %>
+        <%= link_to t("unified_search.types.#{type}"), search_path(search_results_params(type: type)),
+                    aria: { current: ("page" if @type == type) },
+                    class: "ui-button #{@type == type ? 'ui-button-primary' : 'ui-button-secondary'}" %>
+      <% end %>
+    </nav>
 
-  <% if @query.blank? %>
+    <% if @tag_mode && (@tag_group || @tag_user) %>
+      <nav aria-label="<%= t("unified_search.tag_scope_label") %>" class="flex min-w-0 flex-wrap gap-2 lg:flex-1 lg:justify-end">
+        <% scoped_type = @tag_group ? "group" : "user" %>
+        <%= link_to tag_scope_label, search_path(search_results_params(scope: scoped_type)),
+                    aria: { current: ("page" if @tag_scope == scoped_type) },
+                    class: "ui-button max-w-full min-w-0 break-words [overflow-wrap:anywhere] #{@tag_scope == scoped_type ? 'ui-button-primary' : 'ui-button-secondary'}" %>
+        <%= link_to t("unified_search.tag_scopes.all"), search_path(search_results_params(scope: "all")),
+                    aria: { current: ("page" if @tag_scope == "all") },
+                    class: "ui-button max-w-full min-w-0 #{@tag_scope == 'all' ? 'ui-button-primary' : 'ui-button-secondary'}" %>
+      </nav>
+    <% end %>
+  </div>
+
+  <% if @tag_mode ? @tag.blank? : @query.blank? %>
     <p class="rounded-2xl border border-dashed border-stone-300 bg-white/70 p-6 text-sm text-stone-600"><%= t("unified_search.prompt") %></p>
   <% else %>
     <% @results.each do |type, records| %>
@@ -48,7 +68,7 @@
                        collection: records, as: :result %>
           </div>
         <% else %>
-          <p class="mt-5 text-sm text-stone-500"><%= t("unified_search.no_results", query: @query) %></p>
+          <p class="mt-5 text-sm text-stone-500"><%= t("unified_search.no_results", query: @tag_mode ? "##{@tag}" : @query) %></p>
         <% end %>
       </section>
     <% end %>

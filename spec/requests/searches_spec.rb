@@ -560,4 +560,221 @@ RSpec.describe "Unified search", type: :request do
       expect(response.body).not_to include("translation_missing")
     end
   end
+
+  describe "tag search" do
+    before { sign_in viewer }
+
+    it "redirects a single hashtag from the shared search field to tag mode" do
+      post = writer.jjaeks.create!(content: "Input #Reading")
+
+      get search_path, params: { q: "  #READING  ", type: "jjaeks", per_page: 50, page: 3 }
+      expect(response).to redirect_to(search_path(tag: "reading", type: "jjaeks", per_page: 50))
+
+      follow_redirect!
+      expect(search_section("jjaeks").text).to include(post.content)
+      expect(search_section("users")).to be_nil
+      expect(search_section("groups")).to be_nil
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("form[action='#{search_path}']").size).to eq(1)
+      search_fields = page.css("form[action='#{search_path}'] input[type='search']")
+      expect(search_fields.map { |field| field["name"] }).to eq([ "q" ])
+      expect(search_fields.first["value"]).to eq("#reading")
+      expect(search_fields.first["placeholder"]).to eq("사용자, 짹, 책짹, 동아리, #태그 검색")
+    end
+
+    it "preserves the book-post tab and resets user or group tabs for hashtag input" do
+      get search_path, params: { q: "#독서_토론", type: "book_jjaeks", per_page: 50, page: 4 }
+      expect(response).to redirect_to(search_path(tag: "독서_토론", type: "book_jjaeks", per_page: 50))
+
+      %w[users groups].each do |type|
+        get search_path, params: { q: "#독서_토론", type:, per_page: 100, page: 4 }
+        expect(response).to redirect_to(search_path(tag: "독서_토론", type: "all", per_page: 100))
+      end
+    end
+
+    it "keeps non-single hashtags in ordinary text search" do
+      [ "#독서 토론", "#독서-토론", "#", "독서 #토론" ].each do |query|
+        get search_path, params: { q: query, type: "jjaeks" }
+        expect(response).to have_http_status(:ok)
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css("input[name='q']")["value"]).to eq(query)
+        expect(page.at_css("nav[aria-label='#{I18n.t('unified_search.tag_scope_label')}']")).to be_nil
+      end
+    end
+
+    it "uses exact tag links for posts while preserving ordinary text search" do
+      exact = writer.jjaeks.create!(content: "태그검증 #우정")
+      longer = writer.jjaeks.create!(content: "태그검증 #우정의힘")
+      book_post = writer.jjaeks.create!(book:, content: "태그검증 #우정")
+      english = writer.jjaeks.create!(content: "태그검증 #Reading")
+
+      get search_path, params: { tag: "우정" }
+      expect(search_section("jjaeks").text).to include(exact.content)
+      expect(search_section("jjaeks").text).not_to include(longer.content)
+      expect(search_section("book_jjaeks").text).to include(book_post.content)
+      expect(search_section("users")).to be_nil
+      expect(search_section("groups")).to be_nil
+
+      get search_path, params: { tag: "READING", type: "jjaeks" }
+      expect(search_section("jjaeks").text).to include(english.content)
+
+      get search_path, params: { q: "우정", type: "jjaeks" }
+      expect(search_section("jjaeks").text).to include(exact.content, longer.content)
+    end
+
+    it "reuses bounded previews and individual tab page sizes for tags" do
+      6.times { |index| writer.jjaeks.create!(content: "태그목록 #{index} #목록") }
+
+      get search_path, params: { tag: "목록" }
+      expect(search_section("jjaeks").css("article").size).to eq(5)
+      expect(search_section("jjaeks").at_css("a[href='#{search_path(tag: '목록', scope: 'all', type: 'jjaeks', per_page: 30)}']")).to be_present
+
+      get search_path, params: { tag: "목록", type: "jjaeks", per_page: 50 }
+      expect(search_section("jjaeks").css("article").size).to eq(6)
+      expect(search_section("book_jjaeks")).to be_nil
+    end
+
+    it "filters a group scope through the existing content policy and supports all results" do
+      group = Group.create!(group_admin: writer, name: "태그 동아리", group_type: :private_group, lifecycle_status: :active)
+      group_post = writer.jjaeks.create!(group:, content: "그룹본문 #함께")
+      next_tag_post = writer.jjaeks.create!(group:, content: "그룹다음 #다른")
+      personal = writer.jjaeks.create!(content: "개인본문 #함께")
+
+      get search_path, params: { tag: "함께", scope: "group", group_id: group.id }
+      expect(response).to have_http_status(:not_found)
+
+      sign_in viewer
+      get search_path, params: { tag: "함께" }
+      expect(response).to have_http_status(:ok)
+      expect(search_section("jjaeks").text).to include(personal.content)
+      expect(search_section("jjaeks").text).not_to include(group_post.content)
+
+      group.group_memberships.create!(user: viewer, status: :active)
+      get search_path, params: { tag: "함께", scope: "group", group_id: group.id }
+      expect(search_section("jjaeks").text).to include(group_post.content)
+      expect(search_section("jjaeks").text).not_to include(personal.content)
+      scope_links = Nokogiri::HTML(response.body).css("nav[aria-label='#{I18n.t('unified_search.tag_scope_label')}'] a")
+      expect(scope_links.map { |link| link["href"] })
+        .to include(search_path(tag: "함께", scope: "all", group_id: group.id, type: "all", per_page: 30))
+      expect(scope_links.map(&:text)).to eq([ "#{group.name}에서", I18n.t("unified_search.tag_scopes.all") ])
+      expect(scope_links.first["aria-current"]).to eq("page")
+      expect(Nokogiri::HTML(response.body).css("nav[aria-label='#{I18n.t('unified_search.types_label')}'] a").map(&:text))
+        .to eq(%w[전체 짹 책짹])
+
+      get search_path, params: { tag: "함께", scope: "all", group_id: group.id }
+      expect(search_section("jjaeks").text).to include(group_post.content, personal.content)
+
+      get search_path, params: { q: "#다른", scope: "group", group_id: group.id,
+                                 type: "jjaeks", per_page: 50, page: 3 }
+      expect(response).to redirect_to(search_path(tag: "다른", scope: "group", group_id: group.id,
+                                                  type: "jjaeks", per_page: 50))
+      follow_redirect!
+      expect(search_section("jjaeks").text).to include(next_tag_post.content)
+      expect(Nokogiri::HTML(response.body).at_css("input[name='q']")["value"]).to eq("#다른")
+
+      get search_path, params: { q: "그룹본문", scope: "group", group_id: group.id,
+                                 type: "jjaeks", per_page: 50, page: 3 }
+      expect(response).to redirect_to(search_path(q: "그룹본문", type: "jjaeks", per_page: 50))
+      follow_redirect!
+      expect(search_section("jjaeks").text).to include(group_post.content)
+      expect(Nokogiri::HTML(response.body).at_css("nav[aria-label='#{I18n.t('unified_search.tag_scope_label')}']")).to be_nil
+    end
+
+    it "filters user scope without exposing another user's private posts" do
+      other = User.create!(name: "다른 작성자", email: "tag-other@example.com", password: "password123!")
+      own_post = writer.jjaeks.create!(content: "작성자태그 #독서")
+      other_post = other.jjaeks.create!(content: "다른태그 #독서")
+      private_post = writer.jjaeks.create!(content: "비공개태그 #독서", visibility: :private_jjaek)
+      hidden_post = writer.jjaeks.create!(content: "숨김태그 #독서")
+      hidden_post.update_columns(hidden_at: Time.current)
+      deleted_post = writer.jjaeks.create!(content: "삭제태그 #독서")
+      deleted_post.update_columns(deleted_at: Time.current)
+
+      get search_path, params: { tag: "독서", scope: "user", user_id: writer.id }
+      expect(search_section("jjaeks").text).to include(own_post.content)
+      scope_links = Nokogiri::HTML(response.body).css("nav[aria-label='#{I18n.t('unified_search.tag_scope_label')}'] a")
+      expect(scope_links.map(&:text)).to eq([ "#{writer.name}의 짹에서", I18n.t("unified_search.tag_scopes.all") ])
+      [ other_post, private_post, hidden_post, deleted_post ].each do |post|
+        expect(search_section("jjaeks").text).not_to include(post.content)
+      end
+
+      get search_path, params: { tag: "독서", scope: "all", user_id: writer.id }
+      expect(search_section("jjaeks").text).to include(own_post.content, other_post.content)
+      expect(search_section("jjaeks").text).not_to include(private_post.content)
+
+      get search_path, params: { q: "#독서", scope: "user", user_id: writer.id, type: "jjaeks", per_page: 50 }
+      expect(response).to redirect_to(search_path(tag: "독서", scope: "user", user_id: writer.id,
+                                                  type: "jjaeks", per_page: 50))
+    end
+
+    it "rechecks a tagged requote's source visibility" do
+      source = writer.jjaeks.create!(content: "Source")
+      requote = viewer.jjaeks.create!(quoted_jjaek: source, content: "인용글 #인용")
+
+      get search_path, params: { tag: "인용" }
+      expect(search_section("jjaeks").text).to include(requote.content)
+
+      source.update!(visibility: :private_jjaek)
+      get search_path, params: { tag: "인용" }
+      expect(search_section("jjaeks").text).not_to include(requote.content)
+    end
+
+    it "rejects invalid scope combinations and inaccessible targets identically" do
+      group = Group.create!(group_admin: writer, name: "숨긴 동아리", group_type: :private_group, lifecycle_status: :active)
+      [ { tag: "독서", scope: "group", group_id: group.id },
+        { tag: "독서", scope: "group", group_id: "999999999" },
+        { tag: "독서", scope: "user", user_id: "999999999" },
+        { tag: "독서", scope: "user", user_id: writer.id, group_id: group.id },
+        { tag: "독서", scope: "unknown" } ].each do |search_params|
+        sign_in viewer
+        get search_path, params: search_params
+        expect(response).to have_http_status(:not_found),
+          "params=#{search_params.inspect}, redirect=#{response.location}"
+      end
+    end
+
+    it "links escaped body tags from the current screen context and preserves a tag return URL" do
+      group = Group.create!(group_admin: writer, name: "문맥 동아리", group_type: :public_group, lifecycle_status: :active)
+      group_post = writer.jjaeks.create!(group:, content: "<script>bad</script>\n#읽기 & #READING")
+      writer.jjaeks.create!(content: "프로필본문 #읽기")
+
+      get group_path(group)
+      group_page = Nokogiri::HTML(response.body)
+      group_card = group_page.css("article").find { |article| article.text.include?(group_post.content) }
+      expect(group_card.css("script")).to be_empty
+      group_link = group_page.css("a").find { |link| link.text == "#읽기" }
+      expect(Rack::Utils.parse_query(URI.parse(group_link["href"]).query))
+        .to eq("tag" => "읽기", "scope" => "group", "group_id" => group.id.to_s)
+
+      get user_path(writer)
+      profile_link = Nokogiri::HTML(response.body).css("a").find { |link| link.text == "#읽기" }
+      expect(Rack::Utils.parse_query(URI.parse(profile_link["href"]).query))
+        .to eq("tag" => "읽기", "scope" => "user", "user_id" => writer.id.to_s)
+
+      viewer.jjaeks.create!(content: "내프로필 #읽기")
+      get user_path(viewer)
+      own_link = Nokogiri::HTML(response.body).css("a").find { |link| link.text == "#읽기" }
+      expect(Rack::Utils.parse_query(URI.parse(own_link["href"]).query))
+        .to eq("tag" => "읽기", "scope" => "user", "user_id" => viewer.id.to_s)
+      get own_link["href"]
+      expect(Nokogiri::HTML(response.body).at_css("form[action='#{search_path}'] input[name='q']")["value"]).to eq("#읽기")
+      expect(Nokogiri::HTML(response.body).at_css("nav[aria-label='#{I18n.t('unified_search.tag_scope_label')}']").text)
+        .to include("#{viewer.name}의 짹에서")
+
+      get search_path, params: { tag: "읽기", scope: "group", group_id: group.id, type: "jjaeks", per_page: 50, page: 1 }
+      card = search_section("jjaeks").at_css("article")
+      expect(card.text).to include(group_post.content)
+      expect(card.css("form")).to be_empty
+      tag_link = card.css("a").find { |link| link.text == "#READING" }
+      expect(Rack::Utils.parse_query(URI.parse(tag_link["href"]).query))
+        .to eq("tag" => "reading", "type" => "jjaeks", "per_page" => "50",
+               "scope" => "group", "group_id" => group.id.to_s)
+      detail_link = card.css("a").find { |link| URI.parse(link["href"]).path == jjaek_path(group_post) }
+      get detail_link["href"]
+      back_link = Nokogiri::HTML(response.body).at_css("a[data-jjaek-back]")
+      expect(Rack::Utils.parse_query(URI.parse(back_link["href"]).query))
+        .to eq("tag" => "읽기", "scope" => "group", "group_id" => group.id.to_s,
+               "type" => "jjaeks", "per_page" => "50", "page" => "1")
+    end
+  end
 end

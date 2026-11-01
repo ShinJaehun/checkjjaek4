@@ -32,6 +32,20 @@ RSpec.describe "Discoveries", type: :request do
     expect(page.css("a[href*='refresh']")).to be_empty
   end
 
+  it "links tags in both discovery post previews to the global tag search" do
+    book = Book.create!(title: "Tagged discovery book")
+    writer.jjaeks.create!(content: "General #발견")
+    writer.jjaeks.create!(book:, content: "Book #발견")
+    sign_in viewer
+    get_published_discovery
+
+    page = Nokogiri::HTML(response.body)
+    %w[general_jjaeks book_jjaeks].each do |section|
+      link = page.css("#discovery_#{section} a").find { |anchor| anchor.text == "#발견" }
+      expect(link["href"]).to eq(search_path(tag: "발견"))
+    end
+  end
+
   it "keeps all recommendation choices and post order stable for a Seoul publication date" do
     seoul = Time.find_zone!("Asia/Seoul")
     authors = []

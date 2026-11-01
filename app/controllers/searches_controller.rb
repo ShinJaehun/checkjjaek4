@@ -4,13 +4,32 @@ class SearchesController < ApplicationController
 
   def show
     authorize :search, :show?
+    @tag_mode = params.key?(:tag)
+    @tag_input = params[:tag].to_s.strip.delete_prefix("#") if @tag_mode
+    @tag = Tag.canonical_name(@tag_input) if @tag_mode
+    prepare_tag_scope! if @tag_mode
     @query = params[:q].to_s.strip
-    @type = params[:type].in?(RESULT_TYPES) ? params[:type] : "all"
+    available_types = @tag_mode ? %w[jjaeks book_jjaeks] : RESULT_TYPES
+    @type = params[:type].in?(available_types) ? params[:type] : "all"
     @per_page = Admin::InventoryPage.normalize_per_page(params[:per_page])
+    unless @tag_mode
+      tag_context_requested = %i[scope group_id user_id].any? { |key| params.key?(key) }
+      hashtag = Tag::HASHTAG_PATTERN.match(@query)
+      if hashtag && hashtag[0] == @query && (name = Tag.canonical_name(hashtag[1]))
+        type = @type.in?(%w[jjaeks book_jjaeks]) ? @type : "all"
+        tag_params = { tag: name, type:, per_page: @per_page }
+        if tag_context_requested
+          prepare_tag_scope!
+          tag_params.merge!(scope: @tag_scope, group_id: @tag_group&.id, user_id: @tag_user&.id)
+        end
+        return redirect_to search_path(tag_params.compact)
+      end
+      return redirect_to search_path(q: @query.presence, type: @type, per_page: @per_page) if tag_context_requested
+    end
     @results = {}
-    return if @query.blank?
+    return if @tag_mode ? @tag.blank? : @query.blank?
 
-    types = @type == "all" ? RESULT_TYPES : [ @type ]
+    types = @type == "all" ? available_types : [ @type ]
     types.each do |type|
       scope = results_for(type)
       @results[type] = if @type == "all"
@@ -27,29 +46,61 @@ class SearchesController < ApplicationController
 
   private
 
-  def results_for(type)
-    pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
+  def prepare_tag_scope!
+    @tag_scope = params[:scope].presence || "all"
+    raise ActiveRecord::RecordNotFound unless @tag_scope.in?(%w[all group user])
+    raise ActiveRecord::RecordNotFound if params.key?(:group_id) && params.key?(:user_id)
 
+    if params.key?(:group_id)
+      group_id = params[:group_id]
+      raise ActiveRecord::RecordNotFound unless group_id.is_a?(String) && group_id.match?(/\A[1-9]\d*\z/)
+
+      @tag_group = Group.find(group_id)
+      raise ActiveRecord::RecordNotFound unless policy(@tag_group).read_jjaeks?
+    end
+    if params.key?(:user_id)
+      user_id = params[:user_id]
+      raise ActiveRecord::RecordNotFound unless user_id.is_a?(String) && user_id.match?(/\A[1-9]\d*\z/)
+
+      @tag_user = User.find(user_id)
+      raise ActiveRecord::RecordNotFound unless policy(@tag_user).show? && policy(@tag_user).show_profile_jjaeks?
+    end
+
+    raise ActiveRecord::RecordNotFound if @tag_scope == "group" && !@tag_group
+    raise ActiveRecord::RecordNotFound if @tag_scope == "user" && !@tag_user
+  end
+
+  def results_for(type)
     case type
     when "users"
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
       policy_scope(User, policy_scope_class: UserPolicy::SearchScope)
         .where("users.name ILIKE :pattern OR users.handle ILIKE :pattern", pattern:)
         .select(:id, :name, :handle, :withdrawn_at, :default_avatar_index)
         .includes(avatar_attachment: :blob)
         .order(:name, :id)
     when "groups"
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
       policy_scope(Group, policy_scope_class: GroupPolicy::NameSearchScope)
         .where("groups.name ILIKE ?", pattern)
         .select(:id, :name, :group_type)
         .order(:name, :id)
     when "jjaeks", "book_jjaeks"
       posts = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::SearchScope)
-        .where("jjaeks.content ILIKE ?", pattern)
         .includes(:book, :group,
                   user: { avatar_attachment: :blob },
                   target_user: { avatar_attachment: :blob },
                   quoted_jjaek: [ :book, :group, { user: { avatar_attachment: :blob } } ])
         .order(created_at: :desc, id: :desc)
+      if @tag_mode
+        tagged_ids = JjaekTag.joins(:tag).where(tags: { name: @tag }).select(:jjaek_id)
+        posts = posts.where(id: tagged_ids)
+        posts = posts.where(group_id: @tag_group.id) if @tag_scope == "group"
+        posts = posts.where(user_id: @tag_user.id) if @tag_scope == "user"
+      else
+        pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
+        posts = posts.where("jjaeks.content ILIKE ?", pattern)
+      end
       type == "jjaeks" ? posts.where(book_id: nil) : posts.where.not(book_id: nil)
     end
   end

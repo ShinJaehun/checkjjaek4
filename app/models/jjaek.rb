@@ -20,6 +20,8 @@ class Jjaek < ApplicationRecord
   has_many :requotes, class_name: "Jjaek", foreign_key: :quoted_jjaek_id, inverse_of: :quoted_jjaek
   has_many :comments, dependent: :destroy
   has_many :likes, dependent: :destroy
+  has_many :jjaek_tags, dependent: :delete_all
+  has_many :tags, through: :jjaek_tags
   has_many :moderation_actions, as: :target
 
   before_destroy :mark_requotes_as_deleted_source
@@ -40,6 +42,7 @@ class Jjaek < ApplicationRecord
 
   before_validation :normalize_group_visibility
   before_update :record_content_edited_at
+  after_save :refresh_tags!, if: :saved_change_to_content?
 
   scope :recent, -> { order(created_at: :desc) }
   scope :visible, -> { where(hidden_at: nil) }
@@ -71,6 +74,17 @@ class Jjaek < ApplicationRecord
       deletion_time = Time.current
       mark_requotes_as_deleted_source(deletion_time)
       update_columns(content: "", deleted_at: deletion_time, updated_at: deletion_time)
+      jjaek_tags.delete_all
+    end
+  end
+
+  def refresh_tags!
+    tag_ids = deleted? ? [] : Tag.extract_names(content).map { |name| Tag.create_or_find_by!(name:).id }
+    if tag_ids.empty?
+      jjaek_tags.delete_all
+    else
+      jjaek_tags.where.not(tag_id: tag_ids).delete_all
+      tag_ids.each { |tag_id| jjaek_tags.create_or_find_by!(tag_id:) }
     end
   end
 
