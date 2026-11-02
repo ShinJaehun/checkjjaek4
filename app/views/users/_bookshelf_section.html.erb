@@ -1,6 +1,4 @@
-<section class="space-y-4"
-         data-controller="bookshelf-management-modal"
-         data-action="keydown.esc@window->bookshelf-management-modal#close">
+<section class="space-y-4">
   <% bookshelves = Array(local_assigns[:bookshelves]) %>
   <% bookshelf_section_path = ->(options = {}) { user_library_path(user, options) } %>
   <% return_to = "library" %>
@@ -35,16 +33,19 @@
                       onchange: "this.form.requestSubmit()" %>
     <% end %>
 
-    <div class="relative z-10 hidden md:block" data-controller="horizontal-scroll">
+    <div class="relative z-10 hidden items-center gap-1 md:flex" data-controller="horizontal-scroll">
       <button type="button"
-              class="absolute left-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm"
+              class="hidden flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm disabled:opacity-40"
+              data-horizontal-scroll-target="previous"
               data-action="horizontal-scroll#scrollLeft"
+              disabled
               aria-label="<%= t("users.profile.bookshelf_scroll.previous") %>">
         &lt;
       </button>
 
-      <nav class="flex items-end gap-1 overflow-x-auto px-7 pt-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      <nav class="relative flex min-w-0 flex-1 items-end gap-1 overflow-x-auto pt-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
            data-horizontal-scroll-target="scroller"
+           data-action="scroll->horizontal-scroll#updateControls"
            aria-label="<%= t("users.profile.bookshelf_tabs") %>">
         <% bookshelves.each do |bookshelf| %>
           <% selected = bookshelf == selected_bookshelf %>
@@ -71,8 +72,10 @@
         <% end %>
       </nav>
       <button type="button"
-              class="absolute right-1 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm"
+              class="hidden flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm disabled:opacity-40"
+              data-horizontal-scroll-target="next"
               data-action="horizontal-scroll#scrollRight"
+              disabled
               aria-label="<%= t("users.profile.bookshelf_scroll.next") %>">
         &gt;
       </button>

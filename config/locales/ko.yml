@@ -1274,6 +1274,7 @@ ko:
       destroy: "책장 삭제"
       move_down: "오른쪽으로 이동"
       move_up: "왼쪽으로 이동"
+      new: "새 책장"
       open_create: "새 책장 만들기"
       update: "책장 수정"
     alerts:
