@@ -185,6 +185,41 @@ RSpec.describe "Libraries", type: :request do
       expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
     end
 
+    it "connects the owner's mobile and desktop create buttons to one existing modal" do
+      sign_in viewer
+
+      get user_library_path(viewer)
+
+      document = Nokogiri::HTML(response.body)
+      controllers = document.css('[data-controller~="bookshelf-management-modal"]')
+      expect(controllers.size).to eq(1)
+      controller = controllers.first
+      mobile_button = controller.at_css('[data-library-summary] button[data-action="bookshelf-management-modal#openCreate"]')
+      expect(mobile_button.text.squish).to eq("+ #{I18n.t('bookshelves.actions.new')}")
+      expect(mobile_button["class"].split).to include("md:hidden")
+      expect(controller.at_css('[data-horizontal-scroll-target="scroller"] button[data-action="bookshelf-management-modal#openCreate"]')).to be_present
+      expect(controller.css('[data-bookshelf-management-modal-target="modal"]').size).to eq(1)
+      form = controller.at_css(%([data-bookshelf-management-modal-target="createPanel"] form[action="#{bookshelves_path}"]))
+      expect(form).to be_present
+      expect(form.at_css('input[name="return_to"][value="library"]')).to be_present
+    end
+
+    it "renders desktop scroll controls hidden until overflow is measured" do
+      sign_in viewer
+
+      get user_library_path(viewer)
+
+      controller = Nokogiri::HTML(response.body).at_css('[data-controller="horizontal-scroll"]')
+      expect(controller["class"].split).to include("hidden", "md:flex")
+      { "previous" => "scrollLeft", "next" => "scrollRight" }.each do |target, action|
+        button = controller.at_css(%(button[data-horizontal-scroll-target="#{target}"]))
+        expect(button["class"].split).to include("hidden")
+        expect(button.has_attribute?("disabled")).to be(true)
+        expect(button["data-action"]).to eq("horizontal-scroll##{action}")
+      end
+      expect(controller.at_css('[data-horizontal-scroll-target="scroller"]')["data-action"]).to eq("scroll->horizontal-scroll#updateControls")
+    end
+
     it "renders detail view by default" do
       bookshelf = viewer.bookshelves.create!(name: "LIBRARY_DETAIL_SHELF")
       entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_DETAIL_BOOK")
@@ -266,6 +301,9 @@ RSpec.describe "Libraries", type: :request do
       expect(response.body).not_to include(I18n.t("bookshelves.actions.move_down"))
       expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
       expect(response.body).not_to include('name="return_to"')
+      document = Nokogiri::HTML(response.body)
+      expect(document.css('button[data-action="bookshelf-management-modal#openCreate"]')).to be_empty
+      expect(document.css('[data-bookshelf-management-modal-target="modal"]')).to be_empty
     end
   end
 

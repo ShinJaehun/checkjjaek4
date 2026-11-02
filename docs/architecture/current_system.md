@@ -184,10 +184,11 @@
 - 버튼, input, select, textarea, form 같은 control 요소는 reorder drag 대상에서 제외한다
 - detail 카드 전체는 `manual` 정렬에서 SortableJS drag source로 동작하며, 책 제목 링크는 클릭 시 책 상세 링크로 동작한다
 - Library UX는 책장 tab/index를 사전 index 또는 바인더 tab처럼 보이게 하고, 선택된 책장과 책 목록 영역을 `Bookshelf.color_key` 기반 accent로 약하게 연결한다
-- 책장 tab/index는 horizontal scroll과 좌우 버튼으로 탐색하며, 선택된 tab은 자동으로 화면 안에 보이게 한다
+- 책장 tab/index는 horizontal scroll로 탐색하며, 실제 overflow가 있을 때만 좌우 버튼을 표시하고 양 끝에서는 해당 방향을 비활성화한다. overflow가 없으면 버튼용 여백도 남기지 않으며, 탭·화면 크기 변경과 Turbo 재연결 시 상태를 갱신하고 선택된 tab을 자동으로 화면 안에 보이게 한다
 - 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
 - 정렬은 선택된 책장 header 오른쪽 컨트롤로 제공하며, 새 책장 생성과 선택된 일반 책장 관리는 tab/index와 책 목록 사이의 drag 동선을 방해하지 않도록 페이지 내 사전 렌더링 modal로 분리한다
 - 책장 관리 modal은 Turbo Frame fetch 없이 Stimulus로 create/edit panel을 전환하고, 기존 create/update/move_up/move_down/destroy 흐름을 재사용한다
+- owner의 모바일 타이틀 카드 `+ 새 책장`과 PC 탭 끝 `+`는 서재 전체의 단일 `bookshelf-management-modal` controller와 기존 생성 modal을 공유한다
 - 기본 책장 “내 책장”은 삭제할 수 없다
 - 일반 책장은 비어 있을 때만 삭제할 수 있고, 책이 들어 있는 책장은 삭제 버튼 대신 안내 문구를 보여준다
 - Library 카드 안에는 책장 이동 select/form을 두지 않는다

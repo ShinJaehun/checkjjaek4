@@ -1248,6 +1248,7 @@ en:
       destroy: "Delete bookshelf"
       move_down: "Move right"
       move_up: "Move left"
+      new: "New bookshelf"
       open_create: "Create bookshelf"
       update: "Update bookshelf"
     alerts:

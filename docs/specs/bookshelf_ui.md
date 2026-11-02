@@ -73,6 +73,8 @@ Bookshelf의 데이터 모델, 기본 책장, visibility, BookshelfEntry 인바�
 - 이 select/dropdown은 책장 간 이동이 아니라 현재 Library에서 볼 책장을 바꾸는 탐색 UI다.
 - 책장 탭에는 접근 가능한 책장의 `color_key`를 시각적으로 반영한다.
 - 책장이 많아지면 한 줄 tab/index를 유지하고 horizontal scroll과 좌우 이동 버튼으로 탐색한다.
+- PC 좌우 버튼은 탭 영역이 실제로 가로로 넘칠 때만 표시하고, 왼쪽/오른쪽 끝에서는 해당 방향 버튼을 비활성화한다. 넘치지 않으면 버튼과 버튼용 여백을 남기지 않는다.
+- 탭 개수·화면 크기 변경과 Turbo 페이지 이동 후에도 overflow와 버튼 상태를 다시 계산한다.
 - 작은 화면의 기본 Library에서는 tab/index 대신 책장 전환 select/dropdown을 사용한다.
 - 긴 책장명은 비선택 tab에서는 ellipsis로 줄이고, 선택된 tab에서는 전체 이름을 노출한다.
 - 선택된 tab은 화면 안으로 자동 가시화한다.
@@ -663,7 +665,8 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 
 - 선택된 책장 header에는 책장 이름, 책 수, visibility, 정렬 컨트롤, 설정 버튼을 배치하는 방향을 우선한다.
 - 정렬은 선택된 책장 header 오른쪽의 작은 컨트롤로 옮긴다.
-- 새 책장 생성은 책장 tab/index 영역의 작은 `+` 버튼에서 modal로 진입한다.
+- owner의 새 책장 생성은 PC에서 책장 tab/index 끝의 작은 `+` 버튼, 모바일에서 서재 타이틀 카드의 `+ 새 책장` 버튼으로 같은 modal에 진입한다.
+- 타이틀 카드와 책장 섹션은 하나의 `bookshelf-management-modal` Stimulus 범위를 공유하며, modal은 한 번만 렌더링한다.
 - 선택된 일반 책장 관리는 selected bookshelf header의 “책장 관리” 버튼에서 같은 modal의 edit mode로 진입한다.
 - modal markup은 페이지 안에 미리 렌더링하고, Turbo Frame fetch 없이 Stimulus로 create/edit panel 전환과 열기/닫기만 처리한다.
 - create/edit modal shell은 공유하되, form action은 기존 `POST /bookshelves`, `PATCH /bookshelves/:id` 흐름을 재사용한다.
