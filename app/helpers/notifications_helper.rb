@@ -34,7 +34,7 @@ module NotificationsHelper
     when "book_friendship_accepted"
       user_path(notification.actor)
     when "profile_jjaek_created"
-      notification.notifiable && policy(notification.notifiable).show? ? jjaek_path(notification.notifiable, return_to: notifications_path) : root_path
+      notification.notifiable && notification_policy_allows?(notification.notifiable, :show?) ? jjaek_path(notification.notifiable, return_to: notifications_path) : root_path
     when "requote_created"
       readable_requote_notification?(notification) ? jjaek_path(notification.notifiable, return_to: notifications_path) : root_path
     when "comment_created"
@@ -54,14 +54,32 @@ module NotificationsHelper
 
   private
 
+  def notification_policy_allows?(record, query)
+    return policy(record).public_send(query) unless @notification_policy_results
+
+    key = [ record.class.name, record.id, query ]
+    @notification_policy_results.fetch(key) do
+      @notification_policy_results[key] = policy(record).public_send(query)
+    end
+  end
+
+  def notification_membership_group(action)
+    group_id = action.membership_group_id
+    if @notification_membership_groups_by_id&.key?(group_id)
+      @notification_membership_groups_by_id.fetch(group_id)
+    else
+      Group.find_by(id: group_id)
+    end
+  end
+
   def readable_requote_notification?(notification)
     requote = notification.notifiable
-    requote.is_a?(Jjaek) && JjaekPolicy.new(current_user, requote).visible_for_interaction?
+    requote.is_a?(Jjaek) && notification_policy_allows?(requote, :visible_for_interaction?)
   end
 
   def readable_comment_notification?(notification)
     jjaek = notification.notifiable&.jjaek
-    jjaek.present? && JjaekPolicy.new(current_user, jjaek).visible_for_interaction?
+    jjaek.present? && notification_policy_allows?(jjaek, :visible_for_interaction?)
   end
 
   def group_membership_notification_message(notification)
@@ -90,19 +108,19 @@ module NotificationsHelper
                           notification.group_membership_removed?
 
     if notification.group_membership_join_request_cancelled?
-      return GroupPolicy.new(current_user, group).view_members? ? group_members_path(group) : groups_path
+      return notification_policy_allows?(group, :view_members?) ? group_members_path(group) : groups_path
     end
 
     if notification.group_membership_requested_to_join?
       current_admin = group.group_admin?(current_user)
-      can_view_members = GroupPolicy.new(current_user, group).view_members?
+      can_view_members = notification_policy_allows?(group, :view_members?)
       return group_members_path(group) if current_admin && can_view_members
       return groups_path
     end
 
     if notification.group_membership_invitation_accepted? ||
        notification.group_membership_invitation_declined?
-      can_view_members = GroupPolicy.new(current_user, group).view_members?
+      can_view_members = notification_policy_allows?(group, :view_members?)
       return group_members_path(group) if can_view_members
     end
 
@@ -124,7 +142,7 @@ module NotificationsHelper
 
     if notification.group_opening_requested? || notification.group_reactivation_requested? ||
        notification.group_opening_cancelled? || notification.group_reactivation_withdrawn?
-      GroupPolicy.new(current_user, group).view_admin_details? ? admin_group_path(group) : groups_path
+      notification_policy_allows?(group, :view_admin_details?) ? admin_group_path(group) : groups_path
     else
       readable_group_path_or_fallback(group)
     end
@@ -141,7 +159,7 @@ module NotificationsHelper
     }
     options[:group_name] = action.target&.name || t("notifications.moderation.group_fallback") if action.target_type == "Group"
     if action.target_type.in?(%w[GroupMembership GroupMemberBan])
-      options[:group_name] = Group.find_by(id: action.membership_group_id)&.name || t("notifications.moderation.group_fallback")
+      options[:group_name] = notification_membership_group(action)&.name || t("notifications.moderation.group_fallback")
     end
 
     t("notifications.messages.#{notification.action}", **options)
@@ -173,20 +191,20 @@ module NotificationsHelper
     if action.target_type == "GroupMemberBan"
       return groups_path if notification.group_member_banned?
 
-      return readable_group_path_or_fallback(Group.find_by(id: action.membership_group_id))
+      return readable_group_path_or_fallback(notification_membership_group(action))
     end
 
-    target = action.target
     case action.target_type
     when "User"
       user_path(current_user)
     when "Group"
-      readable_group_path_or_fallback(target)
+      readable_group_path_or_fallback(action.target)
     when "GroupMembership"
-      readable_group_path_or_fallback(Group.find_by(id: action.membership_group_id))
+      readable_group_path_or_fallback(notification_membership_group(action))
     when "Jjaek"
-      readable_jjaek_path_or_fallback(target)
+      readable_jjaek_path_or_fallback(action.target)
     when "Comment"
+      target = action.target
       readable_jjaek_path_or_fallback(target&.jjaek, comment: target)
     else
       user_path(current_user)
@@ -194,18 +212,18 @@ module NotificationsHelper
   end
 
   def readable_group_path_or_fallback(group)
-    group && GroupPolicy.new(current_user, group).show? ? group_path(group) : groups_path
+    group && notification_policy_allows?(group, :show?) ? group_path(group) : groups_path
   end
 
   def readable_jjaek_path_or_fallback(jjaek, comment: nil)
     return user_path(current_user) unless jjaek
-    if JjaekPolicy.new(current_user, jjaek).show?
+    if notification_policy_allows?(jjaek, :show?)
       return jjaek_path(jjaek, return_to: notifications_path, anchor: (dom_id(comment) if comment))
     end
 
     group = jjaek.group
     return user_path(current_user) unless group
 
-    GroupPolicy.new(current_user, group).show? ? group_path(group) : groups_path
+    notification_policy_allows?(group, :show?) ? group_path(group) : groups_path
   end
 end
