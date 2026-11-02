@@ -75,25 +75,27 @@ class GroupContentThreadQuery
   def apply_status
     return unless STATUSES.include?(@params[:content_status])
 
-    matching_root_ids, matching_comment_root_ids = status_matches(@params[:content_status])
-    @thread_scope = threads_matching(matching_root_ids, matching_comment_root_ids)
+    matching_roots, matching_comment_root_ids = status_matches(@params[:content_status])
+    # Keep authorization and search outside the OR instead of nesting the filtered scope again.
+    @thread_scope = @thread_scope.merge(matching_roots)
+      .or(@thread_scope.where(id: matching_comment_root_ids))
   end
 
   def status_matches(status)
     case status
     when "active"
       [
-        @thread_scope.where(deleted_at: nil, hidden_at: nil).select(:id),
+        Jjaek.where(deleted_at: nil, hidden_at: nil),
         @scoped_comments.where(hidden_at: nil).select(:jjaek_id)
       ]
     when "hidden"
       [
-        @thread_scope.where(deleted_at: nil).where.not(hidden_at: nil).select(:id),
+        Jjaek.where(deleted_at: nil).where.not(hidden_at: nil),
         @scoped_comments.where.not(hidden_at: nil).select(:jjaek_id)
       ]
     when "deleted"
       [
-        @thread_scope.where.not(deleted_at: nil).select(:id),
+        Jjaek.where.not(deleted_at: nil),
         @scoped_comments.none.select(:jjaek_id)
       ]
     end

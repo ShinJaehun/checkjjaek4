@@ -1008,6 +1008,9 @@ RSpec.describe "Admin group approvals", type: :request do
       { content_status: "active" } => [ general, book_jjaek, deleted ],
       { content_status: "hidden" } => [ general, hidden_jjaek ],
       { content_status: "deleted" } => [ deleted ],
+      { content_q: "FILTER_GROUP_HIDDEN_COMMENT", content_status: "active" } => [ general ],
+      { content_q: "FILTER_GROUP_GENERAL", content_status: "hidden" } => [ general ],
+      { content_q: "PRESERVE_FILTER_GROUP_DELETED", content_status: "deleted" } => [ deleted ],
       { content_q: "group_book", content: "book", content_status: "active" } => [ book_jjaek ]
     }.each do |filters, expected_roots|
       get content_admin_group_path(active_group), params: filters
