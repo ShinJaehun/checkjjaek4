@@ -452,6 +452,8 @@ RSpec.describe "Comments", type: :request do
   end
 
   it "re-renders the jjaek page when comment creation fails" do
+    jjaek.likes.create!(user:)
+    jjaek.likes.create!(user: author)
     sign_in user
 
     post jjaek_comments_path(jjaek), params: { comment: { content: "" } }
@@ -460,6 +462,7 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include("댓글")
     expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1))
     expect(response.body).not_to include(I18n.t("jjaeks.meta.comments", count: 2))
+    expect(response.body).to include(I18n.t("jjaeks.meta.likes", count: 2), I18n.t("likes.actions.unlike"))
   end
 
   it "replaces only the comments panel on turbo stream comment creation failure" do

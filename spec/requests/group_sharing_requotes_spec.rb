@@ -5,6 +5,23 @@ RSpec.describe "Group sharing and quotes", type: :request do
   let(:source_author) { User.create!(name: "Source author", email: "group-share-source@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "Source book", authors_text: "Source writer") }
 
+  it "rejects a B share if membership is suspended after the sharing form was opened" do
+    group = Group.create!(lifecycle_status: :active, group_admin: source_author, name: "Readers", group_type: :private_group)
+    membership = group.group_memberships.create!(user: writer, status: :active)
+    source = source_author.jjaeks.create!(content: "PUBLIC_SOURCE")
+    sign_in writer
+    get new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1)
+    expect(response).to have_http_status(:ok)
+
+    membership.update!(moderation_status: :activity_suspended)
+    expect {
+      post jjaeks_path(quoted_jjaek_id: source.id), params: {
+        jjaek: { group_id: group.id, quoted_jjaek_id: source.id, content: "Stale permission" }
+      }
+    }.not_to change(Jjaek, :count)
+    expect(response).to redirect_to(root_path)
+  end
+
   it "keeps A and C independent in either creation order for a public group original" do
     sign_in writer
 

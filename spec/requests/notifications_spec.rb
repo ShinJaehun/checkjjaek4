@@ -8,6 +8,97 @@ RSpec.describe "Notifications", type: :request do
     Nokogiri::HTML.parse(response.body)
   end
 
+  it "keeps repeated association queries bounded for mixed notifications about the same post and group" do
+    group = Group.create!(group_admin: actor, name: "Shared circle", group_type: :private_group, lifecycle_status: :active)
+    membership = group.group_memberships.create!(user: recipient, status: :active)
+    source = recipient.jjaeks.create!(content: "Original")
+    quote = actor.jjaeks.create!(group:, quoted_jjaek: source, content: "Group quote")
+    Notification.create!(recipient:, actor:, action: :requote_created, notifiable: quote, read_at: Time.current)
+    sign_in recipient
+
+    observations = []
+    3.times do |index|
+      comment = quote.comments.create!(user: actor, content: "Reply #{index}")
+      event = GroupMembershipEvent.create!(group:, user: recipient, actor:, event_type: :approved)
+      action = ModerationAction.create!(target: membership, actor:, action_type: :suspend_activity,
+                                        public_reason: "Rule #{index}", internal_note: "PRIVATE_NOTE")
+      { comment_created: comment, group_membership_approved: event, group_member_activity_suspended: action }.each do |type, notifiable|
+        Notification.create!(recipient:, actor:, action: type, notifiable:, read_at: Time.current)
+      end
+      next if index == 1
+
+      get notifications_path # Warm schema metadata before observing SQL.
+      queries = { executed: 0, cached: 0 }
+      subscriber = ->(*args) do
+        payload = args.last
+        next if payload[:name].in?(%w[SCHEMA TRANSACTION]) || !payload[:sql].match?(/\A\s*SELECT\b/i)
+
+        queries[payload[:cached] ? :cached : :executed] += 1
+      end
+      ActiveRecord::Base.uncached do
+        ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+          get notifications_path
+        end
+      end
+      observations << queries
+      articles = parse_html.css("article")
+      expect(articles.size).to eq(1 + 3 * (index + 1))
+      expect(articles.css("a").map { |link| link["href"] }).to include(jjaek_path(quote, return_to: notifications_path), group_path(group))
+      expect(response.body).to include(group.name, I18n.t("notifications.messages.group_comment_created", actor_name: actor.name, group_name: group.name))
+      expect(articles.css("img").map { |img| img["alt"] }).to all(eq(actor.name))
+      expect(articles.css("img").size).to eq(index + 2)
+      expect(response.body).not_to include("PRIVATE_NOTE", source.content, quote.content)
+    end
+
+    expect(observations.first[:executed]).to be_positive
+    expect(observations.last).to eq(observations.first)
+  end
+
+  it "keeps show permission separate from a false interaction permission for the same hidden post" do
+    actor.update!(global_admin: true)
+    post = recipient.jjaeks.create!(content: "Hidden original")
+    comment = post.comments.create!(user: actor, content: "Hidden context comment")
+    Notification.create!(recipient:, actor:, action: :comment_created, notifiable: comment)
+    post.update!(hidden_at: Time.current)
+    action = ModerationAction.create!(target: post, actor:, action_type: :hide, public_reason: "other", moderation_authority: "platform")
+    Notification.create!(recipient:, actor:, action: :jjaek_hidden, notifiable: action)
+    sign_in recipient
+
+    get notifications_path
+
+    articles = parse_html.css("article")
+    unavailable = articles.find { |article| article.text.include?(I18n.t("notifications.messages.comment_unavailable")) }
+    expect(unavailable.at_css("a")["href"]).to eq(root_path)
+    expect(unavailable.at_css("img")).to be_nil
+    expect(articles.css("a").map { |link| link["href"] }).to include(jjaek_path(post, return_to: notifications_path))
+    expect(response.body).not_to include(post.content, comment.content)
+  end
+
+  it "does not mark a notification arriving during the entry badge broadcast as read" do
+    post = actor.jjaeks.create!(target_user: recipient, content: "First notification")
+    existing = Notification.create!(recipient:, actor:, action: :profile_jjaek_created, notifiable: post)
+    arriving_post = actor.jjaeks.create!(target_user: recipient, content: "Arriving notification")
+    other = Notification.create!(recipient: actor, actor: recipient, action: :profile_jjaek_created, notifiable: arriving_post)
+    arriving = nil
+    sign_in recipient
+    allow(Notification).to receive(:broadcast_badge_to).and_call_original
+    allow(Notification).to receive(:broadcast_badge_to).with(recipient) do
+      next if arriving
+
+      # Assign before saving so the arriving notification's own broadcast does not deliver again.
+      arriving = Notification.new(recipient:, actor:, action: :profile_jjaek_created, notifiable: arriving_post)
+      arriving.save!
+    end
+
+    get notifications_path
+
+    expect(existing.reload.read_at).to be_present
+    expect(arriving.reload.read_at).to be_nil
+    expect(other.reload.read_at).to be_nil
+    expect(parse_html.css("article").size).to eq(1)
+    expect(parse_html.at_css("article")["class"]).not_to include("opacity-60")
+  end
+
   it "redirects guests to sign in" do
     get notifications_path
 

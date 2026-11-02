@@ -21,7 +21,7 @@ class LikesController < ApplicationController
     if saved
       @jjaek.reload
       respond_to do |format|
-        format.turbo_stream
+        format.turbo_stream { prepare_jjaek_like_summaries_for([ @jjaek ]) }
         format.html { redirect_back fallback_location: root_path, notice: t("likes.notices.created") }
       end
     else
@@ -42,7 +42,7 @@ class LikesController < ApplicationController
 
     @jjaek.reload
     respond_to do |format|
-      format.turbo_stream
+      format.turbo_stream { prepare_jjaek_like_summaries_for([ @jjaek ]) }
       format.html { redirect_back fallback_location: root_path, notice: t("likes.notices.destroyed") }
     end
   end

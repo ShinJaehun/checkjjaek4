@@ -35,6 +35,10 @@ RSpec.describe "Requotes", type: :request do
       source = original_author.jjaeks.create!(book:, content: "AUTHOR_BOOK_SOURCE")
       group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Approval readers", group_type: :approval_group)
       readable = viewer.jjaeks.create!(quoted_jjaek: source, content: "READABLE_OPINION")
+      readable.comments.create!(user: viewer, content: "Comment")
+      readable.comments.create!(user: viewer, content: "Hidden comment", hidden_at: Time.current)
+      readable.likes.create!(user: viewer)
+      readable.likes.create!(user: original_author)
       restricted = viewer.jjaeks.create!(group:, quoted_jjaek: source, content: "PRIVATE_GROUP_OPINION")
       sign_in original_author
 
@@ -53,6 +57,9 @@ RSpec.describe "Requotes", type: :request do
         page = Nokogiri::HTML(response.body)
         limited_card = page.at_css("article[data-restricted-requote]")
         expect(page.at_css("article#jjaek_#{readable.id}")).to be_present
+        expect(page.at_css("article#jjaek_#{readable.id}").text).to include(
+          I18n.t("jjaeks.meta.comments", count: 2), I18n.t("jjaeks.meta.likes", count: 2), I18n.t("likes.actions.unlike")
+        )
         expect(limited_card.text).to include(
           I18n.t("requotes.restricted.context_html", author_name: viewer.name,
                   source_author_name: original_author.name, source_kind: "책짹", group_name: group.name),

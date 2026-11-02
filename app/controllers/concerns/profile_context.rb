@@ -51,7 +51,7 @@ module ProfileContext
     policy_scope(
       @user.jjaeks,
       policy_scope_class: JjaekPolicy::ProfileScope
-    ).includes(:book, :group, :likes, :comments, :moderation_actions, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
+    ).includes(:book, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
   end
 
   def prepare_profile_activity_items
@@ -60,8 +60,10 @@ module ProfileContext
     @profile_activity_items = @feed_page.items
     @jjaeks = @profile_activity_items.grep(Jjaek)
     @book_activities = @profile_activity_items.grep(BookActivity)
+    prepare_jjaek_card_summaries_for(@jjaeks)
     prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
+    prepare_group_share_destinations_for(@jjaeks)
     @show_profile_activity = @show_jjaeks || current_user == @user || @profile_activity_items.any?
   end
 end

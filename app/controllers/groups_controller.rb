@@ -10,12 +10,13 @@ class GroupsController < ApplicationController
   def index
     authorize Group
     @group_activity_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupActivityScope)
-      .includes(:book, :likes, :comments, :group, :moderation_actions,
+      .includes(:book, :group,
                 user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
       .order(created_at: :desc, id: :desc)
     @feed_page = FeedPage.new(jjaeks: @group_activity_jjaeks, cursor: params[:cursor])
     @feed_next_url = groups_path(cursor: @feed_page.next_cursor) if @feed_page.next_cursor
     @group_activity_jjaeks = @feed_page.items
+    prepare_jjaek_card_summaries_for(@group_activity_jjaeks)
     prepare_current_reading_states_for(@group_activity_jjaeks)
     prepare_visible_requote_counts_for(@group_activity_jjaeks)
     return render_feed_page(context: :group, next_url: @feed_next_url) if feed_page_request?

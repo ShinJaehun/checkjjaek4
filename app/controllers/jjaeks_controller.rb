@@ -236,6 +236,7 @@ class JjaeksController < ApplicationController
     @comment = Comment.new(jjaek: @jjaek)
     @comments = @jjaek.comments.includes(user: { avatar_attachment: :blob }).order(created_at: :asc)
     prepare_comment_moderation_histories(@comments)
+    prepare_jjaek_card_summaries_for([ @jjaek ])
   end
 
   def post_return_params

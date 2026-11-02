@@ -164,14 +164,46 @@ module JjaeksHelper
     end
   end
 
+  def show_group_share_action?(jjaek)
+    if @group_share_destinations_by_jjaek_id&.key?(jjaek.id)
+      @group_share_destinations_by_jjaek_id.fetch(jjaek.id).any?
+    else
+      policy(jjaek).share_to_group?
+    end
+  end
+
   def current_user_like_for(jjaek)
-    jjaek.likes.find { |like| like.user_id == current_user.id }
+    like = if @current_user_likes_by_jjaek_id&.key?(jjaek.id)
+      @current_user_likes_by_jjaek_id.fetch(jjaek.id)
+    elsif jjaek.association(:likes).loaded?
+      jjaek.likes.find { |record| record.persisted? && record.user_id == current_user.id }
+    else
+      jjaek.likes.find_by(user_id: current_user.id)
+    end
+    like.jjaek = jjaek if like
+    like
+  end
+
+  def jjaek_comments_count(jjaek)
+    if @jjaek_comment_counts&.key?(jjaek.id)
+      @jjaek_comment_counts.fetch(jjaek.id)
+    else
+      jjaek.comments_count
+    end
+  end
+
+  def jjaek_likes_count(jjaek)
+    if @jjaek_like_counts&.key?(jjaek.id)
+      @jjaek_like_counts.fetch(jjaek.id)
+    else
+      jjaek.likes_count
+    end
   end
 
   def show_like_summary_action?(jjaek)
     current_like = current_user_like_for(jjaek)
 
-    jjaek.likes_count.positive? ||
+    jjaek_likes_count(jjaek).positive? ||
       (current_like && policy(current_like).destroy?) ||
       policy(Like.new(jjaek: jjaek, user: current_user)).create?
   end

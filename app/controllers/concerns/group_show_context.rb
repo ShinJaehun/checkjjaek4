@@ -25,13 +25,14 @@ module GroupShowContext
       policy_scope(
         @group.jjaeks,
         policy_scope_class: JjaekPolicy::GroupContentScope
-      ).includes(:book, :group, :likes, :comments, :moderation_actions, user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
+      ).includes(:book, :group, user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
     else
       Jjaek.none
     end
     @feed_page = FeedPage.new(jjaeks: @jjaeks, cursor: params[:cursor])
     @feed_next_url = group_path(@group, cursor: @feed_page.next_cursor) if @feed_page.next_cursor
     @jjaeks = @feed_page.items
+    prepare_jjaek_card_summaries_for(@jjaeks)
     prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
   end

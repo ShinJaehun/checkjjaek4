@@ -77,7 +77,7 @@ class ApplicationController < ActionController::Base
 
   def prepare_book_show_read_context(feed_only: false)
     prepare_book_show_form_context unless feed_only
-    book_jjaeks = @book.jjaeks.includes(:book, :group, :likes, :comments,
+    book_jjaeks = @book.jjaeks.includes(:book, :group,
       user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })
     @jjaeks = if @group.present? && @bookshelf_entry.present?
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::GroupContentScope).where(group: @group)
@@ -92,7 +92,10 @@ class ApplicationController < ActionController::Base
     @jjaeks = @feed_page.items
     prepare_current_reading_states_for(@jjaeks)
     prepare_book_friend_activities unless feed_only
-    prepare_visible_requote_counts_for(@jjaeks + Array(@book_friend_activities).grep(Jjaek))
+    card_jjaeks = @jjaeks + Array(@book_friend_activities).grep(Jjaek)
+    prepare_jjaek_card_summaries_for(card_jjaeks)
+    prepare_visible_requote_counts_for(card_jjaeks)
+    prepare_group_share_destinations_for(card_jjaeks)
   end
 
   def prepare_book_show_form_context
@@ -121,7 +124,7 @@ class ApplicationController < ActionController::Base
     jjaeks = policy_scope(
       @book.jjaeks.where(user_id: friend_ids, group_id: nil, hidden_at: nil, deleted_at: nil),
       policy_scope_class: JjaekPolicy::BookScope
-    ).includes(:book, :likes, :comments, user: { avatar_attachment: :blob },
+    ).includes(:book, user: { avatar_attachment: :blob },
       quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
       .order(created_at: :desc, id: :desc).limit(3).to_a
 
@@ -148,6 +151,39 @@ class ApplicationController < ActionController::Base
     entries.each do |entry|
       @current_reading_states[[ entry.user_id, entry.book_id ]] = entry
     end
+  end
+
+  def prepare_jjaek_card_summaries_for(jjaeks)
+    prepare_jjaek_comment_counts_for(jjaeks)
+    prepare_jjaek_like_summaries_for(jjaeks)
+  end
+
+  def prepare_jjaek_comment_counts_for(jjaeks)
+    ids = Array(jjaeks).filter_map(&:id).uniq
+    @jjaek_comment_counts = ids.to_h { |id| [ id, 0 ] }
+    return if ids.empty?
+
+    @jjaek_comment_counts.merge!(Comment.where(jjaek_id: ids).group(:jjaek_id).count)
+  end
+
+  def prepare_jjaek_like_summaries_for(jjaeks)
+    records_by_id = Array(jjaeks).select(&:persisted?).index_by(&:id)
+    ids = records_by_id.keys
+    @jjaek_like_counts = ids.to_h { |id| [ id, 0 ] }
+    @current_user_likes_by_jjaek_id = ids.to_h { |id| [ id, nil ] }
+    return if ids.empty?
+
+    @jjaek_like_counts.merge!(Like.where(jjaek_id: ids).group(:jjaek_id).count)
+    return unless current_user
+
+    Like.where(jjaek_id: ids, user_id: current_user.id).each do |like|
+      like.jjaek = records_by_id.fetch(like.jjaek_id)
+      @current_user_likes_by_jjaek_id[like.jjaek_id] = like
+    end
+  end
+
+  def prepare_group_share_destinations_for(jjaeks)
+    @group_share_destinations_by_jjaek_id = JjaekPolicy.group_share_destinations_for(current_user, Array(jjaeks))
   end
 
   def prepare_visible_requote_counts_for(jjaeks)
