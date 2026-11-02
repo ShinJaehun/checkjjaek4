@@ -92,7 +92,9 @@ class ApplicationController < ActionController::Base
     @jjaeks = @feed_page.items
     prepare_current_reading_states_for(@jjaeks)
     prepare_book_friend_activities unless feed_only
-    prepare_visible_requote_counts_for(@jjaeks + Array(@book_friend_activities).grep(Jjaek))
+    card_jjaeks = @jjaeks + Array(@book_friend_activities).grep(Jjaek)
+    prepare_visible_requote_counts_for(card_jjaeks)
+    prepare_group_share_destinations_for(card_jjaeks)
   end
 
   def prepare_book_show_form_context
@@ -148,6 +150,10 @@ class ApplicationController < ActionController::Base
     entries.each do |entry|
       @current_reading_states[[ entry.user_id, entry.book_id ]] = entry
     end
+  end
+
+  def prepare_group_share_destinations_for(jjaeks)
+    @group_share_destinations_by_jjaek_id = JjaekPolicy.group_share_destinations_for(current_user, Array(jjaeks))
   end
 
   def prepare_visible_requote_counts_for(jjaeks)

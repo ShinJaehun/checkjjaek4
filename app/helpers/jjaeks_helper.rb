@@ -164,6 +164,14 @@ module JjaeksHelper
     end
   end
 
+  def show_group_share_action?(jjaek)
+    if @group_share_destinations_by_jjaek_id&.key?(jjaek.id)
+      @group_share_destinations_by_jjaek_id.fetch(jjaek.id).any?
+    else
+      policy(jjaek).share_to_group?
+    end
+  end
+
   def current_user_like_for(jjaek)
     jjaek.likes.find { |like| like.user_id == current_user.id }
   end

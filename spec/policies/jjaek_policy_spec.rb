@@ -16,6 +16,108 @@ RSpec.describe JjaekPolicy do
     friendship
   end
 
+  describe ".group_share_destinations_for" do
+    let(:source) { original_author.jjaeks.create!(content: "Public original") }
+    let(:destination) do
+      Group.create!(group_admin: original_author, name: "Destination", lifecycle_status: :active, group_type: :private_group)
+    end
+
+    it "matches single-record and creation policies for each group type without requiring the source book" do
+      source.update!(book:)
+      groups = %i[public_group approval_group private_group].map do |type|
+        group = Group.create!(group_admin: original_author, name: type.to_s, lifecycle_status: :active, group_type: type)
+        group.group_memberships.create!(user: viewer, status: :active)
+        group
+      end
+
+      expect(viewer.bookshelf_entries.exists?(book:)).to be(false)
+      batch = described_class.group_share_destinations_for(viewer, [ source ])
+      expect(batch.fetch(source.id)).to eq(groups.sort_by(&:name))
+      expect(described_class.new(viewer, source).group_share_destinations).to eq(batch.fetch(source.id))
+      groups.each do |group|
+        quote = viewer.jjaeks.build(group:, quoted_jjaek: source)
+        expect(described_class.new(viewer, quote).create?).to be(true)
+        expect(described_class.new(viewer, viewer.jjaeks.build(group:, book:)).create?).to be(false)
+      end
+    end
+
+    it "excludes used destinations even for hidden or deleted shares and ignores personal requotes" do
+      other_group = Group.create!(group_admin: original_author, name: "Other destination", lifecycle_status: :active)
+      [ destination, other_group ].each { |group| group.group_memberships.create!(user: viewer, status: :active) }
+      viewer.jjaeks.create!(quoted_jjaek: source, content: "Personal requote")
+      viewer.jjaeks.create!(group: destination, quoted_jjaek: source, content: "Hidden share", hidden_at: Time.current)
+
+      expect(described_class.group_share_destinations_for(viewer, [ source ]).fetch(source.id)).to eq([ other_group ])
+      viewer.jjaeks.create!(group: other_group, quoted_jjaek: source, content: "Deleted share", deleted_at: Time.current)
+      expect(described_class.group_share_destinations_for(viewer, [ source ]).fetch(source.id)).to be_empty
+      expect(described_class.new(viewer, source).share_to_group?).to be(false)
+    end
+
+    %i[pending invited absent activity_suspended operation_suspended inactive pending_approval].each do |state|
+      it "keeps scope, single creation permission, and batch destinations consistent for #{state}" do
+        membership_status = state.in?(%i[pending invited]) ? state : :active
+        membership = destination.group_memberships.create!(user: viewer, status: membership_status) unless state == :absent
+        case state
+        when :activity_suspended
+          membership.update!(moderation_status: :activity_suspended)
+        when :operation_suspended
+          destination.update!(operation_suspended_at: Time.current)
+        when :inactive
+          destination.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "Finished")
+        when :pending_approval
+          destination.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "Finished")
+          destination.update!(lifecycle_status: :pending_approval)
+        end
+
+        expect(GroupPolicy.new(viewer, destination).create_jjaek?).to be(false)
+        expect(GroupPolicy::CreateJjaekScope.new(viewer, Group).resolve).not_to include(destination)
+        quote = viewer.jjaeks.build(group: destination, quoted_jjaek: source)
+        expect(described_class.new(viewer, quote).create?).to be(false)
+        expect(described_class.group_share_destinations_for(viewer, [ source ]).fetch(source.id)).to be_empty
+        expect(described_class.new(viewer, source).group_share_destinations).to be_empty
+      end
+    end
+
+    it "returns empty destinations for restricted, group, nested, hidden, deleted, and unsaved sources" do
+      destination.group_memberships.create!(user: viewer, status: :active)
+      records = [
+        original,
+        original_author.jjaeks.create!(visibility: :private_jjaek, content: "Private"),
+        original_author.jjaeks.create!(group: destination, content: "Group original"),
+        original_author.jjaeks.create!(quoted_jjaek: source, content: "Nested"),
+        original_author.jjaeks.create!(hidden_at: Time.current, content: "Hidden"),
+        original_author.jjaeks.create!(deleted_at: Time.current, content: ""),
+        original_author.jjaeks.build(content: "Unsaved")
+      ]
+
+      expect(described_class.group_share_destinations_for(viewer, records).values).to all(be_empty)
+      expect(described_class.group_share_destinations_for(nil, [ source ]).fetch(source.id)).to be_empty
+    end
+
+    it "does not increase SQL calls as the number of cards grows" do
+      destination.group_memberships.create!(user: viewer, status: :active)
+      records = Array.new(3) { |index| original_author.jjaeks.create!(content: "Source #{index}") }
+      described_class.group_share_destinations_for(viewer, records) # Warm schema metadata before counting.
+      counts = [ records.first(1), records ].map do |page|
+        queries = []
+        subscriber = ->(*args) do
+          payload = args.last
+          queries << payload[:sql] unless payload[:cached] || payload[:name].in?(%w[SCHEMA TRANSACTION])
+        end
+        ActiveRecord::Base.uncached do
+          ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+            result = described_class.group_share_destinations_for(viewer, page)
+            expect(result.values).to all(eq([ destination ]))
+          end
+        end
+        queries.size
+      end
+
+      expect(counts.first).to be_positive
+      expect(counts.last).to eq(counts.first)
+    end
+  end
+
   it "limits admin inventory permission and scope to global admins" do
     admin = User.create!(name: "Admin", email: "jjaek-inventory-admin@example.com", password: "password123!", global_admin: true)
 

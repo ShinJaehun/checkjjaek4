@@ -20,6 +20,22 @@ RSpec.describe JjaeksHelper, type: :helper do
     helper.define_singleton_method(:policy) { |record| Pundit.policy!(actor, record) }
   end
 
+  it "reuses an empty prepared sharing result without falling back to policy" do
+    post = author.jjaeks.create!(content: "Public post")
+    helper.instance_variable_set(:@group_share_destinations_by_jjaek_id, { post.id => [] })
+    expect(helper).not_to receive(:policy)
+
+    expect(helper.show_group_share_action?(post)).to be(false)
+  end
+
+  it "uses the sharing policy when the record has no prepared result" do
+    group.group_memberships.create!(user: viewer, status: :active)
+    post = author.jjaeks.create!(content: "Public post")
+    helper.instance_variable_set(:@group_share_destinations_by_jjaek_id, {})
+
+    expect(helper.show_group_share_action?(post)).to be(true)
+  end
+
   it "adds a neutral inline club badge before the existing group name link" do
     post = author.jjaeks.create!(group: group, content: "Group post")
     label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))

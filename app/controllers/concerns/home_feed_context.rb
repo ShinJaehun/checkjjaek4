@@ -14,5 +14,6 @@ module HomeFeedContext
     @feed_jjaeks = @feed_items.grep(Jjaek)
     prepare_current_reading_states_for(@feed_jjaeks)
     prepare_visible_requote_counts_for(@feed_jjaeks)
+    prepare_group_share_destinations_for(@feed_jjaeks)
   end
 end

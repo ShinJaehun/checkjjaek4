@@ -62,6 +62,7 @@ module ProfileContext
     @book_activities = @profile_activity_items.grep(BookActivity)
     prepare_current_reading_states_for(@jjaeks)
     prepare_visible_requote_counts_for(@jjaeks)
+    prepare_group_share_destinations_for(@jjaeks)
     @show_profile_activity = @show_jjaeks || current_user == @user || @profile_activity_items.any?
   end
 end

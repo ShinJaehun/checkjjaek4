@@ -32,6 +32,30 @@ RSpec.describe "Feed pagination", type: :request do
     page_document.at_css("#feed-pagination a")&.[]("href")
   end
 
+  %i[home profile book].each do |location|
+    it "prepares sharing destinations once per HTML or Turbo #{location} page" do
+      group
+      posts = Array.new(21) do |index|
+        viewer.jjaeks.create!(book:, content: "SHARE_CARD_#{index}", created_at: time - index.seconds)
+      end
+      viewer.jjaeks.create!(group:, quoted_jjaek: posts.last, content: "Already shared")
+      sign_in viewer
+      expect(JjaekPolicy).to receive(:group_share_destinations_for).with(viewer, kind_of(Array)).twice.and_call_original
+
+      get path_for(location)
+      first_card = page_document.at_css("article#jjaek_#{posts.first.id}")
+      expect(first_card.css("a").any? { |link| link["href"].to_s.include?("share_to_group=1") }).to be(true)
+      following_page = next_url
+      expect(following_page).to be_present
+
+      get following_page, headers: stream_headers
+      expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+      last_card = page_document.at_css("article#jjaek_#{posts.last.id}")
+      expect(last_card).to be_present
+      expect(last_card.css("a").any? { |link| link["href"].to_s.include?("share_to_group=1") }).to be(false)
+    end
+  end
+
   %i[home profile group_activity group book group_book].each do |location|
     it "renders a full HTML #{location} page unless a cursor and explicit stream request are both supplied" do
       viewer.bookshelf_entries.create!(book:) if %i[book group_book].include?(location)

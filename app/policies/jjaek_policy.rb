@@ -122,14 +122,33 @@ class JjaekPolicy < ApplicationPolicy
     requote? && !already_requoted?
   end
 
-  def group_share_destinations
-    return [] unless user.present? && record.persisted? && record.group_id.blank?
-    return [] unless record.public_jjaek? && !record.deleted? && !record.requote? && visible_for_interaction?
+  def self.group_share_destinations_for(user, records)
+    destinations = records.to_h { |record| [ record.id, [] ] }
+    sources = records.select { |record| new(user, record).group_share_source? }.uniq(&:id)
+    return destinations if sources.empty?
 
-    user.group_memberships.active.includes(:group).filter_map do |membership|
-      group = membership.group
-      group if group && self.class.new(user, Jjaek.new(user:, group:, quoted_jjaek: record)).create?
-    end.sort_by(&:name)
+    groups = GroupPolicy::CreateJjaekScope.new(user, Group).resolve.to_a.sort_by(&:name)
+    return destinations if groups.empty?
+
+    shared_groups_by_source = Jjaek.where(user_id: user.id, quoted_jjaek_id: sources.map(&:id), group_id: groups.map(&:id))
+      .pluck(:quoted_jjaek_id, :group_id)
+      .group_by(&:first)
+      .transform_values { |pairs| pairs.map(&:last).to_set }
+
+    sources.each do |source|
+      shared_group_ids = shared_groups_by_source.fetch(source.id, Set.new)
+      destinations[source.id] = groups.reject { |group| shared_group_ids.include?(group.id) }
+    end
+    destinations
+  end
+
+  def group_share_source?
+    user.present? && record.persisted? && record.group_id.blank? &&
+      record.public_jjaek? && !record.deleted? && !record.requote? && visible_for_interaction?
+  end
+
+  def group_share_destinations
+    self.class.group_share_destinations_for(user, [ record ]).fetch(record.id)
   end
 
   def share_to_group?
