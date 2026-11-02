@@ -34,6 +34,8 @@ RSpec.describe "Likes", type: :request do
     expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"))
     expect(response.body).to include("좋아요 1개")
     expect(response.body).to include("좋아요 취소")
+    preview = Nokogiri::HTML(response.body).at_css("turbo-stream[target='book_friend_like_action_jjaek_#{jjaek.id}']")
+    expect(preview.text).to include(I18n.t("jjaeks.meta.likes", count: 1), I18n.t("likes.actions.unlike"))
     expect(response.body).not_to include(jjaek.content)
   end
 
@@ -142,6 +144,8 @@ RSpec.describe "Likes", type: :request do
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"))
     expect(response.body).to include("좋아요 0개")
+    preview = Nokogiri::HTML(response.body).at_css("turbo-stream[target='book_friend_like_action_jjaek_#{jjaek.id}']")
+    expect(preview.text).to include(I18n.t("jjaeks.meta.likes", count: 0))
     expect(response.body).not_to include("좋아요 취소")
     expect(response.body).not_to include(jjaek.content)
   end

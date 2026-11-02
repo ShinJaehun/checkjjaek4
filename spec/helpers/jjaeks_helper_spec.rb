@@ -36,6 +36,62 @@ RSpec.describe JjaeksHelper, type: :helper do
     expect(helper.show_group_share_action?(post)).to be(true)
   end
 
+  describe "card summaries" do
+    let(:post) { author.jjaeks.create!(content: "Summary post") }
+
+    before do
+      allow(helper).to receive(:current_user).and_return(viewer)
+    end
+
+    it "uses prepared zero counts and a missing own like without querying associations" do
+      helper.instance_variable_set(:@jjaek_comment_counts, { post.id => 0 })
+      helper.instance_variable_set(:@jjaek_like_counts, { post.id => 0 })
+      helper.instance_variable_set(:@current_user_likes_by_jjaek_id, { post.id => nil })
+      expect(post).not_to receive(:comments_count)
+      expect(post).not_to receive(:likes_count)
+      expect(post).not_to receive(:likes)
+
+      expect(helper.jjaek_comments_count(post)).to eq(0)
+      expect(helper.jjaek_likes_count(post)).to eq(0)
+      expect(helper.current_user_like_for(post)).to be_nil
+    end
+
+    it "uses prepared counts and attaches the own like to the displayed parent" do
+      like = post.likes.create!(user: viewer)
+      helper.instance_variable_set(:@jjaek_comment_counts, { post.id => 3 })
+      helper.instance_variable_set(:@jjaek_like_counts, { post.id => 2 })
+      helper.instance_variable_set(:@current_user_likes_by_jjaek_id, { post.id => like })
+      displayed_post = Jjaek.find(post.id)
+
+      expect(helper.jjaek_comments_count(displayed_post)).to eq(3)
+      expect(helper.jjaek_likes_count(displayed_post)).to eq(2)
+      expect(helper.current_user_like_for(displayed_post)).to eq(like)
+      expect(like.jjaek).to equal(displayed_post)
+    end
+
+    it "finds only the own like in an unprepared context without loading the association" do
+      post.likes.create!(user: author)
+      own_like = post.likes.create!(user: viewer)
+
+      expect(helper.current_user_like_for(post)).to eq(own_like)
+      expect(post.association(:likes)).not_to be_loaded
+      expect(helper.jjaek_likes_count(post)).to eq(2)
+    end
+
+    it "keeps persisted-only fallbacks for loaded associations with form objects" do
+      post.comments.create!(user: author, content: "Saved comment")
+      post.likes.create!(user: author)
+      post.comments.load
+      post.likes.load
+      post.comments.build(user: viewer, content: "Draft")
+      post.likes.build(user: viewer)
+
+      expect(helper.jjaek_comments_count(post)).to eq(1)
+      expect(helper.jjaek_likes_count(post)).to eq(1)
+      expect(helper.current_user_like_for(post)).to be_nil
+    end
+  end
+
   it "adds a neutral inline club badge before the existing group name link" do
     post = author.jjaeks.create!(group: group, content: "Group post")
     label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))

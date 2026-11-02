@@ -32,6 +32,68 @@ RSpec.describe "Feed pagination", type: :request do
     page_document.at_css("#feed-pagination a")&.[]("href")
   end
 
+  it "does not instantiate all comments and likes when card interaction counts grow" do
+    post = viewer.jjaeks.create!(content: "Summary card")
+    post.comments.create!(user: other, content: "First comment")
+    post.likes.create!(user: viewer)
+    post.likes.create!(user: other)
+    sign_in viewer
+
+    loaded_counts = []
+    [ false, true ].each do |grow|
+      if grow
+        3.times do |index|
+          reader = User.create!(name: "Reader #{index}", email: "summary-reader-#{index}@example.com", password: "password123!")
+          post.comments.create!(user: reader, content: "More comments #{index}", hidden_at: index.zero? ? Time.current : nil)
+          post.likes.create!(user: reader)
+        end
+      end
+      counts = Hash.new(0)
+      subscriber = ->(*args) do
+        payload = args.last
+        counts[payload[:class_name]] += payload[:record_count] if %w[Comment Like].include?(payload[:class_name])
+      end
+      ActiveRecord::Base.uncached do
+        ActiveSupport::Notifications.subscribed(subscriber, "instantiation.active_record") do
+          get root_path
+        end
+      end
+      card = page_document.at_css("article#jjaek_#{post.id}")
+      expect(card.text).to include(I18n.t("jjaeks.meta.comments", count: grow ? 4 : 1))
+      expect(card.text).to include(I18n.t("jjaeks.meta.likes", count: grow ? 5 : 2))
+      expect(card.text).to include(I18n.t("likes.actions.unlike"))
+      loaded_counts << counts
+    end
+
+    expect(loaded_counts.first["Comment"]).to eq(0)
+    expect(loaded_counts.first["Like"]).to eq(1)
+    expect(loaded_counts.last).to eq(loaded_counts.first)
+  end
+
+  %i[home profile group_activity group book group_book].each do |location|
+    it "shows zero and populated card summaries including hidden comments on #{location}" do
+      attributes = {}
+      attributes[:group] = group if %i[group_activity group group_book].include?(location)
+      attributes[:book] = book if %i[book group_book].include?(location)
+      viewer.bookshelf_entries.create!(book:) if location == :group_book
+      populated = viewer.jjaeks.create!(**attributes, content: "Populated card")
+      empty = viewer.jjaeks.create!(**attributes, content: "Empty card")
+      populated.comments.create!(user: viewer, content: "Visible comment")
+      populated.comments.create!(user: viewer, content: "Hidden comment", hidden_at: Time.current)
+      populated.likes.create!(user: viewer)
+      populated.likes.create!(user: other)
+      sign_in viewer
+
+      get path_for(location)
+
+      populated_card = page_document.at_css("article#jjaek_#{populated.id}")
+      expect(populated_card.text).to include(I18n.t("jjaeks.meta.comments", count: 2), I18n.t("jjaeks.meta.likes", count: 2))
+      expect(populated_card.text).to include(I18n.t("likes.actions.unlike"))
+      empty_card = page_document.at_css("article#jjaek_#{empty.id}")
+      expect(empty_card.text).to include(I18n.t("jjaeks.meta.comments", count: 0), I18n.t("jjaeks.meta.likes", count: 0))
+    end
+  end
+
   %i[home profile book].each do |location|
     it "prepares sharing destinations once per HTML or Turbo #{location} page" do
       group
@@ -65,6 +127,8 @@ RSpec.describe "Feed pagination", type: :request do
       posts = Array.new(21) do |index|
         viewer.jjaeks.create!(**attributes, content: "NAVIGATION_POST_#{index}", created_at: time)
       end.reverse
+      posts.last.comments.create!(user: viewer, content: "Last-page comment")
+      posts.last.likes.create!(user: viewer)
       sign_in viewer
 
       # Turbo form redirects retain a stream-preferring Accept header. The
@@ -88,6 +152,9 @@ RSpec.describe "Feed pagination", type: :request do
       expect(page_document.at_css("html body header")).to be_present
       expect(page_document.css("turbo-stream")).to be_empty
       expect(card_ids).to eq([ "jjaek_#{posts.last.id}" ])
+      expect(page_document.at_css("#jjaek_#{posts.last.id}").text).to include(
+        I18n.t("jjaeks.meta.comments", count: 1), I18n.t("jjaeks.meta.likes", count: 1)
+      )
       if %i[book group_book].include?(location)
         card = page_document.at_css("#jjaek_#{posts.last.id}")
         expect(card.text).not_to include(book.title, book.authors_text)
@@ -97,6 +164,9 @@ RSpec.describe "Feed pagination", type: :request do
       get url, headers: stream_headers
       expect(response.media_type).to eq("text/vnd.turbo-stream.html")
       expect(card_ids).to eq([ "jjaek_#{posts.last.id}" ])
+      expect(page_document.at_css("#jjaek_#{posts.last.id}").text).to include(
+        I18n.t("jjaeks.meta.comments", count: 1), I18n.t("jjaeks.meta.likes", count: 1)
+      )
       if %i[book group_book].include?(location)
         card = page_document.at_css("#jjaek_#{posts.last.id}")
         expect(card.text).not_to include(book.title, book.authors_text)

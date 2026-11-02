@@ -6,7 +6,7 @@
 <% show_navigation_actions = inline_comments_context.to_sym != :detail %>
 
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-600">
-  <span><%= t("jjaeks.meta.likes", count: jjaek.likes_count) %></span>
+  <span><%= t("jjaeks.meta.likes", count: jjaek_likes_count(jjaek)) %></span>
   <%= render "jjaeks/comment_action", jjaek: jjaek %>
   <% if show_navigation_actions %>
     <%= link_to t("comments.actions.view_inline"),

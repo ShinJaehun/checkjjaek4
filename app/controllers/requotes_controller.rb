@@ -27,12 +27,13 @@ class RequotesController < ApplicationController
       .limit(20).offset((@page - 1) * 20).pluck(:id)
 
     readable_page = readable_requotes.where(id: page_ids)
-      .includes(:book, :group, :likes, :comments, :moderation_actions,
+      .includes(:book, :group,
         user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob },
         quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).to_a
     restricted_page = restricted_requotes.where(id: page_ids)
       .select(:id, :user_id, :group_id, :quoted_jjaek_id, :created_at, :hidden_at, :deleted_at)
       .preload(:group, user: { avatar_attachment: :blob }).to_a
+    prepare_jjaek_card_summaries_for(readable_page)
     prepare_current_reading_states_for(readable_page)
     prepare_visible_requote_counts_for(readable_page)
     cards = readable_page.to_h { |requote| [ requote.id, [ requote, false ] ] }
