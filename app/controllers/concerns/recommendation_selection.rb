@@ -8,7 +8,13 @@ module RecommendationSelection
   end
 
   def prepare_recommendation_selection(redirect_on_error: true, enforce_limit: true)
-    keys = params.permit(selected_books: []).fetch(:selected_books, []).map(&:to_s).reject(&:blank?).uniq
+    keys = params.slice(:selected_books)
+                 .permit(selected_books: [])
+                 .fetch(:selected_books, [])
+                 .map(&:to_s)
+                 .reject(&:blank?)
+                 .uniq
+                 .map(&:to_s).reject(&:blank?).uniq
     books = Book.where(id: keys.grep(/\A[1-9]\d*\z/)).index_by { |book| book.id.to_s }
     @selected_books = []
     @selected_book_keys = []
