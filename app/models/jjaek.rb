@@ -91,6 +91,26 @@ class Jjaek < ApplicationRecord
     end
   end
 
+  # Replace links together so reordering cannot collide with existing positions.
+  # The caller holds this Jjaek's lock (and the Group lock when applicable).
+  def update_recommendation_books(books:, attributes:)
+    transaction(requires_new: true) do
+      jjaek_recommendations.delete_all
+      association(:jjaek_recommendations).reset
+      books.each_with_index do |book, position|
+        jjaek_recommendations.build(book: book, position: position)
+      end
+      assign_attributes(attributes)
+      save!
+    end
+    true
+  rescue ActiveRecord::RecordInvalid
+    false
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey
+    errors.add(:base, :invalid)
+    false
+  end
+
   def refresh_tags!
     tag_ids = deleted? ? [] : Tag.extract_names(content).map { |name| Tag.create_or_find_by!(name:).id }
     if tag_ids.empty?

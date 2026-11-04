@@ -1,5 +1,7 @@
 en:
   recommendations:
+    save_edit: "Save changes"
+    edit_title: "Edit book recommendation"
     entry: "Recommend books"
     select_title: "Choose books to recommend"
     select_description: "Choose one or more books, then write your recommendation. Selecting books does not add them to your library."

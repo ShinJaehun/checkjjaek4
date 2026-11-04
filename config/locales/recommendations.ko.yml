@@ -1,5 +1,7 @@
 ko:
   recommendations:
+    save_edit: "수정 저장"
+    edit_title: "추천짹 수정"
     entry: "책 추천하기"
     select_title: "추천할 책 선택하기"
     select_description: "검색 결과에서 추천할 책을 고르세요. 추천 목록에 추가해도 서재에는 담기지 않습니다."

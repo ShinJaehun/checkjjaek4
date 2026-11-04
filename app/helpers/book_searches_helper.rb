@@ -1,10 +1,22 @@
 module BookSearchesHelper
+  def book_search_page_path(page)
+    options = @recommendation_context ? recommendation_search_params(page: page) :
+      { query: @query, page: page, group_id: @group&.id, search_origin: book_search_origin_path }
+    book_search_path(options)
+  end
+
   def recommendation_search_params(selected_books: @selected_book_keys, query: @query, page: @page)
-    { recommendation: 1, selected_books:, query:, page:, group_id: @group&.id,
-      search_origin: recommendation_origin_path }.compact
+    { recommendation: 1, selected_books: (@editing_recommendation ? [ "", *selected_books ] : selected_books),
+      query: query, page: page, group_id: @group&.id, search_origin: recommendation_origin_path,
+      editing_jjaek_id: @editing_recommendation&.id,
+      return_to: (@editing_recommendation ? validated_jjaek_return_path(params[:return_to]) : nil) }.compact
   end
 
   def recommendation_origin_path
+    if @editing_recommendation
+      return validated_jjaek_return_path(params[:return_to]) || jjaek_path(@editing_recommendation)
+    end
+
     candidate = book_search_origin_path
     return candidate if candidate && URI.parse(candidate).path != book_search_path
 

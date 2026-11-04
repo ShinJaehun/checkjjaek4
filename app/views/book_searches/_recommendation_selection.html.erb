@@ -21,6 +21,8 @@
                         data: { recommendation_selection_form: "remove" },
                         class: "shrink-0" do %>
             <%= hidden_field_tag :group_id, @group.id, id: nil if @group %>
+            <%= hidden_field_tag :editing_jjaek_id, @editing_recommendation.id, id: nil if @editing_recommendation %>
+            <%= hidden_field_tag :return_to, validated_jjaek_return_path(params[:return_to]), id: nil if @editing_recommendation %>
             <%= hidden_field_tag :query, @query, id: nil %>
             <%= hidden_field_tag :page, @page, id: nil %>
             <%= hidden_field_tag :search_origin, recommendation_origin_path, id: nil if recommendation_origin_path %>

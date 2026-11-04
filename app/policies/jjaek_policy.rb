@@ -166,7 +166,7 @@ class JjaekPolicy < ApplicationPolicy
     return false unless user.present? && record.user_id == user.id && !record.deleted? && !record.hidden?
     return true if record.group_id.blank?
 
-    record.group.activity_allowed_for?(user)
+    record.group.active? && record.group.activity_allowed_for?(user)
   end
 
   def destroy?
