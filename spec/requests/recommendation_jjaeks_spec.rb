@@ -15,6 +15,45 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: false })
   end
 
+  it "extracts recommendation selections without treating other request parameters as unpermitted" do
+    allow(ActionController::Parameters).to receive(:action_on_unpermitted_parameters).and_return(:raise)
+    context = { recommendation: 1, query: "추천할", page: 1, search_origin: root_path }
+
+    get new_jjaek_path, params: context, headers: { "Turbo-Frame" => "recommendation_composer" }
+    expect(response).to have_http_status(:ok)
+    expect(Nokogiri::HTML(response.body).css("input[name='selected_books[]']")).to be_empty
+
+    get book_search_path, params: context.merge(selected_books: [ book.id ]),
+                          headers: { "Turbo-Frame" => "recommendation-search-results" }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(book.title)
+
+    post recommendation_books_path,
+         params: context.merge(book_id: other_book.id, selected_books: [ book.id ], authenticity_token: "test-token"),
+         headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    expect(response).to have_http_status(:ok)
+    selected = Nokogiri::HTML(response.body).css("input[name='selected_books[]'][form='recommendation-jjaek-form']")
+    expect(selected.map { |input| input["value"] }).to eq([ book.id.to_s, other_book.id.to_s ])
+
+    expect {
+      post jjaeks_path,
+           params: context.merge(selected_books: [ book.id, other_book.id ], authenticity_token: "test-token",
+             commit: "짹", jjaek: { content: "정상 요청 파라미터와 함께 추천", visibility: :public_jjaek }),
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(Jjaek, :count).by(1)
+    expect(response).to have_http_status(:ok)
+    expect(Jjaek.order(:id).last.recommended_books).to eq([ book, other_book ])
+  end
+
+  it "does not accept nested book attributes as recommendation selection keys" do
+    expect {
+      post jjaeks_path, params: { recommendation: 1, selected_books: [ { id: book.id } ],
+                                 jjaek: { content: "Invalid selection shape" } }
+    }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+
+    expect(response).to have_http_status(:unprocessable_content)
+  end
+
   [ 1, 5 ].each do |count|
     it "shows ordered covers, title links, and authors for #{count} recommended books" do
       books = Array.new(count) do |index|
