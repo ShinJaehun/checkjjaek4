@@ -58,7 +58,7 @@ module Admin
 
     def permitted_content_section
       section = params[:content].to_s
-      %w[general book requote comments].include?(section) ? section : "all"
+      %w[general book recommendation requote comments].include?(section) ? section : "all"
     end
 
     def permitted_content_location

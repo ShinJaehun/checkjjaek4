@@ -94,7 +94,7 @@ module JjaeksHelper
     when [ "users", "show" ]
       search_params.merge(scope: "user", user_id: @user.id)
     when [ "searches", "show" ]
-      type = @type.in?(%w[jjaeks book_jjaeks]) ? @type : "all"
+      type = @type.in?(SearchesController::POST_TYPES) ? @type : "all"
       search_params = search_params.merge(type:, per_page: @per_page)
       return search_params unless @tag_mode
 
@@ -360,6 +360,8 @@ module JjaeksHelper
       return "jjaeks.contexts.group_requote_unavailable_html" unless policy(jjaek).view_quoted_source?
 
       jjaek.quoted_jjaek.group_id.blank? ? "jjaeks.contexts.group_share_html" : "jjaeks.contexts.group_quote_html"
+    elsif jjaek.group_id.present? && jjaek.recommendation?
+      "jjaeks.contexts.group_recommendation_html"
     elsif jjaek.group_id.present? && jjaek.book_id.present?
       "jjaeks.contexts.group_book_html"
     elsif jjaek.group_id.present?
@@ -372,6 +374,8 @@ module JjaeksHelper
       "jjaeks.contexts.group_requote_html"
     elsif jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
       "jjaeks.contexts.requote_html"
+    elsif jjaek.recommendation?
+      "jjaeks.contexts.recommendation_html"
     elsif jjaek.book.present?
       "jjaeks.contexts.book_html"
     elsif profile_context_label?(jjaek)
@@ -389,11 +393,11 @@ module JjaeksHelper
       options[:book_title] = jjaek_context_book_link(jjaek.book) if jjaek.book.present?
       if jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
         options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user, avatar: true)
-        options[:quoted_context_label] = jjaek.quoted_jjaek.book.present? ? t("jjaeks.contexts.quoted_book") : t("jjaeks.contexts.quoted_general")
+        options[:quoted_context_label] = t("jjaeks.contexts.quoted_#{jjaek.quoted_jjaek.content_kind}")
       end
     elsif jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
       options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user, avatar: true)
-      options[:quoted_context_label] = jjaek.quoted_jjaek.book.present? ? t("jjaeks.contexts.quoted_book") : t("jjaeks.contexts.quoted_general")
+      options[:quoted_context_label] = t("jjaeks.contexts.quoted_#{jjaek.quoted_jjaek.content_kind}")
       if jjaek.quoted_jjaek.group_id.present?
         group = jjaek.quoted_jjaek.group
         options[:group_name] = jjaek_context_group_link(group)

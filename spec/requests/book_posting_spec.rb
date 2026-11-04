@@ -74,7 +74,7 @@ RSpec.describe "Book posting destinations", type: :request do
     writing_section = form.ancestors("section").first
     button = writing_section.at_css("button[aria-controls='group-book-search-dialog']")
     expect(button).to be_present
-    expect(button.text).to eq(I18n.t("jjaeks.actions.publish_group_book"))
+    expect(button.text.strip).to eq(I18n.t("jjaeks.actions.publish_group_book"))
     expect(writing_section.at_css("#group-book-search-dialog input[name='group_id']")["value"]).to eq(group.id.to_s)
     expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("groups.jjaeks.tabs.general"))
   end

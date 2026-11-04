@@ -1,3 +1,10 @@
+<%= tag.span hidden: true, data: { recommendation_results_state: true, query: @query, page: @page, group_id: @group&.id } if @recommendation_context %>
+<% if @recommendation_context && @recommendation_selection_reset %>
+  <template data-recommendation-reset>
+    <div id="recommendation-selected-books"><%= render "book_searches/recommendation_selection" %></div>
+    <div id="recommendation-selection-alert"><%= flash[:alert] %></div>
+  </template>
+<% end %>
 <% if @query.present? %>
   <div class="space-y-5">
     <% if @external_search_failed %>
@@ -7,7 +14,8 @@
       <section class="space-y-3" aria-label="<%= t("book_search.results.title") %>">
         <h2 class="text-lg font-semibold"><%= t("book_search.results.title") %></h2>
         <% (@local_results + @results).each do |book| %>
-          <%= render "book_searches/result_card", book: book, bookshelves: @bookshelves, group_id: @group&.id %>
+          <%= render(@recommendation_context ? "book_searches/recommendation_result" : "book_searches/result_card",
+                     book: book, bookshelves: @bookshelves, group_id: @group&.id) %>
         <% end %>
       </section>
     <% elsif !@external_search_failed %>

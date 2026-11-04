@@ -5,6 +5,7 @@ module Admin
     def admin_content_kind_key(kind, context: nil)
       return "group_general" if context == :group && kind.to_s == "general"
       return "group_book" if context == :group && kind.to_s == "book"
+      return "group_recommendation" if context == :group && kind.to_s == "recommendation"
 
       kind.to_s
     end

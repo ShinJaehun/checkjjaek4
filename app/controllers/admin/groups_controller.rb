@@ -62,7 +62,7 @@ module Admin
 
     def permitted_content_section
       section = params[:content].to_s
-      %w[general book comments].include?(section) ? section : "all"
+      %w[general book recommendation comments].include?(section) ? section : "all"
     end
   end
 end

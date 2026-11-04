@@ -1,6 +1,6 @@
 <%
   root_row = record == root
-  kind = root_row ? (record.book_id.present? ? "book" : "general") : "comments"
+  kind = root_row ? record.content_kind : "comments"
   status = group_content_status(record)
   body_visible = group_content_body_visible?(record)
   record_policy = policy(record)

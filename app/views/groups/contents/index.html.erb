@@ -27,7 +27,7 @@
     <div class="flex flex-wrap items-center gap-3">
       <span class="w-16 text-sm font-semibold text-stone-600"><%= t("groups.content_inventory.navigation_label") %></span>
       <nav class="inline-flex flex-wrap gap-1 rounded-xl bg-stone-100 p-1" aria-label="<%= t('groups.content_inventory.navigation_label') %>">
-        <% %w[all general book comments].each do |section| %>
+        <% %w[all general book recommendation comments].each do |section| %>
           <% selected = @content_section == section %>
           <%
             classes = if selected

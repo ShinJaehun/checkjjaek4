@@ -36,7 +36,7 @@
 
   <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
     <nav aria-label="<%= t("unified_search.types_label") %>" class="flex flex-wrap gap-2 lg:shrink-0">
-      <% types = @tag_mode ? %w[jjaeks book_jjaeks] : SearchesController::RESULT_TYPES %>
+      <% types = @tag_mode ? SearchesController::POST_TYPES : SearchesController::RESULT_TYPES %>
       <% [ "all", *types ].each do |type| %>
         <%= link_to t("unified_search.types.#{type}"), search_path(search_results_params(type: type)),
                     aria: { current: ("page" if @type == type) },
@@ -75,7 +75,7 @@
 
         <% if records.any? %>
           <div class="mt-4 space-y-4">
-            <%= render partial: "searches/#{type == 'book_jjaeks' ? 'jjaek' : type.singularize}",
+            <%= render partial: "searches/#{SearchesController::POST_TYPES.include?(type) ? 'jjaek' : type.singularize}",
                        collection: records, as: :result %>
           </div>
         <% else %>

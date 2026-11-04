@@ -1,5 +1,6 @@
 class SearchesController < ApplicationController
-  RESULT_TYPES = %w[users jjaeks book_jjaeks groups].freeze
+  POST_TYPES = %w[jjaeks book_jjaeks recommendation_jjaeks].freeze
+  RESULT_TYPES = %w[users jjaeks book_jjaeks recommendation_jjaeks groups].freeze
   PREVIEW_LIMIT = 5
 
   def show
@@ -9,14 +10,14 @@ class SearchesController < ApplicationController
     @tag = Tag.canonical_name(@tag_input) if @tag_mode
     prepare_tag_scope! if @tag_mode
     @query = params[:q].to_s.strip
-    available_types = @tag_mode ? %w[jjaeks book_jjaeks] : RESULT_TYPES
+    available_types = @tag_mode ? POST_TYPES : RESULT_TYPES
     @type = params[:type].in?(available_types) ? params[:type] : "all"
     @per_page = Admin::InventoryPage.normalize_per_page(params[:per_page])
     unless @tag_mode
       tag_context_requested = %i[scope group_id user_id].any? { |key| params.key?(key) }
       hashtag = Tag::HASHTAG_PATTERN.match(@query)
       if hashtag && hashtag[0] == @query && (name = Tag.canonical_name(hashtag[1]))
-        type = @type.in?(%w[jjaeks book_jjaeks]) ? @type : "all"
+        type = @type.in?(POST_TYPES) ? @type : "all"
         tag_params = { tag: name, type:, per_page: @per_page }
         if tag_context_requested
           prepare_tag_scope!
@@ -45,6 +46,7 @@ class SearchesController < ApplicationController
     end
     prepare_user_cards
     prepare_group_cards
+    prepare_recommendation_books_for(POST_TYPES.flat_map { |type| @results.fetch(type, []).to_a })
     prepare_current_reading_states_for(@results.fetch("jjaeks", []).to_a + @results.fetch("book_jjaeks", []).to_a)
   end
 
@@ -102,7 +104,7 @@ class SearchesController < ApplicationController
         .where("groups.name ILIKE ?", pattern)
         .select(:id, :name, :group_type)
         .order(:name, :id)
-    when "jjaeks", "book_jjaeks"
+    when *POST_TYPES
       posts = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::SearchScope)
         .includes(:book, :group,
                   user: { avatar_attachment: :blob },
@@ -118,7 +120,11 @@ class SearchesController < ApplicationController
         pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
         posts = posts.where("jjaeks.content ILIKE ?", pattern)
       end
-      type == "jjaeks" ? posts.where(book_id: nil) : posts.where.not(book_id: nil)
+      case type
+      when "jjaeks" then posts.general_posts
+      when "book_jjaeks" then posts.where.not(book_id: nil)
+      when "recommendation_jjaeks" then posts.recommendation_posts
+      end
     end
   end
 

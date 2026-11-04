@@ -77,8 +77,9 @@ class ApplicationController < ActionController::Base
 
   def prepare_book_show_read_context(feed_only: false)
     prepare_book_show_form_context unless feed_only
-    book_jjaeks = @book.jjaeks.includes(:book, :group,
-      user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })
+    recommended_jjaek_ids = @book.jjaek_recommendations.select(:jjaek_id)
+    book_jjaeks = Jjaek.where(book: @book).or(Jjaek.where(id: recommended_jjaek_ids))
+      .includes(:book, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })
     @jjaeks = if @group.present? && @bookshelf_entry.present?
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::GroupContentScope).where(group: @group)
     else
@@ -154,8 +155,15 @@ class ApplicationController < ActionController::Base
   end
 
   def prepare_jjaek_card_summaries_for(jjaeks)
+    prepare_recommendation_books_for(jjaeks)
     prepare_jjaek_comment_counts_for(jjaeks)
     prepare_jjaek_like_summaries_for(jjaeks)
+  end
+
+  def prepare_recommendation_books_for(jjaeks)
+    ActiveRecord::Associations::Preloader.new(
+      records: Array(jjaeks), associations: [ :recommended_books, { quoted_jjaek: :recommended_books } ]
+    ).call
   end
 
   def prepare_jjaek_comment_counts_for(jjaeks)

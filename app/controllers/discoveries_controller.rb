@@ -19,7 +19,7 @@ class DiscoveriesController < ApplicationController
   end
 
   def prepare_general_jjaeks
-    @general_jjaeks = varied_jjaeks(public_original_jjaeks.where(book_id: nil).where.not(user_id: current_user.id))
+    @general_jjaeks = varied_jjaeks(public_original_jjaeks.general_posts.where.not(user_id: current_user.id))
   end
 
   def public_original_jjaeks

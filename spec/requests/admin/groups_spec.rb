@@ -890,7 +890,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(comment_row.at_css("a[href='#{jjaek_path(general, anchor: comment_anchor, return_to: content_admin_group_path(active_group))}']")).to be_present
 
     navigation = controls.at_css("nav[aria-label='유형']")
-    expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "동아리짹", "동아리 책짹", "댓글" ])
+    expect(navigation.css("a").map { |link| link.text.strip }).to eq([ "전체", "동아리짹", "동아리 책짹", "동아리 추천짹", "댓글" ])
     expect(navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
     expect(navigation.text).not_to include("다시짹")
 

@@ -3,6 +3,7 @@ class JjaeksController < ApplicationController
   include GroupShowContext
   include HomeFeedContext
   include ProfileContext
+  include RecommendationSelection
 
   before_action :set_jjaek, only: :show
   before_action :set_editable_jjaek, only: %i[edit update]
@@ -12,6 +13,11 @@ class JjaeksController < ApplicationController
              with: :jjaek_rate_limit_exceeded, only: :create
 
   def new
+    if @jjaek.recommendation?
+      @recommendation_context = true
+      return render :recommendation
+    end
+
     raise ActiveRecord::RecordNotFound if params[:share_to_group].present? && !@share_to_group
 
     if @group.present?
@@ -70,9 +76,11 @@ class JjaeksController < ApplicationController
     end
 
     attributes = jjaek_params
+    attributes = attributes.slice(:content, :visibility) if @jjaek.recommendation?
     attributes = attributes.except(:book_id, :visibility, :target_user_id) if @group.present? && @quoted_jjaek.present?
     @jjaek.assign_attributes(attributes)
 
+    recommendation_save_attempts = 0
     saved = begin
       if @group
         @group.with_lock do
@@ -88,15 +96,33 @@ class JjaeksController < ApplicationController
         authorize @jjaek
         @jjaek.save
       end
-    rescue ActiveRecord::RecordNotUnique
-      raise unless @jjaek.quoted_jjaek_id.present?
+    rescue ActiveRecord::RecordNotUnique => error
+      if @jjaek.recommendation?
+        if recommendation_save_attempts.zero? && error.message.match?(/index_books_on_(canonical_isbn|external_url)_unique/)
+          recommendation_save_attempts += 1
+          build_recommendation_jjaek
+          return if performed?
 
-      @jjaek.errors.add(:quoted_jjaek_id, :taken)
+          @jjaek.assign_attributes(attributes)
+          retry
+        end
+        @jjaek.errors.add(:base, t("book_search.errors.identity_conflict"))
+      else
+        raise unless @jjaek.quoted_jjaek_id.present?
+
+        @jjaek.errors.add(:quoted_jjaek_id, :taken)
+      end
       false
     end
 
     if saved
+      clear_recommendation_selection if @jjaek.recommendation?
       notify_jjaek_created
+      if @jjaek.recommendation? && request.format.turbo_stream?
+        flash[:notice] = t("jjaeks.notices.created")
+        return render turbo_stream: turbo_stream.append("recommendation_composer",
+          view_context.tag.span(data: { recommendation_composer_target: "completed", location: create_success_path }))
+      end
       redirect_to create_success_path, notice: t("jjaeks.notices.created")
     else
       render_failed_create
@@ -185,6 +211,8 @@ class JjaeksController < ApplicationController
   def build_new_jjaek
     validate_book_post_destination!
     @group = find_jjaek_group
+    return build_recommendation_jjaek if recommendation_context?
+
     @quoted_jjaek = find_quoted_jjaek
     return if performed?
 
@@ -204,7 +232,30 @@ class JjaeksController < ApplicationController
     authorize @jjaek if action_name == "new" && !@share_to_group
   end
 
+  def build_recommendation_jjaek
+    raise Pundit::NotAuthorizedError if jjaek_book_id.present? || jjaek_quoted_id.present? ||
+      jjaek_target_user_id.present? || params[:share_to_group].present? || params.key?(:book_post_destination)
+    return unless prepare_recommendation_selection(enforce_limit: action_name != "create")
+
+    @query = params[:query].to_s.strip
+    @page = Integer(params[:page], exception: false)
+    @jjaek = Jjaek.new(user: current_user, group: @group, recommendation: true)
+    @selected_books.each_with_index do |book, position|
+      @jjaek.jjaek_recommendations.build(book:, position:)
+    end
+    authorize @jjaek, :create?
+  end
+
   def render_failed_create(status: :unprocessable_content)
+    if @jjaek.recommendation?
+      @recommendation_context = true
+      @recommendation_step = "writing"
+      if request.format.turbo_stream?
+        return render turbo_stream: turbo_stream.update("recommendation_composer", partial: "jjaeks/recommendation_panel"), status:
+      end
+      return render(:recommendation, formats: :html, status:)
+    end
+
     if @group.present? && @quoted_jjaek.present?
       @available_share_groups = policy(@quoted_jjaek).group_share_destinations if @share_to_group
       return render :new, status:
@@ -244,6 +295,7 @@ class JjaeksController < ApplicationController
   end
 
   def create_success_path
+    return view_context.recommendation_origin_path if @jjaek.recommendation?
     return group_path(@group) if @group.present?
 
     target_user.present? ? root_path : jjaek_path(@jjaek, post_return_params)

@@ -27,7 +27,7 @@
                      record: thread.root,
                      root: thread.root,
                      record_type: "Jjaek",
-                     kind: thread.root.book_id.present? ? "book" : "general" %>
+                     kind: thread.root.content_kind %>
         </tbody>
       <% end %>
     </table>

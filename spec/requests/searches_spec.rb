@@ -630,7 +630,7 @@ RSpec.describe "Unified search", type: :request do
       search_fields = page.css("form[action='#{search_path}'] input[type='search']")
       expect(search_fields.map { |field| field["name"] }).to eq([ "q" ])
       expect(search_fields.first["value"]).to eq("#reading")
-      expect(search_fields.first["placeholder"]).to eq("사용자, 짹, 책짹, 동아리, #태그 검색")
+      expect(search_fields.first["placeholder"]).to eq(I18n.t("unified_search.placeholder"))
     end
 
     it "preserves the book-post tab and resets user or group tabs for hashtag input" do
@@ -710,7 +710,7 @@ RSpec.describe "Unified search", type: :request do
       expect(scope_links.map(&:text)).to eq([ "#{group.name}에서", I18n.t("unified_search.tag_scopes.all") ])
       expect(scope_links.first["aria-current"]).to eq("page")
       expect(Nokogiri::HTML(response.body).css("nav[aria-label='#{I18n.t('unified_search.types_label')}'] a").map(&:text))
-        .to eq(%w[전체 짹 책짹])
+        .to eq([ "전체", "짹", "책짹", "추천짹" ])
 
       get search_path, params: { tag: "함께", scope: "all", group_id: group.id }
       expect(search_section("jjaeks").text).to include(group_post.content, personal.content)

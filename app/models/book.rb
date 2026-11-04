@@ -6,6 +6,7 @@ class Book < ApplicationRecord
   has_many :bookshelf_entries, dependent: :destroy
   has_many :users, through: :bookshelf_entries
   has_many :jjaeks, dependent: :destroy
+  has_many :jjaek_recommendations, dependent: :restrict_with_error
 
   validates :title, presence: true
   validate :validate_urls, if: -> { new_record? || will_save_change_to_external_url? || will_save_change_to_thumbnail? }
