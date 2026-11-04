@@ -973,8 +973,13 @@ RSpec.describe "Comments", type: :request do
 
       get jjaek_path(group_jjaek)
 
-      expect(response.body).to include(jjaek_comment_path(group_jjaek, own_comment), I18n.t("comments.actions.delete"))
-      expect(response.body).not_to include(I18n.t("comments.actions.edit"), I18n.t("comments.actions.update"))
+      comment_card = Nokogiri::HTML(response.body).at_css("#comment_#{own_comment.id}")
+      expect(comment_card).to be_present
+      expect(comment_card.css("button[data-action='comment-edit#open'], [data-comment-edit-target='form']")).to be_empty
+      delete_form = comment_card.at_css("form[action='#{jjaek_comment_path(group_jjaek, own_comment)}']")
+      expect(delete_form).to be_present
+      expect(delete_form.at_css("input[name='_method']")["value"]).to eq("delete")
+      expect(delete_form.at_css("button").text.strip).to eq(I18n.t("comments.actions.delete"))
     end
 
     it "updates only the group comments panel through Turbo" do

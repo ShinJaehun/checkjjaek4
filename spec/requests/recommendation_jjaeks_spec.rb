@@ -518,7 +518,7 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
     expect(Jjaek.count).to eq(0)
   end
 
-  it "keeps recommendation books fixed during edits and applies personal visibility" do
+  it "edits recommendation books while preserving the post type and personal visibility" do
     post jjaeks_path, params: { recommendation: 1, selected_books: [ book.id ],
                                jjaek: { content: "Private recommendation", visibility: :private_jjaek } }
     recommendation = Jjaek.order(:id).last
@@ -526,12 +526,206 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
                                                jjaek: { content: "Edited reason", recommendation: false, book_id: other_book.id } }
     expect(recommendation.reload.content).to eq("Edited reason")
     expect(recommendation).to be_recommendation
-    expect(recommendation.recommended_books).to eq([ book ])
+    expect(recommendation.recommended_books).to eq([ other_book ])
     sign_in outsider
     get jjaek_path(recommendation)
     expect(response).to redirect_to(root_path)
     expect { post jjaek_like_path(recommendation) }.not_to change(Like, :count)
     expect { post jjaek_comments_path(recommendation), params: { comment: { content: "Forbidden" } } }.not_to change(Comment, :count)
+  end
+
+  def create_recommendation(group: nil)
+    post_record = user.jjaeks.new(content: "Original #before", recommendation: true, group: group)
+    post_record.jjaek_recommendations.build(book: book, position: 0)
+    post_record.jjaek_recommendations.build(book: other_book, position: 1)
+    post_record.save!
+    post_record
+  end
+
+  it "starts editing with current books and saves ordered books, reason, and visibility on the same post" do
+    recommendation = create_recommendation
+    created_at = recommendation.created_at
+    comment = recommendation.comments.create!(user: user, content: "Keep comment")
+    like = recommendation.likes.create!(user: user)
+    get edit_jjaek_path(recommendation)
+    page = Nokogiri::HTML(response.body)
+    window = page.at_css("#recommendation-window")
+    expect(window["hidden"]).to be_nil
+    expect(window.at_css("[data-mode='edit']")).to be_present
+    expect(window.css("input[name='selected_books[]'][form='recommendation-jjaek-form']").map { |field| field["value"] }).to eq([ "", book.id.to_s, other_book.id.to_s ])
+    expect(window.at_css("form#recommendation-jjaek-form")["action"]).to eq(jjaek_path(recommendation))
+    expect(window.at_css("form#recommendation-jjaek-form input[name='_method']")["value"]).to eq("patch")
+    expect(window.at_css("#recommendation-jjaek-form textarea").text.strip).to eq(recommendation.content)
+    expect(page.css("main article")).to be_empty
+    expect {
+      patch jjaek_path(recommendation), params: { selected_books: [ other_book.id, book.id, other_book.id ],
+        jjaek: { content: "Edited #after", visibility: :private_jjaek } }
+    }.not_to change { [ Jjaek.count, Notification.count, BookActivity.count ] }
+    expect(response).to redirect_to(jjaek_path(recommendation))
+    expect(recommendation.reload).to have_attributes(content: "Edited #after", visibility: "private_jjaek", created_at: created_at, user_id: user.id)
+    expect(recommendation.recommended_books).to eq([ other_book, book ])
+    expect(recommendation.jjaek_recommendations.pluck(:position)).to eq([ 0, 1 ])
+    expect(recommendation.tags.pluck(:name)).to eq([ "after" ])
+    expect(recommendation.comments).to include(comment)
+    expect(recommendation.likes).to include(like)
+  end
+
+  it "loads recommendation editing into the shared frame from cards without returning a search page" do
+    recommendation = create_recommendation
+    get root_path
+    card = Nokogiri::HTML(response.body).at_css("#jjaek_#{recommendation.id}")
+    link = card.at_css("a[data-recommendation-edit-open='true']")
+    expect(link).to be_present
+    get link["href"], headers: { "Turbo-Frame" => "recommendation_composer" }
+    expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
+    frame = page.at_css("turbo-frame#recommendation_composer")
+    expect(frame.at_css("[data-mode='edit']")["data-return-path"]).to eq(root_path)
+    expect(frame.at_css("#recommendation-jjaek-form textarea[name='jjaek[content]']").text.strip).to eq(recommendation.content)
+    expect(frame.css("input[name='selected_books[]'][form='recommendation-jjaek-form']").map { |field| field["value"] }).to eq([ "", book.id.to_s, other_book.id.to_s ])
+    expect(frame.css("input[type='submit']").map { |field| field["value"] }).to include(I18n.t("recommendations.save_edit"))
+    expect(page.css("#recommendation-search-results")).to be_empty
+    sign_in outsider
+    get link["href"], headers: { "Turbo-Frame" => "recommendation_composer" }
+    expect(response.body).not_to include("Original #before")
+  end
+
+  it "shares search and selection for editing without writing books or replacing the reason form" do
+    recommendation = create_recommendation
+    token = BookSearches::ResultToken.issue({ title: "Edit external book", isbn: "9780140328721" }, user: user)
+    headers = { "Accept" => "text/vnd.turbo-stream.html" }
+    expect {
+      post recommendation_books_path, params: { editing_jjaek_id: recommendation.id,
+        selected_books: [ book.id ], search_result_token: token, query: "Edit" }, headers: headers
+    }.not_to change { [ Book.count, JjaekRecommendation.count ] }
+    page = Nokogiri::HTML(response.body)
+    expect(page.css("turbo-stream").map { |stream| stream["target"] }).to include("recommendation-selected-books", "recommendation-selection-fields", "recommendation-search-results")
+    expect(page.css("textarea")).to be_empty
+    keys = page.css("input[name='selected_books[]'][form='recommendation-jjaek-form']").map { |field| field["value"] }
+    get book_search_path, params: { recommendation: 1, editing_jjaek_id: recommendation.id, selected_books: keys, query: "Edit", page: 2 },
+      headers: { "Turbo-Frame" => "recommendation-search-results" }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("recommendation-search-results")
+    expect(Nokogiri::HTML(response.body).css("textarea")).to be_empty
+    delete recommendation_book_path(book.id), params: { editing_jjaek_id: recommendation.id, selected_books: keys }, headers: headers
+    removed = Nokogiri::HTML(response.body).css("input[name='selected_books[]'][form='recommendation-jjaek-form']").map { |field| field["value"] }
+    expect(removed).not_to include(book.id.to_s)
+    expect(recommendation.reload.recommended_books).to eq([ book, other_book ])
+    expect {
+      patch jjaek_path(recommendation), params: { selected_books: keys, jjaek: { content: "x" * 201 } }
+    }.not_to change { [ Book.count, JjaekRecommendation.count ] }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Edit external book", "x" * 201)
+    expect(recommendation.reload.recommended_books).to eq([ book, other_book ])
+    expect {
+      patch jjaek_path(recommendation), params: { selected_books: keys, jjaek: { content: "Imported on edit" } }
+    }.to change(Book, :count).by(1)
+    expect(recommendation.reload.recommended_books.map(&:title)).to eq([ book.title, "Edit external book" ])
+    get book_path(other_book)
+    expect(Nokogiri::HTML(response.body).css("main article").text).not_to include("Imported on edit")
+    get book_path(book)
+    expect(Nokogiri::HTML(response.body).css("main article").text).to include("Imported on edit")
+  end
+
+  it "keeps the edit title and validated back destination on entry and subsequent searches" do
+    recommendation = create_recommendation
+    [ root_path, user_path(user) ].each do |origin|
+      get edit_jjaek_path(recommendation), params: { return_to: origin }
+      page = Nokogiri::HTML(response.body)
+      window = page.at_css("#recommendation-window")
+      expect(window.at_css("#recommendation-window-title").text).to eq(I18n.t("recommendations.edit_title"))
+      expect(window["data-recommendation-composer-editing-title-value"]).to eq(I18n.t("recommendations.edit_title"))
+      expect(window.at_css("[data-mode='edit']")["data-return-path"]).to eq(origin)
+      expect(page.at_css("a[data-back-link]")["href"]).to eq(origin)
+
+      get book_search_path, params: { recommendation: 1, editing_jjaek_id: recommendation.id,
+        return_to: origin, selected_books: [ book.id ], query: "Search again" }
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("#recommendation-window-title").text).to eq(I18n.t("recommendations.edit_title"))
+      expect(page.at_css("a[data-back-link]")["href"]).to eq(origin)
+    end
+    get edit_jjaek_path(recommendation), params: { return_to: "https://example.com/unsafe" }
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("a[data-back-link]")["href"]).to eq(jjaek_path(recommendation))
+  end
+
+  it "keeps edit mode and inputs after a failed PATCH and completes a successful PATCH through the shared window" do
+    recommendation = create_recommendation
+    headers = { "Accept" => "text/vnd.turbo-stream.html", "X-Recommendation-Revision" => SecureRandom.uuid }
+    patch jjaek_path(recommendation), params: { selected_books: [ other_book.id ], return_to: root_path,
+      jjaek: { content: "x" * 201, visibility: :private_jjaek } }, headers: headers
+    expect(response).to have_http_status(:unprocessable_content)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("turbo-stream")["target"]).to eq("recommendation_composer")
+    expect(page.at_css("[data-mode='edit']")["data-return-path"]).to eq(root_path)
+    expect(page.at_css("textarea").text.strip).to eq("x" * 201)
+    expect(page.at_css("option[selected]")["value"]).to eq("private_jjaek")
+    expect(response.headers["X-Recommendation-Revision"]).to eq(headers["X-Recommendation-Revision"])
+    expect(recommendation.reload.recommended_books).to eq([ book, other_book ])
+
+    patch jjaek_path(recommendation), params: { selected_books: [ other_book.id ], return_to: root_path,
+      jjaek: { content: "Saved from shared window" } }, headers: headers
+    completion = Nokogiri::HTML(response.body).at_css("[data-recommendation-composer-target='completed']")
+    expect(completion["data-location"]).to eq(jjaek_path(recommendation, return_to: root_path))
+    expect(recommendation.reload.recommended_books).to eq([ other_book ])
+  end
+
+  it "rolls back text, visibility, tags and links for invalid, empty, excessive or expired selections" do
+    recommendation = create_recommendation
+    extra_books = Array.new(4) { |i| Book.create!(title: "Extra edit #{i}") }
+    invalid_lists = [ [ book.id, "999999999" ], [ "" ], [ book.id, other_book.id, *extra_books.map(&:id) ], [ "external:#{'0' * 32}" ] ]
+    token = BookSearches::ResultToken.issue({ title: "Expired edit", isbn: "9780140328721" }, user: user)
+    post recommendation_books_path, params: { editing_jjaek_id: recommendation.id, search_result_token: token }
+    expired_keys = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("selected_books")
+    travel 31.minutes do
+      invalid_lists << expired_keys
+      invalid_lists.each do |keys|
+        patch jjaek_path(recommendation), params: { selected_books: keys,
+          jjaek: { content: "Attempt #changed", visibility: :private_jjaek } }
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include("Attempt #changed")
+        expect(recommendation.reload).to have_attributes(content: "Original #before", visibility: "public_jjaek")
+        expect(recommendation.recommended_books).to eq([ book, other_book ])
+        expect(recommendation.tags.pluck(:name)).to eq([ "before" ])
+      end
+    end
+  end
+
+  it "enforces edit ownership and group membership at selection and saving" do
+    recommendation = create_recommendation(group: group)
+    sign_in outsider
+    get edit_jjaek_path(recommendation)
+    expect(response).to have_http_status(:not_found)
+    get book_search_path, params: { editing_jjaek_id: recommendation.id, recommendation: 1 }
+    expect(response).not_to have_http_status(:ok)
+    expect(Nokogiri::HTML(response.body).at_css("#recommendation-jjaek-form")).to be_nil
+    post recommendation_books_path, params: { editing_jjaek_id: recommendation.id, book_id: book.id }
+    expect(response).not_to have_http_status(:ok)
+    patch jjaek_path(recommendation), params: { selected_books: [ other_book.id ], jjaek: { content: "Forbidden" } }
+    expect(recommendation.reload.content).to eq("Original #before")
+    sign_in user
+    patch jjaek_path(recommendation), params: { selected_books: [ other_book.id, book.id ],
+      jjaek: { content: "Allowed group edit", visibility: :private_jjaek, group_id: nil } }
+    expect(recommendation.reload).to have_attributes(content: "Allowed group edit", visibility: "public_jjaek", group_id: group.id)
+    expect(recommendation.recommended_books).to eq([ other_book, book ])
+    group.update!(
+      lifecycle_status: :inactive,
+      closure_reason: "추천짹 수정 권한 테스트"
+    )
+    patch jjaek_path(recommendation), params: { selected_books: [ other_book.id ], jjaek: { content: "Inactive" } }
+    expect(recommendation.reload.recommended_books).to eq([ other_book, book ])
+    expect(recommendation.content).to eq("Allowed group edit")
+  end
+
+  it "ignores recommendation selections and type changes on ordinary and single-book posts" do
+    user.bookshelf_entries.create!(book: book)
+    [ user.jjaeks.create!(content: "Ordinary"), user.jjaeks.create!(content: "Book note", book: book) ].each do |post_record|
+      original_book_id = post_record.book_id
+      patch jjaek_path(post_record), params: { selected_books: [ other_book.id ],
+        jjaek: { content: "Edited normally", recommendation: true, book_id: other_book.id } }
+      expect(post_record.reload).to have_attributes(content: "Edited normally", recommendation: false, book_id: original_book_id)
+      expect(post_record.jjaek_recommendations).to be_empty
+    end
   end
 
   it "uses the existing group creation and read boundaries at selection, composition, and posting" do

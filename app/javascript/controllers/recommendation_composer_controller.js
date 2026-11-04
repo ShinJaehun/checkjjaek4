@@ -3,7 +3,7 @@ import { Turbo } from "@hotwired/turbo-rails"
 
 export default class extends Controller {
   static targets = ["frame", "panel", "fields", "selection", "writing", "title", "continue", "book", "completed"]
-  static values = { selectionTitle: String, writingTitle: String, maxBooks: Number }
+  static values = { selectionTitle: String, writingTitle: String, editingTitle: String, maxBooks: Number }
 
   connect() {
     this.element.dataset.requestRevision ||= crypto.randomUUID()
@@ -27,6 +27,22 @@ export default class extends Controller {
 
   navigate(event) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const editing = this.hasPanelTarget && this.panelTarget.dataset.mode === "edit"
+    const editOpener = event.target.closest("a[data-recommendation-edit-open='true']")
+    if (editOpener) {
+      event.preventDefault()
+      this.close()
+      this.frameTarget.src = editOpener.href
+      this.element.hidden = false
+      return
+    }
+    const anchor = event.target.closest("a")
+    if (editing && anchor?.matches("[data-back-link]") && this.editSearchVisible()) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      this.cancel()
+      return
+    }
     const menu = event.target.closest("a, button[aria-controls='global-book-search-dialog']")
     if (menu?.closest("[data-recommendation-navigation-end]") && !menu.closest("dialog")) {
       this.close()
@@ -35,7 +51,7 @@ export default class extends Controller {
     const opener = event.target.closest("a[data-recommendation-open]")
     if (opener) {
       event.preventDefault()
-      if (!this.hasPanelTarget || this.panelTarget.dataset.groupId !== (opener.dataset.recommendationGroupId || "")) {
+      if (!this.hasPanelTarget || this.panelTarget.dataset.mode === "edit" || this.panelTarget.dataset.groupId !== (opener.dataset.recommendationGroupId || "")) {
         this.close()
         this.frameTarget.src = opener.href
       }
@@ -48,26 +64,63 @@ export default class extends Controller {
     const url = new URL(link.href)
     url.searchParams.delete("selected_books[]")
     this.valuesFor("selected_books[]").forEach(value => url.searchParams.append("selected_books[]", value))
-    if (this.hasFieldsTarget) {
-      for (const name of ["group_id", "search_origin"]) {
-        url.searchParams.delete(name)
-        this.valuesFor(name).forEach(value => url.searchParams.append(name, value))
-      }
+    for (const name of ["group_id", "search_origin", "editing_jjaek_id", "return_to"]) {
+      url.searchParams.delete(name)
+      this.valuesFor(name).forEach(value => url.searchParams.append(name, value))
     }
     link.href = url.toString()
   }
 
+  beforeVisit(event) {
+    if (!this.hasPanelTarget || this.panelTarget.dataset.mode !== "edit") return
+    const destination = new URL(event.detail.url, window.location.origin)
+    const form = this.panelTarget.querySelector("form[data-recommendation-selection-form='search']")
+    const search = new URL(form.action)
+    this.preserveEditOnVisit = destination.origin === search.origin && destination.pathname === search.pathname &&
+      destination.searchParams.get("editing_jjaek_id") === this.panelTarget.dataset.editingId
+    if (!this.preserveEditOnVisit) this.close()
+  }
+
+  beforeCache() {
+    if (this.hasPanelTarget && this.panelTarget.dataset.mode === "edit" && !this.preserveEditOnVisit) this.close()
+  }
+
+  beforeRender(event) {
+    if (!this.hasPanelTarget || this.panelTarget.dataset.mode !== "edit") return
+    const state = event.detail.newBody.querySelector("[data-recommendation-results-state]")
+    if (state?.dataset.editingId !== this.panelTarget.dataset.editingId) this.close()
+  }
+
+  editSearchVisible() {
+    if (!this.hasPanelTarget || this.panelTarget.dataset.mode !== "edit") return false
+    const state = document.querySelector("#recommendation-search-results [data-recommendation-results-state]")
+    return state?.dataset.editingId === this.panelTarget.dataset.editingId
+  }
+
+  cancel() {
+    const destination = this.editSearchVisible() ? this.panelTarget.dataset.returnPath : null
+    this.close()
+    if (destination) {
+      const url = new URL(destination, window.location.origin)
+      if (url.origin === window.location.origin) Turbo.visit(url.href)
+    }
+  }
+
   close() {
+    const editing = this.hasPanelTarget && this.panelTarget.dataset.mode === "edit"
     this.element.hidden = true
     this.element.dataset.requestRevision = crypto.randomUUID()
     this.pendingForm = null
+    this.preserveEditOnVisit = false
     this.element.dataset.revision = String(Number(this.element.dataset.revision || 0) + 1)
     this.frameTarget.src = null
     this.frameTarget.replaceChildren()
     this.titleTarget.textContent = this.selectionTitleValue
     document.querySelectorAll("[data-recommendation-reset]").forEach(element => element.remove())
     document.querySelectorAll("form[data-recommendation-selection-form] input").forEach(input => {
-      if (["selected_books[]", "search_origin"].includes(input.name)) input.remove()
+      const resetNames = ["selected_books[]", "search_origin", "editing_jjaek_id", "return_to"]
+      if (editing) resetNames.push("query", "page", "group_id")
+      if (resetNames.includes(input.name)) input.remove()
     })
     this.syncResults()
   }
@@ -85,15 +138,17 @@ export default class extends Controller {
 
   setStep(step) {
     if (!this.hasPanelTarget) return
+    if (this.panelTarget.dataset.mode === "edit") step = "writing"
     this.panelTarget.dataset.step = step
     this.selectionTargets.forEach(element => { element.hidden = step === "writing" })
     this.writingTargets.forEach(element => { element.hidden = step !== "writing" })
-    this.titleTarget.textContent = step === "writing" ? this.writingTitleValue : this.selectionTitleValue
+    this.titleTarget.textContent = this.panelTarget.dataset.mode === "edit" ? this.editingTitleValue :
+      (step === "writing" ? this.writingTitleValue : this.selectionTitleValue)
   }
 
   valuesFor(name) {
     if (!this.hasFieldsTarget) return []
-    return Array.from(this.fieldsTarget.querySelectorAll("input")).filter(input => input.name === name).map(input => input.value)
+    return Array.from(this.fieldsTarget.querySelectorAll("input")).filter(input => input.name === name).map(input => input.value).filter(value => name !== "selected_books[]" || value !== "")
   }
 
   prepare(event) {
@@ -120,11 +175,12 @@ export default class extends Controller {
       return
     }
     form.querySelectorAll("input[name='start_recommendation']").forEach(input => input.remove())
-    const names = ["selected_books[]", "group_id", "search_origin"]
+    const names = ["selected_books[]", "group_id", "search_origin", "editing_jjaek_id", "return_to"]
     if (form.dataset.recommendationSelectionForm === "search") {
       const results = document.getElementById("recommendation-search-results")
       const state = results?.querySelector("[data-recommendation-results-state]")
-      const sameGroup = state && (state.dataset.groupId || "") === (this.panelTarget.dataset.groupId || "")
+      const sameGroup = state && (state.dataset.groupId || "") === (this.panelTarget.dataset.groupId || "") &&
+        (state.dataset.editingId || "") === (this.panelTarget.dataset.editingId || "")
       form.dataset.turboFrame = sameGroup ? results.id : "_top"
       form.dataset.turboAction = "advance"
     } else {
@@ -190,6 +246,14 @@ export default class extends Controller {
   }
 
   load() {
+    this.preserveEditOnVisit = false
+    const editStart = document.querySelector("[data-recommendation-edit-start]")
+    if (editStart) {
+      this.close()
+      this.frameTarget.append(editStart.content.cloneNode(true))
+      editStart.remove()
+      this.element.hidden = false
+    }
     if (!this.hasPanelTarget) {
       document.querySelectorAll("[data-recommendation-reset]").forEach(element => element.remove())
       this.syncResults()
@@ -204,7 +268,8 @@ export default class extends Controller {
       reset.remove()
     }
     const state = document.querySelector("#recommendation-search-results [data-recommendation-results-state]")
-    if (state && (state.dataset.groupId || "") === (this.panelTarget.dataset.groupId || "")) {
+    if (state && (state.dataset.groupId || "") === (this.panelTarget.dataset.groupId || "") &&
+        (state.dataset.editingId || "") === (this.panelTarget.dataset.editingId || "")) {
       for (const name of ["query", "page"]) {
         const input = this.fieldsTarget.querySelector(`input[name='${name}']`)
         if (input) input.value = state.dataset[name]

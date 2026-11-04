@@ -33,9 +33,13 @@ class RecommendationBooksController < ApplicationController
   private
 
   def prepare_selection
-    @group = policy_scope(Group).find(params[:group_id]) if params[:group_id].present?
-    @jjaek = Jjaek.new(user: current_user, group: @group, recommendation: true)
-    authorize @jjaek, :create?
+    if params[:editing_jjaek_id].present?
+      prepare_editing_recommendation
+    else
+      @group = policy_scope(Group).find(params[:group_id]) if params[:group_id].present?
+      @jjaek = Jjaek.new(user: current_user, group: @group, recommendation: true)
+      authorize @jjaek, :create?
+    end
     unless prepare_recommendation_selection(redirect_on_error: false, enforce_limit: action_name != "destroy")
       respond_with_selection(status: :unprocessable_content)
     end
@@ -46,7 +50,7 @@ class RecommendationBooksController < ApplicationController
       format.turbo_stream do
         @recommendation_context = true
         prepare_book_search_results
-        render :update, status:
+        render :update, status: status
       end
       format.html do
         flash.keep(:alert)
@@ -69,6 +73,10 @@ class RecommendationBooksController < ApplicationController
   end
 
   def selection_path
+    if @editing_recommendation
+      return book_search_path(view_context.recommendation_search_params(query: params[:query], page: params[:page]))
+    end
+
     options = {
       recommendation: 1,
       selected_books: @selected_book_keys,

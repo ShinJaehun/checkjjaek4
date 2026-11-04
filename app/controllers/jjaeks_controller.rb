@@ -4,6 +4,7 @@ class JjaeksController < ApplicationController
   include GroupShowContext
   include HomeFeedContext
   include ProfileContext
+  include BookSearchResults
   include RecommendationSelection
 
   before_action :set_jjaek, only: :show
@@ -61,6 +62,13 @@ class JjaeksController < ApplicationController
   end
 
   def edit
+    return unless @jjaek.recommendation?
+
+    prepare_recommendation_edit
+    return render :recommendation if turbo_frame_request?
+
+    @recommendation_edit_start = true
+    render "book_searches/show"
   end
 
   def create
@@ -134,14 +142,30 @@ class JjaeksController < ApplicationController
     updated = if @jjaek.group
       @jjaek.group.with_lock do
         authorize @jjaek
-        @jjaek.update(update_jjaek_params)
+        save_jjaek_update
       end
     else
-      @jjaek.update(update_jjaek_params)
+      save_jjaek_update
     end
 
     if updated
-      redirect_to jjaek_path(@jjaek, post_return_params), notice: t("jjaeks.notices.updated")
+      clear_recommendation_selection if @jjaek.recommendation?
+      destination = jjaek_path(@jjaek, post_return_params)
+      if @jjaek.recommendation? && request.format.turbo_stream?
+        flash[:notice] = t("jjaeks.notices.updated")
+        return render turbo_stream: turbo_stream.append("recommendation_composer",
+          view_context.tag.span(data: { recommendation_composer_target: "completed", location: destination }))
+      end
+      redirect_to destination, notice: t("jjaeks.notices.updated")
+    elsif @jjaek.recommendation?
+      @recommendation_context = true
+      @recommendation_step = "writing"
+      prepare_book_search_results
+      if request.format.turbo_stream?
+        return render turbo_stream: turbo_stream.update("recommendation_composer", partial: "jjaeks/recommendation_panel"), status: :unprocessable_content
+      end
+      @recommendation_edit_start = true
+      render "book_searches/show", formats: :html, status: :unprocessable_content
     else
       render :edit, status: :unprocessable_content
     end
@@ -160,6 +184,44 @@ class JjaeksController < ApplicationController
   end
 
   private
+
+  def prepare_recommendation_edit
+    @editing_recommendation = @jjaek
+    @group = @jjaek.group
+    @recommendation_context = true
+    @recommendation_step = "writing"
+    if params.key?(:selected_books)
+      prepare_recommendation_selection(redirect_on_error: false, preserve_on_error: true)
+    else
+      @selected_books = @jjaek.recommended_books.to_a
+      @selected_book_keys = @selected_books.map { |book| book.id.to_s }
+    end
+    prepare_book_search_results
+  end
+
+  def save_jjaek_update
+    return @jjaek.update(update_jjaek_params) unless @jjaek.recommendation?
+
+    @editing_recommendation = @jjaek
+    @group = @jjaek.group
+    valid_selection = if params.key?(:selected_books)
+      prepare_recommendation_selection(redirect_on_error: false, enforce_limit: false, preserve_on_error: true)
+    else
+      @selected_books = @jjaek.recommended_books.to_a
+      @selected_book_keys = @selected_books.map { |book| book.id.to_s }
+      true
+    end
+    unless valid_selection
+      @jjaek.assign_attributes(update_jjaek_params)
+      @jjaek.errors.add(:base, t("recommendations.invalid_selection"))
+      return false
+    end
+
+    @jjaek.with_lock do
+      authorize @jjaek, :update?
+      @jjaek.update_recommendation_books(books: @selected_books, attributes: update_jjaek_params)
+    end
+  end
 
   def jjaek_rate_limit_exceeded
     message = t("jjaeks.alerts.rate_limited")

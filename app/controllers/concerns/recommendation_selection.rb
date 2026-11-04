@@ -14,11 +14,21 @@ module RecommendationSelection
     end
   end
 
+  def prepare_editing_recommendation
+    @editing_recommendation = Jjaek.find(params[:editing_jjaek_id])
+    authorize @editing_recommendation, :update?
+    raise ActiveRecord::RecordNotFound unless @editing_recommendation.recommendation?
+
+    @jjaek = @editing_recommendation
+    @group = @jjaek.group
+    @recommendation_step = "writing"
+  end
+
   def recommendation_context?
     params[:recommendation] == "1"
   end
 
-  def prepare_recommendation_selection(redirect_on_error: true, enforce_limit: true)
+  def prepare_recommendation_selection(redirect_on_error: true, enforce_limit: true, preserve_on_error: false)
     keys = params.slice(:selected_books)
                  .permit(selected_books: [])
                  .fetch(:selected_books, [])
@@ -55,11 +65,17 @@ module RecommendationSelection
     end
     true
   rescue Book::IdentityConflict, KeyError, ActiveRecord::RecordNotFound
-    @selected_books = []
-    @selected_book_keys = []
+    unless preserve_on_error
+      @selected_books = []
+      @selected_book_keys = []
+    end
     if redirect_on_error
       flash[:recommendation_selection_reset] = true
       options = { recommendation: 1, group_id: @group&.id, query: params[:query], page: params[:page] }.compact
+      if @editing_recommendation
+        options.merge!(editing_jjaek_id: @editing_recommendation.id, selected_books: [ "" ],
+          return_to: view_context.validated_jjaek_return_path(params[:return_to]))
+      end
       options[:search_origin] = view_context.recommendation_origin_path if params[:search_origin].present?
       redirect_to book_search_path(options),
                   alert: t("recommendations.invalid_selection")

@@ -508,7 +508,7 @@
 추천 책 수는 `Jjaek::MAX_RECOMMENDATION_BOOKS`(5)로 공유하며 선택 요청의 중복 제거 이후와 최종 Jjaek validation에서 강제한다. 기존 DB 구조와 저장 transaction은 유지한다.
 `BookSearchResults`는 일반/추천 검색과 선택 변경 후 결과 갱신에서 기존 조회를 공유하며 JjaeksController의 작성·실패 렌더링은 검색을 수행하지 않는다.
 기존 단일 `book_id`와 ReJjaek·target_user를 혼합하지 않으며, 게시 시 선택을 재검증해 새 Book·책 연결·Jjaek을 함께 저장한다.
-추천 이유·해시태그·공통 interaction·visibility·moderation을 재사용하고 추천 책 목록은 게시 후 편집하지 않는다.
+추천 이유·해시태그·공통 interaction·visibility·moderation을 재사용하고 추천 책 목록은 기존 검색 결과 화면과 전역 추천창의 수정 모드에서 수정하며 본문·개인 공개 범위와 원자적으로 저장한다.
 공통 카드에서 표지·제목·저자·책 링크를 순서대로 표시하며 피드·상세의 책 목록을 일괄 preload한다.
 책 상세의 책짹 목록은 `book_id` 조건과 해당 책의 `JjaekRecommendation` ID 하위 쿼리를 OR로 결합한다.
 원본 Jjaek을 중복 없이 조회한 뒤 기존 `BookScope`/`GroupContentScope`와 `FeedPage`를 적용한다.

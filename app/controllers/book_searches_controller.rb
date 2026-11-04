@@ -4,14 +4,19 @@ class BookSearchesController < ApplicationController
 
   def show
     authorize :book_search, :show?
-    @group = find_group_context
-    authorize @group, :create_jjaek? if @group.present?
-    @recommendation_context = recommendation_context?
+    if params[:editing_jjaek_id].present?
+      prepare_editing_recommendation
+      @recommendation_context = true
+    else
+      @group = find_group_context
+      authorize @group, :create_jjaek? if @group.present?
+      @recommendation_context = recommendation_context?
+    end
     @recommendation_selection_reset = flash.delete(:recommendation_selection_reset)
     return if @recommendation_context && !prepare_recommendation_selection
 
     prepare_book_search_results
-    if @recommendation_context
+    if @recommendation_context && !@editing_recommendation
       @jjaek = Jjaek.new(user: current_user, group: @group, recommendation: true)
       authorize @jjaek, :create?
     end
