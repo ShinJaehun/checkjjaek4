@@ -446,7 +446,8 @@
 - 두 문맥은 기존 `validated_jjaek_return_path`의 경로·권한 검사를 사용함. 검색 결과 경로의 `search_origin`만 한 단계 검증·보존하고 추가 중첩은 제거함. 출발 문맥이 없으면 해당 동아리 또는 본인 서재로 복귀함
 - 결과 카드의 Turbo 등록 성공 응답은 전달받은 검색 결과 경로를 명시적으로 다시 사용하며, HTML 등록·redirect도 유지함
 - 외부 검색 결과에는 로그인 사용자에 묶인 30분 유효 서명을 발급하며, 미등록 책의 `책 상세 보기`는 저장 없이 읽기 전용 미리보기를 표시함
-- 신규 Book은 검증된 검색 결과를 `서재에 담기` 할 때만 BookshelfEntry와 함께 등록하며, 기존 Book 메타데이터는 변경하지 않음
+- 일반 검색의 신규 Book은 검증된 검색 결과를 `서재에 담기` 할 때 BookshelfEntry와 함께 등록하며, 기존 Book 메타데이터는 변경하지 않음
+- 추천짹의 `recommendation=1` 검색은 같은 조회 로직과 별도 결과 UI를 사용함. `RecommendationBooksController#create`는 기존 Book ID 또는 사용자별 Rails.cache에 임시 보관한 서명된 외부 결과의 짧은 참조값만 선택함. `selected_books[]`로 선택 순서를 검색·pagination·제거·작성 화면에 유지하며 Book·BookshelfEntry·BookActivity를 생성하거나 상세/서재 등록 링크를 표시하지 않음. 외부 선택은 서명·캐시 만료 시 재선택하며 게시 성공 시 캐시 참조를 정리함
 - 검색 등록은 유효한 canonical ISBN(ISBN-10의 978 변환 또는 ISBN-13)을 우선 식별자로 사용하고, ISBN이 없으면 검증된 외부 URL을 사용함. 두 식별자가 다른 Book을 가리키면 오류로 처리하며, DB 고유 인덱스로 동시 중복 등록을 방지함
 - 외부 책 주소와 썸네일은 HTTP/HTTPS 및 유효한 호스트만 허용하고, 무효한 썸네일은 기본 표지를 사용함. 운영 DB에는 고유 인덱스 배포 전 별도 중복·충돌 감사가 필요함
 
@@ -485,12 +486,35 @@
 
 - 일반 짹
 - 책짹 (book_id 있음)
+- 추천짹 (`recommendation: true`, `JjaekRecommendation`으로 여러 Book과 position 연결)
 - 동아리의 짹 (group_id 있음, book_id 없음)
 - 동아리의 책짹 (group_id 있음, book_id 있음)
 - profile-context 짹 (target_user_id 있음)
 - ReJjaek (`quoted_jjaek`이 있거나 deleted-source snapshot이 남아 있음)
 
 → 하나의 Jjaek 모델이 문맥(context)에 따라 역할을 나눠 갖는다.
+
+추천짹 유형 배지는 개인 피드·동아리에서 비모달 플로팅 창을 연다. 로그인 layout의
+`recommendation-window`는 `data-turbo-permanent`로 유지하며 `JjaeksController#new`가
+`recommendation_composer` Frame의 초기 내용을 제공한다. 창은 배경 클릭·스크롤을 막지 않고 모바일에서는 하단 높이를 제한한다.
+최초 검색은 `/book_search`로 Turbo 이동하고 이후 재검색·페이지네이션은 `recommendation-search-results` Frame만 갱신하며, 검색 input·선택·본문·공개 범위·단계는 permanent DOM에 유지한다.
+`RecommendationBooksController#create/destroy`는 Book 저장 없이 선택을 추가·제거하고 Turbo Stream으로
+창 목록·선택 hidden 입력·배경 검색 결과를 갱신한다. HTML fallback의 `selection_path`는 검색 문맥을 유지한다.
+`recommendation-composer` Stimulus는 요청 전 선택·동아리 문맥, 페이지 이동 후 검색어·페이지·선택 표시를 동기화한다.
+같은 창에서 책 선택 ↔ 글쓰기 단계를 전환하며 최종 `짹`만 `JjaeksController#create`로 게시한다.
+게시 검증 실패의 Turbo 응답은 창 내용만 갱신한다. 제출 시 permanent 유지를 해제하지 않으며 저장 성공의 완료 Stream에서만 상태를 지우고 최초 위치로 Turbo 이동한다. HTML fallback도 같은 위치로 redirect한다.
+닫기·상단 내비게이션의 메뉴/일반 책 검색/로그아웃은 작성 DOM과 진행 중인 초기 Frame 로드를 정리하며, focus·자동완성 Escape·scroll·일반 Turbo 이동은 종료하지 않는다. Stream 렌더 시 이전 작성 panel의 identity를 확인해 종료 후 오래된 응답이 새 작성에 적용되지 않게 한다.
+최초 위치는 기존 `search_origin`에 유지하고 게시 시 기존 내부 경로·Pundit 검사를 적용한다. 중간 책 검색·외부·접근 불가 위치는 개인 피드/동아리 fallback을 사용한다.
+추천 책 수는 `Jjaek::MAX_RECOMMENDATION_BOOKS`(5)로 공유하며 선택 요청의 중복 제거 이후와 최종 Jjaek validation에서 강제한다. 기존 DB 구조와 저장 transaction은 유지한다.
+`BookSearchResults`는 일반/추천 검색과 선택 변경 후 결과 갱신에서 기존 조회를 공유하며 JjaeksController의 작성·실패 렌더링은 검색을 수행하지 않는다.
+기존 단일 `book_id`와 ReJjaek·target_user를 혼합하지 않으며, 게시 시 선택을 재검증해 새 Book·책 연결·Jjaek을 함께 저장한다.
+추천 이유·해시태그·공통 interaction·visibility·moderation을 재사용하고 추천 책 목록은 게시 후 편집하지 않는다.
+공통 카드에서 표지·제목·저자·책 링크를 순서대로 표시하며 피드·상세의 책 목록을 일괄 preload한다.
+책 상세의 책짹 목록은 `book_id` 조건과 해당 책의 `JjaekRecommendation` ID 하위 쿼리를 OR로 결합한다.
+원본 Jjaek을 중복 없이 조회한 뒤 기존 `BookScope`/`GroupContentScope`와 `FeedPage`를 적용한다.
+현재 `BookScope`는 `book_id`가 없는 개인 추천짹의 공개 항목만 허용하며, 동아리 추천짹은 기존 동아리 문맥에서 조회한다.
+통합/태그 검색과 운영 목록은 추천짹을 별도 유형으로 구분한다.
+확정 범위와 Acceptance Criteria는 `docs/specs/book_recommendation_jjaeks.md`를 따른다.
 
 ReJjaek은 원문을 복사하지 않고 `quoted_jjaek`으로 참조한다.
 원문이 수정되면 quoted block도 최신 원문을 보여준다.
@@ -505,7 +529,7 @@ source hidden 또는 friendship·visibility·Group context 변화로 현재 read
 과거 접근 사실로 우회하지 않는다. source hidden은 restore 가능한 노출 제한이고 이 경우 ReJjaek을 자동으로 private 전환하지 않는다.
 원문이 hard delete되거나 tombstone되면 개인 다시짹 A는 원문 연결을 끊고 `private_jjaek`으로 전환한다.
 이후 작성자 본인에게만 보이며 quoted block 위치에는 “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
-deleted-source A 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각만 남기고,
+deleted-source A 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹/추천짹), 원문 삭제 시각만 남기고,
 원문 본문/책 메타/avatar snapshot은 저장하지 않는다. 공개 화면에는 placeholder를 표시하지 않는다.
 deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 personal Jjaek과 같은 수정·삭제 lifecycle과
 살아 있는 Jjaek에 허용되는 Comment·Like interaction을 계속 사용할 수 있다.

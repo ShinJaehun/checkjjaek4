@@ -92,6 +92,8 @@ module Admin
     def content_kind(record_type, record)
       return "comments" if record_type == "Comment"
       return "requote" if record.requote?
+      return "group_recommendation" if record.group_id.present? && record.recommendation?
+      return "recommendation" if record.recommendation?
       return "group_book" if record.group_id.present? && record.book_id.present?
       return "group_general" if record.group_id.present?
       return "book" if record.book_id.present?

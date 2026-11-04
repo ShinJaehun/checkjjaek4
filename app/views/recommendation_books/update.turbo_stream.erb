@@ -1,0 +1,8 @@
+<% if params[:start_recommendation] == "1" %>
+  <%= turbo_stream.update "recommendation_composer", partial: "jjaeks/recommendation_panel" %>
+<% else %>
+  <%= turbo_stream.update "recommendation-selected-books", partial: "book_searches/recommendation_selection" %>
+  <%= turbo_stream.replace "recommendation-selection-fields", partial: "jjaeks/recommendation_selection_fields" %>
+  <%= turbo_stream.update "recommendation-selection-alert", flash[:alert] %>
+<% end %>
+<%= turbo_stream.update "recommendation-search-results", partial: "book_searches/results" %>

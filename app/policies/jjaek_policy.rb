@@ -423,6 +423,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def book_context_allowed?
+    return record.book_id.blank? && !record.requote? && record.target_user_id.blank? if record.recommendation?
     return true if record.book_id.blank?
 
     user.bookshelf_entries.exists?(book_id: record.book_id)

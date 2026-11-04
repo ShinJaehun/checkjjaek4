@@ -1,4 +1,7 @@
 <% show_quoted_source = local_assigns.fetch(:show_quoted_source, true) %>
+<% if jjaek.recommendation? && !jjaek.deleted? %>
+  <%= render "jjaeks/recommended_books", books: jjaek.recommended_books %>
+<% end %>
 <% if jjaek.book.present? && !local_assigns.fetch(:hide_book_details, false) %>
   <% book_url = book_path(jjaek.book, book_navigation_params) %>
   <div class="mt-4 flex flex-col items-start gap-4 sm:flex-row">

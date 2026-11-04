@@ -1,0 +1,7 @@
+<% if turbo_frame_request? %>
+  <%= turbo_frame_tag "recommendation_composer" do %>
+    <%= render "jjaeks/recommendation_panel" %>
+  <% end %>
+<% else %>
+  <%= render "shared/back_link", path: book_search_origin_path || (@group ? group_path(@group) : root_path) %>
+<% end %>

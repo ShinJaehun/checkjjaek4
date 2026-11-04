@@ -498,7 +498,7 @@ RSpec.describe "Admin user inventory", type: :request do
       [ "전체", "개인", "동아리" ]
     )
     expect(type_navigation.css("a").map { |link| link.text.strip }).to eq(
-      [ "전체", "짹", "책짹", "다시짹", "댓글" ]
+      [ "전체", "짹", "책짹", "추천짹", "다시짹", "댓글" ]
     )
     expect(area_navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")
     expect(type_navigation.at_css("a[aria-current='page']").text.strip).to eq("전체")

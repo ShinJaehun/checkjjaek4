@@ -48,9 +48,11 @@ class GroupContentThreadQuery
   def apply_content_section
     case @content_section
     when "general"
-      @thread_scope = non_requotes(@thread_scope).where(book_id: nil)
+      @thread_scope = non_requotes(@thread_scope).general_posts
     when "book"
       @thread_scope = non_requotes(@thread_scope).where.not(book_id: nil)
+    when "recommendation"
+      @thread_scope = @thread_scope.recommendation_posts
     when "comments"
       @thread_scope = @thread_scope.where(id: @scoped_comments.select(:jjaek_id))
     end

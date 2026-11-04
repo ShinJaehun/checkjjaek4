@@ -1,0 +1,20 @@
+<% group = local_assigns[:group] %>
+<% active_class = "rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white" %>
+<% inactive_class = "rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700" %>
+<div class="flex flex-wrap items-center gap-2">
+  <% general_label = t(group ? "groups.jjaeks.tabs.general" : "jjaeks.actions.publish_short") %>
+  <span class="<%= active_class %>" aria-current="page"><%= general_label %></span>
+
+  <button type="button" aria-haspopup="dialog" aria-controls="<%= group ? 'group-book-search-dialog' : 'global-book-search-dialog' %>"
+          data-action="book-modal#open" class="<%= inactive_class %>">
+    <%= t(group ? "groups.jjaeks.tabs.book" : "jjaeks.actions.publish_book") %>
+  </button>
+
+  <% origin = validated_jjaek_return_path(request.fullpath) || (group ? group_path(group) : root_path) %>
+  <% options = { recommendation: 1, search_origin: origin } %>
+  <%= link_to t("unified_search.types.recommendation_jjaeks"),
+              group ? new_group_jjaek_path(group, options) : new_jjaek_path(options),
+              data: { recommendation_open: true, recommendation_group_id: group&.id,
+                      turbo_frame: "recommendation_composer" },
+              class: inactive_class %>
+</div>

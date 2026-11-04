@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_01_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -251,6 +251,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_000000) do
     t.index ["lifecycle_status"], name: "index_groups_on_lifecycle_status"
   end
 
+  create_table "jjaek_recommendations", force: :cascade do |t|
+    t.bigint "book_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "jjaek_id", null: false
+    t.integer "position", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_jjaek_recommendations_on_book_id"
+    t.index ["jjaek_id", "book_id"], name: "index_jjaek_recommendations_on_jjaek_id_and_book_id", unique: true
+    t.index ["jjaek_id", "position"], name: "index_jjaek_recommendations_on_jjaek_id_and_position", unique: true
+    t.index ["jjaek_id"], name: "index_jjaek_recommendations_on_jjaek_id"
+    t.check_constraint "\"position\" >= 0", name: "jjaek_recommendation_position"
+  end
+
   create_table "jjaek_tags", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "jjaek_id", null: false
@@ -273,6 +286,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_000000) do
     t.string "quoted_source_author_name"
     t.datetime "quoted_source_deleted_at"
     t.string "quoted_source_kind"
+    t.boolean "recommendation", default: false, null: false
     t.bigint "target_user_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
@@ -287,6 +301,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_000000) do
     t.index ["user_id", "quoted_jjaek_id", "group_id"], name: "index_jjaeks_on_group_requote_unique", unique: true, where: "((quoted_jjaek_id IS NOT NULL) AND (group_id IS NOT NULL))"
     t.index ["user_id", "quoted_jjaek_id"], name: "index_jjaeks_on_personal_requote_unique", unique: true, where: "((quoted_jjaek_id IS NOT NULL) AND (group_id IS NULL))"
     t.index ["user_id"], name: "index_jjaeks_on_user_id"
+    t.check_constraint "NOT recommendation OR book_id IS NULL AND quoted_jjaek_id IS NULL AND quoted_source_deleted_at IS NULL AND target_user_id IS NULL", name: "jjaek_recommendation_context"
   end
 
   create_table "likes", force: :cascade do |t|
@@ -428,6 +443,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_000000) do
   add_foreign_key "group_memberships", "groups"
   add_foreign_key "group_memberships", "users"
   add_foreign_key "groups", "users", column: "group_admin_id"
+  add_foreign_key "jjaek_recommendations", "books"
+  add_foreign_key "jjaek_recommendations", "jjaeks"
   add_foreign_key "jjaek_tags", "jjaeks"
   add_foreign_key "jjaek_tags", "tags"
   add_foreign_key "jjaeks", "books"

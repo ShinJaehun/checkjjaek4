@@ -2,7 +2,7 @@
   <div class="flex items-center gap-2 text-xs font-medium text-stone-600">
     <%= user_avatar_image(quoted_jjaek.user, size: 128, alt: quoted_jjaek.user.name, class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
     <span>
-      <%= link_to quoted_jjaek.user.name, user_path(quoted_jjaek.user), class: "font-semibold text-stone-800 hover:text-stone-900" %><%= quoted_jjaek.book.present? ? t("jjaeks.labels.quoted_book_suffix") : t("jjaeks.labels.quoted_general_suffix") %>
+      <%= link_to quoted_jjaek.user.name, user_path(quoted_jjaek.user), class: "font-semibold text-stone-800 hover:text-stone-900" %><%= t("jjaeks.labels.quoted_#{quoted_jjaek.content_kind}_suffix") %>
     </span>
     <% if jjaek_edited?(quoted_jjaek) %>
       <span class="text-stone-400">·</span>
@@ -10,7 +10,10 @@
     <% end %>
   </div>
 
-  <% if quoted_jjaek.book.present? && !local_assigns.fetch(:hide_book_details, false) %>
+  <% if quoted_jjaek.recommendation? %>
+    <%= render "jjaeks/recommended_books", books: quoted_jjaek.recommended_books %>
+    <p class="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-stone-700"><%= jjaek_content_with_hashtags(quoted_jjaek.content) %></p>
+  <% elsif quoted_jjaek.book.present? && !local_assigns.fetch(:hide_book_details, false) %>
     <div class="mt-3 flex flex-col items-start gap-3 sm:flex-row">
       <div class="shrink-0 self-start">
         <%= render "books/thumbnail",

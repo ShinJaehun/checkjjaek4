@@ -1,4 +1,32 @@
 module BookSearchesHelper
+  def recommendation_search_params(selected_books: @selected_book_keys, query: @query, page: @page)
+    { recommendation: 1, selected_books:, query:, page:, group_id: @group&.id,
+      search_origin: recommendation_origin_path }.compact
+  end
+
+  def recommendation_origin_path
+    candidate = book_search_origin_path
+    return candidate if candidate && URI.parse(candidate).path != book_search_path
+
+    @group ? group_path(@group) : root_path
+  end
+
+  def recommendation_result_isbn(book)
+    Book.canonical_isbn_for(book[:isbn])
+  rescue Book::IdentityConflict
+    nil
+  end
+
+  def recommendation_result_selected?(result)
+    @selected_books.any? do |book|
+      (result[:existing_book_id].present? && book.id == result[:existing_book_id]) ||
+        (book.canonical_isbn.present? && book.canonical_isbn == Book.canonical_isbn_for(result[:isbn])) ||
+        (book.external_url.present? && book.external_url == result[:url])
+    end
+  rescue Book::IdentityConflict
+    false
+  end
+
   def book_search_result_dom_id(book)
     return "book_search_result_stored_#{book[:existing_book_id]}" if book[:existing_book_id].present? && book[:search_result_token].blank?
 

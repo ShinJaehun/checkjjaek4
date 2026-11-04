@@ -32,6 +32,52 @@ RSpec.describe "Feed pagination", type: :request do
     page_document.at_css("#feed-pagination a")&.[]("href")
   end
 
+  %i[book group_book].each do |location|
+    it "paginates book posts and recommendations together on #{location} without duplicates" do
+      viewer.bookshelf_entries.create!(book:) if location == :group_book
+      other_book = Book.create!(title: "Second recommended book")
+      attributes = location == :group_book ? { group: } : {}
+      posts = Array.new(23) do |index|
+        if index.even?
+          post = viewer.jjaeks.new(**attributes, content: "RECOMMENDATION_PAGE_#{index}", recommendation: true, created_at: time)
+          post.jjaek_recommendations.build(book:, position: 0)
+          post.jjaek_recommendations.build(book: other_book, position: 1)
+          post.save!
+          post
+        else
+          viewer.jjaeks.create!(**attributes, book:, content: "BOOK_PAGE_#{index}", created_at: time)
+        end
+      end.reverse
+      private_recommendation = other.jjaeks.new(content: "PRIVATE_RECOMMENDATION_PAGE", recommendation: true,
+        visibility: :private_jjaek, created_at: time - 1.second)
+      private_recommendation.jjaek_recommendations.build(book:, position: 0)
+      private_recommendation.save!
+      sign_in viewer
+
+      get path_for(location)
+
+      first_ids = card_ids
+      expect(first_ids).to eq(posts.first(20).map { |post| "jjaek_#{post.id}" })
+      url = next_url
+      expect(url).to be_present
+
+      get url, headers: stream_headers
+
+      expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+      expect(card_ids).to eq(posts.last(3).map { |post| "jjaek_#{post.id}" })
+      expect((first_ids + card_ids).uniq.size).to eq(23)
+      expect(next_url).to be_nil
+      expect(response.body).not_to include(private_recommendation.content)
+
+      get url
+
+      expect(response.media_type).to eq("text/html")
+      expect(card_ids).to eq(posts.last(3).map { |post| "jjaek_#{post.id}" })
+      expect(next_url).to be_nil
+      expect(response.body).not_to include(private_recommendation.content)
+    end
+  end
+
   it "does not instantiate all comments and likes when card interaction counts grow" do
     post = viewer.jjaeks.create!(content: "Summary card")
     post.comments.create!(user: other, content: "First comment")

@@ -1,0 +1,31 @@
+<section class="min-w-0" aria-label="<%= t("recommendations.selected_books") %>">
+  <h3 class="text-sm font-semibold"><%= t("recommendations.selected_count", count: @selected_books.size, max: Jjaek::MAX_RECOMMENDATION_BOOKS) %></h3>
+  <% if @selected_books.size >= Jjaek::MAX_RECOMMENDATION_BOOKS %>
+    <p class="mt-2 text-sm text-amber-700"><%= t("recommendations.limit_reached", count: Jjaek::MAX_RECOMMENDATION_BOOKS) %></p>
+  <% end %>
+  <% if @selected_books.empty? %>
+    <p class="mt-3 text-sm text-stone-500"><%= t("recommendations.choose_books") %></p>
+  <% else %>
+    <ul class="mt-3 max-h-[20dvh] space-y-3 overflow-y-auto overscroll-contain sm:max-h-64">
+      <% @selected_books.each_with_index do |book, index| %>
+        <li class="flex items-center gap-3" data-recommendation-composer-target="book"
+            data-book-id="<%= book.id %>" data-isbn="<%= book.canonical_isbn %>" data-url="<%= book.external_url %>">
+          <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :small, link: false %>
+          <span class="min-w-0 flex-1 break-words text-sm font-medium [overflow-wrap:anywhere]"><%= book.title %></span>
+          <%= form_with url: recommendation_book_path(@selected_book_keys[index]), method: :delete,
+                        data: { recommendation_selection_form: "remove" },
+                        class: "shrink-0" do %>
+            <%= hidden_field_tag :group_id, @group.id, id: nil if @group %>
+            <%= hidden_field_tag :query, @query, id: nil %>
+            <%= hidden_field_tag :page, @page, id: nil %>
+            <%= hidden_field_tag :search_origin, recommendation_origin_path, id: nil if recommendation_origin_path %>
+            <% @selected_book_keys.each do |key| %>
+              <%= hidden_field_tag "selected_books[]", key, id: nil %>
+            <% end %>
+            <%= button_tag t("recommendations.remove"), aria: { label: t("recommendations.remove_book", title: book.title) }, class: "ui-button ui-button-secondary" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>

@@ -7,6 +7,78 @@ RSpec.describe "Books", type: :request do
   let!(:book) { Book.create!(title: "서재에 있는 책", authors_text: "저자") }
 
   describe "GET /books/:id" do
+    it "combines original book jjaeks and recommendations without duplicates on each linked book" do
+      other_book = Book.create!(title: "함께 추천하는 책")
+      unrelated_book = Book.create!(title: "관련 없는 책")
+      original = user.jjaeks.create!(book:, content: "Original book post")
+      recommendation = user.jjaeks.new(content: "Two recommended books", recommendation: true)
+      recommendation.jjaek_recommendations.build(book:, position: 0)
+      recommendation.jjaek_recommendations.build(book: other_book, position: 1)
+      recommendation.save!
+      unrelated = user.jjaeks.new(content: "Unrelated recommendation", recommendation: true)
+      unrelated.jjaek_recommendations.build(book: unrelated_book, position: 0)
+      unrelated.save!
+      sign_in user
+
+      get book_path(book)
+
+      ids = Nokogiri::HTML(response.body).css("#feed-items > article").map { |card| card["id"] }
+      expect(ids).to eq([ "jjaek_#{recommendation.id}", "jjaek_#{original.id}" ])
+      expect(response.body).not_to include(unrelated.content)
+
+      get book_path(other_book)
+
+      ids = Nokogiri::HTML(response.body).css("#feed-items > article").map { |card| card["id"] }
+      expect(ids).to eq([ "jjaek_#{recommendation.id}" ])
+      expect(recommendation.reload.book_id).to be_nil
+    end
+
+    it "keeps private, nonfriend, and group recommendations out of the personal book list" do
+      author = User.create!(name: "Recommender", email: "book-recommender@example.com", password: "password123!")
+      group = Group.create!(name: "Private readers", group_admin: author, group_type: :private_group, lifecycle_status: :active)
+      user.bookshelf_entries.create!(book:)
+      contexts = [ { visibility: :public_jjaek }, { visibility: :private_jjaek },
+                   { visibility: :book_friends }, { group: } ]
+      recommendations = contexts.map.with_index do |attributes, index|
+        recommendation = author.jjaeks.new(**attributes, content: "RECOMMENDATION_VISIBILITY_#{index}", recommendation: true)
+        recommendation.jjaek_recommendations.build(book:, position: 0)
+        recommendation.save!
+        recommendation
+      end
+      sign_in user
+
+      get book_path(book)
+
+      ids = Nokogiri::HTML(response.body).css("#feed-items > article").map { |card| card["id"] }
+      expect(ids).to eq([ "jjaek_#{recommendations.first.id}" ])
+      recommendations.drop(1).each { |recommendation| expect(response.body).not_to include(recommendation.content) }
+    end
+
+    it "uses the existing group context and rechecks membership for group recommendations" do
+      admin = User.create!(name: "Club admin", email: "book-recommendation-admin@example.com", password: "password123!")
+      group = Group.create!(name: "Book club", group_admin: admin, group_type: :private_group, lifecycle_status: :active)
+      membership = group.group_memberships.create!(user:, status: :active)
+      user.bookshelf_entries.create!(book:)
+      original = admin.jjaeks.create!(book:, group:, content: "Group book post")
+      recommendation = admin.jjaeks.new(group:, content: "Group recommendation", recommendation: true)
+      recommendation.jjaek_recommendations.build(book:, position: 0)
+      recommendation.save!
+      personal = user.jjaeks.create!(book:, content: "Personal book post")
+      sign_in user
+
+      get book_path(book, group_id: group.id)
+
+      ids = Nokogiri::HTML(response.body).css("#feed-items > article").map { |card| card["id"] }
+      expect(ids).to eq([ "jjaek_#{recommendation.id}", "jjaek_#{original.id}" ])
+      expect(response.body).not_to include(personal.content)
+
+      membership.destroy!
+      get book_path(book, group_id: group.id)
+
+      expect(response).not_to have_http_status(:ok)
+      expect(response.body).not_to include(recommendation.content, original.content)
+    end
+
     it "allows the shelf owner to open the book page" do
       entry = user.bookshelf_entries.create!(book:, status: :reading)
       stickers = 2.times.map do |index|

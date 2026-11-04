@@ -58,10 +58,13 @@ module Admin
     def apply_content_section
       case @content_section
       when "general"
-        @jjaek_scope = non_requotes(@jjaek_scope).where(book_id: nil)
+        @jjaek_scope = non_requotes(@jjaek_scope).general_posts
         @comment_scope = @comment_scope.none
       when "book"
         @jjaek_scope = non_requotes(@jjaek_scope).where.not(book_id: nil)
+        @comment_scope = @comment_scope.none
+      when "recommendation"
+        @jjaek_scope = @jjaek_scope.recommendation_posts
         @comment_scope = @comment_scope.none
       when "requote"
         @jjaek_scope = requotes(@jjaek_scope)
@@ -171,9 +174,7 @@ module Admin
     def content_kind(record_type, record)
       return "comments" if record_type == "Comment"
       return "requote" if record.requote?
-      return "book" if record.book_id.present?
-
-      "general"
+      record.content_kind
     end
 
     def row_ids(rows, record_type)

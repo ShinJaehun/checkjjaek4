@@ -1,4 +1,5 @@
 class Jjaek < ApplicationRecord
+  MAX_RECOMMENDATION_BOOKS = 5
   MODERATION_HIDE_REASONS = %w[
     inappropriate_content
     spam_advertising
@@ -22,6 +23,9 @@ class Jjaek < ApplicationRecord
   has_many :likes, dependent: :destroy
   has_many :jjaek_tags, dependent: :delete_all
   has_many :tags, through: :jjaek_tags
+  has_many :jjaek_recommendations, -> { order(:position) }, dependent: :destroy,
+           inverse_of: :jjaek, autosave: true
+  has_many :recommended_books, through: :jjaek_recommendations, source: :book
   has_many :moderation_actions, as: :target
 
   before_destroy :mark_requotes_as_deleted_source
@@ -39,6 +43,7 @@ class Jjaek < ApplicationRecord
   validate :target_user_visibility_must_not_be_private
   validate :quoted_group_context_must_be_allowed
   validate :group_context_must_not_target_user
+  validate :recommendation_context_must_be_valid
 
   before_validation :normalize_group_visibility
   before_update :record_content_edited_at
@@ -46,6 +51,14 @@ class Jjaek < ApplicationRecord
 
   scope :recent, -> { order(created_at: :desc) }
   scope :visible, -> { where(hidden_at: nil) }
+  scope :general_posts, -> { where(recommendation: false, book_id: nil) }
+  scope :recommendation_posts, -> { where(recommendation: true) }
+
+  def content_kind
+    return "recommendation" if recommendation?
+
+    book_id.present? ? "book" : "general"
+  end
 
   def requote?
     quoted_jjaek_id.present? || quoted_source_deleted?
@@ -119,7 +132,7 @@ class Jjaek < ApplicationRecord
       quoted_jjaek_id: nil,
       quoted_source_author_name: user.name,
       quoted_source_deleted_at: deletion_time,
-      quoted_source_kind: book.present? ? "book" : "general",
+      quoted_source_kind: content_kind,
       visibility: self.class.visibilities[:private_jjaek],
       updated_at: deletion_time
     )
@@ -194,5 +207,20 @@ class Jjaek < ApplicationRecord
     return unless group_id.present? && target_user_id.present?
 
     errors.add(:target_user, :invalid)
+  end
+
+  def recommendation_context_must_be_valid
+    if recommendation?
+      errors.add(:base, :invalid) if book.present? || requote? || target_user.present?
+      links = jjaek_recommendations.reject(&:marked_for_destruction?)
+      errors.add(:recommended_books, :blank) if links.empty?
+      if links.size > MAX_RECOMMENDATION_BOOKS
+        errors.add(:recommended_books, :too_many_recommendations, count: MAX_RECOMMENDATION_BOOKS)
+      end
+      books = links.map { |link| link.book_id || link.book }
+      errors.add(:recommended_books, :taken) if books.uniq.size != books.size
+    elsif jjaek_recommendations.any?
+      errors.add(:recommended_books, :invalid)
+    end
   end
 end
