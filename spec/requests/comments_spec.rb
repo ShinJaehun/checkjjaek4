@@ -465,6 +465,32 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(I18n.t("jjaeks.meta.likes", count: 2), I18n.t("likes.actions.unlike"))
   end
 
+  it "preserves the edited comment and detail summaries when an HTML update fails" do
+    BookFriendship.create!(requester: user, addressee: author, status: :accepted)
+    author.bookshelf_entries.create!(book: book, status: :reading)
+    jjaek.likes.create!(user: user)
+    user.jjaeks.create!(quoted_jjaek: jjaek, content: "Visible requote")
+    sign_in user
+    invalid_content = "x" * 201
+
+    expect {
+      patch jjaek_comment_path(jjaek, comment),
+            params: { comment: { content: invalid_content } }, headers: { "Accept" => "text/html" }
+    }.not_to change(jjaek.comments, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.media_type).to eq("text/html")
+    expect(comment.reload.content).to eq("My comment")
+    page = Nokogiri::HTML(response.body)
+    expect(page.css("#comment_#{comment.id} textarea").map { |field| field.text.strip }).to include(invalid_content)
+    expect(response.body).to include(I18n.t("content_form.too_long", count: 200))
+    expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1),
+                                     I18n.t("jjaeks.meta.likes", count: 1),
+                                     I18n.t("jjaeks.meta.requotes", count: 1),
+                                     I18n.t("likes.actions.unlike"))
+    expect(page.css("[data-current-reading-state]").text).to include(I18n.t("bookshelf_entries.statuses.reading"))
+  end
+
   it "replaces only the comments panel on turbo stream comment creation failure" do
     jjaek.update!(content: "JJAKE_CARD_FAILURE_ONLY_BODY")
     sign_in user
