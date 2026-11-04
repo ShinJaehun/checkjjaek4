@@ -8,3 +8,9 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+@media (max-width: 639px) {
+  body:has(#recommendation-window:not([hidden])) > main {
+    padding-bottom: calc(48dvh + 2rem);
+  }
+}
