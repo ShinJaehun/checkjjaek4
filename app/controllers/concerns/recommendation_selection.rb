@@ -1,7 +1,18 @@
 module RecommendationSelection
   extend ActiveSupport::Concern
 
+  included do
+    before_action :echo_recommendation_revision
+  end
+
   private
+
+  def echo_recommendation_revision
+    revision = request.headers["X-Recommendation-Revision"]
+    if revision.is_a?(String) && revision.match?(/\A[0-9a-f-]{36}\z/)
+      response.set_header("X-Recommendation-Revision", revision)
+    end
+  end
 
   def recommendation_context?
     params[:recommendation] == "1"
@@ -14,7 +25,6 @@ module RecommendationSelection
                  .map(&:to_s)
                  .reject(&:blank?)
                  .uniq
-                 .map(&:to_s).reject(&:blank?).uniq
     books = Book.where(id: keys.grep(/\A[1-9]\d*\z/)).index_by { |book| book.id.to_s }
     @selected_books = []
     @selected_book_keys = []

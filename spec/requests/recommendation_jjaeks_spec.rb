@@ -15,6 +15,48 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: false })
   end
 
+  it "rejects ambiguous book IDs without changing the current selection" do
+    [ "#{book.id}garbage", [ book.id, other_book.id ] ].each do |invalid_id|
+      expect {
+        post recommendation_books_path, params: { book_id: invalid_id, selected_books: [ other_book.id ] },
+                                        headers: { "Accept" => "text/vnd.turbo-stream.html" }
+      }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+      page = Nokogiri::HTML(response.body)
+      keys = page.css("input[name='selected_books[]'][form='recommendation-jjaek-form']").map { |input| input["value"] }
+      expect(keys).to eq([ other_book.id.to_s ])
+      expect(page.at_css("turbo-stream[target='recommendation-selection-alert']").text).to include(I18n.t("recommendations.invalid_selection"))
+    end
+  end
+
+  it "preserves the reason and visibility when selected books disappear before publication" do
+    [ "text/html", "text/vnd.turbo-stream.html" ].each do |accept|
+      expect {
+        post jjaeks_path, params: { recommendation: 1, selected_books: [ book.id, Book.maximum(:id) + 1 ],
+                                   jjaek: { content: "Keep my reason", visibility: :private_jjaek } },
+                          headers: { "Accept" => accept }
+      }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+      expect(response).to have_http_status(:unprocessable_content)
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("textarea").text.strip).to eq("Keep my reason")
+      expect(page.at_css("select[name='jjaek[visibility]'] option[selected]")["value"]).to eq("private_jjaek")
+      expect(page.css("input[name='selected_books[]']")).to be_empty
+      expect(page.at_css("[data-recommendation-composer-target='panel']")["data-step"]).to eq("writing")
+      expect(response.body).to include(I18n.t("recommendations.invalid_selection"))
+    end
+  end
+
+  it "identifies composer responses with the requesting lifecycle, including validation failures" do
+    revision = SecureRandom.uuid
+    headers = { "Accept" => "text/vnd.turbo-stream.html", "X-Recommendation-Revision" => revision }
+    post recommendation_books_path, params: { book_id: book.id }, headers: headers
+    expect(response.headers["X-Recommendation-Revision"]).to eq(revision)
+    post jjaeks_path,
+         params: { recommendation: 1, selected_books: [ book.id ], jjaek: { content: "" } },
+         headers: headers
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.headers["X-Recommendation-Revision"]).to eq(revision)
+  end
+
   it "extracts recommendation selections without treating other request parameters as unpermitted" do
     allow(ActionController::Parameters).to receive(:action_on_unpermitted_parameters).and_return(:raise)
     context = { recommendation: 1, query: "추천할", page: 1, search_origin: root_path }
@@ -392,7 +434,7 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
       expect {
         post jjaeks_path, params: { recommendation: 1, selected_books: invalid_keys, jjaek: { content: "위변조" } }
       }.to change(Book, :count).by(0).and change(Jjaek, :count).by(0)
-      expect(response).to redirect_to(book_search_path(recommendation: 1))
+      expect(response).to have_http_status(:unprocessable_content)
     end
     sign_in outsider
     expect {
@@ -545,7 +587,7 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
       post jjaeks_path, params: { recommendation: 1, selected_books: [ book.id, missing_id ],
                                  jjaek: { content: "Incomplete selection" } }
     }.not_to change(Jjaek, :count)
-    expect(response).to redirect_to(book_search_path(recommendation: 1))
+    expect(response).to have_http_status(:unprocessable_content)
     expect(flash[:alert]).to eq(I18n.t("recommendations.invalid_selection"))
   end
 

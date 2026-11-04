@@ -235,7 +235,10 @@ class JjaeksController < ApplicationController
   def build_recommendation_jjaek
     raise Pundit::NotAuthorizedError if jjaek_book_id.present? || jjaek_quoted_id.present? ||
       jjaek_target_user_id.present? || params[:share_to_group].present? || params.key?(:book_post_destination)
-    return unless prepare_recommendation_selection(enforce_limit: action_name != "create")
+    selection_valid = prepare_recommendation_selection(
+      redirect_on_error: action_name != "create", enforce_limit: action_name != "create"
+    )
+    return if performed?
 
     @query = params[:query].to_s.strip
     @page = Integer(params[:page], exception: false)
@@ -244,6 +247,10 @@ class JjaeksController < ApplicationController
       @jjaek.jjaek_recommendations.build(book:, position:)
     end
     authorize @jjaek, :create?
+    if action_name == "create" && !selection_valid
+      @jjaek.assign_attributes(jjaek_params.slice(:content, :visibility))
+      render_failed_create
+    end
   end
 
   def render_failed_create(status: :unprocessable_content)

@@ -56,7 +56,12 @@ class RecommendationBooksController < ApplicationController
   end
 
   def book_for_selection
-    return Book.find_by(id: params[:book_id]) if params[:book_id].present?
+    if params[:book_id].present?
+      id = params[:book_id]
+      raise Book::IdentityConflict unless id.is_a?(String) && id.match?(/\A[1-9]\d*\z/)
+
+      return Book.find_by(id:)
+    end
     return unless params[:search_result_token].is_a?(String)
 
     attributes = BookSearches::ResultToken.verify(params[:search_result_token], user: current_user)
