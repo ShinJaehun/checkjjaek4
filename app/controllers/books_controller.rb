@@ -1,4 +1,6 @@
 class BooksController < ApplicationController
+  include BookShowContext
+
   before_action :prepare_feed_response_format, only: :show
   before_action :set_book, only: :show
 

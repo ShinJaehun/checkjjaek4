@@ -48,9 +48,7 @@ class CommentsController < ApplicationController
       respond_to do |format|
         format.turbo_stream { render :create, status: :unprocessable_content }
         format.html do
-          prepare_jjaek_like_summaries_for([ @jjaek ])
-          prepare_current_reading_states_for([ @jjaek ])
-          prepare_visible_requote_counts_for([ @jjaek ])
+          prepare_jjaek_detail_context
           render "jjaeks/show", status: :unprocessable_content
         end
       end
@@ -80,9 +78,7 @@ class CommentsController < ApplicationController
       respond_to do |format|
         format.turbo_stream { render :update, status: :unprocessable_content }
         format.html do
-          prepare_jjaek_like_summaries_for([ @jjaek ])
-          prepare_current_reading_states_for([ @jjaek ])
-          prepare_visible_requote_counts_for([ @jjaek ])
+          prepare_jjaek_detail_context
           render "jjaeks/show", status: :unprocessable_content
         end
       end
@@ -114,6 +110,12 @@ class CommentsController < ApplicationController
 
   private
 
+  def prepare_jjaek_detail_context
+    prepare_jjaek_like_summaries_for([ @jjaek ])
+    prepare_current_reading_states_for([ @jjaek ])
+    prepare_visible_requote_counts_for([ @jjaek ])
+  end
+
   def comment_rate_limit_exceeded
     message = t("comments.alerts.rate_limited")
     respond_to do |format|
@@ -121,9 +123,7 @@ class CommentsController < ApplicationController
       format.html do
         @comment = Comment.new(comment_params.merge(jjaek: @jjaek, user: current_user))
         prepare_comments_panel(comment: @comment)
-        prepare_jjaek_like_summaries_for([ @jjaek ])
-        prepare_current_reading_states_for([ @jjaek ])
-        prepare_visible_requote_counts_for([ @jjaek ])
+        prepare_jjaek_detail_context
         flash.now[:alert] = message
         render "jjaeks/show", status: :too_many_requests
       end

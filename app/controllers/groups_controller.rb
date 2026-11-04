@@ -9,44 +9,10 @@ class GroupsController < ApplicationController
 
   def index
     authorize Group
-    @group_activity_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupActivityScope)
-      .includes(:book, :group,
-                user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
-      .order(created_at: :desc, id: :desc)
-    @feed_page = FeedPage.new(jjaeks: @group_activity_jjaeks, cursor: params[:cursor])
-    @feed_next_url = groups_path(cursor: @feed_page.next_cursor) if @feed_page.next_cursor
-    @group_activity_jjaeks = @feed_page.items
-    prepare_jjaek_card_summaries_for(@group_activity_jjaeks)
-    prepare_current_reading_states_for(@group_activity_jjaeks)
-    prepare_visible_requote_counts_for(@group_activity_jjaeks)
+    prepare_group_activity_feed
     return render_feed_page(context: :group, next_url: @feed_next_url) if feed_page_request?
 
-    hidden_group_ids = current_user.group_list_hidings.select(:group_id)
-    groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope).where.not(id: hidden_group_ids)
-    memberships = GroupMembership.displayed_for(user: current_user, groups:)
-      .preload(group: { group_admin: { avatar_attachment: :blob } }).to_a
-    @groups = memberships.map(&:group)
-    @memberships_by_group_id = memberships.index_by(&:group_id)
-    prepare_group_card_members
-    managed_approval_group_ids = @groups.select { |group| group.approval_group? && group.group_admin?(current_user) }.map(&:id)
-    @pending_membership_counts = GroupMembership.pending.where(group_id: managed_approval_group_ids)
-      .group(:group_id).count
-    past_group_scope = policy_scope(Group, policy_scope_class: GroupPolicy::PastMembershipScope)
-      .where.not(id: hidden_group_ids)
-    @past_group_states = {}
-    if past_group_scope.exists?
-      past_groups = past_group_scope
-        .select(:id, :name, :group_type, :lifecycle_status, :operation_suspended_at, :closed_at).index_by(&:id)
-      @past_group_states = GroupMembershipEvent.past_states_for(user: current_user, groups: past_groups.values)
-      @groups.concat(@past_group_states.keys.map { |id| past_groups.fetch(id) })
-    end
-    @can_manage_group_list = @groups.size >= 2 || @past_group_states.any? || current_user.group_list_hidings.exists? ||
-      memberships.any?(&:removable_from_list?)
-    @invitations = current_user.group_memberships.invited
-      .joins(:group)
-      .merge(Group.active)
-      .includes(group: :group_admin)
-      .order(created_at: :desc)
+    prepare_group_list
   end
 
   def show
@@ -131,6 +97,48 @@ class GroupsController < ApplicationController
   end
 
   private
+
+  def prepare_group_activity_feed
+    @group_activity_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupActivityScope)
+      .includes(:book, :group,
+                user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
+      .order(created_at: :desc, id: :desc)
+    @feed_page = FeedPage.new(jjaeks: @group_activity_jjaeks, cursor: params[:cursor])
+    @feed_next_url = groups_path(cursor: @feed_page.next_cursor) if @feed_page.next_cursor
+    @group_activity_jjaeks = @feed_page.items
+    prepare_jjaek_card_summaries_for(@group_activity_jjaeks)
+    prepare_current_reading_states_for(@group_activity_jjaeks)
+    prepare_visible_requote_counts_for(@group_activity_jjaeks)
+  end
+
+  def prepare_group_list
+    hidden_group_ids = current_user.group_list_hidings.select(:group_id)
+    groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope).where.not(id: hidden_group_ids)
+    memberships = GroupMembership.displayed_for(user: current_user, groups:)
+      .preload(group: { group_admin: { avatar_attachment: :blob } }).to_a
+    @groups = memberships.map(&:group)
+    @memberships_by_group_id = memberships.index_by(&:group_id)
+    prepare_group_card_members
+    managed_approval_group_ids = @groups.select { |group| group.approval_group? && group.group_admin?(current_user) }.map(&:id)
+    @pending_membership_counts = GroupMembership.pending.where(group_id: managed_approval_group_ids)
+      .group(:group_id).count
+    past_group_scope = policy_scope(Group, policy_scope_class: GroupPolicy::PastMembershipScope)
+      .where.not(id: hidden_group_ids)
+    @past_group_states = {}
+    if past_group_scope.exists?
+      past_groups = past_group_scope
+        .select(:id, :name, :group_type, :lifecycle_status, :operation_suspended_at, :closed_at).index_by(&:id)
+      @past_group_states = GroupMembershipEvent.past_states_for(user: current_user, groups: past_groups.values)
+      @groups.concat(@past_group_states.keys.map { |id| past_groups.fetch(id) })
+    end
+    @can_manage_group_list = @groups.size >= 2 || @past_group_states.any? || current_user.group_list_hidings.exists? ||
+      memberships.any?(&:removable_from_list?)
+    @invitations = current_user.group_memberships.invited
+      .joins(:group)
+      .merge(Group.active)
+      .includes(group: :group_admin)
+      .order(created_at: :desc)
+  end
 
   def prepare_restricted_content
     @content_section = params[:content] == "comments" ? "comments" : "jjaeks"

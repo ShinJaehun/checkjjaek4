@@ -1,4 +1,6 @@
 class BookshelfEntriesController < ApplicationController
+  include BookShowContext
+
   before_action :set_bookshelf_entry, only: %i[edit update destroy move]
 
   def edit

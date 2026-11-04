@@ -1,4 +1,5 @@
 class JjaeksController < ApplicationController
+  include BookShowContext
   include CommentModerationHistory
   include GroupShowContext
   include HomeFeedContext
