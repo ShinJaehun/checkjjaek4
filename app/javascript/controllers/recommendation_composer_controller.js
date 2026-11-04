@@ -6,6 +6,7 @@ export default class extends Controller {
   static values = { selectionTitle: String, writingTitle: String, maxBooks: Number }
 
   connect() {
+    this.element.dataset.requestRevision ||= crypto.randomUUID()
     this.load()
   }
 
@@ -58,6 +59,8 @@ export default class extends Controller {
 
   close() {
     this.element.hidden = true
+    this.element.dataset.requestRevision = crypto.randomUUID()
+    this.pendingForm = null
     this.element.dataset.revision = String(Number(this.element.dataset.revision || 0) + 1)
     this.frameTarget.src = null
     this.frameTarget.replaceChildren()
@@ -99,7 +102,15 @@ export default class extends Controller {
       this.close()
       return
     }
-    if (form.id === "recommendation-jjaek-form" || !form.matches("form[data-recommendation-selection-form]")) return
+    const selectionForm = form.matches("form[data-recommendation-selection-form]")
+    const publishForm = form.id === "recommendation-jjaek-form"
+    if (!selectionForm && !publishForm) return
+    if (this.pendingForm) {
+      event.preventDefault()
+      return
+    }
+    if (form.method.toLowerCase() !== "get") this.pendingForm = form
+    if (publishForm) return
 
     this.element.hidden = false
     if (!this.hasFieldsTarget) {
@@ -120,6 +131,26 @@ export default class extends Controller {
       if (form.dataset.recommendationSelectionForm !== "add") names.push("query", "page")
     }
     names.forEach(name => { this.setFormValues(form, name, this.valuesFor(name)) })
+  }
+
+  submitted(event) {
+    if (event.target === this.pendingForm) this.pendingForm = null
+  }
+
+  prepareRequest(event) {
+    const target = event.target
+    if (target === this.frameTarget || target.id === "recommendation-search-results" ||
+        target.id === "recommendation-jjaek-form" || target.matches("form[data-recommendation-selection-form]")) {
+      event.detail.fetchOptions.headers["X-Recommendation-Revision"] = this.element.dataset.requestRevision
+    }
+  }
+
+  guardResponse(event) {
+    const revision = event.detail.fetchResponse.response.headers.get("X-Recommendation-Revision")
+    if (revision && revision !== this.element.dataset.requestRevision) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
   }
 
   setFormValues(form, name, values) {
