@@ -1116,6 +1116,7 @@ ko:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
       book_friendship_accepted: "%{actor_name}님이 책친구 신청을 수락했습니다."
       profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
+      profile_jjaek_unavailable: "지금은 이 프로필 대화를 볼 수 없습니다."
       comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
       group_comment_created: "%{group_name} 동아리에서 %{actor_name}님이 내 글에 댓글을 남겼습니다."
       requote_created: "%{actor_name}님이 회원님의 짹을 개인 소식에 다시짹했습니다."
@@ -1388,8 +1389,10 @@ ko:
       destination_group: "다시짹할 동아리"
       choose_group: "동아리 선택"
       selected_group: "대상 동아리: %{group_name}"
+      profile_conversation: "이 짹과 댓글은 작성자와 프로필 주인만 볼 수 있습니다."
       visibility: "공개 범위"
     labels:
+      profile_conversation: "두 사람 전용"
       requote: "%{name}님의 짹"
       quoted_general_suffix: "님의 짹"
       quoted_book_suffix: "님의 책짹"
@@ -1399,6 +1402,8 @@ ko:
       deleted_quoted_source_unknown_author: "알 수 없는 사용자"
       deleted_quoted_source: "원문이 삭제되었습니다."
       deleted: "작성자가 삭제한 글입니다."
+    reaction_cleanup:
+      description: "이 대화는 볼 수 없습니다. 이전에 남긴 내 댓글을 삭제하거나 좋아요를 취소할 수 있습니다."
     meta:
       created_at: "%{time}에 작성함"
       edited_at: "%{time}에 수정함"

@@ -86,6 +86,10 @@
 
 ### source 상태와 기존 ReJjaek
 
+- 타인 프로필 대화는 새로운 개인 다시짹·동아리 공유를 금지한다. 과거 연결은 유지하되,
+  살아 있는 원문을 작성자·대상자만 읽도록 소급 적용한다. 제3자는 인용 카드·목록·검색·댓글·알림으로
+  원문을 우회할 수 없다. 원문 삭제 뒤에는 아래 A/B/C의 기존 삭제 정책을 유지한다.
+
 - 살아 있는 source가 hidden되면 기존 ReJjaek row와 `quoted_jjaek` 관계는 유지하되 일반 read scope에서는 함께 비노출한다.
   source가 restore되면 보존된 관계를 기준으로 현재 접근 권한을 다시 판단한다.
 - source가 살아 있어도 viewer가 friendship, visibility 또는 Group context의 현재 read 권한을 잃으면 기존 ReJjaek도 볼 수 없다.

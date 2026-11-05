@@ -3,6 +3,7 @@ module NotificationsHelper
     return moderation_notification_message(notification) if notification.moderation?
     return group_lifecycle_notification_message(notification) if notification.group_lifecycle?
     return group_membership_notification_message(notification) if notification.group_membership_workflow?
+    return t("notifications.messages.profile_jjaek_unavailable") if notification.profile_jjaek_created? && !readable_profile_jjaek_notification?(notification)
     return t("notifications.messages.requote_unavailable") if notification.requote_created? && !readable_requote_notification?(notification)
     return t("notifications.messages.comment_unavailable") if notification.comment_created? && !readable_comment_notification?(notification)
 
@@ -48,6 +49,7 @@ module NotificationsHelper
     return false unless notification.actor.present? && notification.show_actor_avatar?
     return readable_requote_notification?(notification) if notification.requote_created?
     return readable_comment_notification?(notification) if notification.comment_created?
+    return readable_profile_jjaek_notification?(notification) if notification.profile_jjaek_created?
 
     true
   end
@@ -75,6 +77,11 @@ module NotificationsHelper
   def readable_requote_notification?(notification)
     requote = notification.notifiable
     requote.is_a?(Jjaek) && notification_policy_allows?(requote, :visible_for_interaction?)
+  end
+
+  def readable_profile_jjaek_notification?(notification)
+    jjaek = notification.notifiable
+    jjaek.is_a?(Jjaek) && notification_policy_allows?(jjaek, :show?)
   end
 
   def readable_comment_notification?(notification)

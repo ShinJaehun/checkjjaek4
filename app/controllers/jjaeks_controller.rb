@@ -30,6 +30,12 @@ class JjaeksController < ApplicationController
   end
 
   def show
+    if @profile_reaction_cleanup
+      @cleanup_comments = @jjaek.comments.where(user: current_user).order(:created_at, :id)
+      @cleanup_like = @jjaek.likes.find_by(user: current_user)
+      return render :reaction_cleanup
+    end
+
     @current_hide_action = @jjaek.current_hide_action if @jjaek.hidden?
     if policy(@jjaek).view_admin_inventory?
       @moderation_actions = @jjaek.moderation_actions
@@ -87,6 +93,7 @@ class JjaeksController < ApplicationController
     attributes = jjaek_params
     attributes = attributes.slice(:content, :visibility) if @jjaek.recommendation?
     attributes = attributes.except(:book_id, :visibility, :target_user_id) if @group.present? && @quoted_jjaek.present?
+    attributes = attributes.except(:visibility) if @jjaek.profile_conversation?
     @jjaek.assign_attributes(attributes)
 
     recommendation_save_attempts = 0
@@ -239,6 +246,11 @@ class JjaeksController < ApplicationController
     @jjaek = Jjaek.find(params[:id])
 
     unless policy(@jjaek).show?
+      if policy(@jjaek).cleanup_profile_reactions?
+        authorize @jjaek, :cleanup_profile_reactions?
+        @profile_reaction_cleanup = true
+        return
+      end
       raise ActiveRecord::RecordNotFound if @jjaek.group_id.present?
 
       redirect_to root_path, alert: t("jjaeks.alerts.not_found_or_inaccessible")
@@ -290,7 +302,7 @@ class JjaeksController < ApplicationController
       group: @group,
       quoted_jjaek: @quoted_jjaek,
       target_user: @group.present? ? nil : target_user,
-      visibility: default_jjaek_visibility_for(@quoted_jjaek)
+      visibility: @group.blank? && target_user.present? ? :book_friends : default_jjaek_visibility_for(@quoted_jjaek)
     )
     authorize @jjaek if action_name == "new" && !@share_to_group
   end
@@ -350,7 +362,6 @@ class JjaeksController < ApplicationController
     authorize @user, :show?
     prepare_profile_context
     @profile_jjaek = @jjaek
-    @profile_jjaek_visibility_options = profile_jjaek_visibility_options_for(@user)
   end
 
   def prepare_comments
@@ -462,12 +473,6 @@ class JjaeksController < ApplicationController
     render "homes/show", status:
   end
 
-  def profile_jjaek_visibility_options_for(user)
-    options = %w[public_jjaek book_friends]
-    options << "private_jjaek" if current_user == user
-    options
-  end
-
   def jjaek_book_id
     params.dig(:jjaek, :book_id) || params[:book_id]
   end
@@ -499,7 +504,7 @@ class JjaeksController < ApplicationController
   end
 
   def update_jjaek_params
-    return jjaek_params.slice(:content) if @jjaek.group_id.present?
+    return jjaek_params.slice(:content) if @jjaek.group_id.present? || @jjaek.profile_conversation?
 
     jjaek_params.except(:book_id, :group_id, :quoted_jjaek_id, :target_user_id)
   end

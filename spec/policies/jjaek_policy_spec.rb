@@ -16,6 +16,58 @@ RSpec.describe JjaekPolicy do
     friendship
   end
 
+  describe "profile conversations" do
+    let(:conversation) { original_author.jjaeks.create!(target_user: viewer, content: "Conversation", visibility: :public_jjaek) }
+
+    it "limits every stored visibility to the two participants even when everyone is friends" do
+      BookFriendship.create!(requester: unrelated_author, addressee: original_author, status: :accepted)
+      BookFriendship.create!(requester: unrelated_author, addressee: viewer, status: :accepted)
+      unrelated_author.active_follows.create!(followee: original_author)
+
+      Jjaek.visibilities.each_value do |visibility|
+        conversation.update_columns(visibility:)
+        [ original_author, viewer ].each do |participant|
+          expect(described_class.new(participant, conversation)).to be_show
+          expect(described_class.new(participant, conversation)).not_to be_requote
+          expect(described_class.new(participant, conversation)).not_to be_group_share_source
+          [ described_class::Scope, described_class::FeedScope, described_class::ProfileScope, described_class::SearchScope ].each do |scope_class|
+            expect(scope_class.new(participant, Jjaek.all).resolve).to include(conversation)
+          end
+        end
+        expect(described_class.new(unrelated_author, conversation)).not_to be_show
+        [ described_class::Scope, described_class::FeedScope, described_class::ProfileScope, described_class::SearchScope ].each do |scope_class|
+          expect(scope_class.new(unrelated_author, Jjaek.all).resolve).not_to include(conversation)
+        end
+      end
+    end
+
+    it "keeps past conversations readable after friendship ends but requires friendship for a new one" do
+      conversation
+      friendship.destroy!
+
+      [ original_author, viewer ].each do |participant|
+        expect(described_class.new(participant, conversation)).to be_visible_for_interaction
+      end
+      new_conversation = viewer.jjaeks.build(target_user: original_author, content: "New conversation")
+      expect(described_class.new(viewer, new_conversation)).not_to be_create
+    end
+
+    it "preserves moderation inspection without granting a third-party admin interaction permission" do
+      unrelated_author.update!(global_admin: true)
+      policy = described_class.new(unrelated_author, conversation)
+
+      expect(policy).to be_show
+      expect(policy).to be_view_admin_inventory
+      expect(policy).not_to be_visible_for_interaction
+      expect(policy).not_to be_requote
+      expect(policy).to be_hide
+
+      conversation.update!(hidden_at: Time.current)
+      expect(described_class.new(unrelated_author, conversation)).to be_view_hidden_content
+      expect(described_class.new(viewer, conversation)).not_to be_view_hidden_content
+    end
+  end
+
   describe ".group_share_destinations_for" do
     let(:source) { original_author.jjaeks.create!(content: "Public original") }
     let(:destination) do
@@ -719,14 +771,15 @@ RSpec.describe JjaekPolicy do
       expect(described_class.new(viewer, jjaek).create?).to be(false)
     end
 
-    it "does not allow creating a private profile-context jjaek for another user" do
+    it "allows creating a profile conversation regardless of its stored visibility" do
       jjaek = viewer.jjaeks.build(
         target_user: original_author,
         content: "PRIVATE_PROFILE_CONTEXT_POLICY_JJAEK",
         visibility: :private_jjaek
       )
 
-      expect(described_class.new(viewer, jjaek).create?).to be(false)
+      expect(described_class.new(viewer, jjaek).create?).to be(true)
+      expect(described_class.new(original_author, jjaek).show?).to be(true)
     end
 
     it "allows public personal originals in multiple writable groups without widening personal requotes" do

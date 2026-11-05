@@ -26,6 +26,5 @@ class UsersController < ApplicationController
       target_user: @user,
       visibility: :book_friends
     )
-    @profile_jjaek_visibility_options = %w[public_jjaek book_friends]
   end
 end

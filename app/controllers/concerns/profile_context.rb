@@ -49,7 +49,7 @@ module ProfileContext
 
   def resolve_profile_jjaeks
     policy_scope(
-      @user.jjaeks,
+      Jjaek.where(user_id: @user.id).or(Jjaek.where(target_user_id: @user.id)),
       policy_scope_class: JjaekPolicy::ProfileScope
     ).includes(:book, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
   end

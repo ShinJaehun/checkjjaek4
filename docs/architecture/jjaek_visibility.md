@@ -38,6 +38,9 @@ visibility는 1차 조건이고, 최종 판단은 policy / policy_scope가 담�
 
 ## 각 visibility의 의미
 
+아래 enum 의미는 일반 개인 Jjaek 기준이다. 타인 프로필 대화는 저장값보다
+작성자·대상자 두 사람 전용 접근 규칙을 우선하며, Group은 기존 동아리 접근 정책을 따른다.
+
 ### `public_jjaek`
 
 - 전체 공개를 의미한다
@@ -63,8 +66,10 @@ visibility는 1차 조건이고, 최종 판단은 policy / policy_scope가 담�
   - `book_friends`
   - `private_jjaek`
 - 남의 프로필
-  - `public_jjaek`
-  - `book_friends`
+  - 공개 범위 선택 없이 두 사람 전용 안내를 표시한다.
+  - `target_user_id != user_id`인 대화는 저장된 visibility와 무관하게 작성자와 대상자만 읽는다.
+  - 신규 작성만 현재 책친구 관계를 요구하고 과거 대화 읽기는 관계 해제 후에도 유지한다.
+  - 생성·수정의 visibility 조작은 무시한다. 기존 visibility 일괄 변경은 하지 않는다.
 
 현재 구현 요약 문서에는 홈과 책 상세의 선택 가능 범위가 별도 표로 정리되어 있지 않다.
 그 상세는 실제 controller / policy / form 코드와 관련 spec을 함께 확인해야 한다.
@@ -107,6 +112,8 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
 `../specs/group_sharing_requotes.md`, 다시짹 목록 조회와 노출 범위는 `../specs/requotes_mvp.md`를 따른다.
 
 - `private_jjaek` 개인 원문은 인용할 수 없다. 비공개 동아리 원문은 같은 동아리의 현재 읽기·쓰기 권한 안에서 인용할 수 있다
+- 타인 프로필 대화는 어떤 저장 visibility여도 새 개인 다시짹·동아리 공유를 할 수 없다.
+  기존 인용은 보존하고 원문의 두 사람 전용 읽기 권한을 재검사한다. 원문 삭제 후 처리는 아래 기존 A/B/C 정책을 유지한다.
 - ReJjaek은 원문보다 넓은 공개 범위를 가질 수 없다
 - quoted Jjaek 접근 권한은 조회 시 다시 검사한다
 - ReJjaek은 원문을 복사하지 않고 참조하므로, 원문 수정 시 quoted block도 최신 원문을 보여준다
@@ -131,6 +138,8 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
 
 - 댓글과 좋아요는 부모 Jjaek을 볼 수 있는 사용자만 가능하다
 - 즉, 상호작용 가능 범위는 부모 Jjaek visibility와 접근 가능 범위를 넘을 수 없다
+- 과거 프로필 대화의 제3자는 자기 댓글 삭제·좋아요 철회만 예외적으로 허용한다.
+  기존 상세 URL의 최소 정리 화면과 DELETE 응답은 대화 본문·다른 댓글을 노출하지 않는다.
 
 동아리 댓글은 부모 동아리 Jjaek의 열람 권한을 상속하며 active member만 작성·수정할 수 있다.
 동아리 좋아요는 부모 Jjaek의 열람 권한을 상속한다. 새 좋아요는 active 동아리의 active member만 만들 수 있고,

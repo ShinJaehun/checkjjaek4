@@ -97,10 +97,17 @@ class Notification < ApplicationRecord
   end
 
   def self.notify_comment_created(comment)
-    return unless JjaekPolicy.new(comment.jjaek.user, comment.jjaek).show?
+    jjaek = comment.jjaek
+    recipient = jjaek.user
+    if jjaek.profile_conversation?
+      return unless comment.user_id.in?([ jjaek.user_id, jjaek.target_user_id ])
+
+      recipient = comment.user_id == jjaek.user_id ? jjaek.target_user : jjaek.user
+    end
+    return unless JjaekPolicy.new(recipient, jjaek).show?
 
     notify_once(
-      recipient: comment.jjaek.user,
+      recipient:,
       actor: comment.user,
       action: :comment_created,
       notifiable: comment

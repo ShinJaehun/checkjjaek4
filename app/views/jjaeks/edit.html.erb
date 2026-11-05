@@ -39,7 +39,9 @@
     <div class="mt-6">
       <%= form_with model: @jjaek, class: "space-y-4" do |form| %>
         <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
-        <% if @jjaek.group_id.blank? %>
+        <% if @jjaek.profile_conversation? %>
+          <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation") %></p>
+        <% elsif @jjaek.group_id.blank? %>
           <div class="space-y-2">
             <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
             <%= form.select :visibility,

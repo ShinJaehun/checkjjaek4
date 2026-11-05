@@ -3,18 +3,7 @@
     <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
     <%= form.hidden_field :target_user_id %>
 
-    <fieldset class="space-y-2">
-      <legend class="text-sm font-medium text-stone-700"><%= t("jjaeks.form.visibility") %></legend>
-      <div class="grid gap-2 sm:grid-cols-2">
-        <% profile_jjaek_visibility_options.each do |visibility| %>
-          <label class="<%= jjaek_option_card_classes %>">
-            <%= form.radio_button :visibility, visibility, required: true, class: "sr-only" %>
-            <%= jjaek_option_icon(visibility) %>
-            <span><%= t("jjaeks.visibility.#{visibility}") %></span>
-          </label>
-        <% end %>
-      </div>
-    </fieldset>
+    <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation") %></p>
 
     <%= render "shared/content_field", form: form, label_key: "jjaeks.form.jjaek_content", rows: 4 %>
 

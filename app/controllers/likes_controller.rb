@@ -40,6 +40,12 @@ class LikesController < ApplicationController
     authorize @like
     @like.destroy!
 
+    unless policy(@jjaek).show?
+      destination = policy(@jjaek).cleanup_profile_reactions? ? jjaek_path(@jjaek) : root_path
+      redirect_to destination, notice: t("likes.notices.destroyed"), status: :see_other
+      return
+    end
+
     @jjaek.reload
     respond_to do |format|
       format.turbo_stream { prepare_jjaek_like_summaries_for([ @jjaek ]) }
@@ -63,6 +69,8 @@ class LikesController < ApplicationController
       redirect_to root_path, alert: t("jjaeks.alerts.not_found_or_inaccessible"), status: :see_other
       return
     end
+
+    return if action_name == "destroy" && policy(@jjaek).cleanup_profile_reactions?
 
     authorize @jjaek, :show?
   end

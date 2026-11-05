@@ -95,7 +95,12 @@ class CommentsController < ApplicationController
     end
 
     unless policy(@jjaek).show?
-      redirect_to groups_path, notice: t("comments.notices.destroyed"), status: :see_other
+      destination = if policy(@jjaek).cleanup_profile_reactions?
+        jjaek_path(@jjaek)
+      else
+        @jjaek.group_id.present? ? groups_path : root_path
+      end
+      redirect_to destination, notice: t("comments.notices.destroyed"), status: :see_other
       return
     end
 
@@ -152,7 +157,11 @@ class CommentsController < ApplicationController
     @comment = @jjaek.comments.find_by(id: params[:id])
     return if @comment
 
-    redirect_path = policy(@jjaek).show? ? jjaek_path(@jjaek) : groups_path
+    redirect_path = if policy(@jjaek).show? || policy(@jjaek).cleanup_profile_reactions?
+      jjaek_path(@jjaek)
+    else
+      @jjaek.group_id.present? ? groups_path : root_path
+    end
     redirect_to redirect_path, alert: t("comments.alerts.stale_action"), status: :see_other
   end
 

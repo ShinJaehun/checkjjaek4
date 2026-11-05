@@ -77,7 +77,7 @@
 
 - `JjaekPolicy::FeedScope` 기반 Jjaek 피드와 `BookActivityPolicy::FeedScope` 기반 BookActivity 피드를 합성
 - 내 Jjaek, 소식받는 사용자의 공개 Jjaek, 소식받는 accepted 책친구의 책친구 공개 Jjaek,
-  현재 사용자를 대상으로 한 non-private profile-context Jjaek이 함께 섞일 수 있음
+  현재 사용자가 작성하거나 대상인 두 사람 전용 profile-context Jjaek이 함께 섞일 수 있음
 - `JjaekPolicy::FeedScope#feed_records`는 현재 `group_id`가 없는 개인 Jjaek만 반환하므로 Group Jjaek은 홈 피드에서 제외됨
 - 홈과 동아리 활동 피드 경계는 `docs/specs/group_activity_feed.md`를 따르며, 가입한 동아리의 통합 활동 피드는 `/groups`에서 제공함
 - BookActivity는 현재 사용자와 소식받는 accepted 책친구의 활동만 함께 섞임
@@ -131,6 +131,8 @@
 - 프로필은 항상 공개 요약 화면으로 해석한다
 - navbar의 현재 사용자 avatar·이름은 자기 프로필로 연결되고, 자기 프로필 상단에서 책친구·설정 화면으로 이동한다. 타인 프로필 상단에는 이 계정 action을 표시하지 않는다
 - accepted 책친구의 타인 프로필에서만 profile-context Jjaek을 작성할 수 있고, 자기 프로필의 일반 Jjaek 작성은 홈(`/`)에서 시작함
+- 타인 프로필 짹은 저장 visibility와 무관하게 작성자·대상자만 읽고 현재 책친구·Follow 관계가 없어도 과거 대화에 접근함.
+  두 당사자의 프로필에는 보낸 짹·받은 짹을 함께 표시하며 작성·수정 폼에는 공개 범위 선택 대신 두 사람 전용 안내를 표시함
 - 로그인 사용자는 프로필의 최근 활동 섹션을 볼 수 있다
 - stranger / follow-only는 프로필에서 `public` 책 목록을 flat summary 형태로 볼 수 있다
 - self / accepted book_friend는 프로필에서 접근 가능한 책 목록 요약을 볼 수 있다
@@ -139,7 +141,7 @@
 - 프로필에서는 누구에게도 책장 탭, 책장 정렬 UI, 책장 관리 UI, 책 이동 UI를 보여주지 않는다
 - stranger / follow-only는 Library 링크를 볼 수 없다
 - self / accepted book_friend는 프로필에서 Library 링크를 볼 수 있다
-- 최근 활동 섹션은 profile owner의 visible Jjaek과 visible BookActivity를 함께 보여준다
+- 최근 활동 섹션은 profile owner가 작성하거나 받은 visible Jjaek과 visible BookActivity를 함께 보여준다
 - 실제 Jjaek 노출 범위는 기존 profile Jjaek 정책을 따른다
 - BookActivity 노출 범위는 `self / accepted book_friend` 기준이며 global admin 프로필 조회 예외는 없다
 - stranger / follow-only 사용자는 프로필 최근 활동에서 BookActivity를 볼 수 없다
@@ -493,6 +495,12 @@
 - ReJjaek (`quoted_jjaek`이 있거나 deleted-source snapshot이 남아 있음)
 
 → 하나의 Jjaek 모델이 문맥(context)에 따라 역할을 나눠 갖는다.
+
+타인 프로필 대화(`target_user_id != user_id`)의 두 사람 전용 권한은 `JjaekPolicy`와 Scope에서
+소급 적용한다. 새 개인 다시짹·동아리 공유는 막고 기존 인용 연결은 보존하며 현재 원문 접근을 재검사한다.
+기존 제3자의 댓글·좋아요는 보존하고 기존 상세 URL에서 자기 반응 정리만 허용한다.
+삭제 응답은 부모를 읽을 수 없으면 패널·요약 대신 안전하게 redirect한다. 새 컬럼이나 운영 DB 정리는 없다.
+댓글 알림은 대화 상대에게 전달하며 일반·Group 댓글 알림과 삭제 snapshot lifecycle은 유지한다.
 
 추천짹 유형 배지는 개인 피드·동아리에서 비모달 플로팅 창을 연다. 로그인 layout의
 `recommendation-window`는 `data-turbo-permanent`로 유지하며 `JjaeksController#new`가
