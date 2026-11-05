@@ -115,9 +115,10 @@ RSpec.describe Notification, type: :model do
     hidden_jjaek = actor.jjaeks.build(
       target_user: recipient,
       content: "Hidden profile context",
-      visibility: :private_jjaek
+      visibility: :private_jjaek,
+      hidden_at: Time.current
     )
-    hidden_jjaek.save!(validate: false)
+    hidden_jjaek.save!
 
     expect {
       described_class.notify_profile_jjaek_created(hidden_jjaek)

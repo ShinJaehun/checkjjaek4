@@ -31,7 +31,7 @@
           · <%= t("jjaeks.meta.edited_at", time: l(jjaek.content_edited_at, format: :short)) %>
         <% end %>
         <% if jjaek.group_id.blank? %>
-          · <%= t("jjaeks.visibility.#{jjaek.visibility}") %>
+          · <%= jjaek.profile_conversation? ? t("jjaeks.labels.profile_conversation") : t("jjaeks.visibility.#{jjaek.visibility}") %>
         <% end %>
         <% if show_context && !book_friend_preview && !hide_book_details && show_requote_book_link?(jjaek) %>
           ·

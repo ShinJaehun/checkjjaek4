@@ -5,8 +5,7 @@
 
   <% if @profile_jjaek.present? %>
     <%= render "users/profile_jjaek_form",
-               profile_jjaek: @profile_jjaek,
-               profile_jjaek_visibility_options: @profile_jjaek_visibility_options %>
+               profile_jjaek: @profile_jjaek %>
   <% end %>
 
   <% if @show_library_link %>

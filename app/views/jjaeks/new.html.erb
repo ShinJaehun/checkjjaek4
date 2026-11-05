@@ -37,6 +37,7 @@
         <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
         <%= form.hidden_field :book_id, value: @book.id if @book.present? %>
         <%= form.hidden_field :quoted_jjaek_id, value: @quoted_jjaek&.id %>
+        <%= form.hidden_field :target_user_id if @jjaek.profile_conversation? %>
 
         <% if @share_to_group %>
           <% if @group.present? %>
@@ -51,6 +52,8 @@
           </div>
         <% elsif @group.present? %>
           <p class="text-sm text-stone-600"><%= t("jjaeks.form.selected_group", group_name: @group.name) %></p>
+        <% elsif @jjaek.profile_conversation? %>
+          <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation") %></p>
         <% else %>
           <div class="space-y-2">
             <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>

@@ -40,7 +40,6 @@ class Jjaek < ApplicationRecord
   validate :quoted_jjaek_must_not_be_requote
   validate :quoted_group_jjaek_must_be_public
   validate :quoted_jjaek_visibility_must_not_expand
-  validate :target_user_visibility_must_not_be_private
   validate :quoted_group_context_must_be_allowed
   validate :group_context_must_not_target_user
   validate :recommendation_context_must_be_valid
@@ -53,6 +52,11 @@ class Jjaek < ApplicationRecord
   scope :visible, -> { where(hidden_at: nil) }
   scope :general_posts, -> { where(recommendation: false, book_id: nil) }
   scope :recommendation_posts, -> { where(recommendation: true) }
+  scope :without_profile_conversations, -> { where("jjaeks.target_user_id IS NULL OR jjaeks.target_user_id = jjaeks.user_id") }
+
+  def profile_conversation?
+    target_user_id.present? && target_user_id != user_id
+  end
 
   def content_kind
     return "recommendation" if recommendation?
@@ -169,6 +173,10 @@ class Jjaek < ApplicationRecord
 
   def quoted_jjaek_must_be_requotable
     return unless quoted_jjaek.present?
+    if quoted_jjaek.profile_conversation?
+      errors.add(:quoted_jjaek, :invalid) if new_record? || will_save_change_to_quoted_jjaek_id?
+      return
+    end
     return unless quoted_jjaek.private_jjaek?
 
     errors.add(:quoted_jjaek, :invalid)
@@ -193,14 +201,6 @@ class Jjaek < ApplicationRecord
     return if visibility_rank >= quoted_jjaek.send(:visibility_rank)
 
     errors.add(:visibility, :cannot_exceed_quoted_visibility)
-  end
-
-  def target_user_visibility_must_not_be_private
-    return unless target_user_id.present?
-    return if target_user_id == user_id
-    return unless private_jjaek?
-
-    errors.add(:visibility, :invalid)
   end
 
   def visibility_rank

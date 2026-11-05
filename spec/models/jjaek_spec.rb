@@ -140,6 +140,30 @@ RSpec.describe Jjaek, type: :model do
     expect(jjaek).to be_valid
   end
 
+  it "rejects new profile-conversation quotes while preserving edits and deletion lifecycle of existing quotes" do
+    source = other_user.jjaeks.create!(content: "Legacy profile source")
+    group = Group.create!(group_admin: user, name: "Legacy destination", lifecycle_status: :active)
+    personal = user.jjaeks.create!(quoted_jjaek: source, content: "Personal opinion")
+    shared = user.jjaeks.create!(group:, quoted_jjaek: source, content: "Group opinion")
+    source.update!(target_user: user)
+
+    [ nil, group ].each do |destination|
+      quote = other_user.jjaeks.build(group: destination, quoted_jjaek: source, content: "New quote")
+      expect(quote).not_to be_valid
+      expect(quote.errors.of_kind?(:quoted_jjaek, :invalid)).to be(true)
+    end
+    expect(personal.update(content: "Edited opinion")).to be(true)
+    expect(shared.update(content: "Edited group opinion")).to be(true)
+    source.comments.create!(user:, content: "Preserve tombstone")
+    source.destroy_or_tombstone!
+
+    expect(personal.reload).to be_private_jjaek
+    expect(personal.quoted_jjaek_id).to be_nil
+    expect(shared.reload).to be_quoted_source_deleted
+    expect(shared.quoted_source_author_name).to be_nil
+    expect(shared.content).to eq("Edited group opinion")
+  end
+
   it "does not allow requoting a private jjaek" do
     original = other_user.jjaeks.create!(book:, content: "원문", visibility: :private_jjaek)
     requote = described_class.new(user:, book:, content: "인용", quoted_jjaek: original)

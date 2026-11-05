@@ -7,10 +7,10 @@ class LikePolicy < ApplicationPolicy
   end
 
   def destroy?
-    user.present? &&
-      record.user_id == user.id &&
-      jjaek_policy.show? &&
-      (record.jjaek.hidden? || jjaek_policy.visible_for_interaction?)
+    return false unless user.present? && record.user_id == user.id
+    return true if jjaek_policy.cleanup_profile_reactions?
+
+    jjaek_policy.show? && (record.jjaek.hidden? || jjaek_policy.visible_for_interaction?)
   end
 
   private

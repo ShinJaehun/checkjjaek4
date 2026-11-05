@@ -107,6 +107,8 @@ Group 이름 검색은 비회원에게 운영 중인 비공개 동아리 이름�
 - `stranger / follow`는 `public_jjaek`만 볼 수 있다.
 - `book_friend`는 `public_jjaek` + `book_friends`를 볼 수 있다.
 - `self`는 전체 Jjaek을 볼 수 있다.
+- 위 visibility 목록은 일반 개인 Jjaek 기준이다. 타인 프로필 대화는 작성자·대상자에게만 표시하고,
+  두 당사자의 프로필에서 보낸 짹과 받은 짹을 함께 조회한다. 현재 책친구·Follow 관계와 무관하다.
 - `stranger / follow`는 프로필 책 목록에서 상태와 스티커를 볼 수 없다.
 - `self / accepted book_friend`는 프로필 책 목록에서 상태와 스티커를 볼 수 있다.
 - 프로필 최근 활동은 연결된 항목이 있는 added_to_shelf BookActivity만 표시한다. self는 모든 책장, accepted book_friend는 현재 public/book_friends 책장의 활동만 볼 수 있다. private 변경·이동 시 과거 추가 활동도 숨긴다.
@@ -160,6 +162,12 @@ Library 안에서 볼 수 있는 책장:
 현재 구현 기준:
 
 - `JjaekPolicy#show?`는 현재 사용자가 해당 Jjaek을 볼 수 있는지 판단한다
+- `target_user_id`가 작성자와 다른 프로필 대화는 `profile_conversation?`으로 구분하고
+  저장된 visibility보다 먼저 작성자·대상자만 허용한다. Scope·FeedScope와 이를 사용하는
+  프로필·검색·태그·발견·인용 원문 검사에도 같은 규칙을 적용한다.
+- `cleanup_profile_reactions?`는 읽을 수 없는 프로필 대화에 자기 반응이 남은 사용자에게
+  기존 상세 URL의 정리 화면만 허용한다. 대화 본문·상대 정보·다른 댓글과 interaction 요약은 렌더링하지 않는다.
+  일반 상세 열람 권한인 `show?`를 부여하는 예외가 아니다.
 - quoted Jjaek이 있는 경우 quoted Jjaek도 현재 사용자에게 visible 해야 한다
 - 동아리의 `짹`과 `책짹`은 개인 visibility보다 동아리 콘텐츠 접근 권한을 우선한다
 - 공개 동아리는 로그인 사용자가 조회할 수 있고, 승인/비공개 동아리는 active member만 조회할 수 있다
@@ -182,6 +190,8 @@ Library 안에서 볼 수 있는 책장:
 - 작성자는 현재 사용자 본인이어야 한다
 - 책 문맥 작성은 현재 사용자의 `BookshelfEntry` 존재 여부와 연결된다
 - profile-context 작성은 대상 사용자에 대한 권한 규칙을 함께 따른다
+- 신규 프로필 대화는 현재 accepted 책친구만 작성한다. 생성·수정의 visibility 입력은 무시하고
+  기존 저장값을 일괄 변경하지 않는다. 작성·수정 화면과 카드에는 두 사람 전용 안내를 표시한다.
 - 동아리의 `짹`과 `책짹`은 active member만 작성할 수 있다
 - 동아리 책짹도 작성자의 `BookshelfEntry`가 있어야 한다
 
@@ -212,6 +222,8 @@ Library 안에서 볼 수 있는 책장:
 
 - 현재 사용자가 원문 Jjaek을 볼 수 있어야 한다
 - 원문이 `private_jjaek`이면 ReJjaek할 수 없다
+- 타인 프로필 대화는 저장 visibility와 관계없이 새 개인 다시짹·동아리 공유를 금지한다.
+  기존 인용 row와 연결은 유지하며, 원문의 두 사람 전용 접근을 현재 독자에게 재검사한다.
 - 원문 자체가 ReJjaek이면 다시 인용할 수 없다
 - active 공개 동아리의 Jjaek·책짹은 membership 없이 개인 영역으로 ReJjaek할 수 있다
 - 승인·비공개·inactive·pending 동아리 원문은 개인 영역으로 ReJjaek할 수 없다
@@ -247,7 +259,7 @@ Library 안에서 볼 수 있는 책장:
 
 - 홈 피드는 일반 조회 scope와 별도 규칙으로 계산된다
 - 내 Jjaek
-- 현재 사용자를 대상으로 한 non-private profile-context Jjaek
+- 현재 사용자가 작성하거나 대상인 두 사람 전용 대화 (visibility·Follow·현재 책친구 관계와 무관)
 - 소식받는 사용자의 공개 Jjaek
 - 소식받는 accepted 책친구의 책친구 공개 Jjaek
 - 현재 `feed_records`는 `group_id`가 없는 개인 Jjaek만 반환하며 Group Jjaek은 포함하지 않는다
@@ -271,7 +283,10 @@ Library 안에서 볼 수 있는 책장:
 현재 구현 기준:
 
 - 댓글 읽기와 새 댓글·좋아요 interaction은 부모 Jjaek의 현재 접근 가능 여부를 기준으로 판단한다
-- 기존 자기 Like 철회도 상태 제한을 우회하지 않으며, hidden Jjaek 또는 deleted tombstone과 동아리 운영 종료 상태에서도
+- 프로필 대화는 두 당사자만 기존 댓글을 읽고 새 댓글·좋아요를 만들 수 있다. 과거 제3자는 자기 댓글을
+  수정하거나 남의 반응을 지울 수 없으며 자기 댓글 삭제·좋아요 철회만 가능하다. HTML·Turbo 삭제 응답은
+  부모를 읽을 수 없을 때 상세 패널이나 좋아요 요약을 렌더링하지 않고 정리 화면 또는 안전한 경로로 보낸다.
+- 프로필 대화의 과거 자기 반응 정리 예외 외에는 기존 자기 Like 철회도 상태 제한을 우회하지 않으며, hidden Jjaek 또는 deleted tombstone과 동아리 운영 종료 상태에서도
   부모 Jjaek의 read boundary가 유지되는 범위에서만 허용한다
 - 동아리 댓글은 기존 `Comment` 모델을 사용하고 부모 동아리 Jjaek의 열람 범위를 상속한다
 - 공개 동아리 비회원은 댓글을 읽을 수 있지만 active member만 댓글을 작성하고 자기 댓글을 수정할 수 있다

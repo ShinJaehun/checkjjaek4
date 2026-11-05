@@ -213,14 +213,10 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include(I18n.t("users.profile.view_library"))
       expect(response.body).to include(user_library_path(profile_user))
       expect(response.body).to include('name="jjaek[target_user_id]"')
-      expect(response.body).to include(I18n.t("jjaeks.visibility.book_friends"))
       form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
       expect(form.ancestors("dialog")).to be_empty
-      choices = form.css("input[type='radio'][name='jjaek[visibility]']")
-      expect(choices.map { |input| input["value"] }).to eq(%w[public_jjaek book_friends])
-      expect(choices.select { |input| input["checked"] }.map { |input| input["value"] }).to eq([ "book_friends" ])
-      expect(choices.all? { |input| input.parent.name == "label" && input.parent.at_css("svg") }).to be(true)
-      expect(form.at_css("fieldset legend").text).to eq(I18n.t("jjaeks.form.visibility"))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.css("[name='jjaek[visibility]']")).to be_empty
     end
 
     it "shows the user's own summarized shelf, library link, and private jjaeks without a profile-context form" do
@@ -948,7 +944,9 @@ RSpec.describe "Users", type: :request do
       page = Nokogiri::HTML(response.body)
       expect(page.at_css(invitation_form)).to be_present
       expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
-      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
+      form = page.at_css(%(form[action="#{jjaeks_path}"]))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.css('[name="jjaek[visibility]"]')).to be_empty
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
       expect(page.text).to include("내용을 입력해 주세요.")
     end
@@ -998,8 +996,9 @@ RSpec.describe "Users", type: :request do
       expect(page.at_css(requote_link).text).to eq(normal_page.at_css(requote_link).text)
       expect(response.body).not_to include(profile_private_jjaek.content, excluded_jjaek.content, private_book.title)
       expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
-      expect(page.css('input[type="radio"][name="jjaek[visibility]"]').map { |option| option["value"] }).to eq(%w[public_jjaek book_friends])
-      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("public_jjaek")
+      form = page.at_css(%(form[action="#{jjaeks_path}"]))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.css('[name="jjaek[visibility]"]')).to be_empty
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
       expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     end
@@ -1040,22 +1039,51 @@ RSpec.describe "Users", type: :request do
       expect(response).to redirect_to(root_path)
     end
 
-    it "does not create a private profile-context jjaek for another user" do
+    it "keeps profile conversations private to both participants despite forged visibility values" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
-      sign_in viewer
+      BookFriendship.create!(requester: other_user, addressee: viewer, status: :accepted)
+      BookFriendship.create!(requester: other_user, addressee: profile_user, status: :accepted)
+      other_user.active_follows.create!(followee: viewer)
 
-      expect {
-        post jjaeks_path, params: {
-          jjaek: {
-            target_user_id: profile_user.id,
-            content: "PRIVATE_PROFILE_CONTEXT_JJAEK",
-            visibility: :private_jjaek
+      %i[private_jjaek public_jjaek].each do |visibility|
+        content = "PRIVATE_PROFILE_CONTEXT_JJAEK_#{visibility}"
+        sign_in viewer
+
+        expect {
+          post jjaeks_path, params: {
+            jjaek: {
+              target_user_id: profile_user.id,
+              content: content,
+              visibility: visibility
+            }
           }
-        }
-      }.not_to change(Jjaek, :count)
+        }.to change(Jjaek, :count).by(1)
 
-      expect(response).to redirect_to(root_path)
-      expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+        created_jjaek = Jjaek.last
+        expect(created_jjaek).to have_attributes(user: viewer, target_user: profile_user, visibility: "book_friends", content: content)
+        expect(response).to redirect_to(root_path)
+        sign_out viewer
+
+        [ viewer, profile_user ].each do |participant|
+          sign_in participant
+          get jjaek_path(created_jjaek)
+          expect(response).to have_http_status(:ok)
+          expect(response.body).to include(content)
+          sign_out participant
+        end
+
+        sign_in other_user
+        get jjaek_path(created_jjaek)
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq(I18n.t("jjaeks.alerts.not_found_or_inaccessible"))
+        expect(response.body).not_to include(content)
+        [ root_path, user_path(viewer), user_path(profile_user) ].each do |path|
+          get path
+          expect(response).to have_http_status(:ok)
+          expect(response.body).not_to include(content)
+        end
+        sign_out other_user
+      end
     end
 
     it "does not reach persistence for an unknown target user" do

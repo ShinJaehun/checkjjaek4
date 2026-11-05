@@ -1090,6 +1090,7 @@ en:
       book_friendship_requested: "%{actor_name} sent you a book friend request."
       book_friendship_accepted: "%{actor_name} accepted your book friend request."
       profile_jjaek_created: "%{actor_name} left a Jjaek on your profile."
+      profile_jjaek_unavailable: "This profile conversation is no longer available to you."
       comment_created: "%{actor_name} commented on your Jjaek."
       group_comment_created: "%{actor_name} commented on your post in the %{group_name} club."
       requote_created: "%{actor_name} ReJjaeked your Jjaek to their updates."
@@ -1362,8 +1363,10 @@ en:
       destination_group: "Group to ReJjaek in"
       choose_group: "Choose a group"
       selected_group: "Destination group: %{group_name}"
+      profile_conversation: "Only the author and profile owner can read this post and its comments."
       visibility: "Visibility"
     labels:
+      profile_conversation: "Just the two of you"
       requote: "ReJjaek from %{name}"
       quoted_general_suffix: "'s Jjaek"
       quoted_book_suffix: "'s Book Jjaek"
@@ -1373,6 +1376,8 @@ en:
       deleted_quoted_source_unknown_author: "Unknown user"
       deleted_quoted_source: "The original post was deleted."
       deleted: "This post was deleted by its author."
+    reaction_cleanup:
+      description: "You cannot read this conversation. You can delete your earlier comments or withdraw your like."
     meta:
       created_at: "Written at %{time}"
       edited_at: "Edited at %{time}"
