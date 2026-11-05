@@ -8,6 +8,13 @@ en:
     group_context: "Post a book recommendation in %{group_name}."
     selected_books: "Recommended books"
     selected_count: "Books to recommend (%{count}/%{max})"
+    summary_count:
+      one: "%{count} recommended book"
+      other: "%{count} recommended books"
+    additional_books:
+      one: "and %{count} other book"
+      other: "and %{count} other books"
+    edit_books: "Edit book list"
     limit_reached: "You can recommend up to %{count} books."
     choose_books: "Choose at least one book to recommend."
     add: "Add to recommendations"

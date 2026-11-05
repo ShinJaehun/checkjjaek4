@@ -10,7 +10,7 @@
   <% end %>
   <div id="recommendation-selection-alert" role="alert" class="text-sm text-red-700"><%= flash[:alert] %></div>
 
-  <div>
+  <div data-recommendation-composer-target="selection" <%= "hidden" if @recommendation_step == "writing" %>>
     <%= form_with url: book_search_path, method: :get,
                   data: { turbo_frame: "_top", recommendation_selection_form: "search" }, class: "space-y-2" do |form| %>
       <%= hidden_field_tag :recommendation, "1", id: nil %>
@@ -34,7 +34,7 @@
   <%= render "jjaeks/recommendation_selection_fields" %>
   <div data-recommendation-composer-target="selection" <%= "hidden" if @recommendation_step == "writing" %>>
     <button type="button" data-action="recommendation-composer#write" data-recommendation-composer-target="continue"
-            <%= "disabled" if @selected_books.empty? %> class="ui-button ui-button-primary"><%= t("recommendations.entry") %></button>
+            <%= "disabled" if @selected_books.empty? %> class="ui-button ui-button-primary"><%= t("recommendations.finish_selection") %></button>
   </div>
 
   <div data-recommendation-composer-target="writing" <%= "hidden" unless @recommendation_step == "writing" %>>
@@ -52,9 +52,6 @@
       <p class="text-sm font-medium"><%= t("recommendations.reason") %></p>
       <%= render "shared/content_field", form: form, label_key: "recommendations.reason", rows: 4, required: true %>
       <div class="flex flex-wrap gap-2">
-        <% unless @editing_recommendation %>
-          <button type="button" data-action="recommendation-composer#select" class="ui-button ui-button-secondary"><%= t("recommendations.back_to_selection") %></button>
-        <% end %>
         <%= form.submit t(@editing_recommendation ? "recommendations.save_edit" : "jjaeks.actions.publish_short"), class: "ui-button ui-button-primary" %>
       </div>
     <% end %>

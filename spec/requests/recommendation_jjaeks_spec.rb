@@ -175,17 +175,18 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
     get new_jjaek_path, params: { recommendation: 1, selected_books: [ book.id ] }
     page = Nokogiri::HTML(response.body)
     window = page.at_css("#recommendation-window")
-    expect(window.at_css("button[data-action='recommendation-composer#write']").text).to eq(I18n.t("recommendations.entry"))
-    writing = window.at_css("[data-recommendation-composer-target='writing']")
-    expect(writing).to have_attribute("hidden")
-    form = writing.at_css("#recommendation-jjaek-form")
+    expect(window.at_css("button[data-action='recommendation-composer#write']").text).to eq(I18n.t("recommendations.finish_selection"))
+    window.css("[data-recommendation-composer-target='writing']").each do |writing|
+      expect(writing).to have_attribute("hidden")
+    end
+    form = window.at_css("#recommendation-jjaek-form")
     expect(form.css("form")).to be_empty
     expect(form.at_css("textarea[name='jjaek[content]']")).to be_present
     expect(form.at_css("select[name='jjaek[visibility]']")).to be_present
     expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_short"))
-    expect(writing.at_css("button[data-action='recommendation-composer#select']").text).to eq(I18n.t("recommendations.back_to_selection"))
+    expect(window.at_css("button[data-action='recommendation-composer#select']").text).to eq(I18n.t("recommendations.edit_books"))
     search = window.at_css("form[data-recommendation-selection-form='search']")
-    expect(search.ancestors.any? { |ancestor| ancestor["data-recommendation-composer-target"] == "selection" }).to be(false)
+    expect(search.ancestors.any? { |ancestor| ancestor["data-recommendation-composer-target"] == "selection" }).to be(true)
     expect(Jjaek.count).to eq(0)
   end
 
@@ -552,6 +553,16 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
     window = page.at_css("#recommendation-window")
     expect(window["hidden"]).to be_nil
     expect(window.at_css("[data-mode='edit']")).to be_present
+    expect(window.at_css("[data-mode='edit']")["data-step"]).to eq("writing")
+    window.css("[data-recommendation-composer-target='selection']").each do |selection|
+      expect(selection).to have_attribute("hidden")
+    end
+    summary = window.at_css("#recommendation-selected-books [data-recommendation-composer-target='writing']")
+    expect(summary).not_to have_attribute("hidden")
+    expect(summary.text).to include(book.title, I18n.t("recommendations.additional_books", count: 1),
+      I18n.t("recommendations.summary_count", count: 2))
+    expect(summary.css("img, ul, form")).to be_empty
+    expect(summary.at_css("button[data-action='recommendation-composer#select']").text).to eq(I18n.t("recommendations.edit_books"))
     expect(window.css("input[name='selected_books[]'][form='recommendation-jjaek-form']").map { |field| field["value"] }).to eq([ "", book.id.to_s, other_book.id.to_s ])
     expect(window.at_css("form#recommendation-jjaek-form")["action"]).to eq(jjaek_path(recommendation))
     expect(window.at_css("form#recommendation-jjaek-form input[name='_method']")["value"]).to eq("patch")
