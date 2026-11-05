@@ -1,6 +1,6 @@
 <%= tag.section id: "recommendation-window", hidden: !@recommendation_context,
                 role: "dialog", aria: { modal: false, labelledby: "recommendation-window-title" },
-                class: "fixed inset-x-3 bottom-3 z-40 max-h-[48dvh] space-y-4 overflow-y-auto overscroll-contain rounded-3xl border border-stone-300 bg-white p-4 shadow-2xl sm:inset-x-auto sm:right-6 sm:bottom-auto sm:top-24 sm:max-h-[80dvh] sm:w-96 sm:p-5",
+                class: "fixed inset-x-3 bottom-3 z-40 max-h-[48dvh] space-y-4 overflow-y-auto overscroll-contain rounded-3xl border border-stone-300 bg-white p-4 shadow-2xl sm:inset-x-auto sm:right-6 sm:bottom-auto sm:top-24 sm:max-h-[calc(100dvh-7rem)] sm:w-96 sm:p-5",
                 data: { turbo_permanent: true, controller: "recommendation-composer",
                         recommendation_composer_selection_title_value: t("recommendations.select_title"),
                         recommendation_composer_writing_title_value: t("recommendations.compose_title"),

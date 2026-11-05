@@ -128,7 +128,7 @@ export default class extends Controller {
   write() {
     if (!this.valuesFor("selected_books[]").length) return
     this.setStep("writing")
-    this.writingTarget.querySelector("textarea").focus()
+    this.panelTarget.querySelector("#recommendation-jjaek-form textarea").focus()
   }
 
   select() {
@@ -138,7 +138,6 @@ export default class extends Controller {
 
   setStep(step) {
     if (!this.hasPanelTarget) return
-    if (this.panelTarget.dataset.mode === "edit") step = "writing"
     this.panelTarget.dataset.step = step
     this.selectionTargets.forEach(element => { element.hidden = step === "writing" })
     this.writingTargets.forEach(element => { element.hidden = step !== "writing" })

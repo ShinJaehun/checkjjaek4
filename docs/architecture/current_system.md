@@ -501,7 +501,10 @@
 `RecommendationBooksController#create/destroy`는 Book 저장 없이 선택을 추가·제거하고 Turbo Stream으로
 창 목록·선택 hidden 입력·배경 검색 결과를 갱신한다. HTML fallback의 `selection_path`는 검색 문맥을 유지한다.
 `recommendation-composer` Stimulus는 요청 전 선택·동아리 문맥, 페이지 이동 후 검색어·페이지·선택 표시를 동기화한다.
-같은 창에서 책 선택 ↔ 글쓰기 단계를 전환하며 최종 `짹`만 `JjaeksController#create`로 게시한다.
+같은 창에서 책 선택 ↔ 글쓰기 단계를 전환하며 새 작성은 책 검색·선택을 관리하는 1단계에서 시작한다.
+수정은 기존 데이터가 채워진 2단계에서 시작하며, 양 모드 모두 2단계에는 제목·권수 요약과 `책 목록 수정`,
+추천 이유·개인 공개 범위를 표시한다. 단계 전환은 기존 폼을 유지하며 목록과 창의 중첩 스크롤 없이 창 전체만 스크롤한다.
+최종 `짹`만 `JjaeksController#create`로 게시하며 수정 저장은 기존 Jjaek에 PATCH한다.
 게시 검증 실패의 Turbo 응답은 창 내용만 갱신한다. 제출 시 permanent 유지를 해제하지 않으며 저장 성공의 완료 Stream에서만 상태를 지우고 최초 위치로 Turbo 이동한다. HTML fallback도 같은 위치로 redirect한다.
 닫기·상단 내비게이션의 메뉴/일반 책 검색/로그아웃은 작성 DOM과 진행 중인 초기 Frame 로드를 정리하며, focus·자동완성 Escape·scroll·일반 Turbo 이동은 종료하지 않는다. Stream 렌더 시 이전 작성 panel의 identity를 확인해 종료 후 오래된 응답이 새 작성에 적용되지 않게 한다.
 최초 위치는 기존 `search_origin`에 유지하고 게시 시 기존 내부 경로·Pundit 검사를 적용한다. 중간 책 검색·외부·접근 불가 위치는 개인 피드/동아리 fallback을 사용한다.
