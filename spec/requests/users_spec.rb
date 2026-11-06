@@ -961,7 +961,7 @@ RSpec.describe "Users", type: :request do
       BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       source = other_user.jjaeks.create!(content: "PROFILE_VISIBLE_SOURCE", visibility: :public_jjaek)
       visible_requote = profile_user.jjaeks.create!(quoted_jjaek: source, content: "PROFILE_VISIBLE_REQUOTE")
-      viewer.jjaeks.create!(quoted_jjaek: profile_jjaek, book:, content: "PROFILE_COUNTED_REQUOTE")
+      create_legacy_book_requote(user: viewer, quoted_jjaek: profile_jjaek, book:, content: "PROFILE_COUNTED_REQUOTE")
       inaccessible_group = Group.create!(lifecycle_status: :active, group_admin: profile_user, name: "Inaccessible profile group", group_type: :private_group)
       excluded_jjaek = profile_user.jjaeks.create!(group: inaccessible_group, content: "PROFILE_EXCLUDED_GROUP")
       invitable_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Invitable", group_type: :private_group)

@@ -224,10 +224,12 @@ class JjaeksController < ApplicationController
       return false
     end
 
-    @jjaek.with_lock do
+    updated = @jjaek.with_lock do
       authorize @jjaek, :update?
       @jjaek.update_recommendation_books(books: @selected_books, attributes: update_jjaek_params)
     end
+    @jjaek.assign_attributes(update_jjaek_params) unless updated
+    updated
   end
 
   def jjaek_rate_limit_exceeded

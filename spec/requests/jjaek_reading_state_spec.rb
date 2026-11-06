@@ -36,7 +36,7 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
   it "keeps the requote author's reading badges without a title label" do
     viewer_entry = viewer.bookshelf_entries.create!(book: book, status: :wish)
     viewer_entry.sticker_definitions << sticker
-    requote = viewer.jjaeks.create!(book: book, quoted_jjaek: jjaek, content: "Requote thoughts")
+    requote = create_legacy_book_requote(user: viewer, book: book, quoted_jjaek: jjaek, content: "Requote thoughts")
     sign_in viewer
 
     get jjaek_path(requote)

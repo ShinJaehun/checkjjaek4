@@ -10,7 +10,7 @@ RSpec.describe JjaekPolicy do
   let(:book) { Book.create!(title: "ReJjaek policy book", authors_text: "Author") }
   let(:friendship) { BookFriendship.create!(requester: viewer, addressee: original_author, status: :accepted) }
   let(:original) { original_author.jjaeks.create!(book:, content: "ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
-  let(:requote) { viewer.jjaeks.create!(book:, content: "VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
+  let(:requote) { create_legacy_book_requote(user: viewer, book:, content: "VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
 
   before do
     friendship
@@ -75,7 +75,7 @@ RSpec.describe JjaekPolicy do
     end
 
     it "matches single-record and creation policies for each group type without requiring the source book" do
-      source.update!(book:)
+      source.jjaek_recommendations.create!(book:, position: 0)
       groups = %i[public_group approval_group private_group].map do |type|
         group = Group.create!(group_admin: original_author, name: type.to_s, lifecycle_status: :active, group_type: type)
         group.group_memberships.create!(user: viewer, status: :active)
@@ -634,7 +634,7 @@ RSpec.describe JjaekPolicy do
     end
 
     it "does not hide the button because another user requoted the original" do
-      unrelated_author.jjaeks.create!(book:, content: "OTHER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek)
+      create_legacy_book_requote(user: unrelated_author, book:, content: "OTHER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek)
 
       expect(described_class.new(viewer, original).create_requote?).to be(true)
     end

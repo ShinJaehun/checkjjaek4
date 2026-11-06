@@ -484,6 +484,13 @@
 
 ## Jjaek 문맥
 
+통합 짹 1차 데이터 계층은 `docs/specs/unified_jjaeks.md` 10절을 따른다.
+`JjaekRecommendation`을 일반 첨부 연결로 재사용하고 `attached_books`로 0~5권을 선택 순서대로 조회한다.
+`book_attachments_migrated`로 의도적인 빈 목록과 미전환을 구분한다. 신규 migration은 legacy book_id를
+연결로 복사하되 기존 추천 연결과 게시물 ID·시각·관계를 유지한다. 이번 구현에서 migration/RSpec은 실행하지 않았다.
+새 다시짹 첨부는 모델에서 금지하고 과거 연결은 보존한다. 아래 화면·검색·권한 설명은 아직 기존 구조이며,
+통합 UI·policy/scope·파라미터 계약 전환은 후속 작업이다.
+
 하나의 모델로 통합:
 
 - 일반 짹

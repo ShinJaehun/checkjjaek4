@@ -166,14 +166,14 @@ RSpec.describe Jjaek, type: :model do
 
   it "does not allow requoting a private jjaek" do
     original = other_user.jjaeks.create!(book:, content: "원문", visibility: :private_jjaek)
-    requote = described_class.new(user:, book:, content: "인용", quoted_jjaek: original)
+    requote = described_class.new(user:, content: "인용", quoted_jjaek: original)
 
     expect(requote).not_to be_valid
   end
 
   it "does not allow broader visibility than the original jjaek" do
     original = other_user.jjaeks.create!(book:, content: "원문", visibility: :book_friends)
-    requote = described_class.new(user:, book:, content: "인용", quoted_jjaek: original, visibility: :public_jjaek)
+    requote = described_class.new(user:, content: "인용", quoted_jjaek: original, visibility: :public_jjaek)
 
     expect(requote).not_to be_valid
     expect(requote.errors.of_kind?(:visibility, :cannot_exceed_quoted_visibility)).to be(true)
@@ -181,16 +181,16 @@ RSpec.describe Jjaek, type: :model do
 
   it "does not allow requoting another requote" do
     original = other_user.jjaeks.create!(book:, content: "원문")
-    first_requote = user.jjaeks.create!(book:, content: "첫 인용", quoted_jjaek: original)
-    nested_requote = described_class.new(user:, book:, content: "중첩 인용", quoted_jjaek: first_requote)
+    first_requote = create_legacy_book_requote(user: user, book:, content: "첫 인용", quoted_jjaek: original)
+    nested_requote = described_class.new(user:, content: "중첩 인용", quoted_jjaek: first_requote)
 
     expect(nested_requote).not_to be_valid
   end
 
   it "does not allow the same user to requote the same original twice" do
     original = other_user.jjaeks.create!(book:, content: "원문")
-    user.jjaeks.create!(book:, content: "첫 인용", quoted_jjaek: original)
-    duplicate_requote = described_class.new(user:, book:, content: "두 번째 인용", quoted_jjaek: original)
+    create_legacy_book_requote(user: user, book:, content: "첫 인용", quoted_jjaek: original)
+    duplicate_requote = described_class.new(user:, content: "두 번째 인용", quoted_jjaek: original)
 
     expect(duplicate_requote).not_to be_valid
     expect(duplicate_requote.errors.of_kind?(:quoted_jjaek_id, :taken)).to be(true)
@@ -243,9 +243,9 @@ RSpec.describe Jjaek, type: :model do
 
   it "allows different users to requote the same original" do
     original = other_user.jjaeks.create!(book:, content: "원문")
-    user.jjaeks.create!(book:, content: "첫 인용", quoted_jjaek: original)
+    create_legacy_book_requote(user: user, book:, content: "첫 인용", quoted_jjaek: original)
     another_user = User.create!(name: "Another", email: "another-jjaek@example.com", password: "password123!", password_confirmation: "password123!")
-    other_requote = described_class.new(user: another_user, book:, content: "다른 사용자 인용", quoted_jjaek: original)
+    other_requote = described_class.new(user: another_user, content: "다른 사용자 인용", quoted_jjaek: original)
 
     expect(other_requote).to be_valid
   end
@@ -353,7 +353,7 @@ RSpec.describe Jjaek, type: :model do
 
   it "keeps requotes private and marked when the original is destroyed" do
     original = other_user.jjaeks.create!(book:, content: "원문")
-    requote = user.jjaeks.create!(book:, content: "인용", quoted_jjaek: original)
+    requote = create_legacy_book_requote(user: user, book:, content: "인용", quoted_jjaek: original)
 
     expect { original.destroy! }.to change(described_class, :count).by(-1)
 
@@ -367,7 +367,7 @@ RSpec.describe Jjaek, type: :model do
 
   it "marks requotes as deleted source when the original is tombstoned" do
     original = other_user.jjaeks.create!(book:, content: "원문")
-    requote = user.jjaeks.create!(book:, content: "인용", quoted_jjaek: original)
+    requote = create_legacy_book_requote(user: user, book:, content: "인용", quoted_jjaek: original)
     original.comments.create!(user:, content: "댓글")
 
     original.destroy_or_tombstone!

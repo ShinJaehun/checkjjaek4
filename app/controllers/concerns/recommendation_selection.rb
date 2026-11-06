@@ -29,6 +29,13 @@ module RecommendationSelection
   end
 
   def prepare_recommendation_selection(redirect_on_error: true, enforce_limit: true, preserve_on_error: false)
+    @selected_books = []
+    @selected_book_keys = []
+    raw_keys = params.fetch(:selected_books, [])
+    unless raw_keys.is_a?(Array) && raw_keys.all? { |key| key.is_a?(String) || key.is_a?(Integer) }
+      raise Book::IdentityConflict
+    end
+
     keys = params.slice(:selected_books)
                  .permit(selected_books: [])
                  .fetch(:selected_books, [])
@@ -36,8 +43,6 @@ module RecommendationSelection
                  .reject(&:blank?)
                  .uniq
     books = Book.where(id: keys.grep(/\A[1-9]\d*\z/)).index_by { |book| book.id.to_s }
-    @selected_books = []
-    @selected_book_keys = []
     keys.each do |key|
       book = if key.match?(/\A[1-9]\d*\z/)
         books.fetch(key)

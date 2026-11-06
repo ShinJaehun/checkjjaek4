@@ -553,7 +553,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "실패 화면 선택 책장", visibility: :private)
     original = book_friend.jjaeks.create!(book: user_book, content: "UPDATE_FAILURE_ORIGINAL", visibility: :book_friends)
-    requote = user.jjaeks.create!(book: user_book, content: "UPDATE_FAILURE_REQUOTE", quoted_jjaek: original, visibility: :private_jjaek)
+    requote = create_legacy_book_requote(user: user, book: user_book, content: "UPDATE_FAILURE_REQUOTE", quoted_jjaek: original, visibility: :private_jjaek)
     private_original = stranger.jjaeks.create!(book: user_book, content: "UPDATE_FAILURE_PRIVATE", visibility: :private_jjaek)
     group = Group.create!(name: "실패 화면 동아리", group_admin: book_friend, group_type: :public_group, lifecycle_status: :active)
     group_original = book_friend.jjaeks.create!(book: user_book, group:, content: "UPDATE_FAILURE_GROUP")

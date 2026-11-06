@@ -6,7 +6,7 @@ RSpec.describe "Jjaeks", type: :request do
   let(:book) { Book.create!(title: "ReJjaek request book", authors_text: "Author") }
   let(:friendship) { BookFriendship.create!(requester: viewer, addressee: original_author, status: :accepted) }
   let(:original) { original_author.jjaeks.create!(book:, content: "REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
-  let(:requote) { viewer.jjaeks.create!(book:, content: "REQUEST_VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
+  let(:requote) { create_legacy_book_requote(user: viewer, book:, content: "REQUEST_VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
 
   before do
     friendship
@@ -120,7 +120,7 @@ RSpec.describe "Jjaeks", type: :request do
       entry = viewer.bookshelf_entries.create!(book:)
       target_bookshelf = viewer.bookshelves.create!(name: "실패 화면 선택 책장", visibility: :private)
       original_book_jjaek = original_author.jjaeks.create!(book:, content: "VISIBLE_BOOK_ORIGINAL", visibility: :public_jjaek)
-      hidden_requote = viewer.jjaeks.create!(book:, content: "HIDDEN_BOOK_REQUOTE", quoted_jjaek: original_book_jjaek, visibility: :private_jjaek)
+      hidden_requote = create_legacy_book_requote(user: viewer, book:, content: "HIDDEN_BOOK_REQUOTE", quoted_jjaek: original_book_jjaek, visibility: :private_jjaek)
       private_original = original_author.jjaeks.create!(book:, content: "PRIVATE_FAILURE_ORIGINAL", visibility: :private_jjaek)
       group = Group.create!(name: "실패 화면 동아리", group_admin: original_author, group_type: :public_group, lifecycle_status: :active)
       group_original = original_author.jjaeks.create!(book:, group:, content: "GROUP_FAILURE_ORIGINAL")
@@ -763,7 +763,7 @@ RSpec.describe "Jjaeks", type: :request do
     it "shows a requote entry when only another user has requoted the original" do
       other_requoter = User.create!(name: "Other Requoter", email: "other-requoter@example.com", password: "password123!", password_confirmation: "password123!")
       BookFriendship.create!(requester: other_requoter, addressee: original_author, status: :accepted)
-      other_requoter.jjaeks.create!(book:, content: "OTHER_USER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek)
+      create_legacy_book_requote(user: other_requoter, book:, content: "OTHER_USER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek)
       sign_in viewer
 
       get jjaek_path(original)

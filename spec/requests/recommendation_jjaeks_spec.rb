@@ -88,12 +88,18 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
   end
 
   it "does not accept nested book attributes as recommendation selection keys" do
-    expect {
-      post jjaeks_path, params: { recommendation: 1, selected_books: [ { id: book.id } ],
-                                 jjaek: { content: "Invalid selection shape" } }
-    }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
-
-    expect(response).to have_http_status(:unprocessable_content)
+    [ "text/html", "text/vnd.turbo-stream.html" ].each do |accept|
+      [ [ { id: book.id } ], { id: book.id }, [ book.id, { id: other_book.id } ] ].each do |selection|
+        expect {
+          post jjaeks_path, params: { recommendation: 1, selected_books: selection,
+                                     jjaek: { content: "Invalid selection shape", visibility: :private_jjaek } },
+                            headers: { "Accept" => accept }
+        }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include("Invalid selection shape", I18n.t("recommendations.invalid_selection"))
+        expect(Nokogiri::HTML(response.body).at_css("select[name='jjaek[visibility]'] option[selected]")["value"]).to eq("private_jjaek")
+      end
+    end
   end
 
   [ 1, 5 ].each do |count|
@@ -514,9 +520,14 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
       expect(page.at_css("#recommendation-jjaek-form select[name='jjaek[visibility]'] option[selected]")["value"]).to eq("private_jjaek")
     end
     expect(JjaekRecommendation.count).to eq(0)
-    post jjaeks_path, params: { recommendation: 1, jjaek: { content: "책이 없는 추천" } }
-    expect(response).to have_http_status(:unprocessable_content)
-    expect(Jjaek.count).to eq(0)
+  end
+
+  it "allows publication without selected books under the unified zero-book policy" do
+    expect {
+      post jjaeks_path, params: { recommendation: 1, jjaek: { content: "책이 없는 짹" } }
+    }.to change(Jjaek, :count).by(1).and change(JjaekRecommendation, :count).by(0)
+    expect(response).to have_http_status(:redirect)
+    expect(Jjaek.last.attached_books).to be_empty
   end
 
   it "edits recommendation books while preserving the post type and personal visibility" do
@@ -681,23 +692,41 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
     expect(recommendation.reload.recommended_books).to eq([ other_book ])
   end
 
-  it "rolls back text, visibility, tags and links for invalid, empty, excessive or expired selections" do
+  it "can explicitly remove every recommendation book" do
+    recommendation = create_recommendation
+    patch jjaek_path(recommendation), params: { selected_books: [ "" ], jjaek: { content: "No books" } }
+    expect(response).to have_http_status(:redirect)
+    expect(recommendation.reload.content).to eq("No books")
+    expect(recommendation.attached_books).to be_empty
+  end
+
+  it "rolls back text, visibility, tags and links for invalid, excessive or expired selections" do
     recommendation = create_recommendation
     extra_books = Array.new(4) { |i| Book.create!(title: "Extra edit #{i}") }
-    invalid_lists = [ [ book.id, "999999999" ], [ "" ], [ book.id, other_book.id, *extra_books.map(&:id) ], [ "external:#{'0' * 32}" ] ]
+    invalid_lists = [ [ book.id, "999999999" ], [ book.id, other_book.id, *extra_books.map(&:id) ], [ "external:#{'0' * 32}" ], [ { id: book.id } ] ]
     token = BookSearches::ResultToken.issue({ title: "Expired edit", isbn: "9780140328721" }, user: user)
     post recommendation_books_path, params: { editing_jjaek_id: recommendation.id, search_result_token: token }
     expired_keys = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("selected_books")
     travel 31.minutes do
       invalid_lists << expired_keys
-      invalid_lists.each do |keys|
-        patch jjaek_path(recommendation), params: { selected_books: keys,
-          jjaek: { content: "Attempt #changed", visibility: :private_jjaek } }
-        expect(response).to have_http_status(:unprocessable_content)
-        expect(response.body).to include("Attempt #changed")
-        expect(recommendation.reload).to have_attributes(content: "Original #before", visibility: "public_jjaek")
-        expect(recommendation.recommended_books).to eq([ book, other_book ])
-        expect(recommendation.tags.pluck(:name)).to eq([ "before" ])
+      [ "text/html", "text/vnd.turbo-stream.html" ].each do |accept|
+        invalid_lists.each do |keys|
+          original_links = recommendation.jjaek_recommendations.reload.map(&:attributes)
+          expect {
+            patch jjaek_path(recommendation), params: { selected_books: keys,
+              jjaek: { content: "Attempt #changed", visibility: :private_jjaek } }, headers: { "Accept" => accept }
+          }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+          expect(response).to have_http_status(:unprocessable_content)
+          expect(response.media_type).to eq(accept == "text/html" ? "text/html" : "text/vnd.turbo-stream.html")
+          expect(response.body).to include("Attempt #changed")
+          page = Nokogiri::HTML(response.body)
+          expect(page.at_css("select[name='jjaek[visibility]'] option[selected]")["value"]).to eq("private_jjaek")
+          expect(page.css("[role='alert']").text.strip).not_to be_empty
+          expect(recommendation.reload).to have_attributes(content: "Original #before", visibility: "public_jjaek")
+          expect(recommendation.recommended_books).to eq([ book, other_book ])
+          expect(recommendation.jjaek_recommendations.reload.map(&:attributes)).to eq(original_links)
+          expect(recommendation.tags.pluck(:name)).to eq([ "before" ])
+        end
       end
     end
   end
@@ -735,7 +764,7 @@ RSpec.describe "Book recommendation jjaeks", type: :request do
       patch jjaek_path(post_record), params: { selected_books: [ other_book.id ],
         jjaek: { content: "Edited normally", recommendation: true, book_id: other_book.id } }
       expect(post_record.reload).to have_attributes(content: "Edited normally", recommendation: false, book_id: original_book_id)
-      expect(post_record.jjaek_recommendations).to be_empty
+      expect(post_record.attached_books).to eq(original_book_id ? [ book ] : [])
     end
   end
 

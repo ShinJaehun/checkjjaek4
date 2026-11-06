@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -275,6 +275,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_000000) do
   end
 
   create_table "jjaeks", force: :cascade do |t|
+    t.boolean "book_attachments_migrated", default: false, null: false
     t.bigint "book_id"
     t.text "content", null: false
     t.datetime "content_edited_at"
@@ -301,7 +302,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_000000) do
     t.index ["user_id", "quoted_jjaek_id", "group_id"], name: "index_jjaeks_on_group_requote_unique", unique: true, where: "((quoted_jjaek_id IS NOT NULL) AND (group_id IS NOT NULL))"
     t.index ["user_id", "quoted_jjaek_id"], name: "index_jjaeks_on_personal_requote_unique", unique: true, where: "((quoted_jjaek_id IS NOT NULL) AND (group_id IS NULL))"
     t.index ["user_id"], name: "index_jjaeks_on_user_id"
-    t.check_constraint "NOT recommendation OR book_id IS NULL AND quoted_jjaek_id IS NULL AND quoted_source_deleted_at IS NULL AND target_user_id IS NULL", name: "jjaek_recommendation_context"
   end
 
   create_table "likes", force: :cascade do |t|

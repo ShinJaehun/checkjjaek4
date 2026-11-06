@@ -222,7 +222,7 @@ RSpec.describe "Books", type: :request do
     it "shows only original book jjaeks on the book page while keeping the requote count on the original" do
       user.bookshelf_entries.create!(book:, status: :reading)
       original = user.jjaeks.create!(book:, content: "BOOK_ORIGINAL_BODY")
-      requote = user.jjaeks.create!(book:, content: "BOOK_REQUOTE_BODY", quoted_jjaek: original)
+      requote = create_legacy_book_requote(user: user, book:, content: "BOOK_REQUOTE_BODY", quoted_jjaek: original)
       sign_in user
 
       get book_path(book)
@@ -477,7 +477,7 @@ RSpec.describe "Books", type: :request do
       BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
       user.bookshelf_entries.create!(book:)
       jjaek = friend.jjaeks.create!(book:, content: "FRIEND_CARD_ACTIONS")
-      user.jjaeks.create!(book:, quoted_jjaek: jjaek, content: "MY_REQUOTE_FOR_FRIEND_CARD")
+      create_legacy_book_requote(user: user, book:, quoted_jjaek: jjaek, content: "MY_REQUOTE_FOR_FRIEND_CARD")
       sign_in user
 
       get book_path(book)

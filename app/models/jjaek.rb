@@ -1,5 +1,7 @@
 class Jjaek < ApplicationRecord
-  MAX_RECOMMENDATION_BOOKS = 5
+  MAX_ATTACHED_BOOKS = 5
+  MAX_RECOMMENDATION_BOOKS = MAX_ATTACHED_BOOKS
+  UNCHANGED_BOOKS = Object.new.freeze
   MODERATION_HIDE_REASONS = %w[
     inappropriate_content
     spam_advertising
@@ -26,6 +28,7 @@ class Jjaek < ApplicationRecord
   has_many :jjaek_recommendations, -> { order(:position) }, dependent: :destroy,
            inverse_of: :jjaek, autosave: true
   has_many :recommended_books, through: :jjaek_recommendations, source: :book
+  has_many :attached_books, through: :jjaek_recommendations, source: :book
   has_many :moderation_actions, as: :target
 
   before_destroy :mark_requotes_as_deleted_source
@@ -42,9 +45,10 @@ class Jjaek < ApplicationRecord
   validate :quoted_jjaek_visibility_must_not_expand
   validate :quoted_group_context_must_be_allowed
   validate :group_context_must_not_target_user
-  validate :recommendation_context_must_be_valid
+  validate :attached_books_must_be_valid
 
   before_validation :normalize_group_visibility
+  before_validation :prepare_legacy_book_attachment
   before_update :record_content_edited_at
   after_save :refresh_tags!, if: :saved_change_to_content?
 
@@ -95,17 +99,51 @@ class Jjaek < ApplicationRecord
     end
   end
 
-  # Replace links together so reordering cannot collide with existing positions.
-  # The caller holds this Jjaek's lock (and the Group lock when applicable).
-  def update_recommendation_books(books:, attributes:)
-    transaction(requires_new: true) do
-      jjaek_recommendations.delete_all
-      association(:jjaek_recommendations).reset
-      books.each_with_index do |book, position|
-        jjaek_recommendations.build(book: book, position: position)
+  # Authorization (and the Group lock, when applicable) belongs to the caller.
+  # Omitted books preserve attachments; [] explicitly clears them; nil is invalid.
+  def update_attached_books(attributes: {}, books: UNCHANGED_BOOKS)
+    if !books.equal?(UNCHANGED_BOOKS) &&
+        (!books.is_a?(Array) || books.any? { |book| !book.is_a?(Book) })
+      errors.add(:recommended_books, :invalid)
+      return false
+    end
+
+    unless books.equal?(UNCHANGED_BOOKS)
+      identities = books.map { |book| book.id || book }
+      if identities.uniq.size != identities.size || books.size > MAX_ATTACHED_BOOKS
+        errors.add(:recommended_books, :invalid)
+        return false
       end
-      assign_attributes(attributes)
-      save!
+    end
+
+    with_lock do
+      transaction(requires_new: true) do
+        unless books.equal?(UNCHANGED_BOOKS)
+          existing_book_ids = attached_books.pluck(:id)
+          if requote? && books.any? { |book| book.new_record? || !existing_book_ids.include?(book.id) }
+            errors.add(:recommended_books, :invalid)
+            raise ActiveRecord::RecordInvalid, self
+          end
+          if requote?
+            # Keep historical links (and their IDs/positions); only removal is allowed.
+            jjaek_recommendations.where.not(book_id: books.map(&:id)).delete_all
+            self.book = nil unless books.any? { |book| book.id == book_id }
+          else
+            jjaek_recommendations.delete_all
+            association(:jjaek_recommendations).reset
+            books.each_with_index do |book, position|
+              jjaek_recommendations.build(book:, position:)
+            end
+            self.book = nil
+          end
+          association(:jjaek_recommendations).reset if requote?
+          association(:attached_books).reset
+          association(:recommended_books).reset
+          self.book_attachments_migrated = true
+        end
+        assign_attributes(attributes)
+        save!
+      end
     end
     true
   rescue ActiveRecord::RecordInvalid
@@ -113,6 +151,10 @@ class Jjaek < ApplicationRecord
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey
     errors.add(:base, :invalid)
     false
+  end
+
+  def update_recommendation_books(books:, attributes:)
+    update_attached_books(books:, attributes:)
   end
 
   def refresh_tags!
@@ -229,17 +271,33 @@ class Jjaek < ApplicationRecord
     errors.add(:target_user, :invalid)
   end
 
-  def recommendation_context_must_be_valid
-    if recommendation?
-      errors.add(:base, :invalid) if book.present? || requote? || target_user.present?
-      links = jjaek_recommendations.reject(&:marked_for_destruction?)
-      errors.add(:recommended_books, :blank) if links.empty?
-      if links.size > MAX_RECOMMENDATION_BOOKS
-        errors.add(:recommended_books, :too_many_recommendations, count: MAX_RECOMMENDATION_BOOKS)
-      end
-      books = links.map { |link| link.book_id || link.book }
-      errors.add(:recommended_books, :taken) if books.uniq.size != books.size
-    elsif jjaek_recommendations.any?
+  def prepare_legacy_book_attachment
+    return if book_attachments_migrated?
+
+    if book.present? && jjaek_recommendations.empty?
+      jjaek_recommendations.build(book:, position: 0)
+    end
+    self.book_attachments_migrated = true
+  end
+
+  def attached_books_must_be_valid
+    links = jjaek_recommendations.reject(&:marked_for_destruction?)
+    if links.size > MAX_ATTACHED_BOOKS
+      errors.add(:recommended_books, :too_many_recommendations, count: MAX_ATTACHED_BOOKS)
+    end
+    books = links.map { |link| link.book_id || link.book }
+    errors.add(:recommended_books, :taken) if books.uniq.size != books.size
+
+    if book_id.present? && links.none? { |link| link.book_id == book_id }
+      errors.add(:recommended_books, :invalid)
+    end
+    return unless requote?
+
+    previous_ids = persisted? ? JjaekRecommendation.where(jjaek_id: id).pluck(:book_id) : []
+    legacy_id = book_id_in_database if persisted?
+    previous_ids << legacy_id if legacy_id.present?
+    if books.any? { |book| !previous_ids.include?(book) } ||
+        (book_id.present? && book_id != legacy_id)
       errors.add(:recommended_books, :invalid)
     end
   end
