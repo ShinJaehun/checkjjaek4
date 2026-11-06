@@ -2,7 +2,7 @@
   <div class="flex items-center gap-2 text-xs font-medium text-stone-600">
     <%= user_avatar_image(quoted_jjaek.user, size: 128, alt: quoted_jjaek.user.name, class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
     <span>
-      <%= link_to quoted_jjaek.user.name, user_path(quoted_jjaek.user), class: "font-semibold text-stone-800 hover:text-stone-900" %><%= t("jjaeks.labels.quoted_#{quoted_jjaek.content_kind}_suffix") %>
+      <%= link_to quoted_jjaek.user.name, user_path(quoted_jjaek.user), class: "font-semibold text-stone-800 hover:text-stone-900" %><%= t("jjaeks.labels.quoted_general_suffix") %>
     </span>
     <% if jjaek_edited?(quoted_jjaek) %>
       <span class="text-stone-400">·</span>

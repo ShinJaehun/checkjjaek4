@@ -2,5 +2,5 @@
   <% if quoted_jjaek && policy(jjaek).view_quoted_source? %>
     <%= render "jjaeks/quoted_jjaek", quoted_jjaek: quoted_jjaek %>
   <% end %>
-  <%= render "jjaeks/composer", jjaek: jjaek %>
+  <%= render "jjaeks/composer", jjaek: jjaek, book_context: book %>
 </section>

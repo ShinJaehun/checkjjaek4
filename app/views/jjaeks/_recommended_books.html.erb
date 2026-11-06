@@ -1,19 +1,27 @@
-<ul class="mt-4 space-y-3" aria-label="<%= t("jjaek_books.attached") %>">
-  <% books.each do |book| %>
-    <% book_url = book_path(book, book_navigation_params) if local_assigns.fetch(:link, true) %>
-    <li class="flex items-start gap-3">
-      <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: book_url,
-                 size: :small, link: local_assigns.fetch(:link, true) %>
-      <div class="min-w-0 flex-1 break-words">
-        <div class="text-sm font-semibold leading-6 text-stone-900">
+<div class="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:gap-4" data-attached-books>
+  <div class="shrink-0 space-y-2" aria-hidden="true">
+    <% books.each_slice(3) do |row| %>
+      <div class="flex -space-x-6" data-attached-book-cover-row>
+        <% row.each do |book| %>
+          <div class="relative shrink-0 rounded-sm bg-white shadow-sm">
+            <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :small, link: false %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+  <ul class="min-w-0 w-full space-y-2 sm:flex-1" aria-label="<%= t("jjaek_books.attached") %>">
+    <% books.each do |book| %>
+      <li class="min-w-0 break-words">
+        <div class="text-sm font-semibold leading-5 text-stone-900">
           <% if local_assigns.fetch(:link, true) %>
-            <%= link_to book.title, book_url, class: "hover:text-stone-700" %>
+            <%= link_to book.title, book_path(book, book_navigation_params), class: "hover:text-stone-700" %>
           <% else %>
             <%= book.title %>
           <% end %>
         </div>
         <div class="mt-1 text-xs leading-5 text-stone-500"><%= book.authors_text.presence || "-" %></div>
-      </div>
-    </li>
-  <% end %>
-</ul>
+      </li>
+    <% end %>
+  </ul>
+</div>

@@ -21,6 +21,42 @@ RSpec.describe "Book context in the common composer", type: :request do
     end
   end
 
+  it "returns book-page posts to a fresh composer with only the current book preselected" do
+    book.update!(authors_text: "Context author", thumbnail: "https://example.com/context-cover.jpg")
+    other_book = Book.create!(title: "Additional book", authors_text: "Other author")
+    [[jjaeks_path, nil], [group_jjaeks_path(group), group.id]].each do |destination, group_id|
+      origin = book_path(book, group_id:)
+      get origin
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("meta[name='turbo-cache-control']")["content"]).to eq("no-cache")
+      expect(page.at_css("#jjaek-publish-form input[name='book_context_id']")["value"]).to eq(book.id.to_s)
+      expect(page.at_css("#jjaek-publish-form textarea").text.strip).to be_empty
+      expect(page.at_css("#jjaek-attached-books").text).to include(book.title, book.authors_text)
+      expect(page.at_css("#jjaek-attached-books img")["src"]).to eq(book.thumbnail)
+
+      post destination, params: { book_context_id: book.id, selected_books: [book.id, other_book.id], jjaek: { content: "Published from book" } }
+      expect(Jjaek.last).to have_attributes(group_id:, content: "Published from book")
+      expect(Jjaek.last.attached_books).to eq([book, other_book])
+      expect(response).to redirect_to(origin)
+      follow_redirect!
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("#jjaek-publish-form textarea").text.strip).to be_empty
+      expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", book.id.to_s])
+
+      post destination, params: { book_context_id: book.id, selected_books: [""], jjaek: { content: "No attached books" } }
+      expect(response).to redirect_to(origin)
+      expect(Jjaek.last.attached_books).to be_empty
+      expect(Jjaek.last.group_id).to eq(group_id)
+
+      post destination, params: { book_context_id: book.id, selected_books: [other_book.id], jjaek: { content: "x" * 201 } }
+      expect(response).to have_http_status(:unprocessable_content)
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("#jjaek-publish-form textarea").text.strip).to eq("x" * 201)
+      expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", other_book.id.to_s])
+      expect(page.at_css("#jjaek-attached-books").text).to include(other_book.authors_text)
+    end
+  end
+
   it "stores shelved and unshelved attachments without changing existing reading data" do
     shelved_book = Book.create!(title: "Shelved context book")
     shelf = user.bookshelves.create!(name: "Existing reading shelf")

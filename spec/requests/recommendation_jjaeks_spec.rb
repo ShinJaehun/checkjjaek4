@@ -36,13 +36,16 @@ RSpec.describe "Unified Jjaek composition", type: :request do
 
   it "renders inline forms for home, profile, group and book with a selection-only floating window" do
     BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
-    [ root_path, user_path(friend), group_path(group), book_path(book) ].each do |path|
+    [[root_path, "내 소식에 남길..."], [user_path(friend), "#{friend.name}님에게 남길..."],
+     [group_path(group), "#{group.name}에 남길..."], [book_path(book), "이 책에 남길..."]].each do |path, placeholder|
       get path
       expect(response).to have_http_status(:ok)
       page = Nokogiri::HTML(response.body)
       expect(page.css("form textarea[name='jjaek[content]']")).not_to be_empty
+      expect(page.at_css("#jjaek-publish-form textarea")["placeholder"]).to eq(placeholder)
       expect(page.css("[data-book-selection-open]")).not_to be_empty
       expect(page.at_css("#recommendation-window")["aria-modal"]).to eq("false")
+      expect(page.at_css("#recommendation-window button[data-action='recommendation-composer#cancel']")).to be_present
       expect(page.css("#recommendation-window textarea")).to be_empty
       expect(page.css("dialog textarea")).to be_empty
     end
@@ -59,17 +62,23 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   end
 
   it "stores ordered books without a shelf or a new post type, through HTML and Turbo" do
+    books = [other_book, book, *3.times.map { |i| Book.create!(title: "Attached #{i}") }]
+    books.each_with_index { |item, i| item.update!(authors_text: "Author #{i}", thumbnail: "https://example.com/cover-#{i}.jpg") }
     [ "text/html", "text/vnd.turbo-stream.html" ].each do |accept|
       expect {
-        post jjaeks_path, params: { selected_books: [ other_book.id, book.id ], jjaek: { content: "Read together #books" } }, headers: { "Accept" => accept }
-      }.to change(Jjaek, :count).by(1).and change(JjaekRecommendation, :count).by(2)
+        post jjaeks_path, params: { selected_books: books.map(&:id), jjaek: { content: "Read together #books" } }, headers: { "Accept" => accept }
+      }.to change(Jjaek, :count).by(1).and change(JjaekRecommendation, :count).by(5)
       expect(response).to have_http_status(:see_other)
       record = Jjaek.last
-      expect(record.attached_books).to eq([ other_book, book ])
+      expect(record.attached_books).to eq(books)
       expect(record).not_to be_recommendation
       expect(record.tags.pluck(:name)).to eq([ "books" ])
       get jjaek_path(record)
-      expect(response.body).to include(book.title, other_book.title)
+      attachments = Nokogiri::HTML(response.body).at_css("#jjaek_#{record.id} [data-attached-books]")
+      expect(attachments.css("img").map { |image| image["src"] }).to eq(books.map(&:thumbnail))
+      expect(attachments.css("[data-attached-book-cover-row]").map { |row| row.css("img").size }).to eq([3, 2])
+      expect(attachments.css("li a").map(&:text)).to eq(books.map(&:title))
+      expect(attachments.css("li a").map { |link| URI.parse(link["href"]).path }).to eq(books.map { |item| book_path(item) })
       post jjaek_like_path(record)
       post jjaek_comments_path(record), params: { comment: { content: "Thanks" } }
       expect(record.likes.exists?(user:)).to be(true)
@@ -359,6 +368,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     get jjaek_books_path, params: { selected_books: [book.id], search_origin: root_path }
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("turbo-frame#recommendation_composer")).to be_present
+    expect(page.at_css("button[data-action='recommendation-composer#finish']")).to be_present
     expect(page.css("textarea, form[action='#{jjaeks_path}']")).to be_empty
     expect(page.css("#recommendation-selected-books").text).to include(book.title)
     expect(page.at_css("form[method='get']")["action"]).to eq(book_search_path)

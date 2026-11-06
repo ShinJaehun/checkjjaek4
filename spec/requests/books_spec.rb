@@ -193,6 +193,7 @@ RSpec.describe "Books", type: :request do
     end
 
     it "shows the book-context label for book-linked jjaeks" do
+      book.update!(thumbnail: "https://example.com/book-context.jpg")
       user.bookshelf_entries.create!(book:, status: :reading)
       book_jjaek = user.jjaeks.create!(book:, content: "BOOK_CONTEXT_LABEL_BODY")
       sign_in user
@@ -207,11 +208,11 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(user.name)
       expect(response.body).to include(user_path(user))
       expect(response.body).to include(book.title)
-      expect(response.body).to include("님의 책짹")
+      expect(response.body).to include("님의 짹")
 
       card = Nokogiri::HTML(response.body).at_css("#jjaek_#{book_jjaek.id}")
-      expect(card.text).not_to include(book.title, book.authors_text)
-      expect(card.css("img[alt='#{book.title}']")).to be_empty
+      expect(card.text).to include(book.title, book.authors_text)
+      expect(card.css("img[alt='#{book.title}']")).not_to be_empty
 
       get user_path(user)
 
@@ -465,14 +466,14 @@ RSpec.describe "Books", type: :request do
       expect(activity_card.css("[data-reading-status], [data-reading-sticker]")).to be_empty
       expect(preview.text).to include("FRIEND_PUBLIC_PREVIEW")
       preview_jjaek = preview.at_css("#book_friend_activity_jjaek_#{public_jjaek.id}")
-      expect(preview_jjaek.text).to include("Book friend님의 책짹")
+      expect(preview_jjaek.text).to include("Book friend님의 짹")
       expect(preview_jjaek.at_css("#book_friend_like_action_jjaek_#{public_jjaek.id}")).to be_present
       expect(preview_jjaek.at_css("#book_friend_comment_action_jjaek_#{public_jjaek.id}")).to be_present
       expect(preview_jjaek.at_css("#comments_panel_book_friend_#{book.id}_jjaek_#{public_jjaek.id}")).to be_present
       expect(preview.css("a[href='#{user_path(friend)}']").size).to be >= 2
       expect(preview.css("img[alt='#{friend.name}']").size).to be >= 2
-      expect(preview.css("a[href='#{book_path(book)}']")).to be_empty
-      expect(preview.text).not_to include(book.title, book.authors_text)
+      expect(preview_jjaek.css("a[href^='#{book_path(book)}']")).not_to be_empty
+      expect(preview_jjaek.text).to include(book.title, book.authors_text)
       expect(page.css("#jjaek_#{public_jjaek.id}").size).to eq(1)
     end
 
@@ -491,7 +492,7 @@ RSpec.describe "Books", type: :request do
       book_list = page.at_css("#jjaek_#{jjaek.id}")
       expect(preview).to be_present
       expect(book_list).to be_present
-      expect(preview.text).to include("Card friend님의 책짹", jjaek.content)
+      expect(preview.text).to include("Card friend님의 짹", jjaek.content)
       expect(preview.text).to include(I18n.t("jjaeks.meta.requotes", count: 1))
       expect(preview.css("a[href='#{book_path(book)}']")).to be_empty
       expect(preview.css("a").map { |link| link.text.strip }).not_to include(I18n.t("jjaeks.actions.view"))

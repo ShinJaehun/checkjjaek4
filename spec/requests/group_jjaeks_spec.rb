@@ -7,6 +7,18 @@ RSpec.describe "Group Jjaeks", type: :request do
   let!(:non_member) { User.create!(name: "Non-member", email: "group-jjaeks-non-member@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "Group Book", authors_text: "Author") }
 
+  it "explains the public or members-only audience for each Group type" do
+    sign_in group_admin
+    { public_group: "public", approval_group: "members", private_group: "members" }.each do |type, audience|
+      group = Group.create!(lifecycle_status: :active, group_admin:, name: "Audience #{type}", group_type: type)
+      get group_path(group)
+      expect(response).to have_http_status(:ok)
+      composer = Nokogiri::HTML(response.body).at_css("#jjaek-composer")
+      expect(composer.at_css("p.text-sm.text-stone-600").text).to eq(I18n.t("jjaeks.form.group_sharing.#{audience}"))
+      expect(composer.css("[name='jjaek[visibility]']")).to be_empty
+    end
+  end
+
   it "lets an active member create a group jjaek without a book" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
@@ -64,6 +76,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     get group_path(group)
     expect(response).to have_http_status(:ok)
     normal_page = Nokogiri::HTML(response.body)
+    expect(normal_page.at_css("#jjaek-composer").text).to include(I18n.t("jjaeks.form.group_sharing.members"))
     expect(normal_page.text).to include(
       "GROUP_VISIBLE_SOURCE",
       "GROUP_VISIBLE_BOOK",
@@ -90,6 +103,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(page.at_css(%(form[action="#{group_jjaeks_path(group)}"]))).to be_present
     expect(response.body).not_to include(excluded.content, hidden.content, pending_user.name)
     expect(page.at_css('[name="jjaek[visibility]"]')).to be_nil
+    expect(page.at_css("#jjaek-composer").text).to include(I18n.t("jjaeks.form.group_sharing.members"))
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
     expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
   end
@@ -450,7 +464,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).not_to include(%(action="#{jjaek_path(jjaek)}"))
   end
 
-  it "edits only the content of a group jjaek without showing visibility" do
+  it "edits Group content and attachments without showing visibility or changing context" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     other_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Other", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
@@ -461,10 +475,13 @@ RSpec.describe "Group Jjaeks", type: :request do
     get edit_jjaek_path(jjaek)
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include(group.name)
+    expect(Nokogiri::HTML(response.body).at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
+    expect(response.body).to include(I18n.t("jjaeks.form.group_sharing.public"))
+    expect(response.body).not_to include(I18n.t("jjaeks.form.selected_group", group_name: group.name))
     expect(response.body).not_to include(%(name="jjaek[visibility]"))
 
     patch jjaek_path(jjaek), params: {
+      selected_books: [book.id],
       jjaek: {
         content: "Changed",
         visibility: :private_jjaek,
@@ -478,6 +495,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(jjaek.reload.content).to eq("Changed")
     expect(jjaek.visibility).to eq("public_jjaek")
     expect(jjaek.group).to eq(group)
+    expect(jjaek.attached_books).to eq([book])
     expect(jjaek.quoted_jjaek).to be_nil
     expect(jjaek.target_user).to be_nil
   end
@@ -501,12 +519,17 @@ RSpec.describe "Group Jjaeks", type: :request do
     jjaek = member.jjaeks.create!(group:, content: "Before")
     sign_in member
 
-    patch jjaek_path(jjaek), params: { jjaek: { content: "" } }
+    patch jjaek_path(jjaek), params: { selected_books: [book.id], jjaek: { content: "" } }
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include(%(name="jjaek[content]"))
     expect(response.body).not_to include(%(name="jjaek[visibility]"))
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
+    expect(page.at_css("#jjaek-composer").text).to include(I18n.t("jjaeks.form.group_sharing.public"))
+    expect(page.at_css("#jjaek-attached-books input[value='#{book.id}']")).to be_present
     expect(jjaek.reload.content).to eq("Before")
+    expect(jjaek.attached_books).to be_empty
   end
 
   it "returns not found when a former author tries to edit or update" do
@@ -631,7 +654,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     form = composer.at_css("#jjaek-publish-form")
     expect(form["action"]).to eq(group_jjaeks_path(group))
     expect(composer["data-group-id"]).to eq(group.id.to_s)
-    expect(composer.text).to include(I18n.t("jjaeks.form.selected_group", group_name: group.name))
+    expect(composer.text).not_to include(I18n.t("jjaeks.form.selected_group", group_name: group.name))
     expect(composer.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
     expect(composer.at_css("input[name='selected_books[]'][value='#{book.id}']")["form"]).to eq(form["id"])
     expect(composer.css("[name='jjaek[visibility]'], [name='jjaek[group_id]'], [name='book_post_destination']")).to be_empty
@@ -701,7 +724,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     follow_redirect!
     page = Nokogiri::HTML(response.body)
     composer = page.at_css("#jjaek-composer")
-    expect(composer.text).to include(I18n.t("jjaeks.form.selected_group", group_name: group.name))
+    expect(composer.text).not_to include(I18n.t("jjaeks.form.selected_group", group_name: group.name))
     expect(composer["data-group-id"]).to eq(group.id.to_s)
     expect(composer.at_css("#jjaek-publish-form")["action"]).to eq(group_jjaeks_path(group))
     expect(composer.css("[name='jjaek[visibility]'], [name='jjaek[group_id]']")).to be_empty

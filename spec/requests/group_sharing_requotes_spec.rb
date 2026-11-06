@@ -228,7 +228,8 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
     get new_group_jjaek_path(group, quoted_jjaek_id: source.id)
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("PRIVATE_GROUP_SOURCE", group.name)
+    expect(response.body).to include("PRIVATE_GROUP_SOURCE")
+
     page = Nokogiri::HTML(response.body)
     form = page.at_css("#jjaek-publish-form")
     expect(form["action"]).to eq(group_jjaeks_path(group))
@@ -242,7 +243,10 @@ RSpec.describe "Group sharing and quotes", type: :request do
       jjaek: { quoted_jjaek_id: source.id, content: "" }
     }
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("PRIVATE_GROUP_SOURCE", group.name)
+    page = Nokogiri::HTML(response.body)
+    expect(page.text).to include("PRIVATE_GROUP_SOURCE")
+    expect(page.at_css("#jjaek-publish-form")["action"]).to eq(group_jjaeks_path(group))
+    expect(page.at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
 
     expect {
       post group_jjaeks_path(group, quoted_jjaek_id: source.id), params: {
@@ -284,11 +288,11 @@ RSpec.describe "Group sharing and quotes", type: :request do
     group_source = source_author.jjaeks.create!(group:, book:, content: "GROUP_SOURCE")
     sign_in writer
 
-    [[jjaeks_path(quoted_jjaek_id: personal_source.id), personal_source],
-     [group_jjaeks_path(group, quoted_jjaek_id: group_source.id), group_source]].each do |path, source|
+    [ [ jjaeks_path(quoted_jjaek_id: personal_source.id), personal_source ],
+     [ group_jjaeks_path(group, quoted_jjaek_id: group_source.id), group_source ] ].each do |path, source|
       expect {
         post path, params: {
-          selected_books: [book.id],
+          selected_books: [ book.id ],
           jjaek: { group_id: group.id, quoted_jjaek_id: source.id, content: "Forbidden attachment" }
         }
       }.to change(Jjaek, :count).by(0).and change(JjaekRecommendation, :count).by(0).and change(Notification, :count).by(0)

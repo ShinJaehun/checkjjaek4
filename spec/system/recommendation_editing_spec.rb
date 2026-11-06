@@ -60,6 +60,32 @@ RSpec.describe "Unified inline composition", type: :system do
     expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq(["", book.id.to_s, other_book.id.to_s])
     expect(page).to have_field("jjaek[content]", with: "My draft survives")
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
+    third_book = Book.create!(title: "Search attachment third")
+    click_button I18n.t("jjaek_books.add")
+    within("#recommendation-window") do
+      fill_in "recommendation-query", with: third_book.title
+      click_button I18n.t("book_search.form.submit")
+    end
+    within("#recommendation-search-results article[data-book-id='#{third_book.id}']") do
+      click_button I18n.t("jjaek_books.choose")
+      expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
+    end
+    within("#recommendation-window") do
+      click_button I18n.t("jjaek_books.remove_book", title: book.title), enable_aria_label: true
+      expect(page).to have_no_css("[data-recommendation-composer-target='book'][data-book-id='#{book.id}']")
+    end
+    page.execute_script("Turbo.visit(arguments[0])", book_path(other_book))
+    expect(page).to have_current_path(book_path(other_book))
+    expect(page).to have_no_css("#book-jjaek-form")
+    within("#recommendation-window") do
+      expect(page).to have_css("[data-recommendation-composer-target='book'][data-book-id='#{third_book.id}']")
+      click_button I18n.t("book_search.actions.close")
+    end
+    expect(page).to have_current_path(root_path)
+    expect(page).to have_no_css("#recommendation-window")
+    expect(page).to have_field("jjaek[content]", with: "My draft survives")
+    expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
+    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq(["", book.id.to_s, other_book.id.to_s])
     within("#jjaek-attached-books [data-book-key='#{book.id}']") { click_button I18n.t("jjaek_books.add_to_shelf") }
     within("dialog[open]") { click_button I18n.t("bookshelves.actions.close") }
     expect(page).to have_field("jjaek[content]", with: "My draft survives")
@@ -91,6 +117,48 @@ RSpec.describe "Unified inline composition", type: :system do
       expect(page).to have_no_text(book.title)
     end
     expect(user.bookshelf_entries.find_by!(book:).bookshelf).to eq(shelf)
+  end
+
+  it "cancels to the opening attachments through Close, search Back and browser Back without changing the draft context" do
+    club = Group.create!(name: "Draft club", group_admin: user, lifecycle_status: :active)
+    recipient = User.create!(name: "Draft recipient", email: "draft-recipient@example.com", password: "password123!")
+    BookFriendship.create!(requester: user, addressee: recipient, status: :accepted)
+    [[root_path, [], :close, nil, nil], [book_path(book), [book.id], :back, nil, nil],
+     [group_path(club), [], :browser_back, club.id, nil], [user_path(recipient), [], :close, nil, recipient.id]].each do |origin, original_ids, exit_method, group_id, target_id|
+      visit origin
+      fill_in "jjaek[content]", with: "Cancel keeps this draft"
+      choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true unless group_id || target_id
+      click_button I18n.t("jjaek_books.add")
+      within("#recommendation-window") do
+        fill_in "recommendation-query", with: "Search attachment"
+        click_button I18n.t("book_search.form.submit")
+      end
+      within("#recommendation-search-results") do
+        [book, other_book].reject { |item| original_ids.include?(item.id) }.each do |item|
+          within("article[data-book-id='#{item.id}']") do
+            click_button I18n.t("jjaek_books.choose")
+            expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
+          end
+        end
+      end
+      case exit_method
+      when :close
+        within("#recommendation-window") { click_button I18n.t("book_search.actions.close") }
+      when :back
+        find("main a[data-back-link]").click
+      when :browser_back
+        page.go_back
+      end
+      expect(page).to have_current_path(origin)
+      expect(page).to have_no_css("#recommendation-window")
+      expect(page).to have_field("jjaek[content]", with: "Cancel keeps this draft")
+      expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all) unless group_id || target_id
+      expect(page.find("#jjaek-composer")["data-group-id"]).to eq(group_id.to_s)
+      expect(page.find("#jjaek-composer")["data-target-user-id"]).to eq(target_id.to_s)
+      expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq(["", *original_ids.map(&:to_s)])
+    end
+    expect(user.jjaeks.where(content: "Cancel keeps this draft")).to be_empty
+    expect(user.bookshelf_entries).to be_empty
   end
 
   it "edits a legacy recommendation on the same Rails form and cancels navigation without saving" do

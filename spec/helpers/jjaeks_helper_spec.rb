@@ -92,15 +92,18 @@ RSpec.describe JjaeksHelper, type: :helper do
     end
   end
 
-  it "adds a neutral inline club badge before the existing group name link" do
-    post = author.jjaeks.create!(group: group, content: "Group post")
-    label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))
-
-    badge = label.at_css("span")
-    expect(badge.text).to eq(I18n.t("jjaeks.contexts.group_badge"))
-    expect(badge.next_element.name).to eq("a")
-    expect(badge.next_element["href"]).to eq(group_path(group))
-    expect(label.text).to include("Author님이 동아리 Readers에 남긴 짹")
+  it "uses a neutral Club space badge without a book title or content-type label in the header" do
+    book = Book.create!(title: "Header book")
+    [nil, book].each do |attachment|
+      post = author.jjaeks.create!(group:, book: attachment, content: "Group post")
+      label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))
+      expect(label.text).to eq("Author님이 동아리 Readers에 남긴 짹")
+      expect(label.at_css("a[href='#{group_path(group)}']").text).to eq(group.name)
+      badge = label.at_css("span")
+      expect(badge.text).to eq(I18n.t("jjaeks.contexts.group_badge"))
+      expect(badge["class"]).to include("bg-stone-50", "font-normal", "text-[10px]")
+      expect(badge.next_element["href"]).to eq(group_path(group))
+    end
   end
 
   it "links the recipient's 20px avatar and name in the original sentence" do
@@ -123,6 +126,12 @@ RSpec.describe JjaeksHelper, type: :helper do
         requote = viewer.jjaeks.create!(quoted_jjaek: source, group: context == :personal ? nil : group, content: "Requote")
 
         label = Nokogiri::HTML.fragment(helper.jjaek_context_label(requote))
+        expect(label.text).to include("Author님의 짹")
+        expect(label.text).not_to include("책짹", "추천짹")
+        if context != :personal
+          expect(label.at_css("span.inline-block").text).to eq(I18n.t("jjaeks.contexts.group_badge"))
+          expect(label.at_css("a[href='#{group_path(group)}']").text).to eq(group.name)
+        end
         link = label.at_css("a[href='#{user_path(author)}']")
         image = link.at_css("img")
         expect(image["class"]).to include("h-5", "w-5", "rounded-full", "object-cover")
@@ -134,12 +143,19 @@ RSpec.describe JjaeksHelper, type: :helper do
     end
   end
 
-  it "does not add an inline thumbnail to an ordinary author's name" do
-    post = author.jjaeks.create!(content: "Ordinary post")
-    label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))
-
-    expect(label.at_css("a[href='#{user_path(author)}']").text).to eq(author.name)
-    expect(label.css("img")).to be_empty
+  it "uses the same personal header for ordinary, legacy book and recommendation posts" do
+    book = Book.create!(title: "Header book")
+    ordinary = author.jjaeks.create!(content: "Ordinary post")
+    book_post = author.jjaeks.create!(book:, content: "Book post")
+    recommendation = author.jjaeks.new(content: "Recommendation", recommendation: true)
+    recommendation.jjaek_recommendations.build(book:, position: 0)
+    recommendation.save!
+    [ordinary, book_post, recommendation].each do |post|
+      label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))
+      expect(label.text).to eq("Author님의 짹")
+      expect(label.at_css("a[href='#{user_path(author)}']").text).to eq(author.name)
+      expect(label.css("img")).to be_empty
+    end
   end
 
   it "does not expose the original author's thumbnail after source deletion" do

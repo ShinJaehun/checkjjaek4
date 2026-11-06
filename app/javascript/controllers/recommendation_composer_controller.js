@@ -16,7 +16,7 @@ export default class extends Controller {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     if (!this.element.hidden && event.target.closest("[data-back-link]") && document.getElementById("recommendation-search-results")) {
       event.preventDefault()
-      this.finish()
+      this.cancel()
       return
     }
     const opener = event.target.closest("[data-book-selection-open]")
@@ -24,6 +24,8 @@ export default class extends Controller {
       event.preventDefault()
       const composer = opener.closest("#jjaek-composer")
       this.close()
+      this.composer = composer
+      this.attachmentSnapshot = composer.querySelector("#jjaek-attached-books").cloneNode(true)
       this.origin = window.location.href
       composer.setAttribute("data-turbo-permanent", "")
       this.element.hidden = false
@@ -68,7 +70,7 @@ export default class extends Controller {
   prepare(event) {
     const form = event.target
     if (!form.matches("form[data-recommendation-selection-form]")) return
-    if (this.pendingForm || !this.hasFieldsTarget) {
+    if (this.returning || this.pendingForm || !this.hasFieldsTarget) {
       event.preventDefault()
       return
     }
@@ -93,24 +95,79 @@ export default class extends Controller {
   beforeVisit(event) {
     if (this.element.hidden) return
     const url = new URL(event.detail.url, window.location.origin)
-    const selectionSearch = url.origin === window.location.origin && url.pathname === "/book_search" && url.searchParams.get("attachment") === "1" &&
+    if (this.returning && url.href !== this.origin) {
+      this.close()
+      return
+    }
+    this.destinationURL = url.href
+    if (url.href === this.origin) {
+      if (!this.returning) {
+        this.restoreAttachments()
+        this.returning = true
+      }
+    } else if (!this.selectionPage(url)) this.close()
+  }
+
+  selectionPage(url) {
+    if (url.origin !== window.location.origin) return false
+    const selectionSearch = url.pathname === "/book_search" && url.searchParams.get("attachment") === "1" &&
       ["editing_jjaek_id", "group_id", "target_user_id"].every(name => (url.searchParams.get(name) || "") === (this.valuesFor(name)[0] || ""))
-    if (!selectionSearch && !(this.returning && url.href === this.origin)) this.close()
+    return selectionSearch || /^\/books\/(?:[1-9]\d*|lookup)$/.test(url.pathname)
   }
 
   finish() {
-    if (this.pendingForm || !this.origin) return
+    if (this.returning || this.pendingForm || !this.origin) return
+    this.attachmentSnapshot = null
+    this.returnToComposer()
+  }
+
+  cancel() {
+    if (this.returning || !this.origin) return
+    this.restoreAttachments()
+    this.returnToComposer()
+  }
+
+  restoreAttachments() {
+    const attachments = this.composer?.querySelector("#jjaek-attached-books")
+    if (attachments && this.attachmentSnapshot) attachments.replaceChildren(...this.attachmentSnapshot.childNodes)
+    this.attachmentSnapshot = null
+  }
+
+  returnToComposer() {
+    this.returning = true
+    this.element.dataset.requestRevision = crypto.randomUUID()
     if (window.location.href === this.origin) this.close()
-    else {
-      this.returning = true
-      Turbo.visit(this.origin)
-    }
+    else Turbo.visit(this.origin)
   }
 
   beforeRender(event) {
-    if (!this.returning || this.element.hidden) return
-    const current = document.getElementById("jjaek-composer")
-    const incoming = event.detail.newBody.querySelector("#jjaek-composer")
+    if (this.element.hidden) return
+    const url = new URL(this.returning ? this.origin : (this.destinationURL || window.location.href))
+    let incoming = event.detail.newBody.querySelector("#jjaek-composer")
+    if (url.href !== this.origin && this.selectionPage(url)) {
+      // Keep the original draft out of the book preview's writing form.
+      if (!incoming) {
+        const placeholder = document.createElement("div")
+        placeholder.hidden = true
+        incoming = document.createElement("div")
+        incoming.id = "jjaek-composer"
+        placeholder.append(incoming)
+        event.detail.newBody.prepend(placeholder)
+      }
+      const bookForm = incoming.closest("#book-jjaek-form")
+      if (bookForm) bookForm.hidden = true
+      incoming.setAttribute("data-turbo-permanent", "")
+      return
+    }
+    if (url.href !== this.origin) {
+      this.close()
+      return
+    }
+    if (!this.returning) {
+      this.restoreAttachments()
+      this.returning = true
+    }
+    const current = this.composer
     const sameContext = current && incoming && ["editingId", "groupId", "targetUserId"]
       .every(key => current.dataset[key] === incoming.dataset[key])
     if (!sameContext) {
@@ -119,11 +176,14 @@ export default class extends Controller {
     }
     // Turbo preserves a node only when BOTH snapshots mark its ID permanent.
     // The regular destination form must participate just for this return visit.
+    const bookForm = incoming.closest("#book-jjaek-form")
+    if (bookForm) bookForm.hidden = false
     incoming.setAttribute("data-turbo-permanent", "")
   }
 
-  load() {
+  load(event) {
     if (this.returning && window.location.href === this.origin && !document.documentElement.hasAttribute("data-turbo-preview")) this.close()
+    if (event?.type === "turbo:load") this.destinationURL = null
     const state = document.querySelector("#recommendation-search-results [data-recommendation-results-state]")
     if (state && this.hasFieldsTarget) {
       for (const name of ["query", "page"]) {
@@ -138,13 +198,17 @@ export default class extends Controller {
   }
 
   close() {
-    document.getElementById("jjaek-composer")?.removeAttribute("data-turbo-permanent")
+    this.restoreAttachments()
+    this.composer?.removeAttribute("data-turbo-permanent")
     this.element.hidden = true
     this.element.dataset.requestRevision = crypto.randomUUID()
     this.frameTarget.src = null
     this.frameTarget.replaceChildren()
     this.pendingForm = null
     this.returning = false
+    this.composer = null
+    this.origin = null
+    this.destinationURL = null
   }
 
   valuesFor(name) {
@@ -181,7 +245,7 @@ export default class extends Controller {
     const revision = this.element.dataset.requestRevision
     const render = event.detail.render
     event.detail.render = async stream => {
-      if (!this.element.isConnected || this.element.hidden || this.element.dataset.requestRevision !== revision) return
+      if (!this.element.isConnected || this.element.hidden || this.returning || this.element.dataset.requestRevision !== revision) return
       await render(stream)
       if (stream.target === "recommendation-search-results" && this.element.dataset.requestRevision === revision) {
         this.pendingForm = null
@@ -195,7 +259,7 @@ export default class extends Controller {
     const revision = this.element.dataset.requestRevision
     const render = event.detail.render
     event.detail.render = (current, incoming) => {
-      if (!this.element.isConnected || this.element.hidden || this.element.dataset.requestRevision !== revision) return
+      if (!this.element.isConnected || this.element.hidden || this.returning || this.element.dataset.requestRevision !== revision) return
       return render(current, incoming)
     }
   }

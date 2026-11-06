@@ -203,8 +203,8 @@ RSpec.describe "Feed pagination", type: :request do
       )
       if %i[book group_book].include?(location)
         card = page_document.at_css("#jjaek_#{posts.last.id}")
-        expect(card.text).not_to include(book.title, book.authors_text)
-        expect(card.css("img[alt='#{book.title}']")).to be_empty
+        expect(card.text).to include(book.title, book.authors_text)
+        expect(card.css("a").map { |link| URI.parse(link["href"]).path }).to include(book_path(book))
       end
 
       get url, headers: stream_headers
@@ -215,8 +215,8 @@ RSpec.describe "Feed pagination", type: :request do
       )
       if %i[book group_book].include?(location)
         card = page_document.at_css("#jjaek_#{posts.last.id}")
-        expect(card.text).not_to include(book.title, book.authors_text)
-        expect(card.css("img[alt='#{book.title}']")).to be_empty
+        expect(card.text).to include(book.title, book.authors_text)
+        expect(card.css("a").map { |link| URI.parse(link["href"]).path }).to include(book_path(book))
       end
       expect(page_document.css("turbo-stream").map { |node| [ node["action"], node["target"] ] })
         .to eq([ %w[append feed-items], %w[replace feed-pagination] ])

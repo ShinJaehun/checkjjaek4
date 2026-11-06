@@ -781,9 +781,9 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("Author")
       expect(response.body).to include("user_profile_")
       expect(response.body).to include(%(alt="#{original_author.name}"))
-      expect(response.body).to include("님의 책짹을 개인 소식에 다시짹")
+      expect(response.body).to include("님의 짹을 다시짹")
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{requote.id}")
-      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 책짹을 개인 소식에 다시짹")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 다시짹")
       thumbnail = card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")
       expect(thumbnail).to be_present
       expect(thumbnail["alt"]).to eq(original_author.name)
@@ -798,9 +798,9 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response.body).to include("REQUEST_VIEWER_GENERAL_REQUOTE_BODY")
       expect(response.body).to include("REQUEST_ORIGINAL_GENERAL_SOURCE")
-      expect(response.body).to include("님의 짹을 개인 소식에 다시짹")
+      expect(response.body).to include("님의 짹을 다시짹")
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{general_requote.id}")
-      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 개인 소식에 다시짹")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 다시짹")
       thumbnail = card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")
       expect(thumbnail).to be_present
       expect(thumbnail["alt"]).to eq(original_author.name)
@@ -818,7 +818,7 @@ RSpec.describe "Jjaeks", type: :request do
         card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
         expect(card).to be_present
         expect(card.text).to include("#{group.name}에 올라온")
-        expect(card.text).to include("님의 짹을 개인 소식에 다시짹")
+        expect(card.text).to include("님의 짹을 다시짹")
         expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
         expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_present
       end
@@ -845,7 +845,7 @@ RSpec.describe "Jjaeks", type: :request do
         card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
         expect(card).to be_present
         expect(card.text).to include("#{group.name}에 올라온")
-        expect(card.text).to include("님의 책짹을 개인 소식에 다시짹")
+        expect(card.text).to include("님의 짹을 다시짹")
         expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
         expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_present
       end
@@ -1247,7 +1247,7 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("REQUEST_VIEWER_REQUOTE_BODY")
-      expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source_title.book", name: original_author.name))
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source_title.general", name: original_author.name))
       expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source"))
       expect(response.body).not_to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
     end
@@ -1325,7 +1325,7 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response.body).to include("REQUEST_BOOK_THUMBNAIL_FEED")
       expect(response.body).to include("THUMBNAIL_FEED_BOOK")
-      expect(response.body).to include("님의 책짹")
+      expect(response.body).to include("님의 짹")
       expect(response.body).to include("https://example.com/thumbnail.jpg")
     end
 

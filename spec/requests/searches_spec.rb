@@ -214,7 +214,7 @@ RSpec.describe "Unified search", type: :request do
     expect(card.text).to include(viewer.name, post.content, book.title, book.authors_text,
                                I18n.t("jjaeks.visibility.book_friends"),
                                I18n.t("jjaeks.meta.created_at", time: I18n.l(post.created_at, format: :short)))
-    expect(card.text).to include(I18n.t("jjaeks.contexts.book_html", author_name: viewer.name))
+    expect(card.text).to include(I18n.t("jjaeks.contexts.general_html", author_name: viewer.name))
     expect(card.at_css("[data-reading-status='reading']")).to be_present
     expect(card.at_css("[data-reading-sticker='loved_it']")).to be_present
     expect(card.css("form")).to be_empty
@@ -421,8 +421,8 @@ RSpec.describe "Unified search", type: :request do
         .to include(I18n.t("jjaeks.contexts.group_general_html", author_name: writer.name,
                            group_name: group_label))
       expect(search_section("book_jjaeks").at_css("article").text.squish)
-        .to include(I18n.t("jjaeks.contexts.group_book_html", author_name: writer.name,
-                           group_name: group_label, book_title: book.title))
+        .to include(I18n.t("jjaeks.contexts.group_general_html", author_name: writer.name,
+                           group_name: group_label))
 
       group.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "독서 모임 종료")
       get search_path, params: { q: "동아리검색" }
@@ -458,7 +458,7 @@ RSpec.describe "Unified search", type: :request do
     expect(search_section("jjaeks").text).not_to include(source.content)
     expect(search_section("jjaeks").at_css("article").text.squish)
       .to include(I18n.t("jjaeks.contexts.requote_html", author_name: viewer.name,
-                         quoted_user_name: writer.name, quoted_context_label: I18n.t("jjaeks.contexts.quoted_general")))
+                         quoted_user_name: writer.name))
 
     source.update!(visibility: :private_jjaek)
     get search_path, params: { q: "인용검색", type: "jjaeks" }

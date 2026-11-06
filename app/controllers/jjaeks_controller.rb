@@ -219,6 +219,7 @@ class JjaeksController < ApplicationController
       raise ActiveRecord::RecordNotFound
     end
     authorize @jjaek
+    @group = @jjaek.group
   end
 
   def set_destroy_jjaek
@@ -273,6 +274,7 @@ class JjaeksController < ApplicationController
   def render_failed_create(status: :unprocessable_content)
     return render(:new, formats: :html, status:) if @quoted_jjaek.present? || action_name == "new"
 
+    @book ||= book_composer_context
     if @book.present?
       @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
       @sticker_definitions = StickerDefinition.alphabetical
@@ -312,9 +314,22 @@ class JjaeksController < ApplicationController
   end
 
   def create_success_path
+    # This is a return destination, never an attachment or posting-context input.
+    if (book = book_composer_context)
+      return book_path(book, group_id: @jjaek.group_id,
+        return_to: view_context.validated_jjaek_return_path(params[:return_to]))
+    end
     return group_path(@group) if @group.present?
 
     target_user.present? ? root_path : jjaek_path(@jjaek, post_return_params)
+  end
+
+  def book_composer_context
+    return if @jjaek.requote? || @jjaek.profile_conversation?
+    return unless params[:book_context_id].to_s.match?(/\A[1-9]\d*\z/)
+
+    book = Book.find_by(id: params[:book_context_id])
+    book if book && policy(book).show?
   end
 
   def find_jjaek_group
@@ -404,7 +419,7 @@ class JjaeksController < ApplicationController
   end
 
   def update_jjaek_params
-    return jjaek_params.slice(:content) if @jjaek.group_id.present? || @jjaek.profile_conversation?
+    return jjaek_params.slice(:content) if @jjaek.group.present? || @jjaek.profile_conversation?
 
     jjaek_params.slice(:content, :visibility)
   end
