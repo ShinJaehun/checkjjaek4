@@ -316,6 +316,8 @@ class JjaeksController < ApplicationController
   def create_success_path
     # This is a return destination, never an attachment or posting-context input.
     if (book = book_composer_context)
+      return root_path unless book.persisted? && @jjaek.attached_books.exists?(id: book.id)
+
       return book_path(book, group_id: @jjaek.group_id,
         return_to: view_context.validated_jjaek_return_path(params[:return_to]))
     end
@@ -326,10 +328,19 @@ class JjaeksController < ApplicationController
 
   def book_composer_context
     return if @jjaek.requote? || @jjaek.profile_conversation?
-    return unless params[:book_context_id].to_s.match?(/\A[1-9]\d*\z/)
 
-    book = Book.find_by(id: params[:book_context_id])
+    book = if params[:book_context_id].to_s.match?(/\A[1-9]\d*\z/)
+      Book.find_by(id: params[:book_context_id])
+    elsif params[:book_context_token].is_a?(String)
+      attributes = BookSearches::ResultToken.verify(params[:book_context_token], user: current_user)
+      return if attributes.blank?
+
+      @search_result_token = params[:book_context_token]
+      Book.find_or_initialize_from_search(attributes)
+    end
     book if book && policy(book).show?
+  rescue Book::IdentityConflict
+    nil
   end
 
   def find_jjaek_group

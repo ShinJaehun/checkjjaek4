@@ -1374,7 +1374,8 @@ en:
         profile: "Leave a Jjaek for %{name}..."
         book: "Leave a Jjaek about this book..."
     labels:
-      profile_conversation: "Just the two of you"
+      profile_conversation: "Only %{name} and me"
+      profile_conversation_participants: "Participants only"
       requote: "ReJjaek from %{name}"
       quoted_general_suffix: "'s Jjaek"
       quoted_book_suffix: "'s Book Jjaek"

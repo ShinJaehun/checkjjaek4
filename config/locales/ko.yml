@@ -1045,7 +1045,7 @@ ko:
       publisher: "출판사"
       isbn: "ISBN"
     actions:
-      add_to_shelf: "서재에 담기"
+      add_to_shelf: "책장에 담기"
       close: "닫기"
       in_shelf: "내 서재에 있음"
       in_bookshelf: "%{bookshelf_name}에 있음"
@@ -1250,7 +1250,7 @@ ko:
       status: "대표 상태"
       stickers: "스티커"
     new:
-      title: "서재에 담기"
+      title: "책장에 담기"
     edit:
       title: "서재 항목 수정"
     notices:
@@ -1400,7 +1400,8 @@ ko:
         profile: "%{name}님에게 남길..."
         book: "이 책에 남길..."
     labels:
-      profile_conversation: "두 사람 전용"
+      profile_conversation: "%{name}님과 나만 보기"
+      profile_conversation_participants: "당사자만 보기"
       requote: "%{name}님의 짹"
       quoted_general_suffix: "님의 짹"
       quoted_book_suffix: "님의 책짹"

@@ -5,6 +5,8 @@ module BookShowContext
   # @group and @quoted_jjaek) before preparing the full page.
   def prepare_book_show_read_context(feed_only: false)
     prepare_book_show_form_context unless feed_only
+    return @jjaeks = Jjaek.none unless @book.persisted?
+
     recommended_jjaek_ids = @book.jjaek_recommendations.select(:jjaek_id)
     book_jjaeks = Jjaek.where(book: @book).or(Jjaek.where(id: recommended_jjaek_ids))
       .includes(:book, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })

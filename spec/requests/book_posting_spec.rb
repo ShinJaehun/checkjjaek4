@@ -3,11 +3,14 @@ require "rails_helper"
 RSpec.describe "Book context in the common composer", type: :request do
   let(:user) { User.create!(name: "Reader", email: "book-posting@example.com", password: "password123!") }
   let(:admin) { User.create!(name: "Admin", email: "book-admin@example.com", password: "password123!") }
-  let(:book) { Book.create!(title: "Context book") }
+  let!(:book) { Book.create!(title: "Context book") }
   let(:group) { Group.create!(name: "Readers", group_admin: admin, group_type: :private_group, lifecycle_status: :active) }
   let!(:membership) { group.group_memberships.create!(user:, status: :active) }
 
-  before { sign_in user }
+  before do
+    sign_in user
+    allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
+  end
 
   it "preselects the book and fixes the original personal or Group posting context" do
     [[book_path(book), jjaeks_path, true], [book_path(book, group_id: group.id), group_jjaeks_path(group), false]].each do |path, destination, visibility|
@@ -44,16 +47,106 @@ RSpec.describe "Book context in the common composer", type: :request do
       expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", book.id.to_s])
 
       post destination, params: { book_context_id: book.id, selected_books: [""], jjaek: { content: "No attached books" } }
-      expect(response).to redirect_to(origin)
+      expect(response).to redirect_to(root_path)
       expect(Jjaek.last.attached_books).to be_empty
       expect(Jjaek.last.group_id).to eq(group_id)
 
-      post destination, params: { book_context_id: book.id, selected_books: [other_book.id], jjaek: { content: "x" * 201 } }
+      post destination, params: { book_context_id: book.id, selected_books: [other_book.id], jjaek: { content: "Only another book" } }
+      expect(response).to redirect_to(root_path)
+      expect(Jjaek.last.attached_books).to eq([other_book])
+      expect(Jjaek.last.group_id).to eq(group_id)
+
+      post destination, params: { book_context_id: book.id, selected_books: [other_book.id], jjaek: { content: "x" * 201, visibility: :private_jjaek } }
       expect(response).to have_http_status(:unprocessable_content)
       page = Nokogiri::HTML(response.body)
       expect(page.at_css("#jjaek-publish-form textarea").text.strip).to eq("x" * 201)
       expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", other_book.id.to_s])
       expect(page.at_css("#jjaek-attached-books").text).to include(other_book.authors_text)
+      if group_id.nil?
+        expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
+      end
+    end
+  end
+
+  it "uses the saved attachment and validated book context rather than an arbitrary return URL" do
+    ["text/html", "text/vnd.turbo-stream.html"].each do |accept|
+      post jjaeks_path, params: { book_context_id: book.id, return_to: "https://example.com/redirect",
+        selected_books: [book.id], jjaek: { content: "Validated context" } }, headers: { "Accept" => accept }
+      expect(response).to redirect_to(book_path(book))
+
+      post jjaeks_path, params: { book_context_id: "#{book.id}invalid", return_to: book_path(book),
+        selected_books: [book.id], jjaek: { content: "Ordinary post" } }, headers: { "Accept" => accept }
+      expect(response).to redirect_to(jjaek_path(Jjaek.last, return_to: book_path(book)))
+
+      post jjaeks_path, params: { book_context_id: book.id, return_to: book_path(book),
+        selected_books: [""], jjaek: { content: "Removed context book" } }, headers: { "Accept" => accept }
+      expect(response).to redirect_to(root_path)
+    end
+  end
+
+  it "previews an external book and publishes ordered attachments without adding reading data" do
+    ["text/html", "text/vnd.turbo-stream.html"].each_with_index do |accept, index|
+      [[jjaeks_path, nil], [group_jjaeks_path(group), group.id]].each do |destination, group_id|
+        url = "https://example.com/new-book-#{index}-#{group_id || 'personal'}"
+        token = external_book_token(url:)
+        expect {
+          get lookup_books_path, params: { search_result_token: token, group_id: }
+        }.not_to change { [Book.count, BookshelfEntry.count, BookActivity.count] }
+        expect(response).to have_http_status(:ok)
+        page = Nokogiri::HTML(response.body)
+        form = page.at_css("#jjaek-publish-form")
+        expect(form["action"]).to eq(destination)
+        key = page.css("#jjaek-attached-books input[name='selected_books[]']").last["value"]
+        expect(key).to start_with("external:")
+        expect(form.at_css("input[name='book_context_token']")["value"]).to eq(token)
+
+        expect {
+          post destination, params: { book_context_token: token, selected_books: [book.id, key], jjaek: { content: "External context #{index}" } },
+            headers: { "Accept" => accept }
+        }.to change(Jjaek, :count).by(1).and change(Book, :count).by(1).and change(BookshelfEntry, :count).by(0).and change(BookActivity, :count).by(0)
+        stored_book = Book.find_by!(external_url: url)
+        record = Jjaek.last
+        expect(record.group_id).to eq(group_id)
+        expect(record.attached_books).to eq([book, stored_book])
+        expect(response).to redirect_to(book_path(stored_book, group_id:))
+        follow_redirect!
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css("#feed-items #jjaek_#{record.id}")).to be_present
+        expect(page.at_css("#jjaek-publish-form textarea").text.strip).to be_empty
+        expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", stored_book.id.to_s])
+      end
+    end
+  end
+
+  it "keeps an external book temporary when removed, or when HTML and Turbo publication fails" do
+    user.jjaeks.create!(content: "Unrelated bookless post")
+    token = external_book_token
+    get lookup_books_path, params: { search_result_token: token }
+    key = Nokogiri::HTML(response.body).css("#jjaek-attached-books input[name='selected_books[]']").last["value"]
+    expect(key).to start_with("external:")
+
+    ["text/html", "text/vnd.turbo-stream.html"].each do |accept|
+      [[key, book.id], [book.id], [""]].each do |selection|
+        expect {
+          post jjaeks_path, params: { book_context_token: token, selected_books: selection,
+            jjaek: { content: "x" * 201, visibility: :private_jjaek } }, headers: { "Accept" => accept }
+        }.not_to change { [Book.count, Jjaek.count, JjaekRecommendation.count, BookshelfEntry.count, BookActivity.count] }
+        expect(response).to have_http_status(:unprocessable_content)
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css("#book-jjaek-form textarea").text.strip).to eq("x" * 201)
+        expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
+        expect(page.at_css("#jjaek-publish-form input[name='book_context_token']")["value"]).to eq(token)
+        expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", *selection.map(&:to_s).reject(&:empty?)])
+        expect(page.css("#feed-items article")).to be_empty
+      end
+
+      [[book.id], [""]].each do |selection|
+        expect {
+          post jjaeks_path, params: { book_context_token: token, selected_books: selection,
+            jjaek: { content: "Removed external book" } }, headers: { "Accept" => accept }
+        }.to change(Jjaek, :count).by(1).and change(Book, :count).by(0)
+        expect(response).to redirect_to(root_path)
+      end
     end
   end
 
@@ -110,5 +203,9 @@ RSpec.describe "Book context in the common composer", type: :request do
     expect {
       post jjaeks_path, params: {jjaek: {book_id: book.id, quoted_jjaek_id: source.id, content: "Quote with book"}}
     }.not_to change(Jjaek, :count)
+  end
+
+  def external_book_token(url: "https://example.com/new-book")
+    BookSearches::ResultToken.issue({ title: "External context book", authors_text: "External author", url: }, user:)
   end
 end

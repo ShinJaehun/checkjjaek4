@@ -20,6 +20,19 @@ RSpec.describe JjaeksHelper, type: :helper do
     helper.define_singleton_method(:policy) { |record| Pundit.policy!(actor, record) }
   end
 
+  it "names the other participant in each viewer's language and keeps observer wording neutral" do
+    post = author.jjaeks.new(target_user: viewer, content: "Private conversation")
+    { ko: ["Reader님과 나만 보기", "Author님과 나만 보기", "당사자만 보기"],
+      en: ["Only Reader and me", "Only Author and me", "Participants only"] }.each do |locale, labels|
+      I18n.with_locale(locale) do
+        [author, viewer, nil].zip(labels).each do |actor, label|
+          allow(helper).to receive(:current_user).and_return(actor)
+          expect(helper.jjaek_visibility_label(post)).to eq(label)
+        end
+      end
+    end
+  end
+
   it "reuses an empty prepared sharing result without falling back to policy" do
     post = author.jjaeks.create!(content: "Public post")
     helper.instance_variable_set(:@group_share_destinations_by_jjaek_id, { post.id => [] })

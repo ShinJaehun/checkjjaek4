@@ -11,4 +11,4 @@ en:
     selected: "Selected"
     remove_book: "Remove %{title}"
     limit: "Choose up to %{count} books."
-    add_to_shelf: "Add to library"
+    add_to_shelf: "Add to shelf"

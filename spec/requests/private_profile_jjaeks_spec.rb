@@ -21,6 +21,8 @@ RSpec.describe "Private profile conversations", type: :request do
         get path
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("PRIVATE_CONVERSATION_BODY")
+        counterpart = participant == author ? owner : author
+        expect(response.body).to include(I18n.t("jjaeks.labels.profile_conversation", name: counterpart.name))
       end
       get jjaek_comments_path(conversation), headers: turbo_headers
       expect(response.body).to include(reply.content)

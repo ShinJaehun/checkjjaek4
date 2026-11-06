@@ -20,9 +20,9 @@ RSpec.describe "Book context composition", type: :system do
       click_button I18n.t("jjaek_books.remove")
       click_button I18n.t("jjaeks.actions.publish_short")
     end
-    expect(page).to have_current_path(book_path(book), ignore_query: true)
+    expect(page).to have_current_path(root_path, ignore_query: true)
     expect(page).to have_field("jjaek[content]", with: "")
-    expect(page).to have_css("#jjaek-attached-books [data-book-key='#{book.id}']")
+    expect(page).to have_no_css("#jjaek-attached-books [data-book-key='#{book.id}']")
     record = group.jjaeks.find_by!(content: "Group note without a book")
     expect(record.attached_books).to be_empty
     expect(user.bookshelf_entries).to be_empty

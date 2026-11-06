@@ -12,15 +12,35 @@
       </div>
     <% end %>
     <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
-    <%= hidden_field_tag :book_context_id, book_context.id if local_assigns[:book_context] && jjaek.new_record? && !jjaek.requote? %>
+    <% if local_assigns[:book_context] && jjaek.new_record? && !jjaek.requote? %>
+      <% if book_context.persisted? %>
+        <%= hidden_field_tag :book_context_id, book_context.id %>
+      <% else %>
+        <%= hidden_field_tag :book_context_token, @search_result_token %>
+      <% end %>
+    <% end %>
     <% unless jjaek.persisted? %>
-      <%= form.hidden_field :group_id if sharing_to_fixed_group %>
+      <%= form.hidden_field :group_id if sharing_to_fixed_group && !local_assigns[:destination_groups] %>
       <%= form.hidden_field :target_user_id if jjaek.target_user_id.present? %>
       <%= form.hidden_field :quoted_jjaek_id if jjaek.quoted_jjaek_id.present? %>
     <% end %>
     <% if local_assigns[:destination_groups] %>
-      <%= form.label :group_id, t("jjaeks.form.destination_group") %>
-      <%= form.collection_select :group_id, destination_groups, :id, :name, { include_blank: t("jjaeks.form.choose_group") }, { required: true, class: "w-full rounded-xl border-stone-300" } %>
+      <fieldset class="min-w-0 space-y-2">
+        <legend class="text-sm font-medium text-stone-700"><%= t("jjaeks.form.destination_group") %></legend>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <% destination_groups.each do |group| %>
+            <label class="<%= jjaek_option_card_classes %> items-start">
+              <%= form.radio_button :group_id, group.id, required: true, class: "sr-only" %>
+              <%= jjaek_option_icon(:group) %>
+              <span class="min-w-0 space-y-1 break-words">
+                <span class="block"><%= group.name %></span>
+                <span class="block text-xs"><%= t("groups.types.#{group.group_type}") %></span>
+                <span class="block text-xs font-normal"><%= t("jjaeks.form.group_sharing.#{group.public_group? ? 'public' : 'members'}") %></span>
+              </span>
+            </label>
+          <% end %>
+        </div>
+      </fieldset>
     <% elsif jjaek.profile_conversation? %>
       <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation") %></p>
     <% elsif posting_group.blank? %>

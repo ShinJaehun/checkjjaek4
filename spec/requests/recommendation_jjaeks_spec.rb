@@ -213,14 +213,17 @@ RSpec.describe "Unified Jjaek composition", type: :request do
 
   it "reuses a book registered after an external selection and rejects duplicate identities" do
     key = external_key
+    token = Rails.cache.read(["recommendation_selection", user.id, key])
     imported = Book.create!(title: "Canonical", isbn: "9780140328721")
     post jjaeks_path, params: { selected_books: [ key, imported.id ], jjaek: { content: "Duplicate" } }
     expect(response).to have_http_status(:unprocessable_content)
     expect(Jjaek.count).to eq(0)
     expect {
-      post jjaeks_path, params: { selected_books: [ key ], jjaek: { content: "Reused" } }
+      post jjaeks_path, params: { book_context_token: token, selected_books: [ key ], jjaek: { content: "Reused" } }
     }.not_to change(Book, :count)
     expect(Jjaek.last.attached_books).to eq([ imported ])
+    expect(response).to redirect_to(book_path(imported))
+    expect(imported.reload.title).to eq("Canonical")
   end
 
   it "preserves two-person access for profile attachments after friendship ends" do

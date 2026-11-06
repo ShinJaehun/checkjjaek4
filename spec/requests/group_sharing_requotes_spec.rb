@@ -132,6 +132,8 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
   it "offers only writable, not-yet-used groups and creates a B share without copying the source book" do
     available = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Available readers", group_type: :public_group)
+    approval = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Approval readers", group_type: :approval_group)
+    private_group = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Private readers", group_type: :private_group)
     already_used = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Already used readers", group_type: :public_group)
     suspended = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Suspended readers", group_type: :public_group)
     unjoined = Group.create!(lifecycle_status: :active, group_admin: source_author, name: "Unjoined readers", group_type: :public_group)
@@ -154,7 +156,8 @@ RSpec.describe "Group sharing and quotes", type: :request do
     get new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1)
 
     page = Nokogiri::HTML(response.body)
-    choices = page.css('select[name="jjaek[group_id]"] option').map { |option| option["value"] }
+    radios = page.css('input[type="radio"][name="jjaek[group_id]"]')
+    choices = radios.map { |radio| radio["value"] }
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("PUBLIC_BOOK_SOURCE", book.title)
     expect(response.body).to include(I18n.t("jjaeks.form.destination_group"))
@@ -165,8 +168,16 @@ RSpec.describe "Group sharing and quotes", type: :request do
     expect(page.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
     expect(page.css("#jjaek-composer [data-book-selection-open], #jjaek-composer input[name='selected_books[]']")).to be_empty
     expect(response.body).not_to include('name="jjaek[visibility]"')
-    expect(choices).to include(available.id.to_s)
+    expect(choices).to include(available.id.to_s, approval.id.to_s, private_group.id.to_s)
     expect(choices).not_to include(already_used.id.to_s, suspended.id.to_s, unjoined.id.to_s)
+    expect(radios.select { |radio| radio["checked"] }).to be_empty
+    [ available, approval, private_group ].each do |group|
+      radio = radios.find { |input| input["value"] == group.id.to_s }
+      expect(radio["required"]).to be_present
+      label = radio.ancestors("label").first
+      expect(label.text).to include(group.name, I18n.t("groups.types.#{group.group_type}"),
+        I18n.t("jjaeks.form.group_sharing.#{group.public_group? ? 'public' : 'members'}"))
+    end
 
     expect {
       post jjaeks_path(quoted_jjaek_id: source.id), params: {
@@ -174,6 +185,16 @@ RSpec.describe "Group sharing and quotes", type: :request do
       }
     }.not_to change(Jjaek, :count)
     expect(response).to redirect_to(root_path)
+
+    expect {
+      post jjaeks_path(quoted_jjaek_id: source.id, share_to_group: 1), params: {
+        jjaek: { group_id: available.id, quoted_jjaek_id: source.id, content: "x" * 201 }
+      }
+    }.not_to change(Jjaek, :count)
+    expect(response).to have_http_status(:unprocessable_content)
+    failed_form = Nokogiri::HTML(response.body).at_css("#jjaek-publish-form")
+    expect(failed_form.at_css("input[type='radio'][name='jjaek[group_id]'][checked]")["value"]).to eq(available.id.to_s)
+    expect(failed_form.at_css("textarea").text.strip).to eq("x" * 201)
 
     expect {
       post jjaeks_path(quoted_jjaek_id: source.id), params: {
@@ -263,8 +284,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
     get jjaek_path(quote)
     card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{quote.id}")
     expect(card.text).to include(
-      "#{group.name}에서 #{source_author.name}님의",
-      "을 다시짹"
+      "#{source_author.name}님의 짹을 동아리 #{group.name}에 다시짹"
     )
 
     expect {

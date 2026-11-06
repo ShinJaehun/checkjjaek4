@@ -26,7 +26,7 @@
           · <%= t("jjaeks.meta.edited_at", time: l(jjaek.content_edited_at, format: :short)) %>
         <% end %>
         <% if jjaek.group_id.blank? %>
-          · <%= jjaek.profile_conversation? ? t("jjaeks.labels.profile_conversation") : t("jjaeks.visibility.#{jjaek.visibility}") %>
+          · <%= jjaek_visibility_label(jjaek) %>
         <% end %>
       </div>
     </div>

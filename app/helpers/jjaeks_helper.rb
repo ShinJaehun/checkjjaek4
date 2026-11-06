@@ -32,6 +32,21 @@ module JjaeksHelper
     "ui-choice ui-choice-card"
   end
 
+  def jjaek_visibility_label(jjaek)
+    return t("jjaeks.visibility.#{jjaek.visibility}") unless jjaek.profile_conversation?
+
+    counterpart = if current_user&.id == jjaek.user_id
+      jjaek.target_user
+    elsif current_user&.id == jjaek.target_user_id
+      jjaek.user
+    end
+    if counterpart
+      t("jjaeks.labels.profile_conversation", name: counterpart.name)
+    else
+      t("jjaeks.labels.profile_conversation_participants")
+    end
+  end
+
   def jjaek_composer_placeholder(jjaek, book_context: nil, profile_user: nil)
     if book_context.present?
       t("jjaeks.form.placeholders.book")
