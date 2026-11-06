@@ -110,7 +110,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     expect(page.text).not_to include("Content", "is too long")
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
-    expect(page.at_css("form[action='#{jjaeks_path}']")).to be_present
+    expect(page.at_css("form[action='#{group_jjaeks_path(group)}']")).to be_present
   end
 
   it "does not create a Jjaek while the group is pending or inactive" do
@@ -142,7 +142,7 @@ RSpec.describe "Group Jjaeks", type: :request do
       post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "Group book jjaek" } }
     }.to change(group.jjaeks, :count).by(1)
 
-    expect(group.jjaeks.last.book).to eq(book)
+    expect(group.jjaeks.last.attached_books).to eq([book])
   end
 
   it "does not let an activity-suspended member create either kind of group jjaek" do
@@ -228,16 +228,17 @@ RSpec.describe "Group Jjaeks", type: :request do
     end
   end
 
-  it "does not create a group book jjaek for a book outside the member's shelf" do
+  it "attaches an unshelved book to a group jjaek without registering it in the shelf" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
     sign_in member
 
     expect {
       post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "No shelf" } }
-    }.not_to change(Jjaek, :count)
+    }.to change(group.jjaeks, :count).by(1).and change(BookshelfEntry, :count).by(0).and change(BookActivity, :count).by(0)
 
-    expect(response).to redirect_to(root_path)
+    expect(response).to redirect_to(group_path(group))
+    expect(group.jjaeks.last.attached_books).to eq([book])
   end
 
   it "does not let a non-member create either kind of group jjaek" do
@@ -626,15 +627,14 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     expect(response).to have_http_status(:ok)
     page = Nokogiri::HTML(response.body)
-    form = page.at_css("form[action='#{jjaeks_path}']")
-    expect(page.at_css("#book-jjaek-form")["aria-label"]).to eq("책짹 작성")
-    expect(page.text).to include(I18n.t("books.show.group_destination", name: group.name))
-    expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_group_book"))
-    expect(form.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("group")
-    expect(form.at_css("select[name='jjaek[group_id]'] option[selected]")["value"]).to eq(group.id.to_s)
-    expect(form.at_css("input[name='jjaek[visibility]'][disabled]")).to be_present
-    expect(form.at_css("[data-book-posting-target='personal'][hidden]")).to be_present
-    expect(page.at_css("[data-controller='book-posting'] a[href='#{group_path(group)}']")).to be_nil
+    composer = page.at_css("#book-jjaek-form #jjaek-composer")
+    form = composer.at_css("#jjaek-publish-form")
+    expect(form["action"]).to eq(group_jjaeks_path(group))
+    expect(composer["data-group-id"]).to eq(group.id.to_s)
+    expect(composer.text).to include(I18n.t("jjaeks.form.selected_group", group_name: group.name))
+    expect(composer.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
+    expect(composer.at_css("input[name='selected_books[]'][value='#{book.id}']")["form"]).to eq(form["id"])
+    expect(composer.css("[name='jjaek[visibility]'], [name='jjaek[group_id]'], [name='book_post_destination']")).to be_empty
   end
 
   it "keeps group context while adding a searched book to the shelf" do
@@ -644,14 +644,24 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     get book_path(book, group_id: group.id)
 
-    expect(response.body).not_to include(group_jjaeks_path(group))
-    expect(response.body).to include(%(name="group_id"))
-    expect(response.body).to include(%(value="#{group.id}"))
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#jjaek-publish-form")["action"]).to eq(group_jjaeks_path(group))
+    expect(page.at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
+    shelf_form = page.at_css("#book-shelf-dialog form[action='#{bookshelf_entries_path}']")
+    expect(shelf_form.at_css("input[name='group_id']")["value"]).to eq(group.id.to_s)
+    expect(member.bookshelf_entries.exists?(book:)).to be(false)
 
-    post bookshelf_entries_path, params: { book_id: book.id, group_id: group.id }
+    expect {
+      post bookshelf_entries_path, params: { book_id: book.id, group_id: group.id }
+    }.to change(BookshelfEntry, :count).by(1).and change(Jjaek, :count).by(0)
 
     expect(response).to redirect_to(book_path(book, group_id: group.id))
     expect(member.bookshelf_entries.exists?(book: book)).to be(true)
+    follow_redirect!
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#jjaek-publish-form")["action"]).to eq(group_jjaeks_path(group))
+    expect(page.at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
+    expect(page.at_css("input[name='selected_books[]'][value='#{book.id}'][form='jjaek-publish-form']")).to be_present
   end
   it "separates the group's book list from the personal book list" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Context readers", group_type: :private_group)
@@ -689,10 +699,13 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to redirect_to(book_path(book, group_id: group.id))
     expect(entry.reload.bookshelf).to eq(target)
     follow_redirect!
-    expect(response.body).to include(I18n.t("books.show.group_destination", name: group.name))
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_present
-    expect(page.at_css("[data-book-posting-target='personal'][hidden]")).to be_present
+    composer = page.at_css("#jjaek-composer")
+    expect(composer.text).to include(I18n.t("jjaeks.form.selected_group", group_name: group.name))
+    expect(composer["data-group-id"]).to eq(group.id.to_s)
+    expect(composer.at_css("#jjaek-publish-form")["action"]).to eq(group_jjaeks_path(group))
+    expect(composer.css("[name='jjaek[visibility]'], [name='jjaek[group_id]']")).to be_empty
+    expect(composer.at_css("input[name='selected_books[]'][value='#{book.id}'][form='jjaek-publish-form']")).to be_present
   end
 
   it "keeps the group context on the Turbo search card after adding to the personal library" do

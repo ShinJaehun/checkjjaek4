@@ -1,27 +1,6 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
   <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-    <div class="mb-4">
-      <%= render "jjaeks/writing_types" %>
-    </div>
-    <%= form_with model: @jjaek, class: "space-y-4" do |form| %>
-      <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
-      <fieldset class="space-y-2">
-        <legend class="text-sm font-medium text-stone-700"><%= t("jjaeks.form.visibility") %></legend>
-        <div class="grid gap-2 sm:grid-cols-3">
-          <% Jjaek.visibilities.each_key do |visibility| %>
-            <label class="<%= jjaek_option_card_classes %>">
-              <%= form.radio_button :visibility, visibility, required: true, class: "sr-only" %>
-              <%= jjaek_option_icon(visibility) %>
-              <span><%= t("jjaeks.visibility.#{visibility}") %></span>
-            </label>
-          <% end %>
-        </div>
-      </fieldset>
-
-      <%= render "shared/content_field", form: form, label_key: "jjaeks.form.jjaek_content", rows: 4 %>
-
-      <%= form.submit t("jjaeks.actions.publish_short"), class: "ui-button ui-button-primary" %>
-    <% end %>
+    <%= render "jjaeks/composer", jjaek: @jjaek %>
   </section>
 
   <section class="mx-auto w-full max-w-3xl space-y-4">

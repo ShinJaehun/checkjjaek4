@@ -31,7 +31,7 @@ RSpec.describe "Homes", type: :request do
       expect(visibility_choices.select { |input| input["checked"] }.map { |input| input["value"] }).to eq([ "public_jjaek" ])
       expect(visibility_choices.all? { |input| input.parent.name == "label" && input.parent.at_css("svg") }).to be(true)
       expect(form.at_css("fieldset legend").text).to eq(I18n.t("jjaeks.form.visibility"))
-      expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_short"))
+      expect(main.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
       expect(main.at_css("#feed-items")).to be_present
     end
 

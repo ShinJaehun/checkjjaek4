@@ -112,7 +112,7 @@ RSpec.describe "Jjaeks", type: :request do
       }.to change(Jjaek, :count).by(1)
 
       created_jjaek = Jjaek.last
-      expect(created_jjaek.book).to eq(book)
+      expect(created_jjaek.attached_books).to eq([book])
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
@@ -158,7 +158,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(normal_bookshelf_ids).to contain_exactly(entry.bookshelf_id.to_s, target_bookshelf.id.to_s)
       expect(page.at_css('input[name="bookshelf_id"][checked]')["value"]).to eq(entry.bookshelf_id.to_s)
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(submitted_content)
-      expect(page.at_css('input[name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
+      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
       expect(page.text).to include(invalid_jjaek.errors.full_messages.to_sentence)
       expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
       expect(page.text).not_to include("Content", "is too long")
@@ -179,23 +179,16 @@ RSpec.describe "Jjaeks", type: :request do
       expect(page.text).to include("내용을 입력해 주세요.")
       expect(page.text).not_to include("Content", "can't be blank")
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
-      expect(page.at_css('input[name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
+      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
     end
 
-    it "does not create a book-linked jjaek without a shelf entry" do
+    it "creates an attached-book jjaek independently of shelf registration" do
       sign_in viewer
-
       expect {
-        post jjaeks_path, params: {
-          jjaek: {
-            book_id: book.id,
-            content: "NO_SHELF_DIRECT_BOOK_JJAEK",
-            visibility: :public_jjaek
-          }
-        }
-      }.not_to change(Jjaek, :count)
-
-      expect(response).to redirect_to(root_path)
+        post jjaeks_path, params: { selected_books: [book.id], jjaek: {content: "NO_SHELF_DIRECT_BOOK_JJAEK"} }
+      }.to change(Jjaek, :count).by(1)
+      expect(Jjaek.last.attached_books).to eq([book])
+      expect(viewer.bookshelf_entries).to be_empty
     end
 
     it "creates a requote from a visible original" do
@@ -748,7 +741,11 @@ RSpec.describe "Jjaeks", type: :request do
 
       get new_jjaek_path(quoted_jjaek_id: original.id)
 
-      expect(response.body).to include(I18n.t("jjaeks.actions.publish_requote"))
+      page = Nokogiri::HTML(response.body)
+      form = page.at_css("#jjaek-publish-form")
+      expect(form["action"]).to eq(jjaeks_path)
+      expect(form.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(original.id.to_s)
+      expect(page.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
     end
 
     it "does not show a requote entry after the viewer has already requoted the original" do
@@ -1057,6 +1054,20 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).not_to include(%(action="#{jjaek_comments_path(original)}"))
     end
 
+    it "does not restore a removed book attachment on a deleted book jjaek shell" do
+      expect(original.update_attached_books(books: [])).to be(true)
+      original.comments.create!(user: viewer, content: "PRESERVED_WITHOUT_BOOK")
+      original.destroy_or_tombstone!
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted"), "PRESERVED_WITHOUT_BOOK")
+      expect(response.body).not_to include(book.title)
+      expect(original.reload.attached_books).to be_empty
+    end
+
     it "shows a hidden deleted tombstone and preserved comments only to original-context readers" do
       admin = User.create!(name: "Admin", email: "hidden-deleted-request-admin@example.com", password: "password123!", global_admin: true)
       stranger = User.create!(name: "Stranger", email: "hidden-deleted-request-stranger@example.com", password: "password123!")
@@ -1269,9 +1280,10 @@ RSpec.describe "Jjaeks", type: :request do
       get new_jjaek_path, params: { quoted_jjaek_id: original.id }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('option selected="selected" value="book_friends"')
-      expect(response.body).to include('option value="private_jjaek"')
-      expect(response.body).not_to include('option value="public_jjaek"')
+      choices = Nokogiri::HTML(response.body).css("#jjaek-publish-form input[type='radio'][name='jjaek[visibility]']")
+      expect(choices.map { |choice| choice["value"] }).to eq(%w[book_friends private_jjaek])
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq(["book_friends"])
+      expect(choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
     end
 
     it "keeps public visibility available for a public original" do
@@ -1285,9 +1297,10 @@ RSpec.describe "Jjaeks", type: :request do
       get new_jjaek_path, params: { quoted_jjaek_id: public_original.id }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('option selected="selected" value="public_jjaek"')
-      expect(response.body).to include('option value="book_friends"')
-      expect(response.body).to include('option value="private_jjaek"')
+      choices = Nokogiri::HTML(response.body).css("#jjaek-publish-form input[type='radio'][name='jjaek[visibility]']")
+      expect(choices.map { |choice| choice["value"] }).to eq(Jjaek.visibilities.keys)
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq(["public_jjaek"])
+      expect(choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
     end
   end
 

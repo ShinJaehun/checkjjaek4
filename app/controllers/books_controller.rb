@@ -27,7 +27,7 @@ class BooksController < ApplicationController
     @group = find_group_context
     authorize @group, :create_jjaek? if @group.present?
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
-    prepare_book_write_context if @bookshelf_entry.present? && !feed_page_request?
+    prepare_book_write_context unless feed_page_request?
     prepare_book_show_read_context(feed_only: feed_page_request?)
     if feed_page_request?
       render_feed_page(context: :book, next_url: @feed_next_url)
@@ -37,9 +37,9 @@ class BooksController < ApplicationController
   private
 
   def prepare_book_write_context
-    authorize @bookshelf_entry
+    authorize @bookshelf_entry if @bookshelf_entry
     @quoted_jjaek = find_quoted_jjaek
-    @jjaek = Jjaek.new(user: current_user, book: @book, group: @group, quoted_jjaek: @quoted_jjaek)
+    @jjaek = Jjaek.new(user: current_user, book: (@book unless @quoted_jjaek), group: @group, quoted_jjaek: @quoted_jjaek)
     authorize @jjaek
     @sticker_definitions = StickerDefinition.alphabetical
   end

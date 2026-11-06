@@ -49,8 +49,15 @@ class BookshelfEntriesController < ApplicationController
       redirect_to book_path(@book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to])), notice: t("bookshelf_entries.notices.created")
     end
   rescue ActiveRecord::RecordInvalid => error
+    return render_attachment_shelf_error(error.record.errors.full_messages.to_sentence) if attachment_shelf_source?
     redirect_back fallback_location: book_search_path(group_id: group_context_id),
                   alert: error.record.errors.full_messages.to_sentence.presence || t("book_search.errors.invalid_result")
+  rescue ActiveRecord::RecordNotFound
+    raise unless attachment_shelf_source?
+    render_attachment_shelf_error(t("book_search.errors.invalid_result"), status: :not_found)
+  rescue Pundit::NotAuthorizedError
+    raise unless attachment_shelf_source?
+    render_attachment_shelf_error(t("book_search.errors.invalid_result"), status: :forbidden)
   rescue Book::IdentityConflict
     redirect_to_search_error("book_search.errors.identity_conflict")
   rescue ActiveRecord::RecordNotUnique => error
@@ -207,10 +214,12 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def redirect_to_search_error(key)
+    return render_attachment_shelf_error(t(key)) if attachment_shelf_source?
     redirect_to book_search_path(group_id: group_context_id), alert: t(key), status: :see_other
   end
 
   def redirect_to_invalid_search_result
+    return render_attachment_shelf_error(t("book_search.errors.invalid_result")) if attachment_shelf_source?
     redirect_to book_search_path(group_id: group_context_id),
                 alert: t("book_search.errors.invalid_result"), status: :see_other
   end
@@ -225,8 +234,17 @@ class BookshelfEntriesController < ApplicationController
     current_user.bookshelf_entries.find(params[:before_entry_id])
   end
 
+  def attachment_shelf_source?
+    params[:bookshelf_entry_source] == "jjaek_attachment" && request.format.turbo_stream?
+  end
+
+  def render_attachment_shelf_error(message, status: :unprocessable_content)
+    flash.now[:alert] = message
+    render turbo_stream: turbo_stream.update("flash-messages", partial: "shared/flash"), status:
+  end
+
   def book_search_result_source?
-    params[:bookshelf_entry_source] == "book_search"
+    params[:bookshelf_entry_source].in?(%w[book_search jjaek_attachment])
   end
 
   def prepare_book_search_result_card

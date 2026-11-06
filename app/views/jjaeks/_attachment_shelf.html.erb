@@ -1,0 +1,9 @@
+<div id="attachment_shelf_<%= book_search_result_dom_id(book) %>">
+  <% if book[:bookshelf_entry] %>
+    <button type="button" disabled class="ui-button ui-button-secondary"><%= t("book_search.actions.in_bookshelf", bookshelf_name: book[:bookshelf_entry].bookshelf.name) %></button>
+  <% else %>
+    <%= render "book_searches/shelf_selection_modal", book: book, bookshelves: bookshelves,
+               return_path: validated_jjaek_return_path(params[:search_origin]) || root_path,
+               source: "jjaek_attachment", dom_prefix: "attachment_", opener_label: t("jjaek_books.add_to_shelf") %>
+  <% end %>
+</div>

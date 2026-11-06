@@ -1019,7 +1019,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(form.at_css("input[name='bookshelf_entry[sticker_definition_ids][]'][value='#{sticker.id}'][checked]")).to be_present
     expect(form.at_css("[role='alert']").text).to include("recording failed")
     expect(form.at_css("input[name='quote_id']")["value"]).to eq(original.id.to_s)
-    expect(page.at_css("#book-jjaek-form").ancestors("dialog")).to be_empty
+    expect(original.reload.content).to eq("READING_FAILURE_QUOTE")
   end
 
   it "preserves submitted status and sticker clearing when activity recording fails" do

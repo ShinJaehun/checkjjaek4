@@ -1,0 +1,11 @@
+<%= hidden_field_tag "selected_books[]", "", id: nil, form: "jjaek-publish-form" %>
+<% books.zip(keys).each do |book, key| %>
+  <div data-book-key="<%= key %>" class="flex flex-wrap items-center gap-2 rounded-xl bg-stone-50 px-3 py-2">
+    <%= hidden_field_tag "selected_books[]", key, id: nil, form: "jjaek-publish-form" %>
+    <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :small, link: false %>
+    <span class="min-w-0 flex-1 truncate"><%= book.title %></span>
+    <button type="button" data-attachment-remove class="ui-button ui-button-secondary"><%= t("jjaek_books.remove") %></button>
+    <% result = attachment_shelf_result(book) %>
+    <%= render "jjaeks/attachment_shelf", book: result, bookshelves: current_user.bookshelves.default_first %>
+  </div>
+<% end %>

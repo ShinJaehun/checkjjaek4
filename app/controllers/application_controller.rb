@@ -96,7 +96,7 @@ class ApplicationController < ActionController::Base
 
   def prepare_recommendation_books_for(jjaeks)
     ActiveRecord::Associations::Preloader.new(
-      records: Array(jjaeks), associations: [ :recommended_books, { quoted_jjaek: :recommended_books } ]
+      records: Array(jjaeks), associations: [ :recommended_books, :attached_books, { quoted_jjaek: [ :recommended_books, :attached_books ] } ]
     ).call
   end
 

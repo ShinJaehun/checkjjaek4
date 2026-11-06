@@ -1,22 +1,27 @@
 <% show_quoted_source = local_assigns.fetch(:show_quoted_source, true) %>
-<% if jjaek.recommendation? && !jjaek.deleted? %>
-  <%= render "jjaeks/recommended_books", books: jjaek.recommended_books %>
+<% books = jjaek.attached_books.to_a %>
+<% if jjaek.deleted? %>
+  <% books = jjaek.requote? ? [] : books.select { |book| book.id == jjaek.book_id } %>
 <% end %>
-<% if jjaek.book.present? && !local_assigns.fetch(:hide_book_details, false) %>
-  <% book_url = book_path(jjaek.book, book_navigation_params) %>
+<% attached_book = books.first if books.one? %>
+<% if books.many? %>
+  <%= render "jjaeks/recommended_books", books: books %>
+<% end %>
+<% if attached_book.present? && !local_assigns.fetch(:hide_book_details, false) %>
+  <% book_url = book_path(attached_book, book_navigation_params) %>
   <div class="mt-4 flex flex-col items-start gap-4 sm:flex-row">
     <div class="shrink-0 self-start">
       <%= render "books/thumbnail",
-                 title: jjaek.book.title,
-                 thumbnail: jjaek.book.thumbnail,
+                 title: attached_book.title,
+                 thumbnail: attached_book.thumbnail,
                  url: book_url,
                  size: :medium %>
     </div>
 
     <div class="min-w-0 flex-1">
       <div>
-        <%= link_to jjaek.book.title, book_url, class: "text-base font-semibold leading-6 text-stone-900 hover:text-stone-700" %>
-        <div class="mt-1 text-xs leading-5 text-stone-500"><%= jjaek.book.authors_text.presence || "-" %></div>
+        <%= link_to attached_book.title, book_url, class: "text-base font-semibold leading-6 text-stone-900 hover:text-stone-700" %>
+        <div class="mt-1 text-xs leading-5 text-stone-500"><%= attached_book.authors_text.presence || "-" %></div>
       </div>
 
       <%= render "jjaeks/current_reading_state", jjaek: jjaek %>
@@ -39,7 +44,7 @@
     </div>
   </div>
 <% else %>
-  <% if jjaek.book.present? && !local_assigns.fetch(:book_friend_preview, false) %>
+  <% if attached_book.present? && !local_assigns.fetch(:book_friend_preview, false) %>
     <%= render "jjaeks/current_reading_state", jjaek: jjaek %>
   <% end %>
 
@@ -49,7 +54,7 @@
     <% if show_quoted_source && policy(jjaek).view_quoted_source? %>
       <div class="mt-4">
         <%= render "jjaeks/quoted_jjaek", quoted_jjaek: jjaek.quoted_jjaek,
-                   hide_book_details: local_assigns.fetch(:hide_book_details, false) && jjaek.quoted_jjaek.book_id == jjaek.book_id %>
+                   hide_book_details: local_assigns.fetch(:hide_book_details, false) && books.one? && jjaek.quoted_jjaek.attached_books.map(&:id) == books.map(&:id) %>
       </div>
     <% elsif show_quoted_source && jjaek.quoted_source_deleted? %>
       <div class="mt-4">

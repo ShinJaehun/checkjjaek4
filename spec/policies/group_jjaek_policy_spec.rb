@@ -94,17 +94,26 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     expect(described_class.new(group_admin, pending_jjaek).show?).to be(false)
   end
 
-  it "allows only active members with the book in their shelf to create" do
+  it "allows attachments without shelf registration only when Group writing is allowed" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
-    group.group_memberships.create!(user: member, status: :active)
+    membership = group.group_memberships.create!(user: member, status: :active)
     group.group_memberships.create!(user: pending_user, status: :pending)
-    member.bookshelf_entries.create!(book: book)
 
     expect(described_class.new(member, member.jjaeks.build(group:, content: "Group jjaek")).create?).to be(true)
     expect(described_class.new(member, member.jjaeks.build(group:, book:, content: "Group book jjaek")).create?).to be(true)
     expect(described_class.new(pending_user, pending_user.jjaeks.build(group:, content: "Pending")).create?).to be(false)
     expect(described_class.new(non_member, non_member.jjaeks.build(group:, content: "Non-member")).create?).to be(false)
-    expect(described_class.new(group_admin, group_admin.jjaeks.build(group:, book:, content: "No shelf entry")).create?).to be(false)
+    expect(described_class.new(group_admin, group_admin.jjaeks.build(group:, book:, content: "No shelf entry")).create?).to be(true)
+
+    [member, group_admin, pending_user, non_member].each do |writer|
+      jjaek = writer.jjaeks.build(group:, content: "Attached book")
+      jjaek.jjaek_recommendations.build(book:, position: 0)
+      expect(writer.bookshelf_entries.exists?(book:)).to be(false)
+      expect(described_class.new(writer, jjaek).create?).to eq([member, group_admin].include?(writer))
+    end
+
+    membership.update!(moderation_status: :activity_suspended)
+    expect(described_class.new(member, member.jjaeks.build(group:, book:, content: "Suspended")).create?).to be(false)
   end
 
   it "allows an active author to update and destroy a group jjaek" do

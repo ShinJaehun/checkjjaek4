@@ -289,8 +289,7 @@ class JjaekPolicy < ApplicationPolicy
     def resolve
       return scope.none unless user.present?
 
-      records = super.where(group_id: nil, quoted_jjaek_id: nil)
-      records.public_jjaek.or(records.where(book_id: user.bookshelf_entries.select(:book_id)))
+      super.where(group_id: nil, quoted_jjaek_id: nil)
     end
   end
 
@@ -431,10 +430,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def book_context_allowed?
-    return record.book_id.blank? && !record.requote? && record.target_user_id.blank? if record.recommendation?
-    return true if record.book_id.blank?
-
-    user.bookshelf_entries.exists?(book_id: record.book_id)
+    !record.requote? || (record.book_id.blank? && record.jjaek_recommendations.empty?)
   end
 
   def group_context_allowed?

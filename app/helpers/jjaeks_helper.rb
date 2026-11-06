@@ -1,4 +1,13 @@
 module JjaeksHelper
+  def attachment_shelf_result(book)
+    result = { title: book.title, authors_text: book.authors_text, translators_text: book.translators_text,
+      publisher: book.publisher, published_on: book.published_on, thumbnail: book.thumbnail,
+      isbn: book.isbn, contents_excerpt: book.description, url: book.external_url,
+      existing_book_id: book.id, bookshelf_entry: (current_user.bookshelf_entries.includes(:bookshelf).find_by(book_id: book.id) if book.persisted?) }
+    result[:search_result_token] = BookSearches::ResultToken.issue(result, user: current_user) unless book.persisted?
+    result
+  end
+
   def jjaek_option_icon(key)
     paths = {
       "personal" => "M4 3h7a3 3 0 0 1 3 3v15a5 5 0 0 0-5-2H4V3Zm10 3h6v13h-1a5 5 0 0 0-5 2",
@@ -360,8 +369,6 @@ module JjaeksHelper
       return "jjaeks.contexts.group_requote_unavailable_html" unless policy(jjaek).view_quoted_source?
 
       jjaek.quoted_jjaek.group_id.blank? ? "jjaeks.contexts.group_share_html" : "jjaeks.contexts.group_quote_html"
-    elsif jjaek.group_id.present? && jjaek.recommendation?
-      "jjaeks.contexts.group_recommendation_html"
     elsif jjaek.group_id.present? && jjaek.book_id.present?
       "jjaeks.contexts.group_book_html"
     elsif jjaek.group_id.present?
@@ -374,8 +381,6 @@ module JjaeksHelper
       "jjaeks.contexts.group_requote_html"
     elsif jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
       "jjaeks.contexts.requote_html"
-    elsif jjaek.recommendation?
-      "jjaeks.contexts.recommendation_html"
     elsif jjaek.book.present?
       "jjaeks.contexts.book_html"
     elsif profile_context_label?(jjaek)

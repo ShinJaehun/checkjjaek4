@@ -82,7 +82,13 @@ RSpec.describe "Book navigation", type: :request do
     sign_in reader
     get book_path(book, group_id: group.id, return_to: group_path(group))
     expect(back_link["href"]).to eq(group_path(group))
-    expect(Nokogiri::HTML(response.body).at_css("select[name='jjaek[group_id]'] option[selected]")["value"]).to eq(group.id.to_s)
+    composer = Nokogiri::HTML(response.body).at_css("#jjaek-composer")
+    form = composer.at_css("#jjaek-publish-form")
+    expect(form["action"]).to eq(group_jjaeks_path(group))
+    expect(form.at_css("input[name='return_to']")["value"]).to eq(group_path(group))
+    expect(composer["data-group-id"]).to eq(group.id.to_s)
+    expect(composer.css("[name='jjaek[visibility]'], [name='jjaek[group_id]']")).to be_empty
+    expect(composer.at_css("input[name='selected_books[]'][value='#{book.id}'][form='jjaek-publish-form']")).to be_present
   end
 
   it "rejects external, inaccessible shelf, and inaccessible group search origins" do

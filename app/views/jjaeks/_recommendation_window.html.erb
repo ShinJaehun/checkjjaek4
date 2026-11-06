@@ -1,17 +1,12 @@
-<%= tag.section id: "recommendation-window", hidden: !@recommendation_context,
-                role: "dialog", aria: { modal: false, labelledby: "recommendation-window-title" },
-                class: "fixed inset-x-3 bottom-3 z-40 max-h-[48dvh] space-y-4 overflow-y-auto overscroll-contain rounded-3xl border border-stone-300 bg-white p-4 shadow-2xl sm:inset-x-auto sm:right-6 sm:bottom-auto sm:top-24 sm:max-h-[calc(100dvh-7rem)] sm:w-96 sm:p-5",
-                data: { turbo_permanent: true, controller: "recommendation-composer",
-                        recommendation_composer_selection_title_value: t("recommendations.select_title"),
-                        recommendation_composer_writing_title_value: t("recommendations.compose_title"),
-                        recommendation_composer_editing_title_value: t("recommendations.edit_title"),
-                        recommendation_composer_max_books_value: Jjaek::MAX_RECOMMENDATION_BOOKS,
-                        action: "turbo:before-visit@document->recommendation-composer#beforeVisit turbo:before-cache@document->recommendation-composer#beforeCache turbo:before-render@document->recommendation-composer#beforeRender click@document->recommendation-composer#navigate:capture submit@document->recommendation-composer#prepare:capture turbo:submit-end@document->recommendation-composer#submitted turbo:before-fetch-request@document->recommendation-composer#prepareRequest turbo:before-fetch-response@document->recommendation-composer#guardResponse:capture turbo:load@document->recommendation-composer#load turbo:frame-load@document->recommendation-composer#loaded turbo:before-stream-render@document->recommendation-composer#guardStream turbo:before-frame-render@document->recommendation-composer#guardFrame" } do %>
+<%= tag.section id: "recommendation-window", hidden: true, role: "dialog",
+    aria: { modal: false, labelledby: "recommendation-window-title" },
+    class: "fixed inset-x-3 bottom-3 z-40 max-h-[48dvh] space-y-4 overflow-y-auto overscroll-contain rounded-3xl border border-stone-300 bg-white p-4 shadow-2xl sm:inset-x-auto sm:right-6 sm:bottom-auto sm:top-24 sm:max-h-[calc(100dvh-7rem)] sm:w-96 sm:p-5",
+    data: { turbo_permanent: true, controller: "recommendation-composer",
+      recommendation_composer_max_books_value: Jjaek::MAX_ATTACHED_BOOKS,
+      action: "click@document->recommendation-composer#navigate:capture submit@document->recommendation-composer#prepare:capture turbo:before-visit@document->recommendation-composer#beforeVisit turbo:before-render@document->recommendation-composer#beforeRender turbo:load@document->recommendation-composer#load turbo:frame-load@document->recommendation-composer#loaded turbo:before-fetch-request@document->recommendation-composer#prepareRequest turbo:before-fetch-response@document->recommendation-composer#guardResponse:capture turbo:before-stream-render@document->recommendation-composer#guardStream turbo:before-frame-render@document->recommendation-composer#guardFrame turbo:submit-end@document->recommendation-composer#submitted" } do %>
   <div class="flex items-start justify-between gap-3">
-    <h2 id="recommendation-window-title" data-recommendation-composer-target="title" class="text-lg font-semibold"><%= t(@editing_recommendation ? "recommendations.edit_title" : (@recommendation_step == "writing" ? "recommendations.compose_title" : "recommendations.select_title")) %></h2>
-    <button type="button" data-action="recommendation-composer#cancel" class="ui-button ui-button-secondary shrink-0"><%= t("book_search.actions.close") %></button>
+    <h2 id="recommendation-window-title" class="text-lg font-semibold"><%= t("jjaek_books.selection_title") %></h2>
+    <button type="button" data-action="recommendation-composer#finish" class="ui-button ui-button-secondary"><%= t("book_search.actions.close") %></button>
   </div>
-  <%= turbo_frame_tag "recommendation_composer", class: "block", data: { recommendation_composer_target: "frame" } do %>
-    <%= render "jjaeks/recommendation_panel" if @recommendation_context %>
-  <% end %>
+  <%= turbo_frame_tag "recommendation_composer", data: { recommendation_composer_target: "frame" } %>
 <% end %>

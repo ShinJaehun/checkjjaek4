@@ -1,4 +1,4 @@
-<header class="border-b border-stone-200 bg-white/80 backdrop-blur" data-controller="mobile-navigation" data-recommendation-navigation-end>
+<header class="border-b border-stone-200 bg-white/80 backdrop-blur" data-controller="mobile-navigation">
   <% if user_signed_in? %>
     <%= turbo_stream_from current_user, :notifications %>
   <% end %>

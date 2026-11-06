@@ -54,28 +54,43 @@ RSpec.describe "Standalone book search", type: :request do
     expect(Nokogiri::HTML(response.body).at_css("a[data-back-link]")["href"]).to eq(origin)
   end
 
-  it "offers a separate club search dialog with its posting destination and validated origin" do
+  it "uses the shared attachment picker with the club destination and validated origin" do
     get group_path(group)
     page = Nokogiri::HTML(response.body)
-    expect(page.css("#group-book-search-dialog").size).to eq(1)
-    dialog = page.at_css("#group-book-search-dialog")
-    expect(dialog["open"]).to be_nil
-    expect(dialog.at_css("h2").text).to eq(I18n.t("book_search.title"))
-    expect(dialog.text).to include(I18n.t("book_search.modal.group_destination", group_name: group.name))
-    form = dialog.at_css("form")
-    expect(form["action"]).to eq(book_search_path)
-    expect(form["method"]).to eq("get")
-    expect(form.at_css("input[name='query']")["id"]).to eq("group-book-search-query")
-    expect(form.at_css("input[name='query']")["autofocus"]).to be_present
-    expect(form.at_css("input[name='group_id']")["value"]).to eq(group.id.to_s)
-    expect(form.at_css("input[name='search_origin']")["value"]).to eq(group_path(group))
+    composer = page.at_css("#jjaek-composer")
+    expect(composer["data-group-id"]).to eq(group.id.to_s)
+    expect(composer["data-selection-url"]).to eq(jjaek_books_path)
+    expect(composer.at_css("#jjaek-publish-form")["action"]).to eq(group_jjaeks_path(group))
+    expect(composer.at_css("button[data-book-selection-open]")["aria-controls"]).to eq("recommendation-window")
+    expect(page.css("#group-book-search-dialog")).to be_empty
+    window = page.at_css("#recommendation-window")
+    expect(window["hidden"]).to be_present
+    expect(window["data-recommendation-composer-max-books-value"]).to eq("5")
     expect(page.at_css("#global-book-search-dialog input[name='group_id']")).to be_nil
     expect(page.at_css("#global-book-search-dialog").text).not_to include(
       I18n.t("book_search.modal.group_destination", group_name: group.name)
     )
 
-    get form["action"], params: { group_id: group.id, search_origin: group_path(group) }
-    expect(Nokogiri::HTML(response.body).at_css("a[data-back-link]")["href"]).to eq(group_path(group))
+    get jjaek_books_path, params: { group_id: group.id, search_origin: group_path(group) }
+    expect(response).to have_http_status(:ok)
+    panel = Nokogiri::HTML(response.body)
+    form = panel.at_css("form[data-recommendation-selection-form='search']")
+    expect(form["action"]).to eq(book_search_path)
+    expect(form["method"]).to eq("get")
+    expect(form["data-turbo-frame"]).to eq("_top")
+    expect(form.at_css("input[name='query']")).to be_present
+    expect(form.at_css("input[name='attachment']")["value"]).to eq("1")
+    expect(form.at_css("input[name='group_id']")["value"]).to eq(group.id.to_s)
+    expect(form.at_css("input[name='search_origin']")["value"]).to eq(group_path(group))
+    expect(panel.css("textarea[name='jjaek[content]'], article")).to be_empty
+
+    get form["action"], params: { attachment: "1", group_id: group.id, search_origin: group_path(group) }
+    expect(response).to have_http_status(:ok)
+    results = Nokogiri::HTML(response.body)
+    expect(results.at_css("a[data-back-link]")["href"]).to eq(group_path(group))
+    expect(results.at_css("#recommendation-search-results")).to be_present
+    expect(results.at_css("#jjaek-composer[data-turbo-permanent]")).to be_present
+    expect(results.at_css("main form[action='#{book_search_path}']")).to be_nil
   end
 
   it "uses the club origin only for returning when a global search selects a shelved book" do
@@ -93,8 +108,8 @@ RSpec.describe "Standalone book search", type: :request do
     get link["href"]
     form = Nokogiri::HTML(response.body).at_css("#book-jjaek-form form")
     expect(form["action"]).to eq(jjaeks_path)
-    expect(form.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("personal")
-    expect(form.at_css("select[name='jjaek[group_id]']")["disabled"]).to be_present
+    expect(Nokogiri::HTML(response.body).at_css("input[name='selected_books[]'][value='#{book.id}'][form='jjaek-publish-form']")).to be_present
+    expect(form.at_css("select[name='jjaek[group_id]']")).to be_nil
   end
 
   it "shows the search form without requesting results when the query is absent" do

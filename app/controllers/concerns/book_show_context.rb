@@ -8,7 +8,7 @@ module BookShowContext
     recommended_jjaek_ids = @book.jjaek_recommendations.select(:jjaek_id)
     book_jjaeks = Jjaek.where(book: @book).or(Jjaek.where(id: recommended_jjaek_ids))
       .includes(:book, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })
-    @jjaeks = if @group.present? && @bookshelf_entry.present?
+    @jjaeks = if @group.present?
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::GroupContentScope).where(group: @group)
     else
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::BookScope)
@@ -29,18 +29,7 @@ module BookShowContext
 
   def prepare_book_show_form_context
     @bookshelves = current_user.bookshelves.default_first
-    @can_write_book_jjaek = @bookshelf_entry&.persisted? && @jjaek.present? && policy(@jjaek).create?
-    return unless @bookshelf_entry.present?
-
-    @book_post_groups = policy_scope(Group, policy_scope_class: GroupPolicy::CreateJjaekScope)
-      .order(:name, :id).select { |group| policy(group).create_jjaek? }
-    @select_book_post_destination = @quoted_jjaek.blank? && @book_post_groups.any?
-    @group_book_post = @jjaek&.group_id.present? && (@quoted_jjaek.present? || @select_book_post_destination)
-    @book_post_form_path = if @group_book_post && !@select_book_post_destination
-      group_jjaeks_path(@jjaek.group)
-    else
-      jjaeks_path
-    end
+    @can_write_book_jjaek = @jjaek.present? && policy(@jjaek).create?
   end
 
   def prepare_book_friend_activities

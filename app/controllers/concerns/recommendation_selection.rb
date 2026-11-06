@@ -2,33 +2,49 @@ module RecommendationSelection
   extend ActiveSupport::Concern
 
   included do
-    before_action :echo_recommendation_revision
+    before_action :echo_selection_revision
   end
 
   private
 
-  def echo_recommendation_revision
+  def echo_selection_revision
     revision = request.headers["X-Recommendation-Revision"]
-    if revision.is_a?(String) && revision.match?(/\A[0-9a-f-]{36}\z/)
-      response.set_header("X-Recommendation-Revision", revision)
-    end
+    response.set_header("X-Recommendation-Revision", revision) if revision.is_a?(String) && revision.match?(/\A[0-9a-f-]{36}\z/)
   end
 
-  def prepare_editing_recommendation
-    @editing_recommendation = Jjaek.find(params[:editing_jjaek_id])
-    authorize @editing_recommendation, :update?
-    raise ActiveRecord::RecordNotFound unless @editing_recommendation.recommendation?
-
-    @jjaek = @editing_recommendation
-    @group = @jjaek.group
-    @recommendation_step = "writing"
+  def prepare_book_selection_context
+    %i[editing_jjaek_id group_id target_user_id].each do |key|
+      next if params[key].blank?
+      raise Pundit::NotAuthorizedError unless params[key].is_a?(String) && params[key].match?(/\A[1-9]\d*\z/)
+    end
+    if params[:editing_jjaek_id].present?
+      @jjaek = Jjaek.find(params[:editing_jjaek_id])
+      authorize @jjaek, :update?
+      raise Pundit::NotAuthorizedError if @jjaek.requote?
+      @editing_recommendation = @jjaek
+      @group = @jjaek.group
+    else
+      @group = policy_scope(Group).find(params[:group_id]) if params[:group_id].present?
+      target = User.find(params[:target_user_id]) if params[:target_user_id].present?
+      raise Pundit::NotAuthorizedError if @group && target
+      @jjaek = Jjaek.new(user: current_user, group: @group, target_user: target)
+      authorize @jjaek, :create?
+    end
+    @selection_origin = if @jjaek.persisted?
+      edit_jjaek_path(@jjaek, return_to: view_context.validated_jjaek_return_path(params[:return_to]))
+    else
+      origin = view_context.validated_jjaek_return_path(params[:search_origin])
+      origin = nil if origin && URI.parse(origin).path == book_search_path
+      origin || (@group ? group_path(@group) : (@jjaek.target_user ? user_path(@jjaek.target_user) : root_path))
+    end
+    response.headers["Cache-Control"] = "no-store"
   end
 
   def recommendation_context?
     params[:recommendation] == "1"
   end
 
-  def prepare_recommendation_selection(redirect_on_error: true, enforce_limit: true, preserve_on_error: false)
+  def prepare_recommendation_selection(preserve_on_error: false)
     @selected_books = []
     @selected_book_keys = []
     raw_keys = params.fetch(:selected_books, [])
@@ -40,8 +56,8 @@ module RecommendationSelection
                  .permit(selected_books: [])
                  .fetch(:selected_books, [])
                  .map(&:to_s)
-                 .reject(&:blank?)
-                 .uniq
+                 .reject(&:empty?)
+    raise Book::IdentityConflict if keys.uniq.size != keys.size
     books = Book.where(id: keys.grep(/\A[1-9]\d*\z/)).index_by { |book| book.id.to_s }
     keys.each do |key|
       book = if key.match?(/\A[1-9]\d*\z/)
@@ -56,17 +72,10 @@ module RecommendationSelection
         raise Book::IdentityConflict
       end
       validate_recommendation_book!(book)
-      next if recommendation_book_selected?(book)
+      raise Book::IdentityConflict if recommendation_book_selected?(book)
 
       @selected_books << book
       @selected_book_keys << key
-    end
-    if enforce_limit && !enforce_recommendation_limit
-      if redirect_on_error
-        flash.keep(:alert)
-        redirect_to book_search_path(view_context.recommendation_search_params(query: params[:query], page: params[:page]))
-      end
-      return false
     end
     true
   rescue Book::IdentityConflict, KeyError, ActiveRecord::RecordNotFound
@@ -74,28 +83,7 @@ module RecommendationSelection
       @selected_books = []
       @selected_book_keys = []
     end
-    if redirect_on_error
-      flash[:recommendation_selection_reset] = true
-      options = { recommendation: 1, group_id: @group&.id, query: params[:query], page: params[:page] }.compact
-      if @editing_recommendation
-        options.merge!(editing_jjaek_id: @editing_recommendation.id, selected_books: [ "" ],
-          return_to: view_context.validated_jjaek_return_path(params[:return_to]))
-      end
-      options[:search_origin] = view_context.recommendation_origin_path if params[:search_origin].present?
-      redirect_to book_search_path(options),
-                  alert: t("recommendations.invalid_selection")
-    else
-      flash.now[:alert] = t("recommendations.invalid_selection")
-    end
-    false
-  end
-
-  def enforce_recommendation_limit
-    return true if @selected_books.size <= Jjaek::MAX_RECOMMENDATION_BOOKS
-
-    @selected_books = @selected_books.first(Jjaek::MAX_RECOMMENDATION_BOOKS)
-    @selected_book_keys = @selected_book_keys.first(Jjaek::MAX_RECOMMENDATION_BOOKS)
-    flash.now[:alert] = t("recommendations.limit_reached", count: Jjaek::MAX_RECOMMENDATION_BOOKS)
+    flash.now[:alert] = t("recommendations.invalid_selection")
     false
   end
 

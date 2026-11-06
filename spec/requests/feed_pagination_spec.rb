@@ -257,9 +257,11 @@ RSpec.describe "Feed pagination", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.media_type).to eq("text/html")
     expect(page_document.at_css("html body header")).to be_present
-    expect(page_document.at_css("form[action='#{jjaeks_path}'] textarea[name='jjaek[content]']")).to be_present
+    expect(page_document.at_css("form[action='#{group_jjaeks_path(group)}'] textarea[name='jjaek[content]']")).to be_present
     expect(page_document.css("turbo-stream")).to be_empty
-    expect(page_document.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("group")
+    expect(page_document.at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
+    expect(page_document.css("#jjaek-composer [name='jjaek[visibility]'], #jjaek-composer [name='jjaek[group_id]']")).to be_empty
+    expect(page_document.at_css("input[name='selected_books[]'][value='#{book.id}'][form='jjaek-publish-form']")).to be_present
   end
 
   %i[group_activity group book group_book].each do |location|

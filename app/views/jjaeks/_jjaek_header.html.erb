@@ -45,7 +45,6 @@
     <div class="flex max-w-full flex-wrap items-center justify-end gap-2 text-xs text-stone-500">
       <% if policy(jjaek).update? %>
         <%= link_to t("jjaeks.actions.edit"), edit_jjaek_path(jjaek, jjaek_navigation_params),
-                    data: { recommendation_edit_open: (true if jjaek.recommendation?) },
                     class: "shrink-0 whitespace-nowrap" %>
       <% end %>
       <%= button_to t("jjaeks.actions.delete"), jjaek_path(jjaek, jjaek_navigation_params), method: :delete, form: { class: "shrink-0", data: { turbo_confirm: t("jjaeks.confirmations.destroy") } }, class: "whitespace-nowrap text-red-600" if policy(jjaek).destroy? %>

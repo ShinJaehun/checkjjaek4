@@ -108,7 +108,7 @@ RSpec.describe "Books", type: :request do
       expect(header.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to match_array(stickers.map(&:key))
       expect(header.text).not_to include(I18n.t("books.show.library_context_title"))
       expect(response.body).to include('name="jjaek[content]"')
-      expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
+      expect(response.body).to include(I18n.t("jjaeks.actions.publish_short"))
     end
 
     it "renders the cover, bibliography, and expandable description once in the title card" do
@@ -232,7 +232,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include(requote.content)
     end
 
-    it "shows the book as read-only when the user has no bookshelf entry" do
+    it "keeps reading management separate while allowing an unshelved book attachment" do
       other_user = User.create!(name: "Other Reader", email: "other-book-reader@example.com", password: "password123!", password_confirmation: "password123!")
       book.jjaeks.create!(user: other_user, content: "다른 독자의 공개 Jjaek")
       sign_in user
@@ -253,7 +253,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include("/bookshelf_entries/new")
       expect(response.body).to include(I18n.t("bookshelf_entries.new.title"))
       expect(response.body).not_to include('name="bookshelf_entry[status]"')
-      expect(response.body).not_to include('name="jjaek[content]"')
+      expect(response.body).to include('name="jjaek[content]"')
     end
 
     it "shows the personal writing form inline with its visibility selector and a separate reading modal" do
@@ -267,10 +267,13 @@ RSpec.describe "Books", type: :request do
       expect(form).to be_present
       expect(form.ancestors("dialog")).to be_empty
       expect(page.at_css("[data-book-modal-auto-open-value='false']")).to be_present
-      expect(form.at_css("input[name='jjaek[visibility]']")).to be_present
-      expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
+      visibility_choices = form.css("input[type='radio'][name='jjaek[visibility]']")
+      expect(visibility_choices.map { |choice| choice['value'] }).to eq(Jjaek.visibilities.keys)
+      expect(visibility_choices.select { |choice| choice['checked'] }.map { |choice| choice['value'] }).to eq(["public_jjaek"])
+      expect(visibility_choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
+      expect(page.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
       panel = page.at_css("#book-jjaek-form")
-      expect(panel["aria-label"]).to eq("책짹 작성")
+      expect(panel.at_css("#jjaek-composer")).to be_present
       expect(panel.at_css("textarea")["rows"]).to eq("4")
       expect(panel.at_css("[data-book-posting-target='title']")).to be_nil
       expect(page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}'] input[type='submit']")).to be_present
@@ -293,7 +296,7 @@ RSpec.describe "Books", type: :request do
       get book_path(book, group_id: group.id, quote_id: original.id, return_to: root_path)
 
       page = Nokogiri::HTML(response.body)
-      form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
+      form = page.at_css("form[action^='#{jjaeks_path}?']")
       expect(form).to be_present
       expect(form.ancestors("dialog")).to be_empty
       expect(form.ancestors("#book-jjaek-form")).not_to be_empty
@@ -339,7 +342,7 @@ RSpec.describe "Books", type: :request do
       expect(form.ancestors("#book-jjaek-form")).not_to be_empty
     end
 
-    it "shows only public personal book jjaeks before the book is added to the library" do
+    it "applies Jjaek visibility independently of shelf registration" do
       friend = User.create!(name: "Reader friend", email: "book-show-friend@example.com", password: "password123!")
       BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
       public_jjaek = friend.jjaeks.create!(book: book, content: "UNSHELVED_PUBLIC_BOOK")
@@ -350,7 +353,8 @@ RSpec.describe "Books", type: :request do
       get book_path(book)
 
       expect(response.body).to include(public_jjaek.content)
-      expect(response.body).not_to include(friend_jjaek.content, private_jjaek.content, 'name="bookshelf_entry[status]"', 'name="jjaek[content]"')
+      expect(response.body).to include(friend_jjaek.content, private_jjaek.content, 'name="jjaek[content]"')
+      expect(response.body).not_to include('name="bookshelf_entry[status]"')
 
       user.bookshelf_entries.create!(book: book)
       get book_path(book)

@@ -89,7 +89,7 @@ RSpec.describe JjaekPolicy do
       groups.each do |group|
         quote = viewer.jjaeks.build(group:, quoted_jjaek: source)
         expect(described_class.new(viewer, quote).create?).to be(true)
-        expect(described_class.new(viewer, viewer.jjaeks.build(group:, book:)).create?).to be(false)
+        expect(described_class.new(viewer, viewer.jjaeks.build(group:, book:)).create?).to be(true)
       end
     end
 
@@ -734,10 +734,10 @@ RSpec.describe JjaekPolicy do
       expect(described_class.new(viewer, jjaek).create?).to be(true)
     end
 
-    it "does not allow creating a book-linked jjaek without a shelf entry" do
+    it "allows attaching a book independently of shelf registration" do
       jjaek = viewer.jjaeks.build(book:, content: "NO_SHELF_BOOK_POLICY_JJAEK")
 
-      expect(described_class.new(viewer, jjaek).create?).to be(false)
+      expect(described_class.new(viewer, jjaek).create?).to be(true)
     end
 
     it "allows creating a profile-context jjaek for an accepted book friend" do

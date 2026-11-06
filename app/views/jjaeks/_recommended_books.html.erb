@@ -1,4 +1,4 @@
-<ul class="mt-4 space-y-3" aria-label="<%= t("recommendations.selected_books") %>">
+<ul class="mt-4 space-y-3" aria-label="<%= t("jjaek_books.attached") %>">
   <% books.each do |book| %>
     <% book_url = book_path(book, book_navigation_params) if local_assigns.fetch(:link, true) %>
     <li class="flex items-start gap-3">
