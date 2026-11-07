@@ -219,7 +219,7 @@ class CommentsController < ApplicationController
   def set_book_comments_context
     @comments_book = Book.find_by(id: params[:book_id])
     return set_detail_comments_context if @comments_book.blank?
-    return set_detail_comments_context unless @jjaek.book_id == @comments_book.id
+    return set_detail_comments_context unless @jjaek.attached_books.exists?(id: @comments_book.id)
 
     @comments_context = :book
     @comments_profile_user = nil

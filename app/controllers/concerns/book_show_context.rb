@@ -42,7 +42,7 @@ module BookShowContext
       .limit(3)
       .to_a
     jjaeks = policy_scope(
-      @book.jjaeks.where(user_id: friend_ids, group_id: nil, hidden_at: nil, deleted_at: nil),
+      @book.attached_jjaeks.where(user_id: friend_ids, group_id: nil, hidden_at: nil, deleted_at: nil),
       policy_scope_class: JjaekPolicy::BookScope
     ).includes(:book, user: { avatar_attachment: :blob },
       quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])

@@ -12,6 +12,52 @@ RSpec.describe "Discoveries", type: :request do
     travel_to(tomorrow_in_seoul) { get discovery_path }
   end
 
+  it "classifies unified and legacy attachments once and summarizes personal and group previews" do
+    books = 5.times.map { |index| Book.create!(title: "Discovery attachment #{index}") }
+    group = Group.create!(name: "Unified discovery group", group_admin: writer, group_type: :public_group, lifecycle_status: :active)
+    sign_in writer
+    post jjaeks_path, params: { selected_books: books.map(&:id), jjaek: { content: "Unified discovery books" } }
+    unified = writer.jjaeks.find_by!(content: "Unified discovery books")
+    expect(unified.book_id).to be_nil
+    legacy = writer.jjaeks.new(content: "Legacy recommendation discovery", recommendation: true)
+    books.each_with_index { |book, position| legacy.jjaek_recommendations.build(book: book, position: position) }
+    legacy.save!
+    post jjaeks_path, params: { selected_books: [""], jjaek: { content: "No discovery books" } }
+    post group_jjaeks_path(group), params: { selected_books: books.map(&:id), jjaek: { content: "Unified group discovery" } }
+    sign_in viewer
+    get_published_discovery
+
+    page = Nokogiri::HTML(response.body)
+    book_section = page.at_css("#discovery_book_jjaeks")
+    expect(book_section.css("article").size).to eq(2)
+    expect(book_section.text).to include(unified.content, legacy.content)
+    general_section = page.at_css("#discovery_general_jjaeks")
+    expect(general_section.text).to include("No discovery books")
+    expect(general_section.text).not_to include(unified.content, legacy.content)
+    previews = page.css("[data-discovery-attached-books]")
+    expect(previews.size).to eq(3)
+    previews.each do |preview|
+      expect(preview.css("a").map(&:text)).to eq(books.first(3).map(&:title))
+      expect(preview.text).to include(I18n.t("recommendations.additional_books", count: 2))
+    end
+    expect(response.body).to include("Unified group discovery")
+  end
+
+  it "excludes profile conversations from discovery even for a participant and with historical public visibility" do
+    BookFriendship.create!(requester: writer, addressee: viewer, status: :accepted)
+    book = Book.create!(title: "Conversation-only book")
+    sign_in writer
+    [[], [book.id]].each_with_index do |ids, index|
+      post jjaeks_path, params: { selected_books: ["", *ids], jjaek: { target_user_id: viewer.id, content: "Conversation discovery #{index}" } }
+      writer.jjaeks.find_by!(content: "Conversation discovery #{index}").update_column(:visibility, Jjaek.visibilities[:public_jjaek])
+    end
+    sign_in viewer
+    get_published_discovery
+
+    expect(response.body).not_to include("Conversation discovery", book.title)
+    expect(Nokogiri::HTML(response.body).css("#discovery_book_jjaeks article, #discovery_general_jjaeks article")).to be_empty
+  end
+
   it "requires sign in" do
     get discovery_path
     expect(response).to redirect_to(new_user_session_path)
@@ -147,6 +193,17 @@ RSpec.describe "Discoveries", type: :request do
 
     expect(response.body).to include("A public book", "A writer", "PUBLIC_BOOK_POST", "PUBLIC_GENERAL_POST")
     expect(response.body).to include(book_path(book), jjaek_path(book_post), jjaek_path(general_post))
+    page = Nokogiri::HTML(response.body)
+    { book_jjaeks: book_post, general_jjaeks: general_post }.each do |section, record|
+      links = page.css("#discovery_#{section} article a")
+      author_links = links.select { |link| link["href"] == user_path(writer) }
+      expect(author_links.size).to eq(2) # Avatar and author name remain linked.
+      expect(author_links.map(&:text).map(&:strip)).to include(writer.name)
+      detail_links = links.select { |link| link["href"] == jjaek_path(record, return_to: discovery_path) }
+      expect(detail_links.map(&:text)).to eq([I18n.t("discovery.read_jjaek")])
+    end
+    expect(page.css("#discovery_book_jjaeks article a").map { |link| link["href"] })
+      .to include(book_path(book, return_to: discovery_path))
   end
 
   it "shows creation or latest edit consistently in book, general and group previews" do

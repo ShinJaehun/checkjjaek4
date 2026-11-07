@@ -62,6 +62,11 @@ class Jjaek < ApplicationRecord
     target_user_id.present? && target_user_id != user_id
   end
 
+  def single_attached_book
+    books = attached_books.to_a
+    books.first if books.one?
+  end
+
   def content_kind
     return "recommendation" if recommendation?
 

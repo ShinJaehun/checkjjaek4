@@ -62,7 +62,8 @@ module JjaeksHelper
   def current_reading_state_for(jjaek)
     return if jjaek.deleted?
 
-    @current_reading_states.to_h[[ jjaek.user_id, jjaek.book_id ]]
+    book = jjaek.single_attached_book
+    @current_reading_states.to_h[[ jjaek.user_id, book.id ]] if book
   end
 
   def jjaek_hide_reason_options

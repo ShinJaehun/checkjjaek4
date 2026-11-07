@@ -19,6 +19,29 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
     BookFriendship.create!(requester: viewer, addressee: author, status: :accepted)
   end
 
+  it "uses the single unified attachment with the existing reading-state permissions" do
+    sign_in author
+    post jjaeks_path, params: { selected_books: [book.id], jjaek: { content: "Unified reading state" } }
+    record = author.jjaeks.find_by!(content: "Unified reading state")
+    expect(record.book_id).to be_nil
+    get jjaek_path(record)
+    expect(reading_info).to include(I18n.t("bookshelf_entries.statuses.reading"), sticker.name)
+    befriend
+    sign_in viewer
+    get jjaek_path(record)
+    expect(reading_info).to include(sticker.name)
+    shelf.update!(visibility: :private)
+    get jjaek_path(record)
+    expect(reading_info).to be_empty
+    sign_in author
+    get jjaek_path(record)
+    expect(reading_info).to include(sticker.name)
+    second_book = Book.create!(title: "Second reading book")
+    patch jjaek_path(record), params: { selected_books: [book.id, second_book.id], jjaek: { content: record.content } }
+    get jjaek_path(record)
+    expect(reading_info).to be_empty
+  end
+
   it "shows the current state and stickers to the author, including on private shelves" do
     shelf = author.bookshelves.create!(name: "Private", visibility: :private)
     entry.update!(bookshelf: shelf)

@@ -7,6 +7,27 @@ RSpec.describe "Books", type: :request do
   let!(:book) { Book.create!(title: "서재에 있는 책", authors_text: "저자") }
 
   describe "GET /books/:id" do
+    it "includes the latest three unified friend posts on every attached book and rechecks friendship" do
+      friend = User.create!(name: "Friend", email: "unified-preview@example.com", password: "password123!")
+      friendship = BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+      second_book = Book.create!(title: "Other preview book")
+      sign_in friend
+      posts = 4.times.map do |index|
+        post jjaeks_path, params: { selected_books: [book.id, second_book.id], jjaek: { content: "Unified friend #{index}", visibility: :book_friends } }
+        friend.jjaeks.find_by!(content: "Unified friend #{index}")
+      end
+      post jjaeks_path, params: { selected_books: [book.id, second_book.id], jjaek: { content: "Private unified friend", visibility: :private_jjaek } }
+      sign_in user
+      [book, second_book].each do |attached_book|
+        get book_path(attached_book)
+        cards = Nokogiri::HTML(response.body).css("[data-book-friend-activity]")
+        expect(cards.map { |card| card["id"] }).to eq(posts.last(3).reverse.map { |record| "book_friend_activity_jjaek_#{record.id}" })
+      end
+      friendship.destroy!
+      get book_path(book)
+      expect(Nokogiri::HTML(response.body).css("[data-book-friend-activity]")).to be_empty
+    end
+
     it "combines original book jjaeks and recommendations without duplicates on each linked book" do
       other_book = Book.create!(title: "함께 추천하는 책")
       unrelated_book = Book.create!(title: "관련 없는 책")
