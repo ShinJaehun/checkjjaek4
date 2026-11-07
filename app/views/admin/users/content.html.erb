@@ -41,7 +41,7 @@
       <div class="flex min-w-0 items-start gap-2 sm:items-center">
         <span class="w-8 shrink-0 py-2 text-sm font-semibold text-stone-600"><%= t("admin.user_content.navigation_label") %></span>
         <nav class="inline-flex flex-wrap gap-1 rounded-xl bg-stone-100 p-1" aria-label="<%= t('admin.user_content.navigation_label') %>">
-          <% %w[all general book recommendation requote comments].each do |section| %>
+          <% %w[all general group requote comments].each do |section| %>
             <% selected = @content_section == section %>
             <%
               classes = if selected
@@ -50,7 +50,7 @@
                 "rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-white/70"
               end
             %>
-            <%= link_to t("admin.user_content.navigation.#{section}"),
+            <%= link_to section == "all" ? t("admin.user_content.navigation.all") : admin_content_kind_label(section),
                         content_admin_user_path(@user, @content_filter_params.merge(content: section)),
                         class: classes,
                         aria: { current: ("page" if selected) } %>

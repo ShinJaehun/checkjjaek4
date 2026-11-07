@@ -215,7 +215,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include('name="jjaek[target_user_id]"')
       form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
       expect(form.ancestors("dialog")).to be_empty
-      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation", name: profile_user.name))
       expect(form.css("[name='jjaek[visibility]']")).to be_empty
     end
 
@@ -945,7 +945,7 @@ RSpec.describe "Users", type: :request do
       expect(page.at_css(invitation_form)).to be_present
       expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
       form = page.at_css(%(form[action="#{jjaeks_path}"]))
-      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation", name: profile_user.name))
       expect(form.css('[name="jjaek[visibility]"]')).to be_empty
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
       expect(page.text).to include("내용을 입력해 주세요.")
@@ -997,7 +997,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(profile_private_jjaek.content, excluded_jjaek.content, private_book.title)
       expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
       form = page.at_css(%(form[action="#{jjaeks_path}"]))
-      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation", name: profile_user.name))
       expect(form.css('[name="jjaek[visibility]"]')).to be_empty
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
       expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")

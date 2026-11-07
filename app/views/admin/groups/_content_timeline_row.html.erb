@@ -1,16 +1,11 @@
-<%
-  root_row = record_type == "Jjaek"
-  kind_key = admin_content_kind_key(kind, context: :group)
-%>
+<% root_row = record_type == "Jjaek" %>
 
 <tr id="group_timeline_<%= record_type.downcase %>_<%= record.id %>"
     class="border-b border-stone-100 align-middle hover:bg-stone-50/60 last:border-b-0"
-    data-content-kind="<%= kind %>"
+    data-content-kind="<%= admin_content_kind_key(record) %>"
     data-thread-row="<%= root_row ? 'root' : 'comment' %>">
   <td class="<%= root_row ? 'py-3.5 pr-4 pl-6' : 'px-4 py-3.5' %> align-middle whitespace-nowrap">
-    <span class="whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium <%= admin_content_kind_badge_classes(kind_key) %>" data-activity-kind="<%= kind %>">
-      <%= admin_content_kind_label(kind_key) %>
-    </span>
+    <%= render "admin/shared/content_badges", record: record %>
   </td>
   <td class="px-4 py-3.5 align-middle" data-field="author">
     <div class="flex items-center gap-2">
@@ -23,14 +18,8 @@
                   class: "text-sm font-medium text-stone-800 hover:underline" %>
     </div>
   </td>
-  <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body"><%= admin_content_body(record, record_type: record_type) %></td>
-  <td class="px-4 py-3.5 align-middle leading-6" data-field="reference">
-    <% if root_row && kind == "book" && !record.deleted? && record.book %>
-      <span class="text-stone-500"><%= t("admin.user_content.references.book") %> ·</span>
-      <%= link_to record.book.title,
-                  book_path(record.book),
-                  class: "text-stone-700 underline" %>
-    <% end %>
+  <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body">
+    <%= render "admin/shared/content_body", record: record, record_type: record_type, sources: content_sources %>
   </td>
   <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
     <%= content_status_badge(admin_content_status(record, record_type: record_type)) %>

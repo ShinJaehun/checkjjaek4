@@ -40,4 +40,10 @@
                 action_path,
                 class: "ui-button ui-button-secondary" %>
   </div>
+  <% if local_assigns[:activity_counts] %>
+    <div class="mt-4 border-t border-stone-100 pt-4">
+      <%= render "admin/users/activity_summary", user: user, counts: activity_counts,
+                 filter_params: activity_filter_params %>
+    </div>
+  <% end %>
 </section>

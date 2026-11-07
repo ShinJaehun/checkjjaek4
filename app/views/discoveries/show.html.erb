@@ -26,7 +26,7 @@
             <div class="w-32 shrink-0">
               <div class="flex h-44 items-end justify-center">
                 <%= render "books/thumbnail", title: entry.book.title, thumbnail: entry.book.thumbnail,
-                           url: book_path(entry.book, return_to: discovery_path), size: :large %>
+                           url: book_path(entry.book, return_to: discovery_path), size: :discovery_book %>
               </div>
               <%= link_to entry.book.title, book_path(entry.book, return_to: discovery_path),
                           title: entry.book.title,

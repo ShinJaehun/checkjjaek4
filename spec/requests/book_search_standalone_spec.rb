@@ -18,6 +18,7 @@ RSpec.describe "Standalone book search", type: :request do
       expect(page.at_css("header button[aria-controls='global-book-search-dialog']").text).to eq(I18n.t("book_search.nav"))
       dialog = page.at_css("#global-book-search-dialog")
       expect(dialog["open"]).to be_nil
+      expect(dialog.at_css("h2").text).to eq(I18n.t("book_search.title"))
       form = dialog.at_css("form")
       expect(form["action"]).to eq(book_search_path)
       expect(form["method"]).to eq("get")
@@ -29,6 +30,73 @@ RSpec.describe "Standalone book search", type: :request do
       expect(dialog.css("article, turbo-frame")).to be_empty
       expect(dialog.text).not_to include(I18n.t("book_search.modal.group_destination", group_name: group.name))
       expect(page.css("#global-book-search-query").size).to eq(1)
+    end
+  end
+
+  it "uses Find books labels while keeping the normal search title, description and input" do
+    { ko: "책 찾기", en: "Find books" }.each do |locale, label|
+      I18n.with_locale(locale) do
+        get book_search_path
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css("header button[aria-controls='global-book-search-dialog']").text).to eq(label)
+        expect(page.at_css("#global-book-search-title").text).to eq(label)
+        expect(page.at_css("main h1").text).to eq(label)
+        expect(page.at_css("main").text).to include(I18n.t("book_search.description"))
+        expect(page.at_css("main form input[name='query']")).to be_present
+        expect(page.at_css("main form input[type='submit']")["value"]).to eq(label)
+        expect(page.at_css("#global-book-search-dialog input[type='submit']")["value"]).to eq(label)
+      end
+    end
+  end
+
+  it "uses the same responsive large covers for normal search, attachment search and book headers" do
+    book = Book.create!(title: "Shared large cover")
+    allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+
+    [ "https://example.com/shared-large-cover.jpg", nil ].each do |thumbnail|
+      book.update!(thumbnail:)
+      size_classes = thumbnail ? %w[max-h-36 max-w-24 md:max-h-56 md:max-w-40] : %w[h-36 w-24 md:h-56 md:w-40]
+
+      get book_path(book)
+      header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
+      header_cover = thumbnail ? header.at_css("img[src='#{thumbnail}']") : header.at_css("div.h-36.w-24")
+      expect(header_cover["class"].split).to include(*size_classes)
+
+      [ {}, { attachment: 1 } ].each do |context|
+        get book_search_path, params: context.merge(query: book.title)
+        result = Nokogiri::HTML(response.body).at_css("main article")
+        result_cover = thumbnail ? result.at_css("img[src='#{thumbnail}']") : result.at_css("div.h-36.w-24")
+        expect(result_cover["class"].split).to include(*size_classes)
+        expect(result.text).to include(book.title)
+        expect(result_cover["class"].split).to include("h-auto", "w-auto", "object-contain") if thumbnail
+      end
+    end
+  end
+
+  it "keeps ISBN out of both result cards and places each mode's buttons in the bottom action area" do
+    book = Book.create!(title: "Shared result card", authors_text: "Card author", publisher: "Card publisher", isbn: "9780140328721")
+    allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+
+    [ {}, { attachment: 1 } ].each do |context|
+      get book_search_path, params: context.merge(query: book.title)
+      card = Nokogiri::HTML(response.body).at_css("main article")
+      actions = card.at_css("[data-field='actions']")
+      expect(card.text).to include(book.title, book.authors_text, book.publisher)
+      expect(card.text).not_to include(I18n.t("books.show.isbn"), book.isbn)
+      expect(actions.parent.at_css("h3").text).to eq(book.title)
+      expect(actions.parent.element_children.last).to eq(actions)
+
+      if context[:attachment]
+        form = actions.at_css("form[data-recommendation-selection-form='add']")
+        expect(form["action"]).to eq(recommendation_books_path)
+        expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaek_books.choose"))
+        expect(form.at_css("input[name='book_id']")["value"]).to eq(book.id.to_s)
+        expect(card["data-isbn"]).to eq(book.canonical_isbn)
+        expect(actions.css("a")).to be_empty
+      else
+        expect(actions.at_css("a").text).to eq(I18n.t("book_search.actions.open_internal"))
+        expect(actions.at_css("form")["action"]).to eq(bookshelf_entries_path)
+      end
     end
   end
 
@@ -87,6 +155,8 @@ RSpec.describe "Standalone book search", type: :request do
     get form["action"], params: { attachment: "1", group_id: group.id, search_origin: group_path(group) }
     expect(response).to have_http_status(:ok)
     results = Nokogiri::HTML(response.body)
+    expect(results.at_css("main h1")).to be_nil
+    expect(results.at_css("main").text).not_to include(I18n.t("book_search.description"))
     expect(results.at_css("a[data-back-link]")["href"]).to eq(group_path(group))
     expect(results.at_css("#recommendation-search-results")).to be_present
     expect(results.at_css("#jjaek-composer[data-turbo-permanent]")).to be_present

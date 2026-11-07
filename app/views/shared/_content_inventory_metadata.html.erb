@@ -1,0 +1,8 @@
+<% metadata = content_inventory_metadata(record) %>
+<% if metadata.any? %>
+  <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-5 text-stone-500 break-words [overflow-wrap:anywhere]" data-field="metadata">
+    <% metadata.each do |label| %>
+      <span><%= label %></span>
+    <% end %>
+  </div>
+<% end %>

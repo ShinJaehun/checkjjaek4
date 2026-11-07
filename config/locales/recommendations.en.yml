@@ -49,19 +49,19 @@ en:
   groups:
     content_inventory:
       navigation:
-        recommendation: "Book recommendations"
+        recommendation: "Club Jjaeks"
       kinds:
-        recommendation: "Book recommendation"
+        recommendation: "Club Jjaeks"
     restricted_content:
       kinds:
         recommendation: "Book recommendation"
   admin:
     user_content:
       navigation:
-        recommendation: "Book recommendations"
+        recommendation: "Jjaeks"
       kinds:
-        recommendation: "Book recommendation"
-        group_recommendation: "Club book recommendation"
+        recommendation: "Jjaeks"
+        group_recommendation: "Club Jjaeks"
     group_content:
       navigation:
-        recommendation: "Club book recommendations"
+        recommendation: "Club Jjaeks"

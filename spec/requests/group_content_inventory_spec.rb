@@ -147,6 +147,10 @@ RSpec.describe "Group content inventory", type: :request do
     deleted_root.update_columns(content: "DELETED_ROOT_BODY")
     own_root = group_admin.jjaeks.create!(group:, content: "OWN_ROOT_BODY")
     global_admin_root = platform_admin.jjaeks.create!(group:, content: "GLOBAL_ADMIN_ROOT_BODY")
+    book = Book.create!(title: "INVENTORY_PRIVATE_BOOK")
+    [root, group_hidden_root, platform_hidden_root, deleted_root].each do |post|
+      post.jjaek_recommendations.create!(book:, position: 0)
+    end
 
     other_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Other club", group_type: :public_group)
     author.jjaeks.create!(group: other_group, content: "OTHER_GROUP_BODY")
@@ -157,6 +161,13 @@ RSpec.describe "Group content inventory", type: :request do
     expect(response).to have_http_status(:ok)
     document = Nokogiri::HTML(response.body)
     thread = document.at_css("tbody[data-thread-id='#{root.id}']")
+    expect(document.at_css("#group_content_jjaek_#{root.id} [data-field='metadata']").text).to include("책 1권 첨부", group.name)
+    expect(document.at_css("#group_content_jjaek_#{group_hidden_root.id} [data-field='metadata']").text).to include("책 1권 첨부")
+    [platform_hidden_root, deleted_root].each do |post|
+      expect(document.at_css("#group_content_jjaek_#{post.id} [data-field='metadata']")).to be_nil
+    end
+    expect(document.css("[data-field='reference']")).to be_empty
+    expect(response.body).not_to include(book.title)
     row_ids = thread.css("tr").map { |row| row["id"] }
     expect(row_ids.index("group_content_comment_#{newer_comment.id}")).to be < row_ids.index("group_content_comment_#{older_comment.id}")
     expect(row_ids.last).to eq("group_content_jjaek_#{root.id}")
@@ -229,7 +240,7 @@ RSpec.describe "Group content inventory", type: :request do
     author = User.create!(name: "Return author", email: "group-content-return-author@example.com", password: "password123!")
     root = author.jjaeks.create!(group:, content: "RETURN_ROOT_BODY")
     sign_in group_admin
-    filters = { content: "general", content_q: "RETURN_ROOT_BODY", content_status: "active", content_sort: "oldest", all_page: "1" }
+    filters = { content: "group", content_q: "RETURN_ROOT_BODY", content_status: "active", content_sort: "oldest", all_page: "1" }
 
     get content_group_path(group, filters.merge(redirect_url: "https://example.invalid/elsewhere"))
     hide_link = Nokogiri::HTML(response.body).at_css("#group_content_jjaek_#{root.id} a[href*='group_hides/new']")
@@ -314,15 +325,17 @@ RSpec.describe "Group content inventory", type: :request do
     sign_in group_admin
 
     get content_group_path(group), params: {
-      content: "book", content_q: "SORT_SCOPE", content_status: "active", content_sort: "oldest"
+      content: "group", content_q: "SORT_SCOPE", content_status: "active", content_sort: "oldest"
     }
     book_document = Nokogiri::HTML(response.body)
-    expect(book_document.css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to eq([ book_root.id ])
-    expect(book_document.at_css("nav a[aria-current='page']").text).to include(I18n.t("groups.content_inventory.navigation.book"))
+    expect(book_document.css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to eq([ book_root.id, general.id ])
+    expect(book_document.at_css("nav a[aria-current='page']").text).to include(I18n.t("groups.content_inventory.navigation.group"))
     expect(book_document.at_css("input[name='content_q']")["value"]).to eq("SORT_SCOPE")
     expect(book_document.at_css("select[name='content_status'] option[selected]")["value"]).to eq("active")
     expect(book_document.at_css("select[name='content_sort'] option[selected]")["value"]).to eq("oldest")
-    expect(response.body).to include(book.title, I18n.t("groups.content_inventory.kinds.book"))
+    expect(response.body).to include("책 1권 첨부", I18n.t("groups.content_inventory.kinds.group_general"))
+    expect(response.body).not_to include(book.title)
+    expect(book_document.css("[data-field='reference']")).to be_empty
 
     get content_group_path(group), params: { content: "comments", content_q: "GENERAL_COMMENT" }
     expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to eq([ general.id ])
@@ -338,8 +351,9 @@ RSpec.describe "Group content inventory", type: :request do
     expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]")).to be_empty
     expect(response.body).to include(I18n.t("groups.content_inventory.empty"))
 
-    get content_group_path(group), params: { content_q: "Unique Writer", content: "book" }
-    expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to eq([ book_root.id ])
+    get content_group_path(group), params: { content_q: "Unique Writer", content: "group" }
+    expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i })
+      .to match_array([general.id, book_root.id, hidden.id, deleted.id])
 
     get content_group_path(group), params: { content_q: "SORT_SCOPE", content_sort: "recent" }
     expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to eq([ general.id, book_root.id ])
@@ -370,7 +384,7 @@ RSpec.describe "Group content inventory", type: :request do
     }
     page_two = Nokogiri::HTML(response.body)
     expect(page_two.css("tbody[data-thread-id]").size).to eq(1)
-    type_link = page_two.at_css("a[href*='content=general']")
+    type_link = page_two.at_css("a[href*='content=group']")
     expect(type_link["href"]).to include("content_q=PAGE_FILTER", "content_status=active", "content_sort=oldest")
     expect(type_link["href"]).not_to include("all_page")
   end

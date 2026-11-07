@@ -23,11 +23,10 @@
                         class: "shrink-0" do %>
             <%= render "jjaeks/selection_context" %>
             <%= button_tag aria: { label: t("jjaek_books.remove_book", title: book.title) },
-                           class: "ui-button ui-button-secondary max-sm:h-9 max-sm:w-9 max-sm:min-h-9 max-sm:min-w-9 max-sm:p-0" do %>
-              <svg class="h-3.5 w-3.5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                           class: "ui-button ui-button-secondary h-9 min-h-9 w-9 min-w-9 p-0" do %>
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                 <path d="M6 6l12 12M6 18L18 6" />
               </svg>
-              <span class="hidden sm:inline"><%= t("recommendations.remove") %></span>
             <% end %>
           <% end %>
         </li>

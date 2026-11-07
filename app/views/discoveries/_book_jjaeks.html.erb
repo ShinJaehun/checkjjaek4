@@ -6,7 +6,7 @@
     <div class="mt-6 flex items-start gap-5">
       <%= link_to book_path(@book, return_to: discovery_path), data: { turbo_frame: "_top" } do %>
         <%= render "books/thumbnail", title: @book.title, thumbnail: @book.thumbnail,
-                   url: nil, size: :large, link: false %>
+                   url: nil, size: :discovery_book, link: false %>
       <% end %>
       <div class="min-w-0">
         <h3 class="font-serif text-2xl font-semibold leading-tight"><%= link_to @book.title, book_path(@book, return_to: discovery_path), data: { turbo_frame: "_top" } %></h3>

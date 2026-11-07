@@ -1,6 +1,6 @@
 module Admin
   class LatestContentActivityQuery
-    Activity = Struct.new(:record_type, :record, :kind, keyword_init: true) do
+    Activity = Struct.new(:record_type, :record, keyword_init: true) do
       def comment? = record_type == "Comment"
 
       delegate :created_at, to: :record
@@ -72,7 +72,7 @@ module Admin
     end
 
     def hydrate(rows)
-      jjaeks = Jjaek.where(id: row_ids(rows, "Jjaek")).index_by(&:id)
+      jjaeks = Jjaek.where(id: row_ids(rows, "Jjaek")).includes(:group).index_by(&:id)
       comments = Comment.where(id: row_ids(rows, "Comment")).includes(:jjaek).index_by(&:id)
 
       rows.each_with_object({}) do |row, activities|
@@ -83,22 +83,9 @@ module Admin
 
         activities[row.fetch("owner_id").to_i] = Activity.new(
           record_type:,
-          record:,
-          kind: content_kind(record_type, record)
+          record:
         )
       end
-    end
-
-    def content_kind(record_type, record)
-      return "comments" if record_type == "Comment"
-      return "requote" if record.requote?
-      return "group_recommendation" if record.group_id.present? && record.recommendation?
-      return "recommendation" if record.recommendation?
-      return "group_book" if record.group_id.present? && record.book_id.present?
-      return "group_general" if record.group_id.present?
-      return "book" if record.book_id.present?
-
-      "general"
     end
 
     def row_ids(rows, record_type)

@@ -347,7 +347,7 @@ RSpec.describe "Admin inventory pagination", type: :request do
     let(:row_id_attribute) { "data-thread-id" }
     let(:filters) do
       {
-        content_q: "PAGE_SIZE", content: "general", content_status: "active", content_sort: "recent",
+        content_q: "PAGE_SIZE", content: "group", content_status: "active", content_sort: "recent",
         q: "club", group_type: "private_group", status: "active", sort: "oldest", page: "3"
       }
     end

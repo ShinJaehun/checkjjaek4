@@ -5,6 +5,8 @@
                user: @user,
                account_status: @account_status,
                has_administered_groups: @has_administered_groups,
+               activity_counts: @activity_counts,
+               activity_filter_params: @return_params.except(:content, :all_page),
                action_label: t("admin.users.actions.activity"),
                action_path: content_admin_user_path(@user, @return_params) %>
 

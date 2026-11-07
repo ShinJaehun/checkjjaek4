@@ -1,47 +1,24 @@
 <% return_path = local_assigns.fetch(:return_path) { book_search_return_path } %>
-<article id="<%= book_search_result_dom_id(book) %>" class="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-  <div class="flex flex-col gap-4 sm:flex-row">
-    <div class="shrink-0">
-      <%= render "books/thumbnail",
-                 title: book[:title].presence || t("search_ui.untitled"),
-                 thumbnail: book[:thumbnail],
-                 url: nil,
-                 size: :large,
-                 link: false %>
-    </div>
+<%= render layout: "book_searches/result_card_layout",
+           locals: { book: book, card_id: book_search_result_dom_id(book) } do %>
+  <%= link_to t("book_search.actions.open_internal"),
+              book_search_result_path(book, group_id: local_assigns[:group_id], return_path: return_path),
+              class: "ui-button ui-button-secondary" %>
 
-    <div class="flex min-w-0 flex-1 flex-col gap-3">
-      <div class="space-y-2">
-        <h3 class="text-lg font-semibold text-stone-900"><%= book[:title].presence || t("search_ui.untitled") %></h3>
-        <p class="text-sm text-stone-500"><%= [ book[:authors_text].presence, book[:publisher].presence ].compact.join(" · ").presence || "-" %></p>
-        <% if book[:isbn].present? %>
-          <p class="text-xs text-stone-500"><%= t("books.show.isbn") %>: <%= book[:isbn] %></p>
-        <% end %>
-        <p class="line-clamp-3 text-sm leading-6 text-stone-700"><%= book[:contents_excerpt].presence || "-" %></p>
-      </div>
-
-      <div class="mt-auto flex flex-wrap items-center gap-3 pt-1">
-        <%= link_to t("book_search.actions.open_internal"),
-                    book_search_result_path(book, group_id: local_assigns[:group_id], return_path: return_path),
-                    class: "ui-button ui-button-secondary" %>
-
-        <% if book[:bookshelf_entry].present? %>
-          <% bookshelf = book[:bookshelf_entry].bookshelf %>
-          <button type="button" disabled class="ui-button ui-button-secondary max-w-full break-words text-left">
-            <span class="min-w-0 break-words">
-              <% if bookshelf.is_default? %>
-                <%= t("book_search.actions.in_shelf") %>
-              <% else %>
-                <%= t("book_search.actions.in_bookshelf", bookshelf_name: bookshelf.name) %>
-              <% end %>
-            </span>
-          </button>
-        <% elsif bookshelves.size > 1 %>
-          <%= render "book_searches/shelf_selection_modal", book: book, bookshelves: bookshelves, group_id: local_assigns[:group_id], return_path: return_path %>
+  <% if book[:bookshelf_entry].present? %>
+    <% bookshelf = book[:bookshelf_entry].bookshelf %>
+    <button type="button" disabled class="ui-button ui-button-secondary max-w-full break-words text-left">
+      <span class="min-w-0 break-words">
+        <% if bookshelf.is_default? %>
+          <%= t("book_search.actions.in_shelf") %>
         <% else %>
-          <%= render "book_searches/add_to_shelf_form", book: book, bookshelves: bookshelves, group_id: local_assigns[:group_id], return_path: return_path %>
+          <%= t("book_search.actions.in_bookshelf", bookshelf_name: bookshelf.name) %>
         <% end %>
-      </div>
-    </div>
-  </div>
-</article>
+      </span>
+    </button>
+  <% elsif bookshelves.size > 1 %>
+    <%= render "book_searches/shelf_selection_modal", book: book, bookshelves: bookshelves, group_id: local_assigns[:group_id], return_path: return_path %>
+  <% else %>
+    <%= render "book_searches/add_to_shelf_form", book: book, bookshelves: bookshelves, group_id: local_assigns[:group_id], return_path: return_path %>
+  <% end %>
+<% end %>

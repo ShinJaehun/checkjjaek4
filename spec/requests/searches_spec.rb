@@ -85,7 +85,7 @@ RSpec.describe "Unified search", type: :request do
     sign_in viewer
     get search_path, params: { q: "존재하지않는검색어" }
 
-    %w[users jjaeks book_jjaeks groups].each do |type|
+    %w[users jjaeks groups].each do |type|
       expect(search_section(type).text).to include(I18n.t("unified_search.no_results", query: "존재하지않는검색어"))
       expect(search_section(type).css("article")).to be_empty
     end
@@ -95,50 +95,86 @@ RSpec.describe "Unified search", type: :request do
     let!(:matched_user) { User.create!(name: "한글 독자", handle: "hangul_reader", email: "hangul@example.com", password: "password123!") }
     let!(:general_post) { writer.jjaeks.create!(content: "한글 일반 짹") }
     let!(:book_post) { writer.jjaeks.create!(book:, content: "한글 책짹") }
+    let!(:recommendation_post) do
+      post = writer.jjaeks.new(content: "한글 과거 추천짹", recommendation: true)
+      post.jjaek_recommendations.build(book:, position: 0)
+      post.save!
+      post
+    end
+    let!(:multi_book_post) do
+      post = writer.jjaeks.new(content: "한글 여러 책 첨부")
+      post.jjaek_recommendations.build(book:, position: 0)
+      post.jjaek_recommendations.build(book: Book.create!(title: "두 번째 첨부 책"), position: 1)
+      post.save!
+      post
+    end
+    let!(:requote) { viewer.jjaeks.create!(quoted_jjaek: general_post, content: "한글 인용") }
+    let(:matched_posts) { [general_post, book_post, recommendation_post, multi_book_post, requote] }
     let!(:group) { Group.create!(group_admin: writer, name: "한글 모임", lifecycle_status: :active) }
 
     before { sign_in viewer }
 
-    it "finds Korean substrings in all four types and links to existing details" do
+    it "finds Korean substrings in users, all posts and groups with four tabs and existing detail links" do
       book_post.update!(content: "한글 책짹 편집")
       get search_path, params: { q: "  한글  " }
 
       expect(search_section("users").text).to include(matched_user.name, "@hangul_reader")
       expect(search_section("users").at_css("article a")["href"]).to eq(user_path(matched_user))
       expect(search_section("groups").at_css("article a")["href"]).to eq(group_path(group))
-      { "jjaeks" => general_post, "book_jjaeks" => book_post }.each do |type, post|
-        section = search_section(type)
-        expect(section.text).to include(writer.name, post.content)
-        expect(section.at_css("a[href='#{jjaek_path(post, return_to: search_path(q: '한글', type: 'all', per_page: 30))}']")).to be_present
-        expect(section.at_css("a[href='#{user_path(writer)}']")).to be_present
+      matched_posts.each do |post|
+        card = search_section("jjaeks").at_css("article#jjaek_#{post.id}")
+        expect(card.text).to include(post.user.name, post.content)
+        expect(card.at_css("a[href='#{jjaek_path(post, return_to: search_path(q: '한글', type: 'all', per_page: 30))}']")).to be_present
+        expect(card.at_css("a[href='#{user_path(post.user)}']")).to be_present
         timestamp_key = post.content_edited_at ? "edited_at" : "created_at"
         timestamp = post.content_edited_at || post.created_at
-        expect(section.css("time").map(&:text)).to eq([I18n.t("jjaeks.meta.#{timestamp_key}", time: I18n.l(timestamp, format: :short))])
+        expect(card.css("time").map(&:text)).to eq([I18n.t("jjaeks.meta.#{timestamp_key}", time: I18n.l(timestamp, format: :short))])
       end
-      expect(search_section("book_jjaeks").text).to include(book.title)
+      expect(search_section("jjaeks").text).to include(book.title, "두 번째 첨부 책")
       page = Nokogiri::HTML(response.body)
       expect(page.at_css("input[name='q']")["value"]).to eq("한글")
       expect(page.css("nav[aria-label] a[aria-current='page']").map(&:text)).to include(I18n.t("unified_search.types.all"))
+      expect(page.css("nav[aria-label='#{I18n.t('unified_search.types_label')}'] a").map(&:text)).to eq(%w[전체 사용자 짹 동아리])
+      expect(page.at_css("h1").text).to eq("검색")
+      expect(page.at_css("input[name='q']")["placeholder"]).to eq("사용자, 짹, 동아리, #태그 검색")
     end
 
-    %w[users jjaeks book_jjaeks groups].each do |type|
+    %w[users jjaeks groups].each do |type|
       it "shows only #{type} on its individual tab and preserves the search term" do
         get search_path, params: { q: "한글", type: }
 
         expect(search_section(type)).to be_present
-        (%w[users jjaeks book_jjaeks groups] - [ type ]).each do |other_type|
+        (%w[users jjaeks groups] - [ type ]).each do |other_type|
           expect(search_section(other_type)).to be_nil
         end
         page = Nokogiri::HTML(response.body)
         expect(page.at_css("input[name='type']")["value"]).to eq(type)
         expect(page.at_css("a[aria-current='page']")["href"]).to eq(search_path(q: "한글", type:, per_page: 30))
+        if type == "jjaeks"
+          expect(search_section(type).css("article").map { |card| card["id"] })
+            .to eq(matched_posts.sort_by { |post| [post.created_at, post.id] }.reverse.map { |post| "jjaek_#{post.id}" })
+        end
+      end
+    end
+
+    %w[book_jjaeks recommendation_jjaeks].each do |legacy_type|
+      it "normalizes the old #{legacy_type} URL to all accessible posts" do
+        get search_path, params: { q: "한글", type: legacy_type, per_page: 50 }
+
+        expect(response).to have_http_status(:ok)
+        section = search_section("jjaeks")
+        matched_posts.each { |post| expect(section.text).to include(post.content) }
+        expect(search_section(legacy_type)).to be_nil
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css("input[name='type']")["value"]).to eq("jjaeks")
+        expect(page.at_css("a[aria-current='page']")["href"]).to eq(search_path(q: "한글", type: "jjaeks", per_page: 50))
       end
     end
 
     it "falls back to all types for an unknown type" do
       get search_path, params: { q: "한글", type: "comments" }
 
-      %w[users jjaeks book_jjaeks groups].each do |type|
+      %w[users jjaeks groups].each do |type|
         expect(search_section(type)).to be_present
       end
     end
@@ -210,9 +246,9 @@ RSpec.describe "Unified search", type: :request do
     entry.sticker_definitions << sticker
     post = viewer.jjaeks.create!(book:, content: "카드검색 본문", visibility: :book_friends)
     sign_in viewer
-    get search_path, params: { q: "카드검색", type: "book_jjaeks" }
+    get search_path, params: { q: "카드검색", type: "jjaeks" }
 
-    card = search_section("book_jjaeks").at_css("article")
+    card = search_section("jjaeks").at_css("article")
     expect(card.at_css("img[alt='#{viewer.name}']")).to be_present
     expect(card.at_css("img[alt='#{book.title}']")["src"]).to eq(book.thumbnail)
     expect(card.text).to include(viewer.name, post.content, book.title, book.authors_text,
@@ -231,12 +267,12 @@ RSpec.describe "Unified search", type: :request do
     entry.bookshelf.update!(visibility: :public)
     writer.jjaeks.create!(book:, content: "독서카드검색")
     sign_in viewer
-    get search_path, params: { q: "독서카드검색", type: "book_jjaeks" }
-    expect(search_section("book_jjaeks").at_css("[data-current-reading-state]")).to be_nil
+    get search_path, params: { q: "독서카드검색", type: "jjaeks" }
+    expect(search_section("jjaeks").at_css("[data-current-reading-state]")).to be_nil
 
     BookFriendship.create!(requester: viewer, addressee: writer, status: :accepted)
-    get search_path, params: { q: "독서카드검색", type: "book_jjaeks" }
-    expect(search_section("book_jjaeks").at_css("[data-reading-status='finished']")).to be_present
+    get search_path, params: { q: "독서카드검색", type: "jjaeks" }
+    expect(search_section("jjaeks").at_css("[data-reading-status='finished']")).to be_present
   end
 
   [ "%", "_", "\\", "' OR 1=1 --" ].each do |term|
@@ -271,7 +307,7 @@ RSpec.describe "Unified search", type: :request do
     [ "댓글전용검색어", book.title ].each do |term|
       get search_path, params: { q: term }
       expect(search_section("jjaeks").css("article")).to be_empty
-      expect(search_section("book_jjaeks").css("article")).to be_empty
+      expect(search_section("book_jjaeks")).to be_nil
     end
   end
 
@@ -286,7 +322,7 @@ RSpec.describe "Unified search", type: :request do
         sign_in viewer
         get search_path, params: { q: "권한검색", type: }
 
-        expect(search_section(type).text).to include(public_post.content, own_post.content)
+        expect(search_section("jjaeks").text).to include(public_post.content, own_post.content)
         expect(response.body).not_to include(secret_post.content, writer.name, jjaek_path(secret_post))
       end
 
@@ -301,7 +337,7 @@ RSpec.describe "Unified search", type: :request do
 
         friendship.update!(status: :accepted)
         get search_path, params: { q: "친구검색", type: }
-        expect(search_section(type).text).to include(post.content, writer.name)
+        expect(search_section("jjaeks").text).to include(post.content, writer.name)
 
         friendship.destroy!
         get search_path, params: { q: "친구검색", type: }
@@ -316,7 +352,7 @@ RSpec.describe "Unified search", type: :request do
         sign_in viewer
         get search_path, params: { q: "운영검색", type: }
 
-        expect(search_section(type).css("article")).to be_empty
+        expect(search_section("jjaeks").css("article")).to be_empty
         expect(response.body).not_to include(hidden.content, deleted.content)
       end
     end
@@ -421,12 +457,11 @@ RSpec.describe "Unified search", type: :request do
       get search_path, params: { q: "동아리검색" }
       expect(response.body).to include(post.content, book_post.content)
       group_label = "#{I18n.t('jjaeks.contexts.group_badge')} #{group.name}"
-      expect(search_section("jjaeks").at_css("article").text.squish)
-        .to include(I18n.t("jjaeks.contexts.group_general_html", author_name: writer.name,
-                           group_name: group_label))
-      expect(search_section("book_jjaeks").at_css("article").text.squish)
-        .to include(I18n.t("jjaeks.contexts.group_general_html", author_name: writer.name,
-                           group_name: group_label))
+      [post, book_post].each do |group_post|
+        expect(search_section("jjaeks").at_css("article#jjaek_#{group_post.id}").text.squish)
+          .to include(I18n.t("jjaeks.contexts.group_general_html", author_name: writer.name,
+                             group_name: group_label))
+      end
 
       group.update!(lifecycle_status: :inactive, closed_at: Time.current, closure_reason: "독서 모임 종료")
       get search_path, params: { q: "동아리검색" }
@@ -505,7 +540,7 @@ RSpec.describe "Unified search", type: :request do
     sign_in viewer
     get search_path, params: { q: "미리보기", per_page: 50, page: 2 }
 
-    %w[users jjaeks book_jjaeks groups].each do |type|
+    %w[users jjaeks groups].each do |type|
       section = search_section(type)
       expect(section.css("article").size).to eq(5)
       expect(section.at_css("a[href='#{search_path(q: '미리보기', type:, per_page: 50)}']")).to be_present
@@ -515,7 +550,9 @@ RSpec.describe "Unified search", type: :request do
 
   it "paginates in stable newest-first order while preserving the query and type" do
     timestamp = Time.current
-    posts = 31.times.map { |index| writer.jjaeks.create!(content: "페이지검색 #{index}", created_at: timestamp) }
+    posts = 31.times.map do |index|
+      writer.jjaeks.create!(book: (book if index.odd?), content: "페이지검색 #{index}", created_at: timestamp)
+    end
     sign_in viewer
     get search_path, params: { q: "페이지검색", type: "jjaeks" }
 
@@ -611,7 +648,8 @@ RSpec.describe "Unified search", type: :request do
     sign_in viewer
     I18n.with_locale(:en) do
       get search_path, params: { q: "nomatch" }
-      expect(response.body).to include("Search Bookjjaek", "Book posts", "No results found")
+      expect(response.body).to include("Search", "Posts", "No results found")
+      expect(response.body).not_to include("Book posts", "Book recommendations")
       expect(response.body).not_to include("translation_missing")
     end
   end
@@ -637,9 +675,11 @@ RSpec.describe "Unified search", type: :request do
       expect(search_fields.first["placeholder"]).to eq(I18n.t("unified_search.placeholder"))
     end
 
-    it "preserves the book-post tab and resets user or group tabs for hashtag input" do
-      get search_path, params: { q: "#독서_토론", type: "book_jjaeks", per_page: 50, page: 4 }
-      expect(response).to redirect_to(search_path(tag: "독서_토론", type: "book_jjaeks", per_page: 50))
+    it "normalizes legacy post tabs and resets user or group tabs for hashtag input" do
+      %w[book_jjaeks recommendation_jjaeks].each do |type|
+        get search_path, params: { q: "#독서_토론", type:, per_page: 50, page: 4 }
+        expect(response).to redirect_to(search_path(tag: "독서_토론", type: "jjaeks", per_page: 50))
+      end
 
       %w[users groups].each do |type|
         get search_path, params: { q: "#독서_토론", type:, per_page: 100, page: 4 }
@@ -666,7 +706,7 @@ RSpec.describe "Unified search", type: :request do
       get search_path, params: { tag: "우정" }
       expect(search_section("jjaeks").text).to include(exact.content)
       expect(search_section("jjaeks").text).not_to include(longer.content)
-      expect(search_section("book_jjaeks").text).to include(book_post.content)
+      expect(search_section("jjaeks").text).to include(book_post.content)
       expect(search_section("users")).to be_nil
       expect(search_section("groups")).to be_nil
 
@@ -678,7 +718,7 @@ RSpec.describe "Unified search", type: :request do
     end
 
     it "reuses bounded previews and individual tab page sizes for tags" do
-      6.times { |index| writer.jjaeks.create!(content: "태그목록 #{index} #목록") }
+      6.times { |index| writer.jjaeks.create!(book: (book if index.odd?), content: "태그목록 #{index} #목록") }
 
       get search_path, params: { tag: "목록" }
       expect(search_section("jjaeks").css("article").size).to eq(5)
@@ -714,7 +754,7 @@ RSpec.describe "Unified search", type: :request do
       expect(scope_links.map(&:text)).to eq([ "#{group.name}에서", I18n.t("unified_search.tag_scopes.all") ])
       expect(scope_links.first["aria-current"]).to eq("page")
       expect(Nokogiri::HTML(response.body).css("nav[aria-label='#{I18n.t('unified_search.types_label')}'] a").map(&:text))
-        .to eq([ "전체", "짹", "책짹", "추천짹" ])
+        .to eq([ "전체", "짹" ])
 
       get search_path, params: { tag: "함께", scope: "all", group_id: group.id }
       expect(search_section("jjaeks").text).to include(group_post.content, personal.content)

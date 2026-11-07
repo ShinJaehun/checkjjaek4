@@ -3,7 +3,7 @@ module Admin
     LOCATIONS = %w[personal group].freeze
     STATUSES = %w[active hidden deleted].freeze
     SORT_DIRECTIONS = { "recent" => "DESC", "oldest" => "ASC" }.freeze
-    TimelineItem = Struct.new(:record_type, :record, :kind, keyword_init: true)
+    TimelineItem = Struct.new(:record_type, :record, keyword_init: true)
 
     attr_reader :records, :page, :per_page, :total_count
 
@@ -16,12 +16,30 @@ module Admin
     end
 
     def call
-      apply_filters
+      activity_counts
+      apply_content_section
       @total_count = connection.select_value(count_sql).to_i
       @page = normalized_page
       rows = connection.select_all(page_sql)
       @records = hydrate(rows)
       self
+    end
+
+    def activity_counts
+      return @activity_counts if @activity_counts
+
+      apply_filters
+      kind_sql = <<~SQL.squish
+        CASE
+          WHEN jjaeks.quoted_jjaek_id IS NOT NULL OR jjaeks.quoted_source_deleted_at IS NOT NULL THEN 'requote'
+          WHEN jjaeks.group_id IS NOT NULL THEN 'group'
+          ELSE 'general'
+        END
+      SQL
+      @activity_counts = { "general" => 0, "group" => 0, "requote" => 0 }
+        .merge(@jjaek_scope.reorder(nil).group(Arel.sql(kind_sql)).count)
+      @activity_counts["comments"] = @comment_scope.count
+      @activity_counts
     end
 
     def total_pages = @total_pages
@@ -41,7 +59,6 @@ module Admin
 
     def apply_filters
       apply_search
-      apply_content_section
       apply_location
       apply_status
     end
@@ -58,16 +75,14 @@ module Admin
     def apply_content_section
       case @content_section
       when "general"
-        @jjaek_scope = non_requotes(@jjaek_scope).general_posts
+        @jjaek_scope = @jjaek_scope.where(group_id: nil, quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
         @comment_scope = @comment_scope.none
-      when "book"
-        @jjaek_scope = non_requotes(@jjaek_scope).where.not(book_id: nil)
-        @comment_scope = @comment_scope.none
-      when "recommendation"
-        @jjaek_scope = @jjaek_scope.recommendation_posts
+      when "group"
+        @jjaek_scope = @jjaek_scope.where.not(group_id: nil).where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
         @comment_scope = @comment_scope.none
       when "requote"
-        @jjaek_scope = requotes(@jjaek_scope)
+        @jjaek_scope = @jjaek_scope.where.not(quoted_jjaek_id: nil)
+          .or(@jjaek_scope.where.not(quoted_source_deleted_at: nil))
         @comment_scope = @comment_scope.none
       when "comments"
         @jjaek_scope = @jjaek_scope.none
@@ -100,15 +115,6 @@ module Admin
         @jjaek_scope = @jjaek_scope.where.not(deleted_at: nil)
         @comment_scope = @comment_scope.none
       end
-    end
-
-    def non_requotes(scope)
-      scope.where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
-    end
-
-    def requotes(scope)
-      scope.where.not(quoted_jjaek_id: nil)
-        .or(scope.where.not(quoted_source_deleted_at: nil))
     end
 
     def union_sql
@@ -157,7 +163,7 @@ module Admin
       jjaek_ids = row_ids(rows, "Jjaek")
       comment_ids = row_ids(rows, "Comment")
       jjaeks = @jjaek_scope.where(id: jjaek_ids)
-        .includes(:group, :target_user, :book, quoted_jjaek: :user)
+        .includes(:group, :attached_books)
         .index_by(&:id)
       comments = @comment_scope.where(id: comment_ids)
         .includes(jjaek: %i[user group])
@@ -167,14 +173,8 @@ module Admin
         record_type = row.fetch("record_type")
         records = record_type == "Jjaek" ? jjaeks : comments
         record = records[row.fetch("record_id").to_i]
-        TimelineItem.new(record_type:, record:, kind: content_kind(record_type, record)) if record
+        TimelineItem.new(record_type:, record:) if record
       end
-    end
-
-    def content_kind(record_type, record)
-      return "comments" if record_type == "Comment"
-      return "requote" if record.requote?
-      record.content_kind
     end
 
     def row_ids(rows, record_type)

@@ -1,9 +1,9 @@
 en:
   unified_search:
     nav: "Search"
-    title: "Search Bookjjaek"
+    title: "Search"
     query_label: "Search term"
-    placeholder: "Search users, posts, book posts, recommendations, groups, or #tags"
+    placeholder: "Search users, posts, groups, or #tags"
     tag_scope_label: "Tag search scope"
     tag_scopes:
       all: "All posts"
@@ -15,10 +15,10 @@ en:
       all: "All"
       users: "Users"
       jjaeks: "Posts"
-      book_jjaeks: "Book posts"
-      recommendation_jjaeks: "Book recommendations"
+      book_jjaeks: "Posts"
+      recommendation_jjaeks: "Posts"
       groups: "Groups"
-    prompt: "Enter a search term or #tag to find users, posts, book posts, recommendations, and groups."
+    prompt: "Enter a search term or #tag to find users, posts, and groups."
     popular_tags: "Popular tags"
     no_results: "No results found for “%{query}”."
     view_all: "View all %{type}"

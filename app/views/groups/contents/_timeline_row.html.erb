@@ -1,6 +1,6 @@
 <%
   root_row = record == root
-  kind = root_row ? record.content_kind : "comments"
+  kind = root_row ? "group_general" : "comments"
   status = group_content_status(record)
   body_visible = group_content_body_visible?(record)
   record_policy = policy(record)
@@ -22,12 +22,9 @@
       <span class="text-sm font-medium text-stone-800"><%= record.user.name %></span>
     </div>
   </td>
-  <td class="px-4 py-3.5 leading-6 text-stone-800" data-field="body"><%= group_content_body(record, visible: body_visible) %></td>
-  <td class="px-4 py-3.5 leading-6" data-field="reference">
-    <% if root_row && kind == "book" && body_visible && record.book %>
-      <span class="text-stone-500"><%= t("groups.content_inventory.references.book") %> ·</span>
-      <%= link_to record.book.title, book_path(record.book), class: "text-stone-700 underline" %>
-    <% end %>
+  <td class="px-4 py-3.5 leading-6 text-stone-800" data-field="body">
+    <div data-field="excerpt"><%= group_content_body(record, visible: body_visible) %></div>
+    <%= render "shared/content_inventory_metadata", record: record if body_visible %>
   </td>
   <td class="px-4 py-3.5 whitespace-nowrap" data-field="status">
     <%= content_status_badge(status) %>

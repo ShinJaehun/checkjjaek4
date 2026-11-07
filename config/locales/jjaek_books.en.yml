@@ -1,7 +1,7 @@
 en:
   jjaek_books:
     add: "Add book"
-    search: "Search books"
+    search: "Find books"
     remove: "Remove"
     attached: "Attached books"
     selection_title: "Choose attached books"

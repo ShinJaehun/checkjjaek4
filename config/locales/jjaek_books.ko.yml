@@ -1,7 +1,7 @@
 ko:
   jjaek_books:
     add: "책 추가"
-    search: "책 검색"
+    search: "책 찾기"
     remove: "제거"
     attached: "첨부 책"
     selection_title: "첨부할 책 선택하기"

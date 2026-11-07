@@ -42,7 +42,7 @@
         </div>
       </fieldset>
     <% elsif jjaek.profile_conversation? %>
-      <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation") %></p>
+      <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation", name: jjaek.target_user.name) %></p>
     <% elsif posting_group.blank? %>
       <fieldset class="space-y-2">
         <legend class="text-sm font-medium text-stone-700"><%= t("jjaeks.form.visibility") %></legend>

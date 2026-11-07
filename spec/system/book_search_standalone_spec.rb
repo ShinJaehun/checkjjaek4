@@ -22,6 +22,12 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_css("#global-book-search-query:focus")
   end
 
+  def submit_global_search
+    within("#global-book-search-dialog") do
+      click_button I18n.t("book_search.form.submit")
+    end
+  end
+
   def open_attachment_search
     within("#jjaek-composer") { click_button I18n.t("jjaek_books.add") }
     expect(page).to have_current_path(group_path(group))
@@ -98,7 +104,7 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_field(I18n.t("book_search.form.query"), with: "")
     expect(page).to have_no_text(I18n.t("book_search.empty.title"))
     fill_in I18n.t("book_search.form.query"), with: "Personal search"
-    click_button I18n.t("book_search.form.submit")
+    submit_global_search
     expect(page).to have_current_path(book_search_path, ignore_query: true)
     expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(
       "query" => "Personal search",
@@ -114,7 +120,7 @@ RSpec.describe "Standalone book search", type: :system do
     within("#jjaek-composer") { click_button I18n.t("jjaeks.actions.publish_short") }
     expect(page).to have_text("Personal search reading note")
     post = user.jjaeks.find_by!(content: "Personal search reading note")
-    expect(post.attached_books).to eq([book])
+    expect(post.attached_books).to eq([ book ])
     expect(post.group).to be_nil
     expect([ Book.count, BookshelfEntry.count ]).to eq(counts)
   end
@@ -128,12 +134,12 @@ RSpec.describe "Standalone book search", type: :system do
     visit group_path(group)
     open_global_search
     fill_in I18n.t("book_search.form.query"), with: "Paged global"
-    click_button I18n.t("book_search.form.submit")
+    submit_global_search
     expect_search_path(query: "Paged global", group_id: nil)
     click_link I18n.t("book_search.pagination.next")
     expect_search_path(query: "Paged global", page_number: 2, group_id: nil)
     fill_in I18n.t("book_search.form.query"), with: "Replacement global"
-    click_button I18n.t("book_search.form.submit")
+    within("main") { click_button I18n.t("book_search.form.submit") }
     expect_search_path(query: "Replacement global", group_id: nil)
     click_link I18n.t("book_search.actions.open_internal")
     search_path = book_search_path(query: "Replacement global", page: 1, search_origin: group_path(group))
@@ -176,7 +182,7 @@ RSpec.describe "Standalone book search", type: :system do
       expect(page).to have_no_css("#global-book-search-dialog[open]")
       find("main button[aria-controls='global-book-search-dialog']").click
       fill_in I18n.t("book_search.form.query"), with: "Library modal"
-      click_button I18n.t("book_search.form.submit")
+      submit_global_search
       expect(page).to have_current_path(book_search_path, ignore_query: true)
       expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(
         "query" => "Library modal", "search_origin" => origin
@@ -189,7 +195,7 @@ RSpec.describe "Standalone book search", type: :system do
       find("main button[aria-controls='global-book-search-dialog']").click
       expect(page).to have_css("#global-book-search-query:focus")
       fill_in I18n.t("book_search.form.query"), with: "Library modal"
-      click_button I18n.t("book_search.form.submit")
+      submit_global_search
       expect(page).to have_current_path(book_search_path, ignore_query: true)
       click_link I18n.t("book_search.actions.open_internal")
       results_path = book_search_path(query: "Library modal", page: 1, search_origin: origin)
@@ -229,7 +235,7 @@ RSpec.describe "Standalone book search", type: :system do
       click_button I18n.t("navigation.menu") if width < 1024
       within("header") { click_button I18n.t("book_search.nav") }
       fill_in I18n.t("book_search.form.query"), with: "Cached search"
-      click_button I18n.t("book_search.form.submit")
+      submit_global_search
       expect(page).to have_current_path(book_search_path, ignore_query: true)
       expect(Rack::Utils.parse_query(URI.parse(page.current_url).query)).to eq(
         "query" => "Cached search",
@@ -245,11 +251,11 @@ RSpec.describe "Standalone book search", type: :system do
     end
   end
 
-  [390, 1280].each do |width|
+  [ 390, 1280 ].each do |width|
     it "keeps the Group draft and selected books through paging and repeat searches at #{width}px" do
       books = Array.new(11) { |index| Book.create!(title: "Paged repeat #{index}") }
       replacement = Book.create!(title: "Replacement book")
-      counts = [Book.count, BookshelfEntry.count, Jjaek.count]
+      counts = [ Book.count, BookshelfEntry.count, Jjaek.count ]
       allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
       page.driver.browser.manage.window.resize_to(width, 900)
       visit group_path(group)
@@ -271,10 +277,10 @@ RSpec.describe "Standalone book search", type: :system do
         end
         click_link I18n.t("book_search.pagination.next")
       end
-      expect_attachment_search(query: "Paged repeat", page_number: 2, book_ids: [books.first.id])
+      expect_attachment_search(query: "Paged repeat", page_number: 2, book_ids: [ books.first.id ])
       within("#recommendation-window") { expect(page).to have_text(books.first.title) }
       search_attachments("Replacement")
-      expect_attachment_search(query: "Replacement", book_ids: [books.first.id])
+      expect_attachment_search(query: "Replacement", book_ids: [ books.first.id ])
       within("#recommendation-search-results") do
         expect(page).to have_text(I18n.t("book_search.pagination.page", page: 1))
         within("article[data-book-id='#{replacement.id}']") do
@@ -289,8 +295,8 @@ RSpec.describe "Standalone book search", type: :system do
       expect_composer(book: books.first, group_context: group)
       expect_composer(book: replacement, group_context: group)
       expect(page.all("#jjaek-attached-books input[name='selected_books[]']", visible: :all).map(&:value))
-        .to eq(["", books.first.id.to_s, replacement.id.to_s])
-      expect([Book.count, BookshelfEntry.count, Jjaek.count]).to eq(counts)
+        .to eq([ "", books.first.id.to_s, replacement.id.to_s ])
+      expect([ Book.count, BookshelfEntry.count, Jjaek.count ]).to eq(counts)
 
       open_global_search
       within("#global-book-search-dialog") do
@@ -311,7 +317,7 @@ RSpec.describe "Standalone book search", type: :system do
 
   it "attaches a stored book despite external failure and publishes in the original Group" do
     book = Book.create!(title: "Stored search book")
-    counts = [Book.count, BookshelfEntry.count]
+    counts = [ Book.count, BookshelfEntry.count ]
     allow(BookSearches::SearchService).to receive(:call).and_raise(BookSearches::KakaoAdapter::Error)
     visit group_path(group)
     fill_in "jjaek[content]", with: "Group note despite external failure"
@@ -333,8 +339,8 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_css("#feed-items article", text: "Group note despite external failure")
     post = user.jjaeks.find_by!(content: "Group note despite external failure")
     expect(post.group).to eq(group)
-    expect(post.attached_books).to eq([book])
-    expect([Book.count, BookshelfEntry.count]).to eq(counts)
+    expect(post.attached_books).to eq([ book ])
+    expect([ Book.count, BookshelfEntry.count ]).to eq(counts)
     within("#jjaek_#{post.id}") { expect(page).to have_link(book.title) }
   end
 
@@ -346,7 +352,7 @@ RSpec.describe "Standalone book search", type: :system do
     visit root_path
     open_global_search
     fill_in I18n.t("book_search.form.query"), with: "Single shelf"
-    click_button I18n.t("book_search.form.submit")
+    submit_global_search
     search_path = book_search_path(query: "Single shelf", search_origin: root_path)
     expect_search_url(search_path)
 
@@ -370,7 +376,7 @@ RSpec.describe "Standalone book search", type: :system do
     visit root_path
     open_global_search
     fill_in I18n.t("book_search.form.query"), with: "Shelf selection"
-    click_button I18n.t("book_search.form.submit")
+    submit_global_search
     search_path = book_search_path(query: "Shelf selection", search_origin: root_path)
     expect_search_url(search_path)
     card = find("article", text: "Shelf selection external")
@@ -424,7 +430,7 @@ RSpec.describe "Standalone book search", type: :system do
     expect_attachment_search(query: "Shelf selection")
     within("#recommendation-search-results") do
       expect(page).to have_css("article", count: 2)
-      ["Shelf selection external", stored_book.title].each do |title|
+      [ "Shelf selection external", stored_book.title ].each do |title|
         within(find("article", text: title)) do
           click_button I18n.t("jjaek_books.choose")
           expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
@@ -474,7 +480,7 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_css("#feed-items article", text: "Group attachment shelf draft")
     post = user.jjaeks.find_by!(content: "Group attachment shelf draft")
     expect(post.group).to eq(group)
-    expect(post.attached_books).to eq([external_book, stored_book])
+    expect(post.attached_books).to eq([ external_book, stored_book ])
     expect(Book.where(title: external_book.title).count).to eq(1)
   end
 
@@ -487,7 +493,7 @@ RSpec.describe "Standalone book search", type: :system do
     visit group_path(group)
     open_global_search
     fill_in I18n.t("book_search.form.query"), with: "New search"
-    click_button I18n.t("book_search.form.submit")
+    submit_global_search
     click_link I18n.t("book_search.actions.open_internal")
     expect(page).to have_current_path(%r{\A/books/lookup}, ignore_query: true)
     expect(Book.find_by(title: "New search book")).to be_nil

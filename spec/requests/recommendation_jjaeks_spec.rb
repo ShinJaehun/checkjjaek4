@@ -76,6 +76,9 @@ RSpec.describe "Unified Jjaek composition", type: :request do
       get jjaek_path(record)
       attachments = Nokogiri::HTML(response.body).at_css("#jjaek_#{record.id} [data-attached-books]")
       expect(attachments.css("img").map { |image| image["src"] }).to eq(books.map(&:thumbnail))
+      attachments.css("img").each do |image|
+        expect(image["class"].split).to include("max-h-20", "max-w-14")
+      end
       expect(attachments.css("[data-attached-book-cover-row]").map { |row| row.css("img").size }).to eq([3, 2])
       expect(attachments.css("li a").map(&:text)).to eq(books.map(&:title))
       expect(attachments.css("li a").map { |link| URI.parse(link["href"]).path }).to eq(books.map { |item| book_path(item) })
@@ -86,6 +89,43 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     end
     expect(user.bookshelf_entries).to be_empty
     expect(BookActivity.count).to eq(0)
+  end
+
+  it "uses medium covers for a single attached book and its quoted source" do
+    book.update!(thumbnail: "https://example.com/single-book-cover.jpg")
+    source = user.jjaeks.create!(book:, content: "Single attached book", visibility: :public_jjaek)
+    quote = user.jjaeks.create!(quoted_jjaek: source, content: "Quoted single book")
+
+    [ source, quote ].each do |record|
+      get jjaek_path(record)
+      cover = Nokogiri::HTML(response.body).at_css("#jjaek_#{record.id} img[src='#{book.thumbnail}']")
+      expect(cover["class"].split).to include("max-h-28", "max-w-20", "object-contain")
+    end
+  end
+
+  it "uses small covers and keeps shelf and remove actions together in both composer modes" do
+    book.update!(thumbnail: "https://example.com/selected-book-cover.jpg")
+    get jjaek_books_path, params: { selected_books: [book.id, other_book.id] }
+    selection = Nokogiri::HTML(response.body).at_css("#recommendation-selected-books")
+    expect(selection.at_css("img")["class"].split).to include("max-h-20", "max-w-14")
+    expect(selection.at_css("div.h-20.w-14")).to be_present
+
+    record = legacy_recommendation
+    [ book_path(book), edit_jjaek_path(record) ].each do |path|
+      get path
+      attachments = Nokogiri::HTML(response.body).at_css("#jjaek-attached-books")
+      expect(attachments.at_css("img")["class"].split).to include("max-h-20", "max-w-14")
+      expect(attachments.at_css("div.h-20.w-14")).to be_present if path == edit_jjaek_path(record)
+      attachments.css("[data-book-key]").each do |row|
+        actions = row.at_css("[data-field='actions']")
+        expect(actions.at_css("[id^='attachment_shelf_']")).to be_present
+        remove_button = actions.at_css("button[data-attachment-remove]")
+        expect(remove_button.parent).to eq(actions)
+        expect(remove_button["type"]).to eq("button")
+        expect(remove_button["aria-label"]).to be_present
+        expect(row.at_css("p").ancestors("[data-field='actions']")).to be_empty
+      end
+    end
   end
 
   it "rejects malformed, missing, duplicate and oversized selections without partial data" do
@@ -375,9 +415,17 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(page.css("textarea, form[action='#{jjaeks_path}']")).to be_empty
     expect(page.css("#recommendation-selected-books").text).to include(book.title)
     expect(page.at_css("form[method='get']")["action"]).to eq(book_search_path)
+    expect(page.at_css("form[method='get'] input[type='submit']")["value"]).to eq("책 찾기")
+    remove_button = page.at_css("#recommendation-selected-books button")
+    expect(remove_button).to be_present
+    expect(remove_button["aria-label"]).to eq(I18n.t("jjaek_books.remove_book", title: book.title))
+    expect(remove_button.at_css("svg[aria-hidden='true']")).to be_present
+    expect(remove_button.text.strip).to be_empty
+    expect(remove_button.ancestors("form").first["action"]).to eq(recommendation_book_path(book.id))
 
     get book_search_path, params: { attachment: 1, query: book.title, selected_books: [book.id], search_origin: root_path }
     page = Nokogiri::HTML(response.body)
+    expect(page.at_css("main h1")).to be_nil
     expect(page.css("#recommendation-search-results article").text).to include(book.title)
     expect(page.css("#recommendation-window article")).to be_empty
     expect(page.at_css("[hidden] #jjaek-composer[data-turbo-permanent]")).to be_present
@@ -430,7 +478,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(record.reload.attributes).to eq(original)
   end
 
-  it "keeps legacy recommendation search classification and its visibility boundary until the search stage" do
+  it "finds legacy recommendations in unified search through old URLs without widening visibility" do
     record = legacy_recommendation
     expect(record.reload).to be_recommendation
     expect(Jjaek.recommendation_posts.where(id: record.id)).to exist
@@ -439,11 +487,15 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     get search_path, params: { q: "Original", type: "recommendation_jjaeks" }
     expect(response).to have_http_status(:ok)
     section = Nokogiri::HTML(response.body)
-      .at_css("section[aria-labelledby='search-recommendation_jjaeks-title']")
+      .at_css("section[aria-labelledby='search-jjaeks-title']")
     expect(section).not_to be_nil
     expect(section.css("article").size).to eq(1)
     expect(section.text).to include(record.content)
     expect(section.text).to include(book.title)
+    get search_path, params: { tag: "before", type: "recommendation_jjaeks" }
+    expect(response).to have_http_status(:ok)
+    expect(Nokogiri::HTML(response.body).at_css("section[aria-labelledby='search-jjaeks-title']").text)
+      .to include(record.content, book.title)
     record.update!(visibility: :private_jjaek)
     sign_in outsider
     get search_path, params: { q: "Original", type: "recommendation_jjaeks" }
