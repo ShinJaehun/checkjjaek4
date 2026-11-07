@@ -188,7 +188,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     book = Book.create!(title: "HIDDEN_CONTEXT_BOOK", authors_text: "Author")
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Hidden context group", group_type: :public_group)
     general = author.jjaeks.create!(content: "HIDDEN_GENERAL_CONTEXT")
-    book_jjaek = author.jjaeks.create!(book:, content: "HIDDEN_BOOK_CONTEXT")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "HIDDEN_BOOK_CONTEXT")
     group_jjaek = author.jjaeks.create!(group:, content: "HIDDEN_GROUP_CONTEXT")
     general.likes.create!(user: author)
     general.comments.create!(user: author, content: "EXISTING PLATFORM HIDDEN COMMENT")
@@ -216,7 +216,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     profile = Nokogiri::HTML(response.body)
     [ general, book_jjaek, group_jjaek ].each do |jjaek|
       card = profile.at_css("#jjaek_#{jjaek.id}")
-      hidden_title = jjaek.book.present? ? "시스템 관리자에 의해 숨겨진 책짹입니다." : "시스템 관리자에 의해 숨겨진 짹입니다."
+      hidden_title = "시스템 관리자에 의해 숨겨진 짹입니다."
       expect(card.text).to include(hidden_title, "부적절한 내용", "댓글 보기", "글 보기")
       expect(card.text).not_to include(jjaek.content, "PRIVATE PLATFORM NOTE")
       expect(card.at_css(%(a[href="#{jjaek_comments_path(jjaek, comments_context: :profile, profile_user_id: author.id)}"]))).to be_present
@@ -224,7 +224,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
 
     get book_path(book)
     book_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{book_jjaek.id}")
-    expect(book_card.text).to include("시스템 관리자에 의해 숨겨진 책짹입니다.", "부적절한 내용", "댓글 보기", "글 보기")
+    expect(book_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "댓글 보기", "글 보기")
     expect(book_card.text).not_to include(book_jjaek.content, "PRIVATE PLATFORM NOTE")
     expect(book_card.at_css(%(a[href="#{jjaek_comments_path(book_jjaek, comments_context: :book, book_id: book.id)}"]))).to be_present
 
@@ -271,19 +271,19 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
 
   it "shows the author the hidden source and public reason while preserving delete" do
     book = Book.create!(title: "AUTHOR_HIDDEN_BOOK", authors_text: "Hidden author")
-    jjaek = author.jjaeks.create!(book:, content: "AUTHOR_HIDDEN_BODY")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "AUTHOR_HIDDEN_BODY")
     Jjaeks::Hide.new(jjaek, actor: admin, public_reason: "spam_advertising", internal_note: "ADMIN ONLY NOTE").call!
     action = jjaek.current_hide_action
     sign_in author
 
     get user_path(author)
-    expect(response.body).to include("시스템 관리자에 의해 숨겨진 책짹입니다.", "스팸·광고", "AUTHOR_HIDDEN_BODY", "AUTHOR_HIDDEN_BOOK")
+    expect(response.body).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "스팸·광고", "AUTHOR_HIDDEN_BODY", "AUTHOR_HIDDEN_BOOK")
     expect(response.body).not_to include("ADMIN ONLY NOTE")
     expect(response.body.scan(%(id="jjaek_#{jjaek.id}")).size).to eq(1)
     expect(response.body.scan("AUTHOR_HIDDEN_BODY").size).to eq(1)
 
     get jjaek_path(jjaek)
-    expect(response.body).to include("시스템 관리자에 의해 숨겨진 책짹입니다.", "스팸·광고", "AUTHOR_HIDDEN_BODY", "AUTHOR_HIDDEN_BOOK", "삭제")
+    expect(response.body).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "스팸·광고", "AUTHOR_HIDDEN_BODY", "AUTHOR_HIDDEN_BOOK", "삭제")
     expect(response.body).not_to include("ADMIN ONLY NOTE")
     expect(response.body).not_to include(%(href="#{edit_jjaek_path(jjaek)}"))
     patch jjaek_path(jjaek), params: { jjaek: { content: "CHANGED" } }
@@ -299,9 +299,9 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     group.group_memberships.create!(user: author, status: :active)
     jjaeks = [
       author.jjaeks.create!(content: "HIDDEN AUTHOR GENERAL"),
-      author.jjaeks.create!(book:, content: "HIDDEN AUTHOR BOOK"),
+      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "HIDDEN AUTHOR BOOK"),
       author.jjaeks.create!(group:, content: "HIDDEN AUTHOR GROUP"),
-      author.jjaeks.create!(group:, book:, content: "HIDDEN AUTHOR GROUP BOOK")
+      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "HIDDEN AUTHOR GROUP BOOK")
     ]
 
     jjaeks.each do |jjaek|

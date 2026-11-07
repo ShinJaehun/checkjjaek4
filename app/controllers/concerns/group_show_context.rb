@@ -25,7 +25,7 @@ module GroupShowContext
       policy_scope(
         @group.jjaeks,
         policy_scope_class: JjaekPolicy::GroupContentScope
-      ).includes(:book, :group, user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
+      ).includes(:attached_books, :group, user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :attached_books, :group ]).recent
     else
       Jjaek.none
     end

@@ -5,7 +5,7 @@ RSpec.describe LikePolicy do
   let(:other_user) { User.create!(name: "Other", email: "like-policy-other@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "좋아요 정책", authors_text: "저자") }
   let(:friendship) { BookFriendship.create!(requester: user, addressee: other_user, status: :accepted) }
-  let(:jjaek_record) { other_user.jjaeks.create!(book:, content: "Jjaek") }
+  let(:jjaek_record) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "Jjaek") }
 
   describe "permissions" do
     it "lets a signed-in user like an accessible jjaek" do
@@ -16,7 +16,7 @@ RSpec.describe LikePolicy do
 
     it "lets a user like a book-friends jjaek while the book friendship exists" do
       friendship
-      book_friend_jjaek = other_user.jjaeks.create!(book:, content: "Book friend jjaek", visibility: :book_friends)
+      book_friend_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "Book friend jjaek", visibility: :book_friends)
       like = book_friend_jjaek.likes.build(user:)
 
       expect(described_class.new(user, like).create?).to be(true)
@@ -24,7 +24,7 @@ RSpec.describe LikePolicy do
 
     it "does not let a user like a book-friends jjaek after the book friendship is removed" do
       friendship.destroy!
-      book_friend_jjaek = other_user.jjaeks.create!(book:, content: "Former book friend jjaek", visibility: :book_friends)
+      book_friend_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "Former book friend jjaek", visibility: :book_friends)
       like = book_friend_jjaek.likes.build(user:)
 
       expect(described_class.new(user, like).create?).to be(false)
@@ -85,7 +85,7 @@ RSpec.describe LikePolicy do
       group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
       group.group_memberships.create!(user:, status: :active)
       group_jjaek = other_user.jjaeks.create!(group:, content: "Group jjaek")
-      group_book_jjaek = other_user.jjaeks.create!(group:, book:, content: "Group book jjaek")
+      group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, group:, content: "Group book jjaek")
 
       [ group_jjaek, group_book_jjaek ].each do |jjaek|
         like = jjaek.likes.build(user:)

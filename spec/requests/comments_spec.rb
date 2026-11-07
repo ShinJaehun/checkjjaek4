@@ -4,7 +4,7 @@ RSpec.describe "Comments", type: :request do
   let!(:user) { User.create!(name: "Reader", email: "reader@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:author) { User.create!(name: "Author", email: "author@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "댓글 책", authors_text: "저자") }
-  let!(:jjaek) { author.jjaeks.create!(book:, content: "Public jjaek") }
+  let!(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "Public jjaek") }
   let!(:comment) { jjaek.comments.create!(user:, content: "My comment") }
 
   it "opens, closes and updates the book panel for each book attached through the unified form" do
@@ -13,7 +13,7 @@ RSpec.describe "Comments", type: :request do
     [ [ book ], [ book, second_book ] ].each_with_index do |books, index|
       post jjaeks_path, params: { selected_books: books.map(&:id), jjaek: { content: "Unified panel #{index}" } }
       attached_post = author.jjaeks.find_by!(content: "Unified panel #{index}")
-      expect(attached_post.book_id).to be_nil
+      expect(attached_post.attributes).not_to have_key("book_id")
       books.each do |attached_book|
         context = { comments_context: "book", book_id: attached_book.id }
         target = "comments_panel_book_#{attached_book.id}_jjaek_#{attached_post.id}"

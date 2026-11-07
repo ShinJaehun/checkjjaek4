@@ -10,7 +10,55 @@
  */
 
 @media (max-width: 639px) {
-  body:has(#recommendation-window:not([hidden])) > main {
+  body:has(#book-selection-window:not([hidden])) > main {
     padding-bottom: calc(48dvh + 2rem);
+  }
+}
+
+/* Keep search actions outside the selection window's scroll area. The window
+ * still floats on composer/preview pages; only attachment results share space. */
+body:has(#book-selection-search-results):has(#book-selection-window:not([hidden])) {
+  display: grid;
+  height: 100dvh;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
+}
+
+body:has(#book-selection-search-results):has(#book-selection-window:not([hidden])) > main {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 2rem;
+}
+
+body:has(#book-selection-search-results):has(#book-selection-window:not([hidden])) > #book-selection-window {
+  position: static;
+  width: auto;
+  max-height: 48dvh;
+  margin: 0 0.75rem 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  body:has(#book-selection-search-results):has(#book-selection-window:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) 24rem;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  body:has(#book-selection-search-results):has(#book-selection-window:not([hidden])) > :is(header, footer) {
+    grid-column: 1 / -1;
+  }
+
+  body:has(#book-selection-search-results):has(#book-selection-window:not([hidden])) > main {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  body:has(#book-selection-search-results):has(#book-selection-window:not([hidden])) > #book-selection-window {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    max-height: calc(100% - 1.5rem);
+    margin-top: 0.75rem;
   }
 }

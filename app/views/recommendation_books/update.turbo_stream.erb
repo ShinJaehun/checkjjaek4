@@ -1,9 +1,0 @@
-<%= turbo_stream.update "recommendation-selected-books", partial: "book_searches/recommendation_selection" %>
-<%= turbo_stream.update "recommendation-selection-fields" do %>
-  <%= render "jjaeks/selection_context" %>
-<% end %>
-<%= turbo_stream.update "recommendation-selection-alert", flash[:alert] %>
-<%= turbo_stream.update "jjaek-attached-books" do %>
-  <%= render "jjaeks/attached_books", books: @selected_books, keys: @selected_book_keys %>
-<% end %>
-<%= turbo_stream.update "recommendation-search-results", partial: "book_searches/results" %>

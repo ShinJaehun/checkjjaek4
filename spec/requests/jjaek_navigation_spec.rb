@@ -87,7 +87,7 @@ RSpec.describe "Jjaek navigation", type: :request do
     reader.bookshelf_entries.create!(book: book)
     sign_in reader
 
-    post jjaeks_path, params: { return_to: book_path(book), jjaek: { book_id: book.id, content: "Book post" } }
+    post jjaeks_path, params: { selected_books: [book.id], return_to: book_path(book), jjaek: { content: "Book post" } }
 
     created = reader.jjaeks.order(:id).last
     expect(response).to redirect_to(jjaek_path(created, return_to: book_path(book)))
@@ -166,7 +166,7 @@ RSpec.describe "Jjaek navigation", type: :request do
 
   it "returns discovery's general, book, and group posts to discovery" do
     other.jjaeks.create!(content: "DISCOVERY_GENERAL")
-    other.jjaeks.create!(book: book, content: "DISCOVERY_BOOK")
+    create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other, content: "DISCOVERY_BOOK")
     public_group = Group.create!(name: "Discovery club", group_admin: other, group_type: :public_group, lifecycle_status: :active)
     other.jjaeks.create!(group: public_group, content: "DISCOVERY_GROUP")
     sign_in reader
@@ -297,10 +297,10 @@ RSpec.describe "Jjaek navigation", type: :request do
       patch jjaek_path(jjaek), params: { return_to: origin, jjaek: { content: "" } }
       expect(response).to have_http_status(:unprocessable_content)
       expect(back_link["href"]).to eq(origin)
-      post jjaeks_path, params: { return_to: origin, jjaek: { book_id: book.id, content: "" } }
+      post jjaeks_path, params: { selected_books: [book.id], return_to: origin, jjaek: { content: "" } }
       expect(response).to have_http_status(:unprocessable_content)
       expect(Nokogiri::HTML(response.body).at_css("input[name='return_to']")["value"]).to eq(origin)
-      post jjaeks_path, params: { return_to: origin, jjaek: { book_id: book.id, content: "New book post" } }
+      post jjaeks_path, params: { selected_books: [book.id], return_to: origin, jjaek: { content: "New book post" } }
       created = reader.jjaeks.order(:id).last
       expect(response).to redirect_to(jjaek_path(created, return_to: origin))
     end

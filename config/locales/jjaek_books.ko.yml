@@ -12,3 +12,16 @@ ko:
     remove_book: "%{title} 제거"
     limit: "책은 최대 %{count}권까지 선택할 수 있습니다."
     add_to_shelf: "책장에 담기"
+    additional_books: "외 %{count}권"
+    finish_selection: "선택 완료"
+    invalid_selection: "선택한 책을 확인할 수 없습니다. 책을 다시 선택하세요."
+  activerecord:
+    errors:
+      models:
+        jjaek:
+          attributes:
+            attached_books:
+              too_many_attachments: "최대 %{count}권까지 선택할 수 있습니다."
+    attributes:
+      jjaek:
+        attached_books: "첨부 책"

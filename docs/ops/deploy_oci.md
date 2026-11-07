@@ -80,62 +80,220 @@ curl -fsS http://127.0.0.1:3000/up
 
 ## 통합 짹 migration 배포 예외
 
-`20261106000000` 적용 후에는 이전 이미지만으로 직접 rollback하지 않는다. 구버전은 일반 짹의
-첨부 연결을 거부하고 새 첨부를 읽지 못하며, migration의 down도 불가능하다.
+통합 이전 이미지로 **이미지만 바꾸는 rollback을 하지 않는다**. 백필·구형 컬럼 제거는 되돌릴 수 없으며,
+rename만 되돌려도 구버전 호환이 회복되지 않는다. 배포 직전의 네 DB와 호환 GHCR 이미지를 함께 복구한다.
 
-1. 운영 복원본에서 전환과 복구를 먼저 리허설한다. 배포 직전 기존 `APP_IMAGE`를 기록하고,
-   아래 백업 절차로 웹과 내장 Solid Queue를 중단한 상태에서 **네 운영 DB 모두** 백업한다.
-   백업 파일 무결성을 확인하고 웹을 재개하지 않는다.
-2. 중단 상태에서 전환 전 Jjaek·Comment·Like·알림 건수, ID·시각·visibility·인용/삭제 marker,
-   기존 book_id와 추천 연결의 Book ID·position을 대조 자료로 확보한다. 혼합 충돌·5권 초과는
-   임의 정리하지 말고 배포를 중단한다.
-3. 새 `APP_IMAGE`를 선택하고 위 Compose 명령의 `pull web`, `run --rm web bin/rails db:prepare`를
-   실행한다. 웹·내장 작업은 계속 중단한다. DDL과 백필은 잠금을 유지하므로 무중단 작업으로 취급하지 않는다.
-4. 재개 전에 전후 자료를 대조한다. 기존 ID·본문·시각·관계·공개 범위가 보존되고,
-   단일 book_id는 첨부 1권으로, 추천 연결은 기존 순서 그대로 전환되었으며
-   `book_attachments_migrated`가 완료되었는지 확인한다. 성공 후에만 `up -d web`으로 재개하고 주요 화면을 확인한다.
-5. 실패 시 서비스를 중단한 채 원인을 확인한다. 구버전으로 복귀하려면 배포 직전 백업 시점의
-   네 DB와 그 시점에 호환되는 이미지로 **함께 복구**한다. 아래 복원 절차에서 먼저 해당 `APP_IMAGE`를
-   선택하고 `pull web`을 수행하며, 새 이미지를 선택한 채 복원하지 않는다. 복원 후 웹을 올리기 전에
-   데이터 대조와 호환성을 확인한다.
+1. 아래 별도 환경 리허설을 먼저 완료한다. 기존 운영에는 `jjaek_recommendations`가 없어도 정상이다.
+   기존 추천 연결 생성(`20261103000000`) → 통합 백필(`20261106000000`) →
+   rename(`20261107000000`) → 구형 컬럼 제거(`20261108000000`) 순서로 적용한다.
+   기존 migration을 편집하거나 이미 적용한 version을 임의로 기록하지 않는다.
+2. 웹·Puma 내장 Solid Queue·별도 console/one-off/예약 작업 등 **모든 쓰기**를 중단한다.
+   아래 절차로 배포 직전 네 DB와 기존 이미지 정보를 백업하고 웹을 재개하지 않는다.
+3. 전환 전 Jjaek·첨부 책·댓글·좋아요·태그·알림·moderation과 다시짹의 ID·시각·관계·공개 범위,
+   기존 book_id와 추천 연결 순서를 대조 자료로 확보한다. 혼합 충돌·5권 초과는 임의 정리하지 말고 중단한다.
+4. 새 SHA 이미지로 `.env`의 `APP_IMAGE`만 변경하고 일반 업데이트의 `pull web`,
+   `run --rm web bin/rails db:prepare`까지만 수행한다. 웹과 내장 작업은 계속 중단한다.
+   백필과 DDL은 잠금을 사용하므로 무중단 전환이 아니다.
+5. 재개 전에 관계·ID·시각과 첨부 순서를 대조한다. 최종 테이블은 `jjaek_book_attachments`이며
+   `book_id`/`recommendation`/`book_attachments_migrated`는 Jjaek에서 제거된다.
+   `legacy_source_kind`와 첨부의 `visible_on_tombstone`이 과거 의미를 보존하는지 확인한다.
+   A의 비공개 전환·snapshot, B/C의 원문 식별 정보 제거·독립 토론, 두 사람 전용 접근도 확인한다.
+6. 검증 성공 후에만 웹을 재개한다. 실패하면 중단 상태를 유지하고 아래 빈 DB 복원 절차로
+   배포 직전 네 DB와 기존 이미지를 함께 복구한다. migration down이나 구버전 이미지 단독 시작은 복구 절차가 아니다.
 
-쓰기 재개 후 백업을 복원하면 백업 이후 변경은 잃는다. 실제 복원 검증 없이 무손실 복구를 보장하지 않는다.
-잠금 시간·디스크/WAL 여유·1GB 서버 메모리는 운영 복원본에서 확인한다.
+잠금 시간·WAL/디스크 여유·OCI E2 Micro 1GB의 메모리는 리허설에서 측정한다. 출력 제거는 잠금이나 지연 해결의 근거가 아니다.
+쓰기 재개 후 백업을 복원하면 백업 이후 데이터는 유실된다. 실제 복원 검증 없이 무손실 복구를 보장하지 않는다.
 
 ## 백업과 복원
 
-일관된 시점의 덤프를 위해 웹을 잠시 중지한다. Solid Queue도 웹의 Puma 안에서 실행하므로 함께 중지된다. 커스텀 형식 덤프에는 PostgreSQL의 압축이 적용된다. 네 DB를 모두 백업한 뒤 무결성 목록을 만든다.
+### 쓰기 중단과 네 DB 백업
+
+아래 Bash 블록은 운영자가 **운영 디렉터리와 대상 컨테이너를 확인한 뒤** 실행한다.
+오류 시 즉시 중단하며 웹을 자동으로 재시작하지 않는다. 운영 환경에서 이 문서를 작성하며 실행한 명령은 없다.
+
+웹을 중단하면 `SOLID_QUEUE_IN_PUMA=1`의 내장 작업도 중단된다. 별도 실행한 작업·console·migration·외부 DB 클라이언트도
+모두 종료하고, 백업부터 배포 또는 복구 완료까지 쓰기를 막는다. 네 덤프는 순차 실행되므로 하나의 DB 간 공통 snapshot이 아니다.
+모든 쓰기가 멈춘 기간에만 논리적으로 일관된 네 DB 백업이 된다. 예약 작업이 다시 연결하지 않도록 별도로 확인한다.
 
 ```bash
+set -euo pipefail
+umask 077
 cd ~/apps/checkjjaek
-BACKUP_DIR="$HOME/backups/checkjjaek/$(date +%Y%m%d-%H%M%S)"
-mkdir -p "$BACKUP_DIR"
-docker compose -p checkjjaek --env-file .env -f compose.prod.yml stop web
-for db in checkjjaek4_production checkjjaek4_production_cache checkjjaek4_production_queue checkjjaek4_production_cable; do
-  docker compose -p checkjjaek --env-file .env -f compose.prod.yml exec -T db pg_dump -U checkjjaek4 -Fc -d "$db" > "$BACKUP_DIR/$db.dump" || exit 1
+compose() { docker compose -p checkjjaek --env-file .env -f compose.prod.yml "$@"; }
+OPS_DBS=(checkjjaek4_production checkjjaek4_production_cache checkjjaek4_production_queue checkjjaek4_production_cable)
+OPS_BACKUP_DIR="$HOME/backups/checkjjaek/$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$OPS_BACKUP_DIR"
+docker inspect --format '{{.Config.Image}}' checkjjaek_web > "$OPS_BACKUP_DIR/APP_IMAGE"
+docker inspect --format '{{.Image}}' checkjjaek_web > "$OPS_BACKUP_DIR/IMAGE_ID"
+OPS_IMAGE=$(cat "$OPS_BACKUP_DIR/APP_IMAGE")
+[[ "$OPS_IMAGE" =~ ^ghcr\.io/shinjaehun/checkjjaek4:sha-[0-9a-f]{40}$ ]] || exit 1
+compose stop web
+OPS_CONNECTIONS=$(compose exec -T db psql -X -U checkjjaek4 -d postgres -v ON_ERROR_STOP=1 -Atc \
+  "SELECT count(*) FROM pg_stat_activity WHERE datname IN ('checkjjaek4_production','checkjjaek4_production_cache','checkjjaek4_production_queue','checkjjaek4_production_cable')")
+[[ "$OPS_CONNECTIONS" == 0 ]] || { echo '남은 DB 연결이 있습니다. 쓰기 작업을 중단하세요.'; exit 1; }
+date -u +%FT%TZ > "$OPS_BACKUP_DIR/STARTED_AT_UTC"
+compose exec -T db psql -X -U checkjjaek4 -d postgres -v ON_ERROR_STOP=1 -AtF $'\t' -c \
+  "SELECT datname, pg_get_userbyid(datdba), pg_encoding_to_char(encoding), datcollate, datctype, datlocprovider FROM pg_database WHERE datname IN ('checkjjaek4_production','checkjjaek4_production_cache','checkjjaek4_production_queue','checkjjaek4_production_cable') ORDER BY datname" \
+  > "$OPS_BACKUP_DIR/databases.tsv"
+for OPS_DB in "${OPS_DBS[@]}"; do
+  compose exec -T db psql -X -U checkjjaek4 -d "$OPS_DB" -v ON_ERROR_STOP=1 -AtF $'\t' \
+    -c 'SELECT extname, extversion FROM pg_extension ORDER BY extname' > "$OPS_BACKUP_DIR/$OPS_DB.extensions.tsv"
+  compose exec -T db pg_dump -U checkjjaek4 -Fc -d "$OPS_DB" > "$OPS_BACKUP_DIR/$OPS_DB.dump"
+  test -s "$OPS_BACKUP_DIR/$OPS_DB.dump"
+  wc -c < "$OPS_BACKUP_DIR/$OPS_DB.dump" > "$OPS_BACKUP_DIR/$OPS_DB.bytes"
+  compose exec -T db pg_restore --list < "$OPS_BACKUP_DIR/$OPS_DB.dump" > "$OPS_BACKUP_DIR/$OPS_DB.list"
+  compose exec -T db pg_restore --file=/dev/null < "$OPS_BACKUP_DIR/$OPS_DB.dump"
 done
-sha256sum "$BACKUP_DIR"/*.dump > "$BACKUP_DIR/SHA256SUMS"
+date -u +%FT%TZ > "$OPS_BACKUP_DIR/FINISHED_AT_UTC"
+(cd "$OPS_BACKUP_DIR" && sha256sum APP_IMAGE IMAGE_ID STARTED_AT_UTC FINISHED_AT_UTC databases.tsv *.dump *.list *.bytes *.extensions.tsv > SHA256SUMS)
+(cd "$OPS_BACKUP_DIR" && sha256sum -c SHA256SUMS)
 ```
 
-덤프 실패 시 백업을 성공으로 취급하지 말고 `docker compose -p checkjjaek --env-file .env -f compose.prod.yml logs db`로 원인을 확인한다. 일반 백업만 수행한 경우에는 확인 후 `docker compose -p checkjjaek --env-file .env -f compose.prod.yml up -d web`으로 서비스를 재개한다. 업데이트 직전에는 중지 상태를 유지하고 위의 업데이트 명령으로 재개한다. 사용자 업로드는 현재 OCI Object Storage에 있으므로 DB 덤프에 포함되지 않는다. E10의 Object Storage 백업·복원 절차를 별도로 따른다.
+`APP_IMAGE`는 `.env`의 희망 값이 아니라 실행하던 컨테이너의 태그다. `IMAGE_ID`와 백업 시작·종료 시각도 보관한다.
+완료 파일이 없거나 명령 하나라도 실패하면 성공한 백업으로 취급하지 않는다. 파일 크기는 이상 징후 확인용이며 checksum은
+복사 중 변조·손상을 확인한다. `--list`와 SQL 출력 전체 읽기는 아카이브의 해독 가능성을 확인할 뿐 실제 DB 복원·제약 검증을 대신하지 않는다.
+덤프와 기록을 서버 밖의 보호된 위치에도 복사하고 checksum을 다시 확인한다. 비밀값을 출력하거나 Git에 보관하지 않는다.
 
-복원은 서비스 중지, 복원 대상 시점의 `APP_IMAGE` 선택, 덤프 파일 확인 후 실행한다. 다음 예시의 `BACKUP_DIR`은 실제 백업 디렉터리로 지정한다. 복원은 현재 네 DB의 테이블을 덤프 내용으로 교체한다.
+일반 백업만 했다면 백업 확인 후 웹을 재개할 수 있다. 업데이트 직전이라면 중단 상태를 유지한다.
+DB 덤프에는 OCI Object Storage의 아바타 파일이 포함되지 않으므로 E10의 별도 보존·복구 절차도 따른다.
+
+### 복원 준비 — 아직 DB를 삭제하지 않는 확인 지점
+
+기존 DB에 `db:prepare`를 실행한 뒤 `pg_restore --clean`으로 덮지 않는다.
+[`--clean`은 복원할 객체만 삭제](https://www.postgresql.org/docs/16/app-pgrestore.html)하므로 새 버전의 테이블·외래키가 남을 수 있다.
+복원에서는 대상 DB 전체를 삭제한 후 [`pg_restore --create`](https://www.postgresql.org/docs/16/app-pgrestore.html)가
+아카이브의 DB 정의로 빈 DB를 만들고 복원하게 한다. DB 이름·encoding·locale·소유권·DB별 설정과 ACL도 확인한다.
+복원할 이미지로도 아직 웹을 시작하거나 `db:prepare`를 실행하지 않는다.
+
+아래의 백업 경로를 실제 값으로 바꾼다. 이 예시는 같은 PostgreSQL 16 클러스터의 네 DB와 기존 `checkjjaek4` 역할을 사용한다.
+DB 이름이 다른 덤프, 다른 소유자/역할, 추가 tablespace·확장 기능이 있으면 이 절차를 그대로 진행하지 말고 별도 환경에서 먼저 조정·검증한다.
 
 ```bash
+set -euo pipefail
+umask 077
 cd ~/apps/checkjjaek
-BACKUP_DIR="$HOME/backups/checkjjaek/YYYYMMDD-HHMMSS"
-cd "$BACKUP_DIR" && sha256sum -c SHA256SUMS || exit 1
-cd ~/apps/checkjjaek
-docker compose -p checkjjaek --env-file .env -f compose.prod.yml stop web
-docker compose -p checkjjaek --env-file .env -f compose.prod.yml up -d db
-docker compose -p checkjjaek --env-file .env -f compose.prod.yml run --rm web bin/rails db:prepare
-for db in checkjjaek4_production checkjjaek4_production_cache checkjjaek4_production_queue checkjjaek4_production_cable; do
-  docker compose -p checkjjaek --env-file .env -f compose.prod.yml exec -T db pg_restore -U checkjjaek4 -d "$db" --clean --if-exists --no-owner --single-transaction < "$BACKUP_DIR/$db.dump" || exit 1
+compose() { docker compose -p checkjjaek --env-file .env -f compose.prod.yml "$@"; }
+OPS_DBS=(checkjjaek4_production checkjjaek4_production_cache checkjjaek4_production_queue checkjjaek4_production_cable)
+OPS_BACKUP_DIR="$HOME/backups/checkjjaek/YYYYMMDDTHHMMSSZ"
+test -s "$OPS_BACKUP_DIR/STARTED_AT_UTC"
+test -s "$OPS_BACKUP_DIR/FINISHED_AT_UTC"
+(cd "$OPS_BACKUP_DIR" && sha256sum -c SHA256SUMS)
+export APP_IMAGE="$(cat "$OPS_BACKUP_DIR/APP_IMAGE")"
+[[ "$APP_IMAGE" =~ ^ghcr\.io/shinjaehun/checkjjaek4:sha-[0-9a-f]{40}$ ]] || exit 1
+compose config --quiet
+compose stop web
+compose up -d db
+compose pull web
+OPS_RESTORED_IMAGE_ID=$(docker image inspect --format '{{.Id}}' "$APP_IMAGE")
+[[ "$OPS_RESTORED_IMAGE_ID" == "$(cat "$OPS_BACKUP_DIR/IMAGE_ID")" ]] || exit 1
+for OPS_DB in "${OPS_DBS[@]}"; do
+  test -s "$OPS_BACKUP_DIR/$OPS_DB.dump"
+  compose exec -T db pg_restore --list < "$OPS_BACKUP_DIR/$OPS_DB.dump" > "$OPS_BACKUP_DIR/$OPS_DB.restore.list"
+  awk -v name="$OPS_DB" '$4 == "DATABASE" && $5 == "-" && $6 == name { found = 1 } END { exit !found }' \
+    "$OPS_BACKUP_DIR/$OPS_DB.restore.list"
+  compose exec -T db pg_restore --file=/dev/null < "$OPS_BACKUP_DIR/$OPS_DB.dump"
+done
+cat "$OPS_BACKUP_DIR/APP_IMAGE" "$OPS_BACKUP_DIR/IMAGE_ID" "$OPS_BACKUP_DIR/databases.tsv"
+compose exec -T db psql -X -U checkjjaek4 -d postgres -v ON_ERROR_STOP=1 -c \
+  "SELECT version(); SELECT rolname, rolsuper, rolcreatedb FROM pg_roles WHERE rolname = 'checkjjaek4'; SELECT name, version FROM pg_available_extension_versions ORDER BY name, version; SELECT datname, usename, application_name, state FROM pg_stat_activity WHERE datname IN ('checkjjaek4_production','checkjjaek4_production_cache','checkjjaek4_production_queue','checkjjaek4_production_cable');"
+```
+
+**중단 지점:** 호스트·Compose 프로젝트·DB 컨테이너·네 DB 이름, 백업 시각·완료 여부·전체 checksum,
+DB 생성 TOC 항목, 이전 이미지의 실제 pull 성공을 확인한다. `databases.tsv`의 소유자와 TOC의 객체 소유자가
+기존 역할과 일치하는지 확인한다. 덤프는 역할 자체를 만들지 않으므로 필요한 역할이 없으면 중단한다.
+현재 Compose의 `POSTGRES_USER=checkjjaek4`는 초기화 시 superuser로 생성되지만 이미 존재하는 볼륨의 실제 권한을 확인해야 한다.
+`*.extensions.tsv`와 `pg_available_extension_versions`를 대조해 같은 확장 버전·라이브러리가 준비되어 있는지도 확인한다.
+소유권/권한 오류를 피하려고 `--no-owner`/`--no-acl`로 우회하지 않는다.
+
+활성 연결이 남으면 쓰기 작업을 찾아 중단한다. `--force`는 사용하지 않는다.
+연결·권한·prepared transaction·논리 복제 등의 오류는 자동 정리하거나 무시하지 말고 중단한다.
+복원할 덤프 자체도 신뢰할 수 있는 보관본이어야 한다. 현재 실패 상태도 보존해야 한다면 별도 경로에 먼저 백업한다.
+
+### DB 재생성과 복원 — 네 DB의 현재 데이터를 삭제하는 지점
+
+**사전 조건:** 위 준비 블록과 모든 수동 확인을 완료했고, 웹·내장 작업·외부 쓰기 프로세스가 모두 중단되어야 한다.
+같은 Bash 세션에서만 이어서 실행한다. 네 DB의 현재 데이터는 아래 명령으로 사라진다.
+확인 문자열을 입력하기 전까지 삭제하지 않으며, 백업이 불확실하면 여기서 멈춘다.
+`docker compose down -v`나 PostgreSQL 볼륨 삭제는 하지 않는다.
+
+```bash
+read -r -p '네 운영 DB를 삭제하고 지정 백업으로 복원합니다. RESTORE-FOUR-DBS 입력: ' OPS_CONFIRM
+[[ "$OPS_CONFIRM" == RESTORE-FOUR-DBS ]] || exit 1
+for OPS_DB in "${OPS_DBS[@]}"; do
+  compose exec -T db dropdb -U checkjjaek4 --maintenance-db=postgres --if-exists "$OPS_DB"
+done
+for OPS_DB in "${OPS_DBS[@]}"; do
+  compose exec -T db pg_restore -U checkjjaek4 --dbname=postgres --create --exit-on-error \
+    < "$OPS_BACKUP_DIR/$OPS_DB.dump"
 done
 ```
 
-네 DB 복원이 모두 성공하면 데이터와 선택한 이미지의 호환성을 대조한 뒤
-`docker compose -p checkjjaek --env-file .env -f compose.prod.yml up -d web`으로 재개한다.
+[`dropdb --if-exists`](https://www.postgresql.org/docs/16/app-dropdb.html)는 이미 없는 DB만 오류 없이 건너뛴다.
+부분 삭제·복원 실패 후에도 준비 절차와 사전 확인을 다시 완료하고 네 DB 삭제부터 재시도할 수 있다.
+연결·권한 등 다른 오류는 기존 `set -euo pipefail`에 따라 계속 중단하며 `--force`는 사용하지 않는다.
+`--create`는 덤프에 기록된 이름으로 DB를 생성하므로 앞선 이름 검사가 필수다. template0 기반 생성 정의와
+확장 생성 명령을 사용하고 객체 소유권·ACL을 복원한다. 복원 전에 Rails schema나 확장을 임의로 만들지 않는다.
+이 절차의 `--create`는 `--single-transaction`과 함께 사용할 수 없다. 오류 시 즉시 종료하지만 해당 DB는 부분 복원 상태일 수 있고,
+네 DB 전체도 원자적으로 복원되지 않는다. 하나라도 실패하면 웹을 시작하지 말고 원인 확인 후 네 DB 재생성부터 다시 수행한다.
+
+### 복원 검증과 서비스 재개
+
+모든 복원이 성공한 뒤 다음을 확인한다. **확인 전에는 `db:prepare`·웹 시작을 하지 않는다.**
+
+- 네 DB의 소유자·encoding·locale·확장 버전·DB별 설정/ACL이 백업과 일치한다.
+- 네 DB의 schema와 `schema_migrations`가 백업 시점에 맞으며, 새 이미지가 추가했던 테이블·외래키가 남아 있지 않다.
+  통합 이전 백업이라면 새 첨부 테이블이 없어야 한다. 구형 DB를 새 모델로 먼저 조회하지 않는다.
+- 기본 데이터 건수뿐 아니라 ID·시각·첨부/인용 관계·댓글·좋아요·알림 등을 배포 직전 대조 자료와 비교한다.
+- 백업 시점과 호환되는 이미지로 `bin/rails db:migrate:status`와 읽기 검증을 수행한다. 이 명령은 DB를 준비하는 명령이 아니다.
+  예상치 못한 pending migration이 있으면 웹 entrypoint가 실행하기 전에 중단한다.
+
+```bash
+# 복원 준비에서 export한 기존 APP_IMAGE를 사용하는 같은 세션이다.
+compose run --rm --no-deps web bin/rails db:migrate:status
+```
+
+운영자가 `.env`의 `APP_IMAGE` 한 줄도 복원한 태그로 바꾼다. 현재 shell의 export만 바꾸면 다음 로그인에서
+새 태그로 다시 시작할 수 있다. 태그와 복원 DB의 호환성을 재확인한 뒤에만 서비스를 재개한다.
+웹 entrypoint는 시작 시 `db:prepare`를 실행하므로 새 이미지를 선택한 상태로 시작하면 안 된다.
+
+```bash
+compose up -d web
+compose ps
+curl -fsS http://127.0.0.1:3000/up
+```
+
+큐 DB까지 복원하면 백업 당시 대기 작업도 다시 실행될 수 있으므로 외부 메일 등 이미 발생한 부수 효과와 중복 가능성을 확인한다.
+네 DB의 순차 백업·비원자적 복원, 백업 이후 데이터 유실과 Object Storage의 별도 보존 한계는 복원 성공과 별개로 남는다.
+
+## 데이터 전환과 복구 리허설
+
+실제 운영 배포 전에 **운영과 분리된 PostgreSQL 16·Compose 환경**에서 사용자가 수행한다.
+운영 디렉터리·컨테이너 이름·볼륨·DB host·포트·credentials를 공유하지 않는다. 현재 Compose는 container_name이 고정이므로
+프로젝트 이름만 바꾸면 격리가 보장되지 않는다. 고정 이름·볼륨·포트까지 분리한 복사본인지 확인한다.
+위 운영 명령의 경로·Compose 함수·고정 대상도 리허설용으로 바꿔야 하며 운영 값을 그대로 복사해 실행하지 않는다.
+운영 메일/작업 실행과 Object Storage 쓰기도 차단한다. 이 문서 작업에서는 환경을 구축하거나 리허설을 실행하지 않는다.
+
+1. 기존 운영 네 DB 백업과 호환 이전 이미지를 확보한다. 위 아카이브 검증 후 별도 환경의 빈 DB로 복원한다.
+   기존 DB에 추천 연결 테이블이 없는 경우를 포함하고, 빈 DB의 전체 migration 경로도 기존 migration spec으로 확인한다.
+2. 전환 전 자료를 남긴다. 알려진 운영 수량은 짹 50개(단일 book_id 30개)·댓글 18개·좋아요 24개지만,
+   리허설 입력은 해당 백업의 실제 값이다. 건수만 비교하지 말고 각 row의 ID·본문·시각·작성자·대상자·visibility·group_id,
+   인용/삭제 marker, 첨부의 Book ID·position·row ID, 태그·알림·moderation 관계를 비교할 수 있도록 내보낸다.
+3. 쓰기 중단 상태에서 새 이미지의 `bin/rails db:migrate:status`로 적용 대상을 확인한 뒤
+   `bin/rails db:prepare`를 한 번 실행한다. 위 네 migration의 순서와 성공을 확인한다.
+   혼합 충돌·미전환 오류가 있으면 자동 병합하지 말고 중단한다. 실행 시간·잠금·메모리·디스크/WAL도 기록한다.
+4. 최종 구조를 확인한다. 기존 단일 book_id는 첨부 한 권, 기존 추천 row는 같은 ID·Book·position·시각이며
+   새 테이블로 rename되었다. Jjaek의 세 구형 컬럼은 없어지고 기존 ID·본문·댓글·좋아요·태그·알림·moderation 관계가 남는다.
+   이전 book_id와 일치한 첨부만 `visible_on_tombstone=true`이며 과거 `legacy_source_kind`/snapshot 의미가 보존된다.
+5. 별도 검증 데이터에서 댓글 보존 tombstone의 기존 책은 표시되고 통합 이후 첨부는 삭제 후 노출되지 않는지 확인한다.
+   A는 원문 삭제 후 본인 전용·snapshot 보존, B/C는 원문 식별 정보 제거·독립 본문/댓글/좋아요 보존을 확인한다.
+   살아 있는 원문 접근 상실·복구와 프로필 대화의 당사자/제3자 접근을 HTML·Turbo에서 확인한다.
+6. 새 이미지로 기본 작성·첨부 0/1/5권·수정/제거·서재 독립성, 검색/발견/책 상세/관리자,
+   선택 완료/취소/Back·초안·모바일 페이지 링크/추가 버튼을 확인한다. 기존 권한 테스트를 약화하지 않는다.
+7. 별도 환경의 전환된 네 DB를 위 복원 절차로 재생성하고 **전환 전 백업+이전 이미지**로 복귀한다.
+   새 테이블·외래키 잔존이 없고 원래 schema_migrations·데이터·권한과 이전 이미지의 시작이 맞는지 확인한다.
+   필요한 보조 DB·큐 상태도 확인하며, 다시 새 이미지로 전환할 수 있는지 확인한다.
+8. 백업 위치·시각·이미지 SHA·비교 결과·소요 시간·실패 시 중단/복구 절차를 기록한다.
+   이 확인 없이는 운영 전환이나 무손실 복구를 보장하지 않는다.
 
 ## Nginx, Cloudflare, 실제 IP
 

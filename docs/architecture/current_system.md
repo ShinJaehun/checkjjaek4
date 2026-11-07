@@ -57,11 +57,11 @@
 
 ## 주요 화면과 흐름
 
-- 독립 통합 검색 `/search`는 사용자 이름·공개 handle, 일반 짹·책짹 본문, 동아리 이름을 GET으로 검색한다.
+- 독립 통합 검색 `/search`는 사용자 이름·공개 handle, 첨부 유무와 무관한 짹·다시짹 본문, 동아리 이름을 GET으로 검색한다.
   전체 유형별 5건 미리보기와 개별 유형 30·50·100건 선택 페이지네이션을 제공하며 기존 책 검색은 유지한다.
   `SearchPolicy`, 사용자 `SearchScope`, Jjaek `SearchScope` 및 Group `NameSearchScope`로 결과 범위를 제한한다.
-  D01 태그 모드는 저장된 정확한 태그 연결로 짹·책짹만 검색하고, 클릭한 동아리·프로필 문맥 또는 전체 범위를 선택한다. 태그 연결은 작성·수정·삭제 때 갱신하며 기존 글은 수동 backfill한다.
-  검색 결과는 기존 짹·책짹 카드의 읽기 전용 미리보기, 사용자 아바타·관계 배지·소식받기 수, 기존 동아리 카드를 사용한다.
+  D01 태그 모드는 저장된 정확한 태그 연결로 짹·다시짹을 검색하고, 클릭한 동아리·프로필 문맥 또는 전체 범위를 선택한다. 태그 연결은 작성·수정·삭제 때 갱신하며 기존 글은 수동 backfill한다.
+  검색 결과는 통합 짹 카드의 읽기 전용 미리보기, 사용자 아바타·관계 배지·소식받기 수, 기존 동아리 카드를 사용한다.
   비공개 동아리는 비회원에게 이름·공개 상태·링크만 표시하고 기존 Group 목록 scope에서 허용된 동아리만 관리자·회원 미리보기를 표시한다.
   Group 목록과 검색은 `GroupMembership.card_previews_for`의 일괄 window query로 일반 회원 수·최대 3명 아바타를 조회한다. 상세 기준은 `docs/specs/unified_search.md`를 따른다.
 
@@ -69,10 +69,10 @@
 
 ### 발견 (/discover)
 
-- 홈 피드와 독립된 로그인 사용자용 화면. 공개 개인 원본 책짹이 있는 책 1권과 그 책짹 최대 3개, 다른 사용자의 공개 개인 원본 일반 짹 최대 3개, 공개 책이 있는 다른 사용자의 서재 1곳, active 공개·승인 동아리 1곳을 보여줌
-- 짹은 기존 `JjaekPolicy::Scope`에 개인 영역·전체 공개·삭제/숨김 아님·원본 조건을 더해 선정함. 책짹 작성자의 책장 공개 여부는 후보 조건이 아니며 비공개 책장 정보는 표시하지 않음
+- 홈 피드와 독립된 로그인 사용자용 화면. 공개 개인 원본 첨부 짹이 있는 책 1권과 그 짹 최대 3개, 다른 사용자의 책 없는 공개 개인 원본 짹 최대 3개, 공개 책이 있는 다른 사용자의 서재 1곳, active 공개·승인 동아리 1곳을 보여줌
+- 짹은 기존 `JjaekPolicy::Scope`에 개인 영역·전체 공개·삭제/숨김 아님·원본 조건을 더해 선정함. 책 첨부 관계로 후보를 나누며 여러 책에 연결된 짹을 중복 조회하지 않음. 두 사람 전용 프로필 대화는 제외하고 작성자의 책장 공개 여부를 후보 조건으로 쓰지 않음
 - 추천 서재의 수량과 표지는 전체 공개 책장 항목만 사용함. 동아리는 기존 `GroupPolicy::Scope`와 active·유형·운영 상태를 함께 확인하고 미가입 동아리를 우선함. 동아리 게시물은 기존 읽기 권한과 `JjaekPolicy::GroupContentScope`를 통과한 최근 열람 가능 글 최대 3개를 표시하며 승인 동아리 비회원에게는 가입 승인 안내만 표시함
-- 네 영역은 후보가 없을 때 각각 빈 상태를 표시하며 기존 책·짹·프로필·동아리 상세로 연결됨. 상단에 한국 시간 기준 발행 날짜를 표시하고 날짜·콘텐츠 ID에 따른 일일 순서로 추천함. 새 짹은 다음 날부터 후보에 포함하며 숨김·삭제·권한 변경은 매 요청 반영함. 동아리 책짹에는 작은 책 표지와 책 상세 링크를 표시함
+- 네 영역은 후보가 없을 때 각각 빈 상태를 표시하며 기존 책·짹·프로필·동아리 상세로 연결됨. 상단에 한국 시간 기준 발행 날짜를 표시하고 날짜·콘텐츠 ID에 따른 일일 순서로 추천함. 새 짹은 다음 날부터 후보에 포함하며 숨김·삭제·권한 변경은 매 요청 반영함. 개인·동아리 미리보기는 첨부 순서대로 최대 3권과 책 상세 링크를 표시하고 나머지는 외 N권으로 요약함
 
 ### 1. 홈 (/)
 
@@ -95,25 +95,23 @@
 
 ### 2. 책 화면 (/books/:id)
 
-- 통합 책 타이틀 카드는 홈 작성 폼과 같은 max-w-4xl(896px) 가운데 정렬이며, 아래 책친구 활동·책짹 목록은 max-w-3xl(768px)을 유지한다. 표지·서지 정보, 소개·외부 링크 다음에 구분선 하나로 책장 정보·독서 활동을 구분한다. 별도 내 서재·독서 활동 카드는 없다
+- 통합 책 타이틀 카드는 홈 작성 폼과 같은 max-w-4xl(896px) 가운데 정렬이며, 아래 책친구 활동·첨부 짹 목록은 max-w-3xl(768px)을 유지한다. 표지·서지 정보, 소개·외부 링크 다음에 구분선 하나로 책장 정보·독서 활동을 구분한다. 별도 내 서재·독서 활동 카드는 없다
 - 모바일은 최대 너비 96px 표지 왼쪽·서지 정보 오른쪽, 소개·외부 링크는 그 아래 전체 너비다. md 이상은 기존 최대 160×224px 표지 왼쪽·서지 정보와 소개 오른쪽이다. 긴 소개의 펼침·접기와 반응형 정보의 단일 렌더링을 유지한다
 - Book의 nullable `published_on`(date)·`translators_text`(string)는 Kakao SearchService의 datetime·translators 정규화와 서명 토큰을 거쳐 새 Book 등록에 저장됨. 기존 Book 재사용 시 메타데이터를 보완하지 않으며 추가 API 호출이나 일괄 보완은 없음. 책 상세/미리보기의 `BooksHelper#book_metadata_rows`와 공통 header는 저자·역자·출판사·출간일·ISBN을 레이블/값 1열로 표시하고 누락 행은 생략함. 날짜는 locale의 book_publication 형식(`2026. 4. 22.`)을 사용하며 전체 값을 줄바꿈함
-- 일반 상세는 viewer 기준 개인 원본 책짹 BookScope를 적용하고, 서재 미등록 시 공개 책짹만 표시한다. 서재 등록 후 동아리 맥락은 해당 동아리의 GroupContentScope 원본 책짹 목록을 표시한다
-- `books/:id`의 책짹 목록에는 ReJjaek을 직접 포함하지 않는다
-- 원본 책짹 카드의 visible ReJjaek count는 유지한다
+- 책 상세 목록은 `Book#attached_jjaeks`에 개인 `BookScope` 또는 명시적인 동아리 문맥의 `GroupContentScope`를 적용한다. 서재 등록 여부로 읽기·작성 권한을 바꾸지 않으며 여러 권 첨부 시 각 책에 같은 짹이 한 번씩 표시된다
+- `books/:id`의 첨부 짹 목록에는 ReJjaek을 직접 포함하지 않는다
+- 원본 짹 카드의 visible ReJjaek count는 유지한다
 - ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
-- 현재 사용자의 `BookshelfEntry`가 있을 때만 책짹 작성 컨텍스트가 열림
+- 서재 미등록 책과 외부 검색 책 미리보기에도 현재 Pundit 작성 권한 안에서 통합 짹 폼을 제공한다. 현재 책 1권을 기본 첨부하며 제거·다른 책 추가로 0~5권을 선택한다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
-- 미등록 책은 타이틀 카드에서 서재에 담기 모달을 열고 기본 책장이 선택된 단일 라디오 배지로 등록한다. 등록된 책은 현재 상태·스티커 배지와 독서 활동 버튼, 작성 권한이 있는 경우 타이틀 카드 다음에 독립된 인라인 책짹 폼을 표시한다
+- 미등록 책은 타이틀 카드에서 서재에 담기 모달을 열고 기본 책장이 선택된 단일 라디오 배지로 등록한다. 등록된 책은 현재 상태·스티커 배지와 독서 활동 버튼을 표시한다. 작성 권한이 있으면 등록 여부와 무관하게 타이틀 카드 다음에 공통 인라인 짹 폼을 표시한다
 - 독서 활동 모달은 기존 reading_state 폼에서 상태 3종·상태 없음·스티커 선택과 전체 해제를 한 번의 PATCH로 저장한다. 항목 잠금·transaction 안에서 상태·스티커·BookActivity를 함께 저장한다. HTML 실패 응답은 제출값과 오류를 복원해 독서 활동 모달만 다시 열고, JSON 실패 응답은 현재 저장값과 오류를 반환한다
-- 개인·동아리 책짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 항목과 스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
-- 책짹 작성 영역은 기존 `_jjaek_form_panel`의 카드와 max-w-3xl 너비를 사용한다. 제목은 `이 책에 책짹 쓰기`로 고정하고 입력창은 4줄이다. 작성 모달·실행 버튼·자동 열기 연결은 제거했다. 기존 작성 권한·본문·200자 카운터·오류 복원·return_to와 성공 이동 정책을 유지한다. 실행 버튼은 개인/동아리 게시 위치에 따라 책짹/동아리 책짹이다.
-- 새 책짹 폼의 게시 위치는 일반 진입에서 personal, group_id 진입에서 해당 group이 기본값이다. `book-posting` Stimulus가 SVG 라디오 카드의 게시 위치·개인 공개 범위와 동아리 선택을 전환하고 본문을 유지하며 실행 버튼을 갱신한다. 인용 작성은 기존 고정 게시 경로를 유지하고, 인용 진입·작성 오류 시 인라인 폼에서 제출값·오류를 보존한다
-- 동아리 목록과 새 책짹의 명시적 게시 대상은 `GroupPolicy::CreateJjaekScope`로 제한한다. `POST /jjaeks`에서 목적지·Book·group_id를 검증하고 기존 Jjaek policy로 저장을 인가한다. 공유·다시짹은 기존 경로를 유지한다 초기 조회·작성 실패·독서 활동 실패 화면의 작성 가능 여부·게시 위치·폼 경로는 공통 Controller의 `prepare_book_show_form_context`에서 준비하며, 동아리 option의 표시값은 기존 JjaeksHelper에서 만든다
-- 동아리 피드의 작성 선택은 짹/동아리 책짹이며 책 상세 입력 카드의 중복 탭은 제거했다
+- 단일 첨부 개인·동아리 짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 항목과 스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
+- 책 상세 작성은 공통 인라인 폼과 `selected_books[]`를 사용한다. 본문 200자·공개 범위·첨부 순서와 검증 실패 입력을 보존하며, 동아리 게시 대상은 기존 경로와 서버 인가로 결정한다. 구형 게시 위치 selector·`book-posting` Stimulus·book_id 게시 입력은 사용하지 않는다
+- `prepare_book_show_form_context`가 개인/동아리 Pundit 작성 가능 여부를 준비한다. 책 문맥은 `book_context_id/token`으로 유지하며 현재 책을 실제 첨부해 저장하면 해당 책으로, 제거하고 저장하면 홈으로 이동한다. 공유·다시짹은 기존 별도 경로를 유지한다
 - 담긴 책장 이름은 기존 책장 색상의 `user_library_path(current_user, bookshelf_id:)` 링크다. 긴 이름은 줄바꿈한다. 책장이 2개 이상이면 책장 이동 버튼으로 radio 모달을 열고 현재 책장을 기본 선택한다. 이동 대상은 책장 고유 색상 없이 평면형 `.ui-choice`의 체크 표시·stone 테두리·배경으로 구분하며 이동 버튼으로 PATCH 경로·return_to=book·group_id를 유지한다
 - 서재에 담기·책장 이동·독서 활동 모달은 각각 고유 ID와 book-modal Stimulus 범위를 사용한다. 닫기·Escape·포커스 복귀·모바일 내부 스크롤·body scroll lock·Turbo cache 닫기를 유지한다
-- 별도 책친구 활동은 현재 accepted 관계와 public/book_friends 책장의 연결 항목에 허용된 BookActivity(상태·스티커 변경 포함), 기존 가시성 안의 개인 책짹을 합쳐 최근 3건 표시한다. 홈의 소식받기 조건은 적용하지 않으며 본인 활동은 제외한다. 기존 책짹 목록에는 BookActivity를 섞지 않는다
+- 별도 책친구 활동은 현재 accepted 관계와 public/book_friends 책장의 연결 항목에 허용된 BookActivity(상태·스티커 변경 포함), 기존 가시성 안의 개인 첨부 짹을 합쳐 최근 3건 표시한다. 홈의 소식받기 조건은 적용하지 않으며 본인 활동은 제외한다. 첨부 짹 목록에는 BookActivity를 섞지 않는다
 
 관련 코드:
 - controller: app/controllers/books_controller.rb (show)
@@ -292,7 +290,7 @@
 - 동아리 관리자가 이름과 소개를 수정할 수 있으며 생성 후 동아리 종류 변경은 허용하지 않음
 - 동아리 관리자는 회원 관리 화면에서 active 일반 회원을 직접 내보낼 수 있음
 - group admin은 운영 정지되지 않은 active 동아리의 일반 active 회원을 별도 `moderation_status`로 새로 활동 정지하거나 기존 정지를 복구할 수 있고, inactive 동아리에서는 기존 활동 정지만 복구할 수 있음. 회원 관리 화면은 현재 정지 상태·공개 사유와 허용된 action 링크를 보여주고, 사유 입력·실행은 `/groups/:group_id/group_memberships/:group_membership_id/activity_suspensions/new` 또는 `activity_restorations/new`의 독립 page에서 처리함
-- 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·책짹·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
+- 활동 정지 membership은 active와 내부 콘텐츠 읽기 권한을 유지하고 해당 Group의 Jjaek·Comment 생성·수정과 새 Like는 차단되지만 자기 콘텐츠 삭제와 기존 Like 철회는 허용되며 User 계정 정지와 서로 자동 전파되지 않음
 - 활동 정지는 현재 membership 삭제 시 종료되고 새 membership에 자동 승계되지 않으며 감사 row만 보존함
 - `GroupMemberBan`은 active membership에 적용하는 현재 Group/User 이용 제한 상태로 membership을 종료하고 재가입·신청·승인·초대·수락을 차단하며, 해제해도 membership을 자동 복구하지 않음. pending 가입 신청은 승인·거절 심사만 제공함. 회원 관리 화면은 현재 제한 상태·원래 공개 사유와 허용된 action 링크만 표시함. Ban은 삭제 전 `GroupMembership`을 target으로 하는 `/groups/:group_id/group_memberships/:group_membership_id/member_bans/new`에서 `GroupMemberships::MemberBansController`가 처리하고, Unban은 현재 `GroupMemberBan`을 target으로 하는 `/groups/:group_id/group_member_bans/:group_member_ban_id/restorations/new`에서 `GroupMemberBans::RestorationsController`가 처리함. 두 route는 의도적으로 비대칭이며 각 button·GET·POST는 같은 action policy predicate를 사용함
 - 새 이용 제한과 기존 제한 해제는 운영 정지되지 않은 active 동아리에서 허용하고, inactive 동아리에서는 기존 이용 제한의 해제만 허용함
@@ -305,12 +303,11 @@
 - 내보내기·거절·초대 취소는 ban이 아니며 재가입 또는 재초대를 영구 차단하지 않음
 - append-only `GroupMembershipEvent`는 Group 단위로 가입·신청·승인·거절·초대·수락·거절·취소·탈퇴·내보내기·관리자 권한 해제·부여와 대상·처리자를 기록하며 membership 삭제 후에도 보존함
 - `GroupMembershipRemoval`은 내보내진 사용자의 private Group stale URL 안내를 위한 현재 표식으로, 재가입 시 삭제되지만 과거 `removed` event는 유지됨
-- active member는 동아리 안에서 `짹`과 `책짹`을 작성할 수 있음
-- 두 형태 모두 `Jjaek`의 optional `group_id` / `book_id` 조합으로 표현함
-- 동아리 책짹은 기존 책 검색·서재 담기 흐름을 거치며 작성자의 `BookshelfEntry`가 필요함
+- active member는 동아리 안에서 책 0~5권을 선택적으로 첨부하는 통합 `Jjaek`을 작성할 수 있음
+- 게시 문맥은 `group_id`, 책 연결은 `JjaekBookAttachment`로 관리하며 작성자의 서재 등록을 요구하지 않음
 - 공개 동아리의 Jjaek은 로그인 사용자가, 승인/비공개 동아리의 Jjaek은 active member만 조회할 수 있음
 - 동아리 Jjaek은 동아리 상세와 권한 있는 작성자 프로필에 표시하지만 현재 홈 `FeedScope`에서는 membership과 관계없이 제외됨
-- 동아리 Jjaek은 일반 책 상세에서 제외하며, group_id 맥락의 서재 등록 책 상세에서만 해당 동아리 목록을 표시함. 홈 제외와 `/groups` 통합 활동 피드는 `docs/specs/group_activity_feed.md`의 확정 정책을 구현한 것임
+- 동아리 Jjaek은 일반 책 상세에서 제외하며, 인가된 group_id 맥락의 책 상세에서만 해당 동아리 목록을 표시함. 홈 제외와 `/groups` 통합 활동 피드는 `docs/specs/group_activity_feed.md`의 확정 정책을 구현한 것임
 - 동아리 Jjaek은 기존 `Comment` 모델과 Turbo panel을 사용함
 - 댓글 읽기는 부모 동아리 Jjaek 권한을 상속하고 active member만 작성·자기 수정할 수 있음
 - 탈퇴하거나 내보내진 사용자의 기존 댓글은 유지되며 새 작성·수정은 불가하지만 자기 댓글 삭제는 가능함
@@ -321,7 +318,7 @@
 - `/groups/:id`는 `cleanup_content?`를 일반 상세 준비 전에 검사함. 읽기 불가인 과거 실제 회원만 전용 제한 partial로 자기 콘텐츠를 확인·삭제하며 현재 읽을 수 있으면 기존 일반 화면을 유지함. `ReadableContentScope`와 Jjaek·Comment `GroupCleanupScope`에 해당 Group ID를 더해 조회하고 `Admin::InventoryPage`로 종류별 50개씩 표시함. 페이지 링크는 숫자 ID·종류·page만 전달하며 댓글 조회에는 부모의 hidden_at만 함께 선택해 부모 본문을 로드하지 않음
 - 제한 화면은 본인 본문·종류·시각·Group ID만 표시하고 현재 이름·책·인용 원문·타인·부모 본문·내부 링크를 표시하지 않음. 숨김 글·댓글 및 숨김 부모 아래 댓글은 안내만 표시하고 Jjaek tombstone은 제외함. 기존 삭제 controller는 고정 `group_restricted_content` marker와 현재 제한 화면 권한을 검증한 뒤 삭제 콘텐츠의 Group 숫자 ID 경로로만 303 복귀함. tombstone·댓글·moderation 및 일반 열람·수정·작성 권한은 유지함
 - 동아리 좋아요는 기존 `Like` 흐름을 사용하며 active 동아리의 active member만 새로 만들 수 있음. 기존 자기 Like 철회는 hidden, deleted tombstone, 동아리 운영 종료 등에서도 부모 Jjaek의 현재 read boundary가 유지되는 범위에서만 가능하고, membership 종료 등으로 부모를 읽을 수 없으면 허용하지 않음
-- active 공개 동아리의 Jjaek·책짹은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
+- active 공개 동아리의 Jjaek은 로그인 사용자가 membership 없이 기존 개인 ReJjaek 흐름으로 가져올 수 있음
 - 승인·비공개·inactive·pending 동아리 원문의 개인 피드 외부 ReJjaek은 허용하지 않음. 전체 공개 개인 원문은 작성 가능한 동아리마다 의견을 붙여 공유할 수 있고, 동아리 원문은 같은 동아리의 읽기·쓰기 권한을 갖춘 회원이 인용할 수 있음. 다른 동아리 원문과 이미 다시짹한 글의 인용은 금지함
 - 이 세 경로의 사용자 표시 용어는 다시짹으로 통일함. 동작은 각각 `내 피드에 다시짹`, `동아리에 다시짹`, `이 동아리에 다시짹`으로 구분하며, 카드 헤더와 알림에는 접근 가능한 출처·목적지 문맥을 표시함
 - 일반 독자의 원문 다시짹 개수와 목록은 연결된 개인·동아리 다시짹 중 현재 읽을 수 있는 항목만 포함함. 원문 작성자는 읽을 수 없는 유효 동아리 다시짹도 개수와 접근 제한 카드로 확인함. 공개 조회가 가능한 승인 동아리만 작성자·원문 종류·동아리 이름을 표시하고, 비공개 동아리의 제한 카드는 익명으로 표시함. 목록 조회는 새 다시짹 작성 권한과 별개이며, 동아리 원문에도 같은 개수·목록 링크를 제공함
@@ -329,7 +326,7 @@
 - 동아리 hard delete, 이메일·링크 초대, 신고 queue와 별도 platform moderator 역할·dashboard는 구현되지 않음
 - 현재 동아리 관리자는 `/groups/:id/content`에서 자기 동아리의 Jjaek·Comment thread를 검색·필터·정렬·페이지네이션하는 콘텐츠 관리 화면을 사용함. `Groups::ContentsController#index`는 `GroupPolicy#view_content_inventory?`로 active/inactive 동아리의 현재 관리자만 허용하고, 운영 정지 중에도 기존 read boundary 안의 조회는 유지하며 pending 동아리는 거부함
 - Group 화면은 `Groups::ContentThreadQuery`로 자기 동아리만 조회하고 author email, platform-origin hidden 원문과 삭제 본문을 검색 대상으로 노출하지 않음. global admin용 `Admin::GroupContentThreadQuery`와 권한 경계를 분리하며, 실제 hide/restore 링크와 실행은 기존 Jjaek·Comment Group authority policy를 재사용함
-- global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·책짹·다시짹·Comment를 직접 조사할 수 있음
+- global admin은 User 운영 상세의 필터 가능한 chronological content inventory에서 해당 사용자의 개인·동아리 Jjaek·다시짹·Comment를 직접 조사할 수 있음
 - Group 운영 상세는 root Jjaek과 그 Comment를 하나의 thread로 묶고, 최신 Comment부터 root 순으로 표시하며 thread의 최근 활동 시각 기준으로 정렬·페이지네이션함
 - 각 표는 실제 Jjaek 또는 Jjaek 안의 Comment 위치로 연결하며, global admin은 운영 조사를 위해 private visibility와 membership 없는 private/inactive Group Jjaek의 단건 상세를 열람할 수 있음
 - User/Group content inventory는 검색·기본 상태 필터·정렬·페이지네이션을 제공함. User inventory는 item을 직접 필터하고, Group inventory는 root 또는 Comment가 조건에 맞는 thread를 선택한 뒤 전체 thread 문맥을 표시함. hidden Comment는 `hidden_at` 기준으로 숨김 상태로 다루며 Comment에는 별도 삭제 상태를 만들지 않음
@@ -340,7 +337,7 @@
 - platform-origin 숨겨진 Jjaek은 기존 feed/profile/Book/Group read boundary 안의 목록·단건 상세에서 원문 body 대신 시스템 관리자 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기를 유지하되 새 interaction은 차단함. 이를 원문으로 참조하는 ReJjaek row와 관계는 보존하되 일반 조회에서 제외하며, source restore 뒤에는 현재 접근 권한을 다시 적용함
 - group-origin 숨겨진 Jjaek은 기존 Group read 경계 안의 Group 목록·단건 상세에서 원문 body 대신 placeholder와 공개 사유를 표시하고 좋아요 요약·댓글 수·댓글 보기·글 보기 및 기존 댓글 읽기 맥락을 유지하되 새 interaction은 차단함. 작성자는 자기 원문·숨김 주체·공개 사유를 확인하고 자기 삭제만 수행하며, group admin은 자기 Group의 숨겨진 원문·공개 사유를 조사함
 - 대상 Jjaek의 작성자인 global admin에게는 작성자 권한이 우선하여 내부 메모·전체 감사·hide/restore 권한을 제공하지 않고, 작성자가 아닌 global admin은 원문과 전체 hide/restore 감사를 조사함
-- group admin은 운영 정지되지 않은 active 자기 동아리에서 타인의 짹·책짹을 새로 숨기거나 기존 group-origin hide를 복구할 수 있음. inactive 자기 동아리에서는 새 숨김 없이 기존 group-origin hide의 복구만 허용함.
+- group admin은 운영 정지되지 않은 active 자기 동아리에서 타인의 짹을 새로 숨기거나 기존 group-origin hide를 복구할 수 있음. inactive 자기 동아리에서는 새 숨김 없이 기존 group-origin hide의 복구만 허용함.
   같은 Group authority의 hide는 현재 관리자가 복구하고 global admin hide와 현재 global admin 작성 글의 신규 hide는 대상에서 제외함. 일반 사용자일 때 적법하게 발생한 group-origin hide는 작성자가 승격된 뒤에도 현재 Group admin이 복구할 수 있음
 - group admin도 hide/restore 시 선택적 내부 메모를 저장함.
   global admin은 platform/group-origin 메모를 모두 열람하고, 현재 group admin은 자기 Group의 group-origin 메모만 관리자 변경과 관계없이 열람하며 작성자·일반 회원과 권한을 잃은 이전 관리자는 열람하지 못함
@@ -374,7 +371,7 @@
 - 정지 User의 새 로그인과 기존 session의 다음 일반 요청을 차단하며, 올바른 비밀번호가 확인된 로그인에는 현재 공개 사유를 안내함
 - Group membership 활동 정지·이용 제한은 group admin만 실행하며 global admin은 현재 회원·제한·감사 이력을 조사하고 service-wide 제재에는 User 계정 정지·복구를 사용함
 - 신규 User 계정 정지와 Group 운영 정지는 각각 정의된 predefined 공개 사유를 선택하며 known key는 locale label로 표시하고 기존 자유 텍스트 감사 row는 그대로 표시함. 복구 공개 사유와 GroupMembership 활동 정지·복구 및 GroupMemberBan 제한·해제 사유는 자유 텍스트를 유지함
-- Group operation 전체 이력 UI는 구현되어 있음. 회원가입·로그인·짹·책짹·댓글·좋아요와 동아리 개설·가입·초대 요청에는 기본 rate limit이 적용됨. 동아리 제한은 권한 확인 뒤 사용자별 카운터를 사용하며, 개설은 5회/24시간, 가입·신청은 합산 15회/1시간, 초대는 30회/1시간임
+- Group operation 전체 이력 UI는 구현되어 있음. 회원가입·로그인·짹·댓글·좋아요와 동아리 개설·가입·초대 요청에는 기본 rate limit이 적용됨. 동아리 제한은 권한 확인 뒤 사용자별 카운터를 사용하며, 개설은 5회/24시간, 가입·신청은 합산 15회/1시간, 초대는 30회/1시간임
 - 베타 신규 User 회원가입은 시스템 관리자의 이메일 초대 링크로만 가능함. `RegistrationInvitation`은 Group 초대와 별개이며 digest token, 7일 만료, 사용·취소 상태를 관리함. `Users::RegistrationsController`는 기존 Devise 가입 흐름의 검증과 로그인 동작을 유지하면서 초대 행 잠금 및 동일 transaction에서 User 생성·초대 사용을 처리함. 세부 정책은 `docs/specs/registration_invitations_c08.md`를 따름
 - `/privacy`와 `/terms`는 비로그인 공개 페이지이며 공통 푸터와 초대 가입 화면에서 연결됨. 공통 푸터는 일반 화면에서는 layout에, 로그인·가입·비밀번호 재설정 화면에서는 배경 이미지가 있는 인증 영역 안에 한 번 표시됨. 새 초대 가입은 이용약관 동의를 서버에서 검증하고 User에 동의 시각·약관 버전을 남김. 기존 회원의 로그인과 계정 수정에는 동의 검증을 적용하지 않음
 - 미사용 만료 초대는 만료부터 30일, 취소 초대는 취소부터 30일 뒤 Solid Queue 일일 작업에서 이메일을 초대별 비식별 주소로 교체함. 사용 완료 초대는 회원 이용 중 보존함. 자발적 탈퇴 시에는 관련 초대 이메일과 User 연결을 즉시 정리하고, 예외적으로 활성 초대가 남아 있으면 취소함. 영구 제재자의 식별정보 보존·파기 절차는 별도 정책으로 남아 있음
@@ -441,16 +438,16 @@
 - Book의 제목·저자·출판사를 DB에서 검색하고, 기존 `BookSearches::SearchService`와 `KakaoAdapter`의 외부 결과를 `검색 결과` 한 목록에 기존 순서·중복 제거 정책대로 표시함. 각 검색의 페이지네이션은 유지하고 외부 API 건수를 전체 결과 건수로 표시하지 않음. 외부 장애 시 DB 결과와 안내를 유지함
 - DB·외부 검색은 현재 사용자 소유 BookshelfEntry와 Bookshelf를 일괄 조회해 실제 책장을 카드에 전달함. 등록된 책은 기본 책장의 `내 서재에 있음` 또는 일반 책장의 `{실제 책장 이름}에 있음` 비활성 버튼을 표시함. POST 성공 시 기존 Turbo Stream으로 해당 카드만 교체하고 실제 등록 책장을 표시하며, 재등록은 기존 책장·BookActivity를 유지함
 - 로그인 사용자의 Navbar·본인 Library 책 검색은 공통 Navbar에서 한 번 렌더링하는 global-book-search-dialog를 열고 GET으로 `/book_search`에 제출함. 공통 `book-modal`은 layout body가 소유하며 중첩된 동아리·카드·책장 모달 범위와 분리됨. 기존 검색 폼 partial·입력창 autofocus·닫기·Esc·실행 버튼으로 포커스 복귀·body scroll lock·Turbo 이동/캐시 전 닫기를 유지함. Navbar의 모바일 메뉴는 열기 전에 접고 닫은 뒤 메뉴 버튼으로 포커스를 복귀함
-- Navbar 검색은 group_id를 전달하지 않고 검증된 search_origin만 복귀 경로로 보존함. 동아리 책짹 작성 버튼은 기존 작성 권한 조건 안에서 같은 검색 모달 partial·폼과 book-modal을 별도 범위·고유 ID로 재사용하며, 동아리 게시 안내와 group_id를 명시적으로 전달함. 닫기·Esc·포커스 복귀와 Turbo 이동/캐시 전 닫기를 공통 처리함
+- Navbar 검색은 group_id를 전달하지 않고 검증된 search_origin만 복귀 경로로 보존함. 동아리의 현재 작성 폼은 공통 composer의 책 선택창을 사용하며, 검색 모달과 독립된 선택 문맥·동아리 인가를 유지함
 - Library 검색은 공통 모달을 재사용하고 현재 서재 경로·책장·정렬을 검증된 search_origin으로 유지함. 모든 검색 모달은 GET 제출 후 같은 결과 페이지로 이동하며 결과·재검색 폼·pagination·서재 등록은 해당 페이지에 유지함. 직접 진입용 book_search_entry_path는 사용처가 없어 제거했으며 `/book_search`는 오류 복귀에도 계속 사용함
 - 검색어가 없으면 입력 폼만 표시하고 외부 검색과 빈 결과 메시지는 생략함. 같은 폼으로 다시 검색하면 group_id·최초 출발 화면을 유지하며 page를 전달하지 않아 첫 페이지에서 시작함
-- 전역 검색은 동아리에서 열어도 책 상세의 일반 책짹이 기본 선택됨. 명시적인 동아리 작성 검색은 group_id를 상세·등록·작성에 유지하고 해당 동아리를 기본 선택함. 게시 위치는 기존 책 상세 작성 폼에서 선택하며 이미 등록된 책은 중복 등록하지 않음
+- 전역 책 검색은 동아리에서 열어도 개인 작성 문맥으로 진입함. 명시적인 group_id는 상세·등록·작성에 유지하고 서버에서 인가함. 현재 책 상세 폼에는 구형 개인/동아리 게시 위치 selector가 없으며 기존 서재 등록은 중복 생성하지 않음
 - 검색 페이지의 출발 화면은 `search_origin`, 상세/lookup/등록에서 돌아갈 검색 결과는 `return_to`로 구분함. 검색어·페이지·group_id와 검증된 출발 문맥을 유지하며, 상세에서 검색 결과로 돌아온 뒤 출발 화면으로 복귀할 수 있음
 - 두 문맥은 기존 `validated_jjaek_return_path`의 경로·권한 검사를 사용함. 검색 결과 경로의 `search_origin`만 한 단계 검증·보존하고 추가 중첩은 제거함. 출발 문맥이 없으면 해당 동아리 또는 본인 서재로 복귀함
 - 결과 카드의 Turbo 등록 성공 응답은 전달받은 검색 결과 경로를 명시적으로 다시 사용하며, HTML 등록·redirect도 유지함
 - 외부 검색 결과에는 로그인 사용자에 묶인 30분 유효 서명을 발급하며, 미등록 책의 `책 상세 보기`는 저장 없이 읽기 전용 미리보기를 표시함
 - 일반 검색의 신규 Book은 검증된 검색 결과를 `서재에 담기` 할 때 BookshelfEntry와 함께 등록하며, 기존 Book 메타데이터는 변경하지 않음
-- 추천짹의 `recommendation=1` 검색은 같은 조회 로직과 별도 결과 UI를 사용함. `RecommendationBooksController#create`는 기존 Book ID 또는 사용자별 Rails.cache에 임시 보관한 서명된 외부 결과의 짧은 참조값만 선택함. `selected_books[]`로 선택 순서를 검색·pagination·제거·작성 화면에 유지하며 Book·BookshelfEntry·BookActivity를 생성하거나 상세/서재 등록 링크를 표시하지 않음. 외부 선택은 서명·캐시 만료 시 재선택하며 게시 성공 시 캐시 참조를 정리함
+- 통합 첨부용 `/book_search?attachment=1`은 일반 검색과 같은 공통 결과 카드·대형 표지를 사용하고 하단에 `추가`만 표시한다. 독자용 결과 카드에는 ISBN을 표시하지 않지만 내부 식별에는 사용한다. 임시 선택은 `JjaekBooksController`와 `BookSelection`이 처리하며 `selected_books[]`의 순서·30분 참조 검증과 완료/취소 복원을 유지한다. Book 저장은 최종 게시에서 수행하며 서재 등록과 독립적이다
 - 검색 등록은 유효한 canonical ISBN(ISBN-10의 978 변환 또는 ISBN-13)을 우선 식별자로 사용하고, ISBN이 없으면 검증된 외부 URL을 사용함. 두 식별자가 다른 Book을 가리키면 오류로 처리하며, DB 고유 인덱스로 동시 중복 등록을 방지함
 - 외부 책 주소와 썸네일은 HTTP/HTTPS 및 유효한 호스트만 허용하고, 무효한 썸네일은 기본 표지를 사용함. 운영 DB에는 고유 인덱스 배포 전 별도 중복·충돌 감사가 필요함
 
@@ -460,9 +457,9 @@
   - app/services/book_searches/search_service.rb
   - app/services/book_searches/kakao_adapter.rb
 
-### 8. 책 상세 read-only 서재 담기
+### 8. 책 상세의 서재 미등록 상태
 
-- 현재 사용자의 `BookshelfEntry`가 없는 책 상세 화면은 read-only 상태로 표시됨
+- 현재 사용자의 `BookshelfEntry`가 없어도 상세 열람과 인가된 짹 작성은 가능함. 독서 상태·스티커 편집은 서재 등록 후에만 제공함
 - 이 상태에서 `서재에 담기`를 할 수 있음
 - 타이틀 카드의 서재에 담기 버튼으로 모달을 열고 단일 라디오 배지로 책장을 선택한다. 기본 책장 “내 책장”이 우선 선택되며 기존 등록 경로·search_result_token·group_id·return_to를 유지한다
 
@@ -485,61 +482,32 @@
 
 ## Jjaek 문맥
 
-통합 짹 1차 데이터 계층은 `docs/specs/unified_jjaeks.md` 10절을 따른다.
-`JjaekRecommendation`을 일반 첨부 연결로 재사용하고 `attached_books`로 0~5권을 선택 순서대로 조회한다.
-`book_attachments_migrated`로 의도적인 빈 목록과 미전환을 구분한다. 신규 migration은 legacy book_id를
-연결로 복사하되 기존 추천 연결과 게시물 ID·시각·관계를 유지한다. 이번 구현에서 migration/RSpec은 실행하지 않았다.
-새 다시짹 첨부는 모델에서 금지하고 과거 연결은 보존한다. 아래 legacy 필드 구분은 기존 데이터 해석을 설명한다.
-작성·수정 UI는 12절의 공통 Rails form, 기존 선택 플로팅 창과 페이지 검색 결과로 통합했다.
-공개 범위는 기존 SVG radio 카드이며 첨부 목록의 서재 등록은 기존 모달/저장 경로를 독립적으로 재사용한다. 외부 도서 검색과 임시 참조는 기존 로직을 재사용한다.
-개인·동아리·프로필 접근 경계를 유지하며 서재 등록은 첨부의 조건이 아니다. 발견·검색·관리자 분류 전환은 후속 작업이다.
+현재 통합 구조는 `docs/specs/unified_jjaeks.md` 6·14절을 따른다.
 
-하나의 모델로 통합:
-
-- 일반 짹
-- 책짹 (book_id 있음)
-- 추천짹 (`recommendation: true`, `JjaekRecommendation`으로 여러 Book과 position 연결)
-- 동아리의 짹 (group_id 있음, book_id 없음)
-- 동아리의 책짹 (group_id 있음, book_id 있음)
-- profile-context 짹 (target_user_id 있음)
-- ReJjaek (`quoted_jjaek`이 있거나 deleted-source snapshot이 남아 있음)
-
-→ 하나의 Jjaek 모델이 문맥(context)에 따라 역할을 나눠 갖는다.
-
-타인 프로필 대화(`target_user_id != user_id`)의 두 사람 전용 권한은 `JjaekPolicy`와 Scope에서
-소급 적용한다. 새 개인 다시짹·동아리 공유는 막고 기존 인용 연결은 보존하며 현재 원문 접근을 재검사한다.
-기존 제3자의 댓글·좋아요는 보존하고 기존 상세 URL에서 자기 반응 정리만 허용한다.
-삭제 응답은 부모를 읽을 수 없으면 패널·요약 대신 안전하게 redirect한다. 새 컬럼이나 운영 DB 정리는 없다.
-댓글 알림은 대화 상대에게 전달하며 일반·Group 댓글 알림과 삭제 snapshot lifecycle은 유지한다.
-
-추천짹 유형 배지는 개인 피드·동아리에서 비모달 플로팅 창을 연다. 로그인 layout의
-`recommendation-window`는 `data-turbo-permanent`로 유지하며 `JjaeksController#new`가
-`recommendation_composer` Frame의 초기 내용을 제공한다. 창은 배경 클릭·스크롤을 막지 않고 모바일에서는 하단 높이를 제한한다.
-최초 검색은 `/book_search`로 Turbo 이동하고 이후 재검색·페이지네이션은 `recommendation-search-results` Frame만 갱신하며, 검색 input·선택·본문·공개 범위·단계는 permanent DOM에 유지한다.
-`RecommendationBooksController#create/destroy`는 Book 저장 없이 선택을 추가·제거하고 Turbo Stream으로
-창 목록·선택 hidden 입력·배경 검색 결과를 갱신한다. HTML fallback의 `selection_path`는 검색 문맥을 유지한다.
-`recommendation-composer` Stimulus는 요청 전 선택·동아리 문맥, 페이지 이동 후 검색어·페이지·선택 표시를 동기화한다.
-같은 창에서 책 선택 ↔ 글쓰기 단계를 전환하며 새 작성은 책 검색·선택을 관리하는 1단계에서 시작한다.
-수정은 기존 데이터가 채워진 2단계에서 시작하며, 양 모드 모두 2단계에는 제목·권수 요약과 `책 목록 수정`,
-추천 이유·개인 공개 범위를 표시한다. 단계 전환은 기존 폼을 유지하며 목록과 창의 중첩 스크롤 없이 창 전체만 스크롤한다.
-최종 `짹`만 `JjaeksController#create`로 게시하며 수정 저장은 기존 Jjaek에 PATCH한다.
-게시 검증 실패의 Turbo 응답은 창 내용만 갱신한다. 제출 시 permanent 유지를 해제하지 않으며 저장 성공의 완료 Stream에서만 상태를 지우고 최초 위치로 Turbo 이동한다. HTML fallback도 같은 위치로 redirect한다.
-닫기·상단 내비게이션의 메뉴/일반 책 검색/로그아웃은 작성 DOM과 진행 중인 초기 Frame 로드를 정리하며, focus·자동완성 Escape·scroll·일반 Turbo 이동은 종료하지 않는다. Stream 렌더 시 이전 작성 panel의 identity를 확인해 종료 후 오래된 응답이 새 작성에 적용되지 않게 한다.
-최초 위치는 기존 `search_origin`에 유지하고 게시 시 기존 내부 경로·Pundit 검사를 적용한다. 중간 책 검색·외부·접근 불가 위치는 개인 피드/동아리 fallback을 사용한다.
-추천 책 수는 `Jjaek::MAX_RECOMMENDATION_BOOKS`(5)로 공유하며 선택 요청의 중복 제거 이후와 최종 Jjaek validation에서 강제한다. 기존 DB 구조와 저장 transaction은 유지한다.
-`BookSearchResults`는 일반/추천 검색과 선택 변경 후 결과 갱신에서 기존 조회를 공유하며 JjaeksController의 작성·실패 렌더링은 검색을 수행하지 않는다.
-기존 단일 `book_id`와 ReJjaek·target_user를 혼합하지 않으며, 게시 시 선택을 재검증해 새 Book·책 연결·Jjaek을 함께 저장한다.
-추천 이유·해시태그·공통 interaction·visibility·moderation을 재사용하고 추천 책 목록은 기존 검색 결과 화면과 전역 추천창의 수정 모드에서 수정하며 본문·개인 공개 범위와 원자적으로 저장한다.
-공통 카드에서 표지·제목·저자·책 링크를 순서대로 표시하며 피드·상세의 책 목록을 일괄 preload한다.
-책 상세의 책짹 목록은 `book_id` 조건과 해당 책의 `JjaekRecommendation` ID 하위 쿼리를 OR로 결합한다.
-원본 Jjaek을 중복 없이 조회한 뒤 기존 `BookScope`/`GroupContentScope`와 `FeedPage`를 적용한다.
-현재 `BookScope`는 `book_id`가 없는 개인 추천짹의 공개 항목만 허용하며, 동아리 추천짹은 기존 동아리 문맥에서 조회한다.
-통합/태그 검색과 운영 목록은 추천짹을 별도 유형으로 구분한다.
-확정 범위와 Acceptance Criteria는 `docs/specs/book_recommendation_jjaeks.md`를 따른다.
+- `JjaekBookAttachment`/`jjaek_book_attachments`가 Jjaek과 Book의 순서 있는 연결을 담당한다.
+  `attached_books`가 유일한 책 조회 association이며 본문과 선택적 책 0~5권을 함께 저장한다.
+- Jjaek의 `book_id`, `recommendation`, `book_attachments_migrated`는 `20261108000000`에서 제거한다.
+  기존 migration은 수정하지 않으며 추천 연결 생성 → 백필 → rename → 컬럼 제거 순서로 적용한다.
+- `legacy_source_kind`는 기존 원문 삭제 snapshot 생성에만 사용하는 역사적 메타데이터다.
+  현재 게시물 유형 판별에는 사용하지 않는다. 기존 `quoted_source_kind` 등 snapshot 값은 보존한다.
+- 첨부의 `visible_on_tombstone`은 기존 book_id와 일치했던 연결에만 전환 시 true로 기록한다.
+  과거 단일 책짹 tombstone은 그 책 정보를 유지한다. 새 첨부는 false이며 삭제 후 책 정보가 새로 표시되지 않는다.
+  다시짹 tombstone에는 자신의 책 정보를 표시하지 않는다. 첨부 교체는 기존 표시 marker도 제거한다.
+- 개인 다시짹 A의 원문 삭제 후 작성자 전용 전환과 B/C의 원문 식별 정보 제거·독립 토론 보존을 유지한다.
+  두 사람 전용 대화·Group membership·숨김 및 살아 있는 인용 원문의 권한 재검사는 기존 Pundit 경계를 따른다.
+- 작성·수정은 공통 인라인 Rails form과 `selected_books[]`를 사용한다. 서재 등록은 첨부의 선행 조건이 아니다.
+  책 상세도 `Book#attached_jjaeks`로 조회하며 단일 book_id fallback은 없다.
+- `JjaekBooksController#index/create/destroy`는 임시 책 선택을 담당한다. `BookSelection`은 문맥 인가,
+  사용자 바인딩·만료 검증과 캐시 참조 해석을 공유하고 최종 저장은 JjaeksController/model이 담당한다.
+- `book-selection` Stimulus와 permanent 선택창은 검색·선택 완료·취소 snapshot 복원·본문 유지와 revision 응답 보호를 담당한다.
+  `/recommendation_books`와 이전 책 상세 quote 입력/게시 위치 selector 경로는 제거했다.
+  외부 검색 중에는 Book을 만들지 않고 최종 저장 시 기존 Book 재사용·메타데이터 보존·원자성을 유지한다.
+- 검색·발견·관리자 화면은 첨부 권수로 콘텐츠 유형을 나누지 않는다. 관리자 유형은 짹·동아리짹·다시짹·댓글이다.
+  복귀 URL은 인가된 경로와 허용 필터만 소비하며 중첩 `return_to` 같은 화면 metadata는 게시물 데이터로 전달하지 않는다.
 
 ReJjaek은 원문을 복사하지 않고 `quoted_jjaek`으로 참조한다.
 원문이 수정되면 quoted block도 최신 원문을 보여준다.
-일반짹, 책짹, Group 짹·책짹과 ReJjaek은 같은 Jjaek lifecycle/moderation 의미를 공유하며,
+개인·동아리 짹과 다시짹은 첨부 유무와 무관하게 같은 Jjaek lifecycle/moderation 의미를 공유하며,
 각 context는 read/create 범위를 정하지만 hidden/deleted 상태 의미를 바꾸지 않는다.
 모든 Jjaek은 권한 범위에서 본문을 수정할 수 있고 실제 본문 수정 시각만 표시하며 수정 이력 전체 조회는 제공하지 않는다.
 댓글이 없는 Jjaek 삭제는 hard delete하고, persisted 댓글이 있으면 본문을 제거한 tombstone과 기존 댓글을 보존한다.
@@ -550,7 +518,8 @@ source hidden 또는 friendship·visibility·Group context 변화로 현재 read
 과거 접근 사실로 우회하지 않는다. source hidden은 restore 가능한 노출 제한이고 이 경우 ReJjaek을 자동으로 private 전환하지 않는다.
 원문이 hard delete되거나 tombstone되면 개인 다시짹 A는 원문 연결을 끊고 `private_jjaek`으로 전환한다.
 이후 작성자 본인에게만 보이며 quoted block 위치에는 “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
-deleted-source A 안내에는 원문 작성자 표시 이름, 원문 종류(짹/책짹/추천짹), 원문 삭제 시각만 남기고,
+deleted-source A는 원문 작성자 표시 이름·과거 종류·삭제 시각 snapshot을 보존한다.
+화면은 작성자와 통합 명칭의 원문 삭제 안내를 표시하며 과거 종류를 현재 유형으로 복원하지 않는다.
 원문 본문/책 메타/avatar snapshot은 저장하지 않는다. 공개 화면에는 placeholder를 표시하지 않는다.
 deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 personal Jjaek과 같은 수정·삭제 lifecycle과
 살아 있는 Jjaek에 허용되는 Comment·Like interaction을 계속 사용할 수 있다.
@@ -612,7 +581,7 @@ BookshelfEntry 제거 시 연결된 모든 활동을 dependent destroy로 정리
 프로필은 self / accepted book_friend, 홈은 self / 소식받는 accepted book_friend 관계를 유지하며,
 다른 사용자의 활동은 연결된 항목의 현재 책장이 public/book_friends인 경우에만 표시한다.
 private 변경 또는 private 책장 이동은 과거 추가 활동에도 즉시 적용된다.
-책 상세의 기존 책짹 목록에는 합성하지 않고 별도 책친구 활동 영역에 표시한다.
+책 상세의 첨부 짹 목록에는 합성하지 않고 별도 책친구 활동 영역에 표시한다.
 생성·조회·삭제의 canonical 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
 
 → 현재 상태, 본문 콘텐츠, 피드용 이벤트는 분리된 모델에서 관리한다

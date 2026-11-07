@@ -57,52 +57,33 @@ visibility는 1차 조건이고, 최종 판단은 policy / policy_scope가 담�
 
 ## 작성 위치별 선택 가능 범위
 
-### 현재 구현에서 확인되는 범위
+| 작성 문맥 | 선택과 읽기 경계 |
+| --- | --- |
+| 홈·일반 책 상세 | 개인 Jjaek의 세 visibility를 선택. 책 상세는 서재 등록을 작성 전제로 요구하지 않음 |
+| 본인 프로필 | 일반 작성은 홈에서 진행. 프로필 자체가 읽기 권한을 넓히지 않음 |
+| 타인 프로필 대화 | 공개 범위 선택 없이 작성자·대상자 두 사람 전용. 신규 작성만 accepted 책친구 관계 요구 |
+| 동아리·동아리 책 상세 | 개인 visibility UI 없이 현재 동아리 읽기·쓰기 정책 적용 |
 
-`docs/architecture/current_system.md` 기준으로 현재 문서에서 확인되는 범위는 아래와 같다.
+`target_user_id != user_id`인 대화는 저장된 visibility나 첨부 유무보다 두 사람 전용 규칙이 우선한다.
+제3자는 양쪽 모두와 책친구여도 본문·댓글·첨부 책 정보를 볼 수 없다. 관계 해제 후에도 당사자는 과거 대화를 읽는다.
+조작된 visibility 입력으로 대화를 공개할 수 없으며 기존 visibility를 일괄 변경하지 않는다.
+Group의 내부 enum 저장값은 동아리 공개 범위를 뜻하지 않는다. Group lifecycle·membership·운영 정지와
+게시물 숨김 상태를 별도로 검사한다. [groups_mvp.md](../specs/groups_mvp.md)를 따른다.
 
-- 내 프로필
-  - `public_jjaek`
-  - `book_friends`
-  - `private_jjaek`
-- 남의 프로필
-  - 공개 범위 선택 없이 두 사람 전용 안내를 표시한다.
-  - `target_user_id != user_id`인 대화는 저장된 visibility와 무관하게 작성자와 대상자만 읽는다.
-  - 신규 작성만 현재 책친구 관계를 요구하고 과거 대화 읽기는 관계 해제 후에도 유지한다.
-  - 생성·수정의 visibility 조작은 무시한다. 기존 visibility 일괄 변경은 하지 않는다.
+## 조회와 첨부 정보의 권한
 
-현재 구현 요약 문서에는 홈과 책 상세의 선택 가능 범위가 별도 표로 정리되어 있지 않다.
-그 상세는 실제 controller / policy / form 코드와 관련 spec을 함께 확인해야 한다.
+- 단건은 `JjaekPolicy`, 목록은 화면별 Pundit scope를 적용한다. 홈·프로필·책 상세·검색·발견의 범위를 같게 만들지 않는다.
+- 짹은 하나의 모델이며 선택적 책 0~5권을 `JjaekBookAttachment`로 연결한다. 별도 추천짹 유형은 없다.
+  첨부된 Book의 제목·표지·링크·건수는 부모 짹의 읽기 권한을 따른다. 첨부가 서재 등록이나 책장 정보 열람을 허용하지 않는다.
+- 검색·태그는 통합 짹과 다시짹을 권한 범위에서 조회하며 댓글을 검색하지 않는다. 발견은 개인 전체 공개 원본 중
+  첨부 유무로 분류하고 두 사람 전용 대화·다시짹·숨김/삭제를 제외한다. 관리자 조사 scope는 일반 조회로 확장하지 않는다.
+- 독서 상태·스티커는 단일 첨부 Book과 작성자의 관계를 `BookshelfEntryPolicy::ReadingStateScope`로 별도 확인한다.
+- 댓글을 남기는 tombstone은 원래 읽기 권한을 유지한다. 기존 단일 책짹은 전환 시 표시한
+  `visible_on_tombstone` 연결만 표시하고 통합 이후 첨부 책 정보는 삭제 후 새로 노출하지 않는다.
+  다시짹 tombstone에는 자신의 책을 표시하지 않는다. `legacy_source_kind`와 과거 snapshot은 현재 유형·권한 판별용이 아니다.
 
-### 목표 상태
-
-visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.md`를 우선 기준으로 본다.
-
-현재 동아리의 `짹`과 `책짹` 작성·조회 기반이 구현되어 있다.
-동아리는 개인 Jjaek의 `public_jjaek`, `book_friends`, `private_jjaek`과 별개인 게시 공간으로 본다.
-동아리 접근 정책을 기존 visibility enum 값으로 표현하지 않으며,
-동아리 작성 화면에는 개인 Jjaek visibility 선택을 제공하지 않는다.
-기존 non-null column을 위한 내부 저장값은 동아리의 공개 범위 의미로 해석하지 않고,
-조회 시 동아리 문맥 권한을 먼저 적용한다.
-목표 동아리 정책은 `docs/specs/groups_mvp.md`를 기준으로 본다.
-
----
-
-## 조회 가능 범위
-
-### 현재 구현
-
-현재 구현 기준:
-
-- Jjaek의 실제 조회 가능 여부는 visibility 값만으로 끝나지 않는다
-- 관계와 화면 문맥, `policy_scope`, quoted Jjaek 가시성 재검사가 함께 작동한다
-- 프로필과 책 상세는 같은 방식으로 읽기 범위를 계산하지 않는다
-
-필요하면 권한 구조 상세는 `docs/architecture/authorization.md`를 함께 본다.
-
-### 목표 상태
-
-조회 가능 범위의 목표 규칙은 `docs/specs/social_relationships_mvp.md`를 기준으로 본다.
+상세 구조는 [current_system.md](current_system.md), [authorization.md](authorization.md),
+현행 첨부 정책은 [unified_jjaeks.md](../specs/unified_jjaeks.md)를 따른다.
 
 ---
 
@@ -120,7 +101,7 @@ visibility 선택 규칙의 목표 상태는 `docs/specs/bookjjaek_reboot_spec.m
 - 원문 또는 ReJjaek 본문이 실제 수정된 시각을 표시하며 수정 이력 전체 조회는 제공하지 않는다
 - 살아 있는 원문에 대한 visibility 변경·관계 변경·숨김 등 접근 권한 상실은 원문 삭제와 구분한다. 관계를 유지한 채 해당 사용자에게 ReJjaek을 비노출하고 자동 private 전환하지 않으며, 권한 회복이나 복구 뒤 현재 권한으로 다시 판단한다
 - 원문이 hard delete되거나 댓글을 보존하는 tombstone이 되면 개인 다시짹 A는 원문 연결을 끊고 `private_jjaek`으로 전환해 작성자 본인에게만 보존한다
-- deleted-source A는 작성자 본인에게만 “원문이 삭제되어 나만 볼 수 있습니다.” 안내와 원문 작성자 표시 이름, 원문 종류(짹/책짹), 원문 삭제 시각을 표시한다. 원문 본문/책 메타/avatar snapshot은 저장하지 않으며 공개 화면에는 placeholder를 표시하지 않는다
+- deleted-source A는 작성자 본인에게만 비공개 전환 안내와 원문 작성자·일반 짹 명칭의 삭제 안내를 표시한다. 원문 종류·삭제 시각 등 기존 역사적 snapshot은 보존하되 현재 유형으로 재해석하지 않는다. 원문 본문/책 메타/avatar snapshot은 저장하지 않으며 공개 화면에는 placeholder를 표시하지 않는다
 - 동아리 다시짹 B·C는 원문 연결과 원문 식별 정보를 제거하되 독립 본문·댓글·좋아요를 보존한다. 이후 목적지 동아리 접근 권한과 게시물 자체 상태로 노출하며, 동아리 안에서는 원문 삭제 사실만 표시한다
 - 원문 자체가 ReJjaek이면 중첩 ReJjaek은 허용하지 않는다
 - 동일 사용자는 같은 원문을 개인 공간에 한 번, 각 목적지 동아리에 한 번씩 다시짹할 수 있다. 해당 목적지에 이미 다시짹했다면 새 버튼을 보여주지 않는다

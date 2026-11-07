@@ -149,7 +149,7 @@ RSpec.describe "Group content inventory", type: :request do
     global_admin_root = platform_admin.jjaeks.create!(group:, content: "GLOBAL_ADMIN_ROOT_BODY")
     book = Book.create!(title: "INVENTORY_PRIVATE_BOOK")
     [ root, group_hidden_root, platform_hidden_root, deleted_root ].each do |post|
-      post.jjaek_recommendations.create!(book:, position: 0)
+      post.jjaek_book_attachments.create!(book:, position: 0)
     end
 
     other_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Other club", group_type: :public_group)
@@ -316,7 +316,7 @@ RSpec.describe "Group content inventory", type: :request do
     base_time = 3.hours.ago
     general = author.jjaeks.create!(group:, content: "SORT_SCOPE_GENERAL", created_at: base_time)
     general.comments.create!(user: author, content: "GENERAL_COMMENT", created_at: base_time + 2.hours)
-    book_root = author.jjaeks.create!(group:, book:, content: "SORT_SCOPE_BOOK", created_at: base_time + 1.hour)
+    book_root = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "SORT_SCOPE_BOOK", created_at: base_time + 1.hour)
     hidden = author.jjaeks.create!(group:, content: "HIDDEN_FILTER_BODY")
     Jjaeks::Hide.new(hidden, actor: group_admin, public_reason: "other").call!
     deleted = author.jjaeks.create!(group:, content: "DELETED_FILTER_BODY")

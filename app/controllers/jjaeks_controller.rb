@@ -4,7 +4,7 @@ class JjaeksController < ApplicationController
   include HomeFeedContext
   include ProfileContext
   include CommentModerationHistory
-  include RecommendationSelection
+  include BookSelection
 
   before_action :prepare_feed_response_format, only: %i[new edit show]
   before_action :set_jjaek, only: :show
@@ -66,7 +66,7 @@ class JjaeksController < ApplicationController
 
   def create
     raise Pundit::NotAuthorizedError if params[:share_to_group].present? && @group.blank?
-    if @group && request.path_parameters[:group_id].blank? && @quoted_jjaek.blank? && params[:book_post_destination] != "group"
+    if @group && request.path_parameters[:group_id].blank? && @quoted_jjaek.blank?
       raise Pundit::NotAuthorizedError
     end
     authorize target_user, :write_jjaek? if @group.blank? && target_user.present?
@@ -108,7 +108,7 @@ class JjaeksController < ApplicationController
     end
 
     if saved
-      clear_recommendation_selection if @selected_book_keys
+      clear_book_selection if @selected_book_keys
       notify_jjaek_created
       redirect_to create_success_path, notice: t("jjaeks.notices.created"), status: :see_other
     else
@@ -127,7 +127,7 @@ class JjaeksController < ApplicationController
     end
 
     if updated
-      clear_recommendation_selection if @selected_book_keys
+      clear_book_selection if @selected_book_keys
       redirect_to jjaek_path(@jjaek, post_return_params), notice: t("jjaeks.notices.updated"), status: :see_other
     else
       render :edit, formats: :html, status: :unprocessable_content
@@ -156,10 +156,10 @@ class JjaeksController < ApplicationController
   def save_jjaek_update
     attributes = update_jjaek_params
     if params.key?(:selected_books)
-      valid = prepare_recommendation_selection(preserve_on_error: true)
+      valid = prepare_book_selection(preserve_on_error: true)
       if !valid || (@jjaek.requote? && @selected_books.any?)
         @jjaek.assign_attributes(attributes)
-        @jjaek.errors.add(:base, t("recommendations.invalid_selection"))
+        @jjaek.errors.add(:base, t("jjaek_books.invalid_selection"))
         return false
       end
     else
@@ -233,7 +233,7 @@ class JjaeksController < ApplicationController
   end
 
   def build_new_jjaek
-    validate_book_post_destination!
+    raise Pundit::NotAuthorizedError if params.key?(:book_id) || params.key?(:book_post_destination) || params.dig(:jjaek, :book_id).present?
     @group = find_jjaek_group
     raise Pundit::NotAuthorizedError if @group.present? && jjaek_target_user_id.present?
     @quoted_jjaek = find_quoted_jjaek
@@ -246,27 +246,22 @@ class JjaeksController < ApplicationController
       expected_group = request.path_parameters[:group_id].present? ? @group.id : nil
       raise Pundit::NotAuthorizedError unless @quoted_jjaek.group_id == expected_group
     end
-    @book = find_jjaek_book unless @quoted_jjaek.present?
-    raise Pundit::NotAuthorizedError if @quoted_jjaek.present? && @group.blank? && jjaek_book_id.present?
     @jjaek_visibility_options = jjaek_visibility_options_for(@quoted_jjaek)
     @jjaek = Jjaek.new(user: current_user, group: @group, quoted_jjaek: @quoted_jjaek,
       target_user: target_user, visibility: target_user.present? ? :book_friends : default_jjaek_visibility_for(@quoted_jjaek))
 
     valid_selection = true
     if params.key?(:selected_books)
-      valid_selection = prepare_recommendation_selection(preserve_on_error: true)
-      if @book && !@selected_books.any? { |book| book.id == @book.id }
-        raise Pundit::NotAuthorizedError
-      end
+      valid_selection = prepare_book_selection(preserve_on_error: true)
     else
-      @selected_books = @book ? [ @book ] : []
-      @selected_book_keys = @selected_books.map { |book| book.id.to_s }
+      @selected_books = []
+      @selected_book_keys = []
     end
-    @selected_books.each_with_index { |book, position| @jjaek.jjaek_recommendations.build(book:, position:) }
+    @selected_books.each_with_index { |book, position| @jjaek.jjaek_book_attachments.build(book:, position:) }
     if !valid_selection || (@jjaek.requote? && @selected_books.any?)
       authorize @jjaek, :create?
       @jjaek.assign_attributes(jjaek_params.slice(:content, :visibility)) if action_name == "create"
-      @jjaek.errors.add(:base, t("recommendations.invalid_selection"))
+      @jjaek.errors.add(:base, t("jjaek_books.invalid_selection"))
       render_failed_create
     end
   end
@@ -356,42 +351,7 @@ class JjaeksController < ApplicationController
     return if group_id.blank?
     raise Pundit::NotAuthorizedError unless group_id.to_s.match?(/\A[1-9]\d*\z/)
 
-    if params[:book_post_destination] == "group"
-      policy_scope(Group, policy_scope_class: GroupPolicy::CreateJjaekScope).find(group_id)
-    else
-      policy_scope(Group).find(group_id)
-    end
-  end
-
-  def validate_book_post_destination!
-    return unless params.key?(:book_post_destination)
-
-    destination = params[:book_post_destination]
-    valid_book_post = action_name == "create" && params.dig(:jjaek, :book_id).present? &&
-      params[:quoted_jjaek_id].blank? && params.dig(:jjaek, :quoted_jjaek_id).blank? &&
-      params[:share_to_group].blank? && jjaek_target_user_id.blank?
-    raise Pundit::NotAuthorizedError unless valid_book_post && destination.in?(%w[personal group])
-
-    path_group_id = request.path_parameters[:group_id].to_s.split("-", 2).first.presence
-    form_group_id = params.dig(:jjaek, :group_id)
-    if destination == "personal"
-      raise Pundit::NotAuthorizedError if path_group_id.present? || form_group_id.present?
-    else
-      raise Pundit::NotAuthorizedError if form_group_id.blank?
-      if path_group_id.present? && path_group_id.to_s != form_group_id.to_s
-        raise Pundit::NotAuthorizedError
-      end
-    end
-  end
-
-  def find_jjaek_book
-    return if jjaek_book_id.blank?
-    raise Pundit::NotAuthorizedError unless jjaek_book_id.to_s.match?(/\A[1-9]\d*\z/)
-    form_id = params.dig(:jjaek, :book_id)
-    if params[:book_id].present? && form_id.present? && params[:book_id].to_s != form_id.to_s
-      raise Pundit::NotAuthorizedError
-    end
-    Book.find(jjaek_book_id)
+    policy_scope(Group).find(group_id)
   end
 
   def find_quoted_jjaek
@@ -402,10 +362,6 @@ class JjaeksController < ApplicationController
 
     redirect_to root_path, alert: t("jjaeks.alerts.requote_source_unavailable")
     nil
-  end
-
-  def jjaek_book_id
-    params.dig(:jjaek, :book_id) || params[:book_id]
   end
 
   def jjaek_quoted_id
@@ -426,7 +382,7 @@ class JjaeksController < ApplicationController
   end
 
   def jjaek_params
-    params.require(:jjaek).permit(:book_id, :group_id, :content, :visibility, :quoted_jjaek_id, :target_user_id)
+    params.require(:jjaek).permit(:group_id, :content, :visibility, :quoted_jjaek_id, :target_user_id)
   end
 
   def update_jjaek_params

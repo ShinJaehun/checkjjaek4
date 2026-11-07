@@ -89,7 +89,7 @@ class BookshelfEntriesController < ApplicationController
     respond_to do |format|
       format.json { render json: reading_state }
       format.html do
-        redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id, quote_id: params[:quote_id],
+        redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id,
           return_to: view_context.validated_jjaek_return_path(params[:return_to])),
           notice: t("bookshelf_entries.notices.updated"), status: :see_other
       end
@@ -269,9 +269,10 @@ class BookshelfEntriesController < ApplicationController
     @sticker_definitions = StickerDefinition.alphabetical
     @group = policy_scope(Group).find(group_context_id) if group_context_id
     authorize @group, :create_jjaek? if @group
-    @quoted_jjaek = policy_scope(@book.jjaeks).find_by(id: params[:quote_id]) if params[:quote_id].present?
-    @jjaek = Jjaek.new(user: current_user, book: @book, group: @group, quoted_jjaek: @quoted_jjaek)
+    @jjaek = Jjaek.new(user: current_user, group: @group)
     authorize @jjaek
+    @selected_books = [@book]
+    @selected_book_keys = [@book.id.to_s]
     prepare_book_show_read_context
   end
 

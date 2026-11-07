@@ -31,22 +31,22 @@ RSpec.describe "Standalone book search", type: :system do
   def open_attachment_search
     within("#jjaek-composer") { click_button I18n.t("jjaek_books.add") }
     expect(page).to have_current_path(group_path(group))
-    expect(page).to have_css("#recommendation-window")
-    expect(page).to have_css("#recommendation-window #recommendation-query")
+    expect(page).to have_css("#book-selection-window")
+    expect(page).to have_css("#book-selection-window #book-selection-query")
     expect(page).to have_css("#jjaek-composer[data-group-id='#{group.id}'] form[action='#{group_jjaeks_path(group)}']")
   end
 
   def search_attachments(query)
-    within("#recommendation-window") do
-      fill_in "recommendation-query", with: query
+    within("#book-selection-window") do
+      fill_in "book-selection-query", with: query
       click_button I18n.t("book_search.form.submit")
     end
   end
 
   def expect_attachment_search(query:, page_number: 1, book_ids: [])
     expect(page).to have_current_path(book_search_path, ignore_query: true)
-    expect(page).to have_css("#recommendation-search-results [data-recommendation-results-state][data-query='#{query}'][data-page='#{page_number}']", visible: :all)
-    expect(page).to have_field("recommendation-query", with: query)
+    expect(page).to have_css("#book-selection-search-results [data-book-selection-results-state][data-query='#{query}'][data-page='#{page_number}']", visible: :all)
+    expect(page).to have_field("book-selection-query", with: query)
     parameters = Rack::Utils.parse_nested_query(URI.parse(page.current_url).query)
     expect(parameters).to include("attachment" => "1", "group_id" => group.id.to_s,
                                   "query" => query, "search_origin" => group_path(group))
@@ -263,13 +263,13 @@ RSpec.describe "Standalone book search", type: :system do
       open_attachment_search
       expect(page.evaluate_script(<<~JS)).to be(true)
         (() => {
-          const bounds = document.getElementById("recommendation-window").getBoundingClientRect()
+          const bounds = document.getElementById("book-selection-window").getBoundingClientRect()
           return bounds.left >= 0 && bounds.right <= window.innerWidth && bounds.top >= 0 && bounds.bottom <= window.innerHeight
         })()
       JS
       search_attachments("Paged repeat")
       expect_attachment_search(query: "Paged repeat")
-      within("#recommendation-search-results") do
+      within("#book-selection-search-results") do
         expect(page).to have_css("article", count: 10)
         within("article[data-book-id='#{books.first.id}']") do
           click_button I18n.t("jjaek_books.choose")
@@ -278,19 +278,19 @@ RSpec.describe "Standalone book search", type: :system do
         click_link I18n.t("book_search.pagination.next")
       end
       expect_attachment_search(query: "Paged repeat", page_number: 2, book_ids: [ books.first.id ])
-      within("#recommendation-window") { expect(page).to have_text(books.first.title) }
+      within("#book-selection-window") { expect(page).to have_text(books.first.title) }
       search_attachments("Replacement")
       expect_attachment_search(query: "Replacement", book_ids: [ books.first.id ])
-      within("#recommendation-search-results") do
+      within("#book-selection-search-results") do
         expect(page).to have_text(I18n.t("book_search.pagination.page", page: 1))
         within("article[data-book-id='#{replacement.id}']") do
           click_button I18n.t("jjaek_books.choose")
           expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
         end
       end
-      within("#recommendation-window") { click_button I18n.t("recommendations.finish_selection") }
+      within("#book-selection-window") { click_button I18n.t("jjaek_books.finish_selection") }
       expect(page).to have_current_path(group_path(group))
-      expect(page).to have_no_css("#recommendation-window")
+      expect(page).to have_no_css("#book-selection-window")
       expect(page).to have_field("jjaek[content]", with: "Group draft survives")
       expect_composer(book: books.first, group_context: group)
       expect_composer(book: replacement, group_context: group)
@@ -306,12 +306,12 @@ RSpec.describe "Standalone book search", type: :system do
       end
       expect(page).to have_field("jjaek[content]", with: "Group draft survives")
       open_attachment_search
-      within("#recommendation-window") do
+      within("#book-selection-window") do
         expect(page).to have_text(books.first.title, count: 1)
         expect(page).to have_text(replacement.title, count: 1)
-        click_button I18n.t("recommendations.finish_selection")
+        click_button I18n.t("jjaek_books.finish_selection")
       end
-      expect(page).to have_no_css("#recommendation-window")
+      expect(page).to have_no_css("#book-selection-window")
     end
   end
 
@@ -324,14 +324,14 @@ RSpec.describe "Standalone book search", type: :system do
     open_attachment_search
     search_attachments("Stored search")
     expect_attachment_search(query: "Stored search")
-    within("#recommendation-search-results") do
+    within("#book-selection-search-results") do
       expect(page).to have_text(I18n.t("search_ui.external_unavailable"))
       within("article[data-book-id='#{book.id}']") do
         click_button I18n.t("jjaek_books.choose")
         expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
       end
     end
-    within("#recommendation-window") { click_button I18n.t("recommendations.finish_selection") }
+    within("#book-selection-window") { click_button I18n.t("jjaek_books.finish_selection") }
     expect(page).to have_current_path(group_path(group))
     expect_composer(book:, group_context: group)
     expect(page).to have_field("jjaek[content]", with: "Group note despite external failure")
@@ -428,7 +428,7 @@ RSpec.describe "Standalone book search", type: :system do
     open_attachment_search
     search_attachments("Shelf selection")
     expect_attachment_search(query: "Shelf selection")
-    within("#recommendation-search-results") do
+    within("#book-selection-search-results") do
       expect(page).to have_css("article", count: 2)
       [ "Shelf selection external", stored_book.title ].each do |title|
         within(find("article", text: title)) do
@@ -437,7 +437,7 @@ RSpec.describe "Standalone book search", type: :system do
         end
       end
     end
-    within("#recommendation-window") { click_button I18n.t("recommendations.finish_selection") }
+    within("#book-selection-window") { click_button I18n.t("jjaek_books.finish_selection") }
     expect(page).to have_current_path(group_path(group))
     expect_composer(book: stored_book, group_context: group)
     expect(Book.find_by(title: "Shelf selection external")).to be_nil

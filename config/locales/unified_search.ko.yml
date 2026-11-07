@@ -15,8 +15,6 @@ ko:
       all: "전체"
       users: "사용자"
       jjaeks: "짹"
-      book_jjaeks: "짹"
-      recommendation_jjaeks: "짹"
       groups: "동아리"
     prompt: "검색어 또는 #태그를 입력해 사용자, 짹, 동아리를 찾아보세요."
     popular_tags: "인기 태그"

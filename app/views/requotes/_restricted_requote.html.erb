@@ -8,7 +8,7 @@
             <%= t("requotes.restricted.context_html",
                   author_name: link_to(requote.user.name, user_path(requote.user), class: "font-semibold text-stone-900 hover:text-stone-700"),
                   source_author_name: link_to(source.user.name, user_path(source.user), class: "font-semibold text-stone-900 hover:text-stone-700"),
-                  source_kind: t("jjaeks.contexts.quoted_#{source.content_kind}"),
+                  source_kind: t("jjaeks.contexts.quoted_general"),
                   group_name: link_to(requote.group.name, group_path(requote.group), class: "font-semibold text-stone-900 hover:text-stone-700")) %>
           </div>
           <div class="mt-1 text-xs text-stone-500">

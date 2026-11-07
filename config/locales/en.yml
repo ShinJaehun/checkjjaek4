@@ -1336,19 +1336,15 @@ en:
     contexts:
       group_badge: "Club"
       group_general_html: "%{author_name} posted a Jjaek in %{group_name}"
-      group_book_html: "%{author_name} posted a Book Jjaek in %{group_name} · %{book_title}"
-      group_book_without_title_html: "%{author_name} posted a Book Jjaek in %{group_name}"
       group_share_html: "%{author_name} ReJjaeked %{quoted_user_name}'s Jjaek to %{group_name}"
       group_quote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s Jjaek to %{group_name}"
       group_requote_unavailable_html: "%{author_name}'s ReJjaek in %{group_name}"
       general_html: "%{author_name}'s Jjaek"
       profile_html: "%{author_name}'s Jjaek for %{target_user_name}"
-      book_html: "%{author_name}'s Book Jjaek"
       requote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s Jjaek"
       group_requote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s Jjaek from %{group_name}"
       deleted_requote_html: "%{author_name}'s ReJjaek"
       quoted_general: "Jjaek"
-      quoted_book: "Book Jjaek"
     card:
       no_thumbnail: "No cover"
     actions:
@@ -1395,10 +1391,8 @@ en:
       profile_conversation_participants: "Participants only"
       requote: "ReJjaek from %{name}"
       quoted_general_suffix: "'s Jjaek"
-      quoted_book_suffix: "'s Book Jjaek"
       deleted_quoted_source_title:
         general: "%{name}'s Jjaek"
-        book: "%{name}'s Book Jjaek"
       deleted_quoted_source_unknown_author: "Unknown user"
       deleted_quoted_source: "The original post was deleted."
       deleted: "This post was deleted by its author."
@@ -1420,9 +1414,7 @@ en:
     moderation:
       hidden_title: "This post was hidden by moderation."
       hidden_by_system_admin: "This Jjaek was hidden by a system administrator."
-      hidden_book_by_system_admin: "This Book Jjaek was hidden by a system administrator."
       hidden_by_group_admin: "This Jjaek was hidden by a group administrator."
-      hidden_book_by_group_admin: "This Book Jjaek was hidden by a group administrator."
       reason: "Hide reason"
       group_admin:
         title: "Group content moderation"

@@ -7,20 +7,20 @@ RSpec.describe JjaekPolicy do
 
   describe "permissions" do
     it "lets a signed-in user view a public jjaek" do
-      jjaek = other_user.jjaeks.create!(book:, content: "Visible")
+      jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "Visible")
 
       expect(described_class.new(user, jjaek).show?).to be(true)
     end
 
     it "lets accepted book friends view a book-friends jjaek" do
       BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
-      jjaek = other_user.jjaeks.create!(book:, content: "Visible", visibility: :book_friends)
+      jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "Visible", visibility: :book_friends)
 
       expect(described_class.new(user, jjaek).show?).to be(true)
     end
 
     it "lets the author update their own jjaek" do
-      jjaek = user.jjaeks.create!(book:, content: "Mine")
+      jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Mine")
 
       expect(described_class.new(user, jjaek).update?).to be(true)
     end
@@ -28,11 +28,11 @@ RSpec.describe JjaekPolicy do
 
   describe JjaekPolicy::FeedScope do
     it "returns the user and followee public jjaeks" do
-      own_jjaek = user.jjaeks.create!(book:, content: "Mine")
+      own_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Mine")
       followee = User.create!(name: "Followee", email: "policy-followee@example.com", password: "password123!", password_confirmation: "password123!")
-      visible_jjaek = followee.jjaeks.create!(book:, content: "Visible")
+      visible_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: followee, content: "Visible")
       hidden_user = User.create!(name: "Hidden", email: "hidden@example.com", password: "password123!", password_confirmation: "password123!")
-      hidden_jjaek = hidden_user.jjaeks.create!(book:, content: "Hidden")
+      hidden_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: hidden_user, content: "Hidden")
       user.active_follows.create!(followee:)
 
       resolved = JjaekPolicy::FeedScope.new(user, Jjaek.all).resolve

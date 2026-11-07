@@ -80,7 +80,7 @@ RSpec.describe Users::WithdrawAccount do
   it "anonymizes the user, preserves social content, and removes relationships and reading operations data" do
     original_email = user.email
     book = Book.create!(title: "Withdrawal book", authors_text: "Author")
-    jjaek = user.jjaeks.create!(book: book, content: "Preserved Jjaek")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Preserved Jjaek")
     comment = user.comments.create!(jjaek: other.jjaeks.create!(content: "Conversation"), content: "Preserved comment")
     profile_context = other.jjaeks.create!(target_user: user, content: "Preserved profile context", visibility: :public_jjaek)
     user.active_follows.create!(followee: other)

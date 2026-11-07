@@ -1,11 +1,12 @@
 <% show_quoted_source = local_assigns.fetch(:show_quoted_source, true) %>
 <% books = jjaek.attached_books.to_a %>
 <% if jjaek.deleted? %>
-  <% books = jjaek.requote? ? [] : books.select { |book| book.id == jjaek.book_id } %>
+  <% visible_ids = jjaek.jjaek_book_attachments.select(&:visible_on_tombstone?).map(&:book_id) %>
+  <% books = jjaek.requote? ? [] : books.select { |book| visible_ids.include?(book.id) } %>
 <% end %>
 <% attached_book = books.first if books.one? %>
 <% if books.many? %>
-  <%= render "jjaeks/recommended_books", books: books %>
+  <%= render "jjaeks/book_attachments", books: books %>
 <% end %>
 <% if attached_book.present? && !local_assigns.fetch(:hide_book_details, false) %>
   <% book_url = book_path(attached_book, book_navigation_params) %>

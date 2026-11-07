@@ -10,8 +10,8 @@ RSpec.describe Jjaek, type: :model do
     source = user.jjaeks.create!(content: "원" * 200)
     content = "한a🙂 !\n" * 33 + "가!"
 
-    [ {}, { book: }, { group: }, { group:, book: }, { quoted_jjaek: source } ].each do |attributes|
-      jjaek = described_class.new(**attributes, user:, content:)
+    [ {}, { books: [book] }, { group: }, { group:, books: [book] }, { quoted_jjaek: source } ].each do |attributes|
+      jjaek = build_jjaek_with_books(**attributes, user:, content:)
       expect(jjaek).to be_valid
 
       jjaek.content += "!"
@@ -117,7 +117,7 @@ RSpec.describe Jjaek, type: :model do
 
   it "tombstones a jjaek with comments and preserves its context and edited timestamp" do
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Readers", group_type: :public_group)
-    jjaek = user.jjaeks.create!(group:, book:, content: "A")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, group:, content: "A")
     jjaek.update!(content: "B")
     edited_at = jjaek.content_edited_at
     comment = jjaek.comments.create!(user: other_user, content: "대화")
@@ -130,7 +130,7 @@ RSpec.describe Jjaek, type: :model do
     expect(jjaek.content_edited_at).to eq(edited_at)
     expect(jjaek.comments).to contain_exactly(comment)
     expect(jjaek.user).to eq(user)
-    expect(jjaek.book).to eq(book)
+    expect(jjaek.attached_books).to eq([book])
     expect(jjaek.group).to eq(group)
   end
 
@@ -165,14 +165,14 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "does not allow requoting a private jjaek" do
-    original = other_user.jjaeks.create!(book:, content: "원문", visibility: :private_jjaek)
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "원문", visibility: :private_jjaek)
     requote = described_class.new(user:, content: "인용", quoted_jjaek: original)
 
     expect(requote).not_to be_valid
   end
 
   it "does not allow broader visibility than the original jjaek" do
-    original = other_user.jjaeks.create!(book:, content: "원문", visibility: :book_friends)
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "원문", visibility: :book_friends)
     requote = described_class.new(user:, content: "인용", quoted_jjaek: original, visibility: :public_jjaek)
 
     expect(requote).not_to be_valid
@@ -180,7 +180,7 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "does not allow requoting another requote" do
-    original = other_user.jjaeks.create!(book:, content: "원문")
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "원문")
     first_requote = create_legacy_book_requote(user: user, book:, content: "첫 인용", quoted_jjaek: original)
     nested_requote = described_class.new(user:, content: "중첩 인용", quoted_jjaek: first_requote)
 
@@ -188,7 +188,7 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "does not allow the same user to requote the same original twice" do
-    original = other_user.jjaeks.create!(book:, content: "원문")
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "원문")
     create_legacy_book_requote(user: user, book:, content: "첫 인용", quoted_jjaek: original)
     duplicate_requote = described_class.new(user:, content: "두 번째 인용", quoted_jjaek: original)
 
@@ -242,7 +242,7 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "allows different users to requote the same original" do
-    original = other_user.jjaeks.create!(book:, content: "원문")
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "원문")
     create_legacy_book_requote(user: user, book:, content: "첫 인용", quoted_jjaek: original)
     another_user = User.create!(name: "Another", email: "another-jjaek@example.com", password: "password123!", password_confirmation: "password123!")
     other_requote = described_class.new(user: another_user, content: "다른 사용자 인용", quoted_jjaek: original)
@@ -252,7 +252,7 @@ RSpec.describe Jjaek, type: :model do
 
   it "allows regular jjaeks and book jjaeks from the same user" do
     general_jjaek = described_class.new(user:, content: "일반 짹")
-    book_jjaek = described_class.new(user:, book:, content: "책짹")
+    book_jjaek = build_jjaek_with_books(legacy_source_kind: "book", books: [book], user:, content: "책짹")
 
     expect(general_jjaek).to be_valid
     expect(book_jjaek).to be_valid
@@ -262,7 +262,7 @@ RSpec.describe Jjaek, type: :model do
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Readers", group_type: :public_group)
 
     expect(described_class.new(user:, group:, content: "그룹 짹")).to be_valid
-    expect(described_class.new(user:, group:, book:, content: "그룹 책짹")).to be_valid
+    expect(build_jjaek_with_books(legacy_source_kind: "book", books: [book], user:, group:, content: "그룹 책짹")).to be_valid
   end
 
   it "does not mix group context with profile context" do
@@ -274,13 +274,13 @@ RSpec.describe Jjaek, type: :model do
   it "allows public personal originals, including book jjaeks, in group requotes without copying the book" do
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Readers", group_type: :public_group)
     general_original = other_user.jjaeks.create!(content: "전체 공개 짹")
-    book_original = other_user.jjaeks.create!(book:, content: "전체 공개 책짹")
+    book_original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "전체 공개 책짹")
 
     [ general_original, book_original ].each do |original|
       group_requote = described_class.new(user:, group:, quoted_jjaek: original, content: "내 의견")
 
       expect(group_requote).to be_valid
-      expect(group_requote.book_id).to be_nil
+      expect(group_requote.attributes).not_to have_key("book_id")
     end
 
     blank_opinion = described_class.new(user:, group:, quoted_jjaek: general_original, content: "")
@@ -316,16 +316,16 @@ RSpec.describe Jjaek, type: :model do
       expect(described_class.new(user:, group:, quoted_jjaek: group_requote, content: "중첩 인용")).not_to be_valid
     end
 
-    book_original = user.jjaeks.create!(group: groups.first, book:, content: "동아리 책짹 원문")
+    book_original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, group: groups.first, content: "동아리 책짹 원문")
     book_requote = described_class.new(user:, group: groups.first, quoted_jjaek: book_original, content: "책 의견")
     expect(book_requote).to be_valid
-    expect(book_requote.book_id).to be_nil
+    expect(book_requote.attributes).not_to have_key("book_id")
   end
 
   it "allows public group jjaeks and book jjaeks to be personal requote sources" do
     group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :public_group)
     group_jjaek = described_class.create!(user: other_user, group:, content: "그룹 원문")
-    group_book_jjaek = described_class.create!(user: other_user, group:, book:, content: "그룹 책짹 원문")
+    group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, group:, content: "그룹 책짹 원문")
 
     expect(described_class.new(user:, quoted_jjaek: group_jjaek, content: "다시짹")).to be_valid
     expect(described_class.new(user:, quoted_jjaek: group_book_jjaek, content: "책 다시짹")).to be_valid
@@ -352,7 +352,7 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "keeps requotes private and marked when the original is destroyed" do
-    original = other_user.jjaeks.create!(book:, content: "원문")
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "원문")
     requote = create_legacy_book_requote(user: user, book:, content: "인용", quoted_jjaek: original)
 
     expect { original.destroy! }.to change(described_class, :count).by(-1)
@@ -366,7 +366,7 @@ RSpec.describe Jjaek, type: :model do
   end
 
   it "marks requotes as deleted source when the original is tombstoned" do
-    original = other_user.jjaeks.create!(book:, content: "원문")
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "원문")
     requote = create_legacy_book_requote(user: user, book:, content: "인용", quoted_jjaek: original)
     original.comments.create!(user:, content: "댓글")
 
@@ -379,7 +379,7 @@ RSpec.describe Jjaek, type: :model do
 
   it "keeps personal requotes private and group shares public after a hard delete" do
     group = Group.create!(lifecycle_status: :active, group_admin: user, name: "Readers", group_type: :public_group)
-    original = other_user.jjaeks.create!(book:, content: "원문")
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "원문")
     personal_requote = user.jjaeks.create!(content: "개인 의견", quoted_jjaek: original)
     group_share = user.jjaeks.create!(group:, content: "동아리 의견", quoted_jjaek: original)
     comment = group_share.comments.create!(user: other_user, content: "별도 토론")
@@ -409,7 +409,7 @@ RSpec.describe Jjaek, type: :model do
   it "keeps a same-group quote and its discussion after the source is tombstoned" do
     group = Group.create!(lifecycle_status: :active, group_admin: other_user, name: "Readers", group_type: :private_group)
     group.group_memberships.create!(user:, status: :active)
-    original = other_user.jjaeks.create!(group:, book:, content: "동아리 원문")
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, group:, content: "동아리 원문")
     quote = user.jjaeks.create!(group:, content: "독립 의견", quoted_jjaek: original)
     comment = quote.comments.create!(user: other_user, content: "독립 댓글")
     like = quote.likes.create!(user: other_user)

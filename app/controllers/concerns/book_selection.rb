@@ -1,4 +1,4 @@
-module RecommendationSelection
+module BookSelection
   extend ActiveSupport::Concern
 
   included do
@@ -8,8 +8,8 @@ module RecommendationSelection
   private
 
   def echo_selection_revision
-    revision = request.headers["X-Recommendation-Revision"]
-    response.set_header("X-Recommendation-Revision", revision) if revision.is_a?(String) && revision.match?(/\A[0-9a-f-]{36}\z/)
+    revision = request.headers["X-Book-Selection-Revision"]
+    response.set_header("X-Book-Selection-Revision", revision) if revision.is_a?(String) && revision.match?(/\A[0-9a-f-]{36}\z/)
   end
 
   def prepare_book_selection_context
@@ -21,7 +21,6 @@ module RecommendationSelection
       @jjaek = Jjaek.find(params[:editing_jjaek_id])
       authorize @jjaek, :update?
       raise Pundit::NotAuthorizedError if @jjaek.requote?
-      @editing_recommendation = @jjaek
       @group = @jjaek.group
     else
       @group = policy_scope(Group).find(params[:group_id]) if params[:group_id].present?
@@ -40,11 +39,7 @@ module RecommendationSelection
     response.headers["Cache-Control"] = "no-store"
   end
 
-  def recommendation_context?
-    params[:recommendation] == "1"
-  end
-
-  def prepare_recommendation_selection(preserve_on_error: false)
+  def prepare_book_selection(preserve_on_error: false)
     @selected_books = []
     @selected_book_keys = []
     raw_keys = params.fetch(:selected_books, [])
@@ -63,7 +58,7 @@ module RecommendationSelection
       book = if key.match?(/\A[1-9]\d*\z/)
         books.fetch(key)
       elsif key.match?(/\Aexternal:[0-9a-f]{32}\z/)
-        token = Rails.cache.read(recommendation_cache_key(key))
+        token = Rails.cache.read(book_selection_cache_key(key))
         attributes = BookSearches::ResultToken.verify(token, user: current_user)
         raise Book::IdentityConflict if attributes.blank?
 
@@ -71,8 +66,8 @@ module RecommendationSelection
       else
         raise Book::IdentityConflict
       end
-      validate_recommendation_book!(book)
-      raise Book::IdentityConflict if recommendation_book_selected?(book)
+      validate_selected_book!(book)
+      raise Book::IdentityConflict if selected_book?(book)
 
       @selected_books << book
       @selected_book_keys << key
@@ -83,42 +78,42 @@ module RecommendationSelection
       @selected_books = []
       @selected_book_keys = []
     end
-    flash.now[:alert] = t("recommendations.invalid_selection")
+    flash.now[:alert] = t("jjaek_books.invalid_selection")
     false
   end
 
-  def validate_recommendation_book!(book)
+  def validate_selected_book!(book)
     raise Book::IdentityConflict unless book&.valid?
     if book.new_record? && book.canonical_isbn.blank? && book.external_url.blank?
       raise Book::IdentityConflict
     end
   end
 
-  def recommendation_book_selected?(book)
-    identity = recommendation_book_identity(book)
-    @selected_books.any? { |selected| recommendation_book_identity(selected) == identity }
+  def selected_book?(book)
+    identity = selected_book_identity(book)
+    @selected_books.any? { |selected| selected_book_identity(selected) == identity }
   end
 
-  def recommendation_book_identity(book)
+  def selected_book_identity(book)
     book.id || book.canonical_isbn || book.external_url
   end
 
-  def cache_external_recommendation(token)
+  def cache_external_book(token)
     key = "external:#{SecureRandom.hex(16)}"
-    stored = Rails.cache.write(recommendation_cache_key(key), token,
+    stored = Rails.cache.write(book_selection_cache_key(key), token,
                                expires_in: BookSearches::ResultToken::EXPIRES_IN)
     raise Book::IdentityConflict unless stored
 
     key
   end
 
-  def clear_recommendation_selection
+  def clear_book_selection
     @selected_book_keys.grep(/\Aexternal:/).each do |key|
-      Rails.cache.delete(recommendation_cache_key(key))
+      Rails.cache.delete(book_selection_cache_key(key))
     end
   end
 
-  def recommendation_cache_key(key)
-    [ "recommendation_selection", current_user.id, key ]
+  def book_selection_cache_key(key)
+    [ "book_selection", current_user.id, key ]
   end
 end

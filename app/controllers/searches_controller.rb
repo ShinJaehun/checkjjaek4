@@ -49,7 +49,7 @@ class SearchesController < ApplicationController
     prepare_user_cards
     prepare_group_cards
     posts = @results.fetch("jjaeks", []).to_a
-    prepare_recommendation_books_for(posts)
+    prepare_attached_books_for(posts)
     prepare_current_reading_states_for(posts)
   end
 
@@ -109,10 +109,10 @@ class SearchesController < ApplicationController
         .order(:name, :id)
     when *POST_TYPES
       posts = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::SearchScope)
-        .includes(:book, :group,
+        .includes(:attached_books, :group,
                   user: { avatar_attachment: :blob },
                   target_user: { avatar_attachment: :blob },
-                  quoted_jjaek: [ :book, :group, { user: { avatar_attachment: :blob } } ])
+                  quoted_jjaek: [ :attached_books, :group, { user: { avatar_attachment: :blob } } ])
         .order(created_at: :desc, id: :desc)
       if @tag_mode
         tagged_ids = JjaekTag.joins(:tag).where(tags: { name: @tag }).select(:jjaek_id)

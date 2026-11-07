@@ -5,11 +5,46 @@ RSpec.describe "Jjaeks", type: :request do
   let(:original_author) { User.create!(name: "Original", email: "jjaek-request-original@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "ReJjaek request book", authors_text: "Author") }
   let(:friendship) { BookFriendship.create!(requester: viewer, addressee: original_author, status: :accepted) }
-  let(:original) { original_author.jjaeks.create!(book:, content: "REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
+  let(:original) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
   let(:requote) { create_legacy_book_requote(user: viewer, book:, content: "REQUEST_VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
 
   before do
     friendship
+  end
+
+  it "preserves historical attachments and deletion snapshots after a form edit without exposing unified tombstone books" do
+    sign_in viewer
+    legacy = create_jjaek_with_books(user: viewer, books: [book], legacy_source_kind: "book", content: "Historical")
+    legacy.comments.create!(user: viewer, content: "Keep historical discussion")
+    quote = original_author.jjaeks.create!(quoted_jjaek: legacy, content: "Personal quote")
+    original_links = legacy.jjaek_book_attachments.map(&:attributes)
+
+    get edit_jjaek_path(legacy)
+    selected_books = Nokogiri::HTML(response.body).css("#jjaek-attached-books input[name='selected_books[]']")
+      .map { |input| input["value"] }
+    expect(selected_books).to eq([ "", book.id.to_s ])
+    patch jjaek_path(legacy), params: { selected_books:, jjaek: { content: "Edited historical" } }
+
+    expect(response).to have_http_status(:see_other)
+    expect(legacy.reload).to have_attributes(content: "Edited historical", legacy_source_kind: "book")
+    expect(legacy.jjaek_book_attachments.map(&:attributes)).to eq(original_links)
+    expect(legacy.jjaek_book_attachments.first).to be_visible_on_tombstone
+
+    delete jjaek_path(legacy)
+    expect(legacy.reload).to be_deleted
+    expect(quote.reload).to have_attributes(quoted_jjaek_id: nil, quoted_source_kind: "book",
+      quoted_source_author_name: viewer.name, visibility: "private_jjaek")
+    expect(quote.quoted_source_deleted_at).to eq(legacy.deleted_at)
+    get jjaek_path(legacy)
+    expect(Nokogiri::HTML(response.body).at_css("#jjaek_#{legacy.id}").text).to include(book.title)
+
+    post jjaeks_path, params: { selected_books: [book.id], jjaek: { content: "Unified attachment" } }
+    modern = viewer.jjaeks.find_by!(content: "Unified attachment")
+    modern.comments.create!(user: viewer, content: "Keep unified discussion")
+    modern.destroy_or_tombstone!
+    get jjaek_path(modern)
+    expect(Nokogiri::HTML(response.body).at_css("#jjaek_#{modern.id}").text).not_to include(book.title)
+    expect(modern.reload.attached_books).to eq([book])
   end
 
   describe "POST /jjaeks" do
@@ -26,7 +61,7 @@ RSpec.describe "Jjaeks", type: :request do
       }.to change(Jjaek, :count).by(1)
 
       created_jjaek = Jjaek.last
-      expect(created_jjaek.book).to be_nil
+      expect(created_jjaek.attached_books).to be_empty
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
@@ -70,7 +105,7 @@ RSpec.describe "Jjaeks", type: :request do
       private_requote = original_author.jjaeks.create!(quoted_jjaek: source, content: "HOME_EXCLUDED_PRIVATE_REQUOTE", visibility: :private_jjaek)
       group = Group.create!(name: "Home excluded group", group_admin: original_author, group_type: :public_group, lifecycle_status: :active)
       group_jjaek = original_author.jjaeks.create!(group:, content: "HOME_EXCLUDED_GROUP")
-      group_book_jjaek = original_author.jjaeks.create!(group:, book:, content: "HOME_EXCLUDED_GROUP_BOOK")
+      group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, group:, content: "HOME_EXCLUDED_GROUP_BOOK")
       activity = BookActivity.create!(user: original_author, book:, bookshelf_entry: original_author.bookshelf_entries.find_or_create_by!(book: book), action: :added_to_shelf, created_at: 2.hours.ago)
       content = "HOME_FAILED_INPUT_".ljust(201, "a")
       sign_in viewer
@@ -102,13 +137,7 @@ RSpec.describe "Jjaeks", type: :request do
       sign_in viewer
 
       expect {
-        post jjaeks_path, params: {
-          jjaek: {
-            book_id: book.id,
-            content: "BOOK_JJAEK_BODY",
-            visibility: :public_jjaek
-          }
-        }
+        post jjaeks_path, params: { selected_books: [book.id], jjaek: { content: "BOOK_JJAEK_BODY", visibility: :public_jjaek } }
       }.to change(Jjaek, :count).by(1)
 
       created_jjaek = Jjaek.last
@@ -119,13 +148,13 @@ RSpec.describe "Jjaeks", type: :request do
     it "rerenders the book page with only original book jjaeks when a book-linked jjaek is invalid" do
       entry = viewer.bookshelf_entries.create!(book:)
       target_bookshelf = viewer.bookshelves.create!(name: "실패 화면 선택 책장", visibility: :private)
-      original_book_jjaek = original_author.jjaeks.create!(book:, content: "VISIBLE_BOOK_ORIGINAL", visibility: :public_jjaek)
+      original_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "VISIBLE_BOOK_ORIGINAL", visibility: :public_jjaek)
       hidden_requote = create_legacy_book_requote(user: viewer, book:, content: "HIDDEN_BOOK_REQUOTE", quoted_jjaek: original_book_jjaek, visibility: :private_jjaek)
-      private_original = original_author.jjaeks.create!(book:, content: "PRIVATE_FAILURE_ORIGINAL", visibility: :private_jjaek)
+      private_original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "PRIVATE_FAILURE_ORIGINAL", visibility: :private_jjaek)
       group = Group.create!(name: "실패 화면 동아리", group_admin: original_author, group_type: :public_group, lifecycle_status: :active)
-      group_original = original_author.jjaeks.create!(book:, group:, content: "GROUP_FAILURE_ORIGINAL")
+      group_original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, group:, content: "GROUP_FAILURE_ORIGINAL")
       submitted_content = "FAILED_BOOK_INPUT_".ljust(201, "a")
-      invalid_jjaek = viewer.jjaeks.build(book:, content: submitted_content, visibility: :book_friends)
+      invalid_jjaek = build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: viewer, content: submitted_content, visibility: :book_friends)
       invalid_jjaek.valid?
       sign_in viewer
 
@@ -135,13 +164,7 @@ RSpec.describe "Jjaeks", type: :request do
       normal_bookshelf_ids = normal_page.css('input[name="bookshelf_id"][type="radio"]').map { |input| input["value"] }
 
       expect {
-        post jjaeks_path, params: {
-          jjaek: {
-            book_id: book.id,
-            content: submitted_content,
-            visibility: :book_friends
-          }
-        }
+        post jjaeks_path, params: { selected_books: [book.id], book_context_id: book.id, jjaek: { content: submitted_content, visibility: :book_friends } }
       }.not_to change(Jjaek, :count)
 
       expect(response).to have_http_status(:unprocessable_content)
@@ -169,9 +192,7 @@ RSpec.describe "Jjaeks", type: :request do
       sign_in viewer
 
       expect {
-        post jjaeks_path, params: {
-          jjaek: { book_id: book.id, content: "", visibility: :book_friends }
-        }
+        post jjaeks_path, params: { selected_books: [book.id], book_context_id: book.id, jjaek: { content: "", visibility: :book_friends } }
       }.not_to change(Jjaek, :count)
 
       expect(response).to have_http_status(:unprocessable_content)
@@ -207,7 +228,7 @@ RSpec.describe "Jjaeks", type: :request do
 
       created_jjaek = Jjaek.last
       expect(created_jjaek.quoted_jjaek).to eq(original)
-      expect(created_jjaek.book).to be_nil
+      expect(created_jjaek.attached_books).to be_empty
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
@@ -251,7 +272,7 @@ RSpec.describe "Jjaeks", type: :request do
 
     it "creates a personal requote from an active public group original for a non-member" do
       group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Public requote source", group_type: :public_group)
-      group_jjaek = original_author.jjaeks.create!(group:, book:, content: "PUBLIC_GROUP_REQUOTE_SOURCE")
+      group_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, group:, content: "PUBLIC_GROUP_REQUOTE_SOURCE")
       sign_in viewer
 
       expect {
@@ -835,7 +856,7 @@ RSpec.describe "Jjaeks", type: :request do
 
     it "links the source group on home, profile, and detail cards for a book requote" do
       group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Book source group", group_type: :public_group)
-      source = original_author.jjaeks.create!(group:, book:, content: "GROUP_BOOK_SOURCE")
+      source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, group:, content: "GROUP_BOOK_SOURCE")
       personal_requote = viewer.jjaeks.create!(quoted_jjaek: source, content: "PERSONAL_BOOK_REQUOTE")
       sign_in viewer
 
@@ -944,7 +965,7 @@ RSpec.describe "Jjaeks", type: :request do
 
     it "keeps a deleted personal source's group share and shows only a generic source notice" do
       group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Shared readers", group_type: :public_group)
-      source = original_author.jjaeks.create!(book:, content: "DELETED_PERSONAL_SOURCE")
+      source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "DELETED_PERSONAL_SOURCE")
       share = viewer.jjaeks.create!(group:, content: "INDEPENDENT_GROUP_OPINION", quoted_jjaek: source)
       comment = share.comments.create!(user: original_author, content: "INDEPENDENT_GROUP_COMMENT")
       share.likes.create!(user: original_author)
@@ -994,7 +1015,7 @@ RSpec.describe "Jjaeks", type: :request do
     it "keeps a tombstoned same-group quote readable only to current Group readers" do
       group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "Private readers", group_type: :private_group)
       membership = group.group_memberships.create!(user: viewer, status: :active)
-      source = original_author.jjaeks.create!(group:, book:, content: "DELETED_PRIVATE_SOURCE")
+      source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, group:, content: "DELETED_PRIVATE_SOURCE")
       quote = viewer.jjaeks.create!(group:, content: "PRIVATE_GROUP_DISCUSSION", quoted_jjaek: source)
       source.comments.create!(user: viewer, content: "Keeps source tombstone")
       source.destroy_or_tombstone!
@@ -1019,7 +1040,7 @@ RSpec.describe "Jjaeks", type: :request do
     it "does not reveal a hidden source through a hidden requote's card or header" do
       admin = User.create!(name: "Admin", email: "hidden-source-card-admin@example.com", password: "password123!", global_admin: true)
       source_group = Group.create!(lifecycle_status: :active, group_admin: original_author, name: "SECRET_SOURCE_GROUP", group_type: :public_group)
-      source = original_author.jjaeks.create!(group: source_group, book:, content: "SECRET_SOURCE_BODY")
+      source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, group: source_group, content: "SECRET_SOURCE_BODY")
       personal_requote = viewer.jjaeks.create!(content: "MY_REQUOTE_OPINION", quoted_jjaek: source)
       Jjaeks::Hide.new(source, actor: admin, public_reason: "other").call!
 
@@ -1051,7 +1072,7 @@ RSpec.describe "Jjaeks", type: :request do
     it "hides and restores a group share with its source without exposing the source in inspection views" do
       admin = User.create!(name: "Admin", email: "hidden-group-share-admin@example.com", password: "password123!", global_admin: true)
       group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Destination readers", group_type: :public_group)
-      source = original_author.jjaeks.create!(book:, content: "HIDDEN_PERSONAL_SOURCE")
+      source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "HIDDEN_PERSONAL_SOURCE")
       share = viewer.jjaeks.create!(group:, content: "GROUP_SHARE_OPINION", quoted_jjaek: source)
       Jjaeks::Hide.new(source, actor: admin, public_reason: "other").call!
       sign_in viewer
@@ -1334,11 +1355,7 @@ RSpec.describe "Jjaeks", type: :request do
     end
 
     it "keeps public visibility available for a public original" do
-      public_original = original_author.jjaeks.create!(
-        book:,
-        content: "REQUEST_PUBLIC_REQUOTE_SOURCE",
-        visibility: :public_jjaek
-      )
+      public_original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "REQUEST_PUBLIC_REQUOTE_SOURCE", visibility: :public_jjaek)
       sign_in viewer
 
       get new_jjaek_path, params: { quoted_jjaek_id: public_original.id }
@@ -1361,11 +1378,7 @@ RSpec.describe "Jjaeks", type: :request do
       original_author.bookshelf_entries.create!(book: illustrated_book)
       original_author.active_follows.create!(followee: viewer)
       viewer.active_follows.create!(followee: original_author)
-      original_author.jjaeks.create!(
-        book: illustrated_book,
-        content: "REQUEST_BOOK_THUMBNAIL_FEED",
-        visibility: :public_jjaek
-      )
+      create_jjaek_with_books(legacy_source_kind: "book", books: [illustrated_book], user: original_author, content: "REQUEST_BOOK_THUMBNAIL_FEED", visibility: :public_jjaek)
       sign_in viewer
 
       get root_path

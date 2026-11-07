@@ -14,7 +14,7 @@
         <p class="truncate"><%= link_to book.title, book_path(book, return_to: discovery_path), data: { turbo_frame: "_top" } %></p>
       <% end %>
       <% if books.size > 3 %>
-        <p><%= t("recommendations.additional_books", count: books.size - 3) %></p>
+        <p><%= t("jjaek_books.additional_books", count: books.size - 3) %></p>
       <% end %>
       <%= render "jjaeks/current_reading_state", jjaek: jjaek %>
     </div>

@@ -8,10 +8,10 @@ RSpec.describe "Users", type: :request do
   let!(:shelf_book) { Book.create!(title: "프로필 서재 전용 책", authors_text: "저자") }
   let!(:profile_shelf_sticker) { StickerDefinition.create!(key: "users_spec_profile_shelf_unique_sticker", name: "PROFILE_SHELF_UNIQUE_STICKER") }
   let!(:profile_entry) { profile_user.bookshelf_entries.create!(book: shelf_book, status: :reading) }
-  let!(:profile_jjaek) { profile_user.jjaeks.create!(book:, content: "Profile Jjaek") }
+  let!(:profile_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: profile_user, content: "Profile Jjaek") }
   let!(:profile_friend_jjaek) { profile_user.jjaeks.create!(content: "Book friend profile Jjaek", visibility: :book_friends) }
   let!(:profile_private_jjaek) { profile_user.jjaeks.create!(content: "Private profile Jjaek", visibility: :private_jjaek) }
-  let!(:other_jjaek) { other_user.jjaeks.create!(book:, content: "Other private", visibility: :private_jjaek) }
+  let!(:other_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other_user, content: "Other private", visibility: :private_jjaek) }
   let!(:activity_book) { Book.create!(title: "프로필 활동 책", authors_text: "저자") }
 
   before do

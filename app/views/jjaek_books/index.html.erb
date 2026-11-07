@@ -1,17 +1,17 @@
-<%= turbo_frame_tag "recommendation_composer" do %>
-  <div data-recommendation-composer-target="panel" data-origin="<%= @selection_origin %>">
-    <div id="recommendation-selection-alert" role="alert" class="text-sm text-red-700"><%= flash[:alert] %></div>
+<%= turbo_frame_tag "book_selection" do %>
+  <div data-book-selection-target="panel" data-origin="<%= @selection_origin %>">
+    <div id="book-selection-alert" role="alert" class="text-sm text-red-700"><%= flash[:alert] %></div>
     <%= form_with url: book_search_path, method: :get,
-          data: { recommendation_selection_form: "search", turbo_frame: "_top" }, class: "space-y-2" do |form| %>
+          data: { book_selection_form: "search", turbo_frame: "_top" }, class: "space-y-2" do |form| %>
       <%= render "jjaeks/selection_context", search: true %>
-      <%= form.label :query, t("book_search.form.query"), for: "recommendation-query", class: "text-sm font-medium" %>
+      <%= form.label :query, t("book_search.form.query"), for: "book-selection-query", class: "text-sm font-medium" %>
       <div class="flex min-w-0 gap-2">
-        <%= form.search_field :query, id: "recommendation-query", value: @query, class: "min-w-0 flex-1 rounded-xl border border-stone-300 px-3 py-2" %>
+        <%= form.search_field :query, id: "book-selection-query", value: @query, class: "min-w-0 flex-1 rounded-xl border border-stone-300 px-3 py-2" %>
         <%= form.submit t("book_search.form.submit"), name: nil, class: "ui-button ui-button-secondary shrink-0" %>
       </div>
     <% end %>
-    <div id="recommendation-selected-books"><%= render "book_searches/recommendation_selection" %></div>
-    <div id="recommendation-selection-fields" data-recommendation-composer-target="fields"><%= render "jjaeks/selection_context" %></div>
-    <button type="button" data-action="recommendation-composer#finish" class="ui-button ui-button-primary mt-4"><%= t("recommendations.finish_selection") %></button>
+    <div id="book-selection-selected-books"><%= render "book_searches/book_selection" %></div>
+    <div id="book-selection-fields" data-book-selection-target="fields"><%= render "jjaeks/selection_context" %></div>
+    <button type="button" data-action="book-selection#finish" class="ui-button ui-button-primary mt-4"><%= t("jjaek_books.finish_selection") %></button>
   </div>
 <% end %>

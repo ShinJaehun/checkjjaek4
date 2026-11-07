@@ -10,29 +10,29 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_08_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "active_storage_attachments", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
-    t.string "name", null: false
-    t.bigint "record_id", null: false
-    t.string "record_type", null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
-    t.bigint "byte_size", null: false
-    t.string "checksum"
-    t.string "content_type"
-    t.datetime "created_at", null: false
-    t.string "filename", null: false
     t.string "key", null: false
+    t.string "filename", null: false
+    t.string "content_type"
     t.text "metadata"
     t.string "service_name", null: false
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.datetime "created_at", null: false
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
@@ -70,17 +70,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
 
   create_table "books", force: :cascade do |t|
     t.string "authors_text"
-    t.string "canonical_isbn"
     t.datetime "created_at", null: false
     t.text "description"
     t.string "external_url"
     t.string "isbn"
-    t.date "published_on"
     t.string "publisher"
     t.string "thumbnail"
     t.string "title", null: false
-    t.string "translators_text"
     t.datetime "updated_at", null: false
+    t.string "canonical_isbn"
+    t.date "published_on"
+    t.string "translators_text"
     t.index ["canonical_isbn"], name: "index_books_on_canonical_isbn_unique", unique: true, where: "(canonical_isbn IS NOT NULL)"
     t.index ["external_url"], name: "index_books_on_external_url_unique", unique: true, where: "(external_url IS NOT NULL)"
     t.index ["isbn"], name: "index_books_on_isbn"
@@ -128,10 +128,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   create_table "comments", force: :cascade do |t|
     t.text "content", null: false
     t.datetime "created_at", null: false
-    t.datetime "hidden_at"
     t.bigint "jjaek_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.datetime "hidden_at"
     t.index ["hidden_at"], name: "index_comments_on_hidden_at"
     t.index ["jjaek_id"], name: "index_comments_on_jjaek_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
@@ -148,16 +148,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "global_admin_role_changes", force: :cascade do |t|
-    t.integer "action", null: false
-    t.datetime "created_at", null: false
-    t.string "execution_id", null: false
-    t.boolean "global_admin_after", null: false
-    t.boolean "global_admin_before", null: false
-    t.string "operator_account", null: false
-    t.bigint "operator_uid", null: false
-    t.text "reason", null: false
-    t.string "server_hostname", null: false
     t.bigint "user_id", null: false
+    t.integer "action", null: false
+    t.boolean "global_admin_before", null: false
+    t.boolean "global_admin_after", null: false
+    t.text "reason", null: false
+    t.bigint "operator_uid", null: false
+    t.string "operator_account", null: false
+    t.string "server_hostname", null: false
+    t.string "execution_id", null: false
+    t.datetime "created_at", null: false
     t.index ["execution_id"], name: "index_global_admin_role_changes_on_execution_id", unique: true
     t.index ["user_id", "created_at", "id"], name: "index_global_admin_role_changes_on_user_and_time"
     t.index ["user_id"], name: "index_global_admin_role_changes_on_user_id"
@@ -165,11 +165,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "group_lifecycle_events", force: :cascade do |t|
-    t.bigint "actor_id", null: false
-    t.datetime "created_at", null: false
-    t.text "detail"
-    t.integer "event_type", null: false
     t.bigint "group_id", null: false
+    t.bigint "actor_id", null: false
+    t.integer "event_type", null: false
+    t.text "detail"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_group_lifecycle_events_on_actor_id"
     t.index ["group_id", "created_at", "id"], name: "index_group_lifecycle_events_on_group_and_time"
@@ -177,32 +177,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "group_list_hidings", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.bigint "group_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.bigint "group_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["group_id"], name: "index_group_list_hidings_on_group_id"
     t.index ["user_id", "group_id"], name: "index_group_list_hidings_on_user_id_and_group_id", unique: true
     t.index ["user_id"], name: "index_group_list_hidings_on_user_id"
   end
 
   create_table "group_member_bans", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "group_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["group_id", "user_id"], name: "index_group_member_bans_on_group_id_and_user_id", unique: true
     t.index ["group_id"], name: "index_group_member_bans_on_group_id"
     t.index ["user_id"], name: "index_group_member_bans_on_user_id"
   end
 
   create_table "group_membership_events", force: :cascade do |t|
-    t.bigint "actor_id", null: false
-    t.datetime "created_at", null: false
-    t.integer "event_type", null: false
     t.bigint "group_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.bigint "actor_id", null: false
+    t.integer "event_type", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_group_membership_events_on_actor_id"
     t.index ["group_id", "created_at", "id"], name: "index_group_membership_events_on_group_and_time"
     t.index ["group_id"], name: "index_group_membership_events_on_group_id"
@@ -210,11 +210,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "group_membership_removals", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "group_id", null: false
-    t.bigint "removed_by_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.bigint "removed_by_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["group_id", "user_id"], name: "index_group_membership_removals_on_group_id_and_user_id", unique: true
     t.index ["group_id"], name: "index_group_membership_removals_on_group_id"
     t.index ["removed_by_id"], name: "index_group_membership_removals_on_removed_by_id"
@@ -222,13 +222,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "group_memberships", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "group_id", null: false
+    t.bigint "user_id", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.integer "moderation_status", default: 0, null: false
     t.integer "position"
-    t.integer "status", default: 0, null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
     t.index ["group_id", "user_id"], name: "index_group_memberships_on_group_id_and_user_id", unique: true
     t.index ["group_id"], name: "index_group_memberships_on_group_id"
     t.index ["moderation_status"], name: "index_group_memberships_on_moderation_status"
@@ -236,38 +236,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "groups", force: :cascade do |t|
-    t.text "application_purpose"
-    t.datetime "closed_at"
-    t.text "closure_reason"
-    t.datetime "created_at", null: false
+    t.string "name", null: false
     t.text "description"
     t.bigint "group_admin_id", null: false
     t.integer "group_type", default: 0, null: false
-    t.integer "lifecycle_status", default: 0, null: false
-    t.string "name", null: false
-    t.datetime "operation_suspended_at"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "lifecycle_status", default: 0, null: false
+    t.text "application_purpose"
+    t.text "closure_reason"
+    t.datetime "closed_at"
+    t.datetime "operation_suspended_at"
     t.index ["group_admin_id"], name: "index_groups_on_group_admin_id"
     t.index ["lifecycle_status"], name: "index_groups_on_lifecycle_status"
   end
 
-  create_table "jjaek_recommendations", force: :cascade do |t|
-    t.bigint "book_id", null: false
-    t.datetime "created_at", null: false
+  create_table "jjaek_book_attachments", force: :cascade do |t|
     t.bigint "jjaek_id", null: false
+    t.bigint "book_id", null: false
     t.integer "position", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["book_id"], name: "index_jjaek_recommendations_on_book_id"
-    t.index ["jjaek_id", "book_id"], name: "index_jjaek_recommendations_on_jjaek_id_and_book_id", unique: true
-    t.index ["jjaek_id", "position"], name: "index_jjaek_recommendations_on_jjaek_id_and_position", unique: true
-    t.index ["jjaek_id"], name: "index_jjaek_recommendations_on_jjaek_id"
-    t.check_constraint "\"position\" >= 0", name: "jjaek_recommendation_position"
+    t.boolean "visible_on_tombstone", default: false, null: false
+    t.index ["book_id"], name: "index_jjaek_book_attachments_on_book_id"
+    t.index ["jjaek_id", "book_id"], name: "index_jjaek_book_attachments_on_jjaek_id_and_book_id", unique: true
+    t.index ["jjaek_id", "position"], name: "index_jjaek_book_attachments_on_jjaek_id_and_position", unique: true
+    t.index ["jjaek_id"], name: "index_jjaek_book_attachments_on_jjaek_id"
+    t.check_constraint "\"position\" >= 0", name: "jjaek_book_attachment_position"
   end
 
   create_table "jjaek_tags", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "jjaek_id", null: false
     t.bigint "tag_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["jjaek_id", "tag_id"], name: "index_jjaek_tags_on_jjaek_id_and_tag_id", unique: true
     t.index ["jjaek_id"], name: "index_jjaek_tags_on_jjaek_id"
@@ -275,24 +276,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "jjaeks", force: :cascade do |t|
-    t.boolean "book_attachments_migrated", default: false, null: false
-    t.bigint "book_id"
     t.text "content", null: false
-    t.datetime "content_edited_at"
     t.datetime "created_at", null: false
-    t.datetime "deleted_at"
-    t.bigint "group_id"
-    t.datetime "hidden_at"
     t.bigint "quoted_jjaek_id"
     t.string "quoted_source_author_name"
     t.datetime "quoted_source_deleted_at"
     t.string "quoted_source_kind"
-    t.boolean "recommendation", default: false, null: false
     t.bigint "target_user_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.integer "visibility", default: 0, null: false
-    t.index ["book_id"], name: "index_jjaeks_on_book_id"
+    t.bigint "group_id"
+    t.datetime "content_edited_at"
+    t.datetime "deleted_at"
+    t.datetime "hidden_at"
+    t.string "legacy_source_kind"
     t.index ["created_at"], name: "index_jjaeks_on_created_at"
     t.index ["group_id"], name: "index_jjaeks_on_group_id"
     t.index ["hidden_at"], name: "index_jjaeks_on_hidden_at"
@@ -302,6 +300,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
     t.index ["user_id", "quoted_jjaek_id", "group_id"], name: "index_jjaeks_on_group_requote_unique", unique: true, where: "((quoted_jjaek_id IS NOT NULL) AND (group_id IS NOT NULL))"
     t.index ["user_id", "quoted_jjaek_id"], name: "index_jjaeks_on_personal_requote_unique", unique: true, where: "((quoted_jjaek_id IS NOT NULL) AND (group_id IS NULL))"
     t.index ["user_id"], name: "index_jjaeks_on_user_id"
+    t.check_constraint "legacy_source_kind::text = ANY (ARRAY['book'::character varying, 'recommendation'::character varying]::text[])", name: "jjaek_legacy_source_kind"
   end
 
   create_table "likes", force: :cascade do |t|
@@ -315,18 +314,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "moderation_actions", force: :cascade do |t|
-    t.integer "action_type", null: false
+    t.string "target_type", null: false
+    t.bigint "target_id", null: false
     t.bigint "actor_id", null: false
-    t.datetime "created_at", null: false
+    t.integer "action_type", null: false
+    t.text "public_reason", null: false
     t.text "internal_note"
+    t.bigint "reversal_of_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.bigint "membership_group_id"
     t.bigint "membership_user_id"
     t.string "moderation_authority"
-    t.text "public_reason", null: false
-    t.bigint "reversal_of_id"
-    t.bigint "target_id", null: false
-    t.string "target_type", null: false
-    t.datetime "updated_at", null: false
     t.index ["action_type"], name: "index_moderation_actions_on_action_type"
     t.index ["actor_id"], name: "index_moderation_actions_on_actor_id"
     t.index ["membership_group_id", "created_at", "id"], name: "index_moderation_actions_on_membership_group_and_time"
@@ -351,15 +350,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "registration_invitations", force: :cascade do |t|
-    t.datetime "canceled_at"
-    t.datetime "consumed_at"
-    t.datetime "created_at", null: false
     t.string "email", null: false
-    t.datetime "expires_at", null: false
-    t.bigint "invited_by_id", null: false
     t.string "token_digest", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "consumed_at"
+    t.datetime "canceled_at"
+    t.bigint "invited_by_id", null: false
     t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["email"], name: "index_pending_registration_invitations_on_email", unique: true, where: "((consumed_at IS NULL) AND (canceled_at IS NULL))"
     t.index ["invited_by_id"], name: "index_registration_invitations_on_invited_by_id"
     t.index ["token_digest"], name: "index_registration_invitations_on_token_digest", unique: true
@@ -378,31 +377,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   end
 
   create_table "tags", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.string "name", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_tags_on_name", unique: true
   end
 
   create_table "users", force: :cascade do |t|
-    t.boolean "accepts_book_friend_requests", default: true, null: false
-    t.boolean "accepts_group_invitations", default: true, null: false
-    t.boolean "allows_new_followers", default: true, null: false
     t.datetime "created_at", null: false
     t.integer "default_avatar_index"
     t.string "email", null: false
     t.string "encrypted_password", default: "", null: false
-    t.boolean "global_admin", default: false, null: false
-    t.string "handle"
     t.string "name", null: false
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
+    t.datetime "updated_at", null: false
+    t.boolean "global_admin", default: false, null: false
+    t.datetime "withdrawn_at"
     t.datetime "suspended_at"
+    t.boolean "accepts_book_friend_requests", default: true, null: false
+    t.boolean "accepts_group_invitations", default: true, null: false
+    t.boolean "allows_new_followers", default: true, null: false
+    t.string "handle"
     t.datetime "terms_accepted_at"
     t.string "terms_version"
-    t.datetime "updated_at", null: false
-    t.datetime "withdrawn_at"
     t.index "lower((handle)::text)", name: "index_users_on_lower_handle", unique: true, where: "(handle IS NOT NULL)"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
@@ -443,11 +442,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_000000) do
   add_foreign_key "group_memberships", "groups"
   add_foreign_key "group_memberships", "users"
   add_foreign_key "groups", "users", column: "group_admin_id"
-  add_foreign_key "jjaek_recommendations", "books"
-  add_foreign_key "jjaek_recommendations", "jjaeks"
+  add_foreign_key "jjaek_book_attachments", "books"
+  add_foreign_key "jjaek_book_attachments", "jjaeks"
   add_foreign_key "jjaek_tags", "jjaeks"
   add_foreign_key "jjaek_tags", "tags"
-  add_foreign_key "jjaeks", "books"
   add_foreign_key "jjaeks", "groups"
   add_foreign_key "jjaeks", "jjaeks", column: "quoted_jjaek_id"
   add_foreign_key "jjaeks", "users"

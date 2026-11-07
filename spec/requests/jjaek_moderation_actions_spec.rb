@@ -48,7 +48,7 @@ RSpec.describe "Jjaek moderation actions", type: :request do
   end
 
   it "uses platform Action pages for hide and restore while preserving audit and notification semantics" do
-    jjaek = author.jjaeks.create!(group:, book:, content: "PLATFORM ACTION TARGET")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "PLATFORM ACTION TARGET")
     sign_in admin
     hide_new_path = new_admin_jjaek_hide_path(jjaek)
     hide_create_path = admin_jjaek_hides_path(jjaek)
@@ -162,7 +162,7 @@ RSpec.describe "Jjaek moderation actions", type: :request do
   end
 
   it "uses Group Action pages for hide and restore with group authority" do
-    jjaek = author.jjaeks.create!(group:, book:, content: "GROUP ACTION TARGET")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "GROUP ACTION TARGET")
     sign_in group_admin
     hide_new_path = new_jjaek_group_hide_path(jjaek)
     hide_create_path = jjaek_group_hides_path(jjaek)
@@ -537,7 +537,7 @@ RSpec.describe "Jjaek moderation actions", type: :request do
   end
 
   it "renders platform Action pages with context and entered values when services fail" do
-    jjaek = author.jjaeks.create!(book:, content: "PLATFORM FAILURE CONTEXT")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "PLATFORM FAILURE CONTEXT")
     sign_in admin
     hide_service = instance_double(Jjaeks::Hide)
     allow(Jjaeks::Hide).to receive(:new).and_return(hide_service)

@@ -1,6 +1,3 @@
 <section id="book-jjaek-form" class="mx-auto w-full max-w-3xl rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-  <% if quoted_jjaek && policy(jjaek).view_quoted_source? %>
-    <%= render "jjaeks/quoted_jjaek", quoted_jjaek: quoted_jjaek %>
-  <% end %>
   <%= render "jjaeks/composer", jjaek: jjaek, book_context: book %>
 </section>

@@ -1,6 +1,6 @@
 class BooksController < ApplicationController
   include BookShowContext
-  include RecommendationSelection
+  include BookSelection
 
   before_action :prepare_feed_response_format, only: :show
   before_action :set_book, only: :show
@@ -39,20 +39,11 @@ class BooksController < ApplicationController
 
   def prepare_book_write_context
     authorize @bookshelf_entry if @bookshelf_entry
-    @quoted_jjaek = find_quoted_jjaek
-    @jjaek = Jjaek.new(user: current_user, book: (@book if @book.persisted? && !@quoted_jjaek), group: @group, quoted_jjaek: @quoted_jjaek)
+    @jjaek = Jjaek.new(user: current_user, group: @group)
     authorize @jjaek, :show?
-    unless @quoted_jjaek
-      @selected_books = [ @book ]
-      @selected_book_keys = [ @book.persisted? ? @book.id.to_s : cache_external_recommendation(@search_result_token) ]
-    end
+    @selected_books = [ @book ]
+    @selected_book_keys = [ @book.persisted? ? @book.id.to_s : cache_external_book(@search_result_token) ]
     @sticker_definitions = StickerDefinition.alphabetical
-  end
-
-  def find_quoted_jjaek
-    return unless @book.persisted? && params[:quote_id].present?
-
-    policy_scope(@book.jjaeks).find(params[:quote_id])
   end
 
   def set_book

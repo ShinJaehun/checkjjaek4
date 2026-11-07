@@ -101,8 +101,7 @@ Rails.application.routes.draw do
     end
     resource :like, only: %i[create destroy]
   end
-  resources :recommendation_books, only: %i[create destroy]
-  resources :jjaek_books, only: :index
+  resources :jjaek_books, only: %i[index create destroy]
 
   resources :users, only: :show do
     resource :library, only: :show, controller: "users/libraries" do

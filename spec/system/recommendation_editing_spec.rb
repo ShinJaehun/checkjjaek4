@@ -7,8 +7,8 @@ RSpec.describe "Unified inline composition", type: :system do
   let!(:book) { Book.create!(title: "Search attachment first", thumbnail: "https://example.com/first-cover.jpg") }
   let!(:other_book) { Book.create!(title: "Search attachment second", thumbnail: "https://example.com/second-cover.jpg") }
   let!(:recommendation) do
-    record = user.jjaeks.new(content: "Original recommendation", recommendation: true)
-    record.jjaek_recommendations.build(book:, position: 0)
+    record = build_jjaek_with_books(legacy_source_kind: "recommendation", user: user, content: "Original recommendation")
+    record.jjaek_book_attachments.build(book:, position: 0)
     record.save!
     record
   end
@@ -28,13 +28,13 @@ RSpec.describe "Unified inline composition", type: :system do
     fill_in "jjaek[content]", with: "My draft survives"
     choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
     click_button I18n.t("jjaek_books.add")
-    within("#recommendation-window") do
+    within("#book-selection-window") do
       expect(page).to have_no_field("jjaek[content]")
-      fill_in "recommendation-query", with: "Search attachment"
+      fill_in "book-selection-query", with: "Search attachment"
       click_button I18n.t("book_search.form.submit")
     end
     expect(page).to have_current_path(book_search_path, ignore_query: true)
-    within("#recommendation-search-results") do
+    within("#book-selection-search-results") do
       expect(page).to have_text(book.title)
       [ book, other_book ].each do |selected_book|
         within("article[data-book-id='#{selected_book.id}']") do
@@ -43,9 +43,9 @@ RSpec.describe "Unified inline composition", type: :system do
         end
       end
     end
-    within("#recommendation-window") do
+    within("#book-selection-window") do
       expect(page).to have_text(book.title)
-      click_button I18n.t("recommendations.finish_selection")
+      click_button I18n.t("jjaek_books.finish_selection")
     end
     expect(page).to have_current_path(root_path)
     expect(page).to have_css("#jjaek-publish-form textarea[name='jjaek[content]']:focus")
@@ -64,27 +64,27 @@ RSpec.describe "Unified inline composition", type: :system do
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
     third_book = Book.create!(title: "Search attachment third")
     click_button I18n.t("jjaek_books.add")
-    within("#recommendation-window") do
-      fill_in "recommendation-query", with: third_book.title
+    within("#book-selection-window") do
+      fill_in "book-selection-query", with: third_book.title
       click_button I18n.t("book_search.form.submit")
     end
-    within("#recommendation-search-results article[data-book-id='#{third_book.id}']") do
+    within("#book-selection-search-results article[data-book-id='#{third_book.id}']") do
       click_button I18n.t("jjaek_books.choose")
       expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
     end
-    within("#recommendation-window") do
+    within("#book-selection-window") do
       click_button I18n.t("jjaek_books.remove_book", title: book.title), enable_aria_label: true
-      expect(page).to have_no_css("[data-recommendation-composer-target='book'][data-book-id='#{book.id}']")
+      expect(page).to have_no_css("[data-book-selection-target='book'][data-book-id='#{book.id}']")
     end
     page.execute_script("Turbo.visit(arguments[0])", book_path(other_book))
     expect(page).to have_current_path(book_path(other_book))
     expect(page).to have_no_css("#book-jjaek-form")
-    within("#recommendation-window") do
-      expect(page).to have_css("[data-recommendation-composer-target='book'][data-book-id='#{third_book.id}']")
+    within("#book-selection-window") do
+      expect(page).to have_css("[data-book-selection-target='book'][data-book-id='#{third_book.id}']")
       click_button I18n.t("book_search.actions.close")
     end
     expect(page).to have_current_path(root_path)
-    expect(page).to have_no_css("#recommendation-window")
+    expect(page).to have_no_css("#book-selection-window")
     expect(page).to have_field("jjaek[content]", with: "My draft survives")
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
     expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq([ "", book.id.to_s, other_book.id.to_s ])
@@ -127,12 +127,12 @@ RSpec.describe "Unified inline composition", type: :system do
     fill_in "jjaek[content]", with: "Continue writing here"
     choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
     click_button I18n.t("jjaek_books.add")
-    within("#recommendation-window") do
-      click_button I18n.t("recommendations.finish_selection")
+    within("#book-selection-window") do
+      click_button I18n.t("jjaek_books.finish_selection")
     end
 
     expect(page).to have_current_path(root_path)
-    expect(page).to have_no_css("#recommendation-window")
+    expect(page).to have_no_css("#book-selection-window")
     expect(page).to have_css("#jjaek-publish-form textarea[name='jjaek[content]']:focus")
     expect(page).to have_field("jjaek[content]", with: "Continue writing here")
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
@@ -150,11 +150,11 @@ RSpec.describe "Unified inline composition", type: :system do
       fill_in "jjaek[content]", with: "Cancel keeps this draft"
       choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true unless group_id || target_id
       click_button I18n.t("jjaek_books.add")
-      within("#recommendation-window") do
-        fill_in "recommendation-query", with: "Search attachment"
+      within("#book-selection-window") do
+        fill_in "book-selection-query", with: "Search attachment"
         click_button I18n.t("book_search.form.submit")
       end
-      within("#recommendation-search-results") do
+      within("#book-selection-search-results") do
         [ book, other_book ].reject { |item| original_ids.include?(item.id) }.each do |item|
           within("article[data-book-id='#{item.id}']") do
             click_button I18n.t("jjaek_books.choose")
@@ -164,14 +164,14 @@ RSpec.describe "Unified inline composition", type: :system do
       end
       case exit_method
       when :close
-        within("#recommendation-window") { click_button I18n.t("book_search.actions.close") }
+        within("#book-selection-window") { click_button I18n.t("book_search.actions.close") }
       when :back
         find("main a[data-back-link]").click
       when :browser_back
         page.go_back
       end
       expect(page).to have_current_path(origin)
-      expect(page).to have_no_css("#recommendation-window")
+      expect(page).to have_no_css("#book-selection-window")
       expect(page).to have_field("jjaek[content]", with: "Cancel keeps this draft")
       expect(page).to have_no_css("#jjaek-publish-form textarea[name='jjaek[content]']:focus")
       expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all) unless group_id || target_id

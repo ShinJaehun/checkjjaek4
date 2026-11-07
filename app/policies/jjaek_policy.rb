@@ -430,7 +430,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def book_context_allowed?
-    !record.requote? || (record.book_id.blank? && record.jjaek_recommendations.empty?)
+    !record.requote? || record.jjaek_book_attachments.empty?
   end
 
   def group_context_allowed?

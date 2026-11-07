@@ -19,8 +19,8 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   end
 
   def legacy_recommendation
-    record = user.jjaeks.new(content: "Original #before", recommendation: true)
-    [ book, other_book ].each_with_index { |item, position| record.jjaek_recommendations.build(book: item, position:) }
+    record = build_jjaek_with_books(legacy_source_kind: "recommendation", user: user, content: "Original #before")
+    [ book, other_book ].each_with_index { |item, position| record.jjaek_book_attachments.build(book: item, position:) }
     record.save!
     record
   end
@@ -30,7 +30,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
       results: [ { title: "External book", isbn: "9780140328721", url: "https://example.com/external" } ], meta: { is_end: true })
     get book_search_path, params: { attachment: 1, query: "External" }
     token = Nokogiri::HTML(response.body).at_css("input[name='search_result_token']")["value"]
-    post recommendation_books_path, params: { search_result_token: token, selected_books: [ "" ] }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    post jjaek_books_path, params: { search_result_token: token, selected_books: [ "" ] }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
     Nokogiri::HTML(response.body).css("input[name='selected_books[]']").map { |input| input["value"] }.find { |key| key.start_with?("external:") }
   end
 
@@ -44,9 +44,9 @@ RSpec.describe "Unified Jjaek composition", type: :request do
       expect(page.css("form textarea[name='jjaek[content]']")).not_to be_empty
       expect(page.at_css("#jjaek-publish-form textarea")["placeholder"]).to eq(placeholder)
       expect(page.css("[data-book-selection-open]")).not_to be_empty
-      expect(page.at_css("#recommendation-window")["aria-modal"]).to eq("false")
-      expect(page.at_css("#recommendation-window button[data-action='recommendation-composer#cancel']")).to be_present
-      expect(page.css("#recommendation-window textarea")).to be_empty
+      expect(page.at_css("#book-selection-window")["aria-modal"]).to eq("false")
+      expect(page.at_css("#book-selection-window button[data-action='book-selection#cancel']")).to be_present
+      expect(page.css("#book-selection-window textarea")).to be_empty
       expect(page.css("dialog textarea")).to be_empty
     end
   end
@@ -67,11 +67,11 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     [ "text/html", "text/vnd.turbo-stream.html" ].each do |accept|
       expect {
         post jjaeks_path, params: { selected_books: books.map(&:id), jjaek: { content: "Read together #books" } }, headers: { "Accept" => accept }
-      }.to change(Jjaek, :count).by(1).and change(JjaekRecommendation, :count).by(5)
+      }.to change(Jjaek, :count).by(1).and change(JjaekBookAttachment, :count).by(5)
       expect(response).to have_http_status(:see_other)
       record = Jjaek.last
       expect(record.attached_books).to eq(books)
-      expect(record).not_to be_recommendation
+      expect(record.legacy_source_kind).to be_nil
       expect(record.tags.pluck(:name)).to eq([ "books" ])
       get jjaek_path(record)
       attachments = Nokogiri::HTML(response.body).at_css("#jjaek_#{record.id} [data-attached-books]")
@@ -93,7 +93,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
 
   it "uses medium covers for a single attached book and its quoted source" do
     book.update!(thumbnail: "https://example.com/single-book-cover.jpg")
-    source = user.jjaeks.create!(book:, content: "Single attached book", visibility: :public_jjaek)
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Single attached book", visibility: :public_jjaek)
     quote = user.jjaeks.create!(quoted_jjaek: source, content: "Quoted single book")
 
     [ source, quote ].each do |record|
@@ -106,7 +106,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   it "uses small covers and keeps shelf and remove actions together in both composer modes" do
     book.update!(thumbnail: "https://example.com/selected-book-cover.jpg")
     get jjaek_books_path, params: { selected_books: [ book.id, other_book.id ] }
-    selection = Nokogiri::HTML(response.body).at_css("#recommendation-selected-books")
+    selection = Nokogiri::HTML(response.body).at_css("#book-selection-selected-books")
     expect(selection.at_css("img")["class"].split).to include("max-h-20", "max-w-14")
     expect(selection.at_css("div.h-20.w-14")).to be_present
 
@@ -133,7 +133,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     [ [ { id: book.id } ], { id: book.id }, [ " " ], [ book.id, book.id ], [ book.id, "999999999" ], [ book.id, other_book.id, *extra ] ].each do |selection|
       expect {
         post jjaeks_path, params: { selected_books: selection, jjaek: { content: "Invalid" } }
-      }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+      }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("Invalid")
     end
@@ -143,7 +143,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     [ "text/html", "text/vnd.turbo-stream.html" ].each do |accept|
       expect {
         post jjaeks_path, params: { selected_books: [ book.id, other_book.id ], jjaek: { content: "한" * 201, visibility: :private_jjaek } }, headers: { "Accept" => accept }
-      }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+      }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
       expect(response).to have_http_status(:unprocessable_content)
       page = Nokogiri::HTML(response.body)
       expect(page.at_css("textarea[name='jjaek[content]']").text.strip).to eq("한" * 201)
@@ -171,12 +171,12 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   end
 
   it "preserves omitted attachments and clears explicit empty selections without a legacy fallback" do
-    record = user.jjaeks.create!(book:, content: "Single book")
+    record = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Single book")
     patch jjaek_path(record), params: { jjaek: { content: "Keep books" } }
     expect(record.reload.attached_books).to eq([ book ])
     patch jjaek_path(record), params: { selected_books: [ "" ], jjaek: { content: "Clear books" } }
     expect(record.reload.attached_books).to be_empty
-    expect(record.book_id).to be_nil
+    expect(record.attributes).not_to have_key("book_id")
     get edit_jjaek_path(record)
     expect(response.body).not_to include(book.title)
   end
@@ -187,17 +187,17 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     invalid = [ [ book.id, "missing" ], [ { id: book.id } ], [ book.id, book.id ], [ book.id, other_book.id, *extra ] ]
     [ "text/html", "text/vnd.turbo-stream.html" ].each do |accept|
       invalid.each do |keys|
-        original_links = record.jjaek_recommendations.reload.map(&:attributes)
+        original_links = record.jjaek_book_attachments.reload.map(&:attributes)
         expect {
           patch jjaek_path(record), params: { selected_books: keys, jjaek: { content: "Attempt #changed", visibility: :private_jjaek } }, headers: { "Accept" => accept }
-        }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+        }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
         expect(response).to have_http_status(:unprocessable_content)
         page = Nokogiri::HTML(response.body)
         expect(page.at_css("textarea").text.strip).to eq("Attempt #changed")
         expect(page.at_css("input[type='radio'][name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
         expect(page.css("[role='alert']").text.strip).not_to be_empty
         expect(record.reload).to have_attributes(content: "Original #before", visibility: "public_jjaek")
-        expect(record.jjaek_recommendations.reload.map(&:attributes)).to eq(original_links)
+        expect(record.jjaek_book_attachments.reload.map(&:attributes)).to eq(original_links)
         expect(record.tags.pluck(:name)).to eq([ "before" ])
       end
     end
@@ -216,7 +216,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(Book.count).to eq(original_count + 1)
     expect(Jjaek.last.attached_books.map(&:title)).to eq([ "External book", book.title ])
     expect(user.bookshelf_entries).to be_empty
-    expect(Rails.cache.read([ "recommendation_selection", user.id, key ])).to be_nil
+    expect(Rails.cache.read([ "book_selection", user.id, key ])).to be_nil
   end
 
   it "rejects forged, cross-user and expired references on create and update without partial writes" do
@@ -240,20 +240,20 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   it "rolls back a new external Book and all edits when content validation fails" do
     record = legacy_recommendation
     key = external_key
-    links = record.jjaek_recommendations.reload.map(&:attributes)
+    links = record.jjaek_book_attachments.reload.map(&:attributes)
     expect {
       patch jjaek_path(record), params: { selected_books: [ key ], jjaek: { content: "x" * 201, visibility: :private_jjaek } }
-    }.not_to change { [ Book.count, JjaekRecommendation.count ] }
+    }.not_to change { [ Book.count, JjaekBookAttachment.count ] }
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("x" * 201)
     expect(record.reload).to have_attributes(content: "Original #before", visibility: "public_jjaek")
-    expect(record.jjaek_recommendations.reload.map(&:attributes)).to eq(links)
+    expect(record.jjaek_book_attachments.reload.map(&:attributes)).to eq(links)
     expect(record.tags.pluck(:name)).to eq([ "before" ])
   end
 
   it "reuses a book registered after an external selection and rejects duplicate identities" do
     key = external_key
-    token = Rails.cache.read([ "recommendation_selection", user.id, key ])
+    token = Rails.cache.read([ "book_selection", user.id, key ])
     imported = Book.create!(title: "Canonical", isbn: "9780140328721")
     post jjaeks_path, params: { selected_books: [ key, imported.id ], jjaek: { content: "Duplicate" } }
     expect(response).to have_http_status(:unprocessable_content)
@@ -311,7 +311,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   it "blocks attachment selection, changes and PATCH by a reader who is not the author" do
     record = legacy_recommendation
     original = record.attributes
-    links = record.jjaek_recommendations.map(&:attributes)
+    links = record.jjaek_book_attachments.map(&:attributes)
     sign_in outsider
     get jjaek_path(record)
     expect(response).to have_http_status(:ok)
@@ -319,16 +319,16 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect {
       get jjaek_books_path, params: { editing_jjaek_id: record.id }
       expect(response).to redirect_to(root_path)
-      post recommendation_books_path, params: { editing_jjaek_id: record.id, book_id: book.id, selected_books: [ other_book.id ] }
+      post jjaek_books_path, params: { editing_jjaek_id: record.id, book_id: book.id, selected_books: [ other_book.id ] }
       expect(response).to redirect_to(root_path)
-      delete recommendation_book_path(book.id), params: { editing_jjaek_id: record.id, selected_books: [ book.id, other_book.id ] }
+      delete jjaek_book_path(book.id), params: { editing_jjaek_id: record.id, selected_books: [ book.id, other_book.id ] }
       expect(response).to redirect_to(root_path)
       patch jjaek_path(record), params: { selected_books: [ other_book.id ], jjaek: { content: "Forbidden #changed", visibility: :private_jjaek } }
       expect(response).to redirect_to(root_path)
-    }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+    }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
 
     expect(record.reload.attributes).to eq(original)
-    expect(record.jjaek_recommendations.reload.map(&:attributes)).to eq(links)
+    expect(record.jjaek_book_attachments.reload.map(&:attributes)).to eq(links)
     expect(record.tags.pluck(:name)).to eq([ "before" ])
   end
 
@@ -336,10 +336,10 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     club = Group.create!(group_admin: friend, name: "Membership readers", group_type: :private_group, lifecycle_status: :active)
     membership = club.group_memberships.create!(user:, status: :active)
     record = user.jjaeks.new(group: club, content: "Group #before")
-    record.jjaek_recommendations.build(book:, position: 0)
+    record.jjaek_book_attachments.build(book:, position: 0)
     record.save!
     original = record.attributes
-    links = record.jjaek_recommendations.map(&:attributes)
+    links = record.jjaek_book_attachments.map(&:attributes)
     get jjaek_books_path, params: { editing_jjaek_id: record.id }
     expect(response).to have_http_status(:ok)
     membership.destroy!
@@ -347,16 +347,16 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect {
       get jjaek_books_path, params: { editing_jjaek_id: record.id }
       expect(response).to redirect_to(root_path)
-      post recommendation_books_path, params: { editing_jjaek_id: record.id, book_id: other_book.id, selected_books: [ book.id ] }
+      post jjaek_books_path, params: { editing_jjaek_id: record.id, book_id: other_book.id, selected_books: [ book.id ] }
       expect(response).to redirect_to(root_path)
-      delete recommendation_book_path(book.id), params: { editing_jjaek_id: record.id, selected_books: [ book.id ] }
+      delete jjaek_book_path(book.id), params: { editing_jjaek_id: record.id, selected_books: [ book.id ] }
       expect(response).to redirect_to(root_path)
       patch jjaek_path(record), params: { selected_books: [ other_book.id ], jjaek: { content: "Forbidden #changed" } }
       expect(response).to have_http_status(:not_found)
-    }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+    }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
 
     expect(record.reload.attributes).to eq(original)
-    expect(record.jjaek_recommendations.reload.map(&:attributes)).to eq(links)
+    expect(record.jjaek_book_attachments.reload.map(&:attributes)).to eq(links)
     expect(record.tags.pluck(:name)).to eq([ "before" ])
   end
 
@@ -367,13 +367,13 @@ RSpec.describe "Unified Jjaek composition", type: :request do
       patch jjaek_path(record), params: { jjaek: { key => value, content: } }
       expect(response).to have_http_status(:see_other)
       expect(record.reload.content).to eq(content)
-      expect(record).to have_attributes(book_id: nil, group_id: nil, target_user_id: nil, quoted_jjaek_id: nil)
+      expect(record).to have_attributes(group_id: nil, target_user_id: nil, quoted_jjaek_id: nil)
       expect(record.attached_books).to be_empty
     end
   end
 
   it "only quotes the source and rejects newly attached books on creation and editing" do
-    source = user.jjaeks.create!(book:, content: "Source")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Source")
     expect {
       post jjaeks_path, params: { selected_books: [ other_book.id ], jjaek: { quoted_jjaek_id: source.id, content: "Invalid quote" } }
     }.not_to change(Jjaek, :count)
@@ -387,14 +387,18 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(Nokogiri::HTML(response.body).css("#jjaek-composer [data-book-selection-open]")).to be_empty
   end
 
-  it "keeps legacy recommendation URLs and edits on the common form" do
+  it "edits historical attachments using the common form and selection endpoint" do
     record = legacy_recommendation
     get edit_jjaek_path(record)
     expect(response.body).to include(book.title, other_book.title, "Original #before")
-    expect(Nokogiri::HTML(response.body).css("#recommendation-window textarea")).to be_empty
-    get book_search_path, params: { recommendation: 1, editing_jjaek_id: record.id }
-    expect(response).to redirect_to(edit_jjaek_path(record))
-    post recommendation_books_path, params: { editing_jjaek_id: record.id, book_id: book.id, selected_books: [ book.id, other_book.id ] }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    expect(Nokogiri::HTML(response.body).css("#book-selection-window textarea")).to be_empty
+    selected_books = Nokogiri::HTML(response.body).css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }
+    expect(selected_books).to eq(["", book.id.to_s, other_book.id.to_s])
+    get jjaek_books_path, params: { editing_jjaek_id: record.id, selected_books: }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(book.title, other_book.title)
+    expect(response.body).to include(I18n.t("jjaek_books.selected_count", count: 2, max: Jjaek::MAX_ATTACHED_BOOKS))
+    post jjaek_books_path, params: { editing_jjaek_id: record.id, book_id: book.id, selected_books: [ book.id, other_book.id ] }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
     expect(response).to have_http_status(:ok)
     expect(record.reload.attached_books).to eq([ book, other_book ])
   end
@@ -410,42 +414,42 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   it "keeps search results in the page and the floating window limited to selection" do
     get jjaek_books_path, params: { selected_books: [ book.id ], search_origin: root_path }
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("turbo-frame#recommendation_composer")).to be_present
-    expect(page.at_css("button[data-action='recommendation-composer#finish']")).to be_present
+    expect(page.at_css("turbo-frame#book_selection")).to be_present
+    expect(page.at_css("button[data-action='book-selection#finish']")).to be_present
     expect(page.css("textarea, form[action='#{jjaeks_path}']")).to be_empty
-    expect(page.css("#recommendation-selected-books").text).to include(book.title)
+    expect(page.css("#book-selection-selected-books").text).to include(book.title)
     expect(page.at_css("form[method='get']")["action"]).to eq(book_search_path)
     expect(page.at_css("form[method='get'] input[type='submit']")["value"]).to eq("책 찾기")
-    remove_button = page.at_css("#recommendation-selected-books button")
+    remove_button = page.at_css("#book-selection-selected-books button")
     expect(remove_button).to be_present
     expect(remove_button["aria-label"]).to eq(I18n.t("jjaek_books.remove_book", title: book.title))
     expect(remove_button.at_css("svg[aria-hidden='true']")).to be_present
     expect(remove_button.text.strip).to be_empty
-    expect(remove_button.ancestors("form").first["action"]).to eq(recommendation_book_path(book.id))
+    expect(remove_button.ancestors("form").first["action"]).to eq(jjaek_book_path(book.id))
 
     get book_search_path, params: { attachment: 1, query: book.title, selected_books: [ book.id ], search_origin: root_path }
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("main h1")).to be_nil
-    expect(page.css("#recommendation-search-results article").text).to include(book.title)
-    expect(page.css("#recommendation-window article")).to be_empty
+    expect(page.css("#book-selection-search-results article").text).to include(book.title)
+    expect(page.css("#book-selection-window article")).to be_empty
     expect(page.at_css("[hidden] #jjaek-composer[data-turbo-permanent]")).to be_present
   end
 
   it "enforces five unique selections and supports removal without creating Books or Jjaeks" do
     books = [ book, other_book, *3.times.map { |i| Book.create!(title: "Selected #{i}") } ]
     sixth = Book.create!(title: "Sixth selection")
-    headers = { "Accept" => "text/vnd.turbo-stream.html", "X-Recommendation-Revision" => SecureRandom.uuid }
+    headers = { "Accept" => "text/vnd.turbo-stream.html", "X-Book-Selection-Revision" => SecureRandom.uuid }
     expect {
-      post recommendation_books_path, params: { selected_books: books.map(&:id), book_id: sixth.id }, headers: headers
-    }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count ] }
+      post jjaek_books_path, params: { selected_books: books.map(&:id), book_id: sixth.id }, headers: headers
+    }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.headers["X-Recommendation-Revision"]).to eq(headers["X-Recommendation-Revision"])
+    expect(response.headers["X-Book-Selection-Revision"]).to eq(headers["X-Book-Selection-Revision"])
     expect(response.body).to include(I18n.t("jjaek_books.limit", count: 5))
-    post recommendation_books_path, params: { selected_books: books.map(&:id), book_id: book.id }, headers: headers
+    post jjaek_books_path, params: { selected_books: books.map(&:id), book_id: book.id }, headers: headers
     expect(response).to have_http_status(:ok)
-    fields = Nokogiri::HTML(response.body).at_css("turbo-stream[target='recommendation-selection-fields'] template")
+    fields = Nokogiri::HTML(response.body).at_css("turbo-stream[target='book-selection-fields'] template")
     expect(fields.css("input[name='selected_books[]']").map { |input| input["value"] }.reject(&:empty?)).to eq(books.map { |item| item.id.to_s })
-    delete recommendation_book_path(book.id), params: { selected_books: books.map(&:id) }, headers: headers
+    delete jjaek_book_path(book.id), params: { selected_books: books.map(&:id) }, headers: headers
     expect(response).to have_http_status(:ok)
     expect(Jjaek.count).to eq(0)
   end
@@ -454,7 +458,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     record = legacy_recommendation
     shelf = user.bookshelves.create!(name: "Chosen shelf")
     original = record.attributes
-    links = record.jjaek_recommendations.map(&:attributes)
+    links = record.jjaek_book_attachments.map(&:attributes)
     get edit_jjaek_path(record)
     page = Nokogiri::HTML(response.body)
     registration = page.at_css("#jjaek-attached-books dialog form")
@@ -469,7 +473,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(response.body).not_to include('target="jjaek-composer"', 'target="jjaek-attached-books"')
     expect(user.bookshelf_entries.find_by!(book:).bookshelf).to eq(shelf)
     expect(record.reload.attributes).to eq(original)
-    expect(record.jjaek_recommendations.reload.map(&:attributes)).to eq(links)
+    expect(record.jjaek_book_attachments.reload.map(&:attributes)).to eq(links)
     expect {
       post bookshelf_entries_path, params: { search_result_token: "invalid", bookshelf_entry_source: "jjaek_attachment" }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
@@ -480,8 +484,8 @@ RSpec.describe "Unified Jjaek composition", type: :request do
 
   it "finds legacy recommendations in unified search through old URLs without widening visibility" do
     record = legacy_recommendation
-    expect(record.reload).to be_recommendation
-    expect(Jjaek.recommendation_posts.where(id: record.id)).to exist
+    expect(record.reload.legacy_source_kind).to eq("recommendation")
+    expect(record.attached_books).to eq([book, other_book])
     expect(JjaekPolicy::SearchScope.new(user, Jjaek.all).resolve.where(id: record.id)).to exist
 
     get search_path, params: { q: "Original", type: "recommendation_jjaeks" }

@@ -13,7 +13,6 @@ module ContentPresentationHelper
   def content_kind_badge_classes(kind)
     case kind.to_s
     when "general", "group_general" then "bg-sky-100 text-sky-800"
-    when "book", "group_book" then "bg-emerald-100 text-emerald-800"
     when "requote" then "bg-violet-100 text-violet-800"
     when "comments" then "bg-amber-100 text-amber-900"
     else "bg-stone-100 text-stone-700"
