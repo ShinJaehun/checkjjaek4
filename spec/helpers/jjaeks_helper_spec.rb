@@ -22,10 +22,10 @@ RSpec.describe JjaeksHelper, type: :helper do
 
   it "names the other participant in each viewer's language and keeps observer wording neutral" do
     post = author.jjaeks.new(target_user: viewer, content: "Private conversation")
-    { ko: ["Reader님과 나만 보기", "Author님과 나만 보기", "당사자만 보기"],
-      en: ["Only Reader and me", "Only Author and me", "Participants only"] }.each do |locale, labels|
+    { ko: [ "Reader님과 나만 보기", "Author님과 나만 보기", "당사자만 보기" ],
+      en: [ "Only Reader and me", "Only Author and me", "Participants only" ] }.each do |locale, labels|
       I18n.with_locale(locale) do
-        [author, viewer, nil].zip(labels).each do |actor, label|
+        [ author, viewer, nil ].zip(labels).each do |actor, label|
           allow(helper).to receive(:current_user).and_return(actor)
           expect(helper.jjaek_visibility_label(post)).to eq(label)
         end
@@ -107,7 +107,7 @@ RSpec.describe JjaeksHelper, type: :helper do
 
   it "uses a neutral Club space badge without a book title or content-type label in the header" do
     book = Book.create!(title: "Header book")
-    [nil, book].each do |attachment|
+    [ nil, book ].each do |attachment|
       post = author.jjaeks.create!(group:, book: attachment, content: "Group post")
       label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))
       expect(label.text).to eq("Author님이 동아리 Readers에 남긴 짹")
@@ -163,7 +163,7 @@ RSpec.describe JjaeksHelper, type: :helper do
     recommendation = author.jjaeks.new(content: "Recommendation", recommendation: true)
     recommendation.jjaek_recommendations.build(book:, position: 0)
     recommendation.save!
-    [ordinary, book_post, recommendation].each do |post|
+    [ ordinary, book_post, recommendation ].each do |post|
       label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))
       expect(label.text).to eq("Author님의 짹")
       expect(label.at_css("a[href='#{user_path(author)}']").text).to eq(author.name)

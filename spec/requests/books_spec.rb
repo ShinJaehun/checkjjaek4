@@ -13,12 +13,12 @@ RSpec.describe "Books", type: :request do
       second_book = Book.create!(title: "Other preview book")
       sign_in friend
       posts = 4.times.map do |index|
-        post jjaeks_path, params: { selected_books: [book.id, second_book.id], jjaek: { content: "Unified friend #{index}", visibility: :book_friends } }
+        post jjaeks_path, params: { selected_books: [ book.id, second_book.id ], jjaek: { content: "Unified friend #{index}", visibility: :book_friends } }
         friend.jjaeks.find_by!(content: "Unified friend #{index}")
       end
-      post jjaeks_path, params: { selected_books: [book.id, second_book.id], jjaek: { content: "Private unified friend", visibility: :private_jjaek } }
+      post jjaeks_path, params: { selected_books: [ book.id, second_book.id ], jjaek: { content: "Private unified friend", visibility: :private_jjaek } }
       sign_in user
-      [book, second_book].each do |attached_book|
+      [ book, second_book ].each do |attached_book|
         get book_path(attached_book)
         cards = Nokogiri::HTML(response.body).css("[data-book-friend-activity]")
         expect(cards.map { |card| card["id"] }).to eq(posts.last(3).reverse.map { |record| "book_friend_activity_jjaek_#{record.id}" })
@@ -291,7 +291,7 @@ RSpec.describe "Books", type: :request do
       expect(page.at_css("[data-book-modal-auto-open-value='false']")).to be_present
       visibility_choices = form.css("input[type='radio'][name='jjaek[visibility]']")
       expect(visibility_choices.map { |choice| choice['value'] }).to eq(Jjaek.visibilities.keys)
-      expect(visibility_choices.select { |choice| choice['checked'] }.map { |choice| choice['value'] }).to eq(["public_jjaek"])
+      expect(visibility_choices.select { |choice| choice['checked'] }.map { |choice| choice['value'] }).to eq([ "public_jjaek" ])
       expect(visibility_choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
       expect(page.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
       panel = page.at_css("#book-jjaek-form")

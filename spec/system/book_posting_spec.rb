@@ -7,7 +7,7 @@ RSpec.describe "Book context composition", type: :system do
   let(:group) { Group.create!(name: "Club", group_admin: user, lifecycle_status: :active) }
 
   before do
-    driven_by :selenium, using: :headless_chrome, screen_size: [1280, 720]
+    driven_by :selenium, using: :headless_chrome, screen_size: [ 1280, 720 ]
     login_as user, scope: :user
   end
   after { Warden.test_reset! }
@@ -58,7 +58,7 @@ RSpec.describe "Book context composition", type: :system do
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.public_jjaek"), visible: :all)
     expect(page).to have_no_css("#jjaek-attached-books [data-book-key='#{other_book.id}']")
     record = user.jjaeks.find_by!(content: "Book page draft")
-    expect(record.attached_books).to eq([book, other_book])
+    expect(record.attached_books).to eq([ book, other_book ])
     expect(record).to be_private_jjaek
 
     fill_in "jjaek[content]", with: "Discard this draft"

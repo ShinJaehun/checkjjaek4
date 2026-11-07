@@ -11,10 +11,10 @@ RSpec.describe JjaekRecommendation, type: :model do
     jjaek.jjaek_recommendations.build(book:, position: 0)
     jjaek.save!
 
-    expect(jjaek.reload.recommended_books).to eq([book, other_book])
+    expect(jjaek.reload.recommended_books).to eq([ book, other_book ])
     expect(jjaek.book_id).to be_nil
     expect(jjaek.content_kind).to eq("recommendation")
-    expect(jjaek.tags.pluck(:name)).to eq(["독서"])
+    expect(jjaek.tags.pluck(:name)).to eq([ "독서" ])
     expect(Jjaek.general_posts).not_to include(jjaek)
     expect(user.bookshelf_entries).to be_empty
   end

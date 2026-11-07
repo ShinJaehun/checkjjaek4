@@ -123,7 +123,7 @@ RSpec.describe "Unified search", type: :request do
       post
     end
     let!(:requote) { viewer.jjaeks.create!(quoted_jjaek: general_post, content: "한글 인용") }
-    let(:matched_posts) { [general_post, book_post, recommendation_post, multi_book_post, requote] }
+    let(:matched_posts) { [ general_post, book_post, recommendation_post, multi_book_post, requote ] }
     let!(:group) { Group.create!(group_admin: writer, name: "한글 모임", lifecycle_status: :active) }
 
     before { sign_in viewer }
@@ -142,7 +142,7 @@ RSpec.describe "Unified search", type: :request do
         expect(card.at_css("a[href='#{user_path(post.user)}']")).to be_present
         timestamp_key = post.content_edited_at ? "edited_at" : "created_at"
         timestamp = post.content_edited_at || post.created_at
-        expect(card.css("time").map(&:text)).to eq([I18n.t("jjaeks.meta.#{timestamp_key}", time: I18n.l(timestamp, format: :short))])
+        expect(card.css("time").map(&:text)).to eq([ I18n.t("jjaeks.meta.#{timestamp_key}", time: I18n.l(timestamp, format: :short)) ])
       end
       expect(search_section("jjaeks").text).to include(book.title, "두 번째 첨부 책")
       page = Nokogiri::HTML(response.body)
@@ -166,7 +166,7 @@ RSpec.describe "Unified search", type: :request do
         expect(page.at_css("a[aria-current='page']")["href"]).to eq(search_path(q: "한글", type:, per_page: 30))
         if type == "jjaeks"
           expect(search_section(type).css("article").map { |card| card["id"] })
-            .to eq(matched_posts.sort_by { |post| [post.created_at, post.id] }.reverse.map { |post| "jjaek_#{post.id}" })
+            .to eq(matched_posts.sort_by { |post| [ post.created_at, post.id ] }.reverse.map { |post| "jjaek_#{post.id}" })
         end
       end
     end
@@ -471,7 +471,7 @@ RSpec.describe "Unified search", type: :request do
       get search_path, params: { q: "동아리검색" }
       expect(response.body).to include(post.content, book_post.content)
       group_label = "#{I18n.t('jjaeks.contexts.group_badge')} #{group.name}"
-      [post, book_post].each do |group_post|
+      [ post, book_post ].each do |group_post|
         expect(search_section("jjaeks").at_css("article#jjaek_#{group_post.id}").text.squish)
           .to include(I18n.t("jjaeks.contexts.group_general_html", author_name: writer.name,
                              group_name: group_label))

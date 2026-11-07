@@ -148,7 +148,7 @@ RSpec.describe "Group content inventory", type: :request do
     own_root = group_admin.jjaeks.create!(group:, content: "OWN_ROOT_BODY")
     global_admin_root = platform_admin.jjaeks.create!(group:, content: "GLOBAL_ADMIN_ROOT_BODY")
     book = Book.create!(title: "INVENTORY_PRIVATE_BOOK")
-    [root, group_hidden_root, platform_hidden_root, deleted_root].each do |post|
+    [ root, group_hidden_root, platform_hidden_root, deleted_root ].each do |post|
       post.jjaek_recommendations.create!(book:, position: 0)
     end
 
@@ -163,7 +163,7 @@ RSpec.describe "Group content inventory", type: :request do
     thread = document.at_css("tbody[data-thread-id='#{root.id}']")
     expect(document.at_css("#group_content_jjaek_#{root.id} [data-field='metadata']").text).to include("책 1권 첨부", group.name)
     expect(document.at_css("#group_content_jjaek_#{group_hidden_root.id} [data-field='metadata']").text).to include("책 1권 첨부")
-    [platform_hidden_root, deleted_root].each do |post|
+    [ platform_hidden_root, deleted_root ].each do |post|
       expect(document.at_css("#group_content_jjaek_#{post.id} [data-field='metadata']")).to be_nil
     end
     expect(document.css("[data-field='reference']")).to be_empty
@@ -353,7 +353,7 @@ RSpec.describe "Group content inventory", type: :request do
 
     get content_group_path(group), params: { content_q: "Unique Writer", content: "group" }
     expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i })
-      .to match_array([general.id, book_root.id, hidden.id, deleted.id])
+      .to match_array([ general.id, book_root.id, hidden.id, deleted.id ])
 
     get content_group_path(group), params: { content_q: "SORT_SCOPE", content_sort: "recent" }
     expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to eq([ general.id, book_root.id ])

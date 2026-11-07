@@ -21,7 +21,7 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
 
   it "uses the single unified attachment with the existing reading-state permissions" do
     sign_in author
-    post jjaeks_path, params: { selected_books: [book.id], jjaek: { content: "Unified reading state" } }
+    post jjaeks_path, params: { selected_books: [ book.id ], jjaek: { content: "Unified reading state" } }
     record = author.jjaeks.find_by!(content: "Unified reading state")
     expect(record.book_id).to be_nil
     get jjaek_path(record)
@@ -37,7 +37,7 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
     get jjaek_path(record)
     expect(reading_info).to include(sticker.name)
     second_book = Book.create!(title: "Second reading book")
-    patch jjaek_path(record), params: { selected_books: [book.id, second_book.id], jjaek: { content: record.content } }
+    patch jjaek_path(record), params: { selected_books: [ book.id, second_book.id ], jjaek: { content: record.content } }
     get jjaek_path(record)
     expect(reading_info).to be_empty
   end

@@ -449,5 +449,4 @@ module JjaeksHelper
       ])
     end
   end
-
 end

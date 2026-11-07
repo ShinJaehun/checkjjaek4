@@ -156,7 +156,7 @@ RSpec.describe "Group Jjaeks", type: :request do
       post group_jjaeks_path(group), params: { jjaek: { book_id: book.id, content: "Group book jjaek" } }
     }.to change(group.jjaeks, :count).by(1)
 
-    expect(group.jjaeks.last.attached_books).to eq([book])
+    expect(group.jjaeks.last.attached_books).to eq([ book ])
   end
 
   it "does not let an activity-suspended member create either kind of group jjaek" do
@@ -252,7 +252,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     }.to change(group.jjaeks, :count).by(1).and change(BookshelfEntry, :count).by(0).and change(BookActivity, :count).by(0)
 
     expect(response).to redirect_to(group_path(group))
-    expect(group.jjaeks.last.attached_books).to eq([book])
+    expect(group.jjaeks.last.attached_books).to eq([ book ])
   end
 
   it "does not let a non-member create either kind of group jjaek" do
@@ -481,7 +481,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).not_to include(%(name="jjaek[visibility]"))
 
     patch jjaek_path(jjaek), params: {
-      selected_books: [book.id],
+      selected_books: [ book.id ],
       jjaek: {
         content: "Changed",
         visibility: :private_jjaek,
@@ -495,7 +495,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(jjaek.reload.content).to eq("Changed")
     expect(jjaek.visibility).to eq("public_jjaek")
     expect(jjaek.group).to eq(group)
-    expect(jjaek.attached_books).to eq([book])
+    expect(jjaek.attached_books).to eq([ book ])
     expect(jjaek.quoted_jjaek).to be_nil
     expect(jjaek.target_user).to be_nil
   end
@@ -519,7 +519,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     jjaek = member.jjaeks.create!(group:, content: "Before")
     sign_in member
 
-    patch jjaek_path(jjaek), params: { selected_books: [book.id], jjaek: { content: "" } }
+    patch jjaek_path(jjaek), params: { selected_books: [ book.id ], jjaek: { content: "" } }
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include(%(name="jjaek[content]"))

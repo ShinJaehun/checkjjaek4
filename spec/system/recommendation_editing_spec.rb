@@ -14,7 +14,7 @@ RSpec.describe "Unified inline composition", type: :system do
   end
 
   before do
-    driven_by :selenium, using: :headless_chrome, screen_size: [1280, 720]
+    driven_by :selenium, using: :headless_chrome, screen_size: [ 1280, 720 ]
     login_as user, scope: :user
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
   end
@@ -36,7 +36,7 @@ RSpec.describe "Unified inline composition", type: :system do
     expect(page).to have_current_path(book_search_path, ignore_query: true)
     within("#recommendation-search-results") do
       expect(page).to have_text(book.title)
-      [book, other_book].each do |selected_book|
+      [ book, other_book ].each do |selected_book|
         within("article[data-book-id='#{selected_book.id}']") do
           click_button I18n.t("jjaek_books.choose")
           expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
@@ -50,7 +50,7 @@ RSpec.describe "Unified inline composition", type: :system do
     expect(page).to have_current_path(root_path)
     expect(page).to have_css("#jjaek-publish-form textarea[name='jjaek[content]']:focus")
     within("#jjaek-attached-books") do
-      [book, other_book].each do |selected_book|
+      [ book, other_book ].each do |selected_book|
         within("[data-book-key='#{selected_book.id}']") do
           expect(page).to have_text(selected_book.title)
           expect(page).to have_css("img[src='#{selected_book.thumbnail}']")
@@ -59,7 +59,7 @@ RSpec.describe "Unified inline composition", type: :system do
         end
       end
     end
-    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq(["", book.id.to_s, other_book.id.to_s])
+    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq([ "", book.id.to_s, other_book.id.to_s ])
     expect(page).to have_field("jjaek[content]", with: "My draft survives")
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
     third_book = Book.create!(title: "Search attachment third")
@@ -87,7 +87,7 @@ RSpec.describe "Unified inline composition", type: :system do
     expect(page).to have_no_css("#recommendation-window")
     expect(page).to have_field("jjaek[content]", with: "My draft survives")
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
-    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq(["", book.id.to_s, other_book.id.to_s])
+    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq([ "", book.id.to_s, other_book.id.to_s ])
     within("#jjaek-attached-books [data-book-key='#{book.id}']") { click_button I18n.t("jjaek_books.add_to_shelf") }
     within("dialog[open]") { click_button I18n.t("bookshelves.actions.close") }
     expect(page).to have_field("jjaek[content]", with: "My draft survives")
@@ -105,12 +105,12 @@ RSpec.describe "Unified inline composition", type: :system do
     end
     expect(page).to have_no_css("#jjaek-attached-books [data-book-key='#{book.id}']")
     expect(page).to have_css("#jjaek-attached-books [data-book-key='#{other_book.id}']")
-    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq(["", other_book.id.to_s])
+    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq([ "", other_book.id.to_s ])
     expect(user.jjaeks.where(content: "My draft survives")).to be_empty
     click_button I18n.t("jjaeks.actions.publish_short")
     expect(page).to have_text("My draft survives")
     saved = user.jjaeks.find_by!(content: "My draft survives")
-    expect(saved.attached_books).to eq([other_book])
+    expect(saved.attached_books).to eq([ other_book ])
     expect(saved).to be_private_jjaek
     within("#jjaek_#{saved.id}") do
       expect(page).to have_text(other_book.title)
@@ -144,8 +144,8 @@ RSpec.describe "Unified inline composition", type: :system do
     club = Group.create!(name: "Draft club", group_admin: user, lifecycle_status: :active)
     recipient = User.create!(name: "Draft recipient", email: "draft-recipient@example.com", password: "password123!")
     BookFriendship.create!(requester: user, addressee: recipient, status: :accepted)
-    [[root_path, [], :close, nil, nil], [book_path(book), [book.id], :back, nil, nil],
-     [group_path(club), [], :browser_back, club.id, nil], [user_path(recipient), [], :close, nil, recipient.id]].each do |origin, original_ids, exit_method, group_id, target_id|
+    [ [ root_path, [], :close, nil, nil ], [ book_path(book), [ book.id ], :back, nil, nil ],
+     [ group_path(club), [], :browser_back, club.id, nil ], [ user_path(recipient), [], :close, nil, recipient.id ] ].each do |origin, original_ids, exit_method, group_id, target_id|
       visit origin
       fill_in "jjaek[content]", with: "Cancel keeps this draft"
       choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true unless group_id || target_id
@@ -155,7 +155,7 @@ RSpec.describe "Unified inline composition", type: :system do
         click_button I18n.t("book_search.form.submit")
       end
       within("#recommendation-search-results") do
-        [book, other_book].reject { |item| original_ids.include?(item.id) }.each do |item|
+        [ book, other_book ].reject { |item| original_ids.include?(item.id) }.each do |item|
           within("article[data-book-id='#{item.id}']") do
             click_button I18n.t("jjaek_books.choose")
             expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
@@ -177,7 +177,7 @@ RSpec.describe "Unified inline composition", type: :system do
       expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all) unless group_id || target_id
       expect(page.find("#jjaek-composer")["data-group-id"]).to eq(group_id.to_s)
       expect(page.find("#jjaek-composer")["data-target-user-id"]).to eq(target_id.to_s)
-      expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq(["", *original_ids.map(&:to_s)])
+      expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('selected_books[]')")).to eq([ "", *original_ids.map(&:to_s) ])
     end
     expect(user.jjaeks.where(content: "Cancel keeps this draft")).to be_empty
     expect(user.bookshelf_entries).to be_empty

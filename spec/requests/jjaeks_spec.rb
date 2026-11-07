@@ -112,7 +112,7 @@ RSpec.describe "Jjaeks", type: :request do
       }.to change(Jjaek, :count).by(1)
 
       created_jjaek = Jjaek.last
-      expect(created_jjaek.attached_books).to eq([book])
+      expect(created_jjaek.attached_books).to eq([ book ])
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
@@ -185,9 +185,9 @@ RSpec.describe "Jjaeks", type: :request do
     it "creates an attached-book jjaek independently of shelf registration" do
       sign_in viewer
       expect {
-        post jjaeks_path, params: { selected_books: [book.id], jjaek: {content: "NO_SHELF_DIRECT_BOOK_JJAEK"} }
+        post jjaeks_path, params: { selected_books: [ book.id ], jjaek: { content: "NO_SHELF_DIRECT_BOOK_JJAEK" } }
       }.to change(Jjaek, :count).by(1)
-      expect(Jjaek.last.attached_books).to eq([book])
+      expect(Jjaek.last.attached_books).to eq([ book ])
       expect(viewer.bookshelf_entries).to be_empty
     end
 
@@ -853,18 +853,18 @@ RSpec.describe "Jjaeks", type: :request do
 
     it "shows only creation times after unrelated updates, including the quoted source" do
       viewer.active_follows.create!(followee: original_author)
-      [original, requote].each { |post| post.update_column(:updated_at, post.created_at + 1.day) }
+      [ original, requote ].each { |post| post.update_column(:updated_at, post.created_at + 1.day) }
       sign_in viewer
 
-      [[root_path, [original, requote]], [user_path(original_author), [original]],
-       [user_path(viewer), [requote]], [book_path(book), [original]],
-       [jjaek_path(original), [original]], [jjaek_path(requote), [requote]]].each do |path, posts|
+      [ [ root_path, [ original, requote ] ], [ user_path(original_author), [ original ] ],
+       [ user_path(viewer), [ requote ] ], [ book_path(book), [ original ] ],
+       [ jjaek_path(original), [ original ] ], [ jjaek_path(requote), [ requote ] ] ].each do |path, posts|
         get path
         page = Nokogiri::HTML(response.body)
         posts.each do |post|
           card = page.at_css("article#jjaek_#{post.id}")
           expect(card).to be_present
-          expected = [I18n.t("jjaeks.meta.created_at", time: I18n.l(post.created_at, format: :short))]
+          expected = [ I18n.t("jjaeks.meta.created_at", time: I18n.l(post.created_at, format: :short)) ]
           expected << I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short)) if post.requote?
           expect(card.css("time").map(&:text)).to eq(expected)
         end
@@ -873,17 +873,17 @@ RSpec.describe "Jjaeks", type: :request do
 
     it "shows only the latest edit on feed cards and both source times inside a requote" do
       viewer.active_follows.create!(followee: original_author)
-      [original, requote].each { |post| post.update!(content: "#{post.content}_EDITED") }
+      [ original, requote ].each { |post| post.update!(content: "#{post.content}_EDITED") }
       sign_in viewer
 
-      [[root_path, [original, requote]], [user_path(original_author), [original]],
-       [user_path(viewer), [requote]], [book_path(book), [original]]].each do |path, posts|
+      [ [ root_path, [ original, requote ] ], [ user_path(original_author), [ original ] ],
+       [ user_path(viewer), [ requote ] ], [ book_path(book), [ original ] ] ].each do |path, posts|
         get path
         page = Nokogiri::HTML(response.body)
         posts.each do |post|
           card = page.at_css("article#jjaek_#{post.id}")
           expect(card).to be_present
-          expected = [I18n.t("jjaeks.meta.edited_at", time: I18n.l(post.content_edited_at, format: :short))]
+          expected = [ I18n.t("jjaeks.meta.edited_at", time: I18n.l(post.content_edited_at, format: :short)) ]
           if post.requote?
             expected << I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short))
             expected << I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short))
@@ -895,7 +895,7 @@ RSpec.describe "Jjaeks", type: :request do
 
     it "shows written and edited timestamps on both original and requote detail pages" do
       sign_in viewer
-      [original, requote].each do |post|
+      [ original, requote ].each do |post|
         post.update!(content: "#{post.content}_EDITED")
         get jjaek_path(post)
 
@@ -1329,7 +1329,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to have_http_status(:ok)
       choices = Nokogiri::HTML(response.body).css("#jjaek-publish-form input[type='radio'][name='jjaek[visibility]']")
       expect(choices.map { |choice| choice["value"] }).to eq(%w[book_friends private_jjaek])
-      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq(["book_friends"])
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq([ "book_friends" ])
       expect(choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
     end
 
@@ -1346,7 +1346,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to have_http_status(:ok)
       choices = Nokogiri::HTML(response.body).css("#jjaek-publish-form input[type='radio'][name='jjaek[visibility]']")
       expect(choices.map { |choice| choice["value"] }).to eq(Jjaek.visibilities.keys)
-      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq(["public_jjaek"])
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq([ "public_jjaek" ])
       expect(choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
     end
   end

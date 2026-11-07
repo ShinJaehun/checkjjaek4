@@ -19,7 +19,7 @@ RSpec.describe GeneralizeJjaekBookAttachments do
     notification = Notification.create!(recipient: user, actor: user, notifiable: legacy, action: :requote_created)
     original_notification = notification.attributes
     recommended = user.jjaeks.create!(recommendation: true, content: "Recommended")
-    recommended.update_recommendation_books(books: [Book.create!(title: "Other"), book], attributes: {})
+    recommended.update_recommendation_books(books: [ Book.create!(title: "Other"), book ], attributes: {})
     recommended.update_columns(book_attachments_migrated: false)
     original_links = recommended.jjaek_recommendations.reload.map(&:attributes)
     original_attributes = legacy.attributes.except("book_attachments_migrated")
@@ -27,7 +27,7 @@ RSpec.describe GeneralizeJjaekBookAttachments do
     2.times { migration.backfill_book_attachments }
 
     expect(legacy.reload.attributes.except("book_attachments_migrated")).to eq(original_attributes)
-    expect(legacy.attached_books).to eq([book])
+    expect(legacy.attached_books).to eq([ book ])
     expect(legacy.comments).to include(comment)
     expect(legacy.likes).to include(like)
     expect(quote.reload.quoted_jjaek_id).to eq(legacy.id)
@@ -54,7 +54,7 @@ RSpec.describe GeneralizeJjaekBookAttachments do
 
     conflict.update_columns(book_id: nil)
     migration.backfill_book_attachments
-    expect(legacy.reload.attached_books).to eq([book])
+    expect(legacy.reload.attached_books).to eq([ book ])
     expect(conflict.reload).to be_book_attachments_migrated
   end
 

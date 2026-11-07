@@ -105,11 +105,11 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     expect(described_class.new(non_member, non_member.jjaeks.build(group:, content: "Non-member")).create?).to be(false)
     expect(described_class.new(group_admin, group_admin.jjaeks.build(group:, book:, content: "No shelf entry")).create?).to be(true)
 
-    [member, group_admin, pending_user, non_member].each do |writer|
+    [ member, group_admin, pending_user, non_member ].each do |writer|
       jjaek = writer.jjaeks.build(group:, content: "Attached book")
       jjaek.jjaek_recommendations.build(book:, position: 0)
       expect(writer.bookshelf_entries.exists?(book:)).to be(false)
-      expect(described_class.new(writer, jjaek).create?).to eq([member, group_admin].include?(writer))
+      expect(described_class.new(writer, jjaek).create?).to eq([ member, group_admin ].include?(writer))
     end
 
     membership.update!(moderation_status: :activity_suspended)
