@@ -5,7 +5,7 @@ module BookSearchesHelper
   end
 
   def recommendation_search_params(page: @page)
-    { attachment: 1, query: @query, page: page, selected_books: ["", *@selected_book_keys],
+    { attachment: 1, query: @query, page: page, selected_books: [ "", *@selected_book_keys ],
       group_id: @jjaek.group_id, target_user_id: @jjaek.target_user_id,
       editing_jjaek_id: @jjaek.id, search_origin: @selection_origin,
       return_to: validated_jjaek_return_path(params[:return_to]) }.compact

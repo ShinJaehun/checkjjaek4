@@ -259,7 +259,7 @@ class JjaeksController < ApplicationController
         raise Pundit::NotAuthorizedError
       end
     else
-      @selected_books = @book ? [@book] : []
+      @selected_books = @book ? [ @book ] : []
       @selected_book_keys = @selected_books.map { |book| book.id.to_s }
     end
     @selected_books.each_with_index { |book, position| @jjaek.jjaek_recommendations.build(book:, position:) }

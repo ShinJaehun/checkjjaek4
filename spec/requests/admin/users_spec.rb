@@ -430,7 +430,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(timeline.at_css("#timeline_jjaek_#{group_book_jjaek.id} [data-activity-kind='group_general']").text.strip).to eq("동아리짹")
     expect(comment_row.at_css("[data-activity-kind='comments']")["class"]).to include("bg-amber-100")
     expect(book_row.at_css("a[href='#{book_path(book)}']")).to be_nil
-    expect(requote_row.css("[data-activity-kind]").map { |badge| badge.text.strip }).to eq(["다시짹"])
+    expect(requote_row.css("[data-activity-kind]").map { |badge| badge.text.strip }).to eq([ "다시짹" ])
     expect(requote_row.at_css("[data-activity-kind='requote']")["class"]).to include("bg-violet-100")
     expect(requote_row.at_css("[data-field='metadata']").text).to include("#{group_admin.name} : #{source.content}")
     expect(deleted_source_row.at_css("[data-activity-kind='requote']").text.strip).to eq("다시짹")
@@ -459,29 +459,29 @@ RSpec.describe "Admin user inventory", type: :request do
     group = Group.create!(group_admin: reader, name: "Unified inventory club", lifecycle_status: :active, group_type: :public_group)
     books = 2.times.map { |index| Book.create!(title: "INVENTORY_ATTACHMENT_#{index}") }
     source = admin.jjaeks.create!(book: books.first, content: "INVENTORY_SOURCE_BODY")
-    recommendations = [nil, group].map do |destination|
+    recommendations = [ nil, group ].map do |destination|
       post = reader.jjaeks.new(group: destination, recommendation: true, content: "INVENTORY_RECOMMENDATION")
       books.each_with_index { |book, position| post.jjaek_recommendations.build(book:, position:) }
       post.save!
       post
     end
-    requotes = [nil, group].map do |destination|
+    requotes = [ nil, group ].map do |destination|
       reader.jjaeks.create!(group: destination, quoted_jjaek: source, content: "INVENTORY_REQUOTE")
     end
     sign_in admin
 
-    { "personal" => [recommendations.first, requotes.first], "group" => [recommendations.last, requotes.last] }.each do |location, posts|
+    { "personal" => [ recommendations.first, requotes.first ], "group" => [ recommendations.last, requotes.last ] }.each do |location, posts|
       get content_admin_user_path(reader), params: { location: location }
       document = Nokogiri::HTML(response.body)
       rows = document.css("#admin_user_content_timeline tbody tr")
       expect(rows.map { |row| row["id"] }).to match_array(posts.map { |post| "timeline_jjaek_#{post.id}" })
-      expect(rows.map { |row| row["data-content-kind"] }.uniq).to match_array([location == "group" ? "group_general" : "general", "requote"])
+      expect(rows.map { |row| row["data-content-kind"] }.uniq).to match_array([ location == "group" ? "group_general" : "general", "requote" ])
       recommendation = rows.find { |row| row["id"] == "timeline_jjaek_#{posts.first.id}" }
       requote = rows.find { |row| row["id"] == "timeline_jjaek_#{posts.last.id}" }
       expect(recommendation.at_css("[data-field='metadata']").text).to include("#{books.first.title} 외 1권")
       expect(requote.at_css("[data-field='metadata']").text).to include("#{admin.name} : #{source.content}")
       expect(requote.css("[data-activity-kind]").map { |badge| badge.text.strip })
-        .to eq(["다시짹"])
+        .to eq([ "다시짹" ])
       expect(requote.at_css("[data-field='metadata']").text).not_to include(books.first.title)
       expect(rows.text).not_to include(books.last.title)
       if location == "group"
@@ -493,7 +493,7 @@ RSpec.describe "Admin user inventory", type: :request do
 
     get admin_users_path
     activity = Nokogiri::HTML(response.body).at_css("#user_#{reader.id} [data-field='latest-activity']")
-    expect(activity.css("[data-activity-kind]").map { |badge| badge.text.strip }).to eq(["다시짹"])
+    expect(activity.css("[data-activity-kind]").map { |badge| badge.text.strip }).to eq([ "다시짹" ])
     expect(activity.at_css("a")["href"]).to eq(jjaek_path(requotes.last))
 
     comment_parent = admin.jjaeks.create!(content: "INVENTORY_COMMENT_PARENT")
@@ -506,7 +506,7 @@ RSpec.describe "Admin user inventory", type: :request do
     expect(detail.at_css("#admin_user_activity_summary")).to be_nil
     expect(identity.css("[data-activity-kind]")).to be_empty
     expect(identity.css("nav a").map { |link| link.text.squish })
-      .to eq(["짹 1", "동아리짹 1", "다시짹 2", "댓글 1"])
+      .to eq([ "짹 1", "동아리짹 1", "다시짹 2", "댓글 1" ])
     expected_counts.each do |type, count|
       count_element = identity.at_css("[data-activity-count='#{type}']")
       expect(count_element.text.to_i).to eq(count)
@@ -517,12 +517,12 @@ RSpec.describe "Admin user inventory", type: :request do
     content = Nokogiri::HTML(response.body)
     expect(content.css("[data-activity-count]")).to be_empty
     expect(content.css("nav[aria-label='유형'] a").map { |link| link.text.strip })
-      .to eq(["전체", "짹", "동아리짹", "다시짹", "댓글"])
+      .to eq([ "전체", "짹", "동아리짹", "다시짹", "댓글" ])
     expect(content.css("#admin_user_content_timeline tbody tr").size).to eq(expected_counts.values.sum)
 
     get content_admin_user_path(reader), params: { content: "requote", q: "INVENTORY", location: "group", status: "active" }
     filtered = Nokogiri::HTML(response.body)
-    expect(filtered.css("#admin_user_content_timeline tbody tr").map { |row| row["id"] }).to eq(["timeline_jjaek_#{requotes.last.id}"])
+    expect(filtered.css("#admin_user_content_timeline tbody tr").map { |row| row["id"] }).to eq([ "timeline_jjaek_#{requotes.last.id}" ])
     expect(filtered.at_css("#timeline_jjaek_#{requotes.last.id} [data-activity-kind='requote']")["class"])
       .to eq(activity.at_css("[data-activity-kind='requote']")["class"])
     expect(filtered.css("[data-activity-count]")).to be_empty
@@ -530,7 +530,7 @@ RSpec.describe "Admin user inventory", type: :request do
     get admin_user_path(reader), params: { q: "INVENTORY", location: "group", status: "active" }
     filtered_summary = Nokogiri::HTML(response.body)
     filtered_counts = expected_counts.keys.to_h do |type|
-      [type, filtered_summary.at_css("[data-activity-count='#{type}']").text.to_i]
+      [ type, filtered_summary.at_css("[data-activity-count='#{type}']").text.to_i ]
     end
     expect(filtered_counts).to eq("general" => 0, "group" => 1, "requote" => 1, "comments" => 0)
     expect(filtered_counts.values.sum).to eq(2)
@@ -701,9 +701,9 @@ RSpec.describe "Admin user inventory", type: :request do
     sign_in admin
 
     {
-      { location: "group", content: "group" } => [group_general, group_book],
-      { location: "personal", content: "general" } => [personal_general, personal_book],
-      { location: "group", content: "comments" } => [group_comment]
+      { location: "group", content: "group" } => [ group_general, group_book ],
+      { location: "personal", content: "general" } => [ personal_general, personal_book ],
+      { location: "group", content: "comments" } => [ group_comment ]
     }.each do |filters, expected_records|
       get content_admin_user_path(reader), params: filters.merge(q: "COMBO", status: "active", sort: "oldest")
       document = Nokogiri::HTML(response.body)

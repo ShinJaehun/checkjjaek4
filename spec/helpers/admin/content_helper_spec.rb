@@ -21,13 +21,13 @@ RSpec.describe Admin::ContentHelper, type: :helper do
 
   it "classifies records exclusively with comments and requotes taking priority over location" do
     [
-      [Jjaek.new, "general", "짹", "bg-sky-100"],
-      [Jjaek.new(group_id: 1), "group_general", "동아리짹", "bg-emerald-100"],
-      [Jjaek.new(quoted_jjaek_id: 2), "requote", "다시짹", "bg-violet-100"],
-      [Jjaek.new(group_id: 1, quoted_jjaek_id: 2), "requote", "다시짹", "bg-violet-100"],
-      [Jjaek.new(quoted_source_deleted_at: Time.current), "requote", "다시짹", "bg-violet-100"],
-      [Jjaek.new(group_id: 1, quoted_source_deleted_at: Time.current), "requote", "다시짹", "bg-violet-100"],
-      [Comment.new, "comments", "댓글", "bg-amber-100"]
+      [ Jjaek.new, "general", "짹", "bg-sky-100" ],
+      [ Jjaek.new(group_id: 1), "group_general", "동아리짹", "bg-emerald-100" ],
+      [ Jjaek.new(quoted_jjaek_id: 2), "requote", "다시짹", "bg-violet-100" ],
+      [ Jjaek.new(group_id: 1, quoted_jjaek_id: 2), "requote", "다시짹", "bg-violet-100" ],
+      [ Jjaek.new(quoted_source_deleted_at: Time.current), "requote", "다시짹", "bg-violet-100" ],
+      [ Jjaek.new(group_id: 1, quoted_source_deleted_at: Time.current), "requote", "다시짹", "bg-violet-100" ],
+      [ Comment.new, "comments", "댓글", "bg-amber-100" ]
     ].each do |record, kind, label, color|
       badge = helper.admin_content_badge(record)
       expect(badge.fetch(:kind)).to eq(kind)

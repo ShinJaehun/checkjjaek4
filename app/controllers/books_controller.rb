@@ -43,8 +43,8 @@ class BooksController < ApplicationController
     @jjaek = Jjaek.new(user: current_user, book: (@book if @book.persisted? && !@quoted_jjaek), group: @group, quoted_jjaek: @quoted_jjaek)
     authorize @jjaek, :show?
     unless @quoted_jjaek
-      @selected_books = [@book]
-      @selected_book_keys = [@book.persisted? ? @book.id.to_s : cache_external_recommendation(@search_result_token)]
+      @selected_books = [ @book ]
+      @selected_book_keys = [ @book.persisted? ? @book.id.to_s : cache_external_recommendation(@search_result_token) ]
     end
     @sticker_definitions = StickerDefinition.alphabetical
   end

@@ -22,7 +22,7 @@ RSpec.describe "Discoveries", type: :request do
     legacy = writer.jjaeks.new(content: "Legacy recommendation discovery", recommendation: true)
     books.each_with_index { |book, position| legacy.jjaek_recommendations.build(book: book, position: position) }
     legacy.save!
-    post jjaeks_path, params: { selected_books: [""], jjaek: { content: "No discovery books" } }
+    post jjaeks_path, params: { selected_books: [ "" ], jjaek: { content: "No discovery books" } }
     post group_jjaeks_path(group), params: { selected_books: books.map(&:id), jjaek: { content: "Unified group discovery" } }
     sign_in viewer
     get_published_discovery
@@ -47,8 +47,8 @@ RSpec.describe "Discoveries", type: :request do
     BookFriendship.create!(requester: writer, addressee: viewer, status: :accepted)
     book = Book.create!(title: "Conversation-only book")
     sign_in writer
-    [[], [book.id]].each_with_index do |ids, index|
-      post jjaeks_path, params: { selected_books: ["", *ids], jjaek: { target_user_id: viewer.id, content: "Conversation discovery #{index}" } }
+    [ [], [ book.id ] ].each_with_index do |ids, index|
+      post jjaeks_path, params: { selected_books: [ "", *ids ], jjaek: { target_user_id: viewer.id, content: "Conversation discovery #{index}" } }
       writer.jjaeks.find_by!(content: "Conversation discovery #{index}").update_column(:visibility, Jjaek.visibilities[:public_jjaek])
     end
     sign_in viewer
@@ -200,7 +200,7 @@ RSpec.describe "Discoveries", type: :request do
       expect(author_links.size).to eq(2) # Avatar and author name remain linked.
       expect(author_links.map(&:text).map(&:strip)).to include(writer.name)
       detail_links = links.select { |link| link["href"] == jjaek_path(record, return_to: discovery_path) }
-      expect(detail_links.map(&:text)).to eq([I18n.t("discovery.read_jjaek")])
+      expect(detail_links.map(&:text)).to eq([ I18n.t("discovery.read_jjaek") ])
     end
     expect(page.css("#discovery_book_jjaeks article a").map { |link| link["href"] })
       .to include(book_path(book, return_to: discovery_path))
@@ -216,7 +216,7 @@ RSpec.describe "Discoveries", type: :request do
     }
     sign_in viewer
 
-    [false, true].each do |edited|
+    [ false, true ].each do |edited|
       posts.each_value { |post| post.update!(content: "#{post.content} edited") } if edited
       get_published_discovery
       page = Nokogiri::HTML(response.body)

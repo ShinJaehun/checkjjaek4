@@ -970,7 +970,7 @@ RSpec.describe "Admin group approvals", type: :request do
     document = Nokogiri::HTML(response.body)
     posts.zip(sources).each do |post, source|
       row = document.at_css("#group_timeline_jjaek_#{post.id}")
-      expect(row.css("[data-activity-kind]").map { |badge| badge.text.strip }).to eq(["다시짹"])
+      expect(row.css("[data-activity-kind]").map { |badge| badge.text.strip }).to eq([ "다시짹" ])
       expect(row.at_css("td").text.strip).to eq("다시짹")
       expect(row.at_css("[data-field='metadata']").text.strip).to eq("#{group_admin.name} : #{source.content}")
       expect(row.at_css("[data-field='body']").text).not_to include(group.name)
@@ -982,7 +982,7 @@ RSpec.describe "Admin group approvals", type: :request do
     requote_document = Nokogiri::HTML(response.body)
     expect(requote_document.css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to match_array(posts.map(&:id))
     get content_admin_group_path(group), params: { content: "group" }
-    expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to eq([sources.last.id])
+    expect(Nokogiri::HTML(response.body).css("tbody[data-thread-id]").map { |thread| thread["data-thread-id"].to_i }).to eq([ sources.last.id ])
 
     get admin_group_path(group)
     identity = Nokogiri::HTML(response.body).at_css("#admin_group_identity")
@@ -991,7 +991,7 @@ RSpec.describe "Admin group approvals", type: :request do
 
     get admin_groups_path
     list_activity = Nokogiri::HTML(response.body).at_css("#group_#{group.id} [data-field='latest-activity']")
-    expect(list_activity.css("[data-activity-kind]").map { |badge| badge.text.strip }).to eq(["다시짹"])
+    expect(list_activity.css("[data-activity-kind]").map { |badge| badge.text.strip }).to eq([ "다시짹" ])
     expect(list_activity.at_css("[data-activity-kind='requote']")["class"]).to include("bg-violet-100")
     expect(list_activity.at_css("[data-field='group-name']").text).to eq(group.name)
   end

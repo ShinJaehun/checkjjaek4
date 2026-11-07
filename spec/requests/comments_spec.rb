@@ -10,7 +10,7 @@ RSpec.describe "Comments", type: :request do
   it "opens, closes and updates the book panel for each book attached through the unified form" do
     second_book = Book.create!(title: "Second attached book")
     sign_in author
-    [[book], [book, second_book]].each_with_index do |books, index|
+    [ [ book ], [ book, second_book ] ].each_with_index do |books, index|
       post jjaeks_path, params: { selected_books: books.map(&:id), jjaek: { content: "Unified panel #{index}" } }
       attached_post = author.jjaeks.find_by!(content: "Unified panel #{index}")
       expect(attached_post.book_id).to be_nil
