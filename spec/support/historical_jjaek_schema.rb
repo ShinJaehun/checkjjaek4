@@ -24,7 +24,7 @@ module HistoricalJjaekSchema
       GeneralizeJjaekBookAttachments.new.migrate(:up)
       records = (tables + %w[jjaek_recommendations]).to_h do |table|
         record = Class.new(ActiveRecord::Base) { self.table_name = "#{schema}.#{table}" }
-        [table.to_sym, record]
+        [ table.to_sym, record ]
       end
       yield records
     end

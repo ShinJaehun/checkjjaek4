@@ -10,7 +10,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   it "allows signed-in non-members to read public group jjaeks and book jjaeks" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     general = group_admin.jjaeks.create!(group:, content: "Public group jjaek")
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "Public group book jjaek")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "Public group book jjaek")
 
     expect(described_class.new(non_member, general).show?).to be(true)
     expect(described_class.new(non_member, book_jjaek).show?).to be(true)
@@ -30,7 +30,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   it "allows only active members to read private group jjaeks" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
     group.group_memberships.create!(user: member, status: :active)
-    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "Private group book jjaek")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "Private group book jjaek")
 
     expect(described_class.new(member, jjaek).show?).to be(true)
     expect(described_class.new(non_member, jjaek).show?).to be(false)
@@ -100,10 +100,10 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     group.group_memberships.create!(user: pending_user, status: :pending)
 
     expect(described_class.new(member, member.jjaeks.build(group:, content: "Group jjaek")).create?).to be(true)
-    expect(described_class.new(member, build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: member, group:, content: "Group book jjaek")).create?).to be(true)
+    expect(described_class.new(member, build_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: member, group:, content: "Group book jjaek")).create?).to be(true)
     expect(described_class.new(pending_user, pending_user.jjaeks.build(group:, content: "Pending")).create?).to be(false)
     expect(described_class.new(non_member, non_member.jjaeks.build(group:, content: "Non-member")).create?).to be(false)
-    expect(described_class.new(group_admin, build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "No shelf entry")).create?).to be(true)
+    expect(described_class.new(group_admin, build_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "No shelf entry")).create?).to be(true)
 
     [ member, group_admin, pending_user, non_member ].each do |writer|
       jjaek = writer.jjaeks.build(group:, content: "Attached book")
@@ -113,7 +113,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
     end
 
     membership.update!(moderation_status: :activity_suspended)
-    expect(described_class.new(member, build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: member, group:, content: "Suspended")).create?).to be(false)
+    expect(described_class.new(member, build_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: member, group:, content: "Suspended")).create?).to be(false)
   end
 
   it "allows an active author to update and destroy a group jjaek" do
@@ -168,7 +168,7 @@ RSpec.describe JjaekPolicy, "Group Jjaek" do
   it "excludes group jjaeks and book jjaeks from FeedScope" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     general = group_admin.jjaeks.create!(group:, content: "Group jjaek")
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "Group book jjaek")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "Group book jjaek")
     non_member.active_follows.create!(followee: group_admin)
     BookFriendship.create!(requester: non_member, addressee: group_admin, status: :accepted)
 

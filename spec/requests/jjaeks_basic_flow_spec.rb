@@ -5,9 +5,9 @@ RSpec.describe "Jjaeks basic flow", type: :request do
   let!(:followee) { User.create!(name: "Followee", email: "followee@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:stranger) { User.create!(name: "Stranger", email: "stranger@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "짹의 책", authors_text: "저자") }
-  let!(:own_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "My jjaek") }
-  let!(:followee_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: followee, content: "Followee jjaek") }
-  let!(:stranger_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: stranger, content: "Stranger jjaek") }
+  let!(:own_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "My jjaek") }
+  let!(:followee_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: followee, content: "Followee jjaek") }
+  let!(:stranger_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: stranger, content: "Stranger jjaek") }
 
   before do
     user.active_follows.create!(followee:)

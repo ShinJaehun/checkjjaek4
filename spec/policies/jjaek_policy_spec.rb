@@ -9,7 +9,7 @@ RSpec.describe JjaekPolicy do
   let(:unrelated_author) { User.create!(name: "Unrelated", email: "jjaek-policy-unrelated@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "ReJjaek policy book", authors_text: "Author") }
   let(:friendship) { BookFriendship.create!(requester: viewer, addressee: original_author, status: :accepted) }
-  let(:original) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
+  let(:original) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: original_author, content: "ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
   let(:requote) { create_legacy_book_requote(user: viewer, book:, content: "VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
 
   before do
@@ -89,7 +89,7 @@ RSpec.describe JjaekPolicy do
       groups.each do |group|
         quote = viewer.jjaeks.build(group:, quoted_jjaek: source)
         expect(described_class.new(viewer, quote).create?).to be(true)
-        expect(described_class.new(viewer, build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: viewer, group:)).create?).to be(true)
+        expect(described_class.new(viewer, build_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: viewer, group:)).create?).to be(true)
       end
     end
 
@@ -559,7 +559,7 @@ RSpec.describe JjaekPolicy do
     end
 
     it "does not allow requoting a private original" do
-      private_original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "PRIVATE_REQUOTE_SOURCE", visibility: :private_jjaek)
+      private_original = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: original_author, content: "PRIVATE_REQUOTE_SOURCE", visibility: :private_jjaek)
 
       expect(described_class.new(original_author, private_original).requote?).to be(false)
     end
@@ -682,7 +682,7 @@ RSpec.describe JjaekPolicy do
 
   describe "restricted requote metadata" do
     it "separates the source author's metadata access from group content access" do
-      source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "PUBLIC_BOOK_SOURCE")
+      source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: original_author, content: "PUBLIC_BOOK_SOURCE")
       approval_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Approval readers", group_type: :approval_group)
       private_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Private readers", group_type: :private_group)
       approval_requote = viewer.jjaeks.create!(group: approval_group, quoted_jjaek: source, content: "APPROVAL_OPINION")
@@ -725,13 +725,13 @@ RSpec.describe JjaekPolicy do
 
     it "allows creating a book-linked jjaek when the user has the book in their shelf" do
       viewer.bookshelf_entries.create!(book:)
-      jjaek = build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: viewer, content: "BOOK_POLICY_JJAEK")
+      jjaek = build_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: viewer, content: "BOOK_POLICY_JJAEK")
 
       expect(described_class.new(viewer, jjaek).create?).to be(true)
     end
 
     it "allows attaching a book independently of shelf registration" do
-      jjaek = build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: viewer, content: "NO_SHELF_BOOK_POLICY_JJAEK")
+      jjaek = build_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: viewer, content: "NO_SHELF_BOOK_POLICY_JJAEK")
 
       expect(described_class.new(viewer, jjaek).create?).to be(true)
     end
@@ -986,7 +986,7 @@ RSpec.describe JjaekPolicy do
 
         [
           viewer.jjaeks.create!(group:, content: "Own #{group_type}"),
-          create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: unrelated_author, group:, content: "Member #{group_type}")
+          create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: unrelated_author, group:, content: "Member #{group_type}")
         ]
       end
       inactive_group = group_jjaeks.first.group

@@ -5,7 +5,7 @@ RSpec.describe "Requotes", type: :request do
   let(:original_author) { User.create!(name: "Original", email: "requote-request-original@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "Requote list book", authors_text: "Author") }
   let(:friendship) { BookFriendship.create!(requester: viewer, addressee: original_author, status: :accepted) }
-  let(:original) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
+  let(:original) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: original_author, content: "REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
   let(:viewer_requote) { create_legacy_book_requote(user: viewer, book:, content: "REQUEST_VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
 
   before do
@@ -32,7 +32,7 @@ RSpec.describe "Requotes", type: :request do
     end
 
     it "shows an author a limited approval-group card alongside a readable requote in HTML and Turbo" do
-      source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: original_author, content: "AUTHOR_BOOK_SOURCE")
+      source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: original_author, content: "AUTHOR_BOOK_SOURCE")
       group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Approval readers", group_type: :approval_group)
       readable = viewer.jjaeks.create!(quoted_jjaek: source, content: "READABLE_OPINION")
       readable.comments.create!(user: viewer, content: "Comment")

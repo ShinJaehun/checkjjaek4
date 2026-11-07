@@ -64,7 +64,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     group.group_memberships.create!(user: moderated_member, status: :active)
     group.group_memberships.create!(user: pending_user, status: :invited)
     source = group_admin.jjaeks.create!(group:, content: "GROUP_VISIBLE_SOURCE")
-    create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "GROUP_VISIBLE_BOOK")
+    create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "GROUP_VISIBLE_BOOK")
     member.jjaeks.create!(group:, quoted_jjaek: source, content: "GROUP_VISIBLE_REQUOTE")
     hidden = moderated_member.jjaeks.create!(group:, content: "GROUP_HIDDEN_BODY")
     Jjaeks::Hide.new(hidden, actor: group_admin, public_reason: "other").call!
@@ -116,7 +116,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     sign_in member
 
     expect {
-      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: { content: } }, headers: { "Accept" => "text/html" }
+      post group_jjaeks_path(group), params: { selected_books: [ book.id ], jjaek: { content: } }, headers: { "Accept" => "text/html" }
     }.not_to change(Jjaek, :count)
 
     expect(response).to have_http_status(:unprocessable_content)
@@ -153,7 +153,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     sign_in member
 
     expect {
-      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: { content: "Group book jjaek" } }
+      post group_jjaeks_path(group), params: { selected_books: [ book.id ], jjaek: { content: "Group book jjaek" } }
     }.to change(group.jjaeks, :count).by(1)
 
     expect(group.jjaeks.last.attached_books).to eq([ book ])
@@ -172,7 +172,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     expect {
       post group_jjaeks_path(group), params: { jjaek: { content: "Blocked" } }
-      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: { content: "Blocked book" } }
+      post group_jjaeks_path(group), params: { selected_books: [ book.id ], jjaek: { content: "Blocked book" } }
     }.not_to change(Jjaek, :count)
   end
 
@@ -201,7 +201,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response).to have_http_status(:ok)
     expect {
       post group_jjaeks_path(group), params: { jjaek: { content: "Blocked" } }
-      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: { content: "Blocked book" } }
+      post group_jjaeks_path(group), params: { selected_books: [ book.id ], jjaek: { content: "Blocked book" } }
     }.not_to change(Jjaek, :count)
     patch jjaek_path(existing), params: { jjaek: { content: "Blocked edit" } }
     expect(existing.reload.content).to eq("Preserved")
@@ -248,7 +248,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     sign_in member
 
     expect {
-      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: { content: "No shelf" } }
+      post group_jjaeks_path(group), params: { selected_books: [ book.id ], jjaek: { content: "No shelf" } }
     }.to change(group.jjaeks, :count).by(1).and change(BookshelfEntry, :count).by(0).and change(BookActivity, :count).by(0)
 
     expect(response).to redirect_to(group_path(group))
@@ -262,7 +262,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     expect {
       post group_jjaeks_path(group), params: { jjaek: { content: "General" } }
-      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: { content: "Book" } }
+      post group_jjaeks_path(group), params: { selected_books: [ book.id ], jjaek: { content: "Book" } }
     }.not_to change(Jjaek, :count)
   end
 
@@ -274,7 +274,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     expect {
       post group_jjaeks_path(group), params: { jjaek: { content: "General" } }
-      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: { content: "Book" } }
+      post group_jjaeks_path(group), params: { selected_books: [ book.id ], jjaek: { content: "Book" } }
     }.not_to change(Jjaek, :count)
   end
 
@@ -300,7 +300,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   it "allows a non-member to view both kinds in a public group" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     general = group_admin.jjaeks.create!(group:, content: "Public general")
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "Public book")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "Public book")
     sign_in non_member
 
     get jjaek_path(general)
@@ -396,7 +396,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
   it "denies direct access to a group book jjaek for an approval group non-member" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "Approval book")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "Approval book")
     sign_in non_member
 
     get jjaek_path(book_jjaek)
@@ -416,7 +416,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
   it "denies direct access to a group book jjaek for a private group non-member" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Private", group_type: :private_group)
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "Private book")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "Private book")
     sign_in non_member
 
     get jjaek_path(book_jjaek)
@@ -504,17 +504,17 @@ RSpec.describe "Group Jjaeks", type: :request do
     other_book = Book.create!(title: "Other Book", authors_text: "Other Author")
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
-    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: member, group:, content: "Before")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: member, group:, content: "Before")
     sign_in member
 
     patch jjaek_path(jjaek), params: { jjaek: { content: "After" } }
 
     expect(jjaek.reload.content).to eq("After")
-    expect(jjaek.attached_books).to eq([book])
+    expect(jjaek.attached_books).to eq([ book ])
 
-    patch jjaek_path(jjaek), params: { selected_books: [other_book.id], jjaek: { content: "After" } }
+    patch jjaek_path(jjaek), params: { selected_books: [ other_book.id ], jjaek: { content: "After" } }
     expect(response).to redirect_to(jjaek_path(jjaek))
-    expect(jjaek.reload.attached_books).to eq([other_book])
+    expect(jjaek.reload.attached_books).to eq([ other_book ])
   end
 
   it "rerenders an invalid group edit with the entered content and no visibility field" do
@@ -564,14 +564,14 @@ RSpec.describe "Group Jjaeks", type: :request do
   it "tombstones a group book jjaek with comments and preserves its book and conversation" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     group.group_memberships.create!(user: member, status: :active)
-    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: member, group:, content: "Group discussion")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: member, group:, content: "Group discussion")
     comment = jjaek.comments.create!(user: group_admin, content: "Existing comment")
     sign_in member
 
     expect { delete jjaek_path(jjaek) }.not_to change(Jjaek, :count)
 
     expect(jjaek.reload).to be_deleted
-    expect(jjaek.attached_books).to eq([book])
+    expect(jjaek.attached_books).to eq([ book ])
     expect(jjaek.comments).to contain_exactly(comment)
     expect(response).to redirect_to(group_path(group))
   end
@@ -587,7 +587,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
   it "keeps group book jjaeks out of the general book timeline" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
-    group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group:, content: "Group-only book jjaek")
+    group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group:, content: "Group-only book jjaek")
     sign_in non_member
 
     get book_path(book)
@@ -599,7 +599,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     public_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     approval_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Approval", group_type: :approval_group)
     public_jjaek = group_admin.jjaeks.create!(group: public_group, content: "Profile public group jjaek")
-    approval_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group: approval_group, content: "Profile approval group book jjaek")
+    approval_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group: approval_group, content: "Profile approval group book jjaek")
     sign_in non_member
 
     get user_path(group_admin)
@@ -695,9 +695,9 @@ RSpec.describe "Group Jjaeks", type: :request do
     other_group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Other readers", group_type: :private_group)
     group.group_memberships.create!(user: member, status: :active)
     member.bookshelf_entries.create!(book: book)
-    personal = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, content: "PERSONAL_BOOK_CONTEXT")
-    group_post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group: group, content: "SELECTED_GROUP_BOOK_CONTEXT")
-    other_post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group: other_group, content: "OTHER_GROUP_BOOK_CONTEXT")
+    personal = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, content: "PERSONAL_BOOK_CONTEXT")
+    group_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group: group, content: "SELECTED_GROUP_BOOK_CONTEXT")
+    other_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group: other_group, content: "OTHER_GROUP_BOOK_CONTEXT")
     sign_in member
 
     get book_path(book, group_id: group.id)

@@ -81,7 +81,7 @@ RSpec.describe "Discoveries", type: :request do
   it "links tags in both discovery post previews to the global tag search" do
     book = Book.create!(title: "Tagged discovery book")
     writer.jjaeks.create!(content: "General #발견")
-    create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "Book #발견")
+    create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "Book #발견")
     sign_in viewer
     get_published_discovery
 
@@ -105,7 +105,7 @@ RSpec.describe "Discoveries", type: :request do
         authors << author
         books << book
         posts << author.jjaeks.create!(content: "Daily post #{index}", visibility: :public_jjaek)
-        create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "Daily book post #{index}", visibility: :public_jjaek)
+        create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "Daily book post #{index}", visibility: :public_jjaek)
         author.bookshelf_entries.create!(book:)
         groups << Group.create!(group_admin: author, name: "Daily club #{index}", group_type: :public_group,
                                 lifecycle_status: :active)
@@ -139,14 +139,14 @@ RSpec.describe "Discoveries", type: :request do
     book = Book.create!(title: "MIDNIGHT_BOOK")
     group = Group.create!(group_admin: writer, name: "MIDNIGHT_GROUP", group_type: :public_group, lifecycle_status: :active)
     travel_to(seoul.local(2026, 10, 30, 12)) do
-      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "OLD_BOOK_POST", visibility: :public_jjaek)
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "OLD_BOOK_POST", visibility: :public_jjaek)
       writer.jjaeks.create!(content: "OLD_GENERAL_POST", visibility: :public_jjaek)
       writer.jjaeks.create!(group:, content: "OLD_GROUP_POST")
     end
     sign_in viewer
 
     travel_to(seoul.local(2026, 10, 31, 23, 59, 59)) do
-      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "NEW_BOOK_POST", visibility: :public_jjaek)
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "NEW_BOOK_POST", visibility: :public_jjaek)
       writer.jjaeks.create!(content: "NEW_GENERAL_POST", visibility: :public_jjaek)
       writer.jjaeks.create!(group:, content: "NEW_GROUP_POST")
       get discovery_path
@@ -186,7 +186,7 @@ RSpec.describe "Discoveries", type: :request do
 
   it "shows public original book and general posts with existing detail links" do
     book = Book.create!(title: "A public book", authors_text: "A writer")
-    book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "PUBLIC_BOOK_POST", visibility: :public_jjaek)
+    book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "PUBLIC_BOOK_POST", visibility: :public_jjaek)
     general_post = writer.jjaeks.create!(content: "PUBLIC_GENERAL_POST", visibility: :public_jjaek)
     sign_in viewer
     get_published_discovery
@@ -210,7 +210,7 @@ RSpec.describe "Discoveries", type: :request do
     book = Book.create!(title: "Timestamp book")
     group = Group.create!(group_admin: writer, name: "Timestamp club", group_type: :public_group, lifecycle_status: :active)
     posts = {
-      book_jjaeks: create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "Book preview"),
+      book_jjaeks: create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "Book preview"),
       general_jjaeks: writer.jjaeks.create!(content: "General preview"),
       group: writer.jjaeks.create!(group:, content: "Group preview")
     }
@@ -290,7 +290,7 @@ RSpec.describe "Discoveries", type: :request do
     third = writer.jjaeks.create!(group:, content: "THIRD_GROUP_POST")
     second = writer.jjaeks.create!(group:, content: "SECOND_GROUP_POST")
     book = Book.create!(title: "GROUP_POST_BOOK")
-    latest = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, group:, content: "LATEST_GROUP_POST")
+    latest = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, group:, content: "LATEST_GROUP_POST")
     sign_in viewer
     get_published_discovery
 

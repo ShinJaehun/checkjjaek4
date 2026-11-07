@@ -31,7 +31,7 @@ RSpec.describe "Books", type: :request do
     it "combines original book jjaeks and recommendations without duplicates on each linked book" do
       other_book = Book.create!(title: "함께 추천하는 책")
       unrelated_book = Book.create!(title: "관련 없는 책")
-      original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Original book post")
+      original = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "Original book post")
       recommendation = build_jjaek_with_books(legacy_source_kind: "recommendation", user: user, content: "Two recommended books")
       recommendation.jjaek_book_attachments.build(book:, position: 0)
       recommendation.jjaek_book_attachments.build(book: other_book, position: 1)
@@ -80,11 +80,11 @@ RSpec.describe "Books", type: :request do
       group = Group.create!(name: "Book club", group_admin: admin, group_type: :private_group, lifecycle_status: :active)
       membership = group.group_memberships.create!(user:, status: :active)
       user.bookshelf_entries.create!(book:)
-      original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: admin, group:, content: "Group book post")
+      original = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: admin, group:, content: "Group book post")
       recommendation = build_jjaek_with_books(legacy_source_kind: "recommendation", user: admin, group:, content: "Group recommendation")
       recommendation.jjaek_book_attachments.build(book:, position: 0)
       recommendation.save!
-      personal = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Personal book post")
+      personal = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "Personal book post")
       sign_in user
 
       get book_path(book, group_id: group.id)
@@ -216,7 +216,7 @@ RSpec.describe "Books", type: :request do
     it "shows the book-context label for book-linked jjaeks" do
       book.update!(thumbnail: "https://example.com/book-context.jpg")
       user.bookshelf_entries.create!(book:, status: :reading)
-      book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "BOOK_CONTEXT_LABEL_BODY")
+      book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "BOOK_CONTEXT_LABEL_BODY")
       sign_in user
 
       get book_path(book)
@@ -243,7 +243,7 @@ RSpec.describe "Books", type: :request do
 
     it "shows only original book jjaeks on the book page while keeping the requote count on the original" do
       user.bookshelf_entries.create!(book:, status: :reading)
-      original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "BOOK_ORIGINAL_BODY")
+      original = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "BOOK_ORIGINAL_BODY")
       requote = create_legacy_book_requote(user: user, book:, content: "BOOK_REQUOTE_BODY", quoted_jjaek: original)
       sign_in user
 
@@ -256,7 +256,7 @@ RSpec.describe "Books", type: :request do
 
     it "keeps reading management separate while allowing an unshelved book attachment" do
       other_user = User.create!(name: "Other Reader", email: "other-book-reader@example.com", password: "password123!", password_confirmation: "password123!")
-      create_jjaek_with_books(user: other_user, books: [book], content: "다른 독자의 공개 Jjaek")
+      create_jjaek_with_books(user: other_user, books: [ book ], content: "다른 독자의 공개 Jjaek")
       sign_in user
 
       get book_path(book)
@@ -311,7 +311,7 @@ RSpec.describe "Books", type: :request do
     it "ignores the retired quote input while preserving book reading and group context" do
       user.bookshelf_entries.create!(book:)
       author = User.create!(name: "Source author", email: "book-source-author@example.com", password: "password123!")
-      original = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "QUOTE_SOURCE")
+      original = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "QUOTE_SOURCE")
       group = Group.create!(name: "Book club", group_admin: user, group_type: :public_group, lifecycle_status: :active)
       sign_in user
 
@@ -340,7 +340,7 @@ RSpec.describe "Books", type: :request do
       user.bookshelf_entries.create!(book:)
       sign_in user
 
-      post jjaeks_path, params: { selected_books: [book.id], book_context_id: book.id, jjaek: { content: "" } }
+      post jjaeks_path, params: { selected_books: [ book.id ], book_context_id: book.id, jjaek: { content: "" } }
 
       expect(response).to have_http_status(:unprocessable_content)
       form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
@@ -354,7 +354,7 @@ RSpec.describe "Books", type: :request do
       sign_in user
 
       submitted_content = "x" * 201
-      post jjaeks_path, params: { selected_books: [book.id], book_context_id: book.id, jjaek: { content: submitted_content } }
+      post jjaeks_path, params: { selected_books: [ book.id ], book_context_id: book.id, jjaek: { content: submitted_content } }
 
       expect(response).to have_http_status(:unprocessable_content)
       form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
@@ -367,9 +367,9 @@ RSpec.describe "Books", type: :request do
     it "applies Jjaek visibility independently of shelf registration" do
       friend = User.create!(name: "Reader friend", email: "book-show-friend@example.com", password: "password123!")
       BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
-      public_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: friend, content: "UNSHELVED_PUBLIC_BOOK")
-      friend_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: friend, content: "UNSHELVED_FRIEND_BOOK", visibility: :book_friends)
-      private_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "UNSHELVED_PRIVATE_BOOK", visibility: :private_jjaek)
+      public_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: friend, content: "UNSHELVED_PUBLIC_BOOK")
+      friend_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: friend, content: "UNSHELVED_FRIEND_BOOK", visibility: :book_friends)
+      private_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "UNSHELVED_PRIVATE_BOOK", visibility: :private_jjaek)
       sign_in user
 
       get book_path(book)
@@ -459,12 +459,12 @@ RSpec.describe "Books", type: :request do
       own_activity = own_entry.book_activities.create!(user:, book:, action: :added_to_shelf)
       stranger_entry = stranger.bookshelf_entries.create!(book:)
       stranger_activity = stranger_entry.book_activities.create!(user: stranger, book:, action: :added_to_shelf)
-      stranger_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: stranger, content: "STRANGER_PUBLIC_PREVIEW")
-      public_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: friend, content: "FRIEND_PUBLIC_PREVIEW")
-      private_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: friend, content: "FRIEND_PRIVATE_PREVIEW", visibility: :private_jjaek)
-      hidden_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: friend, content: "FRIEND_HIDDEN_PREVIEW")
+      stranger_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: stranger, content: "STRANGER_PUBLIC_PREVIEW")
+      public_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: friend, content: "FRIEND_PUBLIC_PREVIEW")
+      private_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: friend, content: "FRIEND_PRIVATE_PREVIEW", visibility: :private_jjaek)
+      hidden_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: friend, content: "FRIEND_HIDDEN_PREVIEW")
       hidden_jjaek.update_column(:hidden_at, Time.current)
-      deleted_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: friend, content: "FRIEND_DELETED_PREVIEW")
+      deleted_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: friend, content: "FRIEND_DELETED_PREVIEW")
       deleted_jjaek.update_columns(content: "", deleted_at: Time.current)
       sign_in user
 
@@ -502,7 +502,7 @@ RSpec.describe "Books", type: :request do
       friend = User.create!(name: "Card friend", email: "book-preview-actions@example.com", password: "password123!")
       BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
       user.bookshelf_entries.create!(book:)
-      jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: friend, content: "FRIEND_CARD_ACTIONS")
+      jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: friend, content: "FRIEND_CARD_ACTIONS")
       create_legacy_book_requote(user: user, book:, quoted_jjaek: jjaek, content: "MY_REQUOTE_FOR_FRIEND_CARD")
       sign_in user
 
@@ -615,7 +615,7 @@ RSpec.describe "Books", type: :request do
         entry.book_activities.create!(user: friend, book:, action: :added_to_shelf, created_at: index < 2 ? time : time - 1.second)
       end
       jjaeks = Array.new(4) do |index|
-        create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: friend, content: "PREVIEW_ORDER_#{index}", created_at: time)
+        create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: friend, content: "PREVIEW_ORDER_#{index}", created_at: time)
       end
       sign_in user
 

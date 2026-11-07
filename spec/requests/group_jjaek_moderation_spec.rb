@@ -15,7 +15,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
   it "hides group jjaeks and group book jjaeks with group-admin attribution" do
     jjaeks = [
       author.jjaeks.create!(group:, content: "Group Jjaek"),
-      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "Group Book Jjaek")
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, group:, content: "Group Book Jjaek")
     ]
 
     jjaeks.each do |jjaek|

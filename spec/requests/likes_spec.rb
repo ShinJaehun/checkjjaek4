@@ -4,7 +4,7 @@ RSpec.describe "Likes", type: :request do
   let!(:user) { User.create!(name: "Reader", email: "reader2@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:author) { User.create!(name: "Author", email: "author2@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:book) { Book.create!(title: "좋아요 책", authors_text: "저자") }
-  let!(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "Public jjaek") }
+  let!(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "Public jjaek") }
 
   it "lets a signed-in user like an accessible jjaek" do
     sign_in user
@@ -163,7 +163,7 @@ RSpec.describe "Likes", type: :request do
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Readers", group_type: :public_group)
     group.group_memberships.create!(user:, status: :active)
     group_jjaek = author.jjaeks.create!(group:, content: "Group jjaek")
-    group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "Group book jjaek")
+    group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, group:, content: "Group book jjaek")
     sign_in user
 
     [ group_jjaek, group_book_jjaek ].each do |record|

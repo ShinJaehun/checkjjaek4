@@ -138,7 +138,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
     suspended = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Suspended readers", group_type: :public_group)
     unjoined = Group.create!(lifecycle_status: :active, group_admin: source_author, name: "Unjoined readers", group_type: :public_group)
     suspended.update!(operation_suspended_at: Time.current)
-    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: source_author, content: "PUBLIC_BOOK_SOURCE")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: source_author, content: "PUBLIC_BOOK_SOURCE")
     writer.jjaeks.create!(group: already_used, quoted_jjaek: source, content: "Earlier share")
     sign_in writer
 
@@ -205,7 +205,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
     expect(share.quoted_jjaek).to eq(source)
     expect(share.content).to eq("MY_GROUP_OPINION")
     expect(share.attached_books).to be_empty
-    expect(source.reload.attached_books).to eq([book])
+    expect(source.reload.attached_books).to eq([ book ])
     expect(share).to be_public_jjaek
     expect(response).to redirect_to(group_path(available))
     expect(Notification.last).to be_requote_created
@@ -229,7 +229,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
   it "creates a C quote only in its source group and sends an accessible notification" do
     group = Group.create!(lifecycle_status: :active, group_admin: source_author, name: "Private readers", group_type: :private_group)
     group.group_memberships.create!(user: writer, status: :active)
-    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: source_author, group:, content: "PRIVATE_GROUP_SOURCE")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: source_author, group:, content: "PRIVATE_GROUP_SOURCE")
     sign_in writer
 
     get jjaek_path(source)
@@ -299,8 +299,8 @@ RSpec.describe "Group sharing and quotes", type: :request do
   it "rejects new attachments on both B shares and C quotes" do
     group = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Readers", group_type: :public_group)
     group.group_memberships.create!(user: source_author, status: :active)
-    personal_source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: source_author, content: "PERSONAL_SOURCE")
-    group_source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: source_author, group:, content: "GROUP_SOURCE")
+    personal_source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: source_author, content: "PERSONAL_SOURCE")
+    group_source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: source_author, group:, content: "GROUP_SOURCE")
     sign_in writer
 
     [ [ jjaeks_path(quoted_jjaek_id: personal_source.id), personal_source ],

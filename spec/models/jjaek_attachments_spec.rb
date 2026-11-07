@@ -4,7 +4,7 @@ RSpec.describe Jjaek, "book attachments", type: :model do
   let(:user) { User.create!(name: "Reader", email: "attachments@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "First") }
   let(:other_book) { Book.create!(title: "Second") }
-  let(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Original") }
+  let(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "Original") }
 
   it "accepts optional ordered books without a bookshelf, including profile conversations" do
     target = User.create!(name: "Friend", email: "attachment-friend@example.com", password: "password123!")
@@ -60,7 +60,7 @@ RSpec.describe Jjaek, "book attachments", type: :model do
 
   it "rejects new requote books but preserves historical books and deleted-source edits" do
     source = user.jjaeks.create!(content: "Source")
-    expect(build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, quoted_jjaek: source, content: "New quote")).not_to be_valid
+    expect(build_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, quoted_jjaek: source, content: "New quote")).not_to be_valid
     quote = user.jjaeks.create!(quoted_jjaek: source, content: "Historical quote")
     quote.update_columns(legacy_source_kind: "book")
     JjaekBookAttachment.insert_all!([ { jjaek_id: quote.id, book_id: book.id, position: 0, visible_on_tombstone: true } ])

@@ -646,7 +646,7 @@ RSpec.describe "Groups", type: :request do
     invited_group.group_memberships.create!(user:, status: :invited)
     book = Book.create!(title: "GROUP ACTIVITY BOOK", authors_text: "Author")
     older = first_group.jjaeks.create!(user: group_admin, content: "OLDER GROUP ACTIVITY", created_at: 2.hours.ago)
-    newer = create_jjaek_with_books(legacy_source_kind: "book", books: [book], group: second_group, user: group_admin, content: "NEWER GROUP BOOK ACTIVITY", created_at: 1.hour.ago)
+    newer = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], group: second_group, user: group_admin, content: "NEWER GROUP BOOK ACTIVITY", created_at: 1.hour.ago)
     other_group.jjaeks.create!(user: group_admin, content: "OTHER GROUP ACTIVITY")
     first_group.group_memberships.create!(user: hidden_author, status: :active)
     invited_group.jjaeks.create!(user: group_admin, content: "INVITED GROUP ACTIVITY")

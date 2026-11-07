@@ -271,8 +271,8 @@ class BookshelfEntriesController < ApplicationController
     authorize @group, :create_jjaek? if @group
     @jjaek = Jjaek.new(user: current_user, group: @group)
     authorize @jjaek
-    @selected_books = [@book]
-    @selected_book_keys = [@book.id.to_s]
+    @selected_books = [ @book ]
+    @selected_book_keys = [ @book.id.to_s ]
     prepare_book_show_read_context
   end
 

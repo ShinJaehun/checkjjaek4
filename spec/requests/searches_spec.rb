@@ -108,7 +108,7 @@ RSpec.describe "Unified search", type: :request do
   describe "result types" do
     let!(:matched_user) { User.create!(name: "한글 독자", handle: "hangul_reader", email: "hangul@example.com", password: "password123!") }
     let!(:general_post) { writer.jjaeks.create!(content: "한글 일반 짹") }
-    let!(:book_post) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "한글 책짹") }
+    let!(:book_post) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "한글 책짹") }
     let!(:recommendation_post) do
       post = build_jjaek_with_books(legacy_source_kind: "recommendation", user: writer, content: "한글 과거 추천짹")
       post.jjaek_book_attachments.build(book:, position: 0)
@@ -258,7 +258,7 @@ RSpec.describe "Unified search", type: :request do
     entry = viewer.bookshelf_entries.create!(book:, status: :reading)
     sticker = StickerDefinition.create!(key: "loved_it", name: "Loved it")
     entry.sticker_definitions << sticker
-    post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: viewer, content: "카드검색 본문", visibility: :book_friends)
+    post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: viewer, content: "카드검색 본문", visibility: :book_friends)
     sign_in viewer
     get search_path, params: { q: "카드검색", type: "jjaeks" }
 
@@ -279,7 +279,7 @@ RSpec.describe "Unified search", type: :request do
   it "keeps reading metadata on public book-post cards restricted to accepted book friends" do
     entry = writer.bookshelf_entries.create!(book:, status: :finished)
     entry.bookshelf.update!(visibility: :public)
-    create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "독서카드검색")
+    create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "독서카드검색")
     sign_in viewer
     get search_path, params: { q: "독서카드검색", type: "jjaeks" }
     expect(search_section("jjaeks").at_css("[data-current-reading-state]")).to be_nil
@@ -315,7 +315,7 @@ RSpec.describe "Unified search", type: :request do
   it "does not search comments or book titles" do
     parent = writer.jjaeks.create!(content: "Parent content")
     parent.comments.create!(user: writer, content: "댓글전용검색어")
-    create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "Unrelated book post")
+    create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "Unrelated book post")
     sign_in viewer
 
     [ "댓글전용검색어", book.title ].each do |term|
@@ -330,9 +330,9 @@ RSpec.describe "Unified search", type: :request do
       let(:post_book) { type == "book_jjaeks" ? book : nil }
 
       it "finds public and own private posts while hiding others' private posts and previews" do
-        public_post = create_jjaek_with_books(legacy_source_kind: "book", books: [post_book], user: viewer, content: "권한검색 PUBLIC")
-        own_post = create_jjaek_with_books(legacy_source_kind: "book", books: [post_book], user: viewer, content: "권한검색 OWN_PRIVATE", visibility: :private_jjaek)
-        secret_post = create_jjaek_with_books(legacy_source_kind: "book", books: [post_book], user: writer, content: "권한검색 SECRET_PRIVATE", visibility: :private_jjaek)
+        public_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ post_book ], user: viewer, content: "권한검색 PUBLIC")
+        own_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ post_book ], user: viewer, content: "권한검색 OWN_PRIVATE", visibility: :private_jjaek)
+        secret_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ post_book ], user: writer, content: "권한검색 SECRET_PRIVATE", visibility: :private_jjaek)
         sign_in viewer
         get search_path, params: { q: "권한검색", type: }
 
@@ -341,7 +341,7 @@ RSpec.describe "Unified search", type: :request do
       end
 
       it "requires accepted book friendship, rather than following or a pending request" do
-        post = create_jjaek_with_books(legacy_source_kind: "book", books: [post_book], user: writer, content: "친구검색 FRIEND_ONLY", visibility: :book_friends)
+        post = create_jjaek_with_books(legacy_source_kind: "book", books: [ post_book ], user: writer, content: "친구검색 FRIEND_ONLY", visibility: :book_friends)
         Follow.create!(follower: viewer, followee: writer)
         friendship = BookFriendship.create!(requester: viewer, addressee: writer, status: :pending)
         sign_in viewer
@@ -359,9 +359,9 @@ RSpec.describe "Unified search", type: :request do
       end
 
       it "excludes hidden and deleted posts even when the viewer is their author" do
-        hidden = create_jjaek_with_books(legacy_source_kind: "book", books: [post_book], user: viewer, content: "운영검색 HIDDEN")
+        hidden = create_jjaek_with_books(legacy_source_kind: "book", books: [ post_book ], user: viewer, content: "운영검색 HIDDEN")
         hidden.update_columns(hidden_at: Time.current)
-        deleted = create_jjaek_with_books(legacy_source_kind: "book", books: [post_book], user: viewer, content: "운영검색 DELETED")
+        deleted = create_jjaek_with_books(legacy_source_kind: "book", books: [ post_book ], user: viewer, content: "운영검색 DELETED")
         deleted.update_columns(deleted_at: Time.current)
         sign_in viewer
         get search_path, params: { q: "운영검색", type: }
@@ -396,7 +396,7 @@ RSpec.describe "Unified search", type: :request do
     group = Group.create!(group_admin: writer, name: "비밀검색 모임", description: "PRIVATE_DESCRIPTION",
                           lifecycle_status: :active, group_type: :private_group)
     post = writer.jjaeks.create!(group:, content: "비밀검색 INTERNAL_POST")
-    book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, group:, content: "비밀검색 INTERNAL_BOOK_POST")
+    book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, group:, content: "비밀검색 INTERNAL_BOOK_POST")
     sign_in viewer
     get search_path, params: { q: "비밀검색" }
 
@@ -456,7 +456,7 @@ RSpec.describe "Unified search", type: :request do
     it "keeps #{group_type} content within current membership and lifecycle access" do
       group = Group.create!(group_admin: writer, name: "Group #{group_type}", lifecycle_status: :active, group_type:)
       post = writer.jjaeks.create!(group:, content: "동아리검색 GENERAL")
-      book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, group:, content: "동아리검색 BOOK")
+      book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, group:, content: "동아리검색 BOOK")
       membership = group.group_memberships.create!(user: viewer, status: :invited)
       sign_in viewer
 
@@ -548,7 +548,7 @@ RSpec.describe "Unified search", type: :request do
     6.times do |index|
       User.create!(name: "미리보기 독자 #{index}", email: "preview#{index}@example.com", password: "password123!")
       writer.jjaeks.create!(content: "미리보기 일반 #{index}")
-      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "미리보기 책짹 #{index}")
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "미리보기 책짹 #{index}")
       Group.create!(group_admin: writer, name: "미리보기 모임 #{index}", lifecycle_status: :active)
     end
     sign_in viewer
@@ -565,7 +565,7 @@ RSpec.describe "Unified search", type: :request do
   it "paginates in stable newest-first order while preserving the query and type" do
     timestamp = Time.current
     posts = 31.times.map do |index|
-      create_jjaek_with_books(legacy_source_kind: "book", books: [(book if index.odd?)], user: writer, content: "페이지검색 #{index}", created_at: timestamp)
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ (book if index.odd?) ], user: writer, content: "페이지검색 #{index}", created_at: timestamp)
     end
     sign_in viewer
     get search_path, params: { q: "페이지검색", type: "jjaeks" }
@@ -714,7 +714,7 @@ RSpec.describe "Unified search", type: :request do
     it "uses exact tag links for posts while preserving ordinary text search" do
       exact = writer.jjaeks.create!(content: "태그검증 #우정")
       longer = writer.jjaeks.create!(content: "태그검증 #우정의힘")
-      book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: writer, content: "태그검증 #우정")
+      book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "태그검증 #우정")
       english = writer.jjaeks.create!(content: "태그검증 #Reading")
 
       get search_path, params: { tag: "우정" }
@@ -732,7 +732,7 @@ RSpec.describe "Unified search", type: :request do
     end
 
     it "reuses bounded previews and individual tab page sizes for tags" do
-      6.times { |index| create_jjaek_with_books(legacy_source_kind: "book", books: [(book if index.odd?)], user: writer, content: "태그목록 #{index} #목록") }
+      6.times { |index| create_jjaek_with_books(legacy_source_kind: "book", books: [ (book if index.odd?) ], user: writer, content: "태그목록 #{index} #목록") }
 
       get search_path, params: { tag: "목록" }
       expect(search_section("jjaeks").css("article").size).to eq(5)
