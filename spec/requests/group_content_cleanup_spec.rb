@@ -10,7 +10,7 @@ RSpec.describe "Cleaning up own content after losing group access", type: :reque
   let!(:other_membership) { group.group_memberships.create!(user: other, status: :active) }
   let!(:own_post) { user.jjaeks.create!(group:, content: "MY GROUP POST") }
   let!(:book) { Book.create!(title: "PRIVATE BOOK METADATA", authors_text: "PRIVATE BOOK AUTHOR") }
-  let!(:own_book_post) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, group:, content: "MY BOOK POST") }
+  let!(:own_book_post) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, group:, content: "MY BOOK POST") }
   let!(:parent) { other.jjaeks.create!(group:, content: "OTHER PARENT BODY") }
   let!(:own_comment) { parent.comments.create!(user:, content: "MY COMMENT") }
   let!(:foreign_comment) { parent.comments.create!(user: other, content: "OTHER COMMENT BODY") }
@@ -168,7 +168,7 @@ RSpec.describe "Cleaning up own content after losing group access", type: :reque
   end
 
   it "does not expose quote sources when showing the author's own independent body" do
-    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other, content: "RESTRICTED QUOTE SOURCE")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: other, content: "RESTRICTED QUOTE SOURCE")
     quote = user.jjaeks.create!(group:, quoted_jjaek: source, content: "MY INDEPENDENT QUOTE BODY")
     source.update!(visibility: :private_jjaek)
     leave_group

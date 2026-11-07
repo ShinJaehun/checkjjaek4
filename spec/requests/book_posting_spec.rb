@@ -199,9 +199,9 @@ RSpec.describe "Book context in the common composer", type: :request do
     expect {
       post jjaeks_path, params: { book_id: book.id, jjaek: { book_id: other.id, content: "Mismatch" } }
     }.not_to change(Jjaek, :count)
-    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: admin, content: "Source")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: admin, content: "Source")
     expect {
-      post jjaeks_path, params: { selected_books: [book.id], jjaek: { quoted_jjaek_id: source.id, content: "Quote with book" } }
+      post jjaeks_path, params: { selected_books: [ book.id ], jjaek: { quoted_jjaek_id: source.id, content: "Quote with book" } }
     }.not_to change(Jjaek, :count)
   end
 

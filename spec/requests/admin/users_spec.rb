@@ -197,10 +197,10 @@ RSpec.describe "Admin user inventory", type: :request do
 
     activities = {
       general_author => general_author.jjaeks.create!(content: "Inventory general", created_at: 70.minutes.ago),
-      book_author => create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: book_author, content: "Inventory book", created_at: 60.minutes.ago),
+      book_author => create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: book_author, content: "Inventory book", created_at: 60.minutes.ago),
       requote_author => requote_author.jjaeks.create!(quoted_jjaek: source, content: "Inventory requote", created_at: 50.minutes.ago),
       group_author => group_author.jjaeks.create!(group: active_group, content: "Inventory group", created_at: 40.minutes.ago),
-      group_book_author => create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_book_author, group: active_group, content: "Inventory group book", created_at: 30.minutes.ago),
+      group_book_author => create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_book_author, group: active_group, content: "Inventory group book", created_at: 30.minutes.ago),
       comment_author => comment_source.comments.create!(user: comment_author, content: "Inventory comment", created_at: 20.minutes.ago)
     }
     expected_kinds = [ "짹", "짹", "다시짹", "동아리짹", "동아리짹", "댓글" ]
@@ -344,7 +344,7 @@ RSpec.describe "Admin user inventory", type: :request do
     book = Book.create!(title: "Admin detail book", authors_text: "Author")
     personal_jjaek = reader.jjaeks.create!(content: "USER_PERSONAL_CONTENT", visibility: :private_jjaek)
     targeted_jjaek = reader.jjaeks.create!(target_user:, content: "USER_TARGETED_CONTENT")
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: reader, content: "USER_BOOK_CONTENT", visibility: :book_friends)
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: reader, content: "USER_BOOK_CONTENT", visibility: :book_friends)
     4.times do |index|
       book_jjaek.jjaek_book_attachments.create!(book: Book.create!(title: "Extra attachment #{index}"), position: index + 1)
     end
@@ -354,7 +354,7 @@ RSpec.describe "Admin user inventory", type: :request do
     deleted_source_requote = reader.jjaeks.create!(content: "DELETED_SOURCE_REQUOTE", quoted_jjaek: deleted_source)
     deleted_source.destroy!
     group_jjaek = reader.jjaeks.create!(group:, content: "USER_GROUP_CONTENT")
-    group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: reader, group:, content: "USER_GROUP_BOOK_CONTENT")
+    group_book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: reader, group:, content: "USER_GROUP_BOOK_CONTENT")
     deleted_jjaek = reader.jjaeks.create!(content: "USER_DELETED_CONTENT")
     deleted_jjaek.comments.create!(user: group_admin, content: "PRESERVE_DELETED_JJAEK")
     deleted_jjaek.destroy_or_tombstone!
@@ -458,7 +458,7 @@ RSpec.describe "Admin user inventory", type: :request do
   it "classifies recommendations and requotes by location and keeps attachment metadata separate" do
     group = Group.create!(group_admin: reader, name: "Unified inventory club", lifecycle_status: :active, group_type: :public_group)
     books = 2.times.map { |index| Book.create!(title: "INVENTORY_ATTACHMENT_#{index}") }
-    source = create_jjaek_with_books(legacy_source_kind: "book", books: [books.first], user: admin, content: "INVENTORY_SOURCE_BODY")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [ books.first ], user: admin, content: "INVENTORY_SOURCE_BODY")
     recommendations = [ nil, group ].map do |destination|
       post = build_jjaek_with_books(legacy_source_kind: "recommendation", user: reader, group: destination, content: "INVENTORY_RECOMMENDATION")
       books.each_with_index { |book, position| post.jjaek_book_attachments.build(book:, position:) }
@@ -581,7 +581,7 @@ RSpec.describe "Admin user inventory", type: :request do
     book = Book.create!(title: "Filter book", authors_text: "Author")
     personal = reader.jjaeks.create!(content: "FILTER_PERSONAL_MATCH")
     group_general = reader.jjaeks.create!(group:, content: "FILTER_GROUP_MATCH")
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: reader, content: "FILTER_BOOK_MATCH")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: reader, content: "FILTER_BOOK_MATCH")
     source = group_admin.jjaeks.create!(content: "FILTER_SOURCE")
     requote = reader.jjaeks.create!(quoted_jjaek: source, content: "FILTER_REQUOTE_MATCH")
     comment = source.comments.create!(user: reader, content: "FILTER_COMMENT_MATCH")
@@ -693,9 +693,9 @@ RSpec.describe "Admin user inventory", type: :request do
     GroupMembership.create!(group:, user: reader, status: :active)
     book = Book.create!(title: "Area book", authors_text: "Author")
     personal_general = reader.jjaeks.create!(content: "COMBO_PERSONAL_GENERAL")
-    personal_book = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: reader, content: "COMBO_PERSONAL_BOOK")
+    personal_book = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: reader, content: "COMBO_PERSONAL_BOOK")
     group_general = reader.jjaeks.create!(group:, content: "COMBO_GROUP_GENERAL")
-    group_book = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: reader, group:, content: "COMBO_GROUP_BOOK")
+    group_book = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: reader, group:, content: "COMBO_GROUP_BOOK")
     group_source = group_admin.jjaeks.create!(group:, content: "COMBO_GROUP_SOURCE")
     group_comment = group_source.comments.create!(user: reader, content: "COMBO_GROUP_COMMENT")
     sign_in admin

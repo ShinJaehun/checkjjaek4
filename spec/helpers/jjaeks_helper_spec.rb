@@ -108,7 +108,7 @@ RSpec.describe JjaeksHelper, type: :helper do
   it "uses a neutral Club space badge without a book title or content-type label in the header" do
     book = Book.create!(title: "Header book")
     [ nil, book ].each do |attachment|
-      post = create_jjaek_with_books(legacy_source_kind: "book", books: [attachment], user: author, group:, content: "Group post")
+      post = create_jjaek_with_books(legacy_source_kind: "book", books: [ attachment ], user: author, group:, content: "Group post")
       label = Nokogiri::HTML.fragment(helper.jjaek_context_label(post))
       expect(label.text).to eq("Author님이 동아리 Readers에 남긴 짹")
       expect(label.at_css("a[href='#{group_path(group)}']").text).to eq(group.name)
@@ -135,7 +135,7 @@ RSpec.describe JjaeksHelper, type: :helper do
       it "links the original author's thumbnail and name for a #{context} #{kind} requote" do
         group.group_memberships.create!(user: viewer, status: :active) unless context == :personal
         book = Book.create!(title: "Quoted book", authors_text: "Author") if kind == :book
-        source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group: context == :group_quote ? group : nil, content: "Source")
+        source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, group: context == :group_quote ? group : nil, content: "Source")
         requote = viewer.jjaeks.create!(quoted_jjaek: source, group: context == :personal ? nil : group, content: "Requote")
 
         label = Nokogiri::HTML.fragment(helper.jjaek_context_label(requote))
@@ -159,7 +159,7 @@ RSpec.describe JjaeksHelper, type: :helper do
   it "uses the same personal header for ordinary, legacy book and recommendation posts" do
     book = Book.create!(title: "Header book")
     ordinary = author.jjaeks.create!(content: "Ordinary post")
-    book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "Book post")
+    book_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "Book post")
     recommendation = build_jjaek_with_books(legacy_source_kind: "recommendation", user: author, content: "Recommendation")
     recommendation.jjaek_book_attachments.build(book:, position: 0)
     recommendation.save!

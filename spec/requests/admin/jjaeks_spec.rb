@@ -188,7 +188,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     book = Book.create!(title: "HIDDEN_CONTEXT_BOOK", authors_text: "Author")
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Hidden context group", group_type: :public_group)
     general = author.jjaeks.create!(content: "HIDDEN_GENERAL_CONTEXT")
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "HIDDEN_BOOK_CONTEXT")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "HIDDEN_BOOK_CONTEXT")
     group_jjaek = author.jjaeks.create!(group:, content: "HIDDEN_GROUP_CONTEXT")
     general.likes.create!(user: author)
     general.comments.create!(user: author, content: "EXISTING PLATFORM HIDDEN COMMENT")
@@ -271,7 +271,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
 
   it "shows the author the hidden source and public reason while preserving delete" do
     book = Book.create!(title: "AUTHOR_HIDDEN_BOOK", authors_text: "Hidden author")
-    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "AUTHOR_HIDDEN_BODY")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "AUTHOR_HIDDEN_BODY")
     Jjaeks::Hide.new(jjaek, actor: admin, public_reason: "spam_advertising", internal_note: "ADMIN ONLY NOTE").call!
     action = jjaek.current_hide_action
     sign_in author
@@ -299,9 +299,9 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     group.group_memberships.create!(user: author, status: :active)
     jjaeks = [
       author.jjaeks.create!(content: "HIDDEN AUTHOR GENERAL"),
-      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "HIDDEN AUTHOR BOOK"),
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "HIDDEN AUTHOR BOOK"),
       author.jjaeks.create!(group:, content: "HIDDEN AUTHOR GROUP"),
-      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "HIDDEN AUTHOR GROUP BOOK")
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, group:, content: "HIDDEN AUTHOR GROUP BOOK")
     ]
 
     jjaeks.each do |jjaek|

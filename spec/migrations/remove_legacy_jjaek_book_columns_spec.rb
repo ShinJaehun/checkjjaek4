@@ -32,7 +32,7 @@ RSpec.describe RemoveLegacyJjaekBookColumns do
     expect(posts.order(:id).map { |record| record.attributes.except("legacy_source_kind") })
       .to eq(original_posts.map { |attributes| attributes.except(*removed) })
     expect(links.order(:id).map { |record| record.attributes.except("visible_on_tombstone") }).to eq(original_links)
-    expect(links.where(visible_on_tombstone: true).pluck(:jjaek_id, :book_id)).to eq([[legacy.id, book.id]])
+    expect(links.where(visible_on_tombstone: true).pluck(:jjaek_id, :book_id)).to eq([ [ legacy.id, book.id ] ])
     expect(posts.find(recommended.id).legacy_source_kind).to eq("recommendation")
     expect(posts.find(snapshot.id).quoted_source_kind).to eq("book")
     expect(posts.find(modern.id).legacy_source_kind).to be_nil

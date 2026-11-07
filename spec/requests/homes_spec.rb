@@ -102,7 +102,7 @@ RSpec.describe "Homes", type: :request do
     it "keeps an unfollowed book friend's Jjaeks and BookActivity off the home feed while preserving profile access" do
       BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
       book_friend.jjaeks.create!(content: "FRIEND_ONLY_PUBLIC_JJAEK", visibility: :public_jjaek)
-      create_jjaek_with_books(legacy_source_kind: "book", books: [friend_book], user: book_friend, content: "FRIEND_ONLY_BOOK_JJAEK", visibility: :book_friends)
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ friend_book ], user: book_friend, content: "FRIEND_ONLY_BOOK_JJAEK", visibility: :book_friends)
       BookActivity.create!(user: book_friend, book: friend_book, bookshelf_entry: book_friend.bookshelf_entries.find_or_create_by!(book: friend_book), action: :added_to_shelf)
       sign_in viewer
 
@@ -120,7 +120,7 @@ RSpec.describe "Homes", type: :request do
     it "shows only public Jjaeks from a follow-only user in the home feed" do
       viewer.active_follows.create!(followee:)
       followee.jjaeks.create!(content: "FOLLOW_ONLY_PUBLIC_JJAEK", visibility: :public_jjaek)
-      create_jjaek_with_books(legacy_source_kind: "book", books: [followee_book], user: followee, content: "FOLLOW_ONLY_BOOK_FRIENDS_JJAEK", visibility: :book_friends)
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ followee_book ], user: followee, content: "FOLLOW_ONLY_BOOK_FRIENDS_JJAEK", visibility: :book_friends)
       BookActivity.create!(user: followee, book: followee_book, bookshelf_entry: followee.bookshelf_entries.find_or_create_by!(book: followee_book), action: :added_to_shelf)
       sign_in viewer
 
@@ -134,7 +134,7 @@ RSpec.describe "Homes", type: :request do
       viewer.active_follows.create!(followee: book_friend)
       BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
       book_friend.jjaeks.create!(content: "FOLLOWED_FRIEND_PUBLIC_JJAEK", visibility: :public_jjaek)
-      create_jjaek_with_books(legacy_source_kind: "book", books: [friend_book], user: book_friend, content: "FOLLOWED_FRIEND_BOOK_JJAEK", visibility: :book_friends)
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ friend_book ], user: book_friend, content: "FOLLOWED_FRIEND_BOOK_JJAEK", visibility: :book_friends)
       BookActivity.create!(user: book_friend, book: friend_book, bookshelf_entry: book_friend.bookshelf_entries.find_or_create_by!(book: friend_book), action: :added_to_shelf)
       sign_in viewer
 
@@ -146,7 +146,7 @@ RSpec.describe "Homes", type: :request do
 
     it "does not show a stranger's Jjaeks or BookActivity in the home feed" do
       stranger.jjaeks.create!(content: "STRANGER_PUBLIC_JJAEK", visibility: :public_jjaek)
-      create_jjaek_with_books(legacy_source_kind: "book", books: [stranger_book], user: stranger, content: "STRANGER_BOOK_FRIENDS_JJAEK", visibility: :book_friends)
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ stranger_book ], user: stranger, content: "STRANGER_BOOK_FRIENDS_JJAEK", visibility: :book_friends)
       BookActivity.create!(user: stranger, book: stranger_book, bookshelf_entry: stranger.bookshelf_entries.find_or_create_by!(book: stranger_book), action: :added_to_shelf)
       sign_in viewer
 
@@ -175,7 +175,7 @@ RSpec.describe "Homes", type: :request do
       group.group_memberships.create!(user: viewer, status: :active)
       group_book = Book.create!(title: "HOME EXCLUDED GROUP BOOK", authors_text: "Author")
       group.jjaeks.create!(user: group_admin, content: "HOME EXCLUDED GROUP JJAEK")
-      create_jjaek_with_books(legacy_source_kind: "book", books: [group_book], group: group, user: group_admin, content: "HOME EXCLUDED GROUP BOOK JJAEK")
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ group_book ], group: group, user: group_admin, content: "HOME EXCLUDED GROUP BOOK JJAEK")
       hidden_group_jjaek = group.jjaeks.create!(user: viewer, content: "HOME EXCLUDED HIDDEN GROUP JJAEK")
       Jjaeks::Hide.new(hidden_group_jjaek, actor: group_admin, public_reason: "other").call!
       personal_jjaek = viewer.jjaeks.create!(content: "HOME ELIGIBLE PERSONAL JJAEK", visibility: :public_jjaek)

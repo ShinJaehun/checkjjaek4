@@ -552,11 +552,11 @@ RSpec.describe "BookshelfEntries", type: :request do
   it "preserves the book show context and submitted stickers without saving an invalid update" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "실패 화면 선택 책장", visibility: :private)
-    original = create_jjaek_with_books(legacy_source_kind: "book", books: [user_book], user: book_friend, content: "UPDATE_FAILURE_ORIGINAL", visibility: :book_friends)
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [ user_book ], user: book_friend, content: "UPDATE_FAILURE_ORIGINAL", visibility: :book_friends)
     requote = create_legacy_book_requote(user: user, book: user_book, content: "UPDATE_FAILURE_REQUOTE", quoted_jjaek: original, visibility: :private_jjaek)
-    private_original = create_jjaek_with_books(legacy_source_kind: "book", books: [user_book], user: stranger, content: "UPDATE_FAILURE_PRIVATE", visibility: :private_jjaek)
+    private_original = create_jjaek_with_books(legacy_source_kind: "book", books: [ user_book ], user: stranger, content: "UPDATE_FAILURE_PRIVATE", visibility: :private_jjaek)
     group = Group.create!(name: "실패 화면 동아리", group_admin: book_friend, group_type: :public_group, lifecycle_status: :active)
-    group_original = create_jjaek_with_books(legacy_source_kind: "book", books: [user_book], user: book_friend, group:, content: "UPDATE_FAILURE_GROUP")
+    group_original = create_jjaek_with_books(legacy_source_kind: "book", books: [ user_book ], user: book_friend, group:, content: "UPDATE_FAILURE_GROUP")
     sign_in user
 
     get book_path(user_book)
@@ -991,7 +991,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "rolls back state, stickers, and activity when activity recording fails" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    original = create_jjaek_with_books(legacy_source_kind: "book", books: [user_book], user: user, content: "READING_FAILURE_QUOTE")
+    original = create_jjaek_with_books(legacy_source_kind: "book", books: [ user_book ], user: user, content: "READING_FAILURE_QUOTE")
     sign_in user
     failed_activity = BookActivity.new
     failed_activity.errors.add(:base, "recording failed")

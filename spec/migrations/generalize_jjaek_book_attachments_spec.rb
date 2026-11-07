@@ -13,18 +13,18 @@ RSpec.describe GeneralizeJjaekBookAttachments do
     like = @tables.fetch(:likes).create!(user_id: 1, jjaek_id: legacy.id)
     quote = posts.create!(user_id: 1, content: "Quote", quoted_jjaek_id: legacy.id)
     notification = @tables.fetch(:notifications).create!(recipient_id: 1, actor_id: 1, notifiable_id: legacy.id, notifiable_type: "Jjaek", action: 3)
-    original_relations = [comment, like, quote, notification].map { |record| record.attributes.except("book_attachments_migrated") }
+    original_relations = [ comment, like, quote, notification ].map { |record| record.attributes.except("book_attachments_migrated") }
     recommended = posts.create!(user_id: 1, recommendation: true, content: "Recommended")
     other = @tables.fetch(:books).create!(title: "Other")
-    [other, book].each_with_index { |item, position| links.create!(jjaek_id: recommended.id, book_id: item.id, position:) }
+    [ other, book ].each_with_index { |item, position| links.create!(jjaek_id: recommended.id, book_id: item.id, position:) }
     original_links = links.where(jjaek_id: recommended.id).order(:position).map(&:attributes)
     original_attributes = legacy.attributes.except("book_attachments_migrated")
 
     2.times { migration.backfill_book_attachments }
 
     expect(legacy.reload.attributes.except("book_attachments_migrated")).to eq(original_attributes)
-    expect(links.where(jjaek_id: legacy.id).pluck(:book_id)).to eq([book.id])
-    expect([comment, like, quote, notification].map { |record| record.reload.attributes.except("book_attachments_migrated") }).to eq(original_relations)
+    expect(links.where(jjaek_id: legacy.id).pluck(:book_id)).to eq([ book.id ])
+    expect([ comment, like, quote, notification ].map { |record| record.reload.attributes.except("book_attachments_migrated") }).to eq(original_relations)
     expect(quote.book_attachments_migrated).to be(true)
     expect(links.where(jjaek_id: recommended.id).order(:position).map(&:attributes)).to eq(original_links)
     links.where(jjaek_id: legacy.id).delete_all
@@ -44,7 +44,7 @@ RSpec.describe GeneralizeJjaekBookAttachments do
     expect(link.reload.attributes).to eq(original)
     conflict.update_columns(book_id: nil)
     migration.backfill_book_attachments
-    expect(links.where(jjaek_id: legacy.id).pluck(:book_id)).to eq([book.id])
+    expect(links.where(jjaek_id: legacy.id).pluck(:book_id)).to eq([ book.id ])
     expect(conflict.reload.book_attachments_migrated).to be(true)
   end
 

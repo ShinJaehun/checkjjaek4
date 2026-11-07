@@ -23,7 +23,7 @@ RSpec.describe "Content rate limits", type: :request do
 
     post jjaeks_path, params: { jjaek: { content: "General note" } }
     expect(response).to redirect_to(jjaek_path(Jjaek.order(:id).last))
-    post jjaeks_path, params: { selected_books: [book.id], jjaek: { content: "Book note" } }
+    post jjaeks_path, params: { selected_books: [ book.id ], jjaek: { content: "Book note" } }
     expect(response).to redirect_to(jjaek_path(Jjaek.order(:id).last))
     28.times { post jjaeks_path, params: { jjaek: { content: "" } } }
     expect(response).not_to have_http_status(:too_many_requests)

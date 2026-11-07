@@ -20,7 +20,7 @@ RSpec.describe Jjaeks::Hide do
     group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Moderated group", group_type: :public_group)
     jjaeks = [
       author.jjaeks.create!(content: "General"),
-      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "Book"),
+      create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "Book"),
       author.jjaeks.create!(group:, content: "Group")
     ]
 
@@ -35,7 +35,7 @@ RSpec.describe Jjaeks::Hide do
 
   it "preserves the source and existing interactions and requotes" do
     viewer = User.create!(name: "Viewer", email: "hide-service-viewer@example.com", password: "password123!")
-    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "Preserved source")
+    jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "Preserved source")
     comment = jjaek.comments.create!(user: viewer, content: "Preserved comment")
     like = jjaek.likes.create!(user: viewer)
     requote = viewer.jjaeks.create!(quoted_jjaek: jjaek, content: "Preserved requote")
@@ -137,7 +137,7 @@ RSpec.describe Jjaeks::Hide do
   it "lets a group admin hide another member's group jjaek with an internal note" do
     group_admin = User.create!(name: "Group admin", email: "hide-group-admin@example.com", password: "password123!")
     group = Group.create!(lifecycle_status: :active, group_admin:, name: "Active group", group_type: :private_group)
-    group_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "Group Book Jjaek")
+    group_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, group:, content: "Group Book Jjaek")
 
     described_class.new(
       group_jjaek,

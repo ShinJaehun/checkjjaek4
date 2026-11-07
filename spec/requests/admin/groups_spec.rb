@@ -199,7 +199,7 @@ RSpec.describe "Admin group approvals", type: :request do
     book_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Book activity club", group_type: :public_group)
     general = group_admin.jjaeks.create!(group: comment_group, content: "Older group Jjaek", created_at: 2.hours.ago)
     comment = general.comments.create!(user: admin, content: "Latest group comment", created_at: 1.hour.ago)
-    group_book = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: group_admin, group: book_group, content: "Latest group book", created_at: 30.minutes.ago)
+    group_book = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: group_admin, group: book_group, content: "Latest group book", created_at: 30.minutes.ago)
 
     sign_in admin
     get admin_groups_path
@@ -786,7 +786,7 @@ RSpec.describe "Admin group approvals", type: :request do
     member = User.create!(name: "Content member", email: "group-content-member@example.com", password: "password123!")
     book = Book.create!(title: "Group content book", authors_text: "Author")
     general = group_admin.jjaeks.create!(group: active_group, content: "GROUP_GENERAL_CONTENT")
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: member, group: active_group, content: "GROUP_BOOK_CONTENT")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: member, group: active_group, content: "GROUP_BOOK_CONTENT")
     comment = general.comments.create!(user: member, content: "GROUP_COMMENT_CONTENT")
     deleted = member.jjaeks.create!(group: active_group, content: "GROUP_DELETED_CONTENT")
     deleted_comment = deleted.comments.create!(user: group_admin, content: "COMMENT_ON_DELETED_GROUP_CONTENT")
@@ -1027,7 +1027,7 @@ RSpec.describe "Admin group approvals", type: :request do
     member = User.create!(name: "Filter member", email: "filter-member@example.com", password: "password123!")
     book = Book.create!(title: "Filtered content book", authors_text: "Author")
     general = group_admin.jjaeks.create!(group: active_group, content: "FILTER_GROUP_GENERAL")
-    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: member, group: active_group, content: "FILTER_GROUP_BOOK")
+    book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: member, group: active_group, content: "FILTER_GROUP_BOOK")
     comment = general.comments.create!(user: member, content: "FILTER_GROUP_COMMENT")
     hidden_jjaek = member.jjaeks.create!(group: active_group, content: "FILTER_GROUP_HIDDEN_JJAEK")
     Jjaeks::Hide.new(hidden_jjaek, actor: admin, public_reason: "other").call!

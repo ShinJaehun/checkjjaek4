@@ -93,7 +93,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
 
   it "uses medium covers for a single attached book and its quoted source" do
     book.update!(thumbnail: "https://example.com/single-book-cover.jpg")
-    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Single attached book", visibility: :public_jjaek)
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "Single attached book", visibility: :public_jjaek)
     quote = user.jjaeks.create!(quoted_jjaek: source, content: "Quoted single book")
 
     [ source, quote ].each do |record|
@@ -171,7 +171,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   end
 
   it "preserves omitted attachments and clears explicit empty selections without a legacy fallback" do
-    record = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Single book")
+    record = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "Single book")
     patch jjaek_path(record), params: { jjaek: { content: "Keep books" } }
     expect(record.reload.attached_books).to eq([ book ])
     patch jjaek_path(record), params: { selected_books: [ "" ], jjaek: { content: "Clear books" } }
@@ -373,7 +373,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   end
 
   it "only quotes the source and rejects newly attached books on creation and editing" do
-    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Source")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "Source")
     expect {
       post jjaeks_path, params: { selected_books: [ other_book.id ], jjaek: { quoted_jjaek_id: source.id, content: "Invalid quote" } }
     }.not_to change(Jjaek, :count)
@@ -393,7 +393,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(response.body).to include(book.title, other_book.title, "Original #before")
     expect(Nokogiri::HTML(response.body).css("#book-selection-window textarea")).to be_empty
     selected_books = Nokogiri::HTML(response.body).css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }
-    expect(selected_books).to eq(["", book.id.to_s, other_book.id.to_s])
+    expect(selected_books).to eq([ "", book.id.to_s, other_book.id.to_s ])
     get jjaek_books_path, params: { editing_jjaek_id: record.id, selected_books: }
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(book.title, other_book.title)
@@ -485,7 +485,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
   it "finds legacy recommendations in unified search through old URLs without widening visibility" do
     record = legacy_recommendation
     expect(record.reload.legacy_source_kind).to eq("recommendation")
-    expect(record.attached_books).to eq([book, other_book])
+    expect(record.attached_books).to eq([ book, other_book ])
     expect(JjaekPolicy::SearchScope.new(user, Jjaek.all).resolve.where(id: record.id)).to exist
 
     get search_path, params: { q: "Original", type: "recommendation_jjaeks" }

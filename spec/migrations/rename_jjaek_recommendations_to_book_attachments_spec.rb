@@ -43,7 +43,7 @@ RSpec.describe RenameJjaekRecommendationsToBookAttachments do
     SQL
     GeneralizeJjaekBookAttachments.new.migrate(:up)
     original = connection.select_all("SELECT * FROM jjaek_recommendations ORDER BY jjaek_id, position").to_a
-    expect(original.map { |row| [row["jjaek_id"], row["book_id"], row["position"]] }).to eq([[21, 11, 0], [22, 12, 0], [22, 11, 1]])
+    expect(original.map { |row| [ row["jjaek_id"], row["book_id"], row["position"] ] }).to eq([ [ 21, 11, 0 ], [ 22, 12, 0 ], [ 22, 11, 1 ] ])
 
     migration = described_class.new
     migration.migrate(:up)
@@ -57,11 +57,11 @@ RSpec.describe RenameJjaekRecommendationsToBookAttachments do
       index_jjaek_book_attachments_on_jjaek_id_and_book_id
       index_jjaek_book_attachments_on_jjaek_id_and_position
     ])
-    expect(indexes.select(&:unique).map(&:columns)).to match_array([%w[jjaek_id book_id], %w[jjaek_id position]])
-    expect(connection.check_constraints(:jjaek_book_attachments).map(&:name)).to eq(["jjaek_book_attachment_position"])
+    expect(indexes.select(&:unique).map(&:columns)).to match_array([ %w[jjaek_id book_id], %w[jjaek_id position] ])
+    expect(connection.check_constraints(:jjaek_book_attachments).map(&:name)).to eq([ "jjaek_book_attachment_position" ])
 
     migration.migrate(:down)
     expect(connection.select_all("SELECT * FROM jjaek_recommendations ORDER BY jjaek_id, position").to_a).to eq(original)
-    expect(connection.check_constraints(:jjaek_recommendations).map(&:name)).to eq(["jjaek_recommendation_position"])
+    expect(connection.check_constraints(:jjaek_recommendations).map(&:name)).to eq([ "jjaek_recommendation_position" ])
   end
 end

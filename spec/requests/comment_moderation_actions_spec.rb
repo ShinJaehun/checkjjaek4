@@ -10,7 +10,7 @@ RSpec.describe "Comment moderation actions", type: :request do
   let!(:other_admin) { User.create!(name: "Other platform admin", email: "comment-action-other-platform@example.com", password: "password123!", global_admin: true) }
   let!(:book) { Book.create!(title: "Comment action book", authors_text: "Book author") }
   let!(:group) { Group.create!(lifecycle_status: :active, group_admin:, name: "Comment action group", group_type: :private_group) }
-  let!(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: parent_author, group:, content: "COMMENT ACTION PARENT") }
+  let!(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: parent_author, group:, content: "COMMENT ACTION PARENT") }
   let!(:comment) { jjaek.comments.create!(user: comment_author, content: "COMMENT ACTION TARGET") }
 
   before do

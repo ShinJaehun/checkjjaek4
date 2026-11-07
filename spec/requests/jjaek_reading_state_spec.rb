@@ -7,7 +7,7 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
   let(:shelf) { author.bookshelves.create!(name: "Reading shelf", visibility: :public) }
   let!(:entry) { author.bookshelf_entries.create!(book: book, bookshelf: shelf, status: :reading) }
   let!(:sticker) { StickerDefinition.create!(key: "current_reading_test", name: "CURRENT_READING_STICKER") }
-  let!(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "Book thoughts") }
+  let!(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "Book thoughts") }
 
   before { entry.sticker_definitions << sticker }
 
@@ -119,7 +119,7 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
 
   it "keeps personal shelf access independent of group membership" do
     group = Group.create!(name: "Reading group", group_admin: author, group_type: :public_group, lifecycle_status: :active)
-    group_post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group: group, content: "Group thoughts")
+    group_post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, group: group, content: "Group thoughts")
     sign_in viewer
     get jjaek_path(group_post)
     expect(response).to have_http_status(:ok)
@@ -145,7 +145,7 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
     ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") { get book_path(book) }
     single_card_query_count = queries.size
     expect(single_card_query_count).to be_positive
-    3.times { |index| create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, content: "More thoughts #{index}") }
+    3.times { |index| create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "More thoughts #{index}") }
     queries.clear
     ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") { get book_path(book) }
 
