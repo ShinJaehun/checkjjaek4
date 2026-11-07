@@ -246,6 +246,17 @@ RSpec.describe JjaeksHelper, type: :helper do
     end
   end
 
+  it "ignores submit metadata without widening the allowed return filters" do
+    allow(ActionController::Parameters).to receive(:action_on_unpermitted_parameters).and_return(:raise)
+    filters = { q: "a & b", type: "jjaeks", per_page: "50", page: "2" }
+
+    expect(helper.validated_jjaek_return_path(search_path(filters.merge(commit: "검색"))))
+      .to eq(search_path(filters))
+    expect {
+      helper.validated_jjaek_return_path(search_path(filters.merge(redirect_url: "https://example.com")))
+    }.to raise_error(ActionController::UnpermittedParameters)
+  end
+
   it "drops unknown query keys and nested return parameters" do
     expect(helper.validated_jjaek_return_path(user_path(author, return_to: "https://example.com", redirect_url: "https://example.com"))).to eq(user_path(author))
   end

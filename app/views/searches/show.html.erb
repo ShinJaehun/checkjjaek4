@@ -18,7 +18,7 @@
         <% unless @type == "all" %>
           <%= render "admin/shared/page_size", form: form, per_page: @per_page %>
         <% end %>
-        <%= form.submit t("unified_search.submit"), class: "ui-button ui-button-primary shrink-0" %>
+        <%= form.submit t("unified_search.submit"), name: nil, class: "ui-button ui-button-primary shrink-0" %>
       </div>
     <% end %>
     <% if @popular_tags.present? %>

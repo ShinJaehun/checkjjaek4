@@ -6,6 +6,10 @@ RSpec.describe GeneralizeJjaekBookAttachments do
   let(:user) { User.create!(name: "Reader", email: "backfill-books@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "Legacy book") }
 
+  around do |example|
+    migration.suppress_messages { example.run }
+  end
+
   it "preserves IDs, timestamps, relations and ordered recommendation links when repeated" do
     legacy = user.jjaeks.create!(content: "Legacy")
     legacy.update_columns(book_id: book.id, book_attachments_migrated: false)

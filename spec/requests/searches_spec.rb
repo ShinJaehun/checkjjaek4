@@ -30,6 +30,20 @@ RSpec.describe "Unified search", type: :request do
     end
   end
 
+  it "accepts an old submitted search URL without forwarding or warning about commit" do
+    allow(ActionController::Parameters).to receive(:action_on_unpermitted_parameters).and_return(:raise)
+    post = writer.jjaeks.create!(content: "SUBMITTED_SEARCH_BODY", visibility: :public_jjaek)
+    sign_in viewer
+    filters = { q: "SUBMITTED_SEARCH_BODY", type: "jjaeks", per_page: "50", page: "1" }
+
+    get search_path, params: filters.merge(commit: "검색")
+
+    expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("form[action='#{search_path}'] input[type='submit']")["name"]).to be_nil
+    expect(search_section("jjaeks").at_css("a[href='#{jjaek_path(post, return_to: search_path(filters))}']")).to be_present
+  end
+
   describe "popular tags" do
     before { sign_in viewer }
 
