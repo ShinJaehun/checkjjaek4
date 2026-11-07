@@ -1,9 +1,12 @@
-<div id="attachment_shelf_<%= book_search_result_dom_id(book) %>">
+<div id="attachment_shelf_<%= book_search_result_dom_id(book) %>" class="min-w-0 max-w-full">
   <% if book[:bookshelf_entry] %>
-    <button type="button" disabled class="ui-button ui-button-secondary"><%= t("book_search.actions.in_bookshelf", bookshelf_name: book[:bookshelf_entry].bookshelf.name) %></button>
+    <button type="button" disabled class="ui-button ui-button-secondary min-h-8 min-w-0 max-w-full px-2 py-1 text-xs">
+      <span class="truncate"><%= t("book_search.actions.in_bookshelf", bookshelf_name: book[:bookshelf_entry].bookshelf.name) %></span>
+    </button>
   <% else %>
     <%= render "book_searches/shelf_selection_modal", book: book, bookshelves: bookshelves,
                return_path: validated_jjaek_return_path(params[:search_origin]) || root_path,
-               source: "jjaek_attachment", dom_prefix: "attachment_", opener_label: t("jjaek_books.add_to_shelf") %>
+               source: "jjaek_attachment", dom_prefix: "attachment_", opener_label: t("jjaek_books.add_to_shelf"),
+               opener_class: "ui-button ui-button-secondary min-h-8 min-w-0 max-w-full px-2 py-1 text-xs" %>
   <% end %>
 </div>

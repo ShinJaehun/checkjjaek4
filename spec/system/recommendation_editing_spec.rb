@@ -22,6 +22,7 @@ RSpec.describe "Unified inline composition", type: :system do
   after { Warden.test_reset! }
 
   it "keeps the draft and visibility through page searches, selection, registration and removal" do
+    page.current_window.resize_to(390, 844)
     shelf = user.bookshelves.create!(name: "Chosen shelf")
     visit root_path
     fill_in "jjaek[content]", with: "My draft survives"
@@ -47,12 +48,13 @@ RSpec.describe "Unified inline composition", type: :system do
       click_button I18n.t("recommendations.finish_selection")
     end
     expect(page).to have_current_path(root_path)
+    expect(page).to have_css("#jjaek-publish-form textarea[name='jjaek[content]']:focus")
     within("#jjaek-attached-books") do
       [book, other_book].each do |selected_book|
         within("[data-book-key='#{selected_book.id}']") do
           expect(page).to have_text(selected_book.title)
           expect(page).to have_css("img[src='#{selected_book.thumbnail}']")
-          expect(page).to have_button(I18n.t("jjaek_books.remove"))
+          expect(page).to have_button(I18n.t("jjaek_books.remove_book", title: selected_book.title), enable_aria_label: true)
           expect(page).to have_button(I18n.t("jjaek_books.add_to_shelf"))
         end
       end
@@ -99,7 +101,7 @@ RSpec.describe "Unified inline composition", type: :system do
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
     expect(user.bookshelf_entries.find_by!(book:).bookshelf).to eq(shelf)
     within("#jjaek-attached-books [data-book-key='#{book.id}']") do
-      click_button I18n.t("jjaek_books.remove")
+      click_button I18n.t("jjaek_books.remove_book", title: book.title), enable_aria_label: true
     end
     expect(page).to have_no_css("#jjaek-attached-books [data-book-key='#{book.id}']")
     expect(page).to have_css("#jjaek-attached-books [data-book-key='#{other_book.id}']")
@@ -117,6 +119,25 @@ RSpec.describe "Unified inline composition", type: :system do
       expect(page).to have_no_text(book.title)
     end
     expect(user.bookshelf_entries.find_by!(book:).bookshelf).to eq(shelf)
+  end
+
+  it "focuses the mobile body when completing an empty selection without leaving the page" do
+    page.current_window.resize_to(390, 844)
+    visit root_path
+    fill_in "jjaek[content]", with: "Continue writing here"
+    choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
+    click_button I18n.t("jjaek_books.add")
+    within("#recommendation-window") do
+      click_button I18n.t("recommendations.finish_selection")
+    end
+
+    expect(page).to have_current_path(root_path)
+    expect(page).to have_no_css("#recommendation-window")
+    expect(page).to have_css("#jjaek-publish-form textarea[name='jjaek[content]']:focus")
+    expect(page).to have_field("jjaek[content]", with: "Continue writing here")
+    expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
+    expect(page).to have_no_css("#jjaek-attached-books [data-book-key]")
+    expect(user.jjaeks.where(content: "Continue writing here")).to be_empty
   end
 
   it "cancels to the opening attachments through Close, search Back and browser Back without changing the draft context" do
@@ -152,6 +173,7 @@ RSpec.describe "Unified inline composition", type: :system do
       expect(page).to have_current_path(origin)
       expect(page).to have_no_css("#recommendation-window")
       expect(page).to have_field("jjaek[content]", with: "Cancel keeps this draft")
+      expect(page).to have_no_css("#jjaek-publish-form textarea[name='jjaek[content]']:focus")
       expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all) unless group_id || target_id
       expect(page.find("#jjaek-composer")["data-group-id"]).to eq(group_id.to_s)
       expect(page.find("#jjaek-composer")["data-target-user-id"]).to eq(target_id.to_s)
@@ -169,7 +191,7 @@ RSpec.describe "Unified inline composition", type: :system do
     visit root_path
     expect(recommendation.reload.content).to eq("Original recommendation")
     visit edit_jjaek_path(recommendation)
-    within("#jjaek-attached-books") { click_button I18n.t("jjaek_books.remove") }
+    within("#jjaek-attached-books") { click_button I18n.t("jjaek_books.remove_book", title: book.title), enable_aria_label: true }
     fill_in "jjaek[content]", with: "Edited without books"
     click_button I18n.t("jjaeks.actions.save")
     expect(page).to have_text("Edited without books")

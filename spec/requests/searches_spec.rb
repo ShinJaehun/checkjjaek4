@@ -100,6 +100,7 @@ RSpec.describe "Unified search", type: :request do
     before { sign_in viewer }
 
     it "finds Korean substrings in all four types and links to existing details" do
+      book_post.update!(content: "한글 책짹 편집")
       get search_path, params: { q: "  한글  " }
 
       expect(search_section("users").text).to include(matched_user.name, "@hangul_reader")
@@ -110,6 +111,9 @@ RSpec.describe "Unified search", type: :request do
         expect(section.text).to include(writer.name, post.content)
         expect(section.at_css("a[href='#{jjaek_path(post, return_to: search_path(q: '한글', type: 'all', per_page: 30))}']")).to be_present
         expect(section.at_css("a[href='#{user_path(writer)}']")).to be_present
+        timestamp_key = post.content_edited_at ? "edited_at" : "created_at"
+        timestamp = post.content_edited_at || post.created_at
+        expect(section.css("time").map(&:text)).to eq([I18n.t("jjaeks.meta.#{timestamp_key}", time: I18n.l(timestamp, format: :short))])
       end
       expect(search_section("book_jjaeks").text).to include(book.title)
       page = Nokogiri::HTML(response.body)

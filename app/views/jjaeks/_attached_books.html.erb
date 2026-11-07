@@ -1,18 +1,21 @@
 <%= hidden_field_tag "selected_books[]", "", id: nil, form: "jjaek-publish-form" %>
 <% books.zip(keys).each do |book, key| %>
-  <div data-book-key="<%= key %>" class="flex flex-wrap items-center gap-3 rounded-2xl border border-stone-100 bg-stone-50 px-3 py-2">
+  <div data-book-key="<%= key %>" class="grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_2.25rem] items-center gap-x-2 gap-y-1 rounded-2xl border border-stone-100 bg-stone-50 px-3 py-2 sm:grid-cols-[2.75rem_minmax(0,1fr)_auto_2.25rem] sm:gap-x-3">
     <%= hidden_field_tag "selected_books[]", key, id: nil, form: "jjaek-publish-form" %>
-    <div class="flex min-w-0 basis-full items-center gap-3 sm:flex-1">
-      <div class="flex w-11 shrink-0 justify-center">
-        <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :composer, link: false %>
-      </div>
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-medium text-stone-900"><%= book.title %></p>
-        <p class="mt-1 truncate text-xs text-stone-500"><%= book.authors_text.presence || "-" %></p>
-      </div>
+    <div class="row-span-2 flex w-11 justify-center sm:row-span-1">
+      <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :composer, link: false %>
     </div>
-    <div class="ml-auto flex flex-wrap items-center gap-2">
-      <button type="button" data-attachment-remove class="ui-button ui-button-secondary"><%= t("jjaek_books.remove") %></button>
+    <div class="min-w-0">
+      <p class="truncate text-sm font-medium text-stone-900"><%= book.title %></p>
+      <p class="mt-1 truncate text-xs text-stone-500"><%= book.authors_text.presence || "-" %></p>
+    </div>
+    <button type="button" data-attachment-remove aria-label="<%= t("jjaek_books.remove_book", title: book.title) %>"
+            class="ui-button ui-button-secondary col-start-3 row-start-1 h-9 min-h-9 w-9 min-w-9 p-0 sm:col-start-4">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M6 6l12 12M6 18L18 6" />
+      </svg>
+    </button>
+    <div class="col-span-2 col-start-2 min-w-0 max-w-full justify-self-start sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:max-w-48">
       <% result = attachment_shelf_result(book) %>
       <%= render "jjaeks/attachment_shelf", book: result, bookshelves: current_user.bookshelves.default_first %>
     </div>

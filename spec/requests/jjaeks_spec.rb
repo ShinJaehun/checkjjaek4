@@ -851,14 +851,60 @@ RSpec.describe "Jjaeks", type: :request do
       end
     end
 
-    it "shows written and edited timestamps for an edited jjaek" do
-      original.update_column(:content_edited_at, original.created_at + 2.minutes)
+    it "shows only creation times after unrelated updates, including the quoted source" do
+      viewer.active_follows.create!(followee: original_author)
+      [original, requote].each { |post| post.update_column(:updated_at, post.created_at + 1.day) }
       sign_in viewer
 
-      get jjaek_path(original)
+      [[root_path, [original, requote]], [user_path(original_author), [original]],
+       [user_path(viewer), [requote]], [book_path(book), [original]],
+       [jjaek_path(original), [original]], [jjaek_path(requote), [requote]]].each do |path, posts|
+        get path
+        page = Nokogiri::HTML(response.body)
+        posts.each do |post|
+          card = page.at_css("article#jjaek_#{post.id}")
+          expect(card).to be_present
+          expected = [I18n.t("jjaeks.meta.created_at", time: I18n.l(post.created_at, format: :short))]
+          expected << I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short)) if post.requote?
+          expect(card.css("time").map(&:text)).to eq(expected)
+        end
+      end
+    end
 
-      expect(response.body).to include(I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short)))
-      expect(response.body).to include(I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short)))
+    it "shows only the latest edit on feed cards and both source times inside a requote" do
+      viewer.active_follows.create!(followee: original_author)
+      [original, requote].each { |post| post.update!(content: "#{post.content}_EDITED") }
+      sign_in viewer
+
+      [[root_path, [original, requote]], [user_path(original_author), [original]],
+       [user_path(viewer), [requote]], [book_path(book), [original]]].each do |path, posts|
+        get path
+        page = Nokogiri::HTML(response.body)
+        posts.each do |post|
+          card = page.at_css("article#jjaek_#{post.id}")
+          expect(card).to be_present
+          expected = [I18n.t("jjaeks.meta.edited_at", time: I18n.l(post.content_edited_at, format: :short))]
+          if post.requote?
+            expected << I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short))
+            expected << I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short))
+          end
+          expect(card.css("time").map(&:text)).to eq(expected)
+        end
+      end
+    end
+
+    it "shows written and edited timestamps on both original and requote detail pages" do
+      sign_in viewer
+      [original, requote].each do |post|
+        post.update!(content: "#{post.content}_EDITED")
+        get jjaek_path(post)
+
+        card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{post.id}")
+        expect(card.css("time").first(2).map(&:text)).to eq([
+          I18n.t("jjaeks.meta.created_at", time: I18n.l(post.created_at, format: :short)),
+          I18n.t("jjaeks.meta.edited_at", time: I18n.l(post.content_edited_at, format: :short))
+        ])
+      end
     end
 
     it "renders a stable comments panel target" do
@@ -892,6 +938,7 @@ RSpec.describe "Jjaeks", type: :request do
       get jjaek_path(requote)
 
       expect(response.body).to include("REQUEST_UPDATED_ORIGINAL_SOURCE")
+      expect(response.body).to include(I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short)))
       expect(response.body).to include(I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short)))
     end
 

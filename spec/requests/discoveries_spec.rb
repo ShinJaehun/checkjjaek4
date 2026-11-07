@@ -149,6 +149,30 @@ RSpec.describe "Discoveries", type: :request do
     expect(response.body).to include(book_path(book), jjaek_path(book_post), jjaek_path(general_post))
   end
 
+  it "shows creation or latest edit consistently in book, general and group previews" do
+    book = Book.create!(title: "Timestamp book")
+    group = Group.create!(group_admin: writer, name: "Timestamp club", group_type: :public_group, lifecycle_status: :active)
+    posts = {
+      book_jjaeks: writer.jjaeks.create!(book:, content: "Book preview"),
+      general_jjaeks: writer.jjaeks.create!(content: "General preview"),
+      group: writer.jjaeks.create!(group:, content: "Group preview")
+    }
+    sign_in viewer
+
+    [false, true].each do |edited|
+      posts.each_value { |post| post.update!(content: "#{post.content} edited") } if edited
+      get_published_discovery
+      page = Nokogiri::HTML(response.body)
+      posts.each do |section, post|
+        key = edited ? "edited_at" : "created_at"
+        timestamp = edited ? post.content_edited_at : post.created_at
+        expect(page.css("#discovery_#{section} time").map(&:text)).to eq([
+          I18n.t("jjaeks.meta.#{key}", time: I18n.l(timestamp, format: :short))
+        ])
+      end
+    end
+  end
+
   it "excludes restricted, hidden, deleted, requoted, group, and own general posts" do
     original = writer.jjaeks.create!(content: "PUBLIC_ORIGINAL", visibility: :public_jjaek)
     writer.jjaeks.create!(content: "FRIENDS_POST", visibility: :book_friends)

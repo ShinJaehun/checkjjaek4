@@ -17,7 +17,7 @@ RSpec.describe "Book context composition", type: :system do
     within("#book-jjaek-form") do
       expect(page).to have_no_css("[name='jjaek[visibility]']", visible: :all)
       fill_in "jjaek[content]", with: "Group note without a book"
-      click_button I18n.t("jjaek_books.remove")
+      click_button I18n.t("jjaek_books.remove_book", title: book.title), enable_aria_label: true
       click_button I18n.t("jjaeks.actions.publish_short")
     end
     expect(page).to have_current_path(root_path, ignore_query: true)
@@ -62,7 +62,7 @@ RSpec.describe "Book context composition", type: :system do
     expect(record).to be_private_jjaek
 
     fill_in "jjaek[content]", with: "Discard this draft"
-    within("#jjaek-attached-books") { click_button I18n.t("jjaek_books.remove") }
+    within("#jjaek-attached-books") { click_button I18n.t("jjaek_books.remove_book", title: book.title), enable_aria_label: true }
     within("#jjaek_#{record.id}") { click_link book.title, exact: true }
     expect(page).to have_field("jjaek[content]", with: "")
     expect(page).to have_css("#jjaek-attached-books [data-book-key='#{book.id}']")

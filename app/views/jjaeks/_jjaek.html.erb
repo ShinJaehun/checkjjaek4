@@ -36,7 +36,7 @@ end %>
       <% elsif book_friend_preview %>
         <%= render "jjaeks/jjaek_header", jjaek: jjaek, book_friend_preview: true %>
       <% elsif detail_context %>
-        <%= render "jjaeks/jjaek_header", jjaek: jjaek, moderation_action: header_moderation_action %>
+        <%= render "jjaeks/jjaek_header", jjaek: jjaek, detail_context: true, moderation_action: header_moderation_action %>
       <% else %>
         <%= render "jjaeks/jjaek_header", jjaek: jjaek, hide_book_details: hide_book_details %>
       <% end %>

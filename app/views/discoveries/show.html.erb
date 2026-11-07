@@ -74,7 +74,7 @@
                     <% end %>
                     <div class="min-w-0">
                       <p class="text-sm font-semibold"><%= link_to group_post.user.name, user_path(group_post.user) %></p>
-                      <p class="text-xs text-stone-500"><%= t("jjaeks.meta.created_at", time: l(group_post.created_at, format: :short)) %></p>
+                      <p class="text-xs text-stone-500"><%= render "jjaeks/timestamps", jjaek: group_post %></p>
                     </div>
                   </div>
                   <% if group_post.book %>

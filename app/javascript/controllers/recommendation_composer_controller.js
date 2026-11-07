@@ -118,6 +118,7 @@ export default class extends Controller {
   finish() {
     if (this.returning || this.pendingForm || !this.origin) return
     this.attachmentSnapshot = null
+    this.focusBodyOnReturn = true
     this.returnToComposer()
   }
 
@@ -136,8 +137,27 @@ export default class extends Controller {
   returnToComposer() {
     this.returning = true
     this.element.dataset.requestRevision = crypto.randomUUID()
-    if (window.location.href === this.origin) this.close()
+    if (window.location.href === this.origin) this.completeReturn()
     else Turbo.visit(this.origin)
+  }
+
+  completeReturn() {
+    const focusBody = this.focusBodyOnReturn
+    const context = this.composer?.dataset
+    this.close()
+    if (!focusBody || !context) return
+
+    // Resolve the live form after Turbo has restored/replaced the page DOM.
+    const composer = document.getElementById("jjaek-composer")
+    if (!composer || !["editingId", "groupId", "targetUserId"].every(key => composer.dataset[key] === context[key])) return
+    const textarea = composer.querySelector("textarea[name='jjaek[content]']")
+    if (!textarea) return
+    textarea.focus({ preventScroll: true })
+    requestAnimationFrame(() => {
+      if (textarea.isConnected && document.activeElement === textarea) {
+        textarea.scrollIntoView({ block: "center", behavior: "smooth" })
+      }
+    })
   }
 
   beforeRender(event) {
@@ -182,7 +202,7 @@ export default class extends Controller {
   }
 
   load(event) {
-    if (this.returning && window.location.href === this.origin && !document.documentElement.hasAttribute("data-turbo-preview")) this.close()
+    if (this.returning && window.location.href === this.origin && !document.documentElement.hasAttribute("data-turbo-preview")) this.completeReturn()
     if (event?.type === "turbo:load") this.destinationURL = null
     const state = document.querySelector("#recommendation-search-results [data-recommendation-results-state]")
     if (state && this.hasFieldsTarget) {
@@ -206,6 +226,7 @@ export default class extends Controller {
     this.frameTarget.replaceChildren()
     this.pendingForm = null
     this.returning = false
+    this.focusBodyOnReturn = false
     this.composer = null
     this.origin = null
     this.destinationURL = null

@@ -18,15 +18,10 @@
           <%= link_to jjaek.user.name, user_path(jjaek.user), class: "hover:text-stone-700" %>
         </div>
       <% end %>
-      <div class="mt-1 text-xs text-stone-500">
-        <%= t("jjaeks.meta.created_at", time: l(jjaek.created_at, format: :short)) %>
-        <% if jjaek.deleted? %>
-          · <%= t("jjaeks.meta.deleted_at", time: l(jjaek.deleted_at, format: :short)) %>
-        <% elsif jjaek_edited?(jjaek) %>
-          · <%= t("jjaeks.meta.edited_at", time: l(jjaek.content_edited_at, format: :short)) %>
-        <% end %>
+      <div class="mt-1 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-stone-500">
+        <%= render "jjaeks/timestamps", jjaek: jjaek, detail_context: local_assigns.fetch(:detail_context, false) %>
         <% if jjaek.group_id.blank? %>
-          · <%= jjaek_visibility_label(jjaek) %>
+          <span>· <%= jjaek_visibility_label(jjaek) %></span>
         <% end %>
       </div>
     </div>
