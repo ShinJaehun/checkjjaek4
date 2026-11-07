@@ -9,6 +9,7 @@ Devise.setup do |config|
   config.skip_session_storage = [ :http_auth ]
   config.stretches = Rails.env.test? ? 1 : 12
   config.reconfirmable = false
+  config.remember_for = 30.days
   config.expire_all_remember_me_on_sign_out = true
   config.password_length = 6..128
   config.email_regexp = /\A[^@\s]+@[^@\s]+\z/

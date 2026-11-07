@@ -1,5 +1,6 @@
 class BooksController < ApplicationController
   include BookShowContext
+  include RecommendationSelection
 
   before_action :prepare_feed_response_format, only: :show
   before_action :set_book, only: :show
@@ -16,8 +17,8 @@ class BooksController < ApplicationController
     return redirect_to book_path(@book, group_id: @group&.id, return_to: view_context.validated_jjaek_return_path(params[:return_to])) if @book.persisted?
 
     @search_result_token = params[:search_result_token]
-    @bookshelves = current_user.bookshelves.default_first
-    @jjaeks = Jjaek.none
+    prepare_book_write_context
+    prepare_book_show_read_context
     render :show
   rescue Book::IdentityConflict
     redirect_to book_search_path(group_id: @group&.id), alert: t("book_search.errors.identity_conflict")
@@ -27,7 +28,7 @@ class BooksController < ApplicationController
     @group = find_group_context
     authorize @group, :create_jjaek? if @group.present?
     @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
-    prepare_book_write_context if @bookshelf_entry.present? && !feed_page_request?
+    prepare_book_write_context unless feed_page_request?
     prepare_book_show_read_context(feed_only: feed_page_request?)
     if feed_page_request?
       render_feed_page(context: :book, next_url: @feed_next_url)
@@ -37,15 +38,19 @@ class BooksController < ApplicationController
   private
 
   def prepare_book_write_context
-    authorize @bookshelf_entry
+    authorize @bookshelf_entry if @bookshelf_entry
     @quoted_jjaek = find_quoted_jjaek
-    @jjaek = Jjaek.new(user: current_user, book: @book, group: @group, quoted_jjaek: @quoted_jjaek)
-    authorize @jjaek
+    @jjaek = Jjaek.new(user: current_user, book: (@book if @book.persisted? && !@quoted_jjaek), group: @group, quoted_jjaek: @quoted_jjaek)
+    authorize @jjaek, :show?
+    unless @quoted_jjaek
+      @selected_books = [@book]
+      @selected_book_keys = [@book.persisted? ? @book.id.to_s : cache_external_recommendation(@search_result_token)]
+    end
     @sticker_definitions = StickerDefinition.alphabetical
   end
 
   def find_quoted_jjaek
-    return unless params[:quote_id].present?
+    return unless @book.persisted? && params[:quote_id].present?
 
     policy_scope(@book.jjaeks).find(params[:quote_id])
   end

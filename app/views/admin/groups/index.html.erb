@@ -91,13 +91,7 @@
             <td class="px-4 py-3.5"><%= group.active_members_count %></td>
             <td class="px-4 py-3.5 whitespace-nowrap" data-field="latest-activity">
               <% if latest_activity %>
-                <% activity_path = latest_activity.comment? ? jjaek_path(latest_activity.record.jjaek, anchor: dom_id(latest_activity.record)) : jjaek_path(latest_activity.record) %>
-                <%= link_to activity_path, class: "inline-flex items-center gap-2 whitespace-nowrap underline-offset-2 hover:underline" do %>
-                  <span class="rounded-full px-2 py-1 text-xs font-medium <%= admin_content_kind_badge_classes(latest_activity.kind) %>" data-activity-kind="<%= latest_activity.kind %>">
-                    <%= admin_content_kind_label(latest_activity.kind) %>
-                  </span>
-                  <span class="text-sm text-stone-500"><%= l(latest_activity.created_at, format: :short) %></span>
-                <% end %>
+                <%= render "admin/shared/latest_content_activity", activity: latest_activity %>
               <% else %>
                 <span>-</span>
               <% end %>

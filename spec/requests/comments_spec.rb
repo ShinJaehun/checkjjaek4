@@ -7,6 +7,30 @@ RSpec.describe "Comments", type: :request do
   let!(:jjaek) { author.jjaeks.create!(book:, content: "Public jjaek") }
   let!(:comment) { jjaek.comments.create!(user:, content: "My comment") }
 
+  it "opens, closes and updates the book panel for each book attached through the unified form" do
+    second_book = Book.create!(title: "Second attached book")
+    sign_in author
+    [[book], [book, second_book]].each_with_index do |books, index|
+      post jjaeks_path, params: { selected_books: books.map(&:id), jjaek: { content: "Unified panel #{index}" } }
+      attached_post = author.jjaeks.find_by!(content: "Unified panel #{index}")
+      expect(attached_post.book_id).to be_nil
+      books.each do |attached_book|
+        context = { comments_context: "book", book_id: attached_book.id }
+        target = "comments_panel_book_#{attached_book.id}_jjaek_#{attached_post.id}"
+        headers = { "Accept" => "text/vnd.turbo-stream.html" }
+        get jjaek_comments_path(attached_post, context), headers: headers
+        expect(response.body).to include(%(target="#{target}"), 'name="comment[content]"')
+        get jjaek_comments_path(attached_post, context.merge(panel_state: "closed")), headers: headers
+        expect(response.body).to include(%(target="#{target}"))
+        expect(response.body).not_to include('name="comment[content]"')
+        post jjaek_comments_path(attached_post), params: context.merge(comment: { content: "Unified panel comment" }), headers: headers
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(%(target="#{target}"), "Unified panel comment")
+        expect(attached_post.comments.last.content).to eq("Unified panel comment")
+      end
+    end
+  end
+
   it "lets a signed-in user comment on an accessible jjaek" do
     sign_in user
 

@@ -19,15 +19,11 @@ RSpec.describe JjaekRecommendation, type: :model do
     expect(user.bookshelf_entries).to be_empty
   end
 
-  it "requires books and rejects duplicate books and mixed contexts" do
-    expect(jjaek).not_to be_valid
-    expect(jjaek.errors.of_kind?(:recommended_books, :blank)).to be(true)
-
+  it "allows zero books and profile targets while rejecting duplicate books and new requote books" do
+    expect(jjaek).to be_valid
+    jjaek.target_user = user
     jjaek.jjaek_recommendations.build(book:, position: 0)
     expect(jjaek).to be_valid
-    jjaek.book = book
-    expect(jjaek).not_to be_valid
-    jjaek.book = nil
     jjaek.quoted_jjaek = user.jjaeks.create!(content: "An original post")
     expect(jjaek).not_to be_valid
     jjaek.quoted_jjaek = nil
@@ -36,13 +32,13 @@ RSpec.describe JjaekRecommendation, type: :model do
     expect(jjaek.errors.of_kind?(:recommended_books, :taken)).to be(true)
   end
 
-  it "rejects duplicate books and positions and links on ordinary jjaeks" do
+  it "rejects duplicate books and positions and accepts links on ordinary jjaeks" do
     jjaek.jjaek_recommendations.build(book:, position: 0)
     jjaek.save!
     expect(jjaek.jjaek_recommendations.build(book:, position: 1)).not_to be_valid
     expect(jjaek.jjaek_recommendations.build(book: other_book, position: 0)).not_to be_valid
     ordinary = user.jjaeks.create!(content: "Ordinary post")
-    expect(ordinary.jjaek_recommendations.build(book:, position: 0)).not_to be_valid
+    expect(ordinary.jjaek_recommendations.build(book:, position: 0)).to be_valid
   end
 
   it "preserves the 200 character limit for recommendation reasons" do

@@ -203,8 +203,8 @@ RSpec.describe "Feed pagination", type: :request do
       )
       if %i[book group_book].include?(location)
         card = page_document.at_css("#jjaek_#{posts.last.id}")
-        expect(card.text).not_to include(book.title, book.authors_text)
-        expect(card.css("img[alt='#{book.title}']")).to be_empty
+        expect(card.text).to include(book.title, book.authors_text)
+        expect(card.css("a").map { |link| URI.parse(link["href"]).path }).to include(book_path(book))
       end
 
       get url, headers: stream_headers
@@ -215,8 +215,8 @@ RSpec.describe "Feed pagination", type: :request do
       )
       if %i[book group_book].include?(location)
         card = page_document.at_css("#jjaek_#{posts.last.id}")
-        expect(card.text).not_to include(book.title, book.authors_text)
-        expect(card.css("img[alt='#{book.title}']")).to be_empty
+        expect(card.text).to include(book.title, book.authors_text)
+        expect(card.css("a").map { |link| URI.parse(link["href"]).path }).to include(book_path(book))
       end
       expect(page_document.css("turbo-stream").map { |node| [ node["action"], node["target"] ] })
         .to eq([ %w[append feed-items], %w[replace feed-pagination] ])
@@ -257,9 +257,11 @@ RSpec.describe "Feed pagination", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.media_type).to eq("text/html")
     expect(page_document.at_css("html body header")).to be_present
-    expect(page_document.at_css("form[action='#{jjaeks_path}'] textarea[name='jjaek[content]']")).to be_present
+    expect(page_document.at_css("form[action='#{group_jjaeks_path(group)}'] textarea[name='jjaek[content]']")).to be_present
     expect(page_document.css("turbo-stream")).to be_empty
-    expect(page_document.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("group")
+    expect(page_document.at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
+    expect(page_document.css("#jjaek-composer [name='jjaek[visibility]'], #jjaek-composer [name='jjaek[group_id]']")).to be_empty
+    expect(page_document.at_css("input[name='selected_books[]'][value='#{book.id}'][form='jjaek-publish-form']")).to be_present
   end
 
   %i[group_activity group book group_book].each do |location|

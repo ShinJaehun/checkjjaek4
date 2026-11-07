@@ -210,6 +210,7 @@ ko:
       handle: "공개 주소 이름 (영문)"
       password: "비밀번호"
       password_confirmation: "비밀번호 확인"
+      remember_me: "로그인 상태 유지"
     notices:
       signed_out: "로그아웃되었습니다."
     passwords:
@@ -242,7 +243,7 @@ ko:
     empty_feed: "아직 소식에 보이는 항목이 없습니다. 책을 서재에 담거나 다른 독자를 소식받기 해보세요."
     new_jjaek_title: "짹"
     actions:
-      search_books: "책 검색"
+      search_books: "책 찾기"
       my_shelf: "내 서재 보기"
   discovery:
     nav: "발견"
@@ -276,6 +277,10 @@ ko:
     range: "전체 %{total}건 중 %{first}–%{last}"
     previous: "이전"
     next: "다음"
+  content_inventory:
+    metadata:
+      books: "책 %{count}권 첨부"
+      requote: "다시짹"
   content_statuses:
     active: "정상"
     hidden: "숨김"
@@ -290,12 +295,14 @@ ko:
       navigation_label: "콘텐츠 유형"
       navigation:
         all: "전체"
-        general: "짹"
-        book: "책짹"
+        group: "동아리짹"
+        general: "동아리짹"
+        book: "동아리짹"
         comments: "댓글"
       kinds:
-        general: "짹"
-        book: "책짹"
+        group_general: "동아리짹"
+        general: "동아리짹"
+        book: "동아리짹"
         comments: "댓글"
       fields:
         kind: "유형"
@@ -567,7 +574,7 @@ ko:
       title: "동아리 짹과 책짹"
       empty: "아직 이 동아리에 남긴 짹이나 책짹이 없습니다."
       general_description: "이 동아리에 짹을 남깁니다."
-      book_search_context: "%{group_name} 동아리에 남길 책짹의 책을 찾습니다."
+      book_search_context: "%{group_name} 동아리에 남길 짹에 첨부할 책을 찾습니다."
   admin:
     actions:
       show: "상세"
@@ -611,6 +618,9 @@ ko:
         restore_failed: "글의 숨김을 해제할 수 없습니다."
     user_content:
       title: "사용자 활동"
+      metadata:
+        multiple_books: "%{title} 외 %{count}권"
+        source: "%{author} : %{content}"
       total_count: "전체 %{count}건"
       location_navigation_label: "영역"
       location_navigation:
@@ -621,15 +631,16 @@ ko:
       navigation:
         all: "전체"
         general: "짹"
-        book: "책짹"
+        group: "동아리짹"
+        book: "짹"
         requote: "다시짹"
         comments: "댓글"
       kinds:
         general: "짹"
-        book: "책짹"
+        book: "짹"
         requote: "다시짹"
         group_general: "동아리짹"
-        group_book: "동아리 책짹"
+        group_book: "동아리짹"
         comments: "댓글"
       locations:
         personal: "개인"
@@ -663,8 +674,10 @@ ko:
       navigation_label: "유형"
       navigation:
         all: "전체"
+        requote: "다시짹"
+        group: "동아리짹"
         general: "동아리짹"
-        book: "동아리 책짹"
+        book: "동아리짹"
         comments: "댓글"
       fields:
         author: "작성자"
@@ -1015,15 +1028,15 @@ ko:
       updated: "댓글을 수정했습니다."
     title: "댓글"
   book_search:
-    nav: "책 검색"
-    title: "책 검색"
+    nav: "책 찾기"
+    title: "책 찾기"
     description: "읽은 책이나 읽고 싶은 책을 먼저 찾아봅니다."
     placeholder: "어떤 책을 찾고 있나요?"
     modal:
       group_destination: "%{group_name} 동아리에 게시"
     form:
       query: "검색어"
-      submit: "검색"
+      submit: "책 찾기"
     empty:
       title: "검색 결과가 없습니다"
       description: "다른 검색어로 다시 시도해 보세요."
@@ -1045,7 +1058,7 @@ ko:
       publisher: "출판사"
       isbn: "ISBN"
     actions:
-      add_to_shelf: "서재에 담기"
+      add_to_shelf: "책장에 담기"
       close: "닫기"
       in_shelf: "내 서재에 있음"
       in_bookshelf: "%{bookshelf_name}에 있음"
@@ -1250,7 +1263,7 @@ ko:
       status: "대표 상태"
       stickers: "스티커"
     new:
-      title: "서재에 담기"
+      title: "책장에 담기"
     edit:
       title: "서재 항목 수정"
     notices:
@@ -1347,14 +1360,14 @@ ko:
       group_general_html: "%{author_name}님이 %{group_name}에 남긴 짹"
       group_book_html: "%{author_name}님이 %{group_name}에 남긴 책짹 · %{book_title}"
       group_book_without_title_html: "%{author_name}님이 %{group_name}에 남긴 책짹"
-      group_share_html: "%{author_name}님이 %{quoted_user_name}님의 %{quoted_context_label}을 %{group_name}에 다시짹"
-      group_quote_html: "%{author_name}님이 %{group_name}에서 %{quoted_user_name}님의 %{quoted_context_label}을 다시짹"
+      group_share_html: "%{author_name}님이 %{quoted_user_name}님의 짹을 %{group_name}에 다시짹"
+      group_quote_html: "%{author_name}님이 %{quoted_user_name}님의 짹을 %{group_name}에 다시짹"
       group_requote_unavailable_html: "%{author_name}님이 %{group_name}에 남긴 다시짹"
       general_html: "%{author_name}님의 짹"
       profile_html: "%{author_name}님이 %{target_user_name}님에게 남긴 짹"
       book_html: "%{author_name}님의 책짹"
-      requote_html: "%{author_name}님이 %{quoted_user_name}님의 %{quoted_context_label}을 개인 소식에 다시짹"
-      group_requote_html: "%{author_name}님이 %{group_name}에 올라온 %{quoted_user_name}님의 %{quoted_context_label}을 개인 소식에 다시짹"
+      requote_html: "%{author_name}님이 %{quoted_user_name}님의 짹을 다시짹"
+      group_requote_html: "%{author_name}님이 %{group_name}에 올라온 %{quoted_user_name}님의 짹을 다시짹"
       deleted_requote_html: "%{author_name}님의 다시짹"
       quoted_general: "짹"
       quoted_book: "책짹"
@@ -1389,10 +1402,19 @@ ko:
       destination_group: "다시짹할 동아리"
       choose_group: "동아리 선택"
       selected_group: "대상 동아리: %{group_name}"
-      profile_conversation: "이 짹과 댓글은 작성자와 프로필 주인만 볼 수 있습니다."
+      profile_conversation: "이 짹과 댓글은 작성자와 %{name}만 볼 수 있습니다."
+      group_sharing:
+        public: "이 짹과 댓글은 로그인한 누구나 볼 수 있습니다."
+        members: "이 짹과 댓글은 동아리 회원만 볼 수 있습니다."
       visibility: "공개 범위"
+      placeholders:
+        home: "내 소식에 남길..."
+        group: "%{name}에 남길..."
+        profile: "%{name}님에게 남길..."
+        book: "이 책에 남길..."
     labels:
-      profile_conversation: "두 사람 전용"
+      profile_conversation: "%{name}님과 나만 보기"
+      profile_conversation_participants: "당사자만 보기"
       requote: "%{name}님의 짹"
       quoted_general_suffix: "님의 짹"
       quoted_book_suffix: "님의 책짹"

@@ -6,7 +6,7 @@ RSpec.describe "Jjaeks", type: :request do
   let(:book) { Book.create!(title: "ReJjaek request book", authors_text: "Author") }
   let(:friendship) { BookFriendship.create!(requester: viewer, addressee: original_author, status: :accepted) }
   let(:original) { original_author.jjaeks.create!(book:, content: "REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
-  let(:requote) { viewer.jjaeks.create!(book:, content: "REQUEST_VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
+  let(:requote) { create_legacy_book_requote(user: viewer, book:, content: "REQUEST_VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
 
   before do
     friendship
@@ -112,7 +112,7 @@ RSpec.describe "Jjaeks", type: :request do
       }.to change(Jjaek, :count).by(1)
 
       created_jjaek = Jjaek.last
-      expect(created_jjaek.book).to eq(book)
+      expect(created_jjaek.attached_books).to eq([book])
       expect(response).to redirect_to(jjaek_path(created_jjaek))
     end
 
@@ -120,7 +120,7 @@ RSpec.describe "Jjaeks", type: :request do
       entry = viewer.bookshelf_entries.create!(book:)
       target_bookshelf = viewer.bookshelves.create!(name: "실패 화면 선택 책장", visibility: :private)
       original_book_jjaek = original_author.jjaeks.create!(book:, content: "VISIBLE_BOOK_ORIGINAL", visibility: :public_jjaek)
-      hidden_requote = viewer.jjaeks.create!(book:, content: "HIDDEN_BOOK_REQUOTE", quoted_jjaek: original_book_jjaek, visibility: :private_jjaek)
+      hidden_requote = create_legacy_book_requote(user: viewer, book:, content: "HIDDEN_BOOK_REQUOTE", quoted_jjaek: original_book_jjaek, visibility: :private_jjaek)
       private_original = original_author.jjaeks.create!(book:, content: "PRIVATE_FAILURE_ORIGINAL", visibility: :private_jjaek)
       group = Group.create!(name: "실패 화면 동아리", group_admin: original_author, group_type: :public_group, lifecycle_status: :active)
       group_original = original_author.jjaeks.create!(book:, group:, content: "GROUP_FAILURE_ORIGINAL")
@@ -158,7 +158,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(normal_bookshelf_ids).to contain_exactly(entry.bookshelf_id.to_s, target_bookshelf.id.to_s)
       expect(page.at_css('input[name="bookshelf_id"][checked]')["value"]).to eq(entry.bookshelf_id.to_s)
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(submitted_content)
-      expect(page.at_css('input[name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
+      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
       expect(page.text).to include(invalid_jjaek.errors.full_messages.to_sentence)
       expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
       expect(page.text).not_to include("Content", "is too long")
@@ -179,23 +179,16 @@ RSpec.describe "Jjaeks", type: :request do
       expect(page.text).to include("내용을 입력해 주세요.")
       expect(page.text).not_to include("Content", "can't be blank")
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
-      expect(page.at_css('input[name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
+      expect(page.at_css('input[type="radio"][name="jjaek[visibility]"][checked]')["value"]).to eq("book_friends")
     end
 
-    it "does not create a book-linked jjaek without a shelf entry" do
+    it "creates an attached-book jjaek independently of shelf registration" do
       sign_in viewer
-
       expect {
-        post jjaeks_path, params: {
-          jjaek: {
-            book_id: book.id,
-            content: "NO_SHELF_DIRECT_BOOK_JJAEK",
-            visibility: :public_jjaek
-          }
-        }
-      }.not_to change(Jjaek, :count)
-
-      expect(response).to redirect_to(root_path)
+        post jjaeks_path, params: { selected_books: [book.id], jjaek: {content: "NO_SHELF_DIRECT_BOOK_JJAEK"} }
+      }.to change(Jjaek, :count).by(1)
+      expect(Jjaek.last.attached_books).to eq([book])
+      expect(viewer.bookshelf_entries).to be_empty
     end
 
     it "creates a requote from a visible original" do
@@ -748,7 +741,11 @@ RSpec.describe "Jjaeks", type: :request do
 
       get new_jjaek_path(quoted_jjaek_id: original.id)
 
-      expect(response.body).to include(I18n.t("jjaeks.actions.publish_requote"))
+      page = Nokogiri::HTML(response.body)
+      form = page.at_css("#jjaek-publish-form")
+      expect(form["action"]).to eq(jjaeks_path)
+      expect(form.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(original.id.to_s)
+      expect(page.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
     end
 
     it "does not show a requote entry after the viewer has already requoted the original" do
@@ -763,7 +760,7 @@ RSpec.describe "Jjaeks", type: :request do
     it "shows a requote entry when only another user has requoted the original" do
       other_requoter = User.create!(name: "Other Requoter", email: "other-requoter@example.com", password: "password123!", password_confirmation: "password123!")
       BookFriendship.create!(requester: other_requoter, addressee: original_author, status: :accepted)
-      other_requoter.jjaeks.create!(book:, content: "OTHER_USER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek)
+      create_legacy_book_requote(user: other_requoter, book:, content: "OTHER_USER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek)
       sign_in viewer
 
       get jjaek_path(original)
@@ -784,9 +781,9 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).to include("Author")
       expect(response.body).to include("user_profile_")
       expect(response.body).to include(%(alt="#{original_author.name}"))
-      expect(response.body).to include("님의 책짹을 개인 소식에 다시짹")
+      expect(response.body).to include("님의 짹을 다시짹")
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{requote.id}")
-      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 책짹을 개인 소식에 다시짹")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 다시짹")
       thumbnail = card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")
       expect(thumbnail).to be_present
       expect(thumbnail["alt"]).to eq(original_author.name)
@@ -801,9 +798,9 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response.body).to include("REQUEST_VIEWER_GENERAL_REQUOTE_BODY")
       expect(response.body).to include("REQUEST_ORIGINAL_GENERAL_SOURCE")
-      expect(response.body).to include("님의 짹을 개인 소식에 다시짹")
+      expect(response.body).to include("님의 짹을 다시짹")
       card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{general_requote.id}")
-      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 개인 소식에 다시짹")
+      expect(card.text).to include("#{viewer.name}님이 #{original_author.name}님의 짹을 다시짹")
       thumbnail = card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")
       expect(thumbnail).to be_present
       expect(thumbnail["alt"]).to eq(original_author.name)
@@ -821,7 +818,7 @@ RSpec.describe "Jjaeks", type: :request do
         card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
         expect(card).to be_present
         expect(card.text).to include("#{group.name}에 올라온")
-        expect(card.text).to include("님의 짹을 개인 소식에 다시짹")
+        expect(card.text).to include("님의 짹을 다시짹")
         expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
         expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_present
       end
@@ -848,20 +845,66 @@ RSpec.describe "Jjaeks", type: :request do
         card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{personal_requote.id}")
         expect(card).to be_present
         expect(card.text).to include("#{group.name}에 올라온")
-        expect(card.text).to include("님의 책짹을 개인 소식에 다시짹")
+        expect(card.text).to include("님의 짹을 다시짹")
         expect(card.at_css("a[href='#{group_path(group)}']")).to be_present
         expect(card.at_css("a[href='#{user_path(original_author)}'] img.h-5.w-5")).to be_present
       end
     end
 
-    it "shows written and edited timestamps for an edited jjaek" do
-      original.update_column(:content_edited_at, original.created_at + 2.minutes)
+    it "shows only creation times after unrelated updates, including the quoted source" do
+      viewer.active_follows.create!(followee: original_author)
+      [original, requote].each { |post| post.update_column(:updated_at, post.created_at + 1.day) }
       sign_in viewer
 
-      get jjaek_path(original)
+      [[root_path, [original, requote]], [user_path(original_author), [original]],
+       [user_path(viewer), [requote]], [book_path(book), [original]],
+       [jjaek_path(original), [original]], [jjaek_path(requote), [requote]]].each do |path, posts|
+        get path
+        page = Nokogiri::HTML(response.body)
+        posts.each do |post|
+          card = page.at_css("article#jjaek_#{post.id}")
+          expect(card).to be_present
+          expected = [I18n.t("jjaeks.meta.created_at", time: I18n.l(post.created_at, format: :short))]
+          expected << I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short)) if post.requote?
+          expect(card.css("time").map(&:text)).to eq(expected)
+        end
+      end
+    end
 
-      expect(response.body).to include(I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short)))
-      expect(response.body).to include(I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short)))
+    it "shows only the latest edit on feed cards and both source times inside a requote" do
+      viewer.active_follows.create!(followee: original_author)
+      [original, requote].each { |post| post.update!(content: "#{post.content}_EDITED") }
+      sign_in viewer
+
+      [[root_path, [original, requote]], [user_path(original_author), [original]],
+       [user_path(viewer), [requote]], [book_path(book), [original]]].each do |path, posts|
+        get path
+        page = Nokogiri::HTML(response.body)
+        posts.each do |post|
+          card = page.at_css("article#jjaek_#{post.id}")
+          expect(card).to be_present
+          expected = [I18n.t("jjaeks.meta.edited_at", time: I18n.l(post.content_edited_at, format: :short))]
+          if post.requote?
+            expected << I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short))
+            expected << I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short))
+          end
+          expect(card.css("time").map(&:text)).to eq(expected)
+        end
+      end
+    end
+
+    it "shows written and edited timestamps on both original and requote detail pages" do
+      sign_in viewer
+      [original, requote].each do |post|
+        post.update!(content: "#{post.content}_EDITED")
+        get jjaek_path(post)
+
+        card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{post.id}")
+        expect(card.css("time").first(2).map(&:text)).to eq([
+          I18n.t("jjaeks.meta.created_at", time: I18n.l(post.created_at, format: :short)),
+          I18n.t("jjaeks.meta.edited_at", time: I18n.l(post.content_edited_at, format: :short))
+        ])
+      end
     end
 
     it "renders a stable comments panel target" do
@@ -895,6 +938,7 @@ RSpec.describe "Jjaeks", type: :request do
       get jjaek_path(requote)
 
       expect(response.body).to include("REQUEST_UPDATED_ORIGINAL_SOURCE")
+      expect(response.body).to include(I18n.t("jjaeks.meta.created_at", time: I18n.l(original.created_at, format: :short)))
       expect(response.body).to include(I18n.t("jjaeks.meta.edited_at", time: I18n.l(original.content_edited_at, format: :short)))
     end
 
@@ -1055,6 +1099,20 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).not_to include(%(action="#{jjaek_like_path(original)}"))
       expect(response.body).not_to include(new_jjaek_path(quoted_jjaek_id: original.id))
       expect(response.body).not_to include(%(action="#{jjaek_comments_path(original)}"))
+    end
+
+    it "does not restore a removed book attachment on a deleted book jjaek shell" do
+      expect(original.update_attached_books(books: [])).to be(true)
+      original.comments.create!(user: viewer, content: "PRESERVED_WITHOUT_BOOK")
+      original.destroy_or_tombstone!
+      sign_in viewer
+
+      get jjaek_path(original)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted"), "PRESERVED_WITHOUT_BOOK")
+      expect(response.body).not_to include(book.title)
+      expect(original.reload.attached_books).to be_empty
     end
 
     it "shows a hidden deleted tombstone and preserved comments only to original-context readers" do
@@ -1236,7 +1294,7 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("REQUEST_VIEWER_REQUOTE_BODY")
-      expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source_title.book", name: original_author.name))
+      expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source_title.general", name: original_author.name))
       expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source"))
       expect(response.body).not_to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
     end
@@ -1269,9 +1327,10 @@ RSpec.describe "Jjaeks", type: :request do
       get new_jjaek_path, params: { quoted_jjaek_id: original.id }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('option selected="selected" value="book_friends"')
-      expect(response.body).to include('option value="private_jjaek"')
-      expect(response.body).not_to include('option value="public_jjaek"')
+      choices = Nokogiri::HTML(response.body).css("#jjaek-publish-form input[type='radio'][name='jjaek[visibility]']")
+      expect(choices.map { |choice| choice["value"] }).to eq(%w[book_friends private_jjaek])
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq(["book_friends"])
+      expect(choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
     end
 
     it "keeps public visibility available for a public original" do
@@ -1285,9 +1344,10 @@ RSpec.describe "Jjaeks", type: :request do
       get new_jjaek_path, params: { quoted_jjaek_id: public_original.id }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('option selected="selected" value="public_jjaek"')
-      expect(response.body).to include('option value="book_friends"')
-      expect(response.body).to include('option value="private_jjaek"')
+      choices = Nokogiri::HTML(response.body).css("#jjaek-publish-form input[type='radio'][name='jjaek[visibility]']")
+      expect(choices.map { |choice| choice["value"] }).to eq(Jjaek.visibilities.keys)
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq(["public_jjaek"])
+      expect(choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
     end
   end
 
@@ -1312,7 +1372,7 @@ RSpec.describe "Jjaeks", type: :request do
 
       expect(response.body).to include("REQUEST_BOOK_THUMBNAIL_FEED")
       expect(response.body).to include("THUMBNAIL_FEED_BOOK")
-      expect(response.body).to include("님의 책짹")
+      expect(response.body).to include("님의 짹")
       expect(response.body).to include("https://example.com/thumbnail.jpg")
     end
 

@@ -6,7 +6,7 @@ RSpec.describe "Requotes", type: :request do
   let(:book) { Book.create!(title: "Requote list book", authors_text: "Author") }
   let(:friendship) { BookFriendship.create!(requester: viewer, addressee: original_author, status: :accepted) }
   let(:original) { original_author.jjaeks.create!(book:, content: "REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE", visibility: :book_friends) }
-  let(:viewer_requote) { viewer.jjaeks.create!(book:, content: "REQUEST_VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
+  let(:viewer_requote) { create_legacy_book_requote(user: viewer, book:, content: "REQUEST_VIEWER_REQUOTE_BODY", quoted_jjaek: original, visibility: :private_jjaek) }
 
   before do
     friendship

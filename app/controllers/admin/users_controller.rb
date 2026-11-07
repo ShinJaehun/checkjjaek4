@@ -23,6 +23,7 @@ module Admin
       @account_history_entries = UserAccountHistoryQuery.new(@user).call
       @administered_groups = @user.administered_groups.order(created_at: :desc).load
       @joined_groups = @user.joined_groups.order(created_at: :desc).load
+      @activity_counts = user_content_query(params: @return_params).activity_counts
     end
 
     def content
@@ -35,21 +36,21 @@ module Admin
                                              inventory: %i[q status role sort page per_page])
       @return_params = @content_filter_params.merge(params.permit(:content, :all_page))
 
-      authored_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope)
-        .where(user: @user)
-      authored_comments = policy_scope(Comment, policy_scope_class: CommentPolicy::AdminInventoryScope)
-        .where(user: @user)
-
-      @timeline_page = UserContentTimelineQuery.new(
-        jjaek_scope: authored_jjaeks,
-        comment_scope: authored_comments,
-        content_section: @content_section,
-        params:
-      ).call
+      @timeline_page = user_content_query(params:, content_section: @content_section).call
       @timeline_items = @timeline_page.records
+      @activity_counts = @timeline_page.activity_counts
     end
 
     private
+
+    def user_content_query(params:, content_section: "all")
+      UserContentTimelineQuery.new(
+        jjaek_scope: policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope).where(user: @user),
+        comment_scope: policy_scope(Comment, policy_scope_class: CommentPolicy::AdminInventoryScope).where(user: @user),
+        content_section:,
+        params:
+      )
+    end
 
     def prepare_user_identity
       @account_status = @user.moderation_status
@@ -58,7 +59,7 @@ module Admin
 
     def permitted_content_section
       section = params[:content].to_s
-      %w[general book recommendation requote comments].include?(section) ? section : "all"
+      %w[general group requote comments].include?(section) ? section : "all"
     end
 
     def permitted_content_location

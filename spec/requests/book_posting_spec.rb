@@ -1,258 +1,211 @@
 require "rails_helper"
 
-RSpec.describe "Book posting destinations", type: :request do
-  let(:user) { User.create!(name: "Posting reader", email: "book-posting@example.com", password: "password123!") }
-  let(:admin) { User.create!(name: "Club admin", email: "book-posting-admin@example.com", password: "password123!") }
-  let(:book) { Book.create!(title: "게시 위치 책", authors_text: "저자") }
-  let!(:entry) { user.bookshelf_entries.create!(book: book, status: :reading) }
-  let(:group) { Group.create!(name: "Posting club", group_admin: admin, group_type: :private_group, lifecycle_status: :active) }
-  let!(:membership) { group.group_memberships.create!(user: user, status: :active) }
+RSpec.describe "Book context in the common composer", type: :request do
+  let(:user) { User.create!(name: "Reader", email: "book-posting@example.com", password: "password123!") }
+  let(:admin) { User.create!(name: "Admin", email: "book-admin@example.com", password: "password123!") }
+  let!(:book) { Book.create!(title: "Context book") }
+  let(:group) { Group.create!(name: "Readers", group_admin: admin, group_type: :private_group, lifecycle_status: :active) }
+  let!(:membership) { group.group_memberships.create!(user:, status: :active) }
 
-  before { sign_in user }
-
-  it "defaults an ordinary entry to personal posting and disables the group field" do
-    get book_path(book)
-
-    page = Nokogiri::HTML(response.body)
-    expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("personal")
-    expect(page.at_css("select[name='jjaek[group_id]'][disabled]")).to be_present
-    group_option = page.at_css("select[name='jjaek[group_id]'] option[value='#{group.id}']")
-    expect(group_option["data-destination-message"]).to eq(I18n.t("books.show.group_destination", name: group.name))
-    expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_nil
-    expect(page.at_css("[data-book-posting-target='group'][hidden]")).to be_present
-    expect(page.css("input[name='book_post_destination']").map { |input| input["value"] }).to eq(%w[personal group])
-    expect(page.css("input[name='jjaek[visibility]']").map { |input| input["value"] }).to eq(Jjaek.visibilities.keys)
-    expect(page.css("input[name='book_post_destination']").all? { |input| input.parent.at_css("svg") }).to be(true)
+  before do
+    sign_in user
+    allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
   end
 
-  it "shows only the personal book form when the user has no active club memberships" do
-    membership.destroy!
-
-    get book_path(book)
-
-    page = Nokogiri::HTML(response.body)
-    form = page.at_css("form[action='#{jjaeks_path}']")
-    expect(form.at_css("input[name='book_post_destination']")).to be_nil
-    expect(form.at_css("select[name='jjaek[group_id]']")).to be_nil
-    expect(form.at_css("input[name='jjaek[visibility]']")).to be_present
-    expect(form.at_css("input[name='jjaek[visibility]'][disabled]")).to be_nil
-    expect(form.at_css("textarea[name='jjaek[content]']")).to be_present
-    expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
-    expect(page.at_css("#book-jjaek-form")["aria-label"]).to eq("책짹 작성")
-    expect(page.at_css("[data-controller='book-posting']")).to be_nil
-  end
-
-  it "hides the posting selector when all club memberships are activity suspended" do
-    membership.update!(moderation_status: :activity_suspended)
-
-    get book_path(book)
-
-    page = Nokogiri::HTML(response.body)
-    expect(page.at_css("input[name='book_post_destination']")).to be_nil
-    expect(page.at_css("select[name='jjaek[group_id]']")).to be_nil
-    expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_nil
-    expect(page.at_css("input[name='jjaek[visibility]']")).to be_present
-  end
-
-  it "hides the posting selector when every club is operation suspended" do
-    group.update!(operation_suspended_at: Time.current)
-
-    get book_path(book)
-
-    page = Nokogiri::HTML(response.body)
-    expect(page.at_css("input[name='book_post_destination']")).to be_nil
-    expect(page.at_css("select[name='jjaek[group_id]']")).to be_nil
-    expect(page.at_css("input[name='jjaek[visibility]']")).to be_present
-  end
-
-  it "labels the club feed's writing choices as Jjaek and Club Book Jjaek" do
-    get group_path(group)
-
-    page = Nokogiri::HTML(response.body)
-    form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
-    expect(form).to be_present
-    writing_section = form.ancestors("section").first
-    button = writing_section.at_css("button[aria-controls='group-book-search-dialog']")
-    expect(button).to be_present
-    expect(button.text.strip).to eq(I18n.t("jjaeks.actions.publish_group_book"))
-    expect(writing_section.at_css("#group-book-search-dialog input[name='group_id']")["value"]).to eq(group.id.to_s)
-    expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("groups.jjaeks.tabs.general"))
-  end
-
-  it "keeps global search available but hides the club writing dialog when posting is suspended" do
-    membership.update!(moderation_status: :activity_suspended)
-
-    get group_path(group)
-
-    page = Nokogiri::HTML(response.body)
-    expect(page.at_css("#global-book-search-dialog")).to be_present
-    expect(page.at_css("button[aria-controls='group-book-search-dialog']")).to be_nil
-    expect(page.at_css("#group-book-search-dialog")).to be_nil
-  end
-
-  it "lists only clubs in which the user currently has writing permission" do
-    owned = Group.create!(name: "Owned club", group_admin: user, lifecycle_status: :active)
-    public_nonmember = Group.create!(name: "Public nonmember club", group_admin: admin, lifecycle_status: :active)
-    pending = Group.create!(name: "Pending membership", group_admin: admin, lifecycle_status: :active)
-    pending.group_memberships.create!(user: user, status: :pending)
-    invited = Group.create!(name: "Invited membership", group_admin: admin, group_type: :private_group, lifecycle_status: :active)
-    invited.group_memberships.create!(user: user, status: :invited)
-    suspended_member = Group.create!(name: "Suspended member", group_admin: admin, lifecycle_status: :active)
-    suspended_member.group_memberships.create!(user: user, status: :active, moderation_status: :activity_suspended)
-    suspended_group = Group.create!(name: "Suspended club", group_admin: admin, lifecycle_status: :active, operation_suspended_at: Time.current)
-    suspended_group.group_memberships.create!(user: user, status: :active)
-    inactive = Group.create!(name: "Inactive club", group_admin: admin, lifecycle_status: :active)
-    inactive.group_memberships.create!(user: user, status: :active)
-    inactive.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
-    unapproved = Group.create!(name: "Unapproved club", group_admin: user, application_purpose: "Read together")
-
-    get book_path(book)
-
-    page = Nokogiri::HTML(response.body)
-    ids = page.css("select[name='jjaek[group_id]'] option").map { |option| option["value"] }.reject(&:blank?)
-    expect(ids).to match_array([ group.id.to_s, owned.id.to_s ])
-    [ public_nonmember, pending, invited, suspended_member, suspended_group, inactive, unapproved ].each do |excluded|
-      expect(GroupPolicy.new(user, excluded).create_jjaek?).to be(false)
+  it "preselects the book and fixes the original personal or Group posting context" do
+    [[book_path(book), jjaeks_path, true], [book_path(book, group_id: group.id), group_jjaeks_path(group), false]].each do |path, destination, visibility|
+      get path
+      expect(response).to have_http_status(:ok)
+      form = Nokogiri::HTML(response.body).at_css("#book-jjaek-form form")
+      expect(form["action"]).to eq(destination)
+      expect(Nokogiri::HTML(response.body).at_css("input[name='selected_books[]'][value='#{book.id}'][form='jjaek-publish-form']")).to be_present
+      expect(form.at_css("input[type='radio'][name='jjaek[visibility]']").present?).to eq(visibility)
+      expect(form.ancestors("dialog")).to be_empty
     end
   end
 
-  it "creates a personal book post with the selected visibility" do
-    expect {
-      post jjaeks_path, params: {
-        book_post_destination: "personal",
-        jjaek: { book_id: book.id, content: "PERSONAL_DESTINATION", visibility: "private_jjaek" }
-      }
-    }.to change(Jjaek, :count).by(1)
+  it "returns book-page posts to a fresh composer with only the current book preselected" do
+    book.update!(authors_text: "Context author", thumbnail: "https://example.com/context-cover.jpg")
+    other_book = Book.create!(title: "Additional book", authors_text: "Other author")
+    [[jjaeks_path, nil], [group_jjaeks_path(group), group.id]].each do |destination, group_id|
+      origin = book_path(book, group_id:)
+      get origin
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("meta[name='turbo-cache-control']")["content"]).to eq("no-cache")
+      expect(page.at_css("#jjaek-publish-form input[name='book_context_id']")["value"]).to eq(book.id.to_s)
+      expect(page.at_css("#jjaek-publish-form textarea").text.strip).to be_empty
+      expect(page.at_css("#jjaek-attached-books").text).to include(book.title, book.authors_text)
+      expect(page.at_css("#jjaek-attached-books img")["src"]).to eq(book.thumbnail)
 
-    expect(Jjaek.last).to have_attributes(book: book, user: user, group_id: nil, visibility: "private_jjaek", quoted_jjaek_id: nil)
-    expect(response).to redirect_to(jjaek_path(Jjaek.last))
+      post destination, params: { book_context_id: book.id, selected_books: [book.id, other_book.id], jjaek: { content: "Published from book" } }
+      expect(Jjaek.last).to have_attributes(group_id:, content: "Published from book")
+      expect(Jjaek.last.attached_books).to eq([book, other_book])
+      expect(response).to redirect_to(origin)
+      follow_redirect!
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("#jjaek-publish-form textarea").text.strip).to be_empty
+      expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", book.id.to_s])
+
+      post destination, params: { book_context_id: book.id, selected_books: [""], jjaek: { content: "No attached books" } }
+      expect(response).to redirect_to(root_path)
+      expect(Jjaek.last.attached_books).to be_empty
+      expect(Jjaek.last.group_id).to eq(group_id)
+
+      post destination, params: { book_context_id: book.id, selected_books: [other_book.id], jjaek: { content: "Only another book" } }
+      expect(response).to redirect_to(root_path)
+      expect(Jjaek.last.attached_books).to eq([other_book])
+      expect(Jjaek.last.group_id).to eq(group_id)
+
+      post destination, params: { book_context_id: book.id, selected_books: [other_book.id], jjaek: { content: "x" * 201, visibility: :private_jjaek } }
+      expect(response).to have_http_status(:unprocessable_content)
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("#jjaek-publish-form textarea").text.strip).to eq("x" * 201)
+      expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", other_book.id.to_s])
+      expect(page.at_css("#jjaek-attached-books").text).to include(other_book.authors_text)
+      if group_id.nil?
+        expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
+      end
+    end
   end
 
-  it "creates an original group book post without creating personal reading activity" do
-    activity_count = BookActivity.count
-    shelf_state = [ entry.status, entry.bookshelf_id, entry.sticker_definition_ids ]
+  it "uses the saved attachment and validated book context rather than an arbitrary return URL" do
+    ["text/html", "text/vnd.turbo-stream.html"].each do |accept|
+      post jjaeks_path, params: { book_context_id: book.id, return_to: "https://example.com/redirect",
+        selected_books: [book.id], jjaek: { content: "Validated context" } }, headers: { "Accept" => accept }
+      expect(response).to redirect_to(book_path(book))
 
-    expect {
-      post jjaeks_path, params: {
-        book_post_destination: "group",
-        jjaek: { book_id: book.id, group_id: group.id, content: "GROUP_DESTINATION", visibility: "private_jjaek" }
-      }
-    }.to change(group.jjaeks, :count).by(1)
+      post jjaeks_path, params: { book_context_id: "#{book.id}invalid", return_to: book_path(book),
+        selected_books: [book.id], jjaek: { content: "Ordinary post" } }, headers: { "Accept" => accept }
+      expect(response).to redirect_to(jjaek_path(Jjaek.last, return_to: book_path(book)))
 
-    expect(Jjaek.last).to have_attributes(book: book, user: user, group: group, visibility: "public_jjaek", quoted_jjaek_id: nil)
-    expect(response).to redirect_to(group_path(group))
-    expect(BookActivity.count).to eq(activity_count)
-    expect([ entry.reload.status, entry.bookshelf_id, entry.sticker_definition_ids ]).to eq(shelf_state)
-  end
-
-  it "preserves the selected group and draft after a validation failure" do
-    content = "GROUP_DRAFT_".ljust(201, "a")
-
-    expect {
-      post jjaeks_path, params: {
-        book_post_destination: "group", jjaek: { book_id: book.id, group_id: group.id, content: content }
-      }, headers: { "Accept" => "text/html" }
-    }.not_to change(Jjaek, :count)
-
-    expect(response).to have_http_status(:unprocessable_content)
-    page = Nokogiri::HTML(response.body)
-    panel = page.at_css("#book-jjaek-form")
-    expect(panel.ancestors("dialog")).to be_empty
-    expect(panel.at_css("textarea[name='jjaek[content]']")).to be_present
-    expect(page.at_css("textarea[name='jjaek[content]']").text.delete_prefix("\n")).to eq(content)
-    expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("group")
-    expect(page.at_css("select[name='jjaek[group_id]'] option[selected]")["value"]).to eq(group.id.to_s)
-    expect(page.at_css("input[name='jjaek[visibility]'][disabled]")).to be_present
-  end
-
-  it "preserves personal visibility and draft after a validation failure" do
-    post jjaeks_path, params: {
-      book_post_destination: "personal", jjaek: { book_id: book.id, content: "", visibility: "book_friends" }
-    }, headers: { "Accept" => "text/html" }
-
-    expect(response).to have_http_status(:unprocessable_content)
-    page = Nokogiri::HTML(response.body)
-    panel = page.at_css("#book-jjaek-form")
-    expect(panel.ancestors("dialog")).to be_empty
-    expect(panel.at_css("textarea[name='jjaek[content]']")).to be_present
-    expect(page.at_css("input[name='book_post_destination'][checked]")["value"]).to eq("personal")
-    expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("book_friends")
-    expect(page.at_css("select[name='jjaek[group_id]'][disabled]")).to be_present
-  end
-
-  it "rejects forged or incomplete posting targets instead of falling back to another destination" do
-    invalid_params = [
-      { book_post_destination: "unknown", jjaek: { book_id: book.id, content: "Invalid" } },
-      { book_post_destination: "", jjaek: { book_id: book.id, content: "Invalid" } },
-      { book_post_destination: "group", jjaek: { book_id: book.id, content: "No group" } },
-      { book_post_destination: "personal", jjaek: { book_id: book.id, group_id: group.id, content: "Conflicting group" } },
-      { book_post_destination: "group", jjaek: { group_id: group.id, content: "No book" } },
-      { book_post_destination: "group", book_id: book.id, jjaek: { book_id: "", group_id: group.id, content: "Blank book" } },
-      { book_post_destination: "personal", jjaek: { book_id: book.id, target_user_id: admin.id, content: "Profile context" } }
-    ]
-
-    invalid_params.each do |attributes|
-      expect { post jjaeks_path, params: attributes }.not_to change(Jjaek, :count)
+      post jjaeks_path, params: { book_context_id: book.id, return_to: book_path(book),
+        selected_books: [""], jjaek: { content: "Removed context book" } }, headers: { "Accept" => accept }
       expect(response).to redirect_to(root_path)
     end
   end
 
-  it "rejects a nonmember's public group" do
-    other_group = Group.create!(name: "Other public club", group_admin: admin, lifecycle_status: :active)
-    expect {
-      post jjaeks_path, params: { book_post_destination: "group", jjaek: { book_id: book.id, group_id: other_group.id, content: "Forbidden" } }
-    }.not_to change(Jjaek, :count)
-    expect(response).to have_http_status(:not_found)
+  it "previews an external book and publishes ordered attachments without adding reading data" do
+    ["text/html", "text/vnd.turbo-stream.html"].each_with_index do |accept, index|
+      [[jjaeks_path, nil], [group_jjaeks_path(group), group.id]].each do |destination, group_id|
+        url = "https://example.com/new-book-#{index}-#{group_id || 'personal'}"
+        token = external_book_token(url:)
+        expect {
+          get lookup_books_path, params: { search_result_token: token, group_id: }
+        }.not_to change { [Book.count, BookshelfEntry.count, BookActivity.count] }
+        expect(response).to have_http_status(:ok)
+        page = Nokogiri::HTML(response.body)
+        form = page.at_css("#jjaek-publish-form")
+        expect(form["action"]).to eq(destination)
+        key = page.css("#jjaek-attached-books input[name='selected_books[]']").last["value"]
+        expect(key).to start_with("external:")
+        expect(form.at_css("input[name='book_context_token']")["value"]).to eq(token)
+
+        expect {
+          post destination, params: { book_context_token: token, selected_books: [book.id, key], jjaek: { content: "External context #{index}" } },
+            headers: { "Accept" => accept }
+        }.to change(Jjaek, :count).by(1).and change(Book, :count).by(1).and change(BookshelfEntry, :count).by(0).and change(BookActivity, :count).by(0)
+        stored_book = Book.find_by!(external_url: url)
+        record = Jjaek.last
+        expect(record.group_id).to eq(group_id)
+        expect(record.attached_books).to eq([book, stored_book])
+        expect(response).to redirect_to(book_path(stored_book, group_id:))
+        follow_redirect!
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css("#feed-items #jjaek_#{record.id}")).to be_present
+        expect(page.at_css("#jjaek-publish-form textarea").text.strip).to be_empty
+        expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", stored_book.id.to_s])
+      end
+    end
   end
 
-  it "rechecks membership after the book form was opened" do
-    get book_path(book)
-    expect(response).to have_http_status(:ok)
+  it "keeps an external book temporary when removed, or when HTML and Turbo publication fails" do
+    user.jjaeks.create!(content: "Unrelated bookless post")
+    token = external_book_token
+    get lookup_books_path, params: { search_result_token: token }
+    key = Nokogiri::HTML(response.body).css("#jjaek-attached-books input[name='selected_books[]']").last["value"]
+    expect(key).to start_with("external:")
 
+    ["text/html", "text/vnd.turbo-stream.html"].each do |accept|
+      [[key, book.id], [book.id], [""]].each do |selection|
+        expect {
+          post jjaeks_path, params: { book_context_token: token, selected_books: selection,
+            jjaek: { content: "x" * 201, visibility: :private_jjaek } }, headers: { "Accept" => accept }
+        }.not_to change { [Book.count, Jjaek.count, JjaekRecommendation.count, BookshelfEntry.count, BookActivity.count] }
+        expect(response).to have_http_status(:unprocessable_content)
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css("#book-jjaek-form textarea").text.strip).to eq("x" * 201)
+        expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
+        expect(page.at_css("#jjaek-publish-form input[name='book_context_token']")["value"]).to eq(token)
+        expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] }).to eq(["", *selection.map(&:to_s).reject(&:empty?)])
+        expect(page.css("#feed-items article")).to be_empty
+      end
+
+      [[book.id], [""]].each do |selection|
+        expect {
+          post jjaeks_path, params: { book_context_token: token, selected_books: selection,
+            jjaek: { content: "Removed external book" } }, headers: { "Accept" => accept }
+        }.to change(Jjaek, :count).by(1).and change(Book, :count).by(0)
+        expect(response).to redirect_to(root_path)
+      end
+    end
+  end
+
+  it "stores shelved and unshelved attachments without changing existing reading data" do
+    shelved_book = Book.create!(title: "Shelved context book")
+    shelf = user.bookshelves.create!(name: "Existing reading shelf")
+    entry = user.bookshelf_entries.create!(book: shelved_book, bookshelf: shelf, status: :reading)
+    sticker = StickerDefinition.create!(key: "book_posting_preserved", name: "Preserved sticker")
+    entry.sticker_definitions << sticker
+    reading_state = [entry.status, entry.bookshelf_id, entry.sticker_definition_ids.sort]
+
+    expect {
+      post group_jjaeks_path(group), params: { selected_books: [book.id, shelved_book.id], jjaek: { content: "Group note", visibility: :private_jjaek } }
+    }.to change(Jjaek, :count).by(1).and change(BookshelfEntry, :count).by(0).and change(BookActivity, :count).by(0)
+    expect(Jjaek.last).to have_attributes(group_id: group.id, visibility: "public_jjaek", book_id: nil)
+    expect(Jjaek.last.attached_books).to eq([book, shelved_book])
+    entry.reload
+    expect([entry.status, entry.bookshelf_id, entry.sticker_definition_ids.sort]).to eq(reading_state)
+    expect(user.bookshelf_entries.exists?(book:)).to be(false)
+  end
+
+  it "keeps the route Group authoritative and rejects mixed profile targets" do
+    other = Group.create!(name: "Other", group_admin: user, lifecycle_status: :active)
+    expect {
+      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: {group_id: other.id, content: "Scoped"} }
+    }.to change(group.jjaeks, :count).by(1).and change(other.jjaeks, :count).by(0)
+    expect(group.jjaeks.last.attached_books).to eq([book])
+
+    expect {
+      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: {target_user_id: admin.id, content: "Mixed"} }
+    }.not_to change(Jjaek, :count)
+  end
+
+  it "rejects publication after membership revocation, activity suspension or Group shutdown" do
+    get book_path(book, group_id: group.id)
     membership.update!(moderation_status: :activity_suspended)
-    expect {
-      post jjaeks_path, params: { book_post_destination: "group", jjaek: { book_id: book.id, group_id: group.id, content: "Revoked" } }
-    }.not_to change(Jjaek, :count)
-    expect(response).to have_http_status(:not_found)
+    expect { post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: {content: "Suspended"} } }.not_to change(Jjaek, :count)
+    membership.update!(moderation_status: :normal)
+    membership.destroy!
+    expect { post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: {content: "Revoked"} } }.not_to change(Jjaek, :count)
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed")
+    expect { post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: {content: "Closed"} } }.not_to change(Jjaek, :count)
   end
 
-  it "continues to require the book to be in the personal library" do
-    entry.destroy!
-
+  it "rejects conflicting or ambiguous legacy book IDs and requote attachments" do
+    other = Book.create!(title: "Other")
+    [ {book_id: [book.id, other.id]}, {book_id: "#{book.id}bad"} ].each do |attributes|
+      expect { post jjaeks_path, params: {jjaek: attributes.merge(content: "Invalid")} }.not_to change(Jjaek, :count)
+    end
     expect {
-      post jjaeks_path, params: { book_post_destination: "group", jjaek: { book_id: book.id, group_id: group.id, content: "Unshelved" } }
+      post jjaeks_path, params: {book_id: book.id, jjaek: {book_id: other.id, content: "Mismatch"}}
     }.not_to change(Jjaek, :count)
-    expect(response).to redirect_to(root_path)
+    source = admin.jjaeks.create!(book:, content: "Source")
+    expect {
+      post jjaeks_path, params: {jjaek: {book_id: book.id, quoted_jjaek_id: source.id, content: "Quote with book"}}
+    }.not_to change(Jjaek, :count)
   end
 
-  it "rejects group posting without the new selector on the ordinary endpoint" do
-    expect {
-      post jjaeks_path, params: { jjaek: { book_id: book.id, group_id: group.id, content: "Missing selector" } }
-    }.not_to change(Jjaek, :count)
-    expect(response).to redirect_to(root_path)
-  end
-
-  it "keeps the book quote form separate from the posting selector" do
-    source = admin.jjaeks.create!(book: book, content: "Source")
-
-    get book_path(book, quote_id: source.id)
-
-    expect(response).to have_http_status(:ok)
-    page = Nokogiri::HTML(response.body)
-    expect(page.at_css("input[name='book_post_destination']")).to be_nil
-    expect(page.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(source.id.to_s)
-    expect(page.at_css("form[action='#{jjaeks_path}']")).to be_present
-  end
-
-  it "does not turn the posting selector into a share or requote path" do
-    source = admin.jjaeks.create!(book: book, content: "Source")
-
-    expect {
-      post jjaeks_path, params: {
-        book_post_destination: "group", share_to_group: "1",
-        jjaek: { book_id: book.id, group_id: group.id, quoted_jjaek_id: source.id, content: "Share attempt" }
-      }
-    }.not_to change(Jjaek, :count)
-    expect(response).to redirect_to(root_path)
+  def external_book_token(url: "https://example.com/new-book")
+    BookSearches::ResultToken.issue({ title: "External context book", authors_text: "External author", url: }, user:)
   end
 end

@@ -45,19 +45,19 @@ ko:
   groups:
     content_inventory:
       navigation:
-        recommendation: "추천짹"
+        recommendation: "동아리짹"
       kinds:
-        recommendation: "추천짹"
+        recommendation: "동아리짹"
     restricted_content:
       kinds:
         recommendation: "추천짹"
   admin:
     user_content:
       navigation:
-        recommendation: "추천짹"
+        recommendation: "짹"
       kinds:
-        recommendation: "추천짹"
-        group_recommendation: "동아리 추천짹"
+        recommendation: "짹"
+        group_recommendation: "동아리짹"
     group_content:
       navigation:
-        recommendation: "동아리 추천짹"
+        recommendation: "동아리짹"

@@ -1,0 +1,14 @@
+en:
+  jjaek_books:
+    add: "Add book"
+    search: "Find books"
+    remove: "Remove"
+    attached: "Attached books"
+    selection_title: "Choose attached books"
+    selected_count: "Selected books (%{count}/%{max})"
+    empty: "Choose books to attach."
+    choose: "Add"
+    selected: "Selected"
+    remove_book: "Remove %{title}"
+    limit: "Choose up to %{count} books."
+    add_to_shelf: "Add to shelf"

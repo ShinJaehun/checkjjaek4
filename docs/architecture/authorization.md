@@ -188,12 +188,12 @@ Library 안에서 볼 수 있는 책장:
 
 - 로그인 사용자만 작성 가능하다
 - 작성자는 현재 사용자 본인이어야 한다
-- 책 문맥 작성은 현재 사용자의 `BookshelfEntry` 존재 여부와 연결된다
+- 책 첨부 작성은 개인 서재 등록과 독립이다. 통합 작성 계약은 `../specs/unified_jjaeks.md` 11절을 따른다
 - profile-context 작성은 대상 사용자에 대한 권한 규칙을 함께 따른다
 - 신규 프로필 대화는 현재 accepted 책친구만 작성한다. 생성·수정의 visibility 입력은 무시하고
   기존 저장값을 일괄 변경하지 않는다. 작성·수정 화면과 카드에는 두 사람 전용 안내를 표시한다.
 - 동아리의 `짹`과 `책짹`은 active member만 작성할 수 있다
-- 동아리 책짹도 작성자의 `BookshelfEntry`가 있어야 한다
+- 동아리 첨부도 개인 서재 등록을 요구하지 않으며 현재 Group 작성 권한을 따른다
 
 관련 위치:
 
@@ -451,11 +451,8 @@ admin Group 상세는 `GroupLifecycleEvent`와 Group 대상 `ModerationAction` �
 - `app/policies/jjaek_policy.rb`
 
 
-책 상세의 개인 원본 책짹 조회는 `JjaekPolicy::BookScope`가 기존 visibility와 개인 서재 등록 여부를 함께 확인한다.
-서재 미등록 책은 공개 개인 원본만 표시한다. 등록된 책의 group_id 맥락에서는 해당 동아리의
-`GroupContentScope`를 사용하며 기존 Group/Jjaek 접근·작성 권한을 유지한다.
-
-책 상세의 새 책짹 게시 위치는 기존 `Jjaek#group_id`로 표현하며 별도 모델을 추가하지 않는다.
-게시 가능한 동아리 목록과 새 책짹의 선택 대상은 `GroupPolicy::CreateJjaekScope`가 현재 작성 가능 범위로 제한한다.
-명시적인 book_post_destination은 Book 필수, personal/group과 group_id 일치, 공유·다시짹·profile target 미혼합을 검증한다.
-저장 직전 기존 Jjaek policy와 Group 잠금 안의 인가를 유지하며 개인 서재 등록 조건도 유지한다.
+책 상세의 개인 원본 조회는 `JjaekPolicy::BookScope`에서 부모 짹의 현재 접근 권한을 적용하며 서재 등록을 요구하지 않는다.
+group_id 문맥은 등록 여부와 무관하게 해당 동아리의 GroupContentScope를 사용한다.
+작성·수정은 통합 Rails 폼을 사용하며, 책 상세에서 들어온 게시 문맥은 개인/해당 동아리로 유지한다.
+기존 book_post_destination 요청은 호환 검증만 남기고 새 UI는 nested Group 경로를 사용한다.
+저장 직전 Pundit 인가와 Group → Jjaek 잠금 순서를 유지한다.

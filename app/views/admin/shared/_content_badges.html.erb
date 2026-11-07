@@ -1,0 +1,4 @@
+<% badge = admin_content_badge(record) %>
+<span class="inline-flex whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium <%= badge.fetch(:classes) %>" data-activity-kind="<%= badge.fetch(:kind) %>">
+  <%= badge.fetch(:label) %>
+</span>

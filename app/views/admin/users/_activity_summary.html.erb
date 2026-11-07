@@ -1,0 +1,12 @@
+<nav class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-stone-600" aria-label="<%= t('admin.user_content.navigation_label') %>">
+  <% %w[general group requote comments].each_with_index do |section, index| %>
+    <% unless index.zero? %>
+      <span aria-hidden="true">·</span>
+    <% end %>
+    <%= link_to content_admin_user_path(user, filter_params.merge(content: section)),
+                class: "whitespace-nowrap underline-offset-2 hover:underline" do %>
+      <%= admin_content_kind_label(section) %>
+      <span data-activity-count="<%= section %>"><%= counts.fetch(section) %></span>
+    <% end %>
+  <% end %>
+</nav>

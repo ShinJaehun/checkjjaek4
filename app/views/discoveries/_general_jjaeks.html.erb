@@ -12,7 +12,7 @@
             <% end %>
             <div class="min-w-0">
               <p class="text-sm font-semibold text-stone-800"><%= link_to jjaek.user.name, user_path(jjaek.user), data: { turbo_frame: "_top" } %></p>
-              <p class="text-xs text-stone-500"><%= t("jjaeks.meta.created_at", time: l(jjaek.created_at, format: :short)) %></p>
+              <p class="text-xs text-stone-500"><%= render "jjaeks/timestamps", jjaek: jjaek %></p>
             </div>
           </div>
           <p class="mt-3 line-clamp-3 whitespace-pre-line break-words font-serif text-xl leading-8 text-stone-900"><%= jjaek_content_with_hashtags(jjaek.content) %></p>

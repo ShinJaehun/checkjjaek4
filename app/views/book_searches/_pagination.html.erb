@@ -2,8 +2,7 @@
   <div>
     <% if has_previous_page %>
       <%= link_to t("book_search.pagination.previous"),
-                  book_search_page_path(page - 1),
-                  data: { recommendation_navigation: @recommendation_context },
+                  book_search_page_path(page - 1), data: { recommendation_navigation: @recommendation_context },
                   class: "ui-button ui-button-secondary" %>
     <% end %>
   </div>
@@ -13,8 +12,7 @@
   <div>
     <% if has_next_page %>
       <%= link_to t("book_search.pagination.next"),
-                  book_search_page_path(page + 1),
-                  data: { recommendation_navigation: @recommendation_context },
+                  book_search_page_path(page + 1), data: { recommendation_navigation: @recommendation_context },
                   class: "ui-button ui-button-secondary" %>
     <% end %>
   </div>

@@ -76,12 +76,14 @@ class ApplicationController < ActionController::Base
   end
 
   def prepare_current_reading_states_for(jjaeks)
-    records = Array(jjaeks).select { |jjaek| jjaek.book_id.present? && !jjaek.deleted? }
+    records = Array(jjaeks).reject(&:deleted?)
+    ActiveRecord::Associations::Preloader.new(records:, associations: :attached_books).call
+    records = records.select { |jjaek| jjaek.single_attached_book.present? }
     @current_reading_states ||= {}
     return if records.empty?
 
     entries = policy_scope(BookshelfEntry, policy_scope_class: BookshelfEntryPolicy::ReadingStateScope)
-      .where(user_id: records.map(&:user_id), book_id: records.map(&:book_id))
+      .where(user_id: records.map(&:user_id), book_id: records.map { |jjaek| jjaek.single_attached_book.id })
       .includes(:sticker_definitions)
     entries.each do |entry|
       @current_reading_states[[ entry.user_id, entry.book_id ]] = entry
@@ -96,7 +98,7 @@ class ApplicationController < ActionController::Base
 
   def prepare_recommendation_books_for(jjaeks)
     ActiveRecord::Associations::Preloader.new(
-      records: Array(jjaeks), associations: [ :recommended_books, { quoted_jjaek: :recommended_books } ]
+      records: Array(jjaeks), associations: [ :recommended_books, :attached_books, { quoted_jjaek: [ :recommended_books, :attached_books ] } ]
     ).call
   end
 

@@ -1,201 +1,254 @@
 import { Controller } from "@hotwired/stimulus"
 import { Turbo } from "@hotwired/turbo-rails"
 
+// Selection-only version of the existing permanent recommendation window.
+// The originating Rails form remains intact across Turbo searches.
 export default class extends Controller {
-  static targets = ["frame", "panel", "fields", "selection", "writing", "title", "continue", "book", "completed"]
-  static values = { selectionTitle: String, writingTitle: String, editingTitle: String, maxBooks: Number }
+  static targets = ["frame", "panel", "fields", "book"]
+  static values = { maxBooks: Number }
 
   connect() {
     this.element.dataset.requestRevision ||= crypto.randomUUID()
     this.load()
   }
 
-  panelTargetConnected() {
-    this.sync()
-  }
-
-  fieldsTargetConnected() {
-    this.sync()
-  }
-
-  completedTargetConnected(element) {
-    const destination = new URL(element.dataset.location, window.location.origin)
-    if (destination.origin !== window.location.origin) return
-    this.close()
-    Turbo.visit(destination.href)
-  }
-
   navigate(event) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-    const editing = this.hasPanelTarget && this.panelTarget.dataset.mode === "edit"
-    const editOpener = event.target.closest("a[data-recommendation-edit-open='true']")
-    if (editOpener) {
+    if (!this.element.hidden && event.target.closest("[data-back-link]") && document.getElementById("recommendation-search-results")) {
       event.preventDefault()
-      this.close()
-      this.frameTarget.src = editOpener.href
-      this.element.hidden = false
-      return
-    }
-    const anchor = event.target.closest("a")
-    if (editing && anchor?.matches("[data-back-link]") && this.editSearchVisible()) {
-      event.preventDefault()
-      event.stopImmediatePropagation()
       this.cancel()
       return
     }
-    const menu = event.target.closest("a, button[aria-controls='global-book-search-dialog']")
-    if (menu?.closest("[data-recommendation-navigation-end]") && !menu.closest("dialog")) {
-      this.close()
-      return
-    }
-    const opener = event.target.closest("a[data-recommendation-open]")
+    const opener = event.target.closest("[data-book-selection-open]")
     if (opener) {
       event.preventDefault()
-      if (!this.hasPanelTarget || this.panelTarget.dataset.mode === "edit" || this.panelTarget.dataset.groupId !== (opener.dataset.recommendationGroupId || "")) {
-        this.close()
-        this.frameTarget.src = opener.href
-      }
+      const composer = opener.closest("#jjaek-composer")
+      this.close()
+      this.composer = composer
+      this.attachmentSnapshot = composer.querySelector("#jjaek-attached-books").cloneNode(true)
+      this.origin = window.location.href
+      composer.setAttribute("data-turbo-permanent", "")
       this.element.hidden = false
+      const url = new URL(composer.dataset.selectionUrl, window.location.origin)
+      for (const [field, name] of [["editingId", "editing_jjaek_id"], ["groupId", "group_id"], ["targetUserId", "target_user_id"]]) {
+        if (composer.dataset[field]) url.searchParams.set(name, composer.dataset[field])
+      }
+      url.searchParams.set("search_origin", window.location.pathname + window.location.search)
+      const returnTo = composer.querySelector("input[name='return_to']")
+      if (returnTo) url.searchParams.set("return_to", returnTo.value)
+      composer.querySelectorAll("input[name='selected_books[]']").forEach(input => url.searchParams.append("selected_books[]", input.value))
+      this.frameTarget.src = url.href
       return
     }
-
+    const remove = event.target.closest("[data-attachment-remove]")
+    if (remove) {
+      event.preventDefault()
+      if (this.pendingForm) return
+      const row = remove.closest("[data-book-key]")
+      if (!this.element.hidden && this.hasPanelTarget) {
+        const form = Array.from(this.panelTarget.querySelectorAll("form[data-recommendation-selection-form='remove']"))
+          .find(form => decodeURIComponent(new URL(form.action).pathname.split("/").pop()) === row.dataset.bookKey)
+        form?.requestSubmit()
+      } else row.remove()
+      return
+    }
     const link = event.target.closest("a[data-recommendation-navigation='true']")
-    if (!link) return
-    const url = new URL(link.href)
-    url.searchParams.delete("selected_books[]")
-    this.valuesFor("selected_books[]").forEach(value => url.searchParams.append("selected_books[]", value))
-    for (const name of ["group_id", "search_origin", "editing_jjaek_id", "return_to"]) {
-      url.searchParams.delete(name)
-      this.valuesFor(name).forEach(value => url.searchParams.append(name, value))
-    }
-    link.href = url.toString()
-  }
-
-  beforeVisit(event) {
-    if (!this.hasPanelTarget || this.panelTarget.dataset.mode !== "edit") return
-    const destination = new URL(event.detail.url, window.location.origin)
-    const form = this.panelTarget.querySelector("form[data-recommendation-selection-form='search']")
-    const search = new URL(form.action)
-    this.preserveEditOnVisit = destination.origin === search.origin && destination.pathname === search.pathname &&
-      destination.searchParams.get("editing_jjaek_id") === this.panelTarget.dataset.editingId
-    if (!this.preserveEditOnVisit) this.close()
-  }
-
-  beforeCache() {
-    if (this.hasPanelTarget && this.panelTarget.dataset.mode === "edit" && !this.preserveEditOnVisit) this.close()
-  }
-
-  beforeRender(event) {
-    if (!this.hasPanelTarget || this.panelTarget.dataset.mode !== "edit") return
-    const state = event.detail.newBody.querySelector("[data-recommendation-results-state]")
-    if (state?.dataset.editingId !== this.panelTarget.dataset.editingId) this.close()
-  }
-
-  editSearchVisible() {
-    if (!this.hasPanelTarget || this.panelTarget.dataset.mode !== "edit") return false
-    const state = document.querySelector("#recommendation-search-results [data-recommendation-results-state]")
-    return state?.dataset.editingId === this.panelTarget.dataset.editingId
-  }
-
-  cancel() {
-    const destination = this.editSearchVisible() ? this.panelTarget.dataset.returnPath : null
-    this.close()
-    if (destination) {
-      const url = new URL(destination, window.location.origin)
-      if (url.origin === window.location.origin) Turbo.visit(url.href)
+    if (link && !this.element.hidden) {
+      const url = new URL(link.href)
+      for (const name of this.contextNames) {
+        url.searchParams.delete(name)
+        this.valuesFor(name).forEach(value => url.searchParams.append(name, value))
+      }
+      link.href = url.href
     }
   }
 
-  close() {
-    const editing = this.hasPanelTarget && this.panelTarget.dataset.mode === "edit"
-    this.element.hidden = true
-    this.element.dataset.requestRevision = crypto.randomUUID()
-    this.pendingForm = null
-    this.preserveEditOnVisit = false
-    this.element.dataset.revision = String(Number(this.element.dataset.revision || 0) + 1)
-    this.frameTarget.src = null
-    this.frameTarget.replaceChildren()
-    this.titleTarget.textContent = this.selectionTitleValue
-    document.querySelectorAll("[data-recommendation-reset]").forEach(element => element.remove())
-    document.querySelectorAll("form[data-recommendation-selection-form] input").forEach(input => {
-      const resetNames = ["selected_books[]", "search_origin", "editing_jjaek_id", "return_to"]
-      if (editing) resetNames.push("query", "page", "group_id")
-      if (resetNames.includes(input.name)) input.remove()
-    })
-    this.syncResults()
-  }
-
-  write() {
-    if (!this.valuesFor("selected_books[]").length) return
-    this.setStep("writing")
-    this.panelTarget.querySelector("#recommendation-jjaek-form textarea").focus()
-  }
-
-  select() {
-    this.setStep("selection")
-    this.panelTarget.querySelector("#recommendation-query").focus()
-  }
-
-  setStep(step) {
-    if (!this.hasPanelTarget) return
-    this.panelTarget.dataset.step = step
-    this.selectionTargets.forEach(element => { element.hidden = step === "writing" })
-    this.writingTargets.forEach(element => { element.hidden = step !== "writing" })
-    this.titleTarget.textContent = this.panelTarget.dataset.mode === "edit" ? this.editingTitleValue :
-      (step === "writing" ? this.writingTitleValue : this.selectionTitleValue)
-  }
-
-  valuesFor(name) {
-    if (!this.hasFieldsTarget) return []
-    return Array.from(this.fieldsTarget.querySelectorAll("input")).filter(input => input.name === name).map(input => input.value).filter(value => name !== "selected_books[]" || value !== "")
+  get contextNames() {
+    return ["selected_books[]", "group_id", "target_user_id", "editing_jjaek_id", "search_origin", "return_to", "attachment"]
   }
 
   prepare(event) {
     const form = event.target
-    if (form.closest("[data-recommendation-navigation-end]") && !form.closest("dialog")) {
-      this.close()
-      return
-    }
-    const selectionForm = form.matches("form[data-recommendation-selection-form]")
-    const publishForm = form.id === "recommendation-jjaek-form"
-    if (!selectionForm && !publishForm) return
-    if (this.pendingForm) {
+    if (!form.matches("form[data-recommendation-selection-form]")) return
+    if (this.returning || this.pendingForm || !this.hasFieldsTarget) {
       event.preventDefault()
       return
     }
-    if (form.method.toLowerCase() !== "get") this.pendingForm = form
-    if (publishForm) return
-
-    this.element.hidden = false
-    if (!this.hasFieldsTarget) {
-      form.querySelectorAll("input[name='selected_books[]']").forEach(input => input.remove())
-      form.querySelectorAll("input[name='search_origin']").forEach(input => input.remove())
-      this.setFormValues(form, "start_recommendation", ["1"])
-      return
-    }
-    form.querySelectorAll("input[name='start_recommendation']").forEach(input => input.remove())
-    const names = ["selected_books[]", "group_id", "search_origin", "editing_jjaek_id", "return_to"]
+    this.contextNames.forEach(name => this.setFormValues(form, name, this.valuesFor(name)))
     if (form.dataset.recommendationSelectionForm === "search") {
-      const results = document.getElementById("recommendation-search-results")
-      const state = results?.querySelector("[data-recommendation-results-state]")
-      const sameGroup = state && (state.dataset.groupId || "") === (this.panelTarget.dataset.groupId || "") &&
-        (state.dataset.editingId || "") === (this.panelTarget.dataset.editingId || "")
-      form.dataset.turboFrame = sameGroup ? results.id : "_top"
+      form.dataset.turboFrame = document.getElementById("recommendation-search-results") ? "recommendation-search-results" : "_top"
       form.dataset.turboAction = "advance"
     } else {
-      if (form.dataset.recommendationSelectionForm !== "add") names.push("query", "page")
+      this.pendingForm = form
+      for (const name of ["query", "page"]) this.setFormValues(form, name, this.valuesFor(name))
     }
-    names.forEach(name => { this.setFormValues(form, name, this.valuesFor(name)) })
   }
 
   submitted(event) {
-    if (event.target === this.pendingForm) this.pendingForm = null
+    if (event.target !== this.pendingForm) return
+    const contentType = event.detail.fetchResponse?.response.headers.get("Content-Type") || ""
+    // Stream rendering finishes after the response arrives. Wait for the last
+    // selection Stream before allowing completion/navigation.
+    if (!contentType.includes("text/vnd.turbo-stream.html")) this.pendingForm = null
+  }
+
+  beforeVisit(event) {
+    if (this.element.hidden) return
+    const url = new URL(event.detail.url, window.location.origin)
+    if (this.returning && url.href !== this.origin) {
+      this.close()
+      return
+    }
+    this.destinationURL = url.href
+    if (url.href === this.origin) {
+      if (!this.returning) {
+        this.restoreAttachments()
+        this.returning = true
+      }
+    } else if (!this.selectionPage(url)) this.close()
+  }
+
+  selectionPage(url) {
+    if (url.origin !== window.location.origin) return false
+    const selectionSearch = url.pathname === "/book_search" && url.searchParams.get("attachment") === "1" &&
+      ["editing_jjaek_id", "group_id", "target_user_id"].every(name => (url.searchParams.get(name) || "") === (this.valuesFor(name)[0] || ""))
+    return selectionSearch || /^\/books\/(?:[1-9]\d*|lookup)$/.test(url.pathname)
+  }
+
+  finish() {
+    if (this.returning || this.pendingForm || !this.origin) return
+    this.attachmentSnapshot = null
+    this.focusBodyOnReturn = true
+    this.returnToComposer()
+  }
+
+  cancel() {
+    if (this.returning || !this.origin) return
+    this.restoreAttachments()
+    this.returnToComposer()
+  }
+
+  restoreAttachments() {
+    const attachments = this.composer?.querySelector("#jjaek-attached-books")
+    if (attachments && this.attachmentSnapshot) attachments.replaceChildren(...this.attachmentSnapshot.childNodes)
+    this.attachmentSnapshot = null
+  }
+
+  returnToComposer() {
+    this.returning = true
+    this.element.dataset.requestRevision = crypto.randomUUID()
+    if (window.location.href === this.origin) this.completeReturn()
+    else Turbo.visit(this.origin)
+  }
+
+  completeReturn() {
+    const focusBody = this.focusBodyOnReturn
+    const context = this.composer?.dataset
+    this.close()
+    if (!focusBody || !context) return
+
+    // Resolve the live form after Turbo has restored/replaced the page DOM.
+    const composer = document.getElementById("jjaek-composer")
+    if (!composer || !["editingId", "groupId", "targetUserId"].every(key => composer.dataset[key] === context[key])) return
+    const textarea = composer.querySelector("textarea[name='jjaek[content]']")
+    if (!textarea) return
+    textarea.focus({ preventScroll: true })
+    requestAnimationFrame(() => {
+      if (textarea.isConnected && document.activeElement === textarea) {
+        textarea.scrollIntoView({ block: "center", behavior: "smooth" })
+      }
+    })
+  }
+
+  beforeRender(event) {
+    if (this.element.hidden) return
+    const url = new URL(this.returning ? this.origin : (this.destinationURL || window.location.href))
+    let incoming = event.detail.newBody.querySelector("#jjaek-composer")
+    if (url.href !== this.origin && this.selectionPage(url)) {
+      // Keep the original draft out of the book preview's writing form.
+      if (!incoming) {
+        const placeholder = document.createElement("div")
+        placeholder.hidden = true
+        incoming = document.createElement("div")
+        incoming.id = "jjaek-composer"
+        placeholder.append(incoming)
+        event.detail.newBody.prepend(placeholder)
+      }
+      const bookForm = incoming.closest("#book-jjaek-form")
+      if (bookForm) bookForm.hidden = true
+      incoming.setAttribute("data-turbo-permanent", "")
+      return
+    }
+    if (url.href !== this.origin) {
+      this.close()
+      return
+    }
+    if (!this.returning) {
+      this.restoreAttachments()
+      this.returning = true
+    }
+    const current = this.composer
+    const sameContext = current && incoming && ["editingId", "groupId", "targetUserId"]
+      .every(key => current.dataset[key] === incoming.dataset[key])
+    if (!sameContext) {
+      this.close()
+      return
+    }
+    // Turbo preserves a node only when BOTH snapshots mark its ID permanent.
+    // The regular destination form must participate just for this return visit.
+    const bookForm = incoming.closest("#book-jjaek-form")
+    if (bookForm) bookForm.hidden = false
+    incoming.setAttribute("data-turbo-permanent", "")
+  }
+
+  load(event) {
+    if (this.returning && window.location.href === this.origin && !document.documentElement.hasAttribute("data-turbo-preview")) this.completeReturn()
+    if (event?.type === "turbo:load") this.destinationURL = null
+    const state = document.querySelector("#recommendation-search-results [data-recommendation-results-state]")
+    if (state && this.hasFieldsTarget) {
+      for (const name of ["query", "page"]) {
+        this.fieldsTarget.querySelectorAll(`input[name='${name}']`).forEach(input => { input.value = state.dataset[name] })
+      }
+    }
+    this.syncResults()
+  }
+
+  loaded(event) {
+    if (event.target === this.frameTarget || event.target.id === "recommendation-search-results") this.load()
+  }
+
+  close() {
+    this.restoreAttachments()
+    this.composer?.removeAttribute("data-turbo-permanent")
+    this.element.hidden = true
+    this.element.dataset.requestRevision = crypto.randomUUID()
+    this.frameTarget.src = null
+    this.frameTarget.replaceChildren()
+    this.pendingForm = null
+    this.returning = false
+    this.focusBodyOnReturn = false
+    this.composer = null
+    this.origin = null
+    this.destinationURL = null
+  }
+
+  valuesFor(name) {
+    if (!this.hasFieldsTarget) return []
+    return Array.from(this.fieldsTarget.querySelectorAll("input")).filter(input => input.name === name).map(input => input.value)
+  }
+
+  setFormValues(form, name, values) {
+    Array.from(form.querySelectorAll("input")).filter(input => input.name === name).forEach(input => input.remove())
+    values.forEach(value => {
+      const input = document.createElement("input")
+      Object.assign(input, { type: "hidden", name, value })
+      form.append(input)
+    })
   }
 
   prepareRequest(event) {
     const target = event.target
-    if (target === this.frameTarget || target.id === "recommendation-search-results" ||
-        target.id === "recommendation-jjaek-form" || target.matches("form[data-recommendation-selection-form]")) {
+    if (target === this.frameTarget || target.id === "recommendation-search-results" || target.matches("form[data-recommendation-selection-form]")) {
       event.detail.fetchOptions.headers["X-Recommendation-Revision"] = this.element.dataset.requestRevision
     }
   }
@@ -208,85 +261,32 @@ export default class extends Controller {
     }
   }
 
-  setFormValues(form, name, values) {
-    Array.from(form.querySelectorAll("input")).filter(input => input.name === name).forEach(input => input.remove())
-    values.forEach(value => {
-      const input = document.createElement("input")
-      Object.assign(input, { type: "hidden", name, value })
-      form.append(input)
-    })
-  }
-
   guardStream(event) {
-    const targets = ["recommendation_composer", "recommendation-selected-books", "recommendation-selection-fields", "recommendation-selection-alert", "recommendation-search-results"]
-    if (!targets.includes(event.target.target)) return
-    const panel = this.hasPanelTarget ? this.panelTarget : null
-    const revision = this.element.dataset.revision
+    if (!["recommendation-selected-books", "recommendation-selection-fields", "recommendation-selection-alert", "recommendation-search-results", "jjaek-attached-books"].includes(event.target.target)) return
+    const revision = this.element.dataset.requestRevision
     const render = event.detail.render
-    event.detail.render = stream => {
-      if (!this.element.isConnected || this.element.hidden || this.element.dataset.revision !== revision) return
-      if (panel && (!this.hasPanelTarget || this.panelTarget !== panel)) return
-      return render(stream)
+    event.detail.render = async stream => {
+      if (!this.element.isConnected || this.element.hidden || this.returning || this.element.dataset.requestRevision !== revision) return
+      await render(stream)
+      if (stream.target === "recommendation-search-results" && this.element.dataset.requestRevision === revision) {
+        this.pendingForm = null
+        this.syncResults()
+      }
     }
   }
 
   guardFrame(event) {
     if (event.target !== this.frameTarget) return
-    const revision = this.element.dataset.revision
+    const revision = this.element.dataset.requestRevision
     const render = event.detail.render
     event.detail.render = (current, incoming) => {
-      if (!this.element.isConnected || this.element.hidden || this.element.dataset.revision !== revision) return
+      if (!this.element.isConnected || this.element.hidden || this.returning || this.element.dataset.requestRevision !== revision) return
       return render(current, incoming)
     }
   }
 
-  loaded(event) {
-    if (event.target.id === "recommendation-search-results") this.load()
-  }
-
-  load() {
-    this.preserveEditOnVisit = false
-    const editStart = document.querySelector("[data-recommendation-edit-start]")
-    if (editStart) {
-      this.close()
-      this.frameTarget.append(editStart.content.cloneNode(true))
-      editStart.remove()
-      this.element.hidden = false
-    }
-    if (!this.hasPanelTarget) {
-      document.querySelectorAll("[data-recommendation-reset]").forEach(element => element.remove())
-      this.syncResults()
-      return
-    }
-    const reset = document.querySelector("[data-recommendation-reset]")
-    if (reset) {
-      for (const id of ["recommendation-selected-books", "recommendation-selection-fields", "recommendation-selection-alert"]) {
-        const incoming = reset.content.querySelector(`#${id}`)
-        if (incoming) this.panelTarget.querySelector(`#${id}`).replaceWith(incoming.cloneNode(true))
-      }
-      reset.remove()
-    }
-    const state = document.querySelector("#recommendation-search-results [data-recommendation-results-state]")
-    if (state && (state.dataset.groupId || "") === (this.panelTarget.dataset.groupId || "") &&
-        (state.dataset.editingId || "") === (this.panelTarget.dataset.editingId || "")) {
-      for (const name of ["query", "page"]) {
-        const input = this.fieldsTarget.querySelector(`input[name='${name}']`)
-        if (input) input.value = state.dataset[name]
-      }
-    }
-    this.sync()
-  }
-
-  sync() {
-    if (this.hasPanelTarget && this.hasFieldsTarget) {
-      this.setStep(this.panelTarget.dataset.step)
-      this.continueTarget.disabled = !this.valuesFor("selected_books[]").length
-    }
-    this.syncResults()
-  }
-
   syncResults() {
-    const atLimit = this.valuesFor("selected_books[]").length >= this.maxBooksValue
+    const atLimit = this.valuesFor("selected_books[]").filter(Boolean).length >= this.maxBooksValue
     document.querySelectorAll("[data-recommendation-result]").forEach(result => {
       const selected = this.bookTargets.some(book => ["bookId", "isbn", "url"].some(key => result.dataset[key] && result.dataset[key] === book.dataset[key]))
       result.querySelector("[data-recommendation-selected]").hidden = !selected

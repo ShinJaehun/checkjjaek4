@@ -31,7 +31,7 @@ module Groups
 
     def permitted_content_section
       section = params[:content].to_s
-      %w[general book recommendation comments].include?(section) ? section : "all"
+      %w[group comments].include?(section) ? section : "all"
     end
   end
 end

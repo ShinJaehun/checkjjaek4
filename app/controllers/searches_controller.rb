@@ -1,6 +1,6 @@
 class SearchesController < ApplicationController
-  POST_TYPES = %w[jjaeks book_jjaeks recommendation_jjaeks].freeze
-  RESULT_TYPES = %w[users jjaeks book_jjaeks recommendation_jjaeks groups].freeze
+  POST_TYPES = %w[jjaeks].freeze
+  RESULT_TYPES = %w[users jjaeks groups].freeze
   PREVIEW_LIMIT = 5
 
   def show
@@ -11,7 +11,9 @@ class SearchesController < ApplicationController
     prepare_tag_scope! if @tag_mode
     @query = params[:q].to_s.strip
     available_types = @tag_mode ? POST_TYPES : RESULT_TYPES
-    @type = params[:type].in?(available_types) ? params[:type] : "all"
+    requested_type = params[:type]
+    requested_type = "jjaeks" if requested_type.in?(%w[book_jjaeks recommendation_jjaeks])
+    @type = requested_type.in?(available_types) ? requested_type : "all"
     @per_page = Admin::InventoryPage.normalize_per_page(params[:per_page])
     unless @tag_mode
       tag_context_requested = %i[scope group_id user_id].any? { |key| params.key?(key) }
@@ -46,8 +48,9 @@ class SearchesController < ApplicationController
     end
     prepare_user_cards
     prepare_group_cards
-    prepare_recommendation_books_for(POST_TYPES.flat_map { |type| @results.fetch(type, []).to_a })
-    prepare_current_reading_states_for(@results.fetch("jjaeks", []).to_a + @results.fetch("book_jjaeks", []).to_a)
+    posts = @results.fetch("jjaeks", []).to_a
+    prepare_recommendation_books_for(posts)
+    prepare_current_reading_states_for(posts)
   end
 
   private
@@ -120,11 +123,7 @@ class SearchesController < ApplicationController
         pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
         posts = posts.where("jjaeks.content ILIKE ?", pattern)
       end
-      case type
-      when "jjaeks" then posts.general_posts
-      when "book_jjaeks" then posts.where.not(book_id: nil)
-      when "recommendation_jjaeks" then posts.recommendation_posts
-      end
+      posts
     end
   end
 

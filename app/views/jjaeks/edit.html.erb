@@ -1,69 +1,9 @@
-<section class="mx-auto flex w-full max-w-3xl flex-col gap-6">
+<section class="mx-auto w-full max-w-3xl space-y-6">
   <%= render "shared/back_link", jjaek_back: true, path: jjaek_back_path(default_path: jjaek_path(@jjaek)) %>
-  <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-    <% if @jjaek.group_id.present? %>
-      <div class="mb-6 text-sm text-stone-600">
-        <%= jjaek_context_label(@jjaek) %>
-      </div>
-    <% end %>
-
-    <% if @jjaek.recommendation? %>
-      <%= render "jjaeks/recommended_books", books: @jjaek.recommended_books %>
-    <% end %>
-    <% if @jjaek.book.present? %>
-      <div class="rounded-2xl border border-stone-200 bg-stone-50/80 px-4 py-3 text-sm text-stone-600">
-        <div class="flex flex-col items-start gap-3 sm:flex-row">
-          <div class="shrink-0 self-start">
-            <%= render "books/thumbnail",
-                       title: @jjaek.book.title,
-                       thumbnail: @jjaek.book.thumbnail,
-                       url: book_path(@jjaek.book),
-                       size: :small %>
-          </div>
-
-          <div class="min-w-0 flex-1">
-            <%= link_to @jjaek.book.title, book_path(@jjaek.book), class: "text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700" %>
-            <div class="mt-1 text-xs leading-5 text-stone-500"><%= @jjaek.book.authors_text.presence || "-" %></div>
-            <div class="text-xs leading-5 text-stone-500"><%= @jjaek.book.publisher.presence || "-" %></div>
-          </div>
-        </div>
-      </div>
-    <% end %>
-
+  <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
     <% if policy(@jjaek).view_quoted_source? %>
-      <div class="mt-6">
-        <%= render "jjaeks/quoted_jjaek", quoted_jjaek: @jjaek.quoted_jjaek %>
-      </div>
+      <%= render "jjaeks/quoted_jjaek", quoted_jjaek: @jjaek.quoted_jjaek %>
     <% end %>
-
-    <div class="mt-6">
-      <%= form_with model: @jjaek, class: "space-y-4" do |form| %>
-        <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
-        <% if @jjaek.profile_conversation? %>
-          <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation") %></p>
-        <% elsif @jjaek.group_id.blank? %>
-          <div class="space-y-2">
-            <%= form.label :visibility, t("jjaeks.form.visibility"), class: "text-sm font-medium text-stone-700" %>
-            <%= form.select :visibility,
-                            Jjaek.visibilities.keys.map { |visibility| [t("jjaeks.visibility.#{visibility}"), visibility] },
-                            {},
-                            class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
-          </div>
-        <% end %>
-
-        <div class="space-y-2">
-          <% content_label_key = if @jjaek.requote?
-                                  "jjaeks.form.requote_content"
-                                elsif @jjaek.book.present?
-                                  "jjaeks.form.book_jjaek_content"
-                                else
-                                  "jjaeks.form.jjaek_content"
-                                end %>
-          <%= render "shared/content_field", form: form, label_key: content_label_key, rows: 8 %>
-        </div>
-
-        <%= form.submit t("jjaeks.actions.save"), class: "ui-button ui-button-primary" %>
-      <% end %>
-    </div>
+    <%= render "jjaeks/composer", jjaek: @jjaek %>
   </section>
 </section>

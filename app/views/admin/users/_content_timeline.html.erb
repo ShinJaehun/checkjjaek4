@@ -1,3 +1,4 @@
+<% content_sources = admin_content_sources(timeline_items.map(&:record)) %>
 <section id="admin_user_content_timeline" class="space-y-5">
   <div class="overflow-x-auto rounded-3xl border border-stone-200 bg-white shadow-sm">
     <table class="min-w-full text-sm">
@@ -6,7 +7,6 @@
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.kind") %></th>
           <th class="min-w-44 px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.location") %></th>
           <th class="min-w-80 px-4 py-3"><%= t("admin.user_content.fields.body") %></th>
-          <th class="min-w-80 px-4 py-3"><%= t("admin.user_content.fields.reference") %></th>
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.status") %></th>
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.created") %></th>
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.actions") %></th>
@@ -15,16 +15,12 @@
       <tbody>
         <% timeline_items.each do |item| %>
           <% record = item.record %>
-          <% source_jjaek = item.kind == "comments" ? record.jjaek : record.quoted_jjaek %>
-          <% group = item.kind == "comments" ? record.jjaek.group : record.group %>
-          <% kind_key = admin_content_kind_key(item.kind, context: group.present? ? :group : nil) %>
+          <% group = item.record_type == "Comment" ? record.jjaek.group : record.group %>
           <tr id="timeline_<%= item.record_type.downcase %>_<%= record.id %>"
               class="border-b border-stone-100 align-middle hover:bg-stone-50/60 last:border-b-0"
-              data-content-kind="<%= item.kind %>">
+              data-content-kind="<%= admin_content_kind_key(record) %>">
             <td class="px-4 py-3.5 align-middle whitespace-nowrap">
-              <span class="whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium <%= admin_content_kind_badge_classes(kind_key) %>" data-activity-kind="<%= item.kind %>">
-                <%= admin_content_kind_label(kind_key) %>
-              </span>
+              <%= render "admin/shared/content_badges", record: record %>
             </td>
             <td class="px-4 py-3.5 align-middle" data-field="location">
               <% if group %>
@@ -34,37 +30,8 @@
                 <%= t("admin.user_content.locations.personal") %>
               <% end %>
             </td>
-            <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body"><%= admin_content_body(record, record_type: item.record_type) %></td>
-            <td class="px-4 py-3.5 align-middle leading-6" data-field="reference">
-              <% if item.kind == "general" %>
-                <% if !record.deleted? && record.target_user.present? && record.target_user_id != record.user_id %>
-                  <span class="text-stone-500"><%= t("admin.user_content.references.target") %> ·</span>
-                  <%= link_to record.target_user.name,
-                              admin_user_path(record.target_user),
-                              class: "text-stone-700 underline" %>
-                <% end %>
-              <% elsif item.kind == "book" %>
-                <% if !record.deleted? && record.book %>
-                  <span class="text-stone-500"><%= t("admin.user_content.references.book") %> ·</span>
-                  <%= link_to record.book.title,
-                              book_path(record.book),
-                              class: "text-stone-700 underline" %>
-                <% else %>
-                  -
-                <% end %>
-              <% elsif source_jjaek %>
-                <p>
-                  <span class="text-stone-500"><%= t("admin.user_content.references.source") %> ·</span>
-                  <%= link_to source_jjaek.user.name,
-                              admin_user_path(source_jjaek.user),
-                              class: "text-stone-700 underline" %>
-                </p>
-                <p class="mt-1 text-stone-500">
-                  <%= truncate(source_jjaek.content.to_s, length: 140, omission: " [...]").presence || "-" %>
-                </p>
-              <% else %>
-                -
-              <% end %>
+            <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body">
+              <%= render "admin/shared/content_body", record: record, record_type: item.record_type, sources: content_sources %>
             </td>
             <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
               <%= content_status_badge(admin_content_status(record, record_type: item.record_type)) %>

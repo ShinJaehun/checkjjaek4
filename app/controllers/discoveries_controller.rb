@@ -13,17 +13,20 @@ class DiscoveriesController < ApplicationController
   private
 
   def prepare_book_jjaeks
-    @book = daily_order(Book.where(id: public_original_jjaeks.where.not(book_id: nil).select(:book_id))).first
-    @book_jjaeks = @book ? varied_jjaeks(public_original_jjaeks.where(book_id: @book.id)) : []
+    attachments = JjaekRecommendation.where(jjaek_id: public_original_jjaeks.select(:id))
+    @book = daily_order(Book.where(id: attachments.select(:book_id))).first
+    @book_jjaeks = @book ? varied_jjaeks(public_original_jjaeks.where(id: @book.jjaek_recommendations.select(:jjaek_id))) : []
     prepare_current_reading_states_for(@book_jjaeks)
   end
 
   def prepare_general_jjaeks
-    @general_jjaeks = varied_jjaeks(public_original_jjaeks.general_posts.where.not(user_id: current_user.id))
+    @general_jjaeks = varied_jjaeks(public_original_jjaeks
+      .where.not(id: JjaekRecommendation.select(:jjaek_id)).where.not(user_id: current_user.id))
   end
 
   def public_original_jjaeks
     @public_original_jjaeks ||= policy_scope(Jjaek)
+      .without_profile_conversations
       .where(group_id: nil, visibility: :public_jjaek, hidden_at: nil, deleted_at: nil,
              quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
       .where("jjaeks.created_at < ?", @publication_cutoff)
@@ -90,7 +93,7 @@ class DiscoveriesController < ApplicationController
     readable_posts = group_posts.where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
       .or(group_posts.where(quoted_jjaek_id: readable_source_ids))
     @group_posts = readable_posts.where("jjaeks.created_at < ?", @publication_cutoff)
-      .includes(:book, user: { avatar_attachment: :blob })
+      .includes(:attached_books, user: { avatar_attachment: :blob })
       .order(created_at: :desc, id: :desc)
       .limit(3)
       .to_a

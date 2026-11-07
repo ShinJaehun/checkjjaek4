@@ -1,3 +1,6 @@
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
 <section class="mx-auto flex w-full max-w-6xl flex-col gap-6">
   <%= render "shared/back_link", path: jjaek_back_path(default_path: @group.present? ? group_path(@group) : user_library_path(current_user)) %>
   <%= render "books/book_header",

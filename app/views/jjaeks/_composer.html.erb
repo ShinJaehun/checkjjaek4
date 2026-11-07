@@ -1,0 +1,76 @@
+<% posting_group = jjaek.group %>
+<% form_url = local_assigns[:url] || (jjaek.persisted? ? jjaek_path(jjaek) : (posting_group ? group_jjaeks_path(posting_group) : jjaeks_path)) %>
+<% sharing_to_fixed_group = jjaek.new_record? && posting_group && jjaek.quoted_jjaek && jjaek.quoted_jjaek.group_id.nil? %>
+<% form_url = jjaeks_path(share_to_group: 1, quoted_jjaek_id: jjaek.quoted_jjaek_id) if sharing_to_fixed_group %>
+<div id="jjaek-composer" data-selection-url="<%= jjaek_books_path %>"
+     data-editing-id="<%= jjaek.id %>" data-group-id="<%= posting_group&.id %>" data-target-user-id="<%= jjaek.target_user_id %>"
+     class="mx-auto w-full max-w-3xl space-y-4">
+  <%= form_with model: jjaek, url: form_url, id: "jjaek-publish-form", class: "space-y-4" do |form| %>
+    <% unless jjaek.requote? %>
+      <div class="flex justify-end">
+        <button type="button" data-book-selection-open aria-haspopup="dialog" aria-controls="recommendation-window" class="ui-button ui-button-secondary"><%= t("jjaek_books.add") %></button>
+      </div>
+    <% end %>
+    <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
+    <% if local_assigns[:book_context] && jjaek.new_record? && !jjaek.requote? %>
+      <% if book_context.persisted? %>
+        <%= hidden_field_tag :book_context_id, book_context.id %>
+      <% else %>
+        <%= hidden_field_tag :book_context_token, @search_result_token %>
+      <% end %>
+    <% end %>
+    <% unless jjaek.persisted? %>
+      <%= form.hidden_field :group_id if sharing_to_fixed_group && !local_assigns[:destination_groups] %>
+      <%= form.hidden_field :target_user_id if jjaek.target_user_id.present? %>
+      <%= form.hidden_field :quoted_jjaek_id if jjaek.quoted_jjaek_id.present? %>
+    <% end %>
+    <% if local_assigns[:destination_groups] %>
+      <fieldset class="min-w-0 space-y-2">
+        <legend class="text-sm font-medium text-stone-700"><%= t("jjaeks.form.destination_group") %></legend>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <% destination_groups.each do |group| %>
+            <label class="<%= jjaek_option_card_classes %> items-start">
+              <%= form.radio_button :group_id, group.id, required: true, class: "sr-only" %>
+              <%= jjaek_option_icon(:group) %>
+              <span class="min-w-0 space-y-1 break-words">
+                <span class="block"><%= group.name %></span>
+                <span class="block text-xs"><%= t("groups.types.#{group.group_type}") %></span>
+                <span class="block text-xs font-normal"><%= t("jjaeks.form.group_sharing.#{group.public_group? ? 'public' : 'members'}") %></span>
+              </span>
+            </label>
+          <% end %>
+        </div>
+      </fieldset>
+    <% elsif jjaek.profile_conversation? %>
+      <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation", name: jjaek.target_user.name) %></p>
+    <% elsif posting_group.blank? %>
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-medium text-stone-700"><%= t("jjaeks.form.visibility") %></legend>
+        <div class="grid gap-2 sm:grid-cols-3">
+          <% (local_assigns[:visibility_options] || Jjaek.visibilities.keys).each do |visibility| %>
+            <label class="<%= jjaek_option_card_classes %>">
+              <%= form.radio_button :visibility, visibility, required: true, class: "sr-only" %>
+              <%= jjaek_option_icon(visibility) %>
+              <span><%= t("jjaeks.visibility.#{visibility}") %></span>
+            </label>
+          <% end %>
+        </div>
+      </fieldset>
+    <% end %>
+    <% if posting_group.present? %>
+      <p class="text-sm text-stone-600"><%= t("jjaeks.form.group_sharing.#{posting_group.public_group? ? 'public' : 'members'}") %></p>
+    <% end %>
+    <%= render "shared/content_field", form: form, label_key: (jjaek.requote? ? "jjaeks.form.requote_content" : "jjaeks.form.jjaek_content"), rows: 4,
+               placeholder: jjaek_composer_placeholder(jjaek, book_context: local_assigns[:book_context], profile_user: local_assigns[:profile_user]) %>
+  <% end %>
+  <% unless jjaek.requote? %>
+    <% books = @selected_books || (jjaek.new_record? && jjaek.book ? [jjaek.book] : jjaek.attached_books.to_a) %>
+    <% keys = @selected_book_keys || books.map { |book| book.id.to_s } %>
+    <div id="jjaek-attached-books" class="max-h-64 space-y-2 overflow-y-auto overscroll-contain pr-1 sm:max-h-72">
+      <%= render "jjaeks/attached_books", books: books, keys: keys %>
+    </div>
+  <% end %>
+  <div class="flex justify-end">
+    <%= button_tag t(jjaek.persisted? ? "jjaeks.actions.save" : "jjaeks.actions.publish_short"), type: :submit, form: "jjaek-publish-form", class: "ui-button ui-button-primary" %>
+  </div>
+</div>

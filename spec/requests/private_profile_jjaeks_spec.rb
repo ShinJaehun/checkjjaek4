@@ -21,6 +21,8 @@ RSpec.describe "Private profile conversations", type: :request do
         get path
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("PRIVATE_CONVERSATION_BODY")
+        counterpart = participant == author ? owner : author
+        expect(response.body).to include(I18n.t("jjaeks.labels.profile_conversation", name: counterpart.name))
       end
       get jjaek_comments_path(conversation), headers: turbo_headers
       expect(response.body).to include(reply.content)
@@ -63,7 +65,7 @@ RSpec.describe "Private profile conversations", type: :request do
     patch jjaek_path(conversation), params: { jjaek: { content: "Edited conversation", visibility: :private_jjaek, target_user_id: third_party.id } }
     expect(conversation.reload).to have_attributes(content: "Edited conversation", visibility: "public_jjaek", target_user_id: owner.id)
     get edit_jjaek_path(conversation)
-    expect(response.body).to include(I18n.t("jjaeks.form.profile_conversation"))
+    expect(response.body).to include(I18n.t("jjaeks.form.profile_conversation", name: owner.name))
     expect(Nokogiri::HTML(response.body).css("[name='jjaek[visibility]']")).to be_empty
 
     friendship.destroy!
@@ -72,6 +74,24 @@ RSpec.describe "Private profile conversations", type: :request do
     }.not_to change(Jjaek, :count)
     expect(response).to redirect_to(root_path)
     expect(JjaekPolicy.new(owner, conversation)).to be_show
+  end
+
+  it "names the target profile in the private conversation notice and escapes the name" do
+    owner.update!(name: "해웃 <b>독자</b>")
+    sign_in author
+
+    { ko: "이 짹과 댓글은 작성자와 #{owner.name}만 볼 수 있습니다.",
+      en: "Only the author and #{owner.name} can read this post and its comments." }.each do |locale, notice|
+      I18n.with_locale(locale) do
+        get user_path(owner)
+        composer = Nokogiri::HTML(response.body).at_css("#jjaek-composer")
+        expect(composer.text).to include(notice)
+        expect(composer.css("b")).to be_empty
+
+        get user_path(author)
+        expect(Nokogiri::HTML(response.body).text).not_to include(notice)
+      end
+    end
   end
 
   it "blocks new third-party comments and likes and disallows editing a historical third-party comment" do

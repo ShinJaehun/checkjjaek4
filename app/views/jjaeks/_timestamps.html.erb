@@ -1,0 +1,15 @@
+<% detail_context = local_assigns.fetch(:detail_context, false) %>
+<% if detail_context || !jjaek_edited?(jjaek) || jjaek.deleted? %>
+  <span class="inline-block whitespace-nowrap">
+    <time datetime="<%= jjaek.created_at.iso8601 %>"><%= t("jjaeks.meta.created_at", time: l(jjaek.created_at, format: :short)) %></time>
+  </span>
+<% end %>
+<% if jjaek.deleted? %>
+  <span class="inline-block whitespace-nowrap">
+    · <time datetime="<%= jjaek.deleted_at.iso8601 %>"><%= t("jjaeks.meta.deleted_at", time: l(jjaek.deleted_at, format: :short)) %></time>
+  </span>
+<% elsif jjaek_edited?(jjaek) %>
+  <span class="inline-block whitespace-nowrap">
+    <%= "· " if detail_context %><time datetime="<%= jjaek.content_edited_at.iso8601 %>"><%= t("jjaeks.meta.edited_at", time: l(jjaek.content_edited_at, format: :short)) %></time>
+  </span>
+<% end %>

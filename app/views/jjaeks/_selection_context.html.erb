@@ -1,0 +1,12 @@
+<%= hidden_field_tag :attachment, "1", id: nil %>
+<%= hidden_field_tag :group_id, @jjaek.group_id, id: nil if @jjaek.group_id %>
+<%= hidden_field_tag :target_user_id, @jjaek.target_user_id, id: nil if @jjaek.target_user_id %>
+<%= hidden_field_tag :editing_jjaek_id, @jjaek.id, id: nil if @jjaek.persisted? %>
+<%= hidden_field_tag :search_origin, @selection_origin, id: nil %>
+<%= hidden_field_tag :return_to, validated_jjaek_return_path(params[:return_to]), id: nil %>
+<%= hidden_field_tag :query, @query, id: nil unless local_assigns[:search] %>
+<%= hidden_field_tag :page, @page, id: nil unless local_assigns[:search] %>
+<%= hidden_field_tag "selected_books[]", "", id: nil %>
+<% @selected_book_keys.each do |key| %>
+  <%= hidden_field_tag "selected_books[]", key, id: nil %>
+<% end %>

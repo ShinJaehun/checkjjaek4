@@ -1,0 +1,11 @@
+<div class="w-72 max-w-full space-y-1 sm:w-96 xl:w-[32rem]">
+  <div class="truncate" data-field="excerpt"><%= admin_content_body(record, record_type: record_type) %></div>
+  <% metadata = admin_content_metadata(record, sources: sources) %>
+  <% if metadata.any? %>
+    <div class="space-y-1 text-xs leading-5 text-stone-500" data-field="metadata">
+      <% metadata.each do |label| %>
+        <div class="truncate"><%= label %></div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

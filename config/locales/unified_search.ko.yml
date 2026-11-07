@@ -1,9 +1,9 @@
 ko:
   unified_search:
     nav: "검색"
-    title: "통합 검색"
+    title: "검색"
     query_label: "검색어"
-    placeholder: "사용자, 짹, 책짹, 추천짹, 동아리, #태그 검색"
+    placeholder: "사용자, 짹, 동아리, #태그 검색"
     tag_scope_label: "태그 검색 범위"
     tag_scopes:
       all: "모든 짹에서"
@@ -15,10 +15,10 @@ ko:
       all: "전체"
       users: "사용자"
       jjaeks: "짹"
-      book_jjaeks: "책짹"
-      recommendation_jjaeks: "추천짹"
+      book_jjaeks: "짹"
+      recommendation_jjaeks: "짹"
       groups: "동아리"
-    prompt: "검색어 또는 #태그를 입력해 사용자, 짹, 책짹, 추천짹, 동아리를 찾아보세요."
+    prompt: "검색어 또는 #태그를 입력해 사용자, 짹, 동아리를 찾아보세요."
     popular_tags: "인기 태그"
     no_results: "‘%{query}’에 해당하는 검색 결과가 없습니다."
     view_all: "%{type} 전체 보기"

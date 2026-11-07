@@ -7,6 +7,27 @@ RSpec.describe "Books", type: :request do
   let!(:book) { Book.create!(title: "서재에 있는 책", authors_text: "저자") }
 
   describe "GET /books/:id" do
+    it "includes the latest three unified friend posts on every attached book and rechecks friendship" do
+      friend = User.create!(name: "Friend", email: "unified-preview@example.com", password: "password123!")
+      friendship = BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
+      second_book = Book.create!(title: "Other preview book")
+      sign_in friend
+      posts = 4.times.map do |index|
+        post jjaeks_path, params: { selected_books: [book.id, second_book.id], jjaek: { content: "Unified friend #{index}", visibility: :book_friends } }
+        friend.jjaeks.find_by!(content: "Unified friend #{index}")
+      end
+      post jjaeks_path, params: { selected_books: [book.id, second_book.id], jjaek: { content: "Private unified friend", visibility: :private_jjaek } }
+      sign_in user
+      [book, second_book].each do |attached_book|
+        get book_path(attached_book)
+        cards = Nokogiri::HTML(response.body).css("[data-book-friend-activity]")
+        expect(cards.map { |card| card["id"] }).to eq(posts.last(3).reverse.map { |record| "book_friend_activity_jjaek_#{record.id}" })
+      end
+      friendship.destroy!
+      get book_path(book)
+      expect(Nokogiri::HTML(response.body).css("[data-book-friend-activity]")).to be_empty
+    end
+
     it "combines original book jjaeks and recommendations without duplicates on each linked book" do
       other_book = Book.create!(title: "함께 추천하는 책")
       unrelated_book = Book.create!(title: "관련 없는 책")
@@ -108,7 +129,7 @@ RSpec.describe "Books", type: :request do
       expect(header.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to match_array(stickers.map(&:key))
       expect(header.text).not_to include(I18n.t("books.show.library_context_title"))
       expect(response.body).to include('name="jjaek[content]"')
-      expect(response.body).to include(I18n.t("jjaeks.actions.publish_book"))
+      expect(response.body).to include(I18n.t("jjaeks.actions.publish_short"))
     end
 
     it "renders the cover, bibliography, and expandable description once in the title card" do
@@ -193,6 +214,7 @@ RSpec.describe "Books", type: :request do
     end
 
     it "shows the book-context label for book-linked jjaeks" do
+      book.update!(thumbnail: "https://example.com/book-context.jpg")
       user.bookshelf_entries.create!(book:, status: :reading)
       book_jjaek = user.jjaeks.create!(book:, content: "BOOK_CONTEXT_LABEL_BODY")
       sign_in user
@@ -207,11 +229,11 @@ RSpec.describe "Books", type: :request do
       expect(response.body).to include(user.name)
       expect(response.body).to include(user_path(user))
       expect(response.body).to include(book.title)
-      expect(response.body).to include("님의 책짹")
+      expect(response.body).to include("님의 짹")
 
       card = Nokogiri::HTML(response.body).at_css("#jjaek_#{book_jjaek.id}")
-      expect(card.text).not_to include(book.title, book.authors_text)
-      expect(card.css("img[alt='#{book.title}']")).to be_empty
+      expect(card.text).to include(book.title, book.authors_text)
+      expect(card.css("img[alt='#{book.title}']")).not_to be_empty
 
       get user_path(user)
 
@@ -222,7 +244,7 @@ RSpec.describe "Books", type: :request do
     it "shows only original book jjaeks on the book page while keeping the requote count on the original" do
       user.bookshelf_entries.create!(book:, status: :reading)
       original = user.jjaeks.create!(book:, content: "BOOK_ORIGINAL_BODY")
-      requote = user.jjaeks.create!(book:, content: "BOOK_REQUOTE_BODY", quoted_jjaek: original)
+      requote = create_legacy_book_requote(user: user, book:, content: "BOOK_REQUOTE_BODY", quoted_jjaek: original)
       sign_in user
 
       get book_path(book)
@@ -232,7 +254,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include(requote.content)
     end
 
-    it "shows the book as read-only when the user has no bookshelf entry" do
+    it "keeps reading management separate while allowing an unshelved book attachment" do
       other_user = User.create!(name: "Other Reader", email: "other-book-reader@example.com", password: "password123!", password_confirmation: "password123!")
       book.jjaeks.create!(user: other_user, content: "다른 독자의 공개 Jjaek")
       sign_in user
@@ -253,7 +275,7 @@ RSpec.describe "Books", type: :request do
       expect(response.body).not_to include("/bookshelf_entries/new")
       expect(response.body).to include(I18n.t("bookshelf_entries.new.title"))
       expect(response.body).not_to include('name="bookshelf_entry[status]"')
-      expect(response.body).not_to include('name="jjaek[content]"')
+      expect(response.body).to include('name="jjaek[content]"')
     end
 
     it "shows the personal writing form inline with its visibility selector and a separate reading modal" do
@@ -267,10 +289,13 @@ RSpec.describe "Books", type: :request do
       expect(form).to be_present
       expect(form.ancestors("dialog")).to be_empty
       expect(page.at_css("[data-book-modal-auto-open-value='false']")).to be_present
-      expect(form.at_css("input[name='jjaek[visibility]']")).to be_present
-      expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaeks.actions.publish_book"))
+      visibility_choices = form.css("input[type='radio'][name='jjaek[visibility]']")
+      expect(visibility_choices.map { |choice| choice['value'] }).to eq(Jjaek.visibilities.keys)
+      expect(visibility_choices.select { |choice| choice['checked'] }.map { |choice| choice['value'] }).to eq(["public_jjaek"])
+      expect(visibility_choices.all? { |choice| choice.parent.name == "label" && choice.parent.at_css("svg") }).to be(true)
+      expect(page.at_css("button[type='submit'][form='#{form['id']}']").text).to eq(I18n.t("jjaeks.actions.publish_short"))
       panel = page.at_css("#book-jjaek-form")
-      expect(panel["aria-label"]).to eq("책짹 작성")
+      expect(panel.at_css("#jjaek-composer")).to be_present
       expect(panel.at_css("textarea")["rows"]).to eq("4")
       expect(panel.at_css("[data-book-posting-target='title']")).to be_nil
       expect(page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}'] input[type='submit']")).to be_present
@@ -293,7 +318,7 @@ RSpec.describe "Books", type: :request do
       get book_path(book, group_id: group.id, quote_id: original.id, return_to: root_path)
 
       page = Nokogiri::HTML(response.body)
-      form = page.at_css("form[action='#{group_jjaeks_path(group)}']")
+      form = page.at_css("form[action^='#{jjaeks_path}?']")
       expect(form).to be_present
       expect(form.ancestors("dialog")).to be_empty
       expect(form.ancestors("#book-jjaek-form")).not_to be_empty
@@ -339,7 +364,7 @@ RSpec.describe "Books", type: :request do
       expect(form.ancestors("#book-jjaek-form")).not_to be_empty
     end
 
-    it "shows only public personal book jjaeks before the book is added to the library" do
+    it "applies Jjaek visibility independently of shelf registration" do
       friend = User.create!(name: "Reader friend", email: "book-show-friend@example.com", password: "password123!")
       BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
       public_jjaek = friend.jjaeks.create!(book: book, content: "UNSHELVED_PUBLIC_BOOK")
@@ -350,7 +375,8 @@ RSpec.describe "Books", type: :request do
       get book_path(book)
 
       expect(response.body).to include(public_jjaek.content)
-      expect(response.body).not_to include(friend_jjaek.content, private_jjaek.content, 'name="bookshelf_entry[status]"', 'name="jjaek[content]"')
+      expect(response.body).to include(friend_jjaek.content, private_jjaek.content, 'name="jjaek[content]"')
+      expect(response.body).not_to include('name="bookshelf_entry[status]"')
 
       user.bookshelf_entries.create!(book: book)
       get book_path(book)
@@ -461,14 +487,14 @@ RSpec.describe "Books", type: :request do
       expect(activity_card.css("[data-reading-status], [data-reading-sticker]")).to be_empty
       expect(preview.text).to include("FRIEND_PUBLIC_PREVIEW")
       preview_jjaek = preview.at_css("#book_friend_activity_jjaek_#{public_jjaek.id}")
-      expect(preview_jjaek.text).to include("Book friend님의 책짹")
+      expect(preview_jjaek.text).to include("Book friend님의 짹")
       expect(preview_jjaek.at_css("#book_friend_like_action_jjaek_#{public_jjaek.id}")).to be_present
       expect(preview_jjaek.at_css("#book_friend_comment_action_jjaek_#{public_jjaek.id}")).to be_present
       expect(preview_jjaek.at_css("#comments_panel_book_friend_#{book.id}_jjaek_#{public_jjaek.id}")).to be_present
       expect(preview.css("a[href='#{user_path(friend)}']").size).to be >= 2
       expect(preview.css("img[alt='#{friend.name}']").size).to be >= 2
-      expect(preview.css("a[href='#{book_path(book)}']")).to be_empty
-      expect(preview.text).not_to include(book.title, book.authors_text)
+      expect(preview_jjaek.css("a[href^='#{book_path(book)}']")).not_to be_empty
+      expect(preview_jjaek.text).to include(book.title, book.authors_text)
       expect(page.css("#jjaek_#{public_jjaek.id}").size).to eq(1)
     end
 
@@ -477,7 +503,7 @@ RSpec.describe "Books", type: :request do
       BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
       user.bookshelf_entries.create!(book:)
       jjaek = friend.jjaeks.create!(book:, content: "FRIEND_CARD_ACTIONS")
-      user.jjaeks.create!(book:, quoted_jjaek: jjaek, content: "MY_REQUOTE_FOR_FRIEND_CARD")
+      create_legacy_book_requote(user: user, book:, quoted_jjaek: jjaek, content: "MY_REQUOTE_FOR_FRIEND_CARD")
       sign_in user
 
       get book_path(book)
@@ -487,7 +513,7 @@ RSpec.describe "Books", type: :request do
       book_list = page.at_css("#jjaek_#{jjaek.id}")
       expect(preview).to be_present
       expect(book_list).to be_present
-      expect(preview.text).to include("Card friend님의 책짹", jjaek.content)
+      expect(preview.text).to include("Card friend님의 짹", jjaek.content)
       expect(preview.text).to include(I18n.t("jjaeks.meta.requotes", count: 1))
       expect(preview.css("a[href='#{book_path(book)}']")).to be_empty
       expect(preview.css("a").map { |link| link.text.strip }).not_to include(I18n.t("jjaeks.actions.view"))

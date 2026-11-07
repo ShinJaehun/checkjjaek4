@@ -76,7 +76,31 @@ docker compose -p checkjjaek --env-file .env -f compose.prod.yml ps
 curl -fsS http://127.0.0.1:3000/up
 ```
 
-재시작만 필요한 경우 `docker compose -p checkjjaek --env-file .env -f compose.prod.yml restart web`을 사용한다. 문제가 생기면 기록한 이전 `APP_IMAGE`로 되돌리고 `pull web`, `up -d web`을 실행한다. 코드만 이전으로 되돌려도 이미 적용된 DB migration은 되돌아가지 않는다. 스키마나 데이터도 되돌려야 하면 아래 백업을 복원한다.
+재시작만 필요한 경우 `docker compose -p checkjjaek --env-file .env -f compose.prod.yml restart web`을 사용한다. 문제가 생기면 DB와 호환되는 이전 `APP_IMAGE`에 한해 `pull web`, `up -d web`으로 복귀한다. 코드만 이전으로 되돌려도 이미 적용된 DB migration은 되돌아가지 않는다. 통합 짹 전환은 아래 예외 절차를 반드시 따른다.
+
+## 통합 짹 migration 배포 예외
+
+`20261106000000` 적용 후에는 이전 이미지만으로 직접 rollback하지 않는다. 구버전은 일반 짹의
+첨부 연결을 거부하고 새 첨부를 읽지 못하며, migration의 down도 불가능하다.
+
+1. 운영 복원본에서 전환과 복구를 먼저 리허설한다. 배포 직전 기존 `APP_IMAGE`를 기록하고,
+   아래 백업 절차로 웹과 내장 Solid Queue를 중단한 상태에서 **네 운영 DB 모두** 백업한다.
+   백업 파일 무결성을 확인하고 웹을 재개하지 않는다.
+2. 중단 상태에서 전환 전 Jjaek·Comment·Like·알림 건수, ID·시각·visibility·인용/삭제 marker,
+   기존 book_id와 추천 연결의 Book ID·position을 대조 자료로 확보한다. 혼합 충돌·5권 초과는
+   임의 정리하지 말고 배포를 중단한다.
+3. 새 `APP_IMAGE`를 선택하고 위 Compose 명령의 `pull web`, `run --rm web bin/rails db:prepare`를
+   실행한다. 웹·내장 작업은 계속 중단한다. DDL과 백필은 잠금을 유지하므로 무중단 작업으로 취급하지 않는다.
+4. 재개 전에 전후 자료를 대조한다. 기존 ID·본문·시각·관계·공개 범위가 보존되고,
+   단일 book_id는 첨부 1권으로, 추천 연결은 기존 순서 그대로 전환되었으며
+   `book_attachments_migrated`가 완료되었는지 확인한다. 성공 후에만 `up -d web`으로 재개하고 주요 화면을 확인한다.
+5. 실패 시 서비스를 중단한 채 원인을 확인한다. 구버전으로 복귀하려면 배포 직전 백업 시점의
+   네 DB와 그 시점에 호환되는 이미지로 **함께 복구**한다. 아래 복원 절차에서 먼저 해당 `APP_IMAGE`를
+   선택하고 `pull web`을 수행하며, 새 이미지를 선택한 채 복원하지 않는다. 복원 후 웹을 올리기 전에
+   데이터 대조와 호환성을 확인한다.
+
+쓰기 재개 후 백업을 복원하면 백업 이후 변경은 잃는다. 실제 복원 검증 없이 무손실 복구를 보장하지 않는다.
+잠금 시간·디스크/WAL 여유·1GB 서버 메모리는 운영 복원본에서 확인한다.
 
 ## 백업과 복원
 
@@ -108,8 +132,10 @@ docker compose -p checkjjaek --env-file .env -f compose.prod.yml run --rm web bi
 for db in checkjjaek4_production checkjjaek4_production_cache checkjjaek4_production_queue checkjjaek4_production_cable; do
   docker compose -p checkjjaek --env-file .env -f compose.prod.yml exec -T db pg_restore -U checkjjaek4 -d "$db" --clean --if-exists --no-owner --single-transaction < "$BACKUP_DIR/$db.dump" || exit 1
 done
-docker compose -p checkjjaek --env-file .env -f compose.prod.yml up -d web
 ```
+
+네 DB 복원이 모두 성공하면 데이터와 선택한 이미지의 호환성을 대조한 뒤
+`docker compose -p checkjjaek --env-file .env -f compose.prod.yml up -d web`으로 재개한다.
 
 ## Nginx, Cloudflare, 실제 IP
 

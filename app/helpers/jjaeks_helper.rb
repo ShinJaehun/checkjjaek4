@@ -1,4 +1,13 @@
 module JjaeksHelper
+  def attachment_shelf_result(book)
+    result = { title: book.title, authors_text: book.authors_text, translators_text: book.translators_text,
+      publisher: book.publisher, published_on: book.published_on, thumbnail: book.thumbnail,
+      isbn: book.isbn, contents_excerpt: book.description, url: book.external_url,
+      existing_book_id: book.id, bookshelf_entry: (current_user.bookshelf_entries.includes(:bookshelf).find_by(book_id: book.id) if book.persisted?) }
+    result[:search_result_token] = BookSearches::ResultToken.issue(result, user: current_user) unless book.persisted?
+    result
+  end
+
   def jjaek_option_icon(key)
     paths = {
       "personal" => "M4 3h7a3 3 0 0 1 3 3v15a5 5 0 0 0-5-2H4V3Zm10 3h6v13h-1a5 5 0 0 0-5 2",
@@ -23,10 +32,38 @@ module JjaeksHelper
     "ui-choice ui-choice-card"
   end
 
+  def jjaek_visibility_label(jjaek)
+    return t("jjaeks.visibility.#{jjaek.visibility}") unless jjaek.profile_conversation?
+
+    counterpart = if current_user&.id == jjaek.user_id
+      jjaek.target_user
+    elsif current_user&.id == jjaek.target_user_id
+      jjaek.user
+    end
+    if counterpart
+      t("jjaeks.labels.profile_conversation", name: counterpart.name)
+    else
+      t("jjaeks.labels.profile_conversation_participants")
+    end
+  end
+
+  def jjaek_composer_placeholder(jjaek, book_context: nil, profile_user: nil)
+    if book_context.present?
+      t("jjaeks.form.placeholders.book")
+    elsif jjaek.group.present?
+      t("jjaeks.form.placeholders.group", name: jjaek.group.name)
+    elsif (recipient = profile_user || (jjaek.target_user if jjaek.profile_conversation?))
+      t("jjaeks.form.placeholders.profile", name: recipient.name)
+    else
+      t("jjaeks.form.placeholders.home")
+    end
+  end
+
   def current_reading_state_for(jjaek)
     return if jjaek.deleted?
 
-    @current_reading_states.to_h[[ jjaek.user_id, jjaek.book_id ]]
+    book = jjaek.single_attached_book
+    @current_reading_states.to_h[[ jjaek.user_id, book.id ]] if book
   end
 
   def jjaek_hide_reason_options
@@ -63,10 +100,6 @@ module JjaeksHelper
   def jjaek_context_label(jjaek, hide_book_details: false)
     translation_key = jjaek_context_translation_key(jjaek)
     return if translation_key.blank?
-
-    if hide_book_details && translation_key == "jjaeks.contexts.group_book_html"
-      translation_key = "jjaeks.contexts.group_book_without_title_html"
-    end
 
     t(translation_key, **jjaek_context_translation_options(jjaek))
   end
@@ -116,7 +149,7 @@ module JjaeksHelper
     path, filter_keys = jjaek_return_destination(route, query)
     return unless path
 
-    filters = query.permit(*filter_keys).to_h
+    filters = query.except(:commit).permit(*filter_keys).to_h
     if path == book_search_path && include_search_origin
       origin = validated_jjaek_return_path(query[:search_origin], include_search_origin: false)
       filters["search_origin"] = origin if origin
@@ -206,10 +239,6 @@ module JjaeksHelper
     jjaek_likes_count(jjaek).positive? ||
       (current_like && policy(current_like).destroy?) ||
       policy(Like.new(jjaek: jjaek, user: current_user)).create?
-  end
-
-  def show_requote_book_link?(jjaek)
-    jjaek.book.present? && jjaek.quoted_jjaek.present?
   end
 
   def visible_requote_count_for(jjaek)
@@ -360,10 +389,6 @@ module JjaeksHelper
       return "jjaeks.contexts.group_requote_unavailable_html" unless policy(jjaek).view_quoted_source?
 
       jjaek.quoted_jjaek.group_id.blank? ? "jjaeks.contexts.group_share_html" : "jjaeks.contexts.group_quote_html"
-    elsif jjaek.group_id.present? && jjaek.recommendation?
-      "jjaeks.contexts.group_recommendation_html"
-    elsif jjaek.group_id.present? && jjaek.book_id.present?
-      "jjaeks.contexts.group_book_html"
     elsif jjaek.group_id.present?
       "jjaeks.contexts.group_general_html"
     elsif jjaek.quoted_source_deleted?
@@ -374,10 +399,6 @@ module JjaeksHelper
       "jjaeks.contexts.group_requote_html"
     elsif jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
       "jjaeks.contexts.requote_html"
-    elsif jjaek.recommendation?
-      "jjaeks.contexts.recommendation_html"
-    elsif jjaek.book.present?
-      "jjaeks.contexts.book_html"
     elsif profile_context_label?(jjaek)
       "jjaeks.contexts.profile_html"
     else
@@ -390,20 +411,15 @@ module JjaeksHelper
 
     if jjaek.group_id.present?
       options[:group_name] = jjaek_context_group_link(jjaek.group)
-      options[:book_title] = jjaek_context_book_link(jjaek.book) if jjaek.book.present?
       if jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
         options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user, avatar: true)
-        options[:quoted_context_label] = t("jjaeks.contexts.quoted_#{jjaek.quoted_jjaek.content_kind}")
       end
     elsif jjaek.quoted_jjaek.present? && policy(jjaek).view_quoted_source?
       options[:quoted_user_name] = jjaek_context_user_link(jjaek.quoted_jjaek.user, avatar: true)
-      options[:quoted_context_label] = t("jjaeks.contexts.quoted_#{jjaek.quoted_jjaek.content_kind}")
       if jjaek.quoted_jjaek.group_id.present?
         group = jjaek.quoted_jjaek.group
         options[:group_name] = jjaek_context_group_link(group)
       end
-    elsif jjaek.book.present?
-      options[:book_title] = jjaek_context_book_link(jjaek.book)
     elsif profile_context_label?(jjaek)
       options[:target_user_name] = jjaek_context_user_link(jjaek.target_user, avatar: true)
     end
@@ -434,7 +450,4 @@ module JjaeksHelper
     end
   end
 
-  def jjaek_context_book_link(book)
-    link_to(book.title, book_path(book, book_navigation_params), class: "font-semibold text-stone-900 hover:text-stone-700")
-  end
 end

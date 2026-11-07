@@ -215,7 +215,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include('name="jjaek[target_user_id]"')
       form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
       expect(form.ancestors("dialog")).to be_empty
-      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation", name: profile_user.name))
       expect(form.css("[name='jjaek[visibility]']")).to be_empty
     end
 
@@ -818,7 +818,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).to include("PROFILE_REQUOTE_VISIBLE_ORIGINAL")
       expect(response.body).to include(other_user.name)
       expect(response.body).to include(user_path(other_user))
-      expect(page_text).to include("Profile User님이 Other님의 짹을 개인 소식에 다시짹")
+      expect(page_text).to include("Profile User님이 Other님의 짹을 다시짹")
     end
 
     it "does not show BookActivity on a stranger's profile" do
@@ -945,7 +945,7 @@ RSpec.describe "Users", type: :request do
       expect(page.at_css(invitation_form)).to be_present
       expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
       form = page.at_css(%(form[action="#{jjaeks_path}"]))
-      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation", name: profile_user.name))
       expect(form.css('[name="jjaek[visibility]"]')).to be_empty
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")
       expect(page.text).to include("내용을 입력해 주세요.")
@@ -961,7 +961,7 @@ RSpec.describe "Users", type: :request do
       BookActivity.create!(user: profile_user, book: activity_book, bookshelf_entry: profile_user.bookshelf_entries.find_or_create_by!(book: activity_book), action: :added_to_shelf)
       source = other_user.jjaeks.create!(content: "PROFILE_VISIBLE_SOURCE", visibility: :public_jjaek)
       visible_requote = profile_user.jjaeks.create!(quoted_jjaek: source, content: "PROFILE_VISIBLE_REQUOTE")
-      viewer.jjaeks.create!(quoted_jjaek: profile_jjaek, book:, content: "PROFILE_COUNTED_REQUOTE")
+      create_legacy_book_requote(user: viewer, quoted_jjaek: profile_jjaek, book:, content: "PROFILE_COUNTED_REQUOTE")
       inaccessible_group = Group.create!(lifecycle_status: :active, group_admin: profile_user, name: "Inaccessible profile group", group_type: :private_group)
       excluded_jjaek = profile_user.jjaeks.create!(group: inaccessible_group, content: "PROFILE_EXCLUDED_GROUP")
       invitable_group = Group.create!(lifecycle_status: :active, group_admin: viewer, name: "Invitable", group_type: :private_group)
@@ -997,7 +997,7 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include(profile_private_jjaek.content, excluded_jjaek.content, private_book.title)
       expect(page.at_css('input[name="jjaek[target_user_id]"]')["value"]).to eq(profile_user.id.to_s)
       form = page.at_css(%(form[action="#{jjaeks_path}"]))
-      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation"))
+      expect(form.text).to include(I18n.t("jjaeks.form.profile_conversation", name: profile_user.name))
       expect(form.css('[name="jjaek[visibility]"]')).to be_empty
       expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content)
       expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")

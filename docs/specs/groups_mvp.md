@@ -170,6 +170,10 @@ GroupMembership 대상 `ModerationAction`은 membership hard delete 후에도 �
 
 ## 동아리 Jjaek 작성·조회
 
+통합 작성 변경분은 `unified_jjaeks.md` 12절을 따른다. 동아리는 해당 문맥의 공통 Rails 폼과
+책 0~5권 선택 플로팅 창을 사용한다. 아래 책짹 전용 selector·서재 보유 조건은 통합 정책으로 대체하며,
+개인 visibility와 Group 접근 정책의 분리 및 회원·운영 상태에 따른 권한은 보존한다.
+
 현재 Jjaek의 `public_jjaek`, `book_friends`, `private_jjaek`은 사용자 관계를 기준으로 한 개인 Jjaek의 공개 범위다.
 동아리는 별도의 게시 공간이므로, 동아리 접근 권한을 기존 visibility 값으로 표현하지 않는다.
 

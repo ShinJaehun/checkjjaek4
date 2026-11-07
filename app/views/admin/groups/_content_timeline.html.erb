@@ -1,3 +1,4 @@
+<% content_sources = admin_content_sources(threads.flat_map { |thread| [thread.root, *thread.comments] }) %>
 <section id="admin_group_content_timeline" class="space-y-5">
   <div class="overflow-x-auto rounded-3xl border border-stone-200 bg-white shadow-sm">
     <table class="min-w-full text-sm">
@@ -6,7 +7,6 @@
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.kind") %></th>
           <th class="min-w-36 px-4 py-3 whitespace-nowrap"><%= t("admin.group_content.fields.author") %></th>
           <th class="min-w-80 px-4 py-3"><%= t("admin.user_content.fields.body") %></th>
-          <th class="min-w-80 px-4 py-3"><%= t("admin.user_content.fields.reference") %></th>
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.status") %></th>
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.created") %></th>
           <th class="px-4 py-3 whitespace-nowrap"><%= t("admin.user_content.fields.actions") %></th>
@@ -20,14 +20,14 @@
                        record: comment,
                        root: thread.root,
                        record_type: "Comment",
-                       kind: "comments" %>
+                       content_sources: content_sources %>
           <% end %>
 
           <%= render "admin/groups/content_timeline_row",
                      record: thread.root,
                      root: thread.root,
                      record_type: "Jjaek",
-                     kind: thread.root.content_kind %>
+                     content_sources: content_sources %>
         </tbody>
       <% end %>
     </table>

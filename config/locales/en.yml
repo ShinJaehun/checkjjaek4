@@ -180,6 +180,7 @@ en:
       handle: "Public handle (English)"
       password: "Password"
       password_confirmation: "Confirm password"
+      remember_me: "Remember me"
     notices:
       signed_out: "Signed out successfully."
     passwords:
@@ -212,7 +213,7 @@ en:
     empty_feed: "No updates are available yet. Add a book to your shelf or follow another reader."
     new_jjaek_title: "Jjaek"
     actions:
-      search_books: "Search books"
+      search_books: "Find books"
       my_shelf: "Open my shelf"
   discovery:
     nav: "Discover"
@@ -246,6 +247,12 @@ en:
     range: "%{first}–%{last} of %{total}"
     previous: "Previous"
     next: "Next"
+  content_inventory:
+    metadata:
+      books:
+        one: "%{count} book attached"
+        other: "%{count} books attached"
+      requote: "ReJjaek"
   content_statuses:
     active: "Normal"
     hidden: "Hidden"
@@ -260,12 +267,14 @@ en:
       navigation_label: "Content type"
       navigation:
         all: "All"
-        general: "Jjaeks"
-        book: "Book Jjaeks"
+        group: "Club Jjaeks"
+        general: "Club Jjaeks"
+        book: "Club Jjaeks"
         comments: "Comments"
       kinds:
-        general: "Jjaek"
-        book: "Book Jjaek"
+        group_general: "Club Jjaeks"
+        general: "Club Jjaeks"
+        book: "Club Jjaeks"
         comments: "Comment"
       fields:
         kind: "Type"
@@ -540,7 +549,7 @@ en:
       title: "Club Jjaeks and Book Jjaeks"
       empty: "No Jjaeks or Book Jjaeks have been added to this club yet."
       general_description: "Leave a Jjaek in this club."
-      book_search_context: "Find a book for a Book Jjaek in %{group_name}."
+      book_search_context: "Find a book to attach to a Jjaek in %{group_name}."
   admin:
     actions:
       show: "Details"
@@ -585,6 +594,11 @@ en:
         restore_failed: "The post could not be restored."
     user_content:
       title: "User activity"
+      metadata:
+        multiple_books:
+          one: "%{title} and %{count} other book"
+          other: "%{title} and %{count} other books"
+        source: "%{author} : %{content}"
       total_count: "Total %{count}"
       location_navigation_label: "Area"
       location_navigation:
@@ -595,15 +609,16 @@ en:
       navigation:
         all: "All"
         general: "Jjaeks"
-        book: "Book Jjaeks"
+        group: "Club Jjaeks"
+        book: "Jjaeks"
         requote: "ReJjaeks"
         comments: "Comments"
       kinds:
         general: "Jjaeks"
-        book: "Book Jjaeks"
+        book: "Jjaeks"
         requote: "ReJjaeks"
         group_general: "Club Jjaeks"
-        group_book: "Club Book Jjaeks"
+        group_book: "Club Jjaeks"
         comments: "Comments"
       locations:
         personal: "Personal"
@@ -637,8 +652,10 @@ en:
       navigation_label: "Type"
       navigation:
         all: "All"
+        requote: "ReJjaeks"
+        group: "Club Jjaeks"
         general: "Club Jjaeks"
-        book: "Club Book Jjaeks"
+        book: "Club Jjaeks"
         comments: "Comments"
       fields:
         author: "Author"
@@ -989,15 +1006,15 @@ en:
       updated: "Comment updated."
     title: "Comments"
   book_search:
-    nav: "Book Search"
-    title: "Book Search"
+    nav: "Find books"
+    title: "Find books"
     description: "Find a book first before linking it to activity."
     placeholder: "Which book are you looking for?"
     modal:
       group_destination: "Post to %{group_name} club"
     form:
       query: "Query"
-      submit: "Search"
+      submit: "Find books"
     empty:
       title: "No search results"
       description: "Try another keyword."
@@ -1321,14 +1338,14 @@ en:
       group_general_html: "%{author_name} posted a Jjaek in %{group_name}"
       group_book_html: "%{author_name} posted a Book Jjaek in %{group_name} · %{book_title}"
       group_book_without_title_html: "%{author_name} posted a Book Jjaek in %{group_name}"
-      group_share_html: "%{author_name} ReJjaeked %{quoted_user_name}'s %{quoted_context_label} to %{group_name}"
-      group_quote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s %{quoted_context_label} within %{group_name}"
+      group_share_html: "%{author_name} ReJjaeked %{quoted_user_name}'s Jjaek to %{group_name}"
+      group_quote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s Jjaek to %{group_name}"
       group_requote_unavailable_html: "%{author_name}'s ReJjaek in %{group_name}"
       general_html: "%{author_name}'s Jjaek"
       profile_html: "%{author_name}'s Jjaek for %{target_user_name}"
       book_html: "%{author_name}'s Book Jjaek"
-      requote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s %{quoted_context_label} to their updates"
-      group_requote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s %{quoted_context_label} from %{group_name} to their updates"
+      requote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s Jjaek"
+      group_requote_html: "%{author_name} ReJjaeked %{quoted_user_name}'s Jjaek from %{group_name}"
       deleted_requote_html: "%{author_name}'s ReJjaek"
       quoted_general: "Jjaek"
       quoted_book: "Book Jjaek"
@@ -1363,10 +1380,19 @@ en:
       destination_group: "Group to ReJjaek in"
       choose_group: "Choose a group"
       selected_group: "Destination group: %{group_name}"
-      profile_conversation: "Only the author and profile owner can read this post and its comments."
+      profile_conversation: "Only the author and %{name} can read this post and its comments."
+      group_sharing:
+        public: "Anyone who is signed in can read this Jjaek and its comments."
+        members: "Only club members can read this Jjaek and its comments."
       visibility: "Visibility"
+      placeholders:
+        home: "Share an update..."
+        group: "Leave a Jjaek in %{name}..."
+        profile: "Leave a Jjaek for %{name}..."
+        book: "Leave a Jjaek about this book..."
     labels:
-      profile_conversation: "Just the two of you"
+      profile_conversation: "Only %{name} and me"
+      profile_conversation_participants: "Participants only"
       requote: "ReJjaek from %{name}"
       quoted_general_suffix: "'s Jjaek"
       quoted_book_suffix: "'s Book Jjaek"

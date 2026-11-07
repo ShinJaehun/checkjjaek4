@@ -161,6 +161,10 @@ class User < ApplicationRecord
     super && active_account?
   end
 
+  def remember_me?(token, generated_at)
+    active_for_authentication? && super
+  end
+
   def inactive_message
     withdrawn? ? :withdrawn : super
   end

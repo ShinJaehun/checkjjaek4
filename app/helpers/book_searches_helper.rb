@@ -1,26 +1,14 @@
 module BookSearchesHelper
   def book_search_page_path(page)
-    options = @recommendation_context ? recommendation_search_params(page: page) :
-      { query: @query, page: page, group_id: @group&.id, search_origin: book_search_origin_path }
-    book_search_path(options)
+    return book_search_path(recommendation_search_params(page: page)) if @recommendation_context
+    book_search_path(query: @query, page: page, group_id: @group&.id, search_origin: book_search_origin_path)
   end
 
-  def recommendation_search_params(selected_books: @selected_book_keys, query: @query, page: @page)
-    { recommendation: 1, selected_books: (@editing_recommendation ? [ "", *selected_books ] : selected_books),
-      query: query, page: page, group_id: @group&.id, search_origin: recommendation_origin_path,
-      editing_jjaek_id: @editing_recommendation&.id,
-      return_to: (@editing_recommendation ? validated_jjaek_return_path(params[:return_to]) : nil) }.compact
-  end
-
-  def recommendation_origin_path
-    if @editing_recommendation
-      return validated_jjaek_return_path(params[:return_to]) || jjaek_path(@editing_recommendation)
-    end
-
-    candidate = book_search_origin_path
-    return candidate if candidate && URI.parse(candidate).path != book_search_path
-
-    @group ? group_path(@group) : root_path
+  def recommendation_search_params(page: @page)
+    { attachment: 1, query: @query, page: page, selected_books: ["", *@selected_book_keys],
+      group_id: @jjaek.group_id, target_user_id: @jjaek.target_user_id,
+      editing_jjaek_id: @jjaek.id, search_origin: @selection_origin,
+      return_to: validated_jjaek_return_path(params[:return_to]) }.compact
   end
 
   def recommendation_result_isbn(book)
@@ -32,11 +20,9 @@ module BookSearchesHelper
   def recommendation_result_selected?(result)
     @selected_books.any? do |book|
       (result[:existing_book_id].present? && book.id == result[:existing_book_id]) ||
-        (book.canonical_isbn.present? && book.canonical_isbn == Book.canonical_isbn_for(result[:isbn])) ||
+        (book.canonical_isbn.present? && book.canonical_isbn == recommendation_result_isbn(result)) ||
         (book.external_url.present? && book.external_url == result[:url])
     end
-  rescue Book::IdentityConflict
-    false
   end
 
   def book_search_result_dom_id(book)

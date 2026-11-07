@@ -47,12 +47,8 @@ class GroupContentThreadQuery
 
   def apply_content_section
     case @content_section
-    when "general"
-      @thread_scope = non_requotes(@thread_scope).general_posts
-    when "book"
-      @thread_scope = non_requotes(@thread_scope).where.not(book_id: nil)
-    when "recommendation"
-      @thread_scope = @thread_scope.recommendation_posts
+    when "group"
+      @thread_scope = @thread_scope.where.not(group_id: nil)
     when "comments"
       @thread_scope = @thread_scope.where(id: @scoped_comments.select(:jjaek_id))
     end
@@ -107,10 +103,6 @@ class GroupContentThreadQuery
     @thread_scope.where(id: root_ids).or(@thread_scope.where(id: comment_root_ids))
   end
 
-  def non_requotes(scope)
-    scope.where(quoted_jjaek_id: nil, quoted_source_deleted_at: nil)
-  end
-
   def page_sql
     offset = (page - 1) * per_page
     direction = SORT_DIRECTIONS.fetch(@params[:content_sort].to_s, SORT_DIRECTIONS["recent"])
@@ -149,7 +141,7 @@ class GroupContentThreadQuery
   def hydrate(rows)
     root_ids = rows.map { |row| row.fetch("jjaek_id").to_i }
     roots = @thread_scope.where(id: root_ids)
-      .includes(:book, user: { avatar_attachment: :blob })
+      .includes(:group, :attached_books, user: { avatar_attachment: :blob })
       .index_by(&:id)
     comments_by_root_id = @scoped_comments.where(jjaek_id: root_ids)
       .includes(user: { avatar_attachment: :blob })
