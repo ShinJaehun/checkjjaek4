@@ -180,6 +180,7 @@ en:
       handle: "Public handle (English)"
       password: "Password"
       password_confirmation: "Confirm password"
+      remember_me: "Remember me"
     notices:
       signed_out: "Signed out successfully."
     passwords:

@@ -12,6 +12,11 @@
       <%= form.password_field :password, autocomplete: "current-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
     </div>
 
+    <div class="flex items-center gap-2">
+      <%= form.check_box :remember_me, checked: false, class: "h-4 w-4 shrink-0 accent-stone-900" %>
+      <%= form.label :remember_me, t("auth.form.remember_me"), class: "text-sm text-stone-700" %>
+    </div>
+
     <%= form.submit t("auth.actions.sign_in"), class: "ui-button ui-button-primary w-full" %>
   <% end %>
 
