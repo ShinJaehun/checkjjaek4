@@ -35,15 +35,15 @@ RSpec.describe "Book context composition", type: :system do
     fill_in "jjaek[content]", with: "Book page draft"
     choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
     click_button I18n.t("jjaek_books.add")
-    within("#recommendation-window") do
-      fill_in "recommendation-query", with: other_book.title
+    within("#book-selection-window") do
+      fill_in "book-selection-query", with: other_book.title
       click_button I18n.t("book_search.form.submit")
     end
-    within("#recommendation-search-results article[data-book-id='#{other_book.id}']") do
+    within("#book-selection-search-results article[data-book-id='#{other_book.id}']") do
       click_button I18n.t("jjaek_books.choose")
       expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
     end
-    within("#recommendation-window") { click_button I18n.t("recommendations.finish_selection") }
+    within("#book-selection-window") { click_button I18n.t("jjaek_books.finish_selection") }
     expect(page).to have_current_path(book_path(book), ignore_query: true)
     expect(page).to have_field("jjaek[content]", with: "Book page draft")
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)

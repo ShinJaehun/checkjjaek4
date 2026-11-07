@@ -79,11 +79,11 @@ module JjaeksHelper
   def jjaek_hidden_title(jjaek)
     action = jjaek.current_hide_action
     if action&.group_authority?
-      key = jjaek.book.present? ? "hidden_book_by_group_admin" : "hidden_by_group_admin"
+      key = "hidden_by_group_admin"
       return t("jjaeks.moderation.#{key}")
     end
 
-    key = jjaek.book.present? ? "hidden_book_by_system_admin" : "hidden_by_system_admin"
+    key = "hidden_by_system_admin"
     t("jjaeks.moderation.#{key}")
   end
 
@@ -149,7 +149,8 @@ module JjaeksHelper
     path, filter_keys = jjaek_return_destination(route, query)
     return unless path
 
-    filters = query.except(:commit).permit(*filter_keys).to_h
+    allowed_keys = filter_keys.flat_map { |key| key.is_a?(Hash) ? key.keys : key }
+    filters = query.slice(*allowed_keys).permit(*filter_keys).to_h
     if path == book_search_path && include_search_origin
       origin = validated_jjaek_return_path(query[:search_origin], include_search_origin: false)
       filters["search_origin"] = origin if origin
@@ -188,8 +189,6 @@ module JjaeksHelper
   def jjaek_default_return_path(jjaek)
     if jjaek&.group.present?
       group_path(jjaek.group)
-    elsif jjaek&.book.present?
-      book_path(jjaek.book)
     elsif jjaek&.target_user.present?
       user_path(jjaek.target_user)
     else

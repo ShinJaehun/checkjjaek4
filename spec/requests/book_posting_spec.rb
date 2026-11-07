@@ -130,7 +130,7 @@ RSpec.describe "Book context in the common composer", type: :request do
         expect {
           post jjaeks_path, params: { book_context_token: token, selected_books: selection,
             jjaek: { content: "x" * 201, visibility: :private_jjaek } }, headers: { "Accept" => accept }
-        }.not_to change { [ Book.count, Jjaek.count, JjaekRecommendation.count, BookshelfEntry.count, BookActivity.count ] }
+        }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count, BookshelfEntry.count, BookActivity.count ] }
         expect(response).to have_http_status(:unprocessable_content)
         page = Nokogiri::HTML(response.body)
         expect(page.at_css("#book-jjaek-form textarea").text.strip).to eq("x" * 201)
@@ -161,7 +161,7 @@ RSpec.describe "Book context in the common composer", type: :request do
     expect {
       post group_jjaeks_path(group), params: { selected_books: [ book.id, shelved_book.id ], jjaek: { content: "Group note", visibility: :private_jjaek } }
     }.to change(Jjaek, :count).by(1).and change(BookshelfEntry, :count).by(0).and change(BookActivity, :count).by(0)
-    expect(Jjaek.last).to have_attributes(group_id: group.id, visibility: "public_jjaek", book_id: nil)
+    expect(Jjaek.last).to have_attributes(group_id: group.id, visibility: "public_jjaek")
     expect(Jjaek.last.attached_books).to eq([ book, shelved_book ])
     entry.reload
     expect([ entry.status, entry.bookshelf_id, entry.sticker_definition_ids.sort ]).to eq(reading_state)
@@ -199,9 +199,9 @@ RSpec.describe "Book context in the common composer", type: :request do
     expect {
       post jjaeks_path, params: { book_id: book.id, jjaek: { book_id: other.id, content: "Mismatch" } }
     }.not_to change(Jjaek, :count)
-    source = admin.jjaeks.create!(book:, content: "Source")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: admin, content: "Source")
     expect {
-      post jjaeks_path, params: { jjaek: { book_id: book.id, quoted_jjaek_id: source.id, content: "Quote with book" } }
+      post jjaeks_path, params: { selected_books: [book.id], jjaek: { quoted_jjaek_id: source.id, content: "Quote with book" } }
     }.not_to change(Jjaek, :count)
   end
 

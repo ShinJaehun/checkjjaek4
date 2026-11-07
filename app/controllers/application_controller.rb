@@ -91,14 +91,14 @@ class ApplicationController < ActionController::Base
   end
 
   def prepare_jjaek_card_summaries_for(jjaeks)
-    prepare_recommendation_books_for(jjaeks)
+    prepare_attached_books_for(jjaeks)
     prepare_jjaek_comment_counts_for(jjaeks)
     prepare_jjaek_like_summaries_for(jjaeks)
   end
 
-  def prepare_recommendation_books_for(jjaeks)
+  def prepare_attached_books_for(jjaeks)
     ActiveRecord::Associations::Preloader.new(
-      records: Array(jjaeks), associations: [ :recommended_books, :attached_books, { quoted_jjaek: [ :recommended_books, :attached_books ] } ]
+      records: Array(jjaeks), associations: [ :attached_books, :jjaek_book_attachments, { quoted_jjaek: :attached_books } ]
     ).call
   end
 

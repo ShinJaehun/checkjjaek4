@@ -13,15 +13,15 @@ class DiscoveriesController < ApplicationController
   private
 
   def prepare_book_jjaeks
-    attachments = JjaekRecommendation.where(jjaek_id: public_original_jjaeks.select(:id))
+    attachments = JjaekBookAttachment.where(jjaek_id: public_original_jjaeks.select(:id))
     @book = daily_order(Book.where(id: attachments.select(:book_id))).first
-    @book_jjaeks = @book ? varied_jjaeks(public_original_jjaeks.where(id: @book.jjaek_recommendations.select(:jjaek_id))) : []
+    @book_jjaeks = @book ? varied_jjaeks(public_original_jjaeks.where(id: @book.jjaek_book_attachments.select(:jjaek_id))) : []
     prepare_current_reading_states_for(@book_jjaeks)
   end
 
   def prepare_general_jjaeks
     @general_jjaeks = varied_jjaeks(public_original_jjaeks
-      .where.not(id: JjaekRecommendation.select(:jjaek_id)).where.not(user_id: current_user.id))
+      .where.not(id: JjaekBookAttachment.select(:jjaek_id)).where.not(user_id: current_user.id))
   end
 
   def public_original_jjaeks

@@ -8,7 +8,7 @@
   <%= form_with model: jjaek, url: form_url, id: "jjaek-publish-form", class: "space-y-4" do |form| %>
     <% unless jjaek.requote? %>
       <div class="flex justify-end">
-        <button type="button" data-book-selection-open aria-haspopup="dialog" aria-controls="recommendation-window" class="ui-button ui-button-secondary"><%= t("jjaek_books.add") %></button>
+        <button type="button" data-book-selection-open aria-haspopup="dialog" aria-controls="book-selection-window" class="ui-button ui-button-secondary"><%= t("jjaek_books.add") %></button>
       </div>
     <% end %>
     <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
@@ -64,7 +64,7 @@
                placeholder: jjaek_composer_placeholder(jjaek, book_context: local_assigns[:book_context], profile_user: local_assigns[:profile_user]) %>
   <% end %>
   <% unless jjaek.requote? %>
-    <% books = @selected_books || (jjaek.new_record? && jjaek.book ? [jjaek.book] : jjaek.attached_books.to_a) %>
+    <% books = @selected_books || jjaek.attached_books.to_a %>
     <% keys = @selected_book_keys || books.map { |book| book.id.to_s } %>
     <div id="jjaek-attached-books" class="max-h-64 space-y-2 overflow-y-auto overscroll-contain pr-1 sm:max-h-72">
       <%= render "jjaeks/attached_books", books: books, keys: keys %>

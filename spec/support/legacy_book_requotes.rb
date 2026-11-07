@@ -3,8 +3,8 @@
 module LegacyBookRequotes
   def create_legacy_book_requote(user:, book:, **attributes)
     quote = user.jjaeks.create!(**attributes)
-    quote.update_columns(book_id: book.id)
-    JjaekRecommendation.insert_all!([ { jjaek_id: quote.id, book_id: book.id, position: 0 } ])
+    quote.update_columns(legacy_source_kind: "book")
+    JjaekBookAttachment.insert_all!([ { jjaek_id: quote.id, book_id: book.id, position: 0, visible_on_tombstone: true } ])
     quote.reload
   end
 end

@@ -51,7 +51,7 @@ module ProfileContext
     policy_scope(
       Jjaek.where(user_id: @user.id).or(Jjaek.where(target_user_id: @user.id)),
       policy_scope_class: JjaekPolicy::ProfileScope
-    ).includes(:book, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ]).recent
+    ).includes(:attached_books, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :attached_books, :group ]).recent
   end
 
   def prepare_profile_activity_items

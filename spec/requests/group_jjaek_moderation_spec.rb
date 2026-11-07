@@ -15,7 +15,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
   it "hides group jjaeks and group book jjaeks with group-admin attribution" do
     jjaeks = [
       author.jjaeks.create!(group:, content: "Group Jjaek"),
-      author.jjaeks.create!(group:, book:, content: "Group Book Jjaek")
+      create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: author, group:, content: "Group Book Jjaek")
     ]
 
     jjaeks.each do |jjaek|
@@ -40,7 +40,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
       )
 
       get jjaek_path(jjaek)
-      expected_title = jjaek.book.present? ? "동아리 관리자에 의해 숨겨진 책짹입니다." : "동아리 관리자에 의해 숨겨진 짹입니다."
+      expected_title = "동아리 관리자에 의해 숨겨진 짹입니다."
       expect(response.body).to include(expected_title, "기타", "Not accepted", %(href="#{new_jjaek_group_restoration_path(jjaek)}"), %(id="group_moderation_history"))
       detail = Nokogiri::HTML(response.body)
       hidden_article = detail.at_css("#jjaek_#{jjaek.id}")

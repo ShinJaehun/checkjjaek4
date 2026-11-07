@@ -4,7 +4,7 @@ RSpec.describe Jjaek, "book attachments", type: :model do
   let(:user) { User.create!(name: "Reader", email: "attachments@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "First") }
   let(:other_book) { Book.create!(title: "Second") }
-  let(:jjaek) { user.jjaeks.create!(book:, content: "Original") }
+  let(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, content: "Original") }
 
   it "accepts optional ordered books without a bookshelf, including profile conversations" do
     target = User.create!(name: "Friend", email: "attachment-friend@example.com", password: "password123!")
@@ -22,11 +22,23 @@ RSpec.describe Jjaek, "book attachments", type: :model do
       expect(jjaek.reload.attached_books).to eq([ book ])
     end
     expect(jjaek.update_attached_books(books: [])).to be(true)
-    expect(jjaek.reload.book_id).to be_nil
-    expect(jjaek).to be_book_attachments_migrated
+    expect(jjaek.reload.attributes).not_to have_key("book_id")
+    expect(jjaek.legacy_source_kind).to be_nil
+
     expect(jjaek.attached_books).to be_empty
     jjaek.update!(content: "Still empty")
     expect(jjaek.reload.attached_books).to be_empty
+  end
+
+  it "keeps identical ordered links and applies a changed selection order" do
+    post = create_jjaek_with_books(user:, books: [ book, other_book ], content: "Ordered books")
+    original_links = post.jjaek_book_attachments.map(&:attributes)
+
+    expect(post.update_attached_books(books: [ book, other_book ], attributes: { content: "Edited" })).to be(true)
+    expect(post.reload.jjaek_book_attachments.map(&:attributes)).to eq(original_links)
+
+    expect(post.update_attached_books(books: [ other_book, book ])).to be(true)
+    expect(post.reload.attached_books).to eq([ other_book, book ])
   end
 
   it "rolls back books, links, content, tags and visibility on a failed replacement" do
@@ -48,10 +60,10 @@ RSpec.describe Jjaek, "book attachments", type: :model do
 
   it "rejects new requote books but preserves historical books and deleted-source edits" do
     source = user.jjaeks.create!(content: "Source")
-    expect(user.jjaeks.build(book:, quoted_jjaek: source, content: "New quote")).not_to be_valid
+    expect(build_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, quoted_jjaek: source, content: "New quote")).not_to be_valid
     quote = user.jjaeks.create!(quoted_jjaek: source, content: "Historical quote")
-    quote.update_columns(book_id: book.id)
-    JjaekRecommendation.insert_all!([ { jjaek_id: quote.id, book_id: book.id, position: 0 } ])
+    quote.update_columns(legacy_source_kind: "book")
+    JjaekBookAttachment.insert_all!([ { jjaek_id: quote.id, book_id: book.id, position: 0, visible_on_tombstone: true } ])
     expect(quote.reload.update_attached_books(books: [ book ], attributes: { content: "Edited" })).to be(true)
     expect(quote.update_attached_books(books: [ book, other_book ])).to be(false)
     expect(quote.reload.attached_books).to eq([ book ])

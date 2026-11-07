@@ -1,9 +1,9 @@
-<% if @recommendation_context %>
+<% if @book_selection_context %>
   <div hidden><div id="jjaek-composer" data-turbo-permanent></div></div>
 <% end %>
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-6">
-  <%= render "shared/back_link", path: (@recommendation_context ? @selection_origin : (book_search_origin_path || (@group.present? ? group_path(@group) : user_library_path(current_user)))) %>
-  <% unless @recommendation_context %>
+  <%= render "shared/back_link", path: (@book_selection_context ? @selection_origin : (book_search_origin_path || (@group.present? ? group_path(@group) : user_library_path(current_user)))) %>
+  <% unless @book_selection_context %>
     <section class="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
       <h1 class="text-3xl font-semibold tracking-tight text-stone-900"><%= t("book_search.title") %></h1>
       <p class="mt-2 text-sm leading-6 text-stone-500"><%= t("book_search.description") %></p>
@@ -16,8 +16,8 @@
     </section>
   <% end %>
 
-  <% if @recommendation_context %>
-    <%= turbo_frame_tag "recommendation-search-results", data: { turbo_action: "advance" } do %>
+  <% if @book_selection_context %>
+    <%= turbo_frame_tag "book-selection-search-results", data: { turbo_action: "advance" } do %>
       <%= render "book_searches/results" %>
     <% end %>
   <% else %>

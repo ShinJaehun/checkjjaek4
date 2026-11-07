@@ -39,18 +39,17 @@ RSpec.describe "Feed pagination", type: :request do
       attributes = location == :group_book ? { group: } : {}
       posts = Array.new(23) do |index|
         if index.even?
-          post = viewer.jjaeks.new(**attributes, content: "RECOMMENDATION_PAGE_#{index}", recommendation: true, created_at: time)
-          post.jjaek_recommendations.build(book:, position: 0)
-          post.jjaek_recommendations.build(book: other_book, position: 1)
+          post = build_jjaek_with_books(legacy_source_kind: "recommendation", user: viewer, **attributes, content: "RECOMMENDATION_PAGE_#{index}", created_at: time)
+          post.jjaek_book_attachments.build(book:, position: 0)
+          post.jjaek_book_attachments.build(book: other_book, position: 1)
           post.save!
           post
         else
-          viewer.jjaeks.create!(**attributes, book:, content: "BOOK_PAGE_#{index}", created_at: time)
+          create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: viewer, **attributes, content: "BOOK_PAGE_#{index}", created_at: time)
         end
       end.reverse
-      private_recommendation = other.jjaeks.new(content: "PRIVATE_RECOMMENDATION_PAGE", recommendation: true,
-        visibility: :private_jjaek, created_at: time - 1.second)
-      private_recommendation.jjaek_recommendations.build(book:, position: 0)
+      private_recommendation = build_jjaek_with_books(legacy_source_kind: "recommendation", user: other, content: "PRIVATE_RECOMMENDATION_PAGE", visibility: :private_jjaek, created_at: time - 1.second)
+      private_recommendation.jjaek_book_attachments.build(book:, position: 0)
       private_recommendation.save!
       sign_in viewer
 
@@ -120,10 +119,10 @@ RSpec.describe "Feed pagination", type: :request do
     it "shows zero and populated card summaries including hidden comments on #{location}" do
       attributes = {}
       attributes[:group] = group if %i[group_activity group group_book].include?(location)
-      attributes[:book] = book if %i[book group_book].include?(location)
+      attributes[:books] = [book] if %i[book group_book].include?(location)
       viewer.bookshelf_entries.create!(book:) if location == :group_book
-      populated = viewer.jjaeks.create!(**attributes, content: "Populated card")
-      empty = viewer.jjaeks.create!(**attributes, content: "Empty card")
+      populated = create_jjaek_with_books(user: viewer, **attributes, content: "Populated card")
+      empty = create_jjaek_with_books(user: viewer, **attributes, content: "Empty card")
       populated.comments.create!(user: viewer, content: "Visible comment")
       populated.comments.create!(user: viewer, content: "Hidden comment", hidden_at: Time.current)
       populated.likes.create!(user: viewer)
@@ -144,7 +143,7 @@ RSpec.describe "Feed pagination", type: :request do
     it "prepares sharing destinations once per HTML or Turbo #{location} page" do
       group
       posts = Array.new(21) do |index|
-        viewer.jjaeks.create!(book:, content: "SHARE_CARD_#{index}", created_at: time - index.seconds)
+        create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: viewer, content: "SHARE_CARD_#{index}", created_at: time - index.seconds)
       end
       viewer.jjaeks.create!(group:, quoted_jjaek: posts.last, content: "Already shared")
       sign_in viewer
@@ -169,9 +168,9 @@ RSpec.describe "Feed pagination", type: :request do
       viewer.bookshelf_entries.create!(book:) if %i[book group_book].include?(location)
       attributes = {}
       attributes[:group] = group if %i[group_activity group group_book].include?(location)
-      attributes[:book] = book if %i[book group_book].include?(location)
+      attributes[:books] = [book] if %i[book group_book].include?(location)
       posts = Array.new(21) do |index|
-        viewer.jjaeks.create!(**attributes, content: "NAVIGATION_POST_#{index}", created_at: time)
+        create_jjaek_with_books(user: viewer, **attributes, content: "NAVIGATION_POST_#{index}", created_at: time)
       end.reverse
       posts.last.comments.create!(user: viewer, content: "Last-page comment")
       posts.last.likes.create!(user: viewer)
@@ -229,10 +228,7 @@ RSpec.describe "Feed pagination", type: :request do
     sign_in viewer
 
     expect {
-      post jjaeks_path, params: {
-        book_post_destination: "group",
-        jjaek: { book_id: book.id, group_id: group.id, content: "REDIRECTED_BOOK_POST" }
-      }, headers: navigation_headers
+      post group_jjaeks_path(group), params: { selected_books: [book.id], jjaek: { group_id: group.id, content: "REDIRECTED_BOOK_POST" } }, headers: navigation_headers
     }.to change(Jjaek, :count).by(1)
     expect(response).to redirect_to(group_path(group))
     follow_redirect!(headers: navigation_headers)
@@ -270,12 +266,12 @@ RSpec.describe "Feed pagination", type: :request do
         viewer.bookshelf_entries.create!(book:) if location == :group_book
         attributes = {}
         attributes[:group] = group if %i[group_activity group group_book].include?(location)
-        attributes[:book] = book if %i[book group_book].include?(location)
+        attributes[:books] = [book] if %i[book group_book].include?(location)
         posts = Array.new(23) do |index|
-          viewer.jjaeks.create!(**attributes, content: "PAGE_CARD_#{index}", created_at: time)
+          create_jjaek_with_books(user: viewer, **attributes, content: "PAGE_CARD_#{index}", created_at: time)
         end.reverse
         # An unreadable personal post must remain excluded even in later pages.
-        other.jjaeks.create!(book:, visibility: :private_jjaek, content: "PRIVATE_PAGE_BODY", created_at: time - 1.second)
+        create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other, visibility: :private_jjaek, content: "PRIVATE_PAGE_BODY", created_at: time - 1.second)
         sign_in viewer
 
         loaded_posts = 0
@@ -383,7 +379,7 @@ RSpec.describe "Feed pagination", type: :request do
     private_group = Group.create!(name: "Private page club", group_admin: other, lifecycle_status: :active, group_type: :private_group)
     membership = private_group.group_memberships.create!(user: viewer, status: :active)
     viewer.bookshelf_entries.create!(book:)
-    23.times { |index| other.jjaeks.create!(group: private_group, book:, content: "PRIVATE_GROUP_PAGE_#{index}", created_at: time) }
+    23.times { |index| create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other, group: private_group, content: "PRIVATE_GROUP_PAGE_#{index}", created_at: time) }
     sign_in viewer
     get groups_path
     index_url = next_url
@@ -428,7 +424,7 @@ RSpec.describe "Feed pagination", type: :request do
     File.open(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")) do |file|
       viewer.avatar.attach(io: file, filename: "avatar.png", content_type: "image/png")
     end
-    post = viewer.jjaeks.create!(book:, content: "LAST_PAGE_BOOK_POST", created_at: time - 1.second)
+    post = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: viewer, content: "LAST_PAGE_BOOK_POST", created_at: time - 1.second)
     hidden = viewer.jjaeks.create!(content: "LAST_PAGE_HIDDEN_POST", created_at: time - 2.seconds)
     moderator = User.create!(name: "Moderator", email: "feed-moderator@example.com", password: "password123!", global_admin: true)
     Jjaeks::Hide.new(hidden, actor: moderator, public_reason: "other").call!

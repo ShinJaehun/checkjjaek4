@@ -12,3 +12,18 @@ en:
     remove_book: "Remove %{title}"
     limit: "Choose up to %{count} books."
     add_to_shelf: "Add to shelf"
+    additional_books:
+      one: "and %{count} other book"
+      other: "and %{count} other books"
+    finish_selection: "Finish choosing books"
+    invalid_selection: "The selected books could not be verified. Please choose your books again."
+  activerecord:
+    errors:
+      models:
+        jjaek:
+          attributes:
+            attached_books:
+              too_many_attachments: "Choose up to %{count} books."
+    attributes:
+      jjaek:
+        attached_books: "Attached books"

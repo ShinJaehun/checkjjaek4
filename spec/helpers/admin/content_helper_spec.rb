@@ -13,9 +13,9 @@ RSpec.describe Admin::ContentHelper, type: :helper do
 
     {
       general: "bg-sky-100", book: "bg-sky-100", requote: "bg-violet-100",
-      group_general: "bg-emerald-100", group_book: "bg-emerald-100", comments: "bg-amber-100"
+      group_general: "bg-emerald-100", comments: "bg-amber-100"
     }.each do |kind, color|
-      expect(helper.admin_content_kind_badge_classes(kind)).to include(color)
+      expect(helper.admin_content_badge(kind).fetch(:classes)).to include(color)
     end
   end
 

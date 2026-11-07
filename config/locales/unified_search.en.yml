@@ -15,8 +15,6 @@ en:
       all: "All"
       users: "Users"
       jjaeks: "Posts"
-      book_jjaeks: "Posts"
-      recommendation_jjaeks: "Posts"
       groups: "Groups"
     prompt: "Enter a search term or #tag to find users, posts, and groups."
     popular_tags: "Popular tags"

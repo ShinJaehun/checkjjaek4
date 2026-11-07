@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { Turbo } from "@hotwired/turbo-rails"
 
-// Selection-only version of the existing permanent recommendation window.
+// Temporary book selection in a permanent window.
 // The originating Rails form remains intact across Turbo searches.
 export default class extends Controller {
   static targets = ["frame", "panel", "fields", "book"]
@@ -14,7 +14,7 @@ export default class extends Controller {
 
   navigate(event) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-    if (!this.element.hidden && event.target.closest("[data-back-link]") && document.getElementById("recommendation-search-results")) {
+    if (!this.element.hidden && event.target.closest("[data-back-link]") && document.getElementById("book-selection-search-results")) {
       event.preventDefault()
       this.cancel()
       return
@@ -46,13 +46,13 @@ export default class extends Controller {
       if (this.pendingForm) return
       const row = remove.closest("[data-book-key]")
       if (!this.element.hidden && this.hasPanelTarget) {
-        const form = Array.from(this.panelTarget.querySelectorAll("form[data-recommendation-selection-form='remove']"))
+        const form = Array.from(this.panelTarget.querySelectorAll("form[data-book-selection-form='remove']"))
           .find(form => decodeURIComponent(new URL(form.action).pathname.split("/").pop()) === row.dataset.bookKey)
         form?.requestSubmit()
       } else row.remove()
       return
     }
-    const link = event.target.closest("a[data-recommendation-navigation='true']")
+    const link = event.target.closest("a[data-book-selection-navigation='true']")
     if (link && !this.element.hidden) {
       const url = new URL(link.href)
       for (const name of this.contextNames) {
@@ -69,14 +69,14 @@ export default class extends Controller {
 
   prepare(event) {
     const form = event.target
-    if (!form.matches("form[data-recommendation-selection-form]")) return
+    if (!form.matches("form[data-book-selection-form]")) return
     if (this.returning || this.pendingForm || !this.hasFieldsTarget) {
       event.preventDefault()
       return
     }
     this.contextNames.forEach(name => this.setFormValues(form, name, this.valuesFor(name)))
-    if (form.dataset.recommendationSelectionForm === "search") {
-      form.dataset.turboFrame = document.getElementById("recommendation-search-results") ? "recommendation-search-results" : "_top"
+    if (form.dataset.bookSelectionForm === "search") {
+      form.dataset.turboFrame = document.getElementById("book-selection-search-results") ? "book-selection-search-results" : "_top"
       form.dataset.turboAction = "advance"
     } else {
       this.pendingForm = form
@@ -204,7 +204,7 @@ export default class extends Controller {
   load(event) {
     if (this.returning && window.location.href === this.origin && !document.documentElement.hasAttribute("data-turbo-preview")) this.completeReturn()
     if (event?.type === "turbo:load") this.destinationURL = null
-    const state = document.querySelector("#recommendation-search-results [data-recommendation-results-state]")
+    const state = document.querySelector("#book-selection-search-results [data-book-selection-results-state]")
     if (state && this.hasFieldsTarget) {
       for (const name of ["query", "page"]) {
         this.fieldsTarget.querySelectorAll(`input[name='${name}']`).forEach(input => { input.value = state.dataset[name] })
@@ -214,7 +214,7 @@ export default class extends Controller {
   }
 
   loaded(event) {
-    if (event.target === this.frameTarget || event.target.id === "recommendation-search-results") this.load()
+    if (event.target === this.frameTarget || event.target.id === "book-selection-search-results") this.load()
   }
 
   close() {
@@ -248,13 +248,13 @@ export default class extends Controller {
 
   prepareRequest(event) {
     const target = event.target
-    if (target === this.frameTarget || target.id === "recommendation-search-results" || target.matches("form[data-recommendation-selection-form]")) {
-      event.detail.fetchOptions.headers["X-Recommendation-Revision"] = this.element.dataset.requestRevision
+    if (target === this.frameTarget || target.id === "book-selection-search-results" || target.matches("form[data-book-selection-form]")) {
+      event.detail.fetchOptions.headers["X-Book-Selection-Revision"] = this.element.dataset.requestRevision
     }
   }
 
   guardResponse(event) {
-    const revision = event.detail.fetchResponse.response.headers.get("X-Recommendation-Revision")
+    const revision = event.detail.fetchResponse.response.headers.get("X-Book-Selection-Revision")
     if (revision && revision !== this.element.dataset.requestRevision) {
       event.preventDefault()
       event.stopImmediatePropagation()
@@ -262,13 +262,13 @@ export default class extends Controller {
   }
 
   guardStream(event) {
-    if (!["recommendation-selected-books", "recommendation-selection-fields", "recommendation-selection-alert", "recommendation-search-results", "jjaek-attached-books"].includes(event.target.target)) return
+    if (!["book-selection-selected-books", "book-selection-fields", "book-selection-alert", "book-selection-search-results", "jjaek-attached-books"].includes(event.target.target)) return
     const revision = this.element.dataset.requestRevision
     const render = event.detail.render
     event.detail.render = async stream => {
       if (!this.element.isConnected || this.element.hidden || this.returning || this.element.dataset.requestRevision !== revision) return
       await render(stream)
-      if (stream.target === "recommendation-search-results" && this.element.dataset.requestRevision === revision) {
+      if (stream.target === "book-selection-search-results" && this.element.dataset.requestRevision === revision) {
         this.pendingForm = null
         this.syncResults()
       }
@@ -287,10 +287,10 @@ export default class extends Controller {
 
   syncResults() {
     const atLimit = this.valuesFor("selected_books[]").filter(Boolean).length >= this.maxBooksValue
-    document.querySelectorAll("[data-recommendation-result]").forEach(result => {
+    document.querySelectorAll("[data-book-selection-result]").forEach(result => {
       const selected = this.bookTargets.some(book => ["bookId", "isbn", "url"].some(key => result.dataset[key] && result.dataset[key] === book.dataset[key]))
-      result.querySelector("[data-recommendation-selected]").hidden = !selected
-      result.querySelector("[data-recommendation-add]").hidden = selected
+      result.querySelector("[data-book-selection-selected]").hidden = !selected
+      result.querySelector("[data-book-selection-add]").hidden = selected
       result.querySelector("input[type='submit']").disabled = atLimit
     })
   }

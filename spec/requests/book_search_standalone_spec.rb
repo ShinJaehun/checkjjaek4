@@ -87,8 +87,8 @@ RSpec.describe "Standalone book search", type: :request do
       expect(actions.parent.element_children.last).to eq(actions)
 
       if context[:attachment]
-        form = actions.at_css("form[data-recommendation-selection-form='add']")
-        expect(form["action"]).to eq(recommendation_books_path)
+        form = actions.at_css("form[data-book-selection-form='add']")
+        expect(form["action"]).to eq(jjaek_books_path)
         expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("jjaek_books.choose"))
         expect(form.at_css("input[name='book_id']")["value"]).to eq(book.id.to_s)
         expect(card["data-isbn"]).to eq(book.canonical_isbn)
@@ -129,11 +129,11 @@ RSpec.describe "Standalone book search", type: :request do
     expect(composer["data-group-id"]).to eq(group.id.to_s)
     expect(composer["data-selection-url"]).to eq(jjaek_books_path)
     expect(composer.at_css("#jjaek-publish-form")["action"]).to eq(group_jjaeks_path(group))
-    expect(composer.at_css("button[data-book-selection-open]")["aria-controls"]).to eq("recommendation-window")
+    expect(composer.at_css("button[data-book-selection-open]")["aria-controls"]).to eq("book-selection-window")
     expect(page.css("#group-book-search-dialog")).to be_empty
-    window = page.at_css("#recommendation-window")
+    window = page.at_css("#book-selection-window")
     expect(window["hidden"]).to be_present
-    expect(window["data-recommendation-composer-max-books-value"]).to eq("5")
+    expect(window["data-book-selection-max-books-value"]).to eq("5")
     expect(page.at_css("#global-book-search-dialog input[name='group_id']")).to be_nil
     expect(page.at_css("#global-book-search-dialog").text).not_to include(
       I18n.t("book_search.modal.group_destination", group_name: group.name)
@@ -142,7 +142,7 @@ RSpec.describe "Standalone book search", type: :request do
     get jjaek_books_path, params: { group_id: group.id, search_origin: group_path(group) }
     expect(response).to have_http_status(:ok)
     panel = Nokogiri::HTML(response.body)
-    form = panel.at_css("form[data-recommendation-selection-form='search']")
+    form = panel.at_css("form[data-book-selection-form='search']")
     expect(form["action"]).to eq(book_search_path)
     expect(form["method"]).to eq("get")
     expect(form["data-turbo-frame"]).to eq("_top")
@@ -158,7 +158,7 @@ RSpec.describe "Standalone book search", type: :request do
     expect(results.at_css("main h1")).to be_nil
     expect(results.at_css("main").text).not_to include(I18n.t("book_search.description"))
     expect(results.at_css("a[data-back-link]")["href"]).to eq(group_path(group))
-    expect(results.at_css("#recommendation-search-results")).to be_present
+    expect(results.at_css("#book-selection-search-results")).to be_present
     expect(results.at_css("#jjaek-composer[data-turbo-permanent]")).to be_present
     expect(results.at_css("main form[action='#{book_search_path}']")).to be_nil
   end

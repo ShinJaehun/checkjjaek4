@@ -7,9 +7,8 @@ module BookShowContext
     prepare_book_show_form_context unless feed_only
     return @jjaeks = Jjaek.none unless @book.persisted?
 
-    recommended_jjaek_ids = @book.jjaek_recommendations.select(:jjaek_id)
-    book_jjaeks = Jjaek.where(book: @book).or(Jjaek.where(id: recommended_jjaek_ids))
-      .includes(:book, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })
+    book_jjaeks = @book.attached_jjaeks
+      .includes(:attached_books, :group, user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob })
     @jjaeks = if @group.present?
       policy_scope(book_jjaeks, policy_scope_class: JjaekPolicy::GroupContentScope).where(group: @group)
     else
@@ -44,8 +43,8 @@ module BookShowContext
     jjaeks = policy_scope(
       @book.attached_jjaeks.where(user_id: friend_ids, group_id: nil, hidden_at: nil, deleted_at: nil),
       policy_scope_class: JjaekPolicy::BookScope
-    ).includes(:book, user: { avatar_attachment: :blob },
-      quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
+    ).includes(:attached_books, user: { avatar_attachment: :blob },
+      quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :attached_books, :group ])
       .order(created_at: :desc, id: :desc).limit(3).to_a
 
     @book_friend_activities = (activities + jjaeks)

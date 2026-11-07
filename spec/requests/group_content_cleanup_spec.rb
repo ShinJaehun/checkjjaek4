@@ -10,7 +10,7 @@ RSpec.describe "Cleaning up own content after losing group access", type: :reque
   let!(:other_membership) { group.group_memberships.create!(user: other, status: :active) }
   let!(:own_post) { user.jjaeks.create!(group:, content: "MY GROUP POST") }
   let!(:book) { Book.create!(title: "PRIVATE BOOK METADATA", authors_text: "PRIVATE BOOK AUTHOR") }
-  let!(:own_book_post) { user.jjaeks.create!(group:, book:, content: "MY BOOK POST") }
+  let!(:own_book_post) { create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: user, group:, content: "MY BOOK POST") }
   let!(:parent) { other.jjaeks.create!(group:, content: "OTHER PARENT BODY") }
   let!(:own_comment) { parent.comments.create!(user:, content: "MY COMMENT") }
   let!(:foreign_comment) { parent.comments.create!(user: other, content: "OTHER COMMENT BODY") }
@@ -101,7 +101,7 @@ RSpec.describe "Cleaning up own content after losing group access", type: :reque
         expect(response.body).not_to include(group.name, group.description, parent.content, foreign_comment.content,
                                              book.title, book.authors_text, other.name, "PERSONAL POST", "PERSONAL COMMENT")
         page = Nokogiri::HTML(response.body)
-        expect(page.at_css("[data-cleanup-jjaek-id='#{own_book_post.id}']").text).to include(I18n.t("groups.restricted_content.kinds.book"))
+        expect(page.at_css("[data-cleanup-jjaek-id='#{own_book_post.id}']").text).to include(I18n.t("groups.restricted_content.kinds.general"))
         links = page.css("a[href]").map { |link| link["href"] }
         expect(links).not_to include(group_path(group), jjaek_path(own_post), jjaek_path(parent), book_path(book), edit_jjaek_path(own_post))
 
@@ -168,7 +168,7 @@ RSpec.describe "Cleaning up own content after losing group access", type: :reque
   end
 
   it "does not expose quote sources when showing the author's own independent body" do
-    source = other.jjaeks.create!(book:, content: "RESTRICTED QUOTE SOURCE")
+    source = create_jjaek_with_books(legacy_source_kind: "book", books: [book], user: other, content: "RESTRICTED QUOTE SOURCE")
     quote = user.jjaeks.create!(group:, quoted_jjaek: source, content: "MY INDEPENDENT QUOTE BODY")
     source.update!(visibility: :private_jjaek)
     leave_group

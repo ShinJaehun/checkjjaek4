@@ -18,17 +18,13 @@ module Admin
       end
       return "comments" if kind.to_s == "comments"
       return "requote" if kind.to_s == "requote"
-      return "group_general" if context == :group || kind.to_s.in?(%w[group group_general group_book group_recommendation])
+      return "group_general" if context == :group || kind.to_s.in?(%w[group group_general])
 
       "general"
     end
 
     def admin_content_kind_label(kind, context: nil)
       admin_content_badge(kind, context:).fetch(:label)
-    end
-
-    def admin_content_kind_badge_classes(kind)
-      admin_content_badge(kind).fetch(:classes)
     end
 
     def admin_content_badge(kind, context: nil)

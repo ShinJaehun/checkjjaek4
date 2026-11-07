@@ -12,7 +12,7 @@
   <% books = quoted_jjaek.attached_books.to_a %>
   <% attached_book = books.first if books.one? %>
   <% if books.many? %>
-    <%= render "jjaeks/recommended_books", books: books %>
+    <%= render "jjaeks/book_attachments", books: books %>
     <p class="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-stone-700"><%= jjaek_content_with_hashtags(quoted_jjaek.content) %></p>
   <% elsif attached_book.present? && !local_assigns.fetch(:hide_book_details, false) %>
     <div class="mt-3 flex flex-col items-start gap-3 sm:flex-row">

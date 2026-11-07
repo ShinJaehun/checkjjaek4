@@ -1,72 +1,61 @@
 require "rails_helper"
-require Rails.root.join("db/migrate/20261106000000_generalize_jjaek_book_attachments")
 
 RSpec.describe GeneralizeJjaekBookAttachments do
+  around { |example| with_historical_jjaek_schema { |tables| @tables = tables; example.run } }
   let(:migration) { described_class.new }
-  let(:user) { User.create!(name: "Reader", email: "backfill-books@example.com", password: "password123!") }
-  let(:book) { Book.create!(title: "Legacy book") }
-
-  around do |example|
-    migration.suppress_messages { example.run }
-  end
+  let(:posts) { @tables.fetch(:jjaeks) }
+  let(:links) { @tables.fetch(:jjaek_recommendations) }
+  let(:book) { @tables.fetch(:books).create!(title: "Legacy book") }
 
   it "preserves IDs, timestamps, relations and ordered recommendation links when repeated" do
-    legacy = user.jjaeks.create!(content: "Legacy")
-    legacy.update_columns(book_id: book.id, book_attachments_migrated: false)
-    comment = legacy.comments.create!(user:, content: "Comment")
-    like = legacy.likes.create!(user:)
-    quote = user.jjaeks.create!(content: "Quote", quoted_jjaek: legacy)
-    notification = Notification.create!(recipient: user, actor: user, notifiable: legacy, action: :requote_created)
-    original_notification = notification.attributes
-    recommended = user.jjaeks.create!(recommendation: true, content: "Recommended")
-    recommended.update_recommendation_books(books: [ Book.create!(title: "Other"), book ], attributes: {})
-    recommended.update_columns(book_attachments_migrated: false)
-    original_links = recommended.jjaek_recommendations.reload.map(&:attributes)
+    legacy = posts.create!(user_id: 1, content: "Legacy", book_id: book.id)
+    comment = @tables.fetch(:comments).create!(user_id: 1, jjaek_id: legacy.id, content: "Comment")
+    like = @tables.fetch(:likes).create!(user_id: 1, jjaek_id: legacy.id)
+    quote = posts.create!(user_id: 1, content: "Quote", quoted_jjaek_id: legacy.id)
+    notification = @tables.fetch(:notifications).create!(recipient_id: 1, actor_id: 1, notifiable_id: legacy.id, notifiable_type: "Jjaek", action: 3)
+    original_relations = [comment, like, quote, notification].map { |record| record.attributes.except("book_attachments_migrated") }
+    recommended = posts.create!(user_id: 1, recommendation: true, content: "Recommended")
+    other = @tables.fetch(:books).create!(title: "Other")
+    [other, book].each_with_index { |item, position| links.create!(jjaek_id: recommended.id, book_id: item.id, position:) }
+    original_links = links.where(jjaek_id: recommended.id).order(:position).map(&:attributes)
     original_attributes = legacy.attributes.except("book_attachments_migrated")
 
     2.times { migration.backfill_book_attachments }
 
     expect(legacy.reload.attributes.except("book_attachments_migrated")).to eq(original_attributes)
-    expect(legacy.attached_books).to eq([ book ])
-    expect(legacy.comments).to include(comment)
-    expect(legacy.likes).to include(like)
-    expect(quote.reload.quoted_jjaek_id).to eq(legacy.id)
-    expect(notification.reload.attributes).to eq(original_notification)
-    expect(recommended.jjaek_recommendations.reload.map(&:attributes)).to eq(original_links)
-
-    legacy.update_attached_books(books: [])
-    legacy.update_columns(book_id: book.id) # Even a retained stale legacy field cannot resurrect a book.
+    expect(links.where(jjaek_id: legacy.id).pluck(:book_id)).to eq([book.id])
+    expect([comment, like, quote, notification].map { |record| record.reload.attributes.except("book_attachments_migrated") }).to eq(original_relations)
+    expect(quote.book_attachments_migrated).to be(true)
+    expect(links.where(jjaek_id: recommended.id).order(:position).map(&:attributes)).to eq(original_links)
+    links.where(jjaek_id: legacy.id).delete_all
     migration.backfill_book_attachments
-    expect(legacy.reload.attached_books).to be_empty
+    expect(links.where(jjaek_id: legacy.id)).to be_empty
   end
 
   it "fails without partial conversion on conflicting data and can be retried after correction" do
-    legacy = user.jjaeks.create!(content: "Legacy")
-    legacy.update_columns(book_id: book.id, book_attachments_migrated: false)
-    conflict = user.jjaeks.create!(content: "Conflict")
-    conflict.update_columns(book_id: book.id, book_attachments_migrated: false)
-    link = JjaekRecommendation.create!(jjaek: conflict, book: Book.create!(title: "Conflicting"), position: 0)
-
+    legacy = posts.create!(user_id: 1, content: "Legacy", book_id: book.id)
+    conflict = posts.create!(user_id: 1, content: "Conflict", book_id: book.id)
+    other = @tables.fetch(:books).create!(title: "Conflicting")
+    link = links.create!(jjaek_id: conflict.id, book_id: other.id, position: 0)
+    original = link.attributes
     expect { migration.backfill_book_attachments }.to raise_error(/Conflicting book attachments/)
-    expect(legacy.reload).not_to be_book_attachments_migrated
-    expect(legacy.jjaek_recommendations).to be_empty
-    expect(link.reload.book.title).to eq("Conflicting")
-
+    expect(legacy.reload.book_attachments_migrated).to be(false)
+    expect(links.where(jjaek_id: legacy.id)).to be_empty
+    expect(link.reload.attributes).to eq(original)
     conflict.update_columns(book_id: nil)
     migration.backfill_book_attachments
-    expect(legacy.reload.attached_books).to eq([ book ])
-    expect(conflict.reload).to be_book_attachments_migrated
+    expect(links.where(jjaek_id: legacy.id).pluck(:book_id)).to eq([book.id])
+    expect(conflict.reload.book_attachments_migrated).to be(true)
   end
 
   it "rejects excessive historical lists without truncating their links" do
-    post = user.jjaeks.create!(content: "Historical")
-    post.update_columns(book_attachments_migrated: false)
-    rows = 6.times.map do |position|
-      { jjaek_id: post.id, book_id: Book.create!(title: "Book #{position}").id, position: }
+    post = posts.create!(user_id: 1, content: "Historical")
+    6.times do |position|
+      item = @tables.fetch(:books).create!(title: "Book #{position}")
+      links.create!(jjaek_id: post.id, book_id: item.id, position:)
     end
-    JjaekRecommendation.insert_all!(rows)
     expect { migration.backfill_book_attachments }.to raise_error(/Conflicting book attachments/)
-    expect(post.reload).not_to be_book_attachments_migrated
-    expect(post.jjaek_recommendations.count).to eq(6)
+    expect(post.reload.book_attachments_migrated).to be(false)
+    expect(links.where(jjaek_id: post.id).count).to eq(6)
   end
 end

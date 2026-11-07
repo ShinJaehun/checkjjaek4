@@ -1,18 +1,16 @@
-# 통합 짹 개편 정책과 전환 검토
+# 통합 짹
 
 ## 문서 상태와 범위
 
-2026-11-06 기준 통합 개편의 확정 요구사항과 기존 canonical spec의 충돌을 기록하는 변경 명세다.
-현재 구현 완료를 뜻하지 않으며 기존 canonical spec을 이 문서로 일괄 대체하지 않는다.
-이 문서의 통합 정책은 목표 상태이고, 아래 기존 구조 설명은 관련 canonical spec에 기재된 사실이다.
-최초 정책 정리에서는 AGENTS.md와 관련 canonical spec만 확인했다. 이후 데이터 계층의 1차 구현 범위와 전환 절차는 10절에 기록한다. 운영 DB·서버는 변경하지 않았다.
+통합 짹과 cleanup 1·2단계를 반영한 현재 canonical spec이다. 과거의 일반 짹·책짹·추천짹
+유형별 작성·조회 설명과 충돌하는 부분은 이 문서를 우선한다. 과거 추천짹 정책은
+[역사적 명세](book_recommendation_jjaeks.md)에 보존한다. Group·moderation·다시짹의
+권한 정책은 각 canonical spec을 유지한다.
 
-- 현재 작업: 18절의 관리자 모니터링·콘텐츠 관리 표현 일원화.
-- 후속 개편 범위: 통합 작성·조회·표시의 후속 보완, 데이터 전환, `Unpermitted parameter` 수정, 운영 배포 전 검증.
-- 이번에 수행하지 않는 작업: 관리자 이외 화면 개선, 실제 DB migration·백필 실행,
-  운영 데이터 변경, RSpec·브라우저 테스트 실행, Git 작업, 운영 배포.
+개발 DB 전환과 사용자 검증은 완료되었으며 운영 배포·DB 전환은 아직 수행하지 않았다.
+운영 전환·복구의 실행 기준은 [OCI 운영 문서](../ops/deploy_oci.md)를 따른다.
 
-## 1. 통합 콘텐츠와 책 첨부 — MODIFIED
+## 1. 통합 콘텐츠와 책 첨부
 
 - 기존 일반 짹·책짹·추천짹을 하나의 `Jjaek` 작성·수정·표시 체계로 통합한다. 기본 명칭은 `짹`이다.
   첨부 책의 유무나 권수로 독후감·추천글 등 별도의 게시물 유형이나 추천 의미를 추론하지 않는다.
@@ -26,7 +24,7 @@
   친구 프로필의 두 사람 전용 대화에도 책 0~5권을 첨부할 수 있다. 새 다시짹의 책 첨부와 기존 다시짹의
   새로운 책 추가는 금지한다. 과거 다시짹에 연결된 책은 보존한다.
 
-## 2. 서재와 첨부의 독립성 — MODIFIED
+## 2. 서재와 첨부의 독립성
 
 - 공용 도서 정보는 `Book`, 개인 책장 소속·독서 상태·스티커는 기존 서재 모델,
   짹의 책 첨부는 Jjaek과 Book의 연결이 각각 책임진다. 첨부를 BookshelfEntry의 소유 관계로 표현하지 않는다.
@@ -41,12 +39,12 @@
   만료·위변조 검사, 기존 Book 재사용과 메타데이터 덮어쓰기 금지 원칙을 통합 첨부에서도 유지한다.
   필요한 신규 Book·본문·첨부는 최종 저장에서 함께 성공하거나 롤백되어야 한다.
 
-## 3. 작성 UI와 공개 권한 — MODIFIED / PRESERVED
+## 3. 작성 UI와 공개 권한
 
 모든 작성 위치에서 일반 짹·책짹·추천짹의 유형 선택을 본문과 선택적 책 첨부로 통합한다.
 검색·선택·제거·화면 이동 및 저장 실패 때 본문·첨부 순서·작성 문맥을 보존하고,
-취소한 작성 상태가 다음 작성에 섞이지 않게 한다. 작성은 인라인 Rails form으로 유지하며, 책 검색·선택은 기존 플로팅 창과 페이지 결과를 사용한다(12절).
-새 UI 용어는 ko·en locale에 함께 반영하는 것을 후속 구현 기준으로 한다.
+취소한 작성 상태가 다음 작성에 섞이지 않게 한다. 작성은 인라인 Rails form으로 유지하며, 책 검색·선택은 기존 플로팅 창과 페이지 결과를 사용한다(7절).
+UI 용어는 ko·en locale에 함께 반영한다.
 
 | 진입 위치 | 작성 문맥과 UI | 공개 권한 |
 | --- | --- | --- |
@@ -61,10 +59,10 @@
   lifecycle·운영 정지·회원 활동 정지에 따른 쓰기 제한을 보존한다. 첨부로 이 경계를 우회하지 않는다.
 - 단건은 Pundit policy, 목록은 scope에서 제한한다. 관리자 운영 조사 권한을 일반 검색·발견 권한으로 확장하지 않는다.
   HTML과 Turbo 요청은 같은 인가·검증·저장 결과를 보장한다.
-- 책 상세에서도 서재 등록과 첨부 작성은 독립되어야 한다. 기존 미등록 책의 작성 차단은 변경 대상이다.
-  책 상세의 첨부 기본 선택·다른 책 추가·제거와 작성 완료 후 초기화는 13절을 따른다.
+- 책 상세에서도 서재 등록과 첨부 작성은 독립적이다. 미등록 책에도 작성할 수 있다.
+  책 상세의 첨부 기본 선택·다른 책 추가·제거와 작성 완료 후 초기화는 7절을 따른다.
 
-### 프로필 대화의 두 사람 전용 정책 — PRESERVED
+### 프로필 대화의 두 사람 전용 정책
 
 `social_relationships_mvp.md`의 확정 정책을 통합 후에도 우선 적용한다.
 
@@ -81,7 +79,7 @@
 - 일반 이용자 간 두 사람 전용 정책과 기존 시스템 관리자 조사·moderation 권한을 구분한다.
   통합을 이유로 visibility 일괄 변경이나 과거 반응·인용 데이터 정리를 수행하지 않는다.
 
-## 4. 공통 카드와 발견 — MODIFIED
+## 4. 공통 카드와 발견
 
 ### 첨부 표시
 
@@ -93,7 +91,7 @@
   대표 책의 정보와 해당 짹의 여러 첨부를 구분한다. 원문의 첨부와 다시짹 자신의 첨부도 구분한다.
 - 읽을 수 없는 짹이나 원문, 숨김 안내와 인용 원문 삭제 안내에는 책 표지·제목·링크가 새어 나오지 않아야 한다.
   기존 책짹 자체의 댓글 보존 tombstone은 원래 조회 권한 안에서 기존 책 정보를 유지한다.
-  제거한 첨부를 `book_id` fallback으로 복원하지 않는다.
+  첨부를 제거한 뒤 과거 책 연결을 fallback으로 복원하지 않는다.
   책 상세의 책친구 활동·타임라인에도 표지와 책 정보를 표시한다. 같은 책이라는 이유로 일괄 생략하지 않는다.
 
 ### 발견 후보 분류
@@ -117,7 +115,7 @@
 - 일일 발행·Asia/Seoul 날짜·다음 날부터 신규 짹 포함·결정적 선정·후보 부족 처리와
   매 요청 현재 권한 재검사 정책을 유지한다. 추천 동아리 최근 글도 첨부 유무에 맞춰 표시하되 기존 Group scope를 지킨다.
 
-## 5. 검색과 관리자 모니터링 — MODIFIED
+## 5. 검색과 관리자 모니터링
 
 관리자 모니터링의 콘텐츠 유형을 다음과 같이 통합한다. 이 분류는 일반 통합 검색에 댓글 검색을 추가한다는 뜻이 아니다.
 
@@ -130,7 +128,7 @@
 
 - 검색·관리자 모니터링에서 책짹·추천짹을 독립 콘텐츠 유형으로 분리하지 않는다.
   개인·동아리의 `영역`, 콘텐츠 `유형`, 숨김·삭제 `상태`는 서로 다른 축으로 유지한다.
-  일반 검색의 탭·기존 URL 호환은 17절을 따른다. 별도 책 첨부 필터는 추가하지 않는다.
+  일반 검색의 탭·기존 URL 호환은 11절을 따른다. 별도 책 첨부 필터는 추가하지 않는다.
 - 일반 문자열 검색은 짹·다시짹 자신의 본문을 조회하며 기존 댓글 검색 제외 정책을 유지한다.
   사용자·동아리 검색은 유지한다. 인용 원문 본문이나 삭제 snapshot을 검색·미리보기에 복제하지 않는다.
 - 일반 검색에는 관리자 조사 예외를 추가하지 않는다. 관리자 모니터링의 댓글 조회·검색은 기존 조사 권한과
@@ -143,207 +141,51 @@
   특히 동아리 콘텐츠 관리의 platform-hidden·삭제 본문 표시/검색 금지를 통합 분류로 완화하지 않는다.
   서비스 전체 전역 inventory를 새로 도입하지 않는다.
 
-## 6. 무손실 전환 원칙과 위험 — ADDED
+## 6. 최종 데이터 모델과 운영 전환
 
-### 변환 기준
+- `Jjaek`은 본문·게시 문맥·visibility·인용·삭제 상태를 관리한다.
+  `JjaekBookAttachment`(`jjaek_book_attachments`)가 Book과의 연결과 position을 관리하며
+  `attached_books`가 유일한 책 조회 association이다. 외래키, 짹별 Book·position 유일성,
+  position >= 0 제약과 모델의 최대 5권 검증을 유지한다.
+- `Jjaek.book_id`, `recommendation`, `book_attachments_migrated`는 제거했다.
+  `content_kind`, `recommended_books`와 구형 유형별 scope·저장 wrapper도 사용하지 않는다.
+  현재 게시물 유형을 과거 분류에서 추론하지 않는다.
+- `legacy_source_kind`는 과거 원문의 삭제 snapshot(book/recommendation)을 위한 선택적 역사 정보다.
+  신규 글은 nil이며 삭제 snapshot 종류는 general이다. 기존 `quoted_source_kind` 등 snapshot은 보존한다.
+  과거 단일 책 원본의 첨부를 명시적으로 교체해 기존 표시 연결이 없어지면 book marker도 해제한다.
+- 첨부의 `visible_on_tombstone`은 기본 false다. 전환 직전 단일 book_id와 일치한 연결만 true로 기록한다.
+  댓글을 남기는 tombstone은 기존 단일 책 정보만 원래 읽기 권한 안에서 표시한다.
+  통합 이후 첨부는 삭제 후 새로 노출하지 않으며 다시짹 tombstone에는 책을 표시하지 않는다.
+  본문·숨김·Group·프로필 대화의 권한 경계는 삭제 후에도 유지한다.
+- 개인 다시짹 A는 원문 삭제 시 연결을 끊고 private로 전환하며 기존 작성자·종류·삭제 시각 snapshot을 보존한다.
+  화면은 작성자와 통합 명칭의 삭제 안내를 사용하며 과거 종류를 현재 유형으로 복원하지 않는다.
+  동아리 B/C는 원문 연결·작성자·종류 등 식별 정보를 제거하고 목적지의 독립 본문·댓글·좋아요를 보존한다.
+  상세 정책은 [group_sharing_requotes.md](group_sharing_requotes.md),
+  [requotes_mvp.md](requotes_mvp.md)를 따른다. 살아 있는 원문은 현재 읽기 권한을 재검사한다.
 
-| 기존 데이터 | 목표 해석과 보존 조건 |
-| --- | --- |
-| 일반 짹 | 같은 Jjaek, 첨부 0권. 기존 책 연결이 있는 예외 row는 별도 확인 |
-| 단일 책짹의 `book_id` | 같은 Jjaek의 첨부 1권으로 전환. 서재 등록을 새로 만들지 않음 |
-| 추천짹의 `JjaekRecommendation` | 같은 Jjaek의 순서 있는 1~5권 첨부로 전환. Book 식별자와 기존 position 순서 보존 |
-| 다시짹·프로필 대화 및 혼합 문맥 | 책 연결을 포함한 기존 관계와 marker 보존. 일괄 일반 짹 전환이나 재작성 금지 |
-| 숨김·삭제·탈퇴 작성자 관련 콘텐츠 | 기존 상태·권한·감사 관계 유지. 없는 원문 정보나 제거된 첨부를 복원하지 않음 |
+### 기존 DB와 빈 DB의 migration 순서
 
-- Jjaek·Comment·Book의 기존 ID, 본문, 작성/수정 시각, 작성자·대상자·동아리,
-  visibility, 인용·삭제 marker, 댓글·좋아요·태그·알림과 moderation 이력의 관계를 보존한다.
-  짹을 새로 생성해 ID나 작성 시각을 바꾸지 않는다. 기존 URL과 참조를 끊지 않는다.
-- 순수 데이터 전환은 새 게시·수정·서재 추가 활동이나 알림을 만들지 않는다. 기존 본문을 새 길이 제한에 맞춰
-  자르거나 오래된 레코드를 삭제하지 않는다. 공개 범위를 넓히거나 숨김·삭제 상태를 정상으로 바꾸지 않는다.
-- 추천 여부와 과거 원문 종류 snapshot 등 기존 구분 정보는 사용자 분류에서 제거하는 것과 물리 삭제를 구분한다.
-  필요한 보존·매핑·rollback 검증 전에 기존 컬럼·연결을 제거하지 않는다.
-- 기존 참조 관계까지 보존하는 전환을 설계한다. 연결 테이블 재사용·이름 변경·새 테이블 여부와
-  `book_id`·`recommendation` 제거 시점은 구현 설계에서 결정한다.
+기존 migration 파일은 수정하거나 삭제하지 않는다. 빈 DB도 같은 migration 이력과 최종 schema로 수렴해야 한다.
 
-### 주요 위험과 필요한 확인
+| 순서 | migration | 역할 |
+| --- | --- | --- |
+| 1 | `20261103000000_add_recommendations_to_jjaeks` | 당시 추천 연결 생성. 운영에 연결 테이블이 없어도 먼저 생성 |
+| 2 | `20261106000000_generalize_jjaek_book_attachments` | 단일 book_id 백필·전환 flag. 혼합 충돌·5권 초과 시 중단 |
+| 3 | `20261107000000_rename_jjaek_recommendations_to_book_attachments` | 기존 연결 테이블·인덱스·position CHECK 명칭 변경 |
+| 4 | `20261108000000_remove_legacy_jjaek_book_columns` | 전환 누락 검사 후 역사 정보 분리와 구형 세 컬럼 제거 |
 
-1. `book_id`와 추천 연결이 함께 있는 예외, 중복 Book/position, 5권 초과, 끊긴 외래키가 있는지 확인해야 한다.
-   충돌 시 임의 합치기·잘라내기·삭제 없이 기록하고 처리 기준을 결정한다. 현재 실제 DB 존재 여부는 미확인이다.
-2. 새 연결과 구 연결을 동시에 읽으면 책·짹·검색 결과가 중복될 수 있다. 전환 단계별 읽기/쓰기 기준과
-   멱등적 backfill, 동시 게시·수정 중 누락 방지, 기존 제약을 대체할 유일성·참조·권수 검증이 필요하다.
-3. 첨부 변경 시 책 상세 조회·카운트·cursor·댓글 Turbo 대상이 단일 `book_id`에 묶여 있을 수 있다.
-   연결된 모든 책에서 한 번씩 표시하고 각 카드의 동작 대상을 정확히 구분해야 한다.
-4. 과거 다시짹과 tombstone의 분류·삭제 원문 정보는 통합 이름으로 덮어써 유실하거나 재노출하지 않는다.
-   개인 A의 원문 삭제 후 private 전환과 동아리 B/C의 원문 식별 정보 제거·독립 토론 보존을 각각 검증한다.
-5. 운영 전환 전 백업·전후 대조·재실행·실패 복구와 rollback 가능 범위를 검증한다.
-   신규 다중 첨부를 단일 책만 읽는 구 버전으로 되돌릴 때의 손실 위험도 배포 순서에서 다뤄야 한다.
+- 같은 Jjaek·첨부 row를 유지한다. 기존 Jjaek/첨부/Book ID·position·작성/수정 시각,
+  댓글·좋아요·태그·알림·moderation과 인용 관계를 새로 만들거나 재작성하지 않는다.
+  서재 등록·BookActivity·새 알림을 생성하지 않으며 기존 본문을 자르거나 visibility를 넓히지 않는다.
+- 전환 전 혼합 연결·중복·5권 초과·끊긴 외래키를 확인한다. 충돌을 임의 병합·삭제하지 않는다.
+  백필과 컬럼 제거는 잠금을 사용하므로 웹·내장 작업 등 모든 쓰기를 중단하고 수행한다.
+- 백필과 컬럼 제거는 down으로 복원할 수 없다. rename의 이름 복원만으로 구버전 호환이 회복되지 않는다.
+  네 DB의 배포 직전 백업과 호환 이미지로 함께 복구해야 한다. 덤프를 기존 DB에 `pg_restore --clean`으로
+  덮는 방식은 새 객체를 남길 수 있으므로 빈 DB 재생성·복원과 실제 복구 리허설이 필요하다.
+- 과거 migration spec은 격리 schema와 익명 SQL record를 사용한다. 현재 모델에 삭제된 컬럼을 설정하지 않는다.
+  flag 변경은 의도된 전환이며 불변 비교에서 제외하되 관계·ID·시각·첨부 보존 검증은 유지한다.
 
-## 7. 기존 canonical spec과의 충돌
-
-아래 문서는 이번에 수정하지 않는다. 정책 변경분은 후속 구현·검증 뒤 해당 canonical 문서에 통합한다.
-
-| 관련 문서 | 기존 기준과 통합 변경 또는 보존 경계 |
-| --- | --- |
-| [bookjjaek_reboot_spec.md](bookjjaek_reboot_spec.md) | 단일 책 문맥·책 상세 중심 책짹 작성·서재 등록 선행·별도 명칭은 변경 대상. 홈 일반 작성과 책 활동의 분리는 보존 |
-| [book_recommendation_jjaeks.md](book_recommendation_jjaeks.md) | `recommendation`·별도 연결·1~5권 필수·단일 book/target/ReJjaek 혼합 금지·유형 변경 금지 및 전용 작성창은 통합 설계와 조정 필요. 선택 순서·저장 원자성·외부 참조 검증은 재사용 |
-| [bookshelf_ui.md](bookshelf_ui.md), [groups_mvp.md](groups_mvp.md) | 미등록 책 작성 차단, 짹/책짹의 별도 작성 선택·라벨, 책 상세의 고정 단일 책 표현·목록 조건은 변경 대상. Group 권한·개인 공개 범위 분리는 보존 |
-| [discovery_page_mvp.md](discovery_page_mvp.md) | `book_id` 유무 분류를 자신의 첨부 유무로 전환. 추천짹의 여러 책을 후보·표시에 반영하되 기존 권한·일일 발행 유지 |
-| [unified_search.md](unified_search.md), [hashtags_mvp.md](hashtags_mvp.md) | 17절에 따라 일반/책/추천짹을 짹 결과로 통합. 다시짹도 별도 유형 없이 포함하며 기존 댓글 검색 제외 정책은 유지 |
-| [moderation_mvp.md](moderation_mvp.md), [group_content_management.md](group_content_management.md) | 18절에 따라 게시 위치 기준 짹/동아리짹/댓글로 통합. 기존 조사·본문 표시·thread 경계 유지 |
-| [turbo_interactions_mvp.md](turbo_interactions_mvp.md), [book_activity_mvp.md](book_activity_mvp.md) | 단일 `Jjaek.book_id` 일치 검사와 책 상세의 동일 책 정보 생략을 다중 첨부와 조정. 서재 활동의 별도 책임·권한은 보존 |
-| [social_relationships_mvp.md](social_relationships_mvp.md) | 두 사람 전용 대화는 충돌 해결 대상이 아닌 보존할 확정 정책. reboot 문서의 과거 관계별 프로필 공개 설명과 이 문서의 목표 규칙도 차이가 있어 이번 통합으로 임의 통일하지 않음 |
-| [group_sharing_requotes.md](group_sharing_requotes.md), [requotes_mvp.md](requotes_mvp.md) | B/C의 책짹 작성 시 서재 보유 조건·기존 원문 종류 표현은 조정 대상. 공유 권한·중첩 금지·목적지별 중복 제한·삭제 후 A와 B/C 차이는 보존 |
-
-## 8. 후속 작업과 운영 배포 전 검증
-
-다음은 통합 개편의 후속 작업 범위이며 이번 문서 단계에서 실행하지 않는다.
-
-1. 미결정 정책과 데이터 전환 설계를 정리하고 관련 소스·제약·실제 데이터 및 기존 검증 시나리오를 필요한 범위에서 확인한다.
-2. 통합 첨부와 작성·수정, policy/scope, 공통 카드·책 상세·발견, 문자열/태그 검색·운영 분류를 응집된 단위로 반영한다.
-3. `Unpermitted parameter`의 재현 요청·발생 endpoint·정확한 키를 확인한다. 이번에 원인이나 키를 추정해 확정하지 않는다.
-   각 폼·검색·선택·게시·수정의 전송 계약과 strong parameters를 맞추고, 문맥별 불필요한 입력은 전송하지 않는다.
-   경고 숨김·`permit!`로 해결하지 않으며 작성자·대상·동아리·visibility·첨부 참조의 서버 검증을 보존한다.
-4. 기존 동작을 검증하는 시나리오를 보존하면서 사용자 담당 targeted RSpec과 필요한 통합 회귀 검증을 수행한다.
-   0/1/5권·6권 거부·중복·미등록 책·만료 참조·취소·저장 실패 rollback·동시 수정과 HTML/Turbo를 확인한다.
-5. 운영과 동등한 환경에서 전환 전후 ID·본문·상태·관계·책과 순서·참조 건수를 대조하고,
-   재실행·백업 복원·rollback·구 버전과의 호환·배포 중 동시 쓰기 계획을 확인한다.
-6. 홈·프로필·동아리 작성, 두 사람 전용 대화와 제3자 반응 정리, 책 상세·발견·검색·관리자 목록,
-   숨김/복구·원문 삭제 A/B/C·알림을 브라우저에서 확인한다. 친구 프로필의 책 0~5권 첨부와 책 정보의 두 사람 전용 권한,
-   일반 검색의 댓글 제외·관리자 유형 통합도 확인한다. 공통 카드의 전체 제목, 발견의 최대 3권 겹친 표지·오른쪽 제목
-   한 줄 말줄임표·`외 N권` 요약, 표지 누락·모바일·ko/en도 포함한다.
-7. 운영 배포 전에 위 검증 결과와 남은 충돌을 기록한다. `Unpermitted parameter`가 재현 흐름에서 해결되었는지,
-   비공개 정보 누출·부분 저장·데이터 유실·중복 조회가 없는지 확인하고 관련 canonical 문서를 실제 결과와 동기화한다.
-
-## 9. 아직 결정하지 않은 정책과 설계
-
-- 검색·운영 화면의 첨부 유무 보조 필터, 과거 유형 URL의 호환·정규화.
-- 기존 연결 구조 재사용 여부, 예외 데이터의 처리 기준, backfill·제약·동시 쓰기·배포/rollback 순서와 구 분류 정보의 보존 방법.
-
-이 항목은 확정 정책으로 간주하지 않는다. 확인되지 않은 구현 사실이나 실제 데이터 이상도 확정 사실로 보고하지 않는다.
-
-
-## 10. 1차 구현: 데이터 모델과 전환
-
-이 절은 데이터 계층의 구현 범위다. 앞의 화면·검색·발견·권한 개편은 후속 구현이며 아직 완료되지 않았다.
-
-- `JjaekRecommendation`과 기존 테이블을 첨부 연결로 재사용하고 `Jjaek#attached_books`로 선택 순서대로 조회한다.
-  `recommended_books`, `book_id`, `recommendation`과 기존 화면 분류는 호환을 위해 유지한다.
-- `update_attached_books(attributes:, books:)`는 영속 Jjaek의 잠금과 transaction 안에서 수정한다.
-  books 키 누락은 유지, 빈 배열은 제거, nil·비배열·Book 이외 원소·중복·6권 이상은 실패다.
-  요청 ID와 외부 참조를 Book 목록으로 검증하는 controller 연결은 후속 작업이다. 이 메서드 자체는 인가를 대신하지 않는다.
-- 명시적 교체 시 일반 짹의 legacy book_id를 비우고 `book_attachments_migrated`를 기록한다.
-  첨부 조회에는 book_id fallback이 없다. 기존 추천 수정 메서드는 이 경로를 재사용한다.
-- 새 다시짹은 legacy book_id를 포함해 책 첨부를 거부한다. 과거 다시짹은 기존 연결의 유지·본문 수정이 가능하며
-  새 책은 추가할 수 없다. 과거 데이터 회귀 테스트는 별도 historical fixture helper를 사용한다.
-- 신규 migration `20261106000000`은 앞선 추천 migration 적용 후 실행한다. production에 추천 migration이
-  미적용이어도 Rails migration 순서대로 테이블·컬럼 생성 후 일반화한다. 기존 migration은 변경하지 않았다.
-- migration은 추천 전용 CHECK를 제거하고 전환 여부 컬럼을 추가한다. 쓰기를 막는 테이블 잠금 아래,
-  미전환 단일 책짹의 연결만 추가하고 기존 추천 연결의 ID·position·시각과 Jjaek의 시각·관계를 그대로 둔다.
-  연결 5권 초과나 book_id와 다른 연결의 혼합은 예외로 중단한다. 임의 병합·절삭·데이터 삭제는 없다.
-- 전환 여부가 true인 row는 백필 재실행에서 건너뛴다. 명시적 0권 수정도 완료 상태이므로 책을 되살리지 않는다.
-  실패하면 migration transaction 전체가 롤백되며 원인 데이터를 확인한 뒤 재실행한다.
-- 운영에서는 웹·내장 작업 처리를 중지하고 백업·복원 리허설 뒤 실행해야 한다. DDL 잠금은 읽기도 막을 수 있으므로
-  무중단 migration으로 취급하지 않는다. 이번 작업에서 DB migration과 백필은 실행하지 않았다.
-- down은 데이터 손실을 방지하기 위해 IrreversibleMigration으로 중단한다. DB를 유지한 앱 복귀는 이 데이터 구조를
-  읽고 수정할 수 있는 호환 버전만 사용한다. 최초 구버전은 일반 짹의 연결을 거부하므로 직접 복귀할 수 없다.
-  백업 복원은 복원 시점 이후 쓰기를 잃으므로 쓰기 재개 뒤의 무손실 복구 수단으로 간주하지 않는다.
-- 운영의 일반 이전 이미지 복귀 안내보다 `docs/ops/deploy_oci.md`의 통합 짹 배포 예외를 우선한다.
-  배포 직전 웹·내장 작업 중단, 네 DB 백업, 전후 데이터 대조와 복원 리허설을 필수로 한다.
-  구버전 복귀 시에는 백업 시점의 네 DB와 호환 이미지를 함께 복구하며 실제 복원 검증 없이 무손실을 보장하지 않는다.
-- 이번 단계는 UI를 위한 완전한 호환 버전이 아니다. 권한 완화·폼·목록·검색·발견·관리자 분류와 파라미터 계약,
-  legacy 조회 제거, 운영 배포 절차의 최종 연결을 후속 단계에서 완료해야 한다.
-
-사용자 검증 명령(작성만 했으며 실행하지 않음):
-
-```bash
-RAILS_ENV=test bin/rails db:migrate
-bundle exec rspec spec/models/jjaek_spec.rb spec/models/jjaek_recommendation_spec.rb spec/models/jjaek_attachments_spec.rb spec/migrations/generalize_jjaek_book_attachments_spec.rb
-bundle exec rspec spec/policies/jjaek_policy_spec.rb spec/requests/recommendation_jjaeks_spec.rb spec/requests/books_spec.rb spec/requests/bookshelf_entries_spec.rb spec/requests/jjaek_reading_state_spec.rb spec/requests/jjaeks_spec.rb spec/requests/requotes_spec.rb spec/requests/users_spec.rb
-```
-
-운영 복원본에서는 추천 migration 이전 DB와 이미 적용된 DB를 각각 준비해 migration 경로를 확인한다.
-ID·본문·시각·visibility·인용·댓글·좋아요·알림·기존 연결 ID/순서 대조와 실패 rollback을 확인한 뒤 운영 적용한다.
-
-
-## 11. 2단계 초기 구현: 인라인 작성·수정과 첨부 모달
-
-이 절의 모달 내부 검색과 select 공개 범위 디자인은 12절의 승인된 UX 복원으로 대체한다. 저장·권한 계약은 유지한다.
-
-- 홈·친구 프로필·동아리·책 상세·신규 작성·수정은 `jjaeks/composer` Rails form과 textarea를 공유한다.
-  일반 짹은 JavaScript 없이 저장할 수 있다. 책 추가는 별도 dialog만 열며 본문 작성 자체는 모달로 이동하지 않는다.
-- `jjaek-books` Stimulus는 모달·검색·페이지 이동·선택·개별 제거만 담당한다. 선택은 원래 폼의
-  `selected_books[]` hidden 입력과 목록에 반영한다. 선택 순서를 유지하며 정렬 UI·이미지/꾸미기 기능은 추가하지 않는다.
-  모달 높이는 작은 화면에 맞춰 제한하고 결과 영역만 스크롤한다. 폼의 본문·visibility DOM은 선택 중 교체하지 않는다.
-- `GET /jjaek_books`는 기존 BookSearchResults와 사용자별 signed 결과 참조를 재사용한다.
-  검색·선택은 Book/Jjaek/서재를 저장하지 않는다. 외부 참조는 사용자 바인딩과 기존 30분 만료를 유지한다.
-- 모든 원본 짹은 선택적 0~5권을 첨부하고 수정할 수 있다. 새 작성에서 추천 여부를 별도 유형으로 설정하지 않는다.
-  기존 recommendation 값·컬럼·연결은 보존한다. 기존 추천짹도 일반 수정 폼으로 편집한다.
-- 최종 POST/PATCH는 잘못된 구조·유효하지 않은 ID·만료/타 사용자 참조·중복 키/도서 identity·6권 이상을 거부한다.
-  PATCH에서 selected_books 누락은 유지, 빈 배열 또는 빈 sentinel만 있는 배열은 전체 제거다.
-  검증 실패의 HTML·Turbo 요청은 422 HTML 폼으로 입력·검증 가능한 선택·오류를 표시하고 DB를 보존한다.
-- `update_attached_books`의 transaction과 Group → Jjaek 잠금 순서를 재사용한다. 저장 직전에 다시 인가하고,
-  PATCH의 book_id/group_id/target_user_id/quoted_jjaek_id 변경은 거부한다. 생성에서도 경로·폼 Group 불일치와
-  Group/프로필 혼합을 거부하며 metadata는 본문 속성에 mass assignment하지 않는다.
-- 프로필 대화는 첨부 정보에도 두 사람 전용 scope를 적용하고 visibility 선택을 제공하지 않는다.
-  동아리는 개인 visibility를 선택·저장하지 않는다. 다시짹은 원문만 인용하며 새 책 선택 UI와 추가 요청을 거부한다.
-  과거 다시짹의 책 연결은 본문 수정 시 그대로 둔다.
-- 책 상세는 현재 개인/동아리 게시 문맥을 고정해 공통 폼에 연결하고 해당 책을 미리 선택한다.
-  책을 제거하거나 다른 책을 추가할 수 있다. 개인 ↔ 동아리 전환 selector는 공통 폼에 두지 않는다.
-  책 상세의 독서 관리와 첨부 작성은 독립이며 BookScope는 부모 Jjaek 접근 권한을 적용하고 서재 등록을 요구하지 않는다.
-- 실패 화면은 기존 홈·프로필·동아리·책 상세 문맥을 유지한다. 수정 실패는 같은 수정 폼을 유지한다.
-  공통 카드와 인용 카드도 새 첨부 연결을 읽되 기존 숨김·삭제·원문 접근 경계 안에서만 표시한다.
-- 플로팅 추천창·전용 단계별 partial·recommendation-composer JS와 기존 책 게시 위치 JS는 제거했다.
-  이전 `/jjaeks/new?recommendation=1`, 추천 편집 링크는 공통 폼으로 열고,
-  `/book_search?recommendation=1` 및 `/recommendation_books`는 공통 작성/수정으로 안내하는 호환 경로로 남긴다.
-  새 UI는 이 endpoint를 사용하지 않는다. 이전 브라우저의 임시 플로팅 draft를 새 폼으로 자동 복구하지는 않는다.
-- 이전 추천창 전용 request/system UI 기대값은 공통 폼/모달 계약으로 교체했다. 중복·권한·원자성·토큰·반응 보존 검증은 유지하고,
-  서재 미등록 작성 금지·책 개수로 유형 구분·선택 중복 자동 병합 기대값은 승인된 통합 정책에 맞춰 변경했다.
-- 발견·검색·관리자 유형 필터와 legacy book_id 기반 책친구 미리보기·책 문맥 댓글 inline 판정은 후속 범위다.
-  현재 댓글 상세 fallback과 기존 Pundit 권한을 유지한다. 기존 컬럼·테이블·운영 데이터는 삭제하거나 변경하지 않았다.
-
-이번 단계는 RSpec·브라우저 테스트를 실행하지 않았다. 사용자가 실행할 검증 명령:
-
-```bash
-bundle exec rspec spec/models/jjaek_attachments_spec.rb spec/migrations/generalize_jjaek_book_attachments_spec.rb spec/policies/jjaek_policy_spec.rb spec/requests/recommendation_jjaeks_spec.rb spec/requests/book_posting_spec.rb spec/requests/books_spec.rb spec/requests/jjaeks_spec.rb spec/requests/group_jjaeks_spec.rb spec/requests/private_profile_jjaeks_spec.rb spec/requests/book_search_standalone_spec.rb
-bundle exec rspec spec/system/recommendation_editing_spec.rb spec/system/book_posting_spec.rb
-```
-
-
-## 12. 2단계 UX 보완: 기존 책 선택 플로팅 창 재사용
-
-- 기준 커밋 f20b2f6의 recommendation-window 반응형 배치, 추천 검색 결과 카드, 선택 목록과
-  선택·제거 Turbo Stream 흐름을 선택 전용으로 일반화한다. 본문 textarea나 게시 폼을 창에 넣지 않는다.
-- 공통 Rails 폼의 책 추가로 비모달 플로팅 창을 연다. 검색 결과는 기존 `/book_search` 페이지의
-  recommendation-search-results Frame에 표시한다. 선택 목록·권수·중복·최대 5권과 검색어·페이지 상태를 유지한다.
-  선택 완료만 현재 목록을 확정하고 원래 폼으로 돌아간다. 닫기는 열기 직전 목록으로 복원하고 돌아간다.
-  선택 작업 중 검색 페이지의 돌아가기도 취소로 처리하며 일반 검색의 돌아가기는 변경하지 않는다.
-  0권도 선택 완료할 수 있고 순서 변경 UI는 제공하지 않는다.
-- 폼 DOM과 플로팅 창을 선택 작업 동안 Turbo permanent로 보존한다. 본문과 공개 범위를 URL·DB 초안·별도 저장소로
-  복사하지 않는다. 같은 문맥의 검색·페이지 이동과 책 상세 미리보기에서는 임시 선택과 원래 폼을 유지한다.
-  그 외 화면으로 이동하면 선택을 취소하고 세션을 종료한다.
-  새 세션 revision과 기존 response/stream/frame guard로 종료 이전 응답이 새 선택에 적용되지 않게 한다.
-- 공개 범위는 기존 jjaek_option_card_classes·SVG·radio 카드로 복원한다. 프로필 대화·동아리에는 선택을 제공하지 않는다.
-- 원래 폼의 첨부 목록은 선택 순서대로 제목·제거·서재에 넣기 동작을 표시한다. 선택 필드는 form 속성으로
-  원래 Rails 게시 폼에 연결하며 서재 등록 form/dialog는 게시 폼 바깥에 두어 form을 중첩하지 않는다.
-- 서재 등록은 기존 shelf_selection_modal, add_to_shelf_form, book-modal Stimulus와 BookshelfEntriesController의
-  소유권·중복·transaction·BookActivity 처리를 재사용한다. 성공 시 해당 책의 등록 표시만 Turbo Stream으로 교체한다.
-  등록 실패도 Stream 오류로 표시해 원래 textarea·visibility·첨부 선택을 보존한다. 첨부 선택·제거는 서재를 자동 변경하지 않는다.
-- 외부 첨부 책의 서재 등록은 검증된 도서 정보에 사용자 바인딩 결과 토큰을 발급해 기존 import 경로로 제출한다.
-  나중에 짹을 저장하면 기존 ISBN/URL 식별 로직으로 같은 Book을 재사용한다. 모델·migration·Jjaek 저장/권한 계약은 바꾸지 않는다.
-- 새 모달 검색 UI와 jjaek_books Stimulus는 제거한다. JjaekBooksController는 선택 Frame 초기화만 맡고,
-  BookSearchesController는 기존 검색, RecommendationBooksController는 DB 저장 없는 선택·제거를 담당한다.
-  recommendation 이름은 기존 경로·DOM 호환용이며 별도 추천 게시 유형·작성 단계를 복원하지 않는다.
-- 기존 request/policy의 권한·데이터 검증은 유지하고 UI selector만 radio/선택 창에 맞춘다.
-  3개 system 시나리오를 유지하면서 페이지 검색·선택 완료·등록 모달 닫기/저장 후 draft 보존을 보강한다.
-- 이번 수정에서 RSpec·브라우저 테스트·운영 DB 변경·commit/merge/push는 수행하지 않았다.
-  발견·검색·관리자 분류 등의 후속 범위는 이전과 같다. 실제 Turbo 왕복·작은 화면 동작은 사용자 검증이 필요하다.
-
-```bash
-bundle exec rspec spec/requests/recommendation_jjaeks_spec.rb spec/requests/book_posting_spec.rb spec/requests/books_spec.rb spec/requests/jjaeks_spec.rb spec/requests/book_search_standalone_spec.rb spec/requests/bookshelf_entries_spec.rb spec/policies/jjaek_policy_spec.rb
-bundle exec rspec spec/system/recommendation_editing_spec.rb spec/system/book_posting_spec.rb
-```
-
-## 13. 2단계 후속: 공통 폼·책 상세 초기화·첨부 카드
+## 7. 공통 폼·책 상세 초기화·첨부 카드
 
 - 공통 작성·수정 폼은 동일한 최대 폭과 스타일을 사용한다. 책 추가는 우측 상단, 제출은 본문·첨부 목록 아래 우측에 둔다.
   첨부 목록에는 작은 표지·제목·저자와 기존 제거·서재 등록 동작을 표시하고, 최대 5권일 때 목록 내부 스크롤을 유지한다.
@@ -398,7 +240,7 @@ bundle exec rspec spec/system/recommendation_editing_spec.rb spec/system/book_po
 브라우저에서는 작은 노트북에서 모달 열기/닫기/Escape·검색·페이지 이동 중 본문 보존과 5권 제한·개별 제거,
 HTML/Turbo의 실패·재저장, 프로필 제3자 비노출과 동아리 권한 상실 후 저장 거부를 확인한다.
 
-## 14. 책 상세의 서재 미등록·외부 검색 책 작성
+## 8. 책 상세의 서재 미등록·외부 검색 책 작성
 
 - 서재 등록 여부와 관계없이 기존 Book 상세와 외부 검색 결과 상세에서 같은 공통 작성 폼을 제공한다.
   현재 책 1권을 기본 첨부하고 기존 공개 범위·책 추가/제거·최대 5권과 선택 완료/취소·Turbo 초안 보존을 유지한다.
@@ -408,11 +250,10 @@ HTML/Turbo의 실패·재저장, 프로필 제3자 비노출과 동아리 권한
   기존 Book 메타데이터를 덮어쓰지 않으며 위변조·만료·타 사용자 참조·중복·6권 이상은 부분 저장 없이 거부한다.
   본문 검증 실패도 새 Book·짹·첨부를 남기지 않는다.
 - 기존 Book과 외부 검색 책을 섞어 첨부할 수 있고 선택 순서를 유지한다. 외부 책 상세의 작성 문맥도
-  사용자 바인딩 서명 데이터로 확인하며, 저장된 첨부 결과에 따른 성공 이동·새 폼 초기화는 13절과 같다.
+  사용자 바인딩 서명 데이터로 확인하며, 저장된 첨부 결과에 따른 성공 이동·새 폼 초기화는 7절과 같다.
   현재 책을 제거하면 그 책을 새로 저장하지 않는다. 실패 화면에도 검증 가능한 책 문맥과 제출한 입력을 유지한다.
 - 짹 작성만으로 BookshelfEntry·독서 상태·BookActivity를 생성하거나 변경하지 않는다.
   기존 서재에 담기는 별도 명시적 동작으로 유지한다. 게시된 짹은 실제 첨부된 책 상세 목록에서 기존 scope 안에 표시한다.
-- 이 단계는 모델·DB 구조를 변경하지 않으며 RSpec·브라우저 테스트·Git commit/merge/push를 수행하지 않는다.
 
 사용자가 실행할 검증 명령:
 
@@ -421,7 +262,7 @@ bundle exec rspec spec/requests/book_posting_spec.rb spec/requests/books_spec.rb
 bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_editing_spec.rb
 ```
 
-## 15. 통합 작성 UI 표현 보완
+## 9. 통합 작성 UI 표현 보완
 
 - 프로필 대화의 카드·상세 공개 범위는 로그인한 당사자를 기준으로 `%{name}님과 나만 보기`로 표시한다.
   작성자에게는 프로필 주인, 프로필 주인에게는 작성자 이름을 표시하며 영어도 같은 의미로 제공한다.
@@ -434,7 +275,7 @@ bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_ed
 - 책 상세·검색 결과·첨부 책·책 선택창의 책장 등록 버튼과 제출 문구를 `책장에 담기`로 통일한다.
   영어는 `Add to shelf`로 통일하고 기존 locale 키를 재사용한다. `내 서재`와 등록 완료·활동 문구 및 등록 로직은 유지한다.
 
-## 16. 모바일 작성 UX와 작성·수정 시각 표시
+## 10. 모바일 작성 UX와 작성·수정 시각 표시
 
 - 책 선택의 `선택 완료`는 선택 목록을 확정하고 창을 닫은 뒤 원래 작성 폼의 본문에 포커스를 준다.
   Turbo 왕복 후에도 같은 작성 문맥의 현재 textarea를 찾아 포커스하고 입력 영역을 스크롤해 보여 준다.
@@ -460,7 +301,7 @@ bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_ed
 - 검증은 모바일의 선택 완료(같은 화면/검색 왕복) 포커스·스크롤, 취소 초안 보존, 제거·등록과
   일반/상세/인용 시각 구분을 대상으로 한다. 기존 권한·통합 동작 테스트를 보존하며 실행은 사용자가 담당한다.
 
-## 17. 검색 UI와 사용자용 짹 용어 일원화
+## 11. 검색 UI와 사용자용 짹 용어 일원화
 
 - 내비게이션의 `검색`을 유지하고 `/search` 제목도 `검색`으로 표시한다. 책 찾기 메뉴·`/book_search` 제목·
   전역 책 검색 모달 제목은 기존 ko/en locale 키로 `책 찾기` / `Find books`를 표시한다. URL·라우트는 유지한다.
@@ -480,10 +321,9 @@ bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_ed
   범위·대상 검증과 잘못된 요청의 404는 유지하며 구 파라미터로 서버 오류나 권한 우회가 발생하지 않게 한다.
 - 기존 Pundit 검색 scope·두 사람 전용 대화·원문 접근 재검사·숨김/삭제 제외·댓글 제외·본문 검색을 유지한다.
   전체 미리보기는 통합한 짹 결과에서 최대 5건, 개별 탭은 기존 30/50/100건과 최신 작성 시각·ID 정렬을 유지한다.
-- 이 검색 단계는 관리자 화면·저장 로직·DB·migration을 변경하지 않는다. 관리자 분류의 후속 구현은 18절을 따르며 대규모 레거시 정리는 별도 단계다.
-  기존 권한·태그·범위·페이지네이션 테스트는 유지하고 통합 조회와 첨부 선택 모드의 제목 숨김을 검증한다.
+- 관리자 분류는 12절을 따른다. 기존 권한·태그·범위·페이지네이션과 첨부 선택 모드의 제목 숨김을유지한다.
 
-## 18. 관리자 모니터링과 콘텐츠 관리
+## 12. 관리자 모니터링과 콘텐츠 관리
 
 - 시스템 관리자 배지는 댓글 → 다시짹 → 동아리짹 → 짹 순서로 판별하며 상호 배타적으로 하나만 표시한다.
   기존 `requote?`와 원문 삭제 marker를 재사용하므로 원문 삭제 후에도 다시짹이다.
@@ -523,7 +363,7 @@ bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_ed
   분류별 집계에서 다시짹의 중복만 없애며 전체 활동을 누락하거나 중복 집계하지 않는다.
 - 검색·발견·일반 사용자 피드, DB·저장 방식·moderation 정책은 변경하지 않는다.
 
-## 19. 최종 감사 P1 회귀 보완
+## 13. 첨부 기준 조회의 회귀 검증
 
 - 책 상세의 댓글 패널은 부모 Jjaek 인가 후 실제 첨부 연결로 책 문맥을 검사한다.
   단일·다중 첨부의 각 책에서 기존 열기·닫기·작성 Turbo 대상을 유지한다.
@@ -532,5 +372,21 @@ bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_ed
 - 책친구 활동은 첨부 연결에서 조회하며 기존 친구·visibility·숨김·삭제·최신 3건 정책을 유지한다.
 - 독서 상태·스티커는 단일 첨부의 실제 Book을 기준으로 기존 ReadingStateScope를 적용한다.
   여러 권 첨부에는 독서 상태 UI를 추가하지 않는다.
-- 회귀 request spec은 selected_books[]로 실제 작성한 짹을 사용한다. 이번 수정에서 RSpec과
-  브라우저 테스트는 실행하지 않았으며 운영 migration도 변경하거나 실행하지 않았다.
+- 회귀 request spec은 `selected_books[]`로 실제 작성한 짹을 사용한다.
+
+
+## 14. 작성·선택 경로와 검증
+
+- 최종 작성·수정 입력은 `selected_books[]`다. 수정 요청에서 키를 생략하면 기존 첨부를 유지하고,
+  명시적인 빈 선택은 제거한다. 구형 book_id/book_post_destination 게시 입력은 거부한다.
+  `book_context_id`/`book_context_token`은 책 페이지의 복귀 문맥이며 첨부·게시 대상 입력이 아니다.
+- `/jjaek_books`의 `JjaekBooksController#index/create/destroy`와 `BookSelection`은 임시 선택·문맥 인가,
+  사용자 바인딩·30분 만료·외부 참조 해석을 담당한다. 최종 저장은 JjaeksController와 모델이 담당한다.
+  `book-selection` Stimulus, permanent 선택창, `book_selection` Frame과 revision header는
+  초안 보존·취소 복원·늦은 Turbo 응답 차단에 사용된다. 별도의 추천 작성 단계는 없다.
+- 외부 책은 최종 저장에서만 기존 Book을 재사용하거나 생성한다. 메타데이터를 덮어쓰지 않으며
+  Book·본문·첨부는 함께 성공하거나 롤백한다. 선택·검색만으로 DB 초안을 만들지 않는다.
+- 책 선택창과 첨부 검색의 스크롤 영역을 분리한다. 모바일 패널은 최대 48dvh,
+  데스크톱은 결과와 선택 패널을 나란히 배치해 검색창이 결과 버튼·페이지 링크를 덮지 않게 한다.
+- 권한·A/B/C·삭제 책 정보·0/1/5권과 초과 거부·외부 참조·실패 원자성·첨부 순서·선택 취소·Back을 검증한다.
+  운영 백업본 전환과 이전 이미지/DB 복구는 [별도 환경 리허설](../ops/deploy_oci.md#데이터-전환과-복구-리허설)을 통과한 뒤 배포한다.

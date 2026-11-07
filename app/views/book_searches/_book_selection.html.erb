@@ -1,15 +1,15 @@
-<section data-recommendation-composer-target="selection"
+<section data-book-selection-target="selection"
          class="min-w-0" aria-label="<%= t("jjaek_books.attached") %>">
-  <h3 class="text-sm font-semibold"><%= t("jjaek_books.selected_count", count: @selected_books.size, max: Jjaek::MAX_RECOMMENDATION_BOOKS) %></h3>
-  <% if @selected_books.size >= Jjaek::MAX_RECOMMENDATION_BOOKS %>
-    <p class="mt-2 text-sm text-amber-700"><%= t("jjaek_books.limit", count: Jjaek::MAX_RECOMMENDATION_BOOKS) %></p>
+  <h3 class="text-sm font-semibold"><%= t("jjaek_books.selected_count", count: @selected_books.size, max: Jjaek::MAX_ATTACHED_BOOKS) %></h3>
+  <% if @selected_books.size >= Jjaek::MAX_ATTACHED_BOOKS %>
+    <p class="mt-2 text-sm text-amber-700"><%= t("jjaek_books.limit", count: Jjaek::MAX_ATTACHED_BOOKS) %></p>
   <% end %>
   <% if @selected_books.empty? %>
     <p class="mt-3 text-sm text-stone-500"><%= t("jjaek_books.empty") %></p>
   <% else %>
     <ul class="mt-2 space-y-1 sm:mt-3 sm:space-y-3">
       <% @selected_books.each_with_index do |book, index| %>
-        <li class="flex items-center gap-2 sm:gap-3" data-recommendation-composer-target="book"
+        <li class="flex items-center gap-2 sm:gap-3" data-book-selection-target="book"
             data-book-id="<%= book.id %>" data-isbn="<%= book.canonical_isbn %>" data-url="<%= book.external_url %>">
           <div class="hidden shrink-0 sm:block">
             <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :small, link: false %>
@@ -18,8 +18,8 @@
             <p class="text-sm font-medium max-sm:truncate max-sm:text-xs max-sm:leading-tight sm:break-words sm:[overflow-wrap:anywhere]"><%= book.title %></p>
             <p class="truncate text-[11px] leading-tight text-stone-500 sm:hidden"><%= book.authors_text.presence || "-" %></p>
           </div>
-          <%= form_with url: recommendation_book_path(@selected_book_keys[index]), method: :delete,
-                        data: { recommendation_selection_form: "remove" },
+          <%= form_with url: jjaek_book_path(@selected_book_keys[index]), method: :delete,
+                        data: { book_selection_form: "remove" },
                         class: "shrink-0" do %>
             <%= render "jjaeks/selection_context" %>
             <%= button_tag aria: { label: t("jjaek_books.remove_book", title: book.title) },

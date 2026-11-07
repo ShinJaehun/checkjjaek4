@@ -73,7 +73,7 @@ RSpec.describe "User-facing translations" do
       admin.jjaeks.notices.hidden
       admin.jjaeks.alerts.hide_failed
       jjaeks.moderation.hidden_by_system_admin
-      jjaeks.moderation.hidden_book_by_system_admin
+      jjaeks.moderation.hidden_by_group_admin
     ].each do |key|
       expect(I18n.exists?(key, :en, fallback: false)).to be(true), "Missing en.#{key}"
     end

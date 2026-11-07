@@ -4,7 +4,6 @@
 <% return_path = validated_jjaek_return_path(params[:return_to]) %>
 <%= form_with model: bookshelf_entry, url: bookshelf_entry_path(bookshelf_entry), method: :patch, class: "space-y-5" do |form| %>
   <%= hidden_field_tag :group_id, @group.id if @group.present? %>
-  <%= hidden_field_tag :quote_id, @quoted_jjaek&.id || params[:quote_id] if @quoted_jjaek.present? || params[:quote_id].present? %>
   <%= hidden_field_tag :return_to, return_path if return_path %>
 
   <% if bookshelf_entry.errors.any? %>

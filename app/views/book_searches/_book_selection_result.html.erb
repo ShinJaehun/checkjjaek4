@@ -1,13 +1,13 @@
 <%= render layout: "book_searches/result_card_layout",
            locals: { book: book,
-                     card_data: { recommendation_result: true, book_id: book[:existing_book_id],
-                                  isbn: recommendation_result_isbn(book), url: book[:url] } } do %>
-  <div data-recommendation-selected <%= "hidden" unless recommendation_result_selected?(book) %>>
+                     card_data: { book_selection_result: true, book_id: book[:existing_book_id],
+                                  isbn: book_selection_result_isbn(book), url: book[:url] } } do %>
+  <div data-book-selection-selected <%= "hidden" unless book_selection_result_selected?(book) %>>
     <button type="button" disabled class="ui-button ui-button-secondary max-w-full"><%= t("jjaek_books.selected") %></button>
   </div>
-  <div data-recommendation-add <%= "hidden" if recommendation_result_selected?(book) %>>
-    <%= form_with url: recommendation_books_path,
-                  data: { recommendation_selection_form: "add" },
+  <div data-book-selection-add <%= "hidden" if book_selection_result_selected?(book) %>>
+    <%= form_with url: jjaek_books_path,
+                  data: { book_selection_form: "add" },
                   class: "space-y-2" do %>
       <%= render "jjaeks/selection_context" %>
       <% if book[:existing_book_id].present? %>
@@ -15,7 +15,7 @@
       <% else %>
         <%= hidden_field_tag :search_result_token, book[:search_result_token], id: nil %>
       <% end %>
-      <%= submit_tag t("jjaek_books.choose"), name: nil, disabled: @selected_books.size >= Jjaek::MAX_RECOMMENDATION_BOOKS,
+      <%= submit_tag t("jjaek_books.choose"), name: nil, disabled: @selected_books.size >= Jjaek::MAX_ATTACHED_BOOKS,
                      class: "ui-button ui-button-primary max-w-full" %>
     <% end %>
   </div>

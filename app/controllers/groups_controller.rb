@@ -100,8 +100,8 @@ class GroupsController < ApplicationController
 
   def prepare_group_activity_feed
     @group_activity_jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::GroupActivityScope)
-      .includes(:book, :group,
-                user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :book, :group ])
+      .includes(:attached_books, :group,
+                user: { avatar_attachment: :blob }, target_user: { avatar_attachment: :blob }, quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :attached_books, :group ])
       .order(created_at: :desc, id: :desc)
     @feed_page = FeedPage.new(jjaeks: @group_activity_jjaeks, cursor: params[:cursor])
     @feed_next_url = groups_path(cursor: @feed_page.next_cursor) if @feed_page.next_cursor

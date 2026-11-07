@@ -39,7 +39,7 @@
       </div>
       <%= yield %>
     </main>
-    <%= render "jjaeks/recommendation_window" if user_signed_in? %>
+    <%= render "jjaeks/book_selection_window" if user_signed_in? %>
     <%= render "shared/footer" unless auth_page %>
   </body>
 </html>
