@@ -19,4 +19,7 @@
                      class: "ui-button ui-button-primary max-w-full" %>
     <% end %>
   </div>
+  <%= render "jjaeks/attachment_shelf", book: book, bookshelves: bookshelves,
+             source: "jjaek_attachment_search", dom_prefix: "attachment_search_",
+             return_path: @selection_origin %>
 <% end %>

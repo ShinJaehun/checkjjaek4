@@ -235,7 +235,7 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def attachment_shelf_source?
-    params[:bookshelf_entry_source] == "jjaek_attachment" && request.format.turbo_stream?
+    params[:bookshelf_entry_source].in?(%w[jjaek_attachment jjaek_attachment_search]) && request.format.turbo_stream?
   end
 
   def render_attachment_shelf_error(message, status: :unprocessable_content)
@@ -244,7 +244,7 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def book_search_result_source?
-    params[:bookshelf_entry_source].in?(%w[book_search jjaek_attachment])
+    params[:bookshelf_entry_source].in?(%w[book_search jjaek_attachment jjaek_attachment_search])
   end
 
   def prepare_book_search_result_card

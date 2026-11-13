@@ -291,7 +291,7 @@ export default class extends Controller {
       const selected = this.bookTargets.some(book => ["bookId", "isbn", "url"].some(key => result.dataset[key] && result.dataset[key] === book.dataset[key]))
       result.querySelector("[data-book-selection-selected]").hidden = !selected
       result.querySelector("[data-book-selection-add]").hidden = selected
-      result.querySelector("input[type='submit']").disabled = atLimit
+      result.querySelector("[data-book-selection-add] input[type='submit']").disabled = atLimit
     })
   }
 }
