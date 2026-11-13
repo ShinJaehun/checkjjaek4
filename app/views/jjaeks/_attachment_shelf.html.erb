@@ -1,12 +1,26 @@
-<div id="attachment_shelf_<%= book_search_result_dom_id(book) %>" class="min-w-0 max-w-full">
+<% source = local_assigns.fetch(:source, "jjaek_attachment") %>
+<% search_result = source == "jjaek_attachment_search" %>
+<% dom_prefix = local_assigns.fetch(:dom_prefix, "attachment_") %>
+<% return_path = local_assigns.fetch(:return_path) { validated_jjaek_return_path(params[:search_origin]) || root_path } %>
+<div id="<%= dom_prefix %>shelf_<%= book_search_result_dom_id(book) %>" class="min-w-0 max-w-full">
   <% if book[:bookshelf_entry] %>
-    <button type="button" disabled class="ui-button ui-button-secondary min-h-8 min-w-0 max-w-full px-2 py-1 text-xs">
-      <span class="truncate"><%= t("book_search.actions.in_bookshelf", bookshelf_name: book[:bookshelf_entry].bookshelf.name) %></span>
+    <% bookshelf = book[:bookshelf_entry].bookshelf %>
+    <button type="button" disabled class="<%= search_result ? "ui-button ui-button-secondary max-w-full break-words text-left" : "ui-button ui-button-secondary min-h-8 min-w-0 max-w-full px-2 py-1 text-xs" %>">
+      <span class="<%= search_result ? "min-w-0 break-words" : "truncate" %>">
+        <% if search_result && bookshelf.is_default? %>
+          <%= t("book_search.actions.in_shelf") %>
+        <% else %>
+          <%= t("book_search.actions.in_bookshelf", bookshelf_name: bookshelf.name) %>
+        <% end %>
+      </span>
     </button>
+  <% elsif source == "jjaek_attachment_search" && bookshelves.size == 1 %>
+    <%= render "book_searches/add_to_shelf_form", book: book, bookshelves: bookshelves,
+               return_path: return_path, source: source, dom_prefix: dom_prefix %>
   <% else %>
     <%= render "book_searches/shelf_selection_modal", book: book, bookshelves: bookshelves,
-               return_path: validated_jjaek_return_path(params[:search_origin]) || root_path,
-               source: "jjaek_attachment", dom_prefix: "attachment_", opener_label: t("jjaek_books.add_to_shelf"),
-               opener_class: "ui-button ui-button-secondary min-h-8 min-w-0 max-w-full px-2 py-1 text-xs" %>
+               return_path: return_path,
+               source: source, dom_prefix: dom_prefix, opener_label: (t("jjaek_books.add_to_shelf") unless search_result),
+               opener_class: ("ui-button ui-button-secondary min-h-8 min-w-0 max-w-full px-2 py-1 text-xs" unless search_result) %>
   <% end %>
 </div>

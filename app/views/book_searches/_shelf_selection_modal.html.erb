@@ -2,7 +2,7 @@
 <div class="min-w-0" data-controller="book-modal"
      data-action="turbo:before-visit@document->book-modal#close turbo:before-cache@document->book-modal#close">
   <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="<%= dialog_id %>"
-          class="<%= local_assigns[:opener_class] || "ui-button ui-button-primary" %>">
+          class="<%= local_assigns[:opener_class] || "ui-button ui-button-secondary" %>">
     <span class="truncate"><%= local_assigns[:opener_label] || t("book_search.actions.add_to_shelf") %></span>
   </button>
   <dialog id="<%= dialog_id %>" aria-labelledby="<%= dialog_id %>_title" data-book-modal-target="dialog"

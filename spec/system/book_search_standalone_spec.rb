@@ -55,6 +55,7 @@ RSpec.describe "Standalone book search", type: :system do
   end
 
   def expect_composer(book:, group_context: nil)
+    expect(page).to have_no_css("#jjaek-composer[data-turbo-permanent]", visible: :all)
     destination = group_context ? group_jjaeks_path(group_context) : jjaeks_path
     expect(page).to have_css("#jjaek-publish-form[action='#{destination}'] textarea[name='jjaek[content]']")
     expect(page).to have_css("#jjaek-attached-books input[name='selected_books[]'][value='#{book.id}'][form='jjaek-publish-form']", visible: :all)

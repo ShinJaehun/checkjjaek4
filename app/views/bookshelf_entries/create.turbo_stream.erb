@@ -1,6 +1,8 @@
-<% if params[:bookshelf_entry_source] == "jjaek_attachment" %>
-  <%= turbo_stream.replace "attachment_shelf_#{book_search_result_dom_id(@book_search_result)}" do %>
-    <%= render "jjaeks/attachment_shelf", book: @book_search_result, bookshelves: @bookshelves %>
+<% if params[:bookshelf_entry_source].in?(%w[jjaek_attachment jjaek_attachment_search]) %>
+  <% dom_prefix = params[:bookshelf_entry_source] == "jjaek_attachment_search" ? "attachment_search_" : "attachment_" %>
+  <%= turbo_stream.replace "#{dom_prefix}shelf_#{book_search_result_dom_id(@book_search_result)}" do %>
+    <%= render "jjaeks/attachment_shelf", book: @book_search_result, bookshelves: @bookshelves,
+               source: params[:bookshelf_entry_source], dom_prefix: dom_prefix %>
   <% end %>
 <% else %>
   <%= turbo_stream.replace book_search_result_dom_id(@book_search_result) do %>

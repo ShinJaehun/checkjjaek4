@@ -389,4 +389,112 @@ RSpec.describe "Standalone book search", type: :request do
     expect(response).not_to have_http_status(:ok)
     expect(response.body).not_to include(group.name)
   end
+
+  describe "shelf registration from attachment search" do
+    [ :stored, :external ].each do |source|
+      it "registers a #{source} result independently and replaces only its shelf controls" do
+        selected_book = Book.create!(title: "Already selected")
+        attributes = { title: "Attachment shelf result", isbn: "9780140328721", url: "https://example.com/attachment-shelf" }
+        if source == :stored
+          book = Book.create!(title: attributes[:title])
+          shelf = user.default_bookshelf
+          results = []
+          search_page = 1
+        else
+          shelf = user.bookshelves.create!(name: "Chosen private shelf", visibility: :private)
+          results = [ attributes ]
+          search_page = 2
+        end
+        allow(BookSearches::SearchService).to receive(:call).and_return(results: results, meta: { is_end: true })
+        search_params = { attachment: 1, query: attributes[:title], page: search_page,
+                          selected_books: [ selected_book.id ], search_origin: root_path }
+
+        get book_search_path, params: search_params
+        card = Nokogiri::HTML(response.body).at_css("[data-book-selection-result]")
+        selection_form = card.at_css("form[data-book-selection-form='add']")
+        shelf_form = card.at_css("form[action='#{bookshelf_entries_path}']")
+        target = shelf_form.ancestors("[id]").find { |node| node["id"].start_with?("attachment_search_shelf_") }["id"]
+        expect(shelf_form.ancestors("form")).to be_empty
+        expect(shelf_form).not_to eq(selection_form)
+        expect(shelf_form["data-book-selection-form"]).to be_nil
+        expect(selection_form.at_css("input[name='selected_books[]'][value='#{selected_book.id}']")).to be_present
+        expect(card.at_css("dialog").present?).to eq(source == :external)
+
+        params = shelf_form.css("input[type='hidden'][name]").to_h { |input| [ input["name"], input["value"] ] }
+        if source == :stored
+          expect(params["book_id"]).to eq(book.id.to_s)
+        else
+          expect(BookSearches::ResultToken.verify(params["search_result_token"], user: user)[:title]).to eq(attributes[:title])
+          expect(shelf_form.at_css("input[type='radio'][checked]")["value"]).to eq(user.default_bookshelf.id.to_s)
+          params[:bookshelf_entry] = { bookshelf_id: shelf.id }
+        end
+        expect {
+          post shelf_form["action"], params: params, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        }.to change(BookshelfEntry, :count).by(1).and change(BookActivity, :count).by(1)
+
+        expect(response).to have_http_status(:ok)
+        entry = user.bookshelf_entries.order(:id).last
+        expect(entry.bookshelf).to eq(shelf)
+        expect(Jjaek.count).to eq(0)
+        expect(JjaekBookAttachment.count).to eq(0)
+        streams = Nokogiri::HTML(response.body).css("turbo-stream")
+        expect(streams.map { |stream| stream["target"] }).to contain_exactly(target, "flash-messages")
+        expect(streams.find { |stream| stream["target"] == target }.at_css("template > div")["id"]).to eq(target)
+        shelf_label = shelf.is_default? ? I18n.t("book_search.actions.in_shelf") : I18n.t("book_search.actions.in_bookshelf", bookshelf_name: shelf.name)
+        expect(response.body).to include(shelf_label)
+
+        other_shelf = source == :stored ? user.bookshelves.create!(name: "Other shelf") : user.default_bookshelf
+        params[:bookshelf_entry] = { bookshelf_id: other_shelf.id }
+        expect {
+          post shelf_form["action"], params: params, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+        expect(entry.reload.bookshelf).to eq(shelf)
+
+        get book_search_path, params: search_params
+        card = Nokogiri::HTML(response.body).at_css("[data-book-selection-result]")
+        expect(card.at_css("[id^='attachment_search_shelf_'] button[disabled]").text.strip).to eq(shelf_label)
+        expect(card.css("form[action='#{bookshelf_entries_path}']")).to be_empty
+        expect(card.at_css("form[data-book-selection-form='add'] input[name='selected_books[]'][value='#{selected_book.id}']")).to be_present
+      end
+    end
+
+    it "keeps registration available at the attachment limit and preserves an already selected result" do
+      books = 5.times.map { |index| Book.create!(title: "Limit selection #{index}") }
+      candidate = Book.create!(title: "Limit candidate")
+      allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+
+      get book_search_path, params: { attachment: 1, query: "Limit", selected_books: books.map(&:id) }
+      page = Nokogiri::HTML(response.body)
+      selected = page.at_css("[data-book-id='#{books.first.id}']")
+      expect(selected.at_css("[data-book-selection-selected]")["hidden"]).to be_nil
+      candidate_card = page.at_css("[data-book-id='#{candidate.id}']")
+      expect(candidate_card.at_css("[data-book-selection-add] input[type='submit']")["disabled"]).to be_present
+      expect(candidate_card.at_css("form[action='#{bookshelf_entries_path}'] input[type='submit']")["disabled"]).to be_nil
+    end
+
+    it "returns only a flash Stream for invalid tokens or another user's target shelf" do
+      book = Book.create!(title: "Registration failure")
+      outsider = User.create!(name: "Shelf owner", email: "attachment-shelf-owner@example.com", password: "password123!")
+      foreign_shelf = outsider.bookshelves.create!(name: "Other user's private shelf", visibility: :private)
+      foreign_token = BookSearches::ResultToken.issue({ title: "Foreign token", url: "https://example.com/foreign-shelf" }, user: outsider)
+      invalid_requests = [
+        { search_result_token: "invalid" },
+        { search_result_token: foreign_token },
+        { book_id: book.id, bookshelf_entry: { bookshelf_id: foreign_shelf.id } }
+      ]
+
+      invalid_requests.each do |params|
+        expect {
+          post bookshelf_entries_path, params: params.merge(bookshelf_entry_source: "jjaek_attachment_search"),
+               headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count, Jjaek.count, JjaekBookAttachment.count ] }
+        expect(response).not_to be_redirect
+        expect(response).not_to have_http_status(:ok)
+        expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+        streams = Nokogiri::HTML(response.body).css("turbo-stream")
+        expect(streams.map { |stream| stream["target"] }).to eq([ "flash-messages" ])
+        expect(response.body).not_to include(foreign_shelf.name)
+      end
+    end
+  end
 end
