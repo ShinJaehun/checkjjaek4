@@ -248,15 +248,18 @@ class User < ApplicationRecord
   end
 
   def process_avatar_image(file)
-    image = Vips::Image.new_from_file(file.path, access: :sequential, fail_on: :warning)
-    unless %w[jpegload pngload webpload].include?(image.get("vips-loader"))
-      errors.add(:avatar, :invalid_format)
-      return
-    end
+    result = nil
+    ImageProcessingLock.synchronize do
+      image = Vips::Image.new_from_file(file.path, access: :sequential, fail_on: :warning)
+      unless %w[jpegload pngload webpload].include?(image.get("vips-loader"))
+        errors.add(:avatar, :invalid_format)
+        return
+      end
 
-    # Force decoding and the same resize used by the largest displayed variant.
-    result = ImageProcessing::Vips.source(file.path).loader(access: :sequential, fail_on: :warning)
-      .resize_to_fill(512, 512).convert("png").call
+      # Force decoding and the same resize used by the largest displayed variant.
+      result = ImageProcessing::Vips.source(file.path).loader(access: :sequential, fail_on: :warning)
+        .resize_to_fill(512, 512).convert("png").call
+    end
   ensure
     result&.close!
   end

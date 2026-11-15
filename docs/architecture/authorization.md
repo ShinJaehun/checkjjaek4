@@ -71,6 +71,13 @@ Group 이름 검색은 비회원에게 운영 중인 비공개 동아리 이름�
 
 ---
 
+## 인증된 사진 첨부
+
+사진 원본/Variant의 접근도 부모 `JjaekPolicy#view_photos?`를 매 요청 적용한다.
+이는 `show?`와 원문 열람 권한을 모두 요구하고 삭제 짹은 거부한다. ID는 부모의 `photos` 첨부로 한정한다.
+기본 Active Storage 공개 Blob/representation/Disk/direct-upload 경로는 닫고 아바타도 로그인 경로를 사용한다.
+사진 파일을 아바타 입력의 signed Blob 참조로 다시 연결할 수 없다. [A17](../specs/jjaek_photos_a17.md) 참고.
+
 ## 관계 기준 용어
 
 이 문서에서 쓰는 관계 기준 용어는 아래와 같다.

@@ -15,7 +15,7 @@ RSpec.describe "Settings", type: :request do
       sign_in user if authenticated
 
       expect {
-        post rails_direct_uploads_path, params: {
+        post "/rails/active_storage/direct_uploads", params: {
           blob: { filename: "avatar.png", byte_size: 1, checksum: "ndTkYSaMgDT1yFZOFVxnpg==", content_type: "image/png" }
         }, as: :json
       }.not_to change(ActiveStorage::Blob, :count)
@@ -161,7 +161,7 @@ RSpec.describe "Settings", type: :request do
 
     get account_settings_path
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("#avatar-settings img")["src"]).to include("/rails/active_storage/representations/")
+    expect(page.at_css("#avatar-settings img")["src"]).to eq(user_avatar_image_path(user, size: 128))
     expect(page.at_css("#avatar-settings input[type='file'][name='user[avatar]']")).to be_present
 
     patch account_settings_path, params: { user: { name: "Renamed reader" } }

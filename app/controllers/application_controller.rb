@@ -98,7 +98,8 @@ class ApplicationController < ActionController::Base
 
   def prepare_attached_books_for(jjaeks)
     ActiveRecord::Associations::Preloader.new(
-      records: Array(jjaeks), associations: [ :attached_books, :jjaek_book_attachments, { quoted_jjaek: :attached_books } ]
+      records: Array(jjaeks), associations: [ :attached_books, :jjaek_book_attachments,
+        { photos_attachments: :blob }, { quoted_jjaek: [ :attached_books, { photos_attachments: :blob } ] } ]
     ).call
   end
 

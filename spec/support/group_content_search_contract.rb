@@ -34,6 +34,19 @@ RSpec.shared_examples "group content search contract" do |search_context|
     )
   end
 
+  it "sorts matching threads by their latest comment even when that comment does not match the search" do
+    base_time = 1.day.ago.change(usec: 0)
+    first = other_author.jjaeks.create!(group:, content: "ActivityNeedle", created_at: base_time)
+    matching_comment = first.comments.create!(user: other_author, content: "ActivityNeedle", created_at: base_time + 1.minute)
+    latest_comment = first.comments.create!(user: other_author, content: "Unrelated later body", created_at: base_time + 5.minutes)
+    latest_comment.update_columns(hidden_at: base_time + 5.minutes)
+    second = other_author.jjaeks.create!(group:, content: "ActivityNeedle", created_at: base_time + 3.minutes)
+
+    threads = search_threads("ActivityNeedle")
+    expect(threads.map(&:root)).to eq([ first, second ])
+    expect(threads.first.comments.map(&:id)).to eq([ latest_comment.id, matching_comment.id ])
+  end
+
   it "finds visible root and comment bodies" do
     expect(search_threads("VisibleRootNeedle").map(&:root)).to eq([ @visible_root ])
     expect(search_threads("VisibleCommentNeedle").map(&:root)).to eq([ @visible_root ])

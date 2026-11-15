@@ -72,6 +72,10 @@ Group의 내부 enum 저장값은 동아리 공개 범위를 뜻하지 않는다
 
 ## 조회와 첨부 정보의 권한
 
+- A17 사진의 원본/Variant는 로그인과 `JjaekPolicy#view_photos?`(부모 show + 원문 열람 + 미삭제)를 매 요청 검사한다.
+  부모별 첨부 ID로 조회하며 Active Storage 기본 공개 라우트는 비활성화한다. 인증 중계는 private/no-store다.
+  원문 사진을 다시짹에 복사하지 않는다. 상세 정책은 [A17 명세](../specs/jjaek_photos_a17.md)를 따른다.
+
 - 단건은 `JjaekPolicy`, 목록은 화면별 Pundit scope를 적용한다. 홈·프로필·책 상세·검색·발견의 범위를 같게 만들지 않는다.
 - 짹은 하나의 모델이며 선택적 책 0~5권을 `JjaekBookAttachment`로 연결한다. 별도 추천짹 유형은 없다.
   첨부된 Book의 제목·표지·링크·건수는 부모 짹의 읽기 권한을 따른다. 첨부가 서재 등록이나 책장 정보 열람을 허용하지 않는다.

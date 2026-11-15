@@ -44,7 +44,20 @@ module Admin
         .where(id: source_ids, deleted_at: nil).includes(:user).index_by(&:id)
     end
 
-    def admin_content_metadata(record, sources:)
+    def admin_content_photo_summaries(records)
+      return {} unless current_user&.global_admin?
+
+      ids = records.grep(Jjaek).reject(&:deleted?).map(&:id).uniq
+      return {} if ids.empty?
+
+      ActiveStorage::Attachment.joins(:blob)
+        .where(record_type: "Jjaek", name: "photos", record_id: ids)
+        .group(:record_id)
+        .pluck(:record_id, Arel.sql("COUNT(*)"), Arel.sql("SUM(active_storage_blobs.byte_size)"))
+        .to_h { |id, count, bytes| [ id, { count:, bytes: } ] }
+    end
+
+    def admin_content_metadata(record, sources:, photo_summaries: {})
       return [] if record.is_a?(Jjaek) && record.deleted?
 
       metadata = []
@@ -54,6 +67,12 @@ module Admin
           metadata << books.first.title
         elsif books.many?
           metadata << t("admin.user_content.metadata.multiple_books", title: books.first.title, count: books.size - 1)
+        end
+        if (photos = photo_summaries[record.id])
+          unit = photos[:bytes] >= 1.megabyte ? "MB" : "KB"
+          divisor = unit == "MB" ? 1.megabyte : 1.kilobyte
+          size = number_with_precision(photos[:bytes].to_f / divisor, precision: 2, strip_insignificant_zeros: true)
+          metadata << t("jjaek_photos.admin_summary", count: photos[:count], size: "#{size}#{unit}")
         end
       end
       source_id = record.is_a?(Comment) ? record.jjaek_id : record.quoted_jjaek_id

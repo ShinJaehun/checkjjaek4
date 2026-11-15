@@ -1,5 +1,6 @@
 class Jjaek < ApplicationRecord
   MAX_ATTACHED_BOOKS = 5
+  MAX_PHOTOS = 4
   UNCHANGED_BOOKS = Object.new.freeze
   MODERATION_HIDE_REASONS = %w[
     inappropriate_content
@@ -27,8 +28,11 @@ class Jjaek < ApplicationRecord
            inverse_of: :jjaek, autosave: true
   has_many :attached_books, through: :jjaek_book_attachments, source: :book
   has_many :moderation_actions, as: :target
+  has_many_attached :photos, dependent: false
 
+  before_destroy :remember_photo_blobs, prepend: true
   before_destroy :mark_requotes_as_deleted_source
+  after_destroy_commit :purge_photo_blobs
 
   normalizes :content, with: ->(content) { content.gsub(/\r\n?/, "\n") }
 
@@ -43,6 +47,7 @@ class Jjaek < ApplicationRecord
   validate :quoted_group_context_must_be_allowed
   validate :group_context_must_not_target_user
   validate :attached_books_must_be_valid
+  validate :photos_must_be_valid
 
   before_validation :normalize_group_visibility
   before_update :record_content_edited_at
@@ -54,6 +59,14 @@ class Jjaek < ApplicationRecord
 
   def profile_conversation?
     target_user_id.present? && target_user_id != user_id
+  end
+
+  def ordered_photos
+    if association(:photos_attachments).loaded?
+      photos_attachments.sort_by(&:id)
+    else
+      photos_attachments.includes(:blob).order(:id).to_a
+    end
   end
 
   def single_attached_book
@@ -82,20 +95,29 @@ class Jjaek < ApplicationRecord
   end
 
   def destroy_or_tombstone!
-    return destroy! unless comments.exists?
-
-    transaction do
-      deletion_time = Time.current
-      mark_requotes_as_deleted_source(deletion_time)
-      update_columns(content: "", deleted_at: deletion_time, updated_at: deletion_time)
-      jjaek_tags.delete_all
+    with_lock do
+      if comments.exists?
+        deletion_time = Time.current
+        mark_requotes_as_deleted_source(deletion_time)
+        update_columns(content: "", deleted_at: deletion_time, updated_at: deletion_time)
+        jjaek_tags.delete_all
+        blob_ids = photos_attachments.pluck(:blob_id)
+        if blob_ids.any?
+          photos.detach
+          ActiveRecord.after_all_transactions_commit do
+            blob_ids.each { |id| PurgeJjaekPhotoJob.perform_later(id) }
+          end
+        end
+      else
+        destroy!
+      end
     end
   end
 
   # Authorization (and the Group lock, when applicable) belongs to the caller.
   # Omitted or identically ordered books preserve links and historical markers.
   # [] explicitly clears attachments; nil is invalid.
-  def update_attached_books(attributes: {}, books: UNCHANGED_BOOKS)
+  def update_attached_books(attributes: {}, books: UNCHANGED_BOOKS, photos: nil)
     if !books.equal?(UNCHANGED_BOOKS) &&
         (!books.is_a?(Array) || books.any? { |book| !book.is_a?(Book) })
       errors.add(:attached_books, :invalid)
@@ -135,6 +157,7 @@ class Jjaek < ApplicationRecord
           end
         end
         assign_attributes(attributes)
+        self.photos = photos if photos
         save!
       end
     end
@@ -165,6 +188,29 @@ class Jjaek < ApplicationRecord
   end
 
   private
+
+  def remember_photo_blobs
+    @photo_blob_ids = photos_attachments.pluck(:blob_id)
+  end
+
+  def purge_photo_blobs
+    Array(@photo_blob_ids).each { |id| PurgeJjaekPhotoJob.perform_later(id) }
+  end
+
+  def photos_must_be_valid
+    return unless attachment_changes["photos"]
+
+    blobs = photos.blobs.to_a
+    errors.add(:base, :photo_limit, message: I18n.t("jjaek_photos.limit")) if blobs.size > MAX_PHOTOS
+    errors.add(:base, :photo_no_requote, message: I18n.t("jjaek_photos.no_requote")) if requote? && blobs.any?
+    invalid_blob = blobs.any? do |blob|
+      blob.metadata["jjaek_photo"] != true || blob.content_type != "image/webp" ||
+        blob.byte_size > JjaekPhotoChanges::MAX_SIZE
+    end
+    if deleted? || invalid_blob
+      errors.add(:base, :photo_invalid, message: I18n.t("jjaek_photos.invalid"))
+    end
+  end
 
   # association이 이미 로드된 상태에서는 form용 unsaved 객체가 target에 섞일 수 있다.
   # 화면 메타 카운트는 항상 persisted 레코드 기준으로 맞춘다.

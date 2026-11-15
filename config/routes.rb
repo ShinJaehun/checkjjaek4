@@ -92,6 +92,7 @@ Rails.application.routes.draw do
     patch :move_down, on: :member
   end
   resources :jjaeks, only: %i[new show create edit update destroy] do
+    resources :photos, only: :show, controller: "jjaek_photos"
     resources :group_hides, only: %i[new create], module: :jjaeks
     resources :group_restorations, only: %i[new create], module: :jjaeks
     resources :requotes, only: :index
@@ -104,6 +105,7 @@ Rails.application.routes.draw do
   resources :jjaek_books, only: %i[index create destroy]
 
   resources :users, only: :show do
+    resource :avatar_image, only: :show, controller: "user_avatars"
     resource :library, only: :show, controller: "users/libraries" do
       get :transfer
     end

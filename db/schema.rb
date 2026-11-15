@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_08_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_15_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -265,6 +265,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_000000) do
     t.check_constraint "\"position\" >= 0", name: "jjaek_book_attachment_position"
   end
 
+  create_table "jjaek_photo_uploads", force: :cascade do |t|
+    t.bigint "user_id"
+    t.bigint "blob_id"
+    t.date "uploaded_on", null: false
+    t.bigint "byte_size", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["blob_id"], name: "index_jjaek_photo_uploads_on_blob_id", unique: true
+    t.index ["user_id", "uploaded_on"], name: "index_jjaek_photo_uploads_on_user_id_and_uploaded_on"
+    t.index ["user_id"], name: "index_jjaek_photo_uploads_on_user_id"
+  end
+
   create_table "jjaek_tags", force: :cascade do |t|
     t.bigint "jjaek_id", null: false
     t.bigint "tag_id", null: false
@@ -444,6 +456,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_000000) do
   add_foreign_key "groups", "users", column: "group_admin_id"
   add_foreign_key "jjaek_book_attachments", "books"
   add_foreign_key "jjaek_book_attachments", "jjaeks"
+  add_foreign_key "jjaek_photo_uploads", "active_storage_blobs", column: "blob_id", on_delete: :nullify
+  add_foreign_key "jjaek_photo_uploads", "users", on_delete: :nullify
   add_foreign_key "jjaek_tags", "jjaeks"
   add_foreign_key "jjaek_tags", "tags"
   add_foreign_key "jjaeks", "groups"

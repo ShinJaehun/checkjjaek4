@@ -98,6 +98,10 @@ class JjaekPolicy < ApplicationPolicy
     source.present? && !source.deleted? && self.class.new(user, source).visible_for_interaction?
   end
 
+  def view_photos?
+    user.present? && !record.deleted? && show? && view_original_content?
+  end
+
   def create?
     user.present? &&
       record.user_id == user.id &&

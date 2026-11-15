@@ -1,4 +1,8 @@
 module JjaeksHelper
+  def jjaek_photo_errors(jjaek)
+    jjaek.errors.select { |error| error.attribute == :base && error.type.to_s.start_with?("photo_") }
+  end
+
   def attachment_shelf_result(book)
     result = { title: book.title, authors_text: book.authors_text, translators_text: book.translators_text,
       publisher: book.publisher, published_on: book.published_on, thumbnail: book.thumbnail,

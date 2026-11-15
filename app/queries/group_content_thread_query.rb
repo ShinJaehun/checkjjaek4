@@ -19,7 +19,7 @@ class GroupContentThreadQuery
     apply_content_section
     apply_search
     apply_status
-    @total_count = @thread_scope.count
+    @total_count = @thread_scope.distinct.count(:id)
     @page = normalized_page
     @records = hydrate(connection.select_all(page_sql))
     self
@@ -41,8 +41,10 @@ class GroupContentThreadQuery
   private
 
   def prepare_scopes
-    @thread_scope = Jjaek.where(id: @jjaek_scope.reorder(nil).select("jjaeks.id"))
-    @scoped_comments = Comment.where(id: @comment_scope.reorder(nil).select("comments.id"))
+    # These relations already carry the caller's authorization and Group boundary.
+    # Wrapping each in a self-table IN query repeats those scans in every filter.
+    @thread_scope = @jjaek_scope.reorder(nil)
+    @scoped_comments = @comment_scope.reorder(nil)
   end
 
   def apply_content_section
@@ -50,7 +52,7 @@ class GroupContentThreadQuery
     when "group"
       @thread_scope = @thread_scope.where.not(group_id: nil)
     when "comments"
-      @thread_scope = @thread_scope.where(id: @scoped_comments.select(:jjaek_id))
+      @thread_scope = @thread_scope.where(id: @scoped_comments.reselect("comments.jjaek_id"))
     end
   end
 
@@ -72,43 +74,42 @@ class GroupContentThreadQuery
 
   def apply_status
     return unless STATUSES.include?(@params[:content_status])
+    if @params[:content_status] == "deleted"
+      @thread_scope = @thread_scope.where.not(deleted_at: nil)
+      return
+    end
 
     matching_roots, matching_comment_root_ids = status_matches(@params[:content_status])
-    # Keep authorization and search outside the OR instead of nesting the filtered scope again.
-    @thread_scope = @thread_scope.merge(matching_roots)
-      .or(@thread_scope.where(id: matching_comment_root_ids))
+    @thread_scope = threads_matching(matching_roots.reselect("jjaeks.id"), matching_comment_root_ids)
   end
 
   def status_matches(status)
     case status
     when "active"
       [
-        Jjaek.where(deleted_at: nil, hidden_at: nil),
-        @scoped_comments.where(hidden_at: nil).select(:jjaek_id)
+        @jjaek_scope.reorder(nil).where(deleted_at: nil, hidden_at: nil),
+        @scoped_comments.where(hidden_at: nil).reselect("comments.jjaek_id")
       ]
     when "hidden"
       [
-        Jjaek.where(deleted_at: nil).where.not(hidden_at: nil),
-        @scoped_comments.where.not(hidden_at: nil).select(:jjaek_id)
-      ]
-    when "deleted"
-      [
-        Jjaek.where.not(deleted_at: nil),
-        @scoped_comments.none.select(:jjaek_id)
+        @jjaek_scope.reorder(nil).where(deleted_at: nil).where.not(hidden_at: nil),
+        @scoped_comments.where.not(hidden_at: nil).reselect("comments.jjaek_id")
       ]
     end
   end
 
   def threads_matching(root_ids, comment_root_ids)
-    @thread_scope.where(id: root_ids).or(@thread_scope.where(id: comment_root_ids))
+    matching_ids = root_ids.reorder(nil).arel.union(comment_root_ids.reorder(nil).arel)
+    @thread_scope.where(Jjaek.arel_table[:id].in(matching_ids))
   end
 
   def page_sql
     offset = (page - 1) * per_page
     direction = SORT_DIRECTIONS.fetch(@params[:content_sort].to_s, SORT_DIRECTIONS["recent"])
 
-    @thread_scope.reorder(nil)
-      .joins(latest_comments_join)
+    matching_roots = @thread_scope.reselect("jjaeks.id", "jjaeks.created_at").distinct
+    page = Jjaek.from("matching_roots AS jjaeks")
+      .joins("LEFT JOIN latest_comments ON latest_comments.jjaek_id = jjaeks.id")
       .select(
         "jjaeks.id AS jjaek_id",
         "GREATEST(jjaeks.created_at, COALESCE(latest_comments.latest_comment_at, jjaeks.created_at)) AS latest_activity_at"
@@ -117,18 +118,23 @@ class GroupContentThreadQuery
       .limit(per_page)
       .offset(offset)
       .to_sql
+
+    # Materialize once even when sparse/stale test statistics favor nested loops.
+    # Aggregate ALL authorized Group comments once, not just the comment that
+    # matched search/status, so latest activity and full-thread order agree.
+    <<~SQL.squish
+      WITH matching_roots AS MATERIALIZED (#{matching_roots.to_sql}),
+           latest_comments AS MATERIALIZED (#{latest_comments_sql})
+      #{page}
+    SQL
   end
 
-  def latest_comments_join
-    latest_comments = @scoped_comments.reorder(nil)
+  def latest_comments_sql
+    @scoped_comments
       .group(:jjaek_id)
-      .select(:jjaek_id, "MAX(comments.created_at) AS latest_comment_at")
-    comments_table = Arel::Nodes::TableAlias.new(
-      Arel::Nodes::Grouping.new(latest_comments.arel), "latest_comments"
-    )
-    Jjaek.arel_table.join(comments_table, Arel::Nodes::OuterJoin)
-      .on(comments_table[:jjaek_id].eq(Jjaek.arel_table[:id]))
-      .join_sources
+      .reselect("comments.jjaek_id", "MAX(comments.created_at) AS latest_comment_at")
+      .distinct(false)
+      .to_sql
   end
 
   def normalized_page
@@ -140,10 +146,12 @@ class GroupContentThreadQuery
 
   def hydrate(rows)
     root_ids = rows.map { |row| row.fetch("jjaek_id").to_i }
-    roots = @thread_scope.where(id: root_ids)
+    # Page IDs have already passed search/status. Recheck the original access
+    # scope here without rerunning the complete thread-selection query.
+    roots = @jjaek_scope.reorder(nil).where(id: root_ids).reselect("jjaeks.*")
       .includes(:group, :attached_books, user: { avatar_attachment: :blob })
       .index_by(&:id)
-    comments_by_root_id = @scoped_comments.where(jjaek_id: root_ids)
+    comments_by_root_id = @scoped_comments.where(jjaek_id: root_ids).reselect("comments.*").distinct
       .includes(user: { avatar_attachment: :blob })
       .order(created_at: :desc, id: :desc)
       .group_by(&:jjaek_id)

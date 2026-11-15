@@ -73,6 +73,12 @@ class JjaeksController < ApplicationController
     attributes = jjaek_params.slice(:content, :visibility)
     attributes = attributes.except(:visibility) if @group.present? || @jjaek.profile_conversation?
     @jjaek.assign_attributes(attributes)
+    if @group
+      authorize @group, :create_jjaek?
+    else
+      authorize @jjaek, :create?
+    end
+    return render_failed_create unless prepare_photo_changes
 
     attempts = 0
     saved = begin
@@ -84,12 +90,12 @@ class JjaeksController < ApplicationController
             false
           else
             authorize @jjaek, :create?
-            @jjaek.save
+            save_new_jjaek_with_photos
           end
         end
       else
         authorize @jjaek, :create?
-        @jjaek.save
+        save_new_jjaek_with_photos
       end
     rescue ActiveRecord::RecordNotUnique => error
       if params.key?(:selected_books) && attempts.zero? && error.message.match?(/index_books_on_(canonical_isbn|external_url)_unique/)
@@ -114,9 +120,16 @@ class JjaeksController < ApplicationController
     else
       render_failed_create
     end
+  ensure
+    @photo_changes&.cleanup
   end
 
   def update
+    unless prepare_photo_changes
+      @jjaek.assign_attributes(update_jjaek_params)
+      prepare_attached_books
+      return render :edit, formats: :html, status: :unprocessable_content
+    end
     updated = if @jjaek.group
       @jjaek.group.with_lock do
         authorize @jjaek, :update?
@@ -132,6 +145,8 @@ class JjaeksController < ApplicationController
     else
       render :edit, formats: :html, status: :unprocessable_content
     end
+  ensure
+    @photo_changes&.cleanup
   end
 
   def destroy
@@ -147,6 +162,21 @@ class JjaeksController < ApplicationController
   end
 
   private
+
+  def prepare_photo_changes
+    @photo_changes = JjaekPhotoChanges.new(
+      files: params.dig(:jjaek, :photo_files) || [],
+      remove_ids: params.dig(:jjaek, :remove_photo_ids) || []
+    )
+    @photo_changes.prepare(@jjaek)
+  end
+
+  def save_new_jjaek_with_photos
+    @photo_changes.save(@jjaek) do |blobs|
+      @jjaek.photos = blobs if blobs
+      @jjaek.save
+    end
+  end
 
   def prepare_attached_books
     @selected_books = @jjaek.attached_books.to_a
@@ -168,10 +198,12 @@ class JjaeksController < ApplicationController
 
     updated = @jjaek.with_lock do
       authorize @jjaek, :update?
-      if params.key?(:selected_books) && !@jjaek.requote?
-        @jjaek.update_attached_books(books: @selected_books, attributes:)
-      else
-        @jjaek.update_attached_books(attributes:)
+      @photo_changes.save(@jjaek) do |blobs|
+        if params.key?(:selected_books) && !@jjaek.requote?
+          @jjaek.update_attached_books(books: @selected_books, attributes:, photos: blobs)
+        else
+          @jjaek.update_attached_books(attributes:, photos: blobs)
+        end
       end
     end
     @jjaek.assign_attributes(attributes) unless updated
@@ -382,7 +414,9 @@ class JjaeksController < ApplicationController
   end
 
   def jjaek_params
-    params.require(:jjaek).permit(:group_id, :content, :visibility, :quoted_jjaek_id, :target_user_id)
+    # JjaekPhotoChanges validates these separately; never mass assign them.
+    params.require(:jjaek).except(:photo_files, :remove_photo_ids)
+      .permit(:group_id, :content, :visibility, :quoted_jjaek_id, :target_user_id)
   end
 
   def update_jjaek_params

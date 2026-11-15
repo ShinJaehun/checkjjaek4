@@ -19,7 +19,7 @@
     </div>
   </td>
   <td class="px-4 py-3.5 align-middle leading-6 text-stone-800" data-field="body">
-    <%= render "admin/shared/content_body", record: record, record_type: record_type, sources: content_sources %>
+    <%= render "admin/shared/content_body", record: record, record_type: record_type, sources: content_sources, photo_summaries: photo_summaries %>
   </td>
   <td class="px-4 py-3.5 align-middle whitespace-nowrap" data-field="status">
     <%= content_status_badge(admin_content_status(record, record_type: record_type)) %>

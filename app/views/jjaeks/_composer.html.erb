@@ -4,11 +4,22 @@
 <% form_url = jjaeks_path(share_to_group: 1, quoted_jjaek_id: jjaek.quoted_jjaek_id) if sharing_to_fixed_group %>
 <div id="jjaek-composer" data-selection-url="<%= jjaek_books_path %>"
      data-editing-id="<%= jjaek.id %>" data-group-id="<%= posting_group&.id %>" data-target-user-id="<%= jjaek.target_user_id %>"
+     <% unless jjaek.requote? %>
+       data-controller="jjaek-photos"
+       data-author-id="<%= jjaek.user_id %>"
+       data-action="turbo:before-visit@document->jjaek-photos#remember turbo:before-cache@document->jjaek-photos#remember turbo:before-cache@document->jjaek-photos#dismissGuidance turbo:before-fetch-response->jjaek-photos#received turbo:submit-end->jjaek-photos#submitted"
+       data-jjaek-photos-invalid-message-value="<%= t('jjaek_photos.invalid') %>"
+       data-jjaek-photos-size-message-value="<%= t('jjaek_photos.too_large') %>"
+       data-jjaek-photos-format-message-value="<%= t('jjaek_photos.unsupported_format') %>"
+       data-jjaek-photos-limit-message-value="<%= t('jjaek_photos.limit') %>"
+       data-jjaek-photos-remove-message-value="<%= t('jjaek_photos.remove') %>"
+     <% end %>
      class="mx-auto w-full max-w-3xl space-y-4">
-  <%= form_with model: jjaek, url: form_url, id: "jjaek-publish-form", class: "space-y-4" do |form| %>
+  <%= form_with model: jjaek, url: form_url, id: "jjaek-publish-form", html: { multipart: true }, class: "space-y-4" do |form| %>
     <% unless jjaek.requote? %>
-      <div class="flex justify-end">
+      <div class="flex flex-wrap justify-end gap-2">
         <button type="button" data-book-selection-open aria-haspopup="dialog" aria-controls="book-selection-window" class="ui-button ui-button-secondary"><%= t("jjaek_books.add") %></button>
+        <button type="button" data-action="jjaek-photos#choose" aria-haspopup="dialog" aria-controls="jjaek-photo-guidance" class="ui-button ui-button-secondary"><%= t("jjaek_photos.add") %></button>
       </div>
     <% end %>
     <%= hidden_field_tag :return_to, jjaek_navigation_params[:return_to] if jjaek_navigation_params[:return_to] %>
@@ -60,8 +71,10 @@
     <% if posting_group.present? %>
       <p class="text-sm text-stone-600"><%= t("jjaeks.form.group_sharing.#{posting_group.public_group? ? 'public' : 'members'}") %></p>
     <% end %>
-    <%= render "shared/content_field", form: form, label_key: (jjaek.requote? ? "jjaeks.form.requote_content" : "jjaeks.form.jjaek_content"), rows: 4,
+    <% photo_errors = jjaek.requote? ? [] : jjaek_photo_errors(jjaek) %>
+    <%= render "shared/content_field", form: form, label_key: (jjaek.requote? ? "jjaeks.form.requote_content" : "jjaeks.form.jjaek_content"), rows: 4, excluded_errors: photo_errors,
                placeholder: jjaek_composer_placeholder(jjaek, book_context: local_assigns[:book_context], profile_user: local_assigns[:profile_user]) %>
+    <%= render "jjaeks/photo_fields", jjaek: jjaek, photo_errors: photo_errors unless jjaek.requote? %>
   <% end %>
   <% unless jjaek.requote? %>
     <% books = @selected_books || jjaek.attached_books.to_a %>

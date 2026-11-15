@@ -120,7 +120,9 @@ avatars/user_profile_01_512.png
 ### REMOVED / 범위 제외
 
 - crop/edit UI, 관리자 업로드, 기본 avatar 선택 UI, 게시물 사진 업로드는 이번 범위가 아니다.
-- D09 사진 공유는 후속 과제다. 사진은 별도 Object Storage 버킷을 사용할 예정이며 모델·업로드·서비스 경로는 이번에 만들지 않는다.
+- 사진 공유는 A03 범위 밖이며, 이후 승인된 [A17](jjaek_photos_a17.md)에서 별도 비공개 사진 버킷으로 구현한다.
+  A17은 Active Storage 기본 공개 라우트를 닫고 기존 avatar도 로그인된 128/512px 중계 경로로 제공한다.
+  avatar 업로드 API는 실제 multipart 파일만 허용하고 다른 Blob의 signed ID를 받지 않는다.
 
 ## Active Storage 확장 정책
 
@@ -242,7 +244,7 @@ MVP에서는 migration 또는 별도 task를 통해 기존 사용자에게 값�
 
 - 기본 avatar 선택 화면
 - 관리자 또는 교사용 bulk 사용자 생성 시 avatar 중복 최소화 개선
-- D09 게시물 사진 공유와 별도 Object Storage 버킷
+- 사진 첨부는 [A17](jjaek_photos_a17.md)로 별도 확정되었다.
 
 ---
 

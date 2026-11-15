@@ -7,6 +7,9 @@
 [역사적 명세](book_recommendation_jjaeks.md)에 보존한다. Group·moderation·다시짹의
 권한 정책은 각 canonical spec을 유지한다.
 
+A17 사진 첨부(선택 0~4장, 책 첨부와 독립)의 canonical 정책은
+[통합 짹 사진 첨부](jjaek_photos_a17.md)를 따른다. 사진으로 별도 짹 유형을 만들지 않는다.
+
 2026년 11월 사용자 확인 기준, 개발 DB 전환·사용자 검증과 운영 배포·DB migration은 완료되었다.
 운영 전환·복구의 실행 기준은 [OCI 운영 문서](../ops/deploy_oci.md)를 따른다.
 
