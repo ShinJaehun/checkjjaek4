@@ -136,6 +136,11 @@ route, controller, service, policy 및 사유 입력 화면을 그대로 사용�
 - 공통 thread 선택·필터·정렬·페이지네이션·hydration은 `GroupContentThreadQuery`에 두고,
   `Admin::GroupContentThreadQuery`와 `Groups::ContentThreadQuery`가 서로 다른 검색 경계를 구현한다.
   Group query에는 작성자 이메일 및 비노출 본문 검색이 들어가지 않는다.
+- 인가된 짹·댓글 relation은 자기 테이블의 ID 서브쿼리로 다시 감싸지 않는다. 검색과 상태가 일치하는
+  root/댓글의 부모 ID는 `UNION`으로 합치며, 서로 다른 row가 검색·상태에 일치해도 기존 thread 선택 의미를 유지한다.
+  COUNT는 중복 없는 root ID만 센다. 페이지 SQL은 후보 root와 인가된 동아리 전체 댓글 최신 시각을 materialized CTE로
+  각각 한 번 계산한다. 검색/상태에 맞는 댓글만으로 최신 시각을 계산하거나 페이지 후 전체 건수를 추정하지 않는다.
+  hydration은 확정된 페이지 ID와 원래 인가 scope를 사용하고 검색·상태 선택 SQL을 다시 실행하지 않는다.
 - admin content page 전체를 재사용하지 않는다. header, filter form, navigation, admin 전용 링크와 action은
   각 화면에 둔다. thread table 구조, row 유형·상태 표현, 페이지네이션은 실제 중복이 확인될 때만 공유한다.
   공유 partial은 `admin_user_path` 또는 platform action route를 내부에 하드코딩하지 않는다.

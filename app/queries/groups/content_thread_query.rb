@@ -12,26 +12,24 @@ module Groups
     private
 
     def search_root_ids(pattern)
-      matching_names = @thread_scope.joins(:user).where("users.name ILIKE ?", pattern).select("jjaeks.id")
-      content_scope = @thread_scope.where(deleted_at: nil)
+      authored_roots = @thread_scope.joins(:user)
+      matching_names = authored_roots.where("users.name ILIKE ?", pattern)
+      content_scope = authored_roots.where(deleted_at: nil)
       searchable_content = content_scope.where(hidden_at: nil)
         .or(content_scope.where.not(hidden_at: nil).where(id: current_group_hidden_ids("Jjaek")))
-      matching_content = searchable_content.where("jjaeks.content ILIKE ?", pattern).select(:id)
+      matching_content = searchable_content.where("jjaeks.content ILIKE ?", pattern)
 
-      @thread_scope.where(id: matching_names)
-        .or(@thread_scope.where(id: matching_content))
-        .select(:id)
+      matching_names.or(matching_content).reselect("jjaeks.id")
     end
 
     def search_comment_root_ids(pattern)
-      matching_names = @scoped_comments.joins(:user).where("users.name ILIKE ?", pattern).select("comments.id")
-      searchable_content = @scoped_comments.where(hidden_at: nil)
-        .or(@scoped_comments.where.not(hidden_at: nil).where(id: current_group_hidden_ids("Comment")))
-      matching_content = searchable_content.where("comments.content ILIKE ?", pattern).select(:id)
+      authored_comments = @scoped_comments.joins(:user)
+      matching_names = authored_comments.where("users.name ILIKE ?", pattern)
+      searchable_content = authored_comments.where(hidden_at: nil)
+        .or(authored_comments.where.not(hidden_at: nil).where(id: current_group_hidden_ids("Comment")))
+      matching_content = searchable_content.where("comments.content ILIKE ?", pattern)
 
-      @scoped_comments.where(id: matching_names)
-        .or(@scoped_comments.where(id: matching_content))
-        .select(:jjaek_id)
+      matching_names.or(matching_content).reselect("comments.jjaek_id")
     end
 
     def current_group_hidden_ids(target_type)
