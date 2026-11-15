@@ -33,6 +33,10 @@ module Account
     def update_avatar
       @user = current_user
       upload = params.dig(:user, :avatar)
+      if upload.present? && !upload.is_a?(ActionDispatch::Http::UploadedFile)
+        @user.errors.add(:avatar, :invalid_format)
+        return render_avatar_failure
+      end
       @user.avatar = upload if upload.present?
       @user.errors.add(:avatar, :blank) if upload.blank?
 

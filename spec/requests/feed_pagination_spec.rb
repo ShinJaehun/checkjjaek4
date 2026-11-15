@@ -436,7 +436,7 @@ RSpec.describe "Feed pagination", type: :request do
 
     card = page_document.at_css("article#jjaek_#{post.id}")
     expect(card.text).to include(post.content, I18n.t("bookshelf_entries.statuses.#{entry.status}"), I18n.t("jjaeks.meta.requotes", count: 1))
-    expect(card.at_css("img[src*='/rails/active_storage/representations/']")).to be_present
+    expect(card.at_css("img[src*='/avatar_image']")).to be_present
     expect(card.at_css("form[action='#{jjaek_like_path(post)}']")).to be_present
     expect(card.at_css("a[href*='#{jjaek_comments_path(post)}']")).to be_present
     expect(page_document.at_css("article#jjaek_#{hidden.id}")["class"]).to include("border-red-200")

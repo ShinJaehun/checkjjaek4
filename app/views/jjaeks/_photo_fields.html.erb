@@ -1,0 +1,43 @@
+<div class="space-y-3">
+  <dialog id="jjaek-photo-guidance" class="jjaek-photo-guidance m-auto w-11/12 max-w-lg rounded-2xl border border-stone-200 bg-white p-5 shadow-xl backdrop:bg-stone-900/60"
+          data-jjaek-photos-target="guidance" data-action="cancel->jjaek-photos#dismissGuidance"
+          aria-labelledby="jjaek-photo-guidance-title">
+    <h2 id="jjaek-photo-guidance-title" class="text-lg font-semibold text-stone-900"><%= t("jjaek_photos.guidance.title") %></h2>
+    <ul class="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-stone-700">
+      <li><%= t("jjaek_photos.guidance.privacy") %></li>
+      <li><%= t("jjaek_photos.guidance.consent") %></li>
+      <li><%= t("jjaek_photos.guidance.limits", daily: JjaekPhotoUpload.daily_limit, per_jjaek: Jjaek::MAX_PHOTOS) %></li>
+      <li><%= t("jjaek_photos.guidance.formats", size: number_to_human_size(JjaekPhotoChanges::MAX_SIZE)) %></li>
+    </ul>
+    <div class="mt-5 flex flex-wrap justify-end gap-2">
+      <button type="button" class="ui-button ui-button-secondary" data-action="jjaek-photos#dismissGuidance"><%= t("jjaek_photos.guidance.cancel") %></button>
+      <button type="button" class="ui-button ui-button-primary" data-action="jjaek-photos#confirmGuidance"><%= t("jjaek_photos.guidance.confirm") %></button>
+    </div>
+  </dialog>
+  <input type="file" id="jjaek-photo-picker" multiple accept="image/jpeg,image/png,image/webp" hidden
+         aria-label="<%= t('jjaek_photos.add') %>" data-jjaek-photos-target="picker" data-action="change->jjaek-photos#select">
+  <input type="file" name="jjaek[photo_files][]" multiple hidden data-jjaek-photos-target="uploads">
+  <div data-jjaek-photos-target="removals"></div>
+  <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+       data-jjaek-photos-target="error" <%= "hidden" if photo_errors.empty? %>>
+    <p hidden data-jjaek-photos-target="clientError"></p>
+    <div data-jjaek-photos-target="serverErrors">
+      <% photo_errors.each do |error| %>
+        <p data-photo-error-code="<%= error.type.to_s.delete_prefix('photo_') %>"><%= error.full_message %></p>
+      <% end %>
+    </div>
+  </div>
+  <p hidden role="status" class="text-sm text-stone-500" data-jjaek-photos-target="processing"><%= t("jjaek_photos.processing") %></p>
+  <div class="grid select-none grid-cols-2 gap-3 sm:grid-cols-4" data-jjaek-photos-target="previews"
+       data-action="contextmenu->jjaek-photos#prevent dragstart->jjaek-photos#prevent">
+    <% jjaek.ordered_photos.each do |photo| %>
+      <div class="jjaek-photo-preview" data-photo-id="<%= photo.id %>">
+        <%= image_tag jjaek_photo_path(jjaek, photo, size: :card), alt: t("jjaek_photos.photo"),
+                      class: "h-32 w-full rounded-xl object-contain bg-stone-100", draggable: false %>
+        <button type="button" class="jjaek-photo-remove" aria-label="<%= t('jjaek_photos.remove') %>" data-action="jjaek-photos#remove">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+    <% end %>
+  </div>
+</div>

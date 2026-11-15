@@ -1,6 +1,7 @@
 <% content_length = form.object.content.to_s.length %>
 <% over_limit = content_length > 200 %>
-<% server_messages = form.object.errors.reject { |error| error.attribute == :content && error.type == :too_long }.map(&:full_message) %>
+<% excluded_errors = local_assigns.fetch(:excluded_errors, []) %>
+<% server_messages = form.object.errors.reject { |error| (error.attribute == :content && error.type == :too_long) || excluded_errors.include?(error) }.map(&:full_message) %>
 
 <div class="space-y-2"
      data-controller="content-length"

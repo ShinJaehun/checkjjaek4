@@ -66,9 +66,8 @@ RSpec.describe UsersHelper, type: :helper do
     end
 
     [ 128, 512 ].each do |size|
-      expect(user.avatar).to receive(:variant).with(resize_to_fill: [ size, size ]).and_call_original
       image = helper.user_avatar_image(user, size:, alt: user.name)
-      expect(image).to include("/rails/active_storage/representations/")
+      expect(image).to include(user_avatar_image_path(user, size: size))
       expect(image).not_to include("avatars/user_profile_")
     end
   end

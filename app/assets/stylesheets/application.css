@@ -9,6 +9,81 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+.jjaek-photo-preview { position: relative; }
+.jjaek-photo-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.jjaek-photo-remove span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgb(28 25 23 / 85%);
+  color: white;
+  font-size: 16px;
+  line-height: 1;
+}
+.jjaek-photo-remove:hover span { background: #0c0a09; }
+.jjaek-photo-remove:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; box-shadow: 0 0 0 2px white; }
+
+.jjaek-photo-grid {
+  display: grid;
+  gap: 0.25rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.jjaek-photo-grid button { min-width: 0; min-height: 0; background: #f5f5f4; }
+.jjaek-photo-grid img { width: 100%; height: 100%; object-fit: contain; }
+.jjaek-photo-grid[data-count="1"] img { max-height: 28rem; }
+.jjaek-photo-grid[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); aspect-ratio: 2; }
+.jjaek-photo-grid:is([data-count="3"], [data-count="4"]) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  aspect-ratio: 4 / 3;
+}
+.jjaek-photo-grid[data-count="3"] > :first-child { grid-row: span 2; }
+
+.photo-gallery {
+  /* showModal() puts this fixed dialog in the viewport's top layer. */
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  background: #0c0a09;
+  color: white;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.photo-gallery::backdrop { background: rgb(0 0 0 / 85%); }
+.photo-gallery-content { display: flex; flex-direction: column; height: 100%; }
+.photo-gallery-toolbar, .photo-gallery-navigation { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.photo-gallery button { min-width: 44px; min-height: 44px; font-size: 1.5rem; }
+.photo-gallery button:disabled { opacity: 0.3; }
+.photo-gallery-stage { display: flex; flex: 1; align-items: center; justify-content: center; min-height: 0; min-width: 0; overflow: hidden; touch-action: pan-y pinch-zoom; }
+.photo-gallery-stage img { max-width: 100%; max-height: calc(100dvh - 8rem); object-fit: contain; }
+body:has(.photo-gallery[open]), body:has(.jjaek-photo-guidance[open]) { overflow: hidden; }
+
 @media (max-width: 639px) {
   body:has(#book-selection-window:not([hidden])) > main {
     padding-bottom: calc(48dvh + 2rem);

@@ -171,7 +171,7 @@ module UsersHelper
     source = if user&.withdrawn? || !user&.avatar&.attached?
       user_avatar_path(user, size:)
     else
-      user.avatar.variant(resize_to_fill: [ size, size ])
+      user_avatar_image_path(user, size: size)
     end
 
     image_tag source, **options

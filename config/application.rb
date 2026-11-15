@@ -29,5 +29,7 @@ module Checkjjaek4
     config.i18n.available_locales = %i[ko en]
     config.i18n.fallbacks = [ :en ]
     config.active_model.i18n_customize_full_message = true
+    # Photos cannot be reached through bearer signed IDs or Disk URLs.
+    config.active_storage.draw_routes = false
   end
 end

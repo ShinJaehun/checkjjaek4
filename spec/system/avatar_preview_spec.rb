@@ -27,7 +27,7 @@ RSpec.describe "Avatar preview", type: :system do
     click_button I18n.t("settings.avatar.save")
 
     expect(page).to have_current_path(account_settings_path)
-    expect(page).to have_css("#avatar-settings img[src*='/rails/active_storage/representations/']")
+    expect(page).to have_css("#avatar-settings img[src*='/users/#{user.id}/avatar_image']")
     expect(user.reload.avatar).to be_attached
     expect(find("#avatar-settings img")["src"]).not_to eq(saved_source)
     expect(page).to have_no_css("[data-avatar-preview-target='status']", visible: true)

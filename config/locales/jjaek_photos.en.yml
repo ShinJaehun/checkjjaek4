@@ -1,0 +1,36 @@
+en:
+  jjaek_photos:
+    add: Add photos
+    guidance:
+      title: Before sharing photos
+      privacy: Check for faces, names, locations and other personal information in your photos.
+      consent: Make sure you have the consent needed to share other people's photos.
+      limits: "During beta, upload up to %{daily} photos per day and %{per_jjaek} per Jjaek."
+      formats: "JPEG/PNG/WebP only, with original files up to %{size} each."
+      cancel: Cancel
+      confirm: Confirm and choose photos
+    admin_summary:
+      one: "%{count} photo · total %{size}"
+      other: "%{count} photos · total %{size}"
+    remove: Remove photo
+    photo: Jjaek photo
+    help: "Up to 4 photos · JPEG, PNG, WebP · Original files up to 5MB each"
+    privacy: "Before uploading, check for faces, names, locations and other personal information, and get permission to share other people's photos."
+    processing: Preparing photos.
+    invalid: This photo could not be read or processed. Check that the file is intact or choose another photo.
+    too_large: Original photos must be no larger than 5MB each. Choose a smaller file.
+    unsupported_format: This photo format is unsupported. Choose a JPEG, PNG or WebP file.
+    limit: You can attach up to 4 photos.
+    disabled: New photo uploads are currently paused.
+    daily_limit: These photos exceed your daily upload limit. Remove new photos or try again tomorrow.
+    retained_limit: You have exceeded the number of photos you can keep. Remove existing or newly selected photos before saving again.
+    storage_limit: The service photo storage space is full. Remove new photos or try again later.
+    upload_failed: Photos could not be saved. Please try again shortly.
+    invalid_removal: Check the photos selected for removal.
+    no_requote: New photos cannot be attached to a ReJjaek.
+    open: "Enlarge photo %{number}"
+    close: Close photos
+    previous: Previous photo
+    next: Next photo
+    gallery: Photo gallery
+    unavailable: This photo is unavailable.
