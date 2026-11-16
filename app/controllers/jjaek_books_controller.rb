@@ -62,7 +62,10 @@ class JjaekBooksController < ApplicationController
     prepare_book_search_results
     respond_to do |format|
       format.turbo_stream { render :update, status: }
-      format.html { redirect_to book_search_path(view_context.book_selection_search_params), status: :see_other }
+      format.html do
+        flash.keep(:alert)
+        redirect_to book_search_path(view_context.book_selection_search_params), status: :see_other
+      end
     end
   end
 end

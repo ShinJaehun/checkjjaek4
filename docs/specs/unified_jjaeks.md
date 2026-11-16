@@ -389,6 +389,9 @@ bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_ed
   사용자 바인딩·30분 만료·외부 참조 해석을 담당한다. 최종 저장은 JjaeksController와 모델이 담당한다.
   `book-selection` Stimulus, permanent 선택창, `book_selection` Frame과 revision header는
   초안 보존·취소 복원·늦은 Turbo 응답 차단에 사용된다. 별도의 추천 작성 단계는 없다.
+- 임시 선택 오류는 Turbo 응답의 기존 `book-selection-alert` 영역에 표시한다. HTML fallback은 기존 검색 결과로
+  303 redirect하며 현재 alert를 다음 GET까지 유지해 공통 flash로 표시한다. 같은 선택 오류를 두 영역에 중복 전달하지 않는다.
+  선택·검색·작성 문맥과 본문·사진 초안 보존 정책은 유지한다.
 - 외부 책은 최종 저장에서만 기존 Book을 재사용하거나 생성한다. 메타데이터를 덮어쓰지 않으며
   Book·본문·첨부는 함께 성공하거나 롤백한다. 선택·검색만으로 DB 초안을 만들지 않는다.
 - 책 선택창과 첨부 검색의 스크롤 영역을 분리한다. 모바일 패널은 최대 48dvh,

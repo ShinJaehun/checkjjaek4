@@ -435,6 +435,26 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(page.at_css("[hidden] #jjaek-composer[data-turbo-permanent]")).to be_present
   end
 
+  it "preserves the selection error through an HTML redirect" do
+    expect {
+      post jjaek_books_path, params: { selected_books: [ book.id, other_book.id ],
+        search_result_token: "invalid", query: book.title, page: 2, search_origin: root_path },
+        headers: { "Accept" => "text/html" }
+    }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
+
+    expect(response).to have_http_status(:see_other)
+    destination = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
+    expect(destination).to include("attachment" => "1", "query" => book.title, "page" => "2",
+                                   "search_origin" => root_path)
+    expect(destination.fetch("selected_books").reject(&:empty?)).to eq([ book.id.to_s, other_book.id.to_s ])
+    follow_redirect!
+    expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
+    expect(page.css("#flash-messages [role='alert']").size).to eq(1)
+    expect(page.at_css("#flash-messages [role='alert']").text.strip).to eq(I18n.t("jjaek_books.invalid_selection"))
+    expect(page.text.scan(I18n.t("jjaek_books.invalid_selection")).size).to eq(1)
+  end
+
   it "enforces five unique selections and supports removal without creating Books or Jjaeks" do
     books = [ book, other_book, *3.times.map { |i| Book.create!(title: "Selected #{i}") } ]
     sixth = Book.create!(title: "Sixth selection")
@@ -445,6 +465,14 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.headers["X-Book-Selection-Revision"]).to eq(headers["X-Book-Selection-Revision"])
     expect(response.body).to include(I18n.t("jjaek_books.limit", count: 5))
+    streams = Nokogiri::HTML(response.body).css("turbo-stream")
+    expect(streams.map { |stream| stream["target"] }).to contain_exactly(
+      "book-selection-selected-books", "book-selection-fields", "book-selection-alert", "jjaek-attached-books", "book-selection-search-results"
+    )
+    expect(streams.find { |stream| stream["target"] == "book-selection-alert" }.at_css("template").text)
+      .to eq(I18n.t("jjaek_books.limit", count: 5))
+    fields = streams.find { |stream| stream["target"] == "book-selection-fields" }.at_css("template")
+    expect(fields.css("input[name='selected_books[]']").map { |input| input["value"] }.reject(&:empty?)).to eq(books.map { |item| item.id.to_s })
     post jjaek_books_path, params: { selected_books: books.map(&:id), book_id: book.id }, headers: headers
     expect(response).to have_http_status(:ok)
     fields = Nokogiri::HTML(response.body).at_css("turbo-stream[target='book-selection-fields'] template")
