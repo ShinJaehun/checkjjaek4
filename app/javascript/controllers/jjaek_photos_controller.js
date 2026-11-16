@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { Turbo } from "@hotwired/turbo-rails"
 
 // Files stay in this tab's memory across Turbo visits, never in localStorage.
 const drafts = new Map()
@@ -193,27 +194,31 @@ export default class extends Controller {
     })
   }
 
-  submitted(event) {
-    if (event.target !== this.form || !event.detail.success) return
-    this.completed = true
-    drafts.delete(this.key)
-    this.files = []
-    this.guidanceShown = false
-    this.releaseUrls()
+  prepare(event) {
+    if (event.target !== this.form) return
+    event.detail.fetchOptions.headers["X-Jjaek-Composer"] = "true"
   }
 
   received(event) {
     if (event.target !== this.form) return
     const response = event.detail.fetchResponse
-    // Clear before Turbo connects the destination's fresh composer. submit-end
-    // can arrive after the originating form has already been disconnected.
-    if (response.succeeded && response.redirected) {
-      this.completed = true
-      drafts.delete(this.key)
-      this.files = []
-      this.guidanceShown = false
-      this.releaseUrls()
-    }
+    const location = response.header("X-Jjaek-Saved-Location")
+    if (response.statusCode !== 204 || !location) return
+
+    // Only the saved create/update branch sends this acknowledgement. Clear
+    // before visiting, so a destination composer cannot restore the old draft.
+    event.preventDefault()
+    this.completed = true
+    drafts.delete(this.key)
+    this.files = []
+    this.removed = []
+    this.guidanceShown = false
+    this.render()
+    // Match Turbo's successful form navigation: discard cached form snapshots.
+    Turbo.cache.clear()
+    Turbo.cache.exemptPageFromCache()
+    const action = new URL(location, window.location.href).href === window.location.href ? "replace" : "advance"
+    Turbo.visit(location, { action })
   }
 
   releaseUrls() {

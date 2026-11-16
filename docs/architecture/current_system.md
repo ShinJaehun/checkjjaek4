@@ -499,6 +499,9 @@
   두 사람 전용 대화·Group membership·숨김 및 살아 있는 인용 원문의 권한 재검사는 기존 Pundit 경계를 따른다.
 - 작성·수정은 공통 인라인 Rails form과 `selected_books[]`를 사용한다. 서재 등록은 첨부의 선행 조건이 아니다.
   책 상세도 `Book#attached_jjaeks`로 조회하며 단일 book_id fallback은 없다.
+- `jjaek-photos` 작성·수정 요청은 `X-Jjaek-Composer: true`로 저장 완료 응답을 요청한다.
+  서버는 저장 성공 후에만 `204`와 `X-Jjaek-Saved-Location`을 반환하며, 클라이언트는 초안·파일 참조를
+  정리한 뒤 해당 주소를 Turbo로 방문한다. 실패 redirect는 초안을 지우지 않으며 일반 HTML 요청은 기존 `303`을 유지한다.
 - `JjaekBooksController#index/create/destroy`는 임시 책 선택을 담당한다. `BookSelection`은 문맥 인가,
   사용자 바인딩·만료 검증과 캐시 참조 해석을 공유하고 최종 저장은 JjaeksController/model이 담당한다.
 - `book-selection` Stimulus와 permanent 선택창은 검색·선택 완료·취소 snapshot 복원·본문 유지와 revision 응답 보호를 담당한다.

@@ -7,7 +7,7 @@
      <% unless jjaek.requote? %>
        data-controller="jjaek-photos"
        data-author-id="<%= jjaek.user_id %>"
-       data-action="turbo:before-visit@document->jjaek-photos#remember turbo:before-cache@document->jjaek-photos#remember turbo:before-cache@document->jjaek-photos#dismissGuidance turbo:before-fetch-response->jjaek-photos#received turbo:submit-end->jjaek-photos#submitted"
+       data-action="turbo:before-visit@document->jjaek-photos#remember turbo:before-cache@document->jjaek-photos#remember turbo:before-cache@document->jjaek-photos#dismissGuidance turbo:before-fetch-request->jjaek-photos#prepare turbo:before-fetch-response->jjaek-photos#received"
        data-jjaek-photos-invalid-message-value="<%= t('jjaek_photos.invalid') %>"
        data-jjaek-photos-size-message-value="<%= t('jjaek_photos.too_large') %>"
        data-jjaek-photos-format-message-value="<%= t('jjaek_photos.unsupported_format') %>"

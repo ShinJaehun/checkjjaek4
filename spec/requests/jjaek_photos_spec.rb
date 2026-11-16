@@ -61,6 +61,43 @@ RSpec.describe "Jjaek photos", type: :request do
     end
   end
 
+  it "acknowledges composer saves directly after creating and updating the Jjaek" do
+    sign_in writer
+    headers = { "X-Jjaek-Composer" => "true", "ACCEPT" => "text/vnd.turbo-stream.html, text/html" }
+    post jjaeks_path, params: { selected_books: [ Book.create!(title: "Acknowledged book").id ],
+      jjaek: { content: "Acknowledged", photo_files: [ photo_upload ] } }, headers: headers
+
+    saved = writer.jjaeks.last
+    expect(response).to have_http_status(:no_content)
+    expect(response.headers["X-Jjaek-Saved-Location"]).to eq(jjaek_path(saved))
+    expect(saved.content).to eq("Acknowledged")
+    expect(saved.photos.count).to eq(1)
+    expect(saved.attached_books.pluck(:title)).to eq([ "Acknowledged book" ])
+    get response.headers.fetch("X-Jjaek-Saved-Location")
+    expect(response.body).to include(I18n.t("jjaeks.notices.created"))
+
+    patch jjaek_path(saved), params: { jjaek: { content: "Acknowledged edit", remove_photo_ids: [ saved.photos.first.id ] } }, headers: headers
+    expect(response).to have_http_status(:no_content)
+    expect(response.headers["X-Jjaek-Saved-Location"]).to eq(jjaek_path(saved))
+    expect(saved.reload.content).to eq("Acknowledged edit")
+    expect(saved.photos).not_to be_attached
+    get response.headers.fetch("X-Jjaek-Saved-Location")
+    expect(response.body).to include(I18n.t("jjaeks.notices.updated"))
+  end
+
+  it "does not acknowledge an unauthenticated composer redirect, even when its destination returns 200" do
+    expect {
+      post jjaeks_path, params: { jjaek: { content: "Expired session", photo_files: [ photo_upload ] } },
+        headers: { "X-Jjaek-Composer" => "true", "ACCEPT" => "text/vnd.turbo-stream.html, text/html" }
+    }.not_to change(Jjaek, :count)
+    expect(response).to redirect_to(new_user_session_path)
+    expect(response.headers["X-Jjaek-Saved-Location"]).to be_nil
+    follow_redirect!
+    expect(response).to have_http_status(:ok)
+    expect(response.headers["X-Jjaek-Saved-Location"]).to be_nil
+    expect(response.body).not_to include(I18n.t("jjaeks.notices.created"))
+  end
+
   it "edits, appends in order and individually removes photos without changing books" do
     jjaek = create_photo_post
     first = jjaek.ordered_photos.first
@@ -114,8 +151,11 @@ RSpec.describe "Jjaek photos", type: :request do
       file.flush
       attempts << { content: "Invalid", photo_files: [ Rack::Test::UploadedFile.new(file.path, "image/png") ] }
       attempts.each do |attributes|
-        expect { post jjaeks_path, params: { jjaek: attributes } }.not_to change(Jjaek, :count)
+        expect {
+          post jjaeks_path, params: { jjaek: attributes }, headers: { "X-Jjaek-Composer" => "true" }
+        }.not_to change(Jjaek, :count)
         expect(response).to have_http_status(:unprocessable_content)
+        expect(response.headers["X-Jjaek-Saved-Location"]).to be_nil
       end
     end
     expect(JjaekPhotoUpload.where(user: writer)).to be_empty
@@ -158,8 +198,10 @@ RSpec.describe "Jjaek photos", type: :request do
     photo = jjaek.ordered_photos.first
     book = Book.create!(title: "Must roll back")
     patch jjaek_path(jjaek), params: { selected_books: [ book.id ],
-      jjaek: { content: "", visibility: :public_jjaek, remove_photo_ids: [ photo.id.to_s ], photo_files: [ photo_upload ] } }
+      jjaek: { content: "", visibility: :public_jjaek, remove_photo_ids: [ photo.id.to_s ], photo_files: [ photo_upload ] } },
+      headers: { "X-Jjaek-Composer" => "true" }
     expect(response).to have_http_status(:unprocessable_content)
+    expect(response.headers["X-Jjaek-Saved-Location"]).to be_nil
     expect(jjaek.reload).to have_attributes(content: "Photo #reading", visibility: "private_jjaek")
     expect(jjaek.ordered_photos.map(&:id)).to eq([ photo.id ])
     expect(jjaek.tags.pluck(:name)).to eq([ "reading" ])
