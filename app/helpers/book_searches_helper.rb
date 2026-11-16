@@ -33,6 +33,12 @@ module BookSearchesHelper
     "book_search_result_#{Digest::SHA256.hexdigest(identifier)[0, 12]}"
   end
 
+  def signed_shelf_error_target(target, source:)
+    Rails.application.message_verifier("shelf_error_target").generate(
+      target, purpose: "user:#{current_user.id}:#{source}"
+    )
+  end
+
   def book_search_entry_origin_path
     controller_path == "book_searches" ? book_search_origin_path : validated_jjaek_return_path(request.fullpath)
   end

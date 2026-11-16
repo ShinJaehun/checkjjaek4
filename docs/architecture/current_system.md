@@ -449,7 +449,7 @@
 - 외부 검색 결과에는 로그인 사용자에 묶인 30분 유효 서명을 발급하며, 미등록 책의 `책 상세 보기`는 저장 없이 읽기 전용 미리보기를 표시함
 - 일반 검색의 신규 Book은 검증된 검색 결과를 `서재에 담기` 할 때 BookshelfEntry와 함께 등록하며, 기존 Book 메타데이터는 변경하지 않음
 - 통합 첨부용 `/book_search?attachment=1`은 일반 검색과 같은 공통 결과 카드·대형 표지를 사용하고 하단에 `추가`와 독립적인 `책장에 담기`를 표시한다. 독자용 결과 카드에는 ISBN을 표시하지 않지만 내부 식별에는 사용한다. 임시 선택은 `JjaekBooksController`와 `BookSelection`이 처리하며 `selected_books[]`의 순서·30분 참조 검증과 완료/취소 복원을 유지한다. 첨부 선택에 따른 Book 저장은 최종 게시에서 수행하며 명시적인 서재 등록과 독립적이다
-- 첨부용 검색의 서재 등록은 `jjaeks/attachment_shelf`와 기존 등록 form·책장 선택 모달을 재사용하고 `bookshelf_entry_source=jjaek_attachment_search`로 제출한다. 성공 시 `attachment_search_shelf_` 영역과 flash만 갱신하며, 기존 작성 폼의 `attachment_shelf_` ID와 구분한다. 실패 시에는 flash만 갱신하여 작성·선택·검색 문맥을 보존한다
+- 첨부용 검색의 서재 등록은 `jjaeks/attachment_shelf`와 기존 등록 form·책장 선택 모달을 재사용하고 `bookshelf_entry_source=jjaek_attachment_search`로 제출한다. 성공 시 `attachment_search_shelf_` 영역과 flash만 갱신하며, 기존 작성 폼의 `attachment_shelf_` ID와 구분한다. 모달 form은 실제 모달 오류 ID를 사용자·등록 출처에 묶어 서명한 `shelf_error_target`을 전달한다. 실패 시 서명 검증을 통과한 오류 영역만 갱신하여 열린 모달·책장 선택·작성·첨부·검색 문맥을 보존한다. 검증되지 않은 target은 사용하지 않으며 모달 밖 첨부 등록 실패의 flash 응답은 유지한다
 - 검색 등록은 유효한 canonical ISBN(ISBN-10의 978 변환 또는 ISBN-13)을 우선 식별자로 사용하고, ISBN이 없으면 검증된 외부 URL을 사용함. 두 식별자가 다른 Book을 가리키면 오류로 처리하며, DB 고유 인덱스로 동시 중복 등록을 방지함
 - 외부 책 주소와 썸네일은 HTTP/HTTPS 및 유효한 호스트만 허용하고, 무효한 썸네일은 기본 표지를 사용함. 운영 DB에는 고유 인덱스 배포 전 별도 중복·충돌 감사가 필요함
 

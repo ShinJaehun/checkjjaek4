@@ -6,6 +6,7 @@
   <% end %>
   <%= hidden_field_tag :return_to, return_path, id: nil %>
   <%= hidden_field_tag :bookshelf_entry_source, local_assigns[:source] || "book_search", id: nil %>
+  <%= hidden_field_tag :shelf_error_target, shelf_error_target, id: nil if local_assigns[:shelf_error_target].present? %>
   <%= hidden_field_tag :group_id, local_assigns[:group_id], id: nil if local_assigns[:group_id].present? %>
 
   <% if bookshelves.size > 1 %>

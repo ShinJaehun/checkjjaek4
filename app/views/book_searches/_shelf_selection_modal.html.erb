@@ -11,6 +11,7 @@
       <h2 id="<%= dialog_id %>_title" class="text-lg font-semibold text-stone-900"><%= t("book_search.actions.add_to_shelf") %></h2>
       <button type="button" data-action="book-modal#close" class="ui-button ui-button-secondary shrink-0"><%= t("bookshelves.actions.close") %></button>
     </div>
-    <%= render "book_searches/add_to_shelf_form", book: book, bookshelves: bookshelves, group_id: local_assigns[:group_id], return_path: return_path, source: local_assigns[:source], dom_prefix: local_assigns[:dom_prefix] %>
+    <div id="<%= dialog_id %>_error" class="mb-5 empty:hidden"></div>
+    <%= render "book_searches/add_to_shelf_form", book: book, bookshelves: bookshelves, group_id: local_assigns[:group_id], return_path: return_path, source: local_assigns[:source], dom_prefix: local_assigns[:dom_prefix], shelf_error_target: signed_shelf_error_target("#{dialog_id}_error", source: local_assigns[:source] || "book_search") %>
   </dialog>
 </div>

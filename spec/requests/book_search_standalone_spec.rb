@@ -426,6 +426,12 @@ RSpec.describe "Standalone book search", type: :request do
         else
           expect(BookSearches::ResultToken.verify(params["search_result_token"], user: user)[:title]).to eq(attributes[:title])
           expect(shelf_form.at_css("input[type='radio'][checked]")["value"]).to eq(user.default_bookshelf.id.to_s)
+          dialog = card.at_css("dialog")
+          error_target = Rails.application.message_verifier("shelf_error_target").verified(
+            params["shelf_error_target"], purpose: "user:#{user.id}:jjaek_attachment_search"
+          )
+          expect(error_target).to eq("#{dialog['id']}_error")
+          expect(dialog.at_css("[id='#{error_target}']")).to be_present
           params[:bookshelf_entry] = { bookshelf_id: shelf.id }
         end
         expect {
@@ -472,7 +478,67 @@ RSpec.describe "Standalone book search", type: :request do
       expect(candidate_card.at_css("form[action='#{bookshelf_entries_path}'] input[type='submit']")["disabled"]).to be_nil
     end
 
-    it "returns only a flash Stream for invalid tokens or another user's target shelf" do
+    it "updates only the modal error for invalid tokens without setting a page flash" do
+      book = Book.create!(title: "Modal error target")
+      user.bookshelves.create!(name: "Modal target shelf", visibility: :private)
+      allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+      pages = {
+        "book_search" => book_search_path(query: book.title),
+        "jjaek_attachment" => new_jjaek_path(selected_books: [ book.id ]),
+        "jjaek_attachment_search" => book_search_path(attachment: 1, query: book.title)
+      }
+      pages.each do |source, path|
+        get path
+        form = Nokogiri::HTML(response.body).at_css("form input[name='bookshelf_entry_source'][value='#{source}']").parent
+        target = "#{form.ancestors('dialog').first['id']}_error"
+        signed_target = form.at_css("input[name='shelf_error_target']")["value"]
+        expect {
+          post bookshelf_entries_path,
+               params: { bookshelf_entry_source: source, search_result_token: "invalid", shelf_error_target: signed_target },
+               headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count, Jjaek.count, JjaekBookAttachment.count ] }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+        streams = Nokogiri::HTML(response.body).css("turbo-stream")
+        expect(streams.map { |stream| [ stream["action"], stream["target"] ] }).to eq([ [ "update", target ] ])
+        expect(streams.first.at_css("template [role='alert']").text).to eq(I18n.t("book_search.errors.invalid_result"))
+        expect(flash[:alert]).to be_nil
+      end
+    end
+
+    it "rejects arbitrary modal targets and targets signed for a different registration source" do
+      book = Book.create!(title: "Protected modal target")
+      user.bookshelves.create!(name: "Protected target shelf", visibility: :private)
+      allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
+      get book_search_path(query: book.title)
+      signed_target = Nokogiri::HTML(response.body).at_css("input[name='shelf_error_target']")["value"]
+
+      %w[book_search jjaek_attachment_search].each do |source|
+        targets = [ "flash-messages", "jjaek-publish-form", "attachment_search_book_search_result_stored_#{book.id}_shelf_dialog_error" ]
+        targets << signed_target if source == "jjaek_attachment_search"
+        targets.each do |target|
+          expect {
+            post bookshelf_entries_path,
+                 params: { bookshelf_entry_source: source, search_result_token: "invalid", shelf_error_target: target },
+                 headers: { "Accept" => "text/vnd.turbo-stream.html" }
+          }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count, Jjaek.count, JjaekBookAttachment.count ] }
+
+          if source == "book_search"
+            expect(response).to redirect_to(book_search_path)
+            expect(response.body).not_to include("<turbo-stream")
+          else
+            expect(response).to have_http_status(:unprocessable_content)
+            streams = Nokogiri::HTML(response.body).css("turbo-stream")
+            expect(streams.map { |stream| stream["target"] }).to eq([ "flash-messages" ])
+            expect(streams.first.css("[role='alert']")).to be_empty
+          end
+          expect(flash[:alert]).to eq(I18n.t("book_search.errors.invalid_result"))
+        end
+      end
+    end
+
+    it "returns only a flash Stream for invalid tokens or another user's target shelf outside a modal" do
       book = Book.create!(title: "Registration failure")
       outsider = User.create!(name: "Shelf owner", email: "attachment-shelf-owner@example.com", password: "password123!")
       foreign_shelf = outsider.bookshelves.create!(name: "Other user's private shelf", visibility: :private)
