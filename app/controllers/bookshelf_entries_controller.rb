@@ -117,11 +117,21 @@ class BookshelfEntriesController < ApplicationController
     before_entry = before_entry_for_move
 
     @bookshelf_entry.move_to_bookshelf!(target_bookshelf, before_entry:)
-    redirect_to bookshelf_entry_move_redirect_path(target_bookshelf),
-                notice: t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
+    location = bookshelf_entry_move_redirect_path(target_bookshelf)
+    notice = t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
+    respond_to do |format|
+      format.json do
+        flash[:notice] = notice
+        render json: { location: }
+      end
+      format.any(:html, :turbo_stream) { redirect_to location, notice: }
+    end
   rescue ActiveRecord::RecordInvalid
-    redirect_to bookshelf_entry_move_redirect_path(@bookshelf_entry.bookshelf),
-                alert: @bookshelf_entry.errors.full_messages.to_sentence
+    message = @bookshelf_entry.errors.full_messages.to_sentence
+    respond_to do |format|
+      format.json { render json: { error: message }, status: :unprocessable_content }
+      format.any(:html, :turbo_stream) { redirect_to bookshelf_entry_move_redirect_path(@bookshelf_entry.bookshelf), alert: message }
+    end
   end
 
   def bulk_move
@@ -143,9 +153,15 @@ class BookshelfEntriesController < ApplicationController
     BookshelfEntry.reorder_within!(bookshelf:, ordered_ids: params[:bookshelf_entry_ids])
     options = { bookshelf_id: bookshelf.id, sort: "manual" }
 
-    redirect_to user_library_path(current_user, options), status: :see_other
+    respond_to do |format|
+      format.json { head :no_content }
+      format.any(:html, :turbo_stream) { redirect_to user_library_path(current_user, options), status: :see_other }
+    end
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound
-    head :unprocessable_content
+    respond_to do |format|
+      format.json { render json: { error: t("bookshelf_entries.alerts.reorder_failed") }, status: :unprocessable_content }
+      format.any(:html, :turbo_stream) { head :unprocessable_content }
+    end
   end
 
   def destroy

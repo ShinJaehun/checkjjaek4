@@ -607,6 +607,41 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to redirect_to(book_path(user_book))
     expect(flash[:alert]).to be_present
+
+    original = entry.attributes
+    patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "book" },
+          headers: { "Accept" => "application/json" }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.parsed_body).to eq("error" => "이동 실패")
+    expect(entry.reload.attributes).to eq(original)
+  end
+
+  it "acknowledges asynchronous moves and order saves without redirecting the fetch" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target_bookshelf = user.bookshelves.create!(name: "Async target", visibility: :private)
+    target_entry = user.bookshelf_entries.create!(bookshelf: target_bookshelf, book: Book.create!(title: "Already in target"))
+    sign_in user
+
+    expect {
+      patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target_bookshelf.id, return_to: "library_transfer" },
+            headers: { "Accept" => "application/json" }
+    }.not_to change(BookshelfEntry, :count)
+    expect(response).to have_http_status(:ok)
+    expect(response).not_to be_redirect
+    location = response.parsed_body.fetch("location")
+    expect(URI.parse(location).path).to eq(transfer_user_library_path(user))
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
+    get location
+    notice = Nokogiri::HTML(response.body).at_css("#flash-messages [role='status']")
+    expect(notice.text.strip).to eq(
+      I18n.t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
+    )
+
+    patch reorder_bookshelf_entries_path,
+          params: { bookshelf_id: target_bookshelf.id, bookshelf_entry_ids: [ entry.id, target_entry.id ] },
+          headers: { "Accept" => "application/json" }
+    expect(response).to have_http_status(:no_content)
+    expect(target_bookshelf.bookshelf_entries.order(:position, :id).pluck(:id)).to eq([ entry.id, target_entry.id ])
   end
 
   it "reorders the user's own shelf entries" do
@@ -799,6 +834,13 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(entry.reload.position).to eq(1)
+
+    original_order = entry.bookshelf.bookshelf_entries.order(:position, :id).pluck(:id)
+    patch reorder_bookshelf_entries_path, params: { bookshelf_id: entry.bookshelf_id, bookshelf_entry_ids: [ entry.id ] },
+          headers: { "Accept" => "application/json" }
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.parsed_body).to eq("error" => I18n.t("bookshelf_entries.alerts.reorder_failed"))
+    expect(entry.bookshelf.bookshelf_entries.order(:position, :id).pluck(:id)).to eq(original_order)
   end
 
   it "records a shelf entry status change once" do

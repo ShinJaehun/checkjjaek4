@@ -110,6 +110,37 @@ RSpec.describe "Mobile bookshelf ordering", type: :system do
     expect(page).to have_no_css("[data-bookshelf-entries-sort-target='controls']", visible: true)
   end
 
+  it "reports failed saves and reloads the actual server order, including a lost success response" do
+    %w[http network lost_response].each do |failure|
+      visit user_library_path(owner, sort: "manual")
+      original_order = owner.bookshelf_entries.order(:position, :id).pluck(:id)
+      page.execute_script(<<~JS)
+        window.bookshelfFailureMarker = true
+        const originalFetch = window.fetch
+        window.fetch = (...args) => {
+          if (args[0] !== "#{reorder_bookshelf_entries_path}") return originalFetch.apply(window, args)
+          if ("#{failure}" === "http") return Promise.resolve(new Response("{}", { status: 422 }))
+          if ("#{failure}" === "network") return Promise.reject(new TypeError("Offline"))
+          return originalFetch.apply(window, args).then(() => { throw new TypeError("Response lost") })
+        }
+      JS
+      click_button I18n.t("users.profile.bookshelf_sort.reorder_start")
+      click_button I18n.t("users.profile.bookshelf_sort.move_down", title: first_entry.book.title), enable_aria_label: true
+      accept_alert(I18n.t("bookshelf_entries.alerts.reorder_failed")) do
+        click_button I18n.t("users.profile.bookshelf_sort.reorder_apply")
+      end
+      expect(page).to have_button(I18n.t("users.profile.bookshelf_sort.reorder_start"))
+      expect(page.evaluate_script("typeof window.bookshelfFailureMarker")).to eq("undefined")
+      saved_order = owner.bookshelf_entries.order(:position, :id).pluck(:id)
+      expect(visible_entry_ids).to eq(saved_order)
+      if failure == "lost_response"
+        expect(saved_order).to eq([ second_entry.id, first_entry.id, third_entry.id ])
+      else
+        expect(saved_order).to eq(original_order)
+      end
+    end
+  end
+
   it "omits mobile reorder controls for other sorts, a single book, and another user's library" do
     visit user_library_path(owner, sort: "recent")
     expect(page).to have_no_button(I18n.t("users.profile.bookshelf_sort.reorder_start"))
