@@ -50,7 +50,6 @@ module BookSearchResults
     @has_next_page ||= @meta[:is_end] == false
   rescue BookSearches::KakaoAdapter::Error
     @external_search_failed = true
-    flash.now[:alert] = t("book_search.errors.generic")
   end
 
   def normalized_page

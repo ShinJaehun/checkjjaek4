@@ -392,6 +392,10 @@ bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_ed
 - 임시 선택 오류는 Turbo 응답의 기존 `book-selection-alert` 영역에 표시한다. HTML fallback은 기존 검색 결과로
   303 redirect하며 현재 alert를 다음 GET까지 유지해 공통 flash로 표시한다. 같은 선택 오류를 두 영역에 중복 전달하지 않는다.
   선택·검색·작성 문맥과 본문·사진 초안 보존 정책은 유지한다.
+- 첨부 검색의 외부 검색 실패는 검색 결과 영역의 기존 안내로 표시하며 선택 오류용 flash를 설정하거나 덮어쓰지 않는다.
+  선택 오류와 검색 실패가 동시에 발생하면 각각의 영역에 표시한다. 일반 책 검색 페이지의 기존 flash 처리는 유지한다.
+- 첨부 한도는 최대 5권을 유지한다. 선택 패널의 선택 수/최대 권수 표시와 추가 버튼 비활성화로 한도를 안내하고,
+  초과 시 오류 문구는 `book-selection-alert`에 한 번만 표시한다. HTML fallback의 공통 flash 전달 정책도 유지한다.
 - 외부 책은 최종 저장에서만 기존 Book을 재사용하거나 생성한다. 메타데이터를 덮어쓰지 않으며
   Book·본문·첨부는 함께 성공하거나 롤백한다. 선택·검색만으로 DB 초안을 만들지 않는다.
 - 책 선택창과 첨부 검색의 스크롤 영역을 분리한다. 모바일 패널은 최대 48dvh,
