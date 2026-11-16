@@ -57,6 +57,12 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response.body).not_to include(I18n.t("book_search.actions.add_to_shelf"))
     card = Nokogiri::HTML(response.body).at_css("turbo-stream[action='replace'] template article")
     expect(card.at_css("button[disabled]").text.strip).to eq(I18n.t("book_search.actions.in_shelf"))
+    flash_template = Nokogiri::HTML(response.body).at_css("turbo-stream[action='update'][target='flash-messages'] template")
+    expect(flash_template.css("[role='status']").size).to eq(1)
+    notice = flash_template.at_css("[role='status']")
+    expect(notice.text.strip).to eq(I18n.t("bookshelf_entries.notices.created"))
+    expect(notice["class"].split).to include("border-green-200", "bg-green-50", "text-green-800")
+    expect(flash_template.css("#flash-messages, [role='alert'], [aria-live]")).to be_empty
   end
 
   [ :stored, :external ].each do |source|

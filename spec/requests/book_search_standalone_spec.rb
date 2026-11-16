@@ -531,7 +531,8 @@ RSpec.describe "Standalone book search", type: :request do
             expect(response).to have_http_status(:unprocessable_content)
             streams = Nokogiri::HTML(response.body).css("turbo-stream")
             expect(streams.map { |stream| stream["target"] }).to eq([ "flash-messages" ])
-            expect(streams.first.css("[role='alert']")).to be_empty
+            expect(streams.first.css("template [role='alert']").size).to eq(1)
+            expect(streams.first.at_css("template [role='alert']").text.strip).to eq(I18n.t("book_search.errors.invalid_result"))
           end
           expect(flash[:alert]).to eq(I18n.t("book_search.errors.invalid_result"))
         end

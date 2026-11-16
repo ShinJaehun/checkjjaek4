@@ -1,5 +1,16 @@
 <% flash.each do |type, message| %>
-  <div class="rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-800">
+  <%
+    color_classes = case type.to_s
+    when "notice"
+      "border-green-200 bg-green-50 text-green-800"
+    when "alert"
+      "border-red-200 bg-red-50 text-red-800"
+    else
+      "border-stone-300 bg-stone-50 text-stone-800"
+    end
+  %>
+  <div role="<%= type.to_s == "alert" ? "alert" : "status" %>"
+       class="rounded-xl border px-4 py-3 text-sm <%= color_classes %>">
     <%= message %>
   </div>
 <% end %>

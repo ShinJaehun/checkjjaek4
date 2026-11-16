@@ -106,6 +106,12 @@ RSpec.describe "Authentication", type: :request do
       expect(flash[:notice]).to eq("로그인되었습니다.")
       follow_redirect!
       expect(response.body).to include("로그인되었습니다.")
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("#flash-messages").size).to eq(1)
+      notice = page.at_css("#flash-messages [role='status']")
+      expect(notice.text.strip).to eq("로그인되었습니다.")
+      expect(notice["class"].split).to include("border-green-200", "bg-green-50", "text-green-800")
+      expect(page.css("#flash-messages [role='alert']")).to be_empty
     end
 
     it "shows the same generic message for an unknown email and a wrong password" do
@@ -114,6 +120,12 @@ RSpec.describe "Authentication", type: :request do
       [ "reader@example.com", "missing@example.com" ].each do |email|
         post user_session_path, params: { user: { email:, password: "wrong-password" } }, headers: { "ACCEPT" => "text/html" }
         expect(response.body).to include(I18n.t("auth.alerts.invalid_credentials"))
+        page = Nokogiri::HTML(response.body)
+        expect(page.css("#flash-messages").size).to eq(1)
+        alert = page.at_css("#flash-messages [role='alert']")
+        expect(alert.text.strip).to eq(I18n.t("auth.alerts.invalid_credentials"))
+        expect(alert["class"].split).to include("border-red-200", "bg-red-50", "text-red-800")
+        expect(page.css("#flash-messages [role='status']")).to be_empty
       end
     end
 

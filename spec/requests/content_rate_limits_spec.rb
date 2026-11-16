@@ -37,6 +37,14 @@ RSpec.describe "Content rate limits", type: :request do
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(response.body).to include(%(target="flash-messages"), I18n.t("jjaeks.alerts.rate_limited"))
     expect(response.body).not_to include(%(target="jjaek_"))
+    streams = Nokogiri::HTML(response.body).css("turbo-stream")
+    expect(streams.map { |stream| [ stream["action"], stream["target"] ] }).to eq([ [ "update", "flash-messages" ] ])
+    flash_template = streams.first.at_css("template")
+    expect(flash_template.css("[role='alert']").size).to eq(1)
+    alert = flash_template.at_css("[role='alert']")
+    expect(alert.text.strip).to eq(I18n.t("jjaeks.alerts.rate_limited"))
+    expect(alert["class"].split).to include("border-red-200", "bg-red-50", "text-red-800")
+    expect(flash_template.css("#flash-messages, [role='status'], [aria-live]")).to be_empty
     expect(Jjaek.count).to eq(jjaek_count)
     expect(Notification.count).to eq(notification_count)
   end
