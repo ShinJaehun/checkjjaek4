@@ -628,6 +628,12 @@ BooksController#show
 - ReJjaek visibility 제약 상세는 `docs/architecture/jjaek_visibility.md`를 본다
 - A·B·C 공유 경로와 원문 삭제 후 처리 기준은 `docs/specs/group_sharing_requotes.md`를 본다
 - ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
+- A05 원본 카드의 다시짹 사용자 아바타는 기존 count 준비 경로에서 현재 페이지의 원본 ID를 일괄 처리한다.
+  `JjaekPolicy::Scope`를 통과하고 숨김·삭제되지 않은 다시짹에 두 단계 window query를 적용해 사용자별
+  최신 1건과 원본별 최근 5명을 선택한 뒤 사용자·avatar만 preload한다. 같은 사용자의 여러 게시물은 아바타에서만
+  중복 제거하며, 기존 일반/제한 카드의 게시물 수와 목록 링크·20건 페이지네이션은 유지한다.
+  제한 카드에만 포함되는 작성자 정보는 아바타 미리보기에 노출하지 않는다. 탈퇴자는 기존 익명 표시를 사용하며,
+  Group 회원 미리보기와 `shared/avatar_stack` partial을 공유한다.
 
 Turbo 1차 적용 상태:
 
