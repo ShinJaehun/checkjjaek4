@@ -177,6 +177,10 @@ RSpec.describe "Group sharing and quotes", type: :request do
       label = radio.ancestors("label").first
       expect(label.text).to include(group.name, I18n.t("groups.types.#{group.group_type}"),
         I18n.t("jjaeks.form.group_sharing.#{group.public_group? ? 'public' : 'members'}"))
+      expect(label.at_css("[data-group-type='#{group.group_type}']")).to be_present
+      expect(label.at_css("[data-group-color]")["data-group-color"]).to eq(group.effective_brand_color)
+      expect(label.at_css("[data-icon='users-round']").parent["class"].split).to include("h-12", "w-12")
+      expect(label.css("a")).to be_empty
     end
 
     expect {

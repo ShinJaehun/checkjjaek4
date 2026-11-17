@@ -1,0 +1,51 @@
+<div class="space-y-5">
+  <p class="text-xs text-stone-500"><%= t("groups.branding.image_hint") %></p>
+  <% Group::IMAGE_NAMES.each do |name| %>
+    <% image = group.public_send(name) %>
+    <% saved_source = image.attached? ? group_image_path(group, image.attachment, size: name == "profile_image" ? :card : :cover) : nil %>
+    <div class="space-y-2"
+         data-controller="group-image-preview"
+         data-action="turbo:before-cache@document->group-image-preview#reset"
+         data-group-image-preview-saved-source-value="<%= saved_source %>"
+         data-group-image-preview-max-size-value="<%= Group::MAX_IMAGE_SIZE %>"
+         data-group-image-preview-remove-label-value="<%= t("groups.branding.remove_image", image: t("groups.branding.#{name}")) %>"
+         data-group-image-preview-cancel-label-value="<%= t("groups.branding.cancel_selection", image: t("groups.branding.#{name}")) %>">
+      <%= form.label "#{name}_file", t("groups.branding.#{name}"), class: "mb-2 block text-sm font-medium text-stone-800" %>
+      <div class="relative <%= name == "profile_image" ? "w-24" : "w-full" %>" data-group-image-preview-target="preview" <%= "hidden" unless saved_source %>>
+        <%= tag.img src: saved_source, alt: t("groups.branding.#{name == "profile_image" ? "profile_alt" : "cover_alt"}", name: group.name),
+                    class: "rounded-2xl object-cover object-center #{name == "profile_image" ? "h-24 w-24" : "h-32 w-full"}",
+                    data: { group_image_preview_target: "image", action: "error->group-image-preview#imageError" } %>
+        <button type="button"
+                class="group absolute -right-2 -top-2 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600"
+                data-group-image-preview-target="removeButton" data-action="group-image-preview#remove"
+                aria-label="<%= t("groups.branding.remove_image", image: t("groups.branding.#{name}")) %>">
+          <span class="flex h-6 w-6 items-center justify-center rounded-full bg-white text-stone-600 shadow-sm ring-1 ring-stone-300 group-hover:bg-stone-100" aria-hidden="true">
+            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+          </span>
+        </button>
+      </div>
+      <%= hidden_field_tag "group[remove_#{name}]", "0", data: { group_image_preview_target: "remove" } %>
+      <div hidden data-group-image-preview-target="pending">
+        <p class="text-xs text-stone-600" role="status"><%= t("groups.branding.removal_pending") %></p>
+        <button type="button" class="mt-1 text-sm font-medium text-stone-700 underline" data-action="group-image-preview#restore"><%= t("groups.branding.undo_removal") %></button>
+      </div>
+      <%= form.file_field "#{name}_file", accept: "image/jpeg,image/png,image/webp",
+                          class: "block w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-700",
+                          data: { group_image_preview_target: "input", action: "change->group-image-preview#change" } %>
+      <p hidden class="text-sm text-red-700" role="alert" data-group-image-preview-target="error"><%= t("groups.branding.preview_error") %></p>
+    </div>
+  <% end %>
+
+  <fieldset>
+    <legend class="mb-2 block text-sm font-medium text-stone-800"><%= t("groups.branding.brand_color") %></legend>
+    <div class="flex flex-wrap gap-3">
+      <% Group::BRAND_COLORS.each do |key, hex| %>
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-700">
+          <%= form.radio_button :brand_color, key, checked: group.effective_brand_color == key %>
+          <span class="h-4 w-4 rounded-full" style="background-color: <%= hex %>" aria-hidden="true"></span>
+          <%= t("groups.branding.colors.#{key}") %>
+        </label>
+      <% end %>
+    </div>
+  </fieldset>
+</div>

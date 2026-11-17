@@ -6,7 +6,7 @@ class UserAvatarsController < ApplicationController
     size = params.fetch(:size, "128")
     raise ActiveRecord::RecordNotFound unless %w[128 512].include?(size) && !user.withdrawn? && user.avatar.attached?
     original = user.avatar.blob
-    if original.metadata["jjaek_photo"] || original.attachments.where(record_type: "ActiveStorage::VariantRecord").exists?
+    if original.metadata["jjaek_photo"] || original.metadata["group_image"] || original.attachments.where(record_type: "ActiveStorage::VariantRecord").exists?
       raise ActiveRecord::RecordNotFound
     end
 

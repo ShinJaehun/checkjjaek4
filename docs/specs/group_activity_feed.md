@@ -30,12 +30,19 @@
   Group Book Jjaek을 하나의 feed로 표시한다.
 - 여러 Group의 글은 `created_at DESC, id DESC`로 안정적으로 정렬한다.
 - 각 글은 기존 Jjaek partial, actions, comments와 Group context header를 재사용한다.
+- B04는 카드 안쪽 왼쪽의 4px 색상 띠로 게시된 동아리의 대표 색상을 표시한다.
+  같은 띠를 `/groups`의 현재·과거 동아리 카드와 동아리 상세 피드에도 적용한다.
+  다시짹도 목적지 동아리를 기준으로 하며 인용 원문에는 별도 띠를 추가하지 않는다.
+  기존 이름·링크·테두리·여백과 홈·검색·개인 프로필 등 다른 피드의 카드 디자인은 유지한다.
+  색상 키·기본색·이미지의 상세 기준은 `group_profile_branding_b04.md`를 따른다.
 - 읽을 수 없는 Group의 콘텐츠는 URL이나 query parameter 조작 여부와 관계없이 relation에 포함하지 않는다.
 - Group은 있지만 표시할 게시물이 없으면 내 동아리 empty state와 구분되는 최근 동아리 활동 empty state를 표시한다.
 
 ## 특정 동아리 (`/groups/:id`)
 
 - 기존 Group 상세, 게시물 흐름, lifecycle과 권한을 변경하지 않는다.
+- 일반·책 첨부·다시짹 피드 카드에 게시된 동아리의 4px 색상 띠를 적용한다.
+  최초 렌더링과 무한 스크롤에 같은 partial을 사용하며 인용 원문 카드는 별도로 꾸미지 않는다.
 
 ## 권한과 moderation
 

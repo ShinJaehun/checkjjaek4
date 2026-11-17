@@ -149,7 +149,7 @@ class SearchesController < ApplicationController
     return if group_ids.empty?
 
     @search_group_details = policy_scope(Group).where(id: group_ids)
-      .includes(group_admin: { avatar_attachment: :blob }).index_by(&:id)
+      .includes(:profile_image_attachment, group_admin: { avatar_attachment: :blob }).index_by(&:id)
     return if @search_group_details.empty?
 
     GroupMembership.card_previews_for(group_ids: @search_group_details.keys).each do |membership|

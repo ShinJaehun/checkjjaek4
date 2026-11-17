@@ -46,6 +46,7 @@
       <div class="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-10">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-3">
+            <%= render "groups/profile_image", group: @group, image_class: "h-14 w-14" %>
             <h3 class="font-serif text-2xl font-semibold"><%= link_to @group.name, group_path(@group) %></h3>
             <span class="inline-flex rounded-full px-3 py-1 text-xs font-medium <%= group_type_badge_classes(@group) %>">
               <%= group_type_label(@group) %>

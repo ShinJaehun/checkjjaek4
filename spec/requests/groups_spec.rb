@@ -789,7 +789,7 @@ RSpec.describe "Groups", type: :request do
       )
       expect(response.body).not_to include(">other<")
       expect(response.body).not_to include("HIDDEN OPERATION NOTE")
-      expect(response.body).not_to include("수정하기")
+      expect(response.body).not_to include(I18n.t("groups.actions.update"))
     end
 
     get groups_path

@@ -3,6 +3,21 @@ require "rails_helper"
 RSpec.describe Group, type: :model do
   let(:group_admin) { User.create!(name: "Group admin", email: "group-group_admin@example.com", password: "password123!", password_confirmation: "password123!") }
 
+  it "uses a stable palette color for existing groups and validates saved color keys" do
+    group = described_class.create!(group_admin:, name: "Brand colors", lifecycle_status: :active)
+    default = Group::BRAND_COLORS.keys[group.id % Group::BRAND_COLORS.size]
+    expect(group.brand_color).to be_nil
+    expect(group.effective_brand_color).to eq(default)
+    expect(group.reload.effective_brand_color).to eq(default)
+    expect(group.brand_color_hex).to eq(Group::BRAND_COLORS.fetch(default))
+    expect(group.update(brand_color: "blue")).to be(true)
+    expect(group.reload.effective_brand_color).to eq("blue")
+    [ "#123456", "url(example.com)", "unknown" ].each do |value|
+      expect(group.update(brand_color: value)).to be(false)
+      expect(group.errors[:brand_color]).to be_present
+    end
+  end
+
   it "is pending approval by default" do
     group = described_class.create!(group_admin: group_admin, name: "Readers", group_type: :public_group, application_purpose: "Read together")
 

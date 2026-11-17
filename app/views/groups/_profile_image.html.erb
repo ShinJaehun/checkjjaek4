@@ -1,0 +1,13 @@
+<% if local_assigns.fetch(:show_image, true) && group.profile_image.attached? %>
+  <%= image_tag group_profile_image_path(group, size: local_assigns.fetch(:size, :card)),
+                alt: t("groups.branding.profile_alt", name: group.name),
+                loading: "lazy", class: "shrink-0 rounded-2xl object-cover #{image_class}" %>
+<% else %>
+  <div class="flex shrink-0 items-center justify-center rounded-2xl bg-stone-100 text-stone-500 <%= image_class %>" role="img" aria-label="<%= t("groups.branding.profile_alt", name: group.name) %>">
+    <svg class="h-1/2 w-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-icon="users-round">
+      <path d="M18 21a8 8 0 0 0-16 0" />
+      <circle cx="10" cy="8" r="5" />
+      <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+    </svg>
+  </div>
+<% end %>

@@ -65,7 +65,7 @@ module Account
     def destroy_avatar
       @user = current_user
       @user.avatar.purge_later if @user.avatar.attached?
-      redirect_to account_settings_path, notice: t("settings.avatar.removed")
+      redirect_to account_settings_path, notice: t("settings.avatar.removed"), status: :see_other
     end
 
     private
@@ -77,7 +77,7 @@ module Account
     end
 
     def render_avatar_failure
-      @avatar_errors ||= @user.errors.full_messages
+      @avatar_errors ||= @user.errors.map { |error| helpers.user_validation_error_message(error) }
       @user = current_user.reload
       render :show, status: :unprocessable_content
     end

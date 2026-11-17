@@ -1,11 +1,21 @@
-<article class="flex h-full w-full min-w-0 flex-col rounded-2xl border border-stone-300 bg-stone-50 p-4" data-past-group-id="<%= group.id %>">
-  <h3 class="min-w-0 text-lg font-semibold text-stone-900">
-    <% if local_assigns.fetch(:link_name, true) %>
-      <%= link_to group.name, group_path(group.id), class: "block truncate", title: group.name %>
-    <% else %>
-      <span class="block truncate" title="<%= group.name %>"><%= group.name %></span>
+<% show_brand_color = local_assigns.fetch(:show_brand_color, false) %>
+<article class="flex h-full w-full min-w-0 flex-col rounded-2xl border border-stone-300 bg-stone-50 p-4 <%= "relative overflow-hidden" if show_brand_color %>" data-past-group-id="<%= group.id %>">
+  <% if show_brand_color %>
+    <%= render "groups/color_stripe", group: %>
+  <% end %>
+  <div class="flex min-w-0 items-center gap-3">
+    <% if local_assigns.fetch(:show_profile_image, false) %>
+      <%= render "groups/profile_image", group:, image_class: "h-12 w-12",
+                 show_image: local_assigns.fetch(:profile_image_accessible, false) %>
     <% end %>
-  </h3>
+    <h3 class="min-w-0 flex-1 text-lg font-semibold text-stone-900">
+      <% if local_assigns.fetch(:link_name, true) %>
+        <%= link_to group.name, group_path(group.id), class: "block truncate", title: group.name %>
+      <% else %>
+        <span class="block truncate" title="<%= group.name %>"><%= group.name %></span>
+      <% end %>
+    </h3>
+  </div>
   <div class="mt-2 flex flex-wrap items-center gap-1">
     <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
     <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>

@@ -89,10 +89,11 @@ ko:
       handle_hint: "영문자로 시작하는 3~30자의 영문자·숫자·밑줄(_)을 사용하세요. 한글과 공백은 사용할 수 없습니다."
     avatar:
       title: "프로필 이미지"
-      description: "JPEG, PNG, WebP 이미지를 최대 5MB까지 올릴 수 있습니다. 이미지를 지우면 기본 아바타가 표시됩니다."
+      description: "JPEG·PNG·WebP, 최대 5MB."
       upload: "이미지 파일"
       save: "이미지 저장"
-      remove: "업로드한 이미지 삭제"
+      remove: "이미지 삭제"
+      cancel_selection: "선택한 프로필 이미지 취소"
       updated: "프로필 이미지를 저장했습니다."
       removed: "프로필 이미지를 삭제했습니다."
       upload_failed: "이미지를 저장하지 못했습니다. 다시 시도해 주세요."
@@ -127,6 +128,10 @@ ko:
     too_long: "내용은 %{count}자 이하로 입력해 주세요."
   activerecord:
     attributes:
+      group:
+        profile_image: "동아리 대표 이미지"
+        cover_image: "동아리 배너 이미지"
+        brand_color: "동아리 대표 색상"
       group_lifecycle_event:
         detail: "거절 사유"
       user:
@@ -142,6 +147,10 @@ ko:
       messages:
         record_invalid: "저장할 수 없습니다: %{errors}"
       models:
+        group:
+          attributes:
+            brand_color:
+              inclusion: "허용된 색상을 선택해 주세요"
         user:
           attributes:
             reset_password_token:
@@ -157,6 +166,7 @@ ko:
             password_confirmation:
               confirmation: "이 일치하지 않습니다"
             avatar:
+              blank: "를 입력해 주세요"
               invalid_format: "JPEG, PNG, WebP 파일만 올릴 수 있습니다"
               too_large: "5MB 이하 파일만 올릴 수 있습니다"
             handle:
@@ -286,6 +296,31 @@ ko:
     hidden: "숨김"
     deleted: "삭제됨"
   groups:
+    branding:
+      title: "동아리 꾸미기"
+      profile_image: "대표 이미지"
+      cover_image: "배너 이미지"
+      brand_color: "대표 색상"
+      profile_alt: "%{name} 대표 이미지"
+      cover_alt: "%{name} 배너 이미지"
+      image_hint: "JPEG·PNG·WebP, 파일당 최대 5MB."
+      remove_image: "%{image} 삭제 예약"
+      cancel_selection: "선택한 %{image} 취소"
+      removal_pending: "삭제 예정"
+      undo_removal: "삭제 취소"
+      preview_error: "5MB 이하의 올바른 JPEG·PNG·WebP 이미지를 선택해 주세요."
+      invalid_format: "JPEG, PNG, WebP 형식의 올바른 이미지 파일을 선택해 주세요"
+      too_large: "5MB 이하 파일만 올릴 수 있습니다"
+      upload_failed: "이미지를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요"
+      colors:
+        stone: "회색"
+        red: "빨강"
+        orange: "주황"
+        amber: "호박색"
+        emerald: "초록"
+        teal: "청록"
+        blue: "파랑"
+        violet: "보라"
     nav: "동아리"
     content_inventory:
       title: "동아리 콘텐츠 관리"
@@ -475,6 +510,7 @@ ko:
     edit:
       title: "동아리 관리"
     form:
+      information_title: "동아리 정보"
       name: "동아리 이름"
       description: "동아리 소개"
       group_type: "동아리 종류"
@@ -486,7 +522,7 @@ ko:
       create: "개설 신청"
       edit: "동아리 관리"
       manage_content: "콘텐츠 관리"
-      update: "수정하기"
+      update: "저장"
       cancel: "취소"
       back: "동아리 목록으로"
       close: "동아리 운영 종료"

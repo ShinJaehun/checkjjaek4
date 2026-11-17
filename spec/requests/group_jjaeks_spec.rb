@@ -94,7 +94,9 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     page = Nokogiri::HTML(response.body)
-    expect(page.css("article").map(&:text)).to eq(normal_page.css("article").map(&:text))
+    actual_article_texts = page.css("article").map { |article| article.text.squish }
+    expected_article_texts = normal_page.css("article").map { |article| article.text.squish }
+    expect(actual_article_texts).to eq(expected_article_texts)
     expect(page.at_css(requote_link).text).to eq(normal_page.at_css(requote_link).text)
     expect(normal_page.css("[data-member-preview] a").map { |link| link["href"] }).to eq([ user_path(member), user_path(moderated_member) ])
     expect(page.css("[data-member-preview] a").map { |link| link["href"] }).to eq(normal_page.css("[data-member-preview] a").map { |link| link["href"] })
@@ -447,7 +449,7 @@ RSpec.describe "Group Jjaeks", type: :request do
 
     get group_path(group)
 
-    header = Nokogiri::HTML(response.body).at_css("article > div:first-child")
+    header = Nokogiri::HTML(response.body).at_css("article#jjaek_#{jjaek.id} > div > div:first-child")
     expect(header.to_html).to include(edit_jjaek_path(jjaek), jjaek_path(jjaek))
     expect(header.text).to match(/수정.*삭제/m)
   end

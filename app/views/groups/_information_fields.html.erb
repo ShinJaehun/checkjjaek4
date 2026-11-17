@@ -1,0 +1,31 @@
+<div>
+  <%= form.label :name, t("groups.form.name"), class: "mb-2 block text-sm font-medium text-stone-800" %>
+  <%= form.text_field :name, required: true, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+</div>
+
+<div>
+  <%= form.label :description, t("groups.form.description"), class: "mb-2 block text-sm font-medium text-stone-800" %>
+  <%= form.text_area :description, rows: 5, class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+</div>
+
+<% if group.new_record? %>
+  <div>
+    <%= form.label :group_type, t("groups.form.group_type"), class: "mb-2 block text-sm font-medium text-stone-800" %>
+    <%= form.select :group_type,
+                    Group::USER_CREATABLE_TYPES.map { |type| [t("groups.types.#{type}"), type] },
+                    {},
+                    class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+  </div>
+<% end %>
+
+<% if group.new_record? %>
+  <div>
+    <%= form.label :application_purpose, t("groups.form.application_purpose"), class: "mb-2 block text-sm font-medium text-stone-800" %>
+    <%= form.text_area :application_purpose,
+                       rows: 5,
+                       maxlength: 500,
+                       required: group.new_record? || group.application_purpose.present?,
+                       class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm" %>
+    <p class="mt-2 text-xs text-stone-500"><%= t("groups.form.application_purpose_hint") %></p>
+  </div>
+<% end %>

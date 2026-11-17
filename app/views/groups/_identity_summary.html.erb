@@ -1,11 +1,14 @@
-<div class="min-w-0 flex-1" data-group-identity-summary>
-  <h1 class="truncate text-3xl font-semibold tracking-tight text-stone-900"><%= group.name %></h1>
-  <div class="mt-3 flex flex-wrap gap-2">
-    <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
-    <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
-  </div>
-  <div class="mt-3 flex min-w-0 flex-wrap items-center gap-3">
-    <%= render "groups/member_avatars", group:, member_preview: %>
-    <span class="whitespace-nowrap text-sm text-stone-600" data-field="active-member-count"><%= t("groups.active_member_count", count: active_member_count) %></span>
+<div class="flex min-w-0 flex-1 items-start gap-4" data-group-identity-summary>
+  <%= render "groups/profile_image", group:, size: :detail, image_class: "h-16 w-16 sm:h-24 sm:w-24" %>
+  <div class="min-w-0 flex-1">
+    <h1 class="truncate text-3xl font-semibold tracking-tight text-stone-900"><%= group.name %></h1>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
+      <span class="rounded-full px-3 py-1 text-xs font-medium <%= group_status_badge_classes(group) %>" data-field="current-status"><%= group_current_status_label(group) %></span>
+    </div>
+    <div class="mt-3 flex min-w-0 flex-wrap items-center gap-3">
+      <%= render "groups/member_avatars", group:, member_preview: %>
+      <span class="whitespace-nowrap text-sm text-stone-600" data-field="active-member-count"><%= t("groups.active_member_count", count: active_member_count) %></span>
+    </div>
   </div>
 </div>
