@@ -285,7 +285,12 @@ class JjaeksController < ApplicationController
     raise Pundit::NotAuthorizedError if params[:share_to_group].present? && @quoted_jjaek.blank?
     @share_to_group = @quoted_jjaek.present? && @quoted_jjaek.group_id.blank? &&
       (params[:share_to_group].present? || @group.present?)
-    @available_share_groups = policy(@quoted_jjaek).group_share_destinations if @share_to_group
+    if @share_to_group
+      @available_share_groups = policy(@quoted_jjaek).group_share_destinations
+      ActiveRecord::Associations::Preloader.new(
+        records: @available_share_groups, associations: :profile_image_attachment
+      ).call
+    end
     if @group && @quoted_jjaek
       expected_group = request.path_parameters[:group_id].present? ? @group.id : nil
       raise Pundit::NotAuthorizedError unless @quoted_jjaek.group_id == expected_group

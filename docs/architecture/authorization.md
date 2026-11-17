@@ -78,6 +78,12 @@ Group 이름 검색은 비회원에게 운영 중인 비공개 동아리 이름�
 기본 Active Storage 공개 Blob/representation/Disk/direct-upload 경로는 닫고 아바타도 로그인 경로를 사용한다.
 사진 파일을 아바타 입력의 signed Blob 참조로 다시 연결할 수 없다. [A17](../specs/jjaek_photos_a17.md) 참고.
 
+B04 동아리 대표·배너 이미지도 인증 경로에서만 고정 크기 Variant로 중계한다.
+`GroupPolicy#view_images?`는 기존 `show?`를 재사용하며 이름만 검색할 수 있는 비공개 동아리의
+이미지 접근을 허용하지 않는다. 매 요청의 Group 권한·부모 첨부 ID·이미지 종류를 확인하고 변환 대기 후
+권한과 소속을 다시 검사한다. 변경은 기존 `update?`를 따르며 아바타 경로의 동아리 이미지 재사용도 차단한다.
+[B04 명세](../specs/group_profile_branding_b04.md) 참고.
+
 ## 관계 기준 용어
 
 이 문서에서 쓰는 관계 기준 용어는 아래와 같다.

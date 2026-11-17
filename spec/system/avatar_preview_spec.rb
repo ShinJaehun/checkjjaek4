@@ -6,6 +6,8 @@ RSpec.describe "Avatar preview", type: :system do
   let(:user) { User.create!(name: "Avatar reader", email: "avatar-preview@example.com", password: "password123!") }
   let(:first_image) { Rails.root.join("app/assets/images/avatars/user_profile_01_128.png") }
   let(:second_image) { Rails.root.join("app/assets/images/avatars/user_profile_02_128.png") }
+  let(:remove_button_selector) { "button:enabled[data-avatar-preview-target='removeButton'][aria-label='#{I18n.t("settings.avatar.remove")}']" }
+  let(:cancel_button_selector) { "button:enabled[data-avatar-preview-target='removeButton'][aria-label='#{I18n.t("settings.avatar.cancel_selection")}']" }
 
   before do
     driven_by :selenium, using: :headless_chrome
@@ -17,12 +19,18 @@ RSpec.describe "Avatar preview", type: :system do
   it "previews a selected image without uploading it until Save image is pressed" do
     visit account_settings_path
     saved_source = find("#avatar-settings img")["src"]
+    expect(page).to have_no_css(remove_button_selector, visible: true)
+
+    click_button I18n.t("settings.avatar.save")
+    expect(page).to have_css("#avatar-settings [role='alert']", text: I18n.t("activerecord.errors.models.user.attributes.avatar.blank"))
+    expect(page).to have_no_css("#profile-settings [role='alert']")
 
     attach_file("user[avatar]", first_image)
 
     expect(find("#avatar-settings img")["src"]).to start_with("blob:")
     expect(page).to have_css("[data-avatar-preview-target='status']", text: I18n.t("settings.avatar.preview_pending"), visible: true)
     expect(user.reload.avatar).not_to be_attached
+    expect(page).to have_css(cancel_button_selector, visible: true)
 
     click_button I18n.t("settings.avatar.save")
 
@@ -31,6 +39,7 @@ RSpec.describe "Avatar preview", type: :system do
     expect(user.reload.avatar).to be_attached
     expect(find("#avatar-settings img")["src"]).not_to eq(saved_source)
     expect(page).to have_no_css("[data-avatar-preview-target='status']", visible: true)
+    expect(page).to have_css(remove_button_selector, visible: true)
   end
 
   it "releases temporary URLs and restores the saved image for invalid files, cancel, and page exit" do
@@ -47,6 +56,13 @@ RSpec.describe "Avatar preview", type: :system do
         window.revokedAvatarUrls.push(url)
         revokeObjectURL(url)
       }
+      window.avatarSubmissions = []
+      document.addEventListener('turbo:submit-start', event => {
+        const form = event.target
+        if (new URL(form.action).pathname === #{avatar_account_settings_path.to_json}) {
+          window.avatarSubmissions.push(form.querySelector('input[name="_method"]')?.value || form.method)
+        }
+      })
     JS
 
     attach_file("user[avatar]", first_image)
@@ -97,5 +113,23 @@ RSpec.describe "Avatar preview", type: :system do
     expect(page.evaluate_script("window.revokedAvatarUrls")).to include(final_preview)
     expect(user.reload.avatar).to be_attached
     expect(user.avatar.blob_id).to eq(saved_blob_id)
+
+    attach_file("user[avatar]", second_image)
+    cancelled_preview = find("#avatar-settings img")["src"]
+    find(cancel_button_selector, visible: true).send_keys(:enter)
+    expect(find("#avatar-settings img")["src"]).to eq(saved_source)
+    expect(find("#avatar-settings input[type='file']").value).to eq("")
+    expect(user.reload.avatar.blob_id).to eq(saved_blob_id)
+    expect(page.evaluate_script("window.revokedAvatarUrls")).to include(cancelled_preview)
+    expect(page.evaluate_script("window.avatarSubmissions")).to eq([])
+    expect(page).to have_no_css("#profile-settings [role='alert'], #avatar-settings [role='alert']")
+
+    find(remove_button_selector, visible: true).send_keys(:enter)
+    expect(page).to have_text(I18n.t("settings.avatar.removed"))
+    expect(user.reload.avatar).not_to be_attached
+    expect(page).to have_no_css(remove_button_selector, visible: true)
+    expect(page.evaluate_script("window.avatarSubmissions")).to eq([ "delete" ])
+    expect(page).to have_css("#avatar-settings img[src*='user_profile_']")
+    expect(page).to have_no_css("#profile-settings [role='alert'], #avatar-settings [role='alert']")
   end
 end

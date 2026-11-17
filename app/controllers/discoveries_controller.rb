@@ -71,7 +71,7 @@ class DiscoveriesController < ApplicationController
     candidates = policy_scope(Group)
       .where(lifecycle_status: :active, group_type: %i[public_group approval_group], operation_suspended_at: nil)
     joined_group_ids = current_user.group_memberships.active.select(:group_id)
-    recommendable_groups = Group.where(id: candidates.select(:id))
+    recommendable_groups = Group.where(id: candidates.select(:id)).preload(:profile_image_attachment)
     @group = daily_order(recommendable_groups.where.not(id: joined_group_ids)).first ||
       daily_order(recommendable_groups).first
     return unless @group

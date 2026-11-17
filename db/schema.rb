@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_15_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_17_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -247,8 +247,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_15_000000) do
     t.text "closure_reason"
     t.datetime "closed_at"
     t.datetime "operation_suspended_at"
+    t.string "brand_color"
     t.index ["group_admin_id"], name: "index_groups_on_group_admin_id"
     t.index ["lifecycle_status"], name: "index_groups_on_lifecycle_status"
+    t.check_constraint "brand_color IS NULL OR (brand_color::text = ANY (ARRAY['stone'::character varying, 'red'::character varying, 'orange'::character varying, 'amber'::character varying, 'emerald'::character varying, 'teal'::character varying, 'blue'::character varying, 'violet'::character varying]::text[]))", name: "groups_brand_color_allowed"
   end
 
   create_table "jjaek_book_attachments", force: :cascade do |t|

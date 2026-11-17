@@ -84,6 +84,9 @@ RSpec.describe "Settings", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("invalid-name")
     expect(response.body).to include("Unsaved Reader")
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#profile-settings [role='alert']")).to be_present
+    expect(page.css("#avatar-settings [role='alert']")).to be_empty
     expect(user.reload.handle).to be_nil
     expect(user.name).to eq("Reader")
 
@@ -150,6 +153,23 @@ RSpec.describe "Settings", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  it "shows a missing upload error once, only on the avatar card, using the current locale" do
+    sign_in user
+    %i[ko en].each do |locale|
+      I18n.with_locale(locale) do
+        message = ApplicationController.helpers.user_validation_error_message(ActiveModel::Error.new(user, :avatar, :blank))
+        patch avatar_account_settings_path, params: { user: { avatar: "" } }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        page = Nokogiri::HTML(response.body)
+        expect(page.css("#profile-settings [role='alert']")).to be_empty
+        expect(page.css("#avatar-settings [role='alert']").map { |node| node.text.strip }).to eq([ message ])
+        expect(page.text.scan(message).size).to eq(1)
+        expect(user.reload.avatar).not_to be_attached
+      end
+    end
+  end
+
   it "uploads an avatar and shows it in settings without changing the existing profile fields" do
     sign_in user
 
@@ -205,6 +225,8 @@ RSpec.describe "Settings", type: :request do
     expect(user.reload.avatar.blob_id).to eq(original_blob_id)
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("#avatar-settings img")["src"]).to eq(original_src)
+    expect(page.at_css("#avatar-settings [role='alert']")).to be_present
+    expect(page.css("#profile-settings [role='alert']")).to be_empty
     expect(page.at_css("nav a[href='#{user_path(user)}'] img")["src"]).to eq(original_src)
   end
 
@@ -285,10 +307,13 @@ RSpec.describe "Settings", type: :request do
     end
 
     expect(response).to redirect_to(account_settings_path)
+    expect(response).to have_http_status(:see_other)
     expect(user.reload.avatar).not_to be_attached
     expect(ActiveStorage::Blob.exists?(blob_id)).to be(false)
-    get account_settings_path
-    expect(Nokogiri::HTML(response.body).at_css("#avatar-settings img")["src"]).to include("user_profile_#{user.default_avatar_index.to_s.rjust(2, '0')}_128")
+    follow_redirect!
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("#avatar-settings img")["src"]).to include("user_profile_#{user.default_avatar_index.to_s.rjust(2, '0')}_128")
+    expect(page.css("#profile-settings [role='alert'], #avatar-settings [role='alert']")).to be_empty
   end
 
   it "changes only the signed-in user's avatar even if another id is submitted" do

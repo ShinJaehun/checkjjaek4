@@ -10,6 +10,9 @@
 #     schedule: at 5am every day
 
 production:
+  cleanup_group_images:
+    class: CleanupGroupImagesJob
+    schedule: every hour at minute 45
   cleanup_jjaek_photos:
     class: CleanupJjaekPhotosJob
     schedule: every hour at minute 35

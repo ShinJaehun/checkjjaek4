@@ -59,10 +59,11 @@ en:
       handle_hint: "Use 3–30 English letters, numbers, or underscores (_), starting with an English letter. Korean characters and spaces are not allowed."
     avatar:
       title: "Profile image"
-      description: "Upload a JPEG, PNG, or WebP image up to 5MB. Removing it restores your default avatar."
+      description: "JPEG, PNG, or WebP, up to 5MB."
       upload: "Image file"
       save: "Save image"
-      remove: "Remove uploaded image"
+      remove: "Remove image"
+      cancel_selection: "Cancel selected profile image"
       updated: "Profile image saved."
       removed: "Profile image removed."
       upload_failed: "The image could not be saved. Please try again."
@@ -97,6 +98,10 @@ en:
     too_long: "Content must be %{count} characters or fewer."
   activerecord:
     attributes:
+      group:
+        profile_image: "Club profile image"
+        cover_image: "Club banner image"
+        brand_color: "Club color"
       group_lifecycle_event:
         detail: "Rejection reason"
       user:
@@ -112,6 +117,10 @@ en:
       messages:
         record_invalid: "Validation failed: %{errors}"
       models:
+        group:
+          attributes:
+            brand_color:
+              inclusion: "must be one of the available colors"
         user:
           attributes:
             reset_password_token:
@@ -127,6 +136,7 @@ en:
             password_confirmation:
               confirmation: "does not match"
             avatar:
+              blank: "must be entered"
               invalid_format: "must be a JPEG, PNG, or WebP file"
               too_large: "must be 5MB or smaller"
             handle:
@@ -258,6 +268,31 @@ en:
     hidden: "Hidden"
     deleted: "Deleted"
   groups:
+    branding:
+      title: "Customize club"
+      profile_image: "Profile image"
+      cover_image: "Banner image"
+      brand_color: "Club color"
+      profile_alt: "%{name} profile image"
+      cover_alt: "%{name} banner image"
+      image_hint: "JPEG, PNG, or WebP, up to 5MB each."
+      remove_image: "Mark %{image} for removal"
+      cancel_selection: "Cancel selected %{image}"
+      removal_pending: "Removal pending"
+      undo_removal: "Undo removal"
+      preview_error: "Choose a valid JPEG, PNG, or WebP image up to 5MB."
+      invalid_format: "must be a valid JPEG, PNG, or WebP image"
+      too_large: "must be 5MB or smaller"
+      upload_failed: "could not be saved. Please try again shortly"
+      colors:
+        stone: "Stone"
+        red: "Red"
+        orange: "Orange"
+        amber: "Amber"
+        emerald: "Emerald"
+        teal: "Teal"
+        blue: "Blue"
+        violet: "Violet"
     nav: "Clubs"
     content_inventory:
       title: "Group content management"
@@ -450,6 +485,7 @@ en:
     edit:
       title: "Manage club"
     form:
+      information_title: "Club information"
       name: "Club name"
       description: "Description"
       group_type: "Club type"
@@ -461,7 +497,7 @@ en:
       create: "Submit application"
       edit: "Manage club"
       manage_content: "Manage content"
-      update: "Update club"
+      update: "Save"
       cancel: "Cancel"
       back: "Back to clubs"
       close: "Close club"

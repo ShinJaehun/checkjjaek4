@@ -52,6 +52,7 @@ Rails.application.routes.draw do
     end
   end
   resources :groups, only: %i[index show new create edit update] do
+    resources :images, only: :show, controller: "group_images"
     get :content, on: :member, to: "groups/contents#index"
     resources :members, only: :index, controller: "group_members"
     resources :closures, only: %i[new create], module: :groups

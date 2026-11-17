@@ -78,6 +78,8 @@ class GroupPolicy < ApplicationPolicy
     user.present? && user.active_account? && record.group_admin_id == user.id && record.group_type.in?(Group::USER_CREATABLE_TYPES)
   end
 
+  alias_method :view_images?, :show?
+
   def update?
     user.present? && record.operation_active? && record.group_admin?(user)
   end

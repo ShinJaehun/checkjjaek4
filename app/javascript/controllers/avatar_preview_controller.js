@@ -3,12 +3,13 @@ import { Controller } from "@hotwired/stimulus"
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
 export default class extends Controller {
-  static targets = ["image", "input", "status", "error"]
-  static values = { maxSize: Number }
+  static targets = ["image", "input", "status", "error", "removeControl", "removeButton"]
+  static values = { maxSize: Number, saved: Boolean, removeLabel: String, cancelLabel: String }
 
   connect() {
     this.savedSource = this.imageTarget.getAttribute("src")
     this.previewUrl = null
+    this.syncRemoveButton()
   }
 
   disconnect() {
@@ -31,6 +32,19 @@ export default class extends Controller {
     this.previewUrl = URL.createObjectURL(file)
     this.imageTarget.src = this.previewUrl
     this.statusTarget.classList.remove("hidden")
+    this.syncRemoveButton()
+  }
+
+  remove(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (this.previewUrl) {
+      this.reset()
+      this.inputTarget.focus()
+    } else if (this.savedValue) {
+      this.removeControlTarget.requestSubmit()
+    }
   }
 
   cancel() {
@@ -55,6 +69,12 @@ export default class extends Controller {
     this.imageTarget.src = this.savedSource
     this.statusTarget.classList.add("hidden")
     this.releasePreview()
+    this.syncRemoveButton()
+  }
+
+  syncRemoveButton() {
+    this.removeControlTarget.hidden = !this.previewUrl && !this.savedValue
+    this.removeButtonTarget.setAttribute("aria-label", this.previewUrl ? this.cancelLabelValue : this.removeLabelValue)
   }
 
   releasePreview() {

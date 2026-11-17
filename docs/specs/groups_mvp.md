@@ -46,6 +46,9 @@
 - Group admin과 global admin의 권한 경계에 따른 Group Jjaek·Comment 숨김·복구 및 append-only 감사 이력
 - 개인 원문의 동아리 다시짹과 같은 동아리 안의 다시짹, 경로별 원문 삭제 후 처리
 - 현재 동아리 관리자의 thread 기반 콘텐츠 관리 화면과 기존 hide/restore action 연결
+- B04 동아리 대표 이미지·배너 이미지의 독립 업로드·교체·삭제와 8색 대표 색상.
+  기존 관리·상세 접근 권한을 재사용하며, 상세·현재 목록·검색·발견 표시와 `/groups` 소식 카드의
+  색상 기준은 [B04 명세](group_profile_branding_b04.md)를 따른다.
 
 비공개 동아리는 사용자 생성 UI에서 제공하며, 동아리 관리자가 기존 사용자를 초대할 수 있다.
 초대는 `GroupMembership`의 `invited` 상태로 표현하고 수락하면 `active`, 거절하면 삭제한다.

@@ -40,12 +40,13 @@
         <legend class="text-sm font-medium text-stone-700"><%= t("jjaeks.form.destination_group") %></legend>
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <% destination_groups.each do |group| %>
-            <label class="<%= jjaek_option_card_classes %> items-start">
+            <label class="<%= jjaek_option_card_classes %> relative items-start overflow-hidden">
+              <%= render "groups/color_stripe", group: %>
               <%= form.radio_button :group_id, group.id, required: true, class: "sr-only" %>
-              <%= jjaek_option_icon(:group) %>
+              <%= render "groups/profile_image", group:, image_class: "h-12 w-12 pointer-events-none select-none" %>
               <span class="min-w-0 space-y-1 break-words">
                 <span class="block"><%= group.name %></span>
-                <span class="block text-xs"><%= t("groups.types.#{group.group_type}") %></span>
+                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
                 <span class="block text-xs font-normal"><%= t("jjaeks.form.group_sharing.#{group.public_group? ? 'public' : 'members'}") %></span>
               </span>
             </label>

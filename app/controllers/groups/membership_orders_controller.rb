@@ -46,13 +46,20 @@ module Groups
     end
 
     def prepare_memberships
-      @memberships = GroupMembership.displayed_for(user: current_user, groups: @groups).preload(:group).to_a
+      @memberships = GroupMembership.displayed_for(user: current_user, groups: @groups)
+        .preload(group: :profile_image_attachment).to_a
       hidden_ids = current_user.group_list_hidings.pluck(:group_id)
       past_groups = @past_groups
         .select(:id, :name, :group_type, :lifecycle_status, :operation_suspended_at, :closed_at).index_by(&:id)
       @past_group_states = GroupMembershipEvent.past_states_for(user: current_user, groups: past_groups.values)
       @past_groups = @past_group_states.keys.map { |id| past_groups.fetch(id) }
-      @hidden_groups = @current_groups.where(id: hidden_ids).to_a + @past_groups.select { |group| group.id.in?(hidden_ids) }
+      @past_group_image_ids = policy_scope(Group).where(id: @past_groups.map(&:id)).pluck(:id).to_set
+      ActiveRecord::Associations::Preloader.new(
+        records: @past_groups.select { |group| @past_group_image_ids.include?(group.id) },
+        associations: :profile_image_attachment
+      ).call
+      @hidden_groups = @current_groups.where(id: hidden_ids).preload(:profile_image_attachment).to_a +
+        @past_groups.select { |group| group.id.in?(hidden_ids) }
       @past_groups = @past_groups.reject { |group| group.id.in?(hidden_ids) }
       @removable_group_ids = @memberships.select(&:removable_from_list?).map(&:group_id)
     end

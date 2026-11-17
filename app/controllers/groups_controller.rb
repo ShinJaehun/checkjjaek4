@@ -79,10 +79,11 @@ class GroupsController < ApplicationController
 
   def update
     authorize @group
+    image_changes = GroupImageChanges.new(group_image_params)
 
-    updated = @group.with_lock do
+    updated = image_changes.prepare(@group) && @group.with_lock do
       authorize @group
-      next false unless @group.update(update_group_params)
+      next false unless image_changes.save(@group) { |images| @group.update(update_group_params.merge(images)) }
 
       sync_opening_request_detail
       true
@@ -91,9 +92,19 @@ class GroupsController < ApplicationController
     if updated
       redirect_to @group, notice: t("groups.notices.updated")
     else
+      @group.assign_attributes(update_group_params)
+      @failed_group_form = if group_image_params.present? || params.fetch(:group, {}).key?(:brand_color)
+        :branding
+      elsif params.fetch(:group, {}).key?(:application_purpose)
+        :application
+      else
+        :information
+      end
       prepare_lifecycle_history
       render :edit, status: :unprocessable_content
     end
+  ensure
+    image_changes&.cleanup
   end
 
   private
@@ -115,7 +126,7 @@ class GroupsController < ApplicationController
     hidden_group_ids = current_user.group_list_hidings.select(:group_id)
     groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope).where.not(id: hidden_group_ids)
     memberships = GroupMembership.displayed_for(user: current_user, groups:)
-      .preload(group: { group_admin: { avatar_attachment: :blob } }).to_a
+      .preload(group: [ :profile_image_attachment, { group_admin: { avatar_attachment: :blob } } ]).to_a
     @groups = memberships.map(&:group)
     @memberships_by_group_id = memberships.index_by(&:group_id)
     prepare_group_card_members
@@ -127,7 +138,7 @@ class GroupsController < ApplicationController
     @past_group_states = {}
     if past_group_scope.exists?
       past_groups = past_group_scope
-        .select(:id, :name, :group_type, :lifecycle_status, :operation_suspended_at, :closed_at).index_by(&:id)
+        .select(:id, :name, :group_type, :lifecycle_status, :operation_suspended_at, :closed_at, :brand_color).index_by(&:id)
       @past_group_states = GroupMembershipEvent.past_states_for(user: current_user, groups: past_groups.values)
       @groups.concat(@past_group_states.keys.map { |id| past_groups.fetch(id) })
     end
@@ -220,9 +231,17 @@ class GroupsController < ApplicationController
   end
 
   def update_group_params
-    permitted = %i[name description]
+    permitted = %i[name description brand_color]
     permitted << :application_purpose if @group.pending_approval?
-    params.fetch(:group, {}).permit(*permitted)
+    params.fetch(:group, {}).except(:profile_image_file, :cover_image_file, :remove_profile_image, :remove_cover_image)
+      .permit(*permitted).tap do |attributes|
+        attributes[:brand_color] = nil if attributes[:brand_color] == ""
+      end
+  end
+
+  def group_image_params
+    params.fetch(:group, {}).slice(:profile_image_file, :cover_image_file, :remove_profile_image, :remove_cover_image)
+      .permit(:profile_image_file, :cover_image_file, :remove_profile_image, :remove_cover_image)
   end
 
   def prepare_lifecycle_history

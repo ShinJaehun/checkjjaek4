@@ -262,6 +262,29 @@
 - 운영 종료·재운영 요청·관리자 이전·승인·운영 정지·복구 Action page는 동아리 이름·종류·현재 상태·`group_admin`을 공통 context로 표시함. 현재 상태는 운영 정지와 재운영 승인 대기를 반영하는 공용 badge를 사용하고, 종료 시각·종료 사유 및 운영 이력은 과거 기록으로 별도 표시함
 - Group 상세는 콘텐츠와 사용자의 참여 상태에 집중하고, `/groups/:id/members`는 동아리 관리자의 회원 관리 및 global admin의 회원 조사 화면으로 사용함
 - `/groups/:id/edit`는 기본 설정과 운영 lifecycle·이력에 집중하며 관리자 이전은 회원 관리 화면에서 전용 Action page로 진입해 수행함
+- B04는 `Group`의 독립 `profile_image`·`cover_image`와 nullable `brand_color`를 추가함.
+  기존 관리 화면에서 이미지를 업로드·교체·삭제하고 8색 키를 선택하며, 미설정 색은 ID 기반으로 결정함.
+  사용자 설정과 같은 카드 스타일로 제목/상태·동아리 정보·동아리 꾸미기를 구분하고 정보·꾸미기는 독립 폼으로 저장함.
+  각 폼은 기존 Group PATCH에 해당 필드만 제출하고 실패한 폼에 오류를 표시함. 승인 대기의 개설 목적 수정은 별도 폼으로 보존함.
+  사용자 아바타는 저장 이미지의 X로 기존 DELETE 즉시 삭제를 수행하고, 새 파일 미리보기의 X는 선택만 취소함.
+  운영 종료·운영 이력은 별도 영역을 유지하며 관리·순서 편집의 저장/취소는 공통 primary/secondary 버튼을 사용함.
+  동아리 꾸미기 영역의 `group-image-preview`가 파일 선택 즉시 미리보기·선택 취소와 저장된 이미지의
+  삭제 예정/취소를 처리함. X는 작은 원형 표시와 44px 터치·키보드 영역을 사용하며 실제 삭제는 제출 성공 시 수행함.
+  선택 변경·해제·Turbo cache에서 Object URL을 회수하고 교체 선택은 삭제 표시를 해제함.
+  일반 상세의 상단 배너 이미지와 별도 정보 영역·좌측 대표 썸네일, 현재 목록·접근 가능한 검색·발견의 작은 대표 썸네일을 제공함.
+  비공개 이름 전용 검색에는 기본 아이콘만 표시하며 과거 참여·초대의 기존 정보 범위는 유지함.
+  순서 편집은 현재·제외·과거 항목에 48px 대표 이미지를 표시하되 과거 동아리는 기존 Group scope와의
+  교집합에만 첨부를 preload하고 접근 불가 시 URL 없이 기본 아이콘을 표시함.
+  다시짹 목적지 선택은 기존 허용 목록·라디오·강조·공개 안내를 유지하면서 48px 대표 이미지·유형 배지·색상 띠를 사용하며,
+  선택지의 대표 첨부를 일괄 preload함. 저장·정렬·게시 권한과 인증 이미지 제공 경로는 유지함.
+  `/groups`의 현재·과거 동아리 카드, 최근 소식과 동아리 상세 피드에 공통 `groups/color_stripe`의 4px 띠를 표시함.
+  과거 카드 조회에 `brand_color`를 포함하고 다시짹도 자신의 목적지 동아리를 사용함.
+  인용 원문·홈·검색·개인 프로필·단건 짹 상세에는 띠를 추가하지 않음.
+  `GroupImageChanges`가 5MiB JPEG/PNG/WebP를 검증·축소 WebP로 저장하고 Group 잠금 안의 첨부 변경을 처리함.
+  `GroupImagesController`는 기존 Group 상세 권한·부모·종류를 매 요청 검사해 고정 Variant만 private/no-store로 중계함.
+  기존 비공개 `oci_photos`·libvips 잠금을 재사용하며 원본·공개 URL은 제공하지 않음.
+  교체·삭제 파일은 `PurgeGroupImageJob`, 중단된 staging은 `CleanupGroupImagesJob`이 정리함.
+  상세 계약과 검증 기준은 `docs/specs/group_profile_branding_b04.md`를 따름.
 - global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·기본 상태/역할/종류 필터·허용된 정렬·30/50/100건 선택 페이지네이션(기본 30건)을 조합할 수 있음. User 콘텐츠는 통합 테이블 항목, Group 콘텐츠는 전체 댓글을 포함한 root thread 단위로 같은 건수 선택을 제공함. 상세 정책은 `docs/specs/moderation_mvp.md`를 따름. Group은 lifecycle 상태, 재활성화 대기와 platform 운영 정지를 하나의 현재 상태 필터로 제공하며 운영 정지가 다른 lifecycle 표시보다 우선함. 가입·생성 기간 필터는 아직 없음
 - User 상세는 계정 lifecycle, 관리 중인 Group, membership 상태별 수와 안전한 콘텐츠 개수 요약을 표시하고 인증 비밀정보는 노출하지 않음
 - Group inventory는 `closed_at` 유무로 개설 신청과 재활성화 요청을 구분하고 전용 승인 Action page로 연결함

@@ -1,4 +1,8 @@
 module GroupsHelper
+  def group_profile_image_path(group, size: :card)
+    group_image_path(group, group.profile_image_attachment, size:)
+  end
+
   def group_type_label(group)
     t("groups.types.#{group.group_type}")
   end

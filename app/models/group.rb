@@ -1,5 +1,11 @@
 class Group < ApplicationRecord
   USER_CREATABLE_TYPES = %w[public_group approval_group private_group].freeze
+  BRAND_COLORS = {
+    "stone" => "#78716c", "red" => "#dc2626", "orange" => "#ea580c", "amber" => "#d97706",
+    "emerald" => "#059669", "teal" => "#0d9488", "blue" => "#2563eb", "violet" => "#7c3aed"
+  }.freeze
+  IMAGE_NAMES = %w[profile_image cover_image].freeze
+  MAX_IMAGE_SIZE = 5.megabytes
   SUSPENSION_REASONS = %w[
     repeated_policy_violations
     facilitating_violations
@@ -33,6 +39,8 @@ class Group < ApplicationRecord
   has_many :active_group_memberships, -> { active }, class_name: "GroupMembership"
   has_many :members, through: :active_group_memberships, source: :user
   has_many :jjaeks, dependent: :restrict_with_error
+  has_one_attached :profile_image, dependent: false
+  has_one_attached :cover_image, dependent: false
   has_many :lifecycle_events,
            -> { order(:created_at, :id) },
            class_name: "GroupLifecycleEvent",
@@ -40,18 +48,31 @@ class Group < ApplicationRecord
            inverse_of: :group
 
   validates :name, presence: true
+  validates :brand_color, inclusion: { in: BRAND_COLORS.keys }, allow_nil: true
   validates :application_purpose, length: { maximum: 500 }, allow_nil: true
   validates :closure_reason, length: { maximum: 500 }, allow_nil: true
   validate :application_purpose_must_be_present_for_new_application
   validate :existing_application_purpose_cannot_be_removed
   validate :closure_reason_must_be_present_when_closing
   validate :lifecycle_status_transition_must_be_valid
+  validate :branding_images_must_be_valid
+
+  before_destroy :remember_branding_image_blobs, prepend: true
+  after_destroy_commit :purge_branding_image_blobs
 
   after_create :create_group_admin_membership!
   after_update :restore_eligible_list_entries, if: -> { saved_change_to_lifecycle_status? || saved_change_to_operation_suspended_at? }
 
   scope :pending_opening_applications, -> { pending_approval.where(closed_at: nil) }
   scope :ended_applications, -> { where(lifecycle_status: %i[rejected cancelled]) }
+
+  def effective_brand_color
+    BRAND_COLORS.key?(brand_color) ? brand_color : BRAND_COLORS.keys[id.to_i % BRAND_COLORS.size]
+  end
+
+  def brand_color_hex
+    BRAND_COLORS.fetch(effective_brand_color)
+  end
 
   def pending_opening_application?
     pending_approval? && closed_at.nil?
@@ -148,6 +169,30 @@ class Group < ApplicationRecord
   end
 
   private
+
+  def branding_images_must_be_valid
+    IMAGE_NAMES.each do |name|
+      next unless attachment_changes[name]
+
+      image = public_send(name)
+      next unless image.attached?
+
+      blob = image.blob
+      unless blob.content_type == "image/webp" && blob.metadata["group_image"] == true &&
+          blob.metadata["group_id"] == id && blob.metadata["group_image_kind"] == name
+        errors.add(name, :invalid_format, message: I18n.t("groups.branding.invalid_format"))
+      end
+      errors.add(name, :too_large, message: I18n.t("groups.branding.too_large")) if blob.byte_size > MAX_IMAGE_SIZE
+    end
+  end
+
+  def remember_branding_image_blobs
+    @branding_image_blob_ids = IMAGE_NAMES.filter_map { |name| public_send("#{name}_attachment")&.blob_id }
+  end
+
+  def purge_branding_image_blobs
+    Array(@branding_image_blob_ids).each { |id| PurgeGroupImageJob.perform_later(id) }
+  end
 
   def restore_eligible_list_entries
     GroupListHiding.restore_eligible_for!(group_id: id)

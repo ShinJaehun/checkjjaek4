@@ -1,6 +1,6 @@
 <div class="inline-flex items-center gap-3">
   <%= link_to user_path(group.group_admin),
-              class: "relative shrink-0 rounded-full bg-stone-100 p-0.5 ring-1 ring-stone-200 hover:z-10 focus:z-10",
+              class: "relative shrink-0 rounded-full hover:z-10 focus:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600",
               title: t("groups.group_admin", name: group.group_admin.name),
               aria: { label: t("groups.group_admin", name: group.group_admin.name) },
               data: { group_admin_avatar: true } do %>

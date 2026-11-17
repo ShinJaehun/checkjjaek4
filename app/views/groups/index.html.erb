@@ -64,6 +64,7 @@
           <% groups.each do |group| %>
             <%= render(@past_group_states.key?(group.id) ? "groups/past_group_card" : "groups/group_card", group: group,
                        past_state: @past_group_states[group.id],
+                       show_brand_color: true,
                        membership: @memberships_by_group_id[group.id],
                        pending_count: @pending_membership_counts.fetch(group.id, 0),
                        member_preview: @member_previews_by_group_id.fetch(group.id, []),
@@ -83,6 +84,7 @@
                 <div class="min-w-0" data-group-carousel-target="card" <%= "hidden" if index >= 3 %>>
                   <%= render(@past_group_states.key?(group.id) ? "groups/past_group_card" : "groups/group_card", group: group,
                              past_state: @past_group_states[group.id],
+                             show_brand_color: true,
                              membership: @memberships_by_group_id[group.id],
                              pending_count: @pending_membership_counts.fetch(group.id, 0),
                              member_preview: @member_previews_by_group_id.fetch(group.id, []),
