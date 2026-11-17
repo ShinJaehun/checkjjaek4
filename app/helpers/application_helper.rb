@@ -1,4 +1,12 @@
 module ApplicationHelper
+  def user_validation_error_message(error)
+    if I18n.locale == :ko && error.attribute == :handle && error.type == :taken
+      error.message
+    else
+      error.full_message
+    end
+  end
+
   def validation_error_aria(form, attribute, describedby: [])
     invalid = form.object.errors.include?(attribute)
     descriptions = [ *describedby, (form.field_id(attribute, :errors) if invalid) ].compact

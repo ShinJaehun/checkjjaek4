@@ -11,7 +11,7 @@
       <% if resource.errors.any? %>
         <div id="<%= form.field_id(:errors) %>" role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <% resource.errors.attribute_names.each do |attribute| %>
-            <p id="<%= form.field_id(attribute, :errors) %>"><%= resource.errors.full_messages_for(attribute).to_sentence %></p>
+            <p id="<%= form.field_id(attribute, :errors) %>"><%= resource.errors.where(attribute).map { |error| user_validation_error_message(error) }.to_sentence %></p>
           <% end %>
         </div>
       <% end %>
