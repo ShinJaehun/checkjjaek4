@@ -256,6 +256,10 @@ module JjaeksHelper
     @visible_requote_counts_by_jjaek_id.to_h.fetch(jjaek.id, 0)
   end
 
+  def requote_users_for(jjaek)
+    @requote_users_by_jjaek_id.to_h.fetch(jjaek.id, [])
+  end
+
   def jjaek_edited?(jjaek)
     jjaek.content_edited_at.present?
   end

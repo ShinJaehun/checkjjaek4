@@ -12,6 +12,69 @@ RSpec.describe "Requotes", type: :request do
     friendship
   end
 
+  describe "requote user avatars" do
+    it "shows five distinct users by their latest requote on home, profile, book, and detail cards" do
+      source = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: original_author, content: "AVATAR_SOURCE")
+      users = 6.times.map do |index|
+        User.create!(name: "Requoter #{index}", email: "avatar-requoter-#{index}@example.com", password: "password123!")
+      end
+      created_at = 1.hour.ago
+      users.each_with_index do |user, index|
+        user.jjaeks.create!(quoted_jjaek: source, content: "Opinion #{index}", created_at: created_at + index.minutes)
+      end
+      group = Group.create!(lifecycle_status: :active, group_admin: users.first, name: "Avatar readers", group_type: :public_group)
+      users.first.jjaeks.create!(group:, quoted_jjaek: source, content: "Latest duplicate", created_at: created_at + 5.minutes)
+      other_source = original_author.jjaeks.create!(content: "OTHER_AVATAR_SOURCE")
+      users.second.jjaeks.create!(quoted_jjaek: other_source, content: "Another source")
+      sign_in original_author
+
+      [ root_path, user_path(original_author), book_path(book), jjaek_path(source) ].each do |path|
+        get path
+
+        page = Nokogiri::HTML(response.body)
+        card = page.at_css("article#jjaek_#{source.id}")
+        avatars = card.css("[data-requote-user-preview] a")
+        expected_users = [ users.first, users.last, users[4], users[3], users[2] ]
+        expect(avatars.map { |link| link["href"] }).to eq(expected_users.map { |user| user_path(user) })
+        expect(avatars.map { |link| link["title"] }).to eq(expected_users.map(&:name))
+        expect(avatars.map { |link| link["aria-label"] }).to eq(expected_users.map(&:name))
+        expect(card.at_css("a[href='#{jjaek_requotes_path(source)}']").text).to eq(I18n.t("jjaeks.meta.requotes", count: 7))
+        if path == root_path
+          other_avatars = page.css("article#jjaek_#{other_source.id} [data-requote-user-preview] a")
+          expect(other_avatars.map { |link| link["href"] }).to eq([ user_path(users.second) ])
+        end
+      end
+    end
+
+    it "uses current read permissions and omits hidden and deleted requote authors" do
+      source = original_author.jjaeks.create!(content: "AVATAR_VISIBILITY_SOURCE")
+      public_user = User.create!(name: "Public requoter", email: "avatar-public@example.com", password: "password123!")
+      friend_user = User.create!(name: "Friend requoter", email: "avatar-friend@example.com", password: "password123!")
+      private_user = User.create!(name: "Private requoter", email: "avatar-private@example.com", password: "password123!")
+      public_requote = public_user.jjaeks.create!(quoted_jjaek: source, content: "Public opinion")
+      friend_user.jjaeks.create!(quoted_jjaek: source, content: "Friends opinion", visibility: :book_friends)
+      private_user.jjaeks.create!(quoted_jjaek: source, content: "Private opinion", visibility: :private_jjaek)
+      own_requote = viewer.jjaeks.create!(quoted_jjaek: source, content: "My private opinion", visibility: :private_jjaek)
+      connection = BookFriendship.create!(requester: viewer, addressee: friend_user, status: :accepted)
+      sign_in viewer
+
+      get jjaek_path(source)
+      avatars = Nokogiri::HTML(response.body).css("[data-requote-user-preview] a")
+      expect(avatars.map { |link| link["href"] }).to contain_exactly(user_path(viewer), user_path(public_user), user_path(friend_user))
+
+      connection.destroy!
+      public_requote.update!(hidden_at: Time.current)
+      get jjaek_path(source)
+      avatars = Nokogiri::HTML(response.body).css("[data-requote-user-preview] a")
+      expect(avatars.map { |link| link["href"] }).to eq([ user_path(viewer) ])
+
+      own_requote.comments.create!(user: viewer, content: "Preserve tombstone")
+      own_requote.destroy_or_tombstone!
+      get jjaek_path(source)
+      expect(Nokogiri::HTML(response.body).css("[data-requote-user-preview]")).to be_empty
+    end
+  end
+
   describe "GET /jjaeks/:jjaek_id/requotes" do
     it "redirects a missing personal source home instead of returning 404, like an inaccessible source" do
       source = original
@@ -90,6 +153,15 @@ RSpec.describe "Requotes", type: :request do
       get jjaek_requotes_path(source)
       expect(Nokogiri::HTML(response.body).css("article[data-restricted-requote]").size).to eq(1)
       expect(response.body).not_to include(restricted.content)
+
+      readable.update!(hidden_at: Time.current)
+      get jjaek_path(source)
+      source_card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{source.id}")
+      expect(source_card.css("[data-requote-user-preview]")).to be_empty
+      expect(source_card.text).not_to include(viewer.name)
+      expect(source_card.at_css("a[href='#{user_path(viewer)}']")).to be_nil
+      expect(source_card.at_css("img[alt='#{viewer.name}']")).to be_nil
+      expect(source_card.at_css("a[href='#{jjaek_requotes_path(source)}']").text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
     end
 
     it "counts a private-group requote for its source author without revealing its identity" do
@@ -100,6 +172,12 @@ RSpec.describe "Requotes", type: :request do
 
       get jjaek_path(source)
       expect(response.body).to include(I18n.t("jjaeks.meta.requotes", count: 1))
+      source_card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{source.id}")
+      expect(source_card.css("[data-requote-user-preview]")).to be_empty
+      expect(source_card.text).not_to include(viewer.name)
+      expect(source_card.at_css("a[href='#{user_path(viewer)}']")).to be_nil
+      expect(source_card.at_css("img[alt='#{viewer.name}']")).to be_nil
+      expect(source_card.at_css("a[href='#{jjaek_requotes_path(source)}']").text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
       get jjaek_requotes_path(source)
       limited_card = Nokogiri::HTML(response.body).at_css("article[data-restricted-requote]")
       expect(limited_card.text).to include(I18n.t("requotes.restricted.notice"))
@@ -160,6 +238,7 @@ RSpec.describe "Requotes", type: :request do
       source_card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{group_jjaek.id}")
       expect(source_card.text).to include(I18n.t("jjaeks.meta.requotes", count: 2))
       expect(source_card.at_css("a[href='#{jjaek_requotes_path(group_jjaek)}']")).to be_present
+      expect(source_card.css("[data-requote-user-preview] a").map { |link| link["href"] }).to eq([ user_path(original_author) ])
 
       get jjaek_requotes_path(group_jjaek)
 
