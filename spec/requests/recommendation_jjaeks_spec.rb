@@ -255,6 +255,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
         expect(page.at_css("#flash-messages").text.strip).to be_empty
         expect(page.at_css("#jjaek-publish-form [data-content-length-target='serverErrors']").text.strip).to be_empty
         expect(page.at_css("textarea[name='jjaek[content]']").text.strip).to eq("Expired")
+        expect(page.at_css("textarea[name='jjaek[content]']")["aria-invalid"]).to eq("false")
         expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
         expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] })
           .to eq([ "", book.id.to_s, other_book.id.to_s ])

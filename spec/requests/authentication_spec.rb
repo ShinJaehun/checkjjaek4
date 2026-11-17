@@ -67,6 +67,19 @@ RSpec.describe "Authentication", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("No Handle")
+      page = Nokogiri::HTML(response.body)
+      expect(page.css('[role="alert"]').size).to eq(1)
+      expect(page.at_css('#user_errors[role="alert"]')).to be_present
+      handle = page.at_css('input[name="user[handle]"]')
+      expect(handle["aria-invalid"]).to eq("true")
+      expect(handle["aria-describedby"].split).to eq(%w[user_handle_hint user_handle_guidance user_handle_errors])
+      expect(page.at_css("#user_handle_errors").text.strip).not_to be_empty
+      expect(page.at_css(%(label[for="#{handle['id']}"]))).to be_present
+      %w[name password password_confirmation].each do |attribute|
+        expect(page.at_css(%(input[name="user[#{attribute}]"]))["aria-invalid"]).to be_nil
+      end
+      expect(page.css('input[type="password"]').map { |input| input["value"] }).to all(be_blank)
+      expect(page.at_css("#flash-messages").text.strip).to be_empty
     end
 
     it "does not permit global admin through registration params" do

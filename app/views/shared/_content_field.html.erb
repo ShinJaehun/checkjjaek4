@@ -1,18 +1,24 @@
 <% content_length = form.object.content.to_s.length %>
 <% over_limit = content_length > 200 %>
 <% excluded_errors = local_assigns.fetch(:excluded_errors, []) %>
-<% server_messages = form.object.errors.reject { |error| (error.attribute == :content && error.type == :too_long) || excluded_errors.include?(error) }.map(&:full_message) %>
+<% server_errors = form.object.errors.reject { |error| (error.attribute == :content && error.type == :too_long) || excluded_errors.include?(error) } %>
+<% server_messages = server_errors.map do |error|
+  tag.span(error.full_message, data: { content_error_type: (error.type if error.attribute == :content) })
+end %>
+<% content_invalid = form.object.errors.include?(:content) || over_limit %>
+<% errors_id = form.field_id(:content, :errors) %>
+<% counter_id = form.field_id(:content, :counter) %>
 
 <div class="space-y-2"
      data-controller="content-length"
      data-content-length-limit-value="200"
      data-content-length-message-value="<%= t('content_form.too_long', count: 200) %>"
      data-action="reset@document->content-length#reset">
-  <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+  <div id="<%= errors_id %>" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
        data-content-length-target="errors"
        role="alert"
        <%= "hidden" unless server_messages.any? || over_limit %>>
-    <p data-content-length-target="serverErrors" <%= "hidden" if server_messages.empty? %>><%= server_messages.to_sentence %></p>
+    <p data-content-length-target="serverErrors" <%= "hidden" if server_messages.empty? %>><%= safe_join(server_messages, " ") %></p>
     <p data-content-length-target="warning" <%= "hidden" unless over_limit %>><%= t("content_form.too_long", count: 200) %></p>
   </div>
   <%= form.label :content, t(label_key), class: "sr-only" %>
@@ -20,10 +26,11 @@
                      rows: rows,
                      placeholder: local_assigns[:placeholder],
                      required: local_assigns.fetch(:required, false),
+                     aria: { invalid: content_invalid, describedby: [counter_id, (errors_id if content_invalid)].compact.join(" ") },
                      data: { content_length_target: "input", action: "input->content-length#update invalid->content-length#invalid" },
                      class: "w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-stone-500 focus:outline-none" %>
   <p class="text-right text-sm">
-    <span class="<%= over_limit ? "text-red-700" : "text-stone-400" %>"
-          data-content-length-target="counter" aria-live="polite"><%= content_length %> / 200</span>
+    <span id="<%= counter_id %>" class="<%= over_limit ? "text-red-700" : "text-stone-400" %>"
+          data-content-length-target="counter"><%= content_length %> / 200</span>
   </p>
 </div>

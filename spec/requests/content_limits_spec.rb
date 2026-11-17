@@ -24,6 +24,7 @@ RSpec.describe "Content limits", type: :request do
       page = Nokogiri::HTML(response.body)
       inputs = page.css('textarea[name="jjaek[content]"], textarea[name="comment[content]"]')
       expect(inputs).not_to be_empty
+      expect(inputs.map { |input| input["id"] }.uniq.size).to eq(inputs.size)
       inputs.each do |input|
         field = input.parent
         expect(field["data-controller"]).to eq("content-length")
@@ -34,6 +35,11 @@ RSpec.describe "Content limits", type: :request do
         expect(counter["class"]).to include("text-stone-400")
         expect(field.at_css('[data-content-length-target="errors"]')["hidden"]).not_to be_nil
         expect(input["maxlength"]).to be_nil
+        expect(input["aria-invalid"]).to eq("false")
+        expect(input["aria-describedby"].split).to eq([ counter["id"] ])
+        expect(page.css(%(label[for="#{input['id']}"])).size).to eq(1)
+        expect(page.css(%([id="#{field.at_css('[data-content-length-target="errors"]')['id']}"])).size).to eq(1)
+        expect(counter["aria-live"]).to be_nil
       end
     end
   end
@@ -57,6 +63,11 @@ RSpec.describe "Content limits", type: :request do
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq(content + "!")
     expect(page.text).to include("내용은 200자 이하로 입력해 주세요.")
     field = page.at_css('[data-controller="content-length"]')
+    textarea = field.at_css("textarea")
+    expect(textarea["aria-invalid"]).to eq("true")
+    expect(textarea["aria-describedby"].split).to eq([
+      field.at_css('[data-content-length-target="counter"]')["id"], field.at_css('[data-content-length-target="errors"]')["id"]
+    ])
     expect(field.at_css('[data-content-length-target="counter"]').text).to eq("201 / 200")
     expect(field.at_css('[data-content-length-target="counter"]')["class"]).to include("text-red-700")
     expect(field.at_css('[data-content-length-target="serverErrors"]').text.strip).to eq("")
@@ -85,6 +96,8 @@ RSpec.describe "Content limits", type: :request do
     expect(textarea.text.delete_prefix("\n")).to eq(content + "!")
     field = textarea.ancestors('[data-controller="content-length"]').first
     expect(field).to be_present
+    expect(textarea["aria-invalid"]).to eq("true")
+    expect(textarea["aria-describedby"].split).to include(field.at_css('[data-content-length-target="errors"]')["id"])
     warnings = field.css('[data-content-length-target="warning"]')
     expect(warnings.size).to eq(1)
     expect(warnings.first.text.strip).to eq("내용은 200자 이하로 입력해 주세요.")
@@ -118,5 +131,9 @@ RSpec.describe "Content limits", type: :request do
     expect(field.at_css('[data-content-length-target="warning"]')["hidden"]).not_to be_nil
     expect(field.at_css('[data-content-length-target="counter"]').text).to eq("0 / 200")
     expect(field.at_css('[data-content-length-target="counter"]')["class"]).to include("text-stone-400")
+    textarea = field.at_css("textarea")
+    expect(textarea["aria-invalid"]).to eq("true")
+    expect(textarea["aria-describedby"].split).to include(field.at_css('[data-content-length-target="errors"]')["id"])
+    expect(field.at_css('[data-content-error-type="blank"]').text).to eq("내용을 입력해 주세요.")
   end
 end

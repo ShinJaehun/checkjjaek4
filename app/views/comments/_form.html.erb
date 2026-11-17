@@ -6,7 +6,7 @@
 <% form_options = if comments_context.to_sym == :book_friend
                     { namespace: "book_friend_jjaek_#{jjaek.id}_#{dom_id(comment)}", id: "book_friend_jjaek_#{jjaek.id}_#{dom_id(comment)}" }
                   else
-                    {}
+                    { namespace: "#{comments_panel_dom_id(jjaek, context: comments_context, profile_user: comments_profile_user, book: comments_book)}_#{dom_id(comment)}" }
                   end %>
 
 <%= form_with model: [jjaek, comment], **form_options, class: "space-y-3" do |form| %>

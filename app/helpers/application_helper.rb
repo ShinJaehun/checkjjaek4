@@ -1,4 +1,11 @@
 module ApplicationHelper
+  def validation_error_aria(form, attribute, describedby: [])
+    invalid = form.object.errors.include?(attribute)
+    descriptions = [ *describedby, (form.field_id(attribute, :errors) if invalid) ].compact
+
+    { invalid: (true if invalid), describedby: (descriptions.join(" ") if descriptions.any?) }.compact
+  end
+
   def unread_notifications_count
     return 0 unless user_signed_in?
 

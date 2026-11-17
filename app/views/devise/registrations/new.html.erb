@@ -9,21 +9,25 @@
     <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "mt-8 space-y-4 lg:mt-5 lg:space-y-3" }) do |form| %>
       <%= hidden_field_tag :invitation_token, @invitation_token %>
       <% if resource.errors.any? %>
-        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <%= resource.errors.full_messages.to_sentence %>
+        <div id="<%= form.field_id(:errors) %>" role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <% resource.errors.attribute_names.each do |attribute| %>
+            <p id="<%= form.field_id(attribute, :errors) %>"><%= resource.errors.full_messages_for(attribute).to_sentence %></p>
+          <% end %>
         </div>
       <% end %>
 
       <div class="space-y-2">
         <%= form.label :name, t("auth.form.name"), class: "text-sm font-medium text-stone-700" %>
-        <%= form.text_field :name, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
+        <%= form.text_field :name, aria: validation_error_aria(form, :name), class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
       </div>
 
       <div class="space-y-2">
         <%= form.label :handle, t("auth.form.handle"), class: "text-sm font-medium text-stone-700" %>
-        <%= form.text_field :handle, required: true, minlength: 3, maxlength: 30, autocomplete: "username", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
-        <p class="text-xs text-stone-700 lg:text-stone-500"><%= t("settings.profile.handle_hint") %></p>
-        <p class="text-xs text-stone-700 lg:text-stone-500"><%= t("user_handle.guidance") %></p>
+        <%= form.text_field :handle, required: true, minlength: 3, maxlength: 30, autocomplete: "username",
+                            aria: validation_error_aria(form, :handle, describedby: [form.field_id(:handle, :hint), form.field_id(:handle, :guidance)]),
+                            class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
+        <p id="<%= form.field_id(:handle, :hint) %>" class="text-xs text-stone-700 lg:text-stone-500"><%= t("settings.profile.handle_hint") %></p>
+        <p id="<%= form.field_id(:handle, :guidance) %>" class="text-xs text-stone-700 lg:text-stone-500"><%= t("user_handle.guidance") %></p>
       </div>
 
       <div class="space-y-2">
@@ -37,12 +41,12 @@
 
       <div class="space-y-2">
         <%= form.label :password, t("auth.form.password"), class: "text-sm font-medium text-stone-700" %>
-        <%= form.password_field :password, autocomplete: "new-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
+        <%= form.password_field :password, autocomplete: "new-password", aria: validation_error_aria(form, :password), class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
       </div>
 
       <div class="space-y-2">
         <%= form.label :password_confirmation, t("auth.form.password_confirmation"), class: "text-sm font-medium text-stone-700" %>
-        <%= form.password_field :password_confirmation, autocomplete: "new-password", class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
+        <%= form.password_field :password_confirmation, autocomplete: "new-password", aria: validation_error_aria(form, :password_confirmation), class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white lg:py-2.5" %>
       </div>
 
       <div class="space-y-2 rounded-2xl border border-stone-200 bg-white/80 p-4">

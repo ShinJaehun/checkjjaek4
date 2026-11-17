@@ -130,6 +130,7 @@ RSpec.describe "Password resets", type: :request do
   it "shows a Korean validation error when the new passwords do not match" do
     request_reset
     token = reset_token_from_mail
+    follow_redirect!
 
     put user_password_path, params: {
       user: { reset_password_token: token, password: "newpassword123!", password_confirmation: "different123!" }
@@ -137,6 +138,17 @@ RSpec.describe "Password resets", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("일치하지 않습니다")
+    page = Nokogiri::HTML(response.body)
+    expect(page.css('[role="alert"]').size).to eq(1)
+    expect(page.at_css('#user_errors[role="alert"]')).to be_present
+    confirmation = page.at_css('input[name="user[password_confirmation]"]')
+    expect(confirmation["aria-invalid"]).to eq("true")
+    expect(confirmation["aria-describedby"]).to eq("user_password_confirmation_errors")
+    expect(page.at_css("#user_password_confirmation_errors").text).to include("일치하지 않습니다")
+    expect(page.at_css(%(label[for="#{confirmation['id']}"]))).to be_present
+    expect(page.at_css('input[name="user[password]"]')["aria-invalid"]).to be_nil
+    expect(page.css('input[type="password"]').map { |input| input["value"] }).to all(be_blank)
+    expect(page.at_css("#flash-messages").text.strip).to be_empty
     expect(reader.reload.valid_password?("password123!")).to be(true)
   end
 
