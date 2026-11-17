@@ -72,9 +72,17 @@
       <p class="text-sm text-stone-600"><%= t("jjaeks.form.group_sharing.#{posting_group.public_group? ? 'public' : 'members'}") %></p>
     <% end %>
     <% photo_errors = jjaek.requote? ? [] : jjaek_photo_errors(jjaek) %>
-    <%= render "shared/content_field", form: form, label_key: (jjaek.requote? ? "jjaeks.form.requote_content" : "jjaeks.form.jjaek_content"), rows: 4, excluded_errors: photo_errors,
+    <% book_errors = jjaek_book_errors(jjaek) %>
+    <%= render "shared/content_field", form: form, label_key: (jjaek.requote? ? "jjaeks.form.requote_content" : "jjaeks.form.jjaek_content"), rows: 4, excluded_errors: photo_errors + book_errors,
                placeholder: jjaek_composer_placeholder(jjaek, book_context: local_assigns[:book_context], profile_user: local_assigns[:profile_user]) %>
     <%= render "jjaeks/photo_fields", jjaek: jjaek, photo_errors: photo_errors unless jjaek.requote? %>
+    <% if book_errors.any? %>
+      <div id="jjaek-book-errors" role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <% book_errors.each do |error| %>
+          <p><%= error.full_message %></p>
+        <% end %>
+      </div>
+    <% end %>
   <% end %>
   <% unless jjaek.requote? %>
     <% books = @selected_books || jjaek.attached_books.to_a %>

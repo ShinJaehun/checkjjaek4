@@ -14,7 +14,6 @@ class BookSearchesController < ApplicationController
     @group = find_group_context
     authorize @group, :create_jjaek? if @group.present?
     prepare_book_search_results
-    flash.now[:alert] = t("book_search.errors.generic") if @external_search_failed
   end
 
   private

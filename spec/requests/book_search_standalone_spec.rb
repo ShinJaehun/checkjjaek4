@@ -273,7 +273,10 @@ RSpec.describe "Standalone book search", type: :request do
     )
     expect(page.text).to include(I18n.t("search_ui.external_unavailable"), group.name, I18n.t("books.thumbnail.no_thumbnail"))
     expect(response.body).to include("<!DOCTYPE html>")
-    expect(page.at_css("#flash-messages [role='alert']").text.strip).to eq(I18n.t("book_search.errors.generic"))
+    expect(page.css("#flash-messages [role='alert']")).to be_empty
+    expect(page.at_css("main [role='status']").text).to eq(I18n.t("search_ui.external_unavailable"))
+    expect(page.text.scan(I18n.t("search_ui.external_unavailable")).size).to eq(1)
+    expect(page.text).not_to include(I18n.t("book_search.errors.generic"))
 
     get book_search_path, params: { attachment: 1, query: "Local", group_id: group.id, selected_books: [ book.id ] }
     page = Nokogiri::HTML(response.body)

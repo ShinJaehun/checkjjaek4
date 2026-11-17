@@ -108,7 +108,7 @@ class JjaeksController < ApplicationController
       if @group && @quoted_jjaek
         @jjaek.errors.add(:quoted_jjaek_id, :taken)
       else
-        @jjaek.errors.add(:base, t("book_search.errors.identity_conflict"))
+        @jjaek.errors.add(:attached_books, :invalid, message: t("book_search.errors.identity_conflict"))
       end
       false
     end
@@ -198,10 +198,10 @@ class JjaeksController < ApplicationController
   def save_jjaek_update
     attributes = update_jjaek_params
     if params.key?(:selected_books)
-      valid = prepare_book_selection(preserve_on_error: true)
+      valid = prepare_book_selection(preserve_on_error: true, flash_on_error: false)
       if !valid || (@jjaek.requote? && @selected_books.any?)
         @jjaek.assign_attributes(attributes)
-        @jjaek.errors.add(:base, t("jjaek_books.invalid_selection"))
+        @jjaek.errors.add(:attached_books, :invalid, message: t("jjaek_books.invalid_selection"))
         return false
       end
     else
@@ -296,7 +296,7 @@ class JjaeksController < ApplicationController
 
     valid_selection = true
     if params.key?(:selected_books)
-      valid_selection = prepare_book_selection(preserve_on_error: true)
+      valid_selection = prepare_book_selection(preserve_on_error: true, flash_on_error: false)
     else
       @selected_books = []
       @selected_book_keys = []
@@ -305,7 +305,7 @@ class JjaeksController < ApplicationController
     if !valid_selection || (@jjaek.requote? && @selected_books.any?)
       authorize @jjaek, :create?
       @jjaek.assign_attributes(jjaek_params.slice(:content, :visibility)) if action_name == "create"
-      @jjaek.errors.add(:base, t("jjaek_books.invalid_selection"))
+      @jjaek.errors.add(:attached_books, :invalid, message: t("jjaek_books.invalid_selection"))
       render_failed_create
     end
   end
