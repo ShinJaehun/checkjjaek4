@@ -72,12 +72,14 @@ RSpec.describe "Book context composition", type: :system do
     expect(user.bookshelf_entries).to be_empty
   end
 
-  it "keeps the draft and selected book while shelving its search result in a chosen bookshelf" do
+  it "keeps the modal, selection and draft after a shelf validation failure and allows retrying" do
     shelf = user.bookshelves.create!(name: "Search registration shelf", visibility: :private)
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
     visit book_path(book)
     fill_in "jjaek[content]", with: "Keep this draft while shelving"
     choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
+    attach_file("jjaek-photo-picker", Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"), make_visible: true)
+    expect(page).to have_css("[data-new-photo] img[src^='blob:']", count: 1)
     click_button I18n.t("jjaek_books.add")
     within("#book-selection-window") do
       fill_in "book-selection-query", with: book.title
@@ -90,8 +92,34 @@ RSpec.describe "Book context composition", type: :system do
       click_button I18n.t("jjaek_books.add_to_shelf")
       within("dialog[open]") do
         choose shelf.name, allow_label_click: true
+        allow_any_instance_of(BookshelfEntry).to receive(:save!).and_wrap_original do |save|
+          entry = save.receiver
+          entry.errors.add(:base, :invalid)
+          raise ActiveRecord::RecordInvalid.new(entry)
+        end
+        click_button I18n.t("book_search.actions.add_to_shelf")
+        expect(page).to have_css("[role='alert']", text: I18n.t("errors.messages.invalid"))
+        expect(page).to have_checked_field(shelf.name)
+      end
+      expect(page).to have_css("dialog[open]")
+      expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
+      expect(page).to have_button(I18n.t("jjaek_books.add_to_shelf"))
+    end
+    expect(user.bookshelf_entries).to be_empty
+    within("#flash-messages", visible: :all) do
+      expect(page).to have_no_text(I18n.t("errors.messages.invalid"))
+    end
+    expect(page.current_url).to eq(search_url)
+    expect(page).to have_field("jjaek[content]", with: "Keep this draft while shelving", visible: :all)
+    expect(page).to have_css("#jjaek-attached-books [data-book-key='#{book.id}']", count: 1, visible: :all)
+    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('jjaek[photo_files][]').filter(file => file.size > 0).length")).to eq(1)
+
+    allow_any_instance_of(BookshelfEntry).to receive(:save!).and_call_original
+    within("#book-selection-search-results [data-book-id='#{book.id}']") do
+      within("dialog[open]") do
         click_button I18n.t("book_search.actions.add_to_shelf")
       end
+      expect(page).to have_no_css("dialog[open]")
       expect(page).to have_button(I18n.t("book_search.actions.in_bookshelf", bookshelf_name: shelf.name), disabled: true)
       expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
     end
@@ -104,6 +132,8 @@ RSpec.describe "Book context composition", type: :system do
     expect(page).to have_field("jjaek[content]", with: "Keep this draft while shelving")
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.private_jjaek"), visible: :all)
     expect(page).to have_css("#jjaek-attached-books [data-book-key='#{book.id}']", count: 1)
+    expect(page).to have_css("[data-new-photo] img[src^='blob:']", count: 1)
+    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('jjaek[photo_files][]').filter(file => file.size > 0).length")).to eq(1)
     expect(user.bookshelf_entries.find_by!(book: book).bookshelf).to eq(shelf)
     expect(user.jjaeks).to be_empty
   end

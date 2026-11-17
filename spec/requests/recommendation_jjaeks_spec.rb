@@ -136,6 +136,10 @@ RSpec.describe "Unified Jjaek composition", type: :request do
       }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("Invalid")
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("#jjaek-publish-form #jjaek-book-errors[role='alert']").text.strip).not_to be_empty
+      expect(page.at_css("#flash-messages").text.strip).to be_empty
+      expect(page.at_css("#jjaek-publish-form [data-content-length-target='serverErrors']").text.strip).to be_empty
     end
   end
 
@@ -150,6 +154,7 @@ RSpec.describe "Unified Jjaek composition", type: :request do
       expect(page.at_css("input[type='radio'][name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
       expect(page.css("input[name='selected_books[]']").map { |input| input["value"] }).to eq([ "", book.id.to_s, other_book.id.to_s ])
       expect(page.css("[role='alert']").text).not_to be_empty
+      expect(page.at_css("#jjaek-book-errors")).to be_nil
     end
   end
 
@@ -195,7 +200,9 @@ RSpec.describe "Unified Jjaek composition", type: :request do
         page = Nokogiri::HTML(response.body)
         expect(page.at_css("textarea").text.strip).to eq("Attempt #changed")
         expect(page.at_css("input[type='radio'][name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
-        expect(page.css("[role='alert']").text.strip).not_to be_empty
+        expect(page.at_css("#jjaek-publish-form #jjaek-book-errors[role='alert']").text.strip).not_to be_empty
+        expect(page.at_css("#flash-messages").text.strip).to be_empty
+        expect(page.at_css("#jjaek-publish-form [data-content-length-target='serverErrors']").text.strip).to be_empty
         expect(record.reload).to have_attributes(content: "Original #before", visibility: "public_jjaek")
         expect(record.jjaek_book_attachments.reload.map(&:attributes)).to eq(original_links)
         expect(record.tags.pluck(:name)).to eq([ "before" ])
@@ -229,11 +236,47 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     end
     sign_in user
     travel 31.minutes do
-      expect { post jjaeks_path, params: { selected_books: [ key ], jjaek: { content: "Expired" } } }.not_to change { [ Book.count, Jjaek.count ] }
-      expect(response).to have_http_status(:unprocessable_content)
-      patch jjaek_path(record), params: { selected_books: [ key ], jjaek: { content: "Expired edit" } }
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(record.reload.attached_books).to eq([ book, other_book ])
+      [ "text/html", "text/vnd.turbo-stream.html" ].each do |accept|
+        headers = { "Accept" => accept }
+        headers["X-Jjaek-Composer"] = "true" if accept == "text/vnd.turbo-stream.html"
+        original_links = record.jjaek_book_attachments.reload.map(&:attributes)
+        selection = [ book.id, key, other_book.id ]
+
+        expect {
+          post jjaeks_path, params: { selected_books: selection, jjaek: { content: "Expired", visibility: :private_jjaek } }, headers:
+        }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.media_type).to eq("text/html")
+        expect(response.headers["X-Jjaek-Saved-Location"]).to be_nil
+        page = Nokogiri::HTML(response.body)
+        message = I18n.t("jjaek_books.invalid_selection")
+        expect(page.at_css("#jjaek-publish-form #jjaek-book-errors[role='alert']").text).to include(message)
+        expect(page.text.scan(message).size).to eq(1)
+        expect(page.at_css("#flash-messages").text.strip).to be_empty
+        expect(page.at_css("#jjaek-publish-form [data-content-length-target='serverErrors']").text.strip).to be_empty
+        expect(page.at_css("textarea[name='jjaek[content]']").text.strip).to eq("Expired")
+        expect(page.at_css("textarea[name='jjaek[content]']")["aria-invalid"]).to eq("false")
+        expect(page.at_css("input[name='jjaek[visibility]'][checked]")["value"]).to eq("private_jjaek")
+        expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] })
+          .to eq([ "", book.id.to_s, other_book.id.to_s ])
+
+        expect {
+          patch jjaek_path(record), params: { selected_books: selection, jjaek: { content: "Expired edit" } }, headers:
+        }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.media_type).to eq("text/html")
+        expect(response.headers["X-Jjaek-Saved-Location"]).to be_nil
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css("#jjaek-publish-form #jjaek-book-errors[role='alert']").text).to include(message)
+        expect(page.text.scan(message).size).to eq(1)
+        expect(page.at_css("#flash-messages").text.strip).to be_empty
+        expect(page.at_css("#jjaek-publish-form [data-content-length-target='serverErrors']").text.strip).to be_empty
+        expect(page.at_css("textarea[name='jjaek[content]']").text.strip).to eq("Expired edit")
+        expect(page.css("#jjaek-attached-books input[name='selected_books[]']").map { |input| input["value"] })
+          .to eq([ "", book.id.to_s, other_book.id.to_s ])
+        expect(record.reload).to have_attributes(content: "Original #before", visibility: "public_jjaek")
+        expect(record.jjaek_book_attachments.reload.map(&:attributes)).to eq(original_links)
+      end
     end
   end
 
@@ -435,18 +478,57 @@ RSpec.describe "Unified Jjaek composition", type: :request do
     expect(page.at_css("[hidden] #jjaek-composer[data-turbo-permanent]")).to be_present
   end
 
+  it "preserves the selection error through an HTML redirect even when external search fails" do
+    allow(BookSearches::SearchService).to receive(:call).and_raise(BookSearches::KakaoAdapter::Error)
+    expect {
+      post jjaek_books_path, params: { selected_books: [ book.id, other_book.id ],
+        search_result_token: "invalid", query: book.title, page: 2, search_origin: root_path },
+        headers: { "Accept" => "text/html" }
+    }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
+
+    expect(response).to have_http_status(:see_other)
+    destination = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
+    expect(destination).to include("attachment" => "1", "query" => book.title, "page" => "2",
+                                   "search_origin" => root_path)
+    expect(destination.fetch("selected_books").reject(&:empty?)).to eq([ book.id.to_s, other_book.id.to_s ])
+    follow_redirect!
+    expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
+    expect(page.css("#flash-messages [role='alert']").size).to eq(1)
+    expect(page.at_css("#flash-messages [role='alert']").text.strip).to eq(I18n.t("jjaek_books.invalid_selection"))
+    expect(page.text.scan(I18n.t("jjaek_books.invalid_selection")).size).to eq(1)
+    expect(page.at_css("#book-selection-search-results [role='status']").text).to eq(I18n.t("search_ui.external_unavailable"))
+    expect(page.text.scan(I18n.t("search_ui.external_unavailable")).size).to eq(1)
+    expect(page.text).not_to include(I18n.t("book_search.errors.generic"))
+  end
+
   it "enforces five unique selections and supports removal without creating Books or Jjaeks" do
     books = [ book, other_book, *3.times.map { |i| Book.create!(title: "Selected #{i}") } ]
     sixth = Book.create!(title: "Sixth selection")
+    allow(BookSearches::SearchService).to receive(:call).and_raise(BookSearches::KakaoAdapter::Error)
     headers = { "Accept" => "text/vnd.turbo-stream.html", "X-Book-Selection-Revision" => SecureRandom.uuid }
     expect {
-      post jjaek_books_path, params: { selected_books: books.map(&:id), book_id: sixth.id }, headers: headers
+      post jjaek_books_path, params: { selected_books: books.map(&:id), book_id: sixth.id, query: book.title }, headers: headers
     }.not_to change { [ Book.count, Jjaek.count, JjaekBookAttachment.count ] }
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.headers["X-Book-Selection-Revision"]).to eq(headers["X-Book-Selection-Revision"])
     expect(response.body).to include(I18n.t("jjaek_books.limit", count: 5))
-    post jjaek_books_path, params: { selected_books: books.map(&:id), book_id: book.id }, headers: headers
+    streams = Nokogiri::HTML(response.body).css("turbo-stream")
+    expect(streams.map { |stream| stream["target"] }).to contain_exactly(
+      "book-selection-selected-books", "book-selection-fields", "book-selection-alert", "jjaek-attached-books", "book-selection-search-results"
+    )
+    expect(streams.find { |stream| stream["target"] == "book-selection-alert" }.at_css("template").text)
+      .to eq(I18n.t("jjaek_books.limit", count: 5))
+    expect(streams.text.scan(I18n.t("jjaek_books.limit", count: 5)).size).to eq(1)
+    results = streams.find { |stream| stream["target"] == "book-selection-search-results" }.at_css("template")
+    expect(results.at_css("[role='status']").text).to eq(I18n.t("search_ui.external_unavailable"))
+    expect(results.text).not_to include(I18n.t("jjaek_books.limit", count: 5))
+    fields = streams.find { |stream| stream["target"] == "book-selection-fields" }.at_css("template")
+    expect(fields.css("input[name='selected_books[]']").map { |input| input["value"] }.reject(&:empty?)).to eq(books.map { |item| item.id.to_s })
+    post jjaek_books_path, params: { selected_books: books.map(&:id), book_id: book.id, query: book.title }, headers: headers
     expect(response).to have_http_status(:ok)
+    expect(Nokogiri::HTML(response.body).at_css("turbo-stream[target='book-selection-alert'] template").text).to eq("")
+    expect(response.body).to include(I18n.t("search_ui.external_unavailable"))
     fields = Nokogiri::HTML(response.body).at_css("turbo-stream[target='book-selection-fields'] template")
     expect(fields.css("input[name='selected_books[]']").map { |input| input["value"] }.reject(&:empty?)).to eq(books.map { |item| item.id.to_s })
     delete jjaek_book_path(book.id), params: { selected_books: books.map(&:id) }, headers: headers

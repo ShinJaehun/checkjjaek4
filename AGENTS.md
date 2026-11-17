@@ -42,6 +42,7 @@ Rails 프로젝트에 공통인 spec-driven 개발 절차, 역할 분담, 승인
   `docs/specs/bookjjaek_reboot_spec.md`
 - 기능별 확정 정책과 Acceptance Criteria:
   관련 `docs/specs/*.md`
+- 공통 오류·작업 결과 메시지 표시 정책: `docs/specs/error_feedback.md`
 - 테스트 전략:
   `docs/testing/rspec_strategy.md`
 

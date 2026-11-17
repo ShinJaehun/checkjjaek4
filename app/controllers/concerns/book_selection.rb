@@ -39,7 +39,7 @@ module BookSelection
     response.headers["Cache-Control"] = "no-store"
   end
 
-  def prepare_book_selection(preserve_on_error: false)
+  def prepare_book_selection(preserve_on_error: false, flash_on_error: true)
     @selected_books = []
     @selected_book_keys = []
     raw_keys = params.fetch(:selected_books, [])
@@ -54,6 +54,7 @@ module BookSelection
                  .reject(&:empty?)
     raise Book::IdentityConflict if keys.uniq.size != keys.size
     books = Book.where(id: keys.grep(/\A[1-9]\d*\z/)).index_by { |book| book.id.to_s }
+    valid_selection = true
     keys.each do |key|
       book = if key.match?(/\A[1-9]\d*\z/)
         books.fetch(key)
@@ -71,14 +72,20 @@ module BookSelection
 
       @selected_books << book
       @selected_book_keys << key
+    rescue Book::IdentityConflict, KeyError, ActiveRecord::RecordNotFound
+      raise unless preserve_on_error
+
+      valid_selection = false
     end
+    raise Book::IdentityConflict unless valid_selection
+
     true
   rescue Book::IdentityConflict, KeyError, ActiveRecord::RecordNotFound
     unless preserve_on_error
       @selected_books = []
       @selected_book_keys = []
     end
-    flash.now[:alert] = t("jjaek_books.invalid_selection")
+    flash.now[:alert] = t("jjaek_books.invalid_selection") if flash_on_error
     false
   end
 

@@ -316,12 +316,15 @@ RSpec.describe "Standalone book search", type: :system do
     end
   end
 
-  it "attaches a stored book despite external failure and publishes in the original Group" do
+  it "preserves selection and draft through simultaneous selection and search errors before publishing" do
     book = Book.create!(title: "Stored search book")
+    candidate = Book.create!(title: "Stored search candidate")
     counts = [ Book.count, BookshelfEntry.count ]
     allow(BookSearches::SearchService).to receive(:call).and_raise(BookSearches::KakaoAdapter::Error)
     visit group_path(group)
     fill_in "jjaek[content]", with: "Group note despite external failure"
+    attach_file("jjaek-photo-picker", Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"), make_visible: true)
+    expect(page).to have_css("[data-new-photo] img[src^='blob:']", count: 1)
     open_attachment_search
     search_attachments("Stored search")
     expect_attachment_search(query: "Stored search")
@@ -332,15 +335,39 @@ RSpec.describe "Standalone book search", type: :system do
         expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
       end
     end
+    within("#book-selection-search-results article[data-book-id='#{candidate.id}']") do
+      select_button = find_button(I18n.t("jjaek_books.choose"))
+      input = select_button.find(:xpath, "./ancestor::form[1]//input[@name='book_id']", visible: :all)
+      page.execute_script("arguments[0].value = 'invalid'", input)
+      click_button I18n.t("jjaek_books.choose")
+    end
+    expect(page).to have_css("#book-selection-alert", text: I18n.t("jjaek_books.invalid_selection"))
+    within("#book-selection-search-results") do
+      expect(page).to have_css("[role='status']", text: I18n.t("search_ui.external_unavailable"), count: 1)
+      within("article[data-book-id='#{book.id}']") do
+        expect(page).to have_button(I18n.t("jjaek_books.selected"), disabled: true)
+      end
+      within("article[data-book-id='#{candidate.id}']") do
+        expect(page).to have_button(I18n.t("jjaek_books.choose"), disabled: false)
+      end
+    end
+    within("#flash-messages", visible: :all) do
+      expect(page).to have_no_text(I18n.t("jjaek_books.invalid_selection"))
+      expect(page).to have_no_text(I18n.t("book_search.errors.generic"))
+    end
+    expect(page).to have_field("jjaek[content]", with: "Group note despite external failure", visible: :all)
+    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('jjaek[photo_files][]').filter(file => file.size > 0).length")).to eq(1)
     within("#book-selection-window") { click_button I18n.t("jjaek_books.finish_selection") }
     expect(page).to have_current_path(group_path(group))
     expect_composer(book:, group_context: group)
     expect(page).to have_field("jjaek[content]", with: "Group note despite external failure")
+    expect(page).to have_css("[data-new-photo] img[src^='blob:']", count: 1)
     within("#jjaek-composer") { click_button I18n.t("jjaeks.actions.publish_short") }
     expect(page).to have_css("#feed-items article", text: "Group note despite external failure")
     post = user.jjaeks.find_by!(content: "Group note despite external failure")
     expect(post.group).to eq(group)
     expect(post.attached_books).to eq([ book ])
+    expect(post.photos.count).to eq(1)
     expect([ Book.count, BookshelfEntry.count ]).to eq(counts)
     within("#jjaek_#{post.id}") { expect(page).to have_link(book.title) }
   end

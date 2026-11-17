@@ -67,6 +67,19 @@ RSpec.describe "Authentication", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("No Handle")
+      page = Nokogiri::HTML(response.body)
+      expect(page.css('[role="alert"]').size).to eq(1)
+      expect(page.at_css('#user_errors[role="alert"]')).to be_present
+      handle = page.at_css('input[name="user[handle]"]')
+      expect(handle["aria-invalid"]).to eq("true")
+      expect(handle["aria-describedby"].split).to eq(%w[user_handle_hint user_handle_guidance user_handle_errors])
+      expect(page.at_css("#user_handle_errors").text.strip).not_to be_empty
+      expect(page.at_css(%(label[for="#{handle['id']}"]))).to be_present
+      %w[name password password_confirmation].each do |attribute|
+        expect(page.at_css(%(input[name="user[#{attribute}]"]))["aria-invalid"]).to be_nil
+      end
+      expect(page.css('input[type="password"]').map { |input| input["value"] }).to all(be_blank)
+      expect(page.at_css("#flash-messages").text.strip).to be_empty
     end
 
     it "does not permit global admin through registration params" do
@@ -106,6 +119,12 @@ RSpec.describe "Authentication", type: :request do
       expect(flash[:notice]).to eq("로그인되었습니다.")
       follow_redirect!
       expect(response.body).to include("로그인되었습니다.")
+      page = Nokogiri::HTML(response.body)
+      expect(page.css("#flash-messages").size).to eq(1)
+      notice = page.at_css("#flash-messages [role='status']")
+      expect(notice.text.strip).to eq("로그인되었습니다.")
+      expect(notice["class"].split).to include("border-green-200", "bg-green-50", "text-green-800")
+      expect(page.css("#flash-messages [role='alert']")).to be_empty
     end
 
     it "shows the same generic message for an unknown email and a wrong password" do
@@ -114,6 +133,12 @@ RSpec.describe "Authentication", type: :request do
       [ "reader@example.com", "missing@example.com" ].each do |email|
         post user_session_path, params: { user: { email:, password: "wrong-password" } }, headers: { "ACCEPT" => "text/html" }
         expect(response.body).to include(I18n.t("auth.alerts.invalid_credentials"))
+        page = Nokogiri::HTML(response.body)
+        expect(page.css("#flash-messages").size).to eq(1)
+        alert = page.at_css("#flash-messages [role='alert']")
+        expect(alert.text.strip).to eq(I18n.t("auth.alerts.invalid_credentials"))
+        expect(alert["class"].split).to include("border-red-200", "bg-red-50", "text-red-800")
+        expect(page.css("#flash-messages [role='status']")).to be_empty
       end
     end
 

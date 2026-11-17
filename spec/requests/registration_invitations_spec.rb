@@ -150,6 +150,9 @@ RSpec.describe "Registration invitations", type: :request do
     invitation, token = issue_invitation
     post user_registration_path, params: { user: registration_attributes }
     expect(response).to have_http_status(:forbidden)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('[role="alert"]').text).to include(I18n.t("registration_invitations.errors.unusable"))
+    expect(page.at_css(%(form[action="#{user_registration_path}"]))).to be_nil
     expect(User.find_by(email: "new-reader@example.com")).to be_nil
 
     travel_to 8.days.from_now do
@@ -162,6 +165,40 @@ RSpec.describe "Registration invitations", type: :request do
     invitation.update!(canceled_at: Time.current)
     post user_registration_path, params: { invitation_token: token, user: registration_attributes }
     expect(response).to have_http_status(:forbidden)
+  end
+
+  %i[canceled expired resent].each do |state|
+    it "explains a #{state} invitation on Turbo submission after opening a valid sign-up form" do
+      invitation, token = issue_invitation
+      get new_user_registration_path(invitation_token: token)
+      expect(response).to have_http_status(:ok)
+      expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{user_registration_path}"]))).to be_present
+
+      case state
+      when :canceled
+        invitation.cancel!
+      when :expired
+        invitation.update!(expires_at: 1.second.ago)
+      when :resent
+        invitation.resend_token!
+      end
+
+      I18n.with_locale(:en) do
+        expect {
+          post user_registration_path, params: { invitation_token: token, user: registration_attributes },
+                                       headers: { "ACCEPT" => "text/vnd.turbo-stream.html, text/html" }
+        }.not_to change(User, :count)
+
+        expect(response).to have_http_status(:forbidden)
+        expect(response.media_type).to eq("text/html")
+        page = Nokogiri::HTML(response.body)
+        messages = page.css('[role="alert"]').map { |alert| alert.text.strip }
+        expect(messages).to eq([ I18n.t("registration_invitations.errors.unusable") ])
+        expect(page.at_css(%(form[action="#{user_registration_path}"]))).to be_nil
+        expect(response.body).not_to include(token, invitation.token_digest)
+      end
+      expect(invitation.reload.consumed_at).to be_nil
+    end
   end
 
   it "does not reopen an anonymized expired invitation for registration" do

@@ -88,6 +88,7 @@
                data-controller="bookshelf-entries-sort"
                data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
                data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
+               data-bookshelf-entries-sort-error-message-value="<%= t('bookshelf_entries.alerts.reorder_failed') %>"
              <% end %>>
       <header class="flex flex-col gap-3 border-b border-stone-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between <%= bookshelf_header_class(selected_bookshelf) %>">
         <div class="min-w-0">

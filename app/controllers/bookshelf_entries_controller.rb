@@ -49,15 +49,15 @@ class BookshelfEntriesController < ApplicationController
       redirect_to book_path(@book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to])), notice: t("bookshelf_entries.notices.created")
     end
   rescue ActiveRecord::RecordInvalid => error
-    return render_attachment_shelf_error(error.record.errors.full_messages.to_sentence) if attachment_shelf_source?
+    return render_shelf_error(error.record.errors.full_messages.to_sentence) if inline_shelf_error?
     redirect_back fallback_location: book_search_path(group_id: group_context_id),
                   alert: error.record.errors.full_messages.to_sentence.presence || t("book_search.errors.invalid_result")
   rescue ActiveRecord::RecordNotFound
-    raise unless attachment_shelf_source?
-    render_attachment_shelf_error(t("book_search.errors.invalid_result"), status: :not_found)
+    raise unless inline_shelf_error?
+    render_shelf_error(t("book_search.errors.invalid_result"), status: :not_found)
   rescue Pundit::NotAuthorizedError
-    raise unless attachment_shelf_source?
-    render_attachment_shelf_error(t("book_search.errors.invalid_result"), status: :forbidden)
+    raise unless inline_shelf_error?
+    render_shelf_error(t("book_search.errors.invalid_result"), status: :forbidden)
   rescue Book::IdentityConflict
     redirect_to_search_error("book_search.errors.identity_conflict")
   rescue ActiveRecord::RecordNotUnique => error
@@ -117,11 +117,21 @@ class BookshelfEntriesController < ApplicationController
     before_entry = before_entry_for_move
 
     @bookshelf_entry.move_to_bookshelf!(target_bookshelf, before_entry:)
-    redirect_to bookshelf_entry_move_redirect_path(target_bookshelf),
-                notice: t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
+    location = bookshelf_entry_move_redirect_path(target_bookshelf)
+    notice = t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
+    respond_to do |format|
+      format.json do
+        flash[:notice] = notice
+        render json: { location: }
+      end
+      format.any(:html, :turbo_stream) { redirect_to location, notice: }
+    end
   rescue ActiveRecord::RecordInvalid
-    redirect_to bookshelf_entry_move_redirect_path(@bookshelf_entry.bookshelf),
-                alert: @bookshelf_entry.errors.full_messages.to_sentence
+    message = @bookshelf_entry.errors.full_messages.to_sentence
+    respond_to do |format|
+      format.json { render json: { error: message }, status: :unprocessable_content }
+      format.any(:html, :turbo_stream) { redirect_to bookshelf_entry_move_redirect_path(@bookshelf_entry.bookshelf), alert: message }
+    end
   end
 
   def bulk_move
@@ -143,9 +153,15 @@ class BookshelfEntriesController < ApplicationController
     BookshelfEntry.reorder_within!(bookshelf:, ordered_ids: params[:bookshelf_entry_ids])
     options = { bookshelf_id: bookshelf.id, sort: "manual" }
 
-    redirect_to user_library_path(current_user, options), status: :see_other
+    respond_to do |format|
+      format.json { head :no_content }
+      format.any(:html, :turbo_stream) { redirect_to user_library_path(current_user, options), status: :see_other }
+    end
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound
-    head :unprocessable_content
+    respond_to do |format|
+      format.json { render json: { error: t("bookshelf_entries.alerts.reorder_failed") }, status: :unprocessable_content }
+      format.any(:html, :turbo_stream) { head :unprocessable_content }
+    end
   end
 
   def destroy
@@ -214,12 +230,12 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def redirect_to_search_error(key)
-    return render_attachment_shelf_error(t(key)) if attachment_shelf_source?
+    return render_shelf_error(t(key)) if inline_shelf_error?
     redirect_to book_search_path(group_id: group_context_id), alert: t(key), status: :see_other
   end
 
   def redirect_to_invalid_search_result
-    return render_attachment_shelf_error(t("book_search.errors.invalid_result")) if attachment_shelf_source?
+    return render_shelf_error(t("book_search.errors.invalid_result")) if inline_shelf_error?
     redirect_to book_search_path(group_id: group_context_id),
                 alert: t("book_search.errors.invalid_result"), status: :see_other
   end
@@ -234,13 +250,27 @@ class BookshelfEntriesController < ApplicationController
     current_user.bookshelf_entries.find(params[:before_entry_id])
   end
 
-  def attachment_shelf_source?
-    params[:bookshelf_entry_source].in?(%w[jjaek_attachment jjaek_attachment_search]) && request.format.turbo_stream?
+  def inline_shelf_error?
+    request.format.turbo_stream? &&
+      (verified_shelf_error_target.present? || params[:bookshelf_entry_source].in?(%w[jjaek_attachment jjaek_attachment_search]))
   end
 
-  def render_attachment_shelf_error(message, status: :unprocessable_content)
-    flash.now[:alert] = message
-    render turbo_stream: turbo_stream.update("flash-messages", partial: "shared/flash"), status:
+  def verified_shelf_error_target
+    return unless book_search_result_source? && params[:shelf_error_target].is_a?(String)
+
+    Rails.application.message_verifier("shelf_error_target").verified(
+      params[:shelf_error_target], purpose: "user:#{current_user.id}:#{params[:bookshelf_entry_source]}"
+    )
+  end
+
+  def render_shelf_error(message, status: :unprocessable_content)
+    if (target = verified_shelf_error_target)
+      stream = turbo_stream.update(target, partial: "book_searches/shelf_selection_error", locals: { message: message })
+    else
+      flash.now[:alert] = message
+      stream = turbo_stream.update("flash-messages", partial: "shared/flash")
+    end
+    render turbo_stream: stream, status:
   end
 
   def book_search_result_source?

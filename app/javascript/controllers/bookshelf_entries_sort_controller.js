@@ -5,7 +5,8 @@ export default class extends Controller {
   static targets = ["actionBar", "applyButton", "bottomSpacer", "cancelButton", "controls", "editingStatus", "list", "modeButton"]
   static values = {
     bookshelfId: Number,
-    reorderUrl: String
+    reorderUrl: String,
+    errorMessage: String
   }
 
   connect() {
@@ -160,13 +161,14 @@ export default class extends Controller {
         body: formData,
         credentials: "same-origin",
         headers: {
-          Accept: "text/html",
+          Accept: "application/json",
           "X-CSRF-Token": this.csrfToken()
         }
       })
-      if (!response.ok) throw new Error("Reorder failed")
+      if (response.status !== 204) throw new Error("Reorder failed")
       return true
     } catch (_error) {
+      window.alert(this.errorMessageValue)
       window.location.reload()
       return false
     }

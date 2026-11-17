@@ -18,10 +18,10 @@ module Users
 
       @invitation_token = params[:invitation_token].to_s
       invitation = RegistrationInvitation.find_by_token(@invitation_token)
-      return head(:forbidden) unless invitation
+      return render_invalid_invitation unless invitation
 
       invitation.with_lock do
-        return head(:forbidden) unless invitation.active?
+        return render_invalid_invitation unless invitation.active?
 
         build_resource(sign_up_params.merge(email: invitation.email))
         if resource.terms_accepted == "1"
@@ -54,6 +54,32 @@ module Users
 
     def build_resource(hash = nil)
       super.tap { |user| user.handle_required_for_registration = true }
+    end
+
+    private
+
+    def render_invalid_invitation
+      @invitation = nil
+      @invitation_error = t("registration_invitations.errors.unusable")
+      render :new, formats: :html, status: :forbidden
+    end
+
+    def authentication_rate_limit_exceeded
+      @invitation_token = params[:invitation_token].to_s
+      @invitation = RegistrationInvitation.find_by_token(@invitation_token)
+      @invitation = nil unless @invitation&.active?
+
+      attributes = if @invitation
+        sign_up_params.slice(:name, :handle, :terms_accepted).merge(email: @invitation.email)
+      else
+        {}
+      end
+      build_resource(attributes)
+      clean_up_passwords resource
+      @password_reentry_required = @invitation.present?
+      request.env["devise.allow_params_authentication"] = false
+      flash.now[:alert] = authentication_rate_limit_message
+      render :new, formats: :html, status: :too_many_requests
     end
   end
 end

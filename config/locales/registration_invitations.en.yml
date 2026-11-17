@@ -4,6 +4,7 @@ en:
     title: "Manage sign-up invitations"
     description: "Send email invitations and check their status. Links are valid for 7 days."
     sign_in_notice: "During beta, sign-up is available by email invitation only."
+    password_reentry_notice: "Your password was not kept. Please re-enter your password and password confirmation."
     fields:
       status: "Status"
       expires_at: "Expires"
@@ -23,6 +24,7 @@ en:
       canceled: "Invitation canceled."
     errors:
       invalid: "A valid email invitation link is required."
+      unusable: "You cannot sign up with this invitation link. Please request a new email invitation link to sign up."
       duplicate: "A pending invitation already exists for this email."
       cannot_resend: "This invitation cannot be resent."
       cannot_cancel: "This invitation cannot be canceled."

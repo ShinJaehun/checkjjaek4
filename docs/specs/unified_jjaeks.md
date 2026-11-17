@@ -10,6 +10,8 @@
 A17 사진 첨부(선택 0~4장, 책 첨부와 독립)의 canonical 정책은
 [통합 짹 사진 첨부](jjaek_photos_a17.md)를 따른다. 사진으로 별도 짹 유형을 만들지 않는다.
 
+오류·작업 결과 메시지의 공통 표시 기준과 적용 현황은 [공통 오류 메시지](error_feedback.md)를 따른다.
+
 2026년 11월 사용자 확인 기준, 개발 DB 전환·사용자 검증과 운영 배포·DB migration은 완료되었다.
 운영 전환·복구의 실행 기준은 [OCI 운영 문서](../ops/deploy_oci.md)를 따른다.
 
@@ -389,6 +391,14 @@ bundle exec rspec spec/system/book_posting_spec.rb spec/system/recommendation_ed
   사용자 바인딩·30분 만료·외부 참조 해석을 담당한다. 최종 저장은 JjaeksController와 모델이 담당한다.
   `book-selection` Stimulus, permanent 선택창, `book_selection` Frame과 revision header는
   초안 보존·취소 복원·늦은 Turbo 응답 차단에 사용된다. 별도의 추천 작성 단계는 없다.
+- 임시 선택 오류는 Turbo 응답의 기존 `book-selection-alert` 영역에 표시한다. HTML fallback은 기존 검색 결과로
+  303 redirect하며 현재 alert를 다음 GET까지 유지해 공통 flash로 표시한다. 같은 선택 오류를 두 영역에 중복 전달하지 않는다.
+  선택·검색·작성 문맥과 본문·사진 초안 보존 정책은 유지한다.
+- 첨부 검색의 외부 검색 실패는 검색 결과 영역의 기존 안내로 표시하며 선택 오류용 flash를 설정하거나 덮어쓰지 않는다.
+  선택 오류와 검색 실패가 동시에 발생하면 각각의 영역에 표시한다. 최종 첨부 검증과 일반 책 검색의 오류 표시는
+  [공통 오류 메시지](error_feedback.md)를 따른다.
+- 첨부 한도는 최대 5권을 유지한다. 선택 패널의 선택 수/최대 권수 표시와 추가 버튼 비활성화로 한도를 안내하고,
+  초과 시 오류 문구는 `book-selection-alert`에 한 번만 표시한다. HTML fallback의 공통 flash 전달 정책도 유지한다.
 - 외부 책은 최종 저장에서만 기존 Book을 재사용하거나 생성한다. 메타데이터를 덮어쓰지 않으며
   Book·본문·첨부는 함께 성공하거나 롤백한다. 선택·검색만으로 DB 초안을 만들지 않는다.
 - 책 선택창과 첨부 검색의 스크롤 영역을 분리한다. 모바일 패널은 최대 48dvh,

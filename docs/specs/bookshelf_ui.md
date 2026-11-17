@@ -267,6 +267,10 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - 위치 삽입 drop 후에는 사용자가 수동 위치를 지정한 것으로 보고 `sort=manual`로 전환한다.
 - 현재 열린 책장에 다시 드롭하면 move 요청을 보내지 않는다.
 - 이동 성공 후 transfer 화면의 UI source / target 조합을 유지한다.
+- 비동기 단일 이동은 JSON 저장 결과와 복귀 주소를 받아 한 번만 페이지를 이동한다. 실패 redirect를 따라가며 flash를 소비하지 않는다.
+  실패 응답·통신 오류는 새로고침 전 기본 알림창에서 확인하도록 안내한 뒤 서버 상태를 다시 읽는다.
+  서버 validation 오류 문구를 우선 사용하며, 응답을 확인할 수 없으면 지역화된 결과 확인 불가 안내를 사용한다.
+  일반 이동·묶음 이동 폼은 기존 redirect와 flash 처리를 유지한다.
 - drag 중에는 bookshelf section 전체나 현재 책 목록 DOM을 Turbo로 교체하지 않는다.
 
 화면 폭별 책장 이동 UX는 다음 기준을 따른다.
@@ -325,6 +329,9 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - 위·아래 버튼은 카드 오른쪽에 겹쳐 표시하여 기존 카드 크기와 책 정보 배치를 유지한다. 첫 책의 위 버튼과 마지막 책의 아래 버튼은 비활성화한다.
 - 모바일 위·아래 버튼은 화면에서 한 칸씩 이동하며 저장 요청은 보내지 않는다. `취소`는 편집 전 순서를 복원하고, 변경 사항이 없으면 `적용`은 비활성화한다.
 - `적용`은 전체 책 순서를 기존 reorder endpoint로 한 번 저장한다. 저장 중 추가 조작을 막고 실패하면 새로고침해 서버 순서로 복구한다.
+- 비동기 정렬은 저장 성공의 JSON 요청 응답 `204`를 확인한다. 기본 Library와 transfer 목록 모두 실패 응답·통신 오류 시
+  지역화된 기본 알림창을 확인한 뒤 기존 reload로 현재 서버 순서를 다시 읽는다. 클라이언트의 이전 순서로만 복구하지 않는다.
+  안내는 reload 전에 확인하며 이후 별도로 저장하지 않는다. 오류 전달용 새 저장소는 추가하지 않는다.
 - PC에서 책 카드를 같은 책장 안에서 드래그하면 카드 순서를 바꾸고 기존 reorder endpoint로 저장한다.
 - 기본 Library에는 책장 간 이동 UI를 두지 않는다.
 - 책장 이동 모드에서는 source 책장과 target 책장 두 list 사이에 SortableJS group을 적용한다.
@@ -799,6 +806,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 
 ## 관련 문서
 
+- [공통 오류 메시지 표시 정책과 적용 현황](error_feedback.md)
 - `docs/specs/bookshelf_foundation.md`
 - `docs/architecture/current_system.md`
 - `docs/architecture/authorization.md`

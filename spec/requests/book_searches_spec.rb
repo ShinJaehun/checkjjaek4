@@ -308,6 +308,12 @@ RSpec.describe "BookSearches", type: :request do
 
     get book_search_path, params: { query: "실패" }
 
-    expect(response.body).to include("책 검색 중 오류가 발생했습니다.")
+    expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("main [role='status']").text).to eq(I18n.t("search_ui.external_unavailable"))
+    expect(page.text.scan(I18n.t("search_ui.external_unavailable")).size).to eq(1)
+    expect(page.at_css("#flash-messages").text.strip).to be_empty
+    expect(page.text).not_to include(I18n.t("book_search.errors.generic"), I18n.t("book_search.empty.title"))
+    expect(page.at_css("main form input[name='query']")["value"]).to eq("실패")
   end
 end

@@ -95,6 +95,9 @@ RSpec.describe "Photo composition and gallery", type: :system do
     expect(page).to have_text(I18n.t("jjaek_photos.disabled"))
     expect(page).to have_css("[data-jjaek-photos-target='error'][role='alert'] [data-photo-error-code='disabled']")
     expect_draft
+    expect(page).to have_css("#jjaek-attached-books [data-book-key='#{book.id}']")
+    expect(writer.jjaeks).to be_empty
+    expect(page).to have_no_text(I18n.t("jjaeks.notices.created"))
     within("[data-new-photo='0']") { click_button I18n.t("jjaek_photos.remove"), enable_aria_label: true }
     expect(page).to have_no_css("[data-jjaek-photos-target='error']", visible: true)
     expect(page).to have_field("jjaek[content]", with: "Photo draft #reading")
@@ -110,8 +113,32 @@ RSpec.describe "Photo composition and gallery", type: :system do
     expect(page).to have_current_path(root_path)
     expect(page).to have_field("jjaek[content]", with: "")
     expect(page).to have_no_css("[data-new-photo]")
+    expect(page).to have_no_css("#jjaek-attached-books [data-book-key]")
+    expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('jjaek[photo_files][]').filter(file => file.size > 0).length")).to eq(0)
     click_button I18n.t("jjaek_photos.add")
     expect(page).to have_css("dialog.jjaek-photo-guidance[open]")
+  end
+
+  it "keeps the draft after an authentication redirect and a Turbo return in the same tab" do
+    visit new_jjaek_path(selected_books: [ book.id ])
+    fill_in "jjaek[content]", with: "Photo draft #reading"
+    choose_photo
+    expect_draft
+    expect(page).to have_css("#jjaek-attached-books [data-book-key='#{book.id}']")
+
+    logout :user
+    click_button I18n.t("jjaeks.actions.publish_short")
+    expect(page).to have_current_path(new_user_session_path)
+    expect(writer.jjaeks).to be_empty
+    expect(page).to have_no_text(I18n.t("jjaeks.notices.created"))
+
+    # Restore authentication without a document reload: A17 drafts live only in
+    # this tab's JavaScript memory, including while Turbo displays the login page.
+    login_as writer, scope: :user
+    page.execute_script("Turbo.visit(arguments[0])", new_jjaek_path)
+    expect(page).to have_current_path(new_jjaek_path)
+    expect_draft
+    expect(page).to have_css("#jjaek-attached-books [data-book-key='#{book.id}']")
   end
 
   it "shows configured guidance once while editing and Cancel only closes the dialog" do
@@ -226,6 +253,18 @@ RSpec.describe "Photo composition and gallery", type: :system do
     expect(page).to have_css("[data-photo-id]:not([hidden])", count: 3)
     expect(page).to have_css("input[name='jjaek[remove_photo_ids][]'][value='#{first_photo.id}']", visible: :all)
     expect(saved.reload.photos.count).to eq(4)
+
+    fill_in "jjaek[content]", with: "Photo draft #reading"
+    choose_photo
+    expect_draft
+    allow(JjaekPhotoUpload).to receive(:enabled?).and_return(false)
+    click_button I18n.t("jjaeks.actions.save")
+    expect(page).to have_css("[data-jjaek-photos-target='error'][role='alert'] [data-photo-error-code='disabled']")
+    expect_draft
+    expect(page).to have_css("[data-photo-id='#{first_photo.id}'][hidden]", visible: :all)
+    expect(page).to have_css("input[name='jjaek[remove_photo_ids][]'][value='#{first_photo.id}']", visible: :all)
+    expect(saved.reload.content).to eq("Gallery")
+    expect(saved.photos.count).to eq(4)
     find("main a[data-back-link]").click
     expect(page).to have_no_current_path(edit_jjaek_path(saved), ignore_query: true)
     expect(saved.reload.photos.count).to eq(4)

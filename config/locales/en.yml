@@ -1252,6 +1252,8 @@ en:
       updated: "Shelf entry updated."
     alerts:
       bulk_move_failed: "Could not move the selected books."
+      move_failed: "Could not confirm the move. The current saved state will be reloaded."
+      reorder_failed: "Could not confirm the book order was saved. The current saved order will be reloaded."
     statuses:
       wish: "Want to read"
       reading: "Reading"

@@ -4,6 +4,8 @@
 
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-2 pb-24 md:pb-0"
          data-controller="bookshelf-transfer"
+         data-bookshelf-transfer-move-error-message-value="<%= t('bookshelf_entries.alerts.move_failed') %>"
+         data-bookshelf-transfer-reorder-error-message-value="<%= t('bookshelf_entries.alerts.reorder_failed') %>"
          data-bookshelf-transfer-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
          data-bookshelf-transfer-ui-source-bookshelf-id-value="<%= @source_bookshelf.id %>"
          data-bookshelf-transfer-ui-target-bookshelf-id-value="<%= @target_bookshelf.id %>">

@@ -17,6 +17,8 @@ export default class extends Controller {
     "sheetSelectedCount"
   ]
   static values = {
+    moveErrorMessage: String,
+    reorderErrorMessage: String,
     reorderUrl: String,
     uiSourceBookshelfId: Number,
     uiTargetBookshelfId: Number
@@ -210,7 +212,7 @@ export default class extends Controller {
     const beforeEntryId = event.item.nextElementSibling?.dataset.bookshelfEntryId
 
     if (!entryId || !targetBookshelfId) {
-      window.location.reload()
+      this.reloadAfterFailure(this.moveErrorMessageValue)
       return
     }
 
@@ -231,19 +233,20 @@ export default class extends Controller {
         body: formData,
         credentials: "same-origin",
         headers: {
-          Accept: "text/html",
+          Accept: "application/json",
           "X-CSRF-Token": this.csrfToken()
         }
       })
 
-      if (!response.ok) {
-        window.location.reload()
+      const result = await response.json()
+      if (!response.ok || !result.location) {
+        this.reloadAfterFailure(result.error || this.moveErrorMessageValue)
         return
       }
 
-      window.location.href = response.url
+      window.location.href = result.location
     } catch (_error) {
-      window.location.reload()
+      this.reloadAfterFailure(this.moveErrorMessageValue)
     }
   }
 
@@ -264,17 +267,25 @@ export default class extends Controller {
     formData.append("bookshelf_id", bookshelfId)
     this.entryIds(list).forEach((id) => formData.append("bookshelf_entry_ids[]", id))
 
-    const response = await fetch(this.reorderUrlValue, {
-      method: "PATCH",
-      body: formData,
-      credentials: "same-origin",
-      headers: {
-        Accept: "text/html",
-        "X-CSRF-Token": this.csrfToken()
-      }
-    })
+    try {
+      const response = await fetch(this.reorderUrlValue, {
+        method: "PATCH",
+        body: formData,
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "X-CSRF-Token": this.csrfToken()
+        }
+      })
+      if (response.status !== 204) throw new Error("Reorder failed")
+    } catch (_error) {
+      this.reloadAfterFailure(this.reorderErrorMessageValue)
+    }
+  }
 
-    if (!response.ok) window.location.reload()
+  reloadAfterFailure(message) {
+    window.alert(message)
+    window.location.reload()
   }
 
   entryIds(list) {

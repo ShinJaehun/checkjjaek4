@@ -5,19 +5,21 @@
     <%= form.hidden_field :reset_password_token %>
 
     <% if resource.errors.any? %>
-      <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        <%= resource.errors.full_messages.to_sentence %>
+      <div id="<%= form.field_id(:errors) %>" role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <% resource.errors.attribute_names.each do |attribute| %>
+          <p id="<%= form.field_id(attribute, :errors) %>"><%= resource.errors.full_messages_for(attribute).to_sentence %></p>
+        <% end %>
       </div>
     <% end %>
 
     <div class="space-y-2">
       <%= form.label :password, t("auth.form.password"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.password_field :password, autofocus: true, autocomplete: "new-password", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
+      <%= form.password_field :password, autofocus: true, autocomplete: "new-password", required: true, aria: validation_error_aria(form, :password), class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
     </div>
 
     <div class="space-y-2">
       <%= form.label :password_confirmation, t("auth.form.password_confirmation"), class: "text-sm font-medium text-stone-700" %>
-      <%= form.password_field :password_confirmation, autocomplete: "new-password", required: true, class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
+      <%= form.password_field :password_confirmation, autocomplete: "new-password", required: true, aria: validation_error_aria(form, :password_confirmation), class: "w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm bg-white" %>
     </div>
 
     <%= form.submit t("auth.passwords.change_password"), class: "ui-button ui-button-primary w-full" %>

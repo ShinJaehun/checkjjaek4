@@ -108,7 +108,7 @@ class JjaeksController < ApplicationController
       if @group && @quoted_jjaek
         @jjaek.errors.add(:quoted_jjaek_id, :taken)
       else
-        @jjaek.errors.add(:base, t("book_search.errors.identity_conflict"))
+        @jjaek.errors.add(:attached_books, :invalid, message: t("book_search.errors.identity_conflict"))
       end
       false
     end
@@ -116,7 +116,7 @@ class JjaeksController < ApplicationController
     if saved
       clear_book_selection if @selected_book_keys
       notify_jjaek_created
-      redirect_to create_success_path, notice: t("jjaeks.notices.created"), status: :see_other
+      respond_to_saved_jjaek(create_success_path, notice: t("jjaeks.notices.created"))
     else
       render_failed_create
     end
@@ -141,7 +141,7 @@ class JjaeksController < ApplicationController
 
     if updated
       clear_book_selection if @selected_book_keys
-      redirect_to jjaek_path(@jjaek, post_return_params), notice: t("jjaeks.notices.updated"), status: :see_other
+      respond_to_saved_jjaek(jjaek_path(@jjaek, post_return_params), notice: t("jjaeks.notices.updated"))
     else
       render :edit, formats: :html, status: :unprocessable_content
     end
@@ -162,6 +162,18 @@ class JjaeksController < ApplicationController
   end
 
   private
+
+  def respond_to_saved_jjaek(location, notice:)
+    if request.headers["X-Jjaek-Composer"] == "true"
+      # Fetch follows redirects and hides their headers. Acknowledge the saved
+      # transaction directly, before the composer visits the return destination.
+      flash[:notice] = notice
+      response.set_header("X-Jjaek-Saved-Location", location)
+      head :no_content
+    else
+      redirect_to location, notice:, status: :see_other
+    end
+  end
 
   def prepare_photo_changes
     @photo_changes = JjaekPhotoChanges.new(
@@ -186,10 +198,10 @@ class JjaeksController < ApplicationController
   def save_jjaek_update
     attributes = update_jjaek_params
     if params.key?(:selected_books)
-      valid = prepare_book_selection(preserve_on_error: true)
+      valid = prepare_book_selection(preserve_on_error: true, flash_on_error: false)
       if !valid || (@jjaek.requote? && @selected_books.any?)
         @jjaek.assign_attributes(attributes)
-        @jjaek.errors.add(:base, t("jjaek_books.invalid_selection"))
+        @jjaek.errors.add(:attached_books, :invalid, message: t("jjaek_books.invalid_selection"))
         return false
       end
     else
@@ -284,7 +296,7 @@ class JjaeksController < ApplicationController
 
     valid_selection = true
     if params.key?(:selected_books)
-      valid_selection = prepare_book_selection(preserve_on_error: true)
+      valid_selection = prepare_book_selection(preserve_on_error: true, flash_on_error: false)
     else
       @selected_books = []
       @selected_book_keys = []
@@ -293,7 +305,7 @@ class JjaeksController < ApplicationController
     if !valid_selection || (@jjaek.requote? && @selected_books.any?)
       authorize @jjaek, :create?
       @jjaek.assign_attributes(jjaek_params.slice(:content, :visibility)) if action_name == "create"
-      @jjaek.errors.add(:base, t("jjaek_books.invalid_selection"))
+      @jjaek.errors.add(:attached_books, :invalid, message: t("jjaek_books.invalid_selection"))
       render_failed_create
     end
   end
