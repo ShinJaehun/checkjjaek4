@@ -1,7 +1,11 @@
 <%= render layout: "devise/shared/auth_layout", locals: { registration: true } do %>
   <h1 class="text-center text-2xl font-semibold text-stone-900"><%= t("auth.actions.sign_up") %></h1>
 
-  <% if @invitation.present? %>
+  <% if @invitation_error.present? %>
+    <div role="alert" class="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <%= @invitation_error %>
+    </div>
+  <% elsif @invitation.present? %>
     <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "mt-8 space-y-4 lg:mt-5 lg:space-y-3" }) do |form| %>
       <%= hidden_field_tag :invitation_token, @invitation_token %>
       <% if resource.errors.any? %>
@@ -26,6 +30,10 @@
         <%= form.label :email, t("auth.form.email"), class: "text-sm font-medium text-stone-700" %>
         <p class="rounded-2xl border border-stone-300 px-4 py-3 text-sm text-stone-700 lg:py-2.5"><%= @invitation.email %></p>
       </div>
+
+      <% if @password_reentry_required %>
+        <p class="text-sm text-stone-700"><%= t("registration_invitations.password_reentry_notice") %></p>
+      <% end %>
 
       <div class="space-y-2">
         <%= form.label :password, t("auth.form.password"), class: "text-sm font-medium text-stone-700" %>

@@ -5,6 +5,15 @@ RSpec.describe "Authentication rate limits", type: :request do
 
   let(:counter_store) { ActiveSupport::Cache::MemoryStore.new }
   let(:counter_keys) { [] }
+  let(:invitation) do
+    admin = User.create!(name: "Admin", email: "rate-limit-admin@example.com", password: "password123!", global_admin: true)
+    RegistrationInvitation.new(email: "invited@example.com", invited_by: admin)
+  end
+  let(:invitation_token) { invitation.issue_token!.tap { invitation.save! } }
+  let(:sign_up_attributes) do
+    { name: "Invited Reader", handle: "invited_reader", email: "spoofed@example.com", terms_accepted: "1",
+      password: "submitted-secret123!", password_confirmation: "confirmation-secret123!" }
+  end
 
   before do
     [ Users::RegistrationsController, Users::SessionsController ].each do |controller|
@@ -20,19 +29,51 @@ RSpec.describe "Authentication rate limits", type: :request do
                             headers: { "REMOTE_ADDR" => ip }.merge(headers)
   end
 
-  def attempt_registration(headers: {})
-    post user_registration_path, params: { user: { name: "Reader", email: "reader@example.com" } }, headers:
+  def attempt_registration(headers: {}, invitation_token: nil, user: { name: "Reader", email: "reader@example.com" })
+    post user_registration_path, params: { invitation_token:, user: }, headers:
   end
 
   it "allows 60 sign-up requests from one IP and rejects the 61st" do
     60.times { attempt_registration }
     expect(response).not_to have_http_status(:too_many_requests)
 
-    attempt_registration
+    token = invitation_token
+    expect {
+      attempt_registration(invitation_token: token, user: sign_up_attributes)
+    }.not_to change(User, :count)
 
     expect(response).to have_http_status(:too_many_requests)
     expect(response.body).to include(I18n.t("auth.alerts.rate_limited"))
     expect(response.body).to include(I18n.t("auth.actions.sign_up"))
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('#flash-messages [role="alert"]').text.strip).to eq(I18n.t("auth.alerts.rate_limited"))
+    expect(page.css('[role="alert"]').size).to eq(1)
+    form = page.at_css(%(form[action="#{user_registration_path}"]))
+    expect(form).to be_present
+    expect(form.at_css('input[name="invitation_token"]')["value"]).to eq(token)
+    expect(form.at_css('input[name="user[name]"]')["value"]).to eq(sign_up_attributes[:name])
+    expect(form.at_css('input[name="user[handle]"]')["value"]).to eq(sign_up_attributes[:handle])
+    expect(form.at_css('input[name="user[terms_accepted]"][type="checkbox"]')["checked"]).to be_present
+    expect(form.text).to include(invitation.email, I18n.t("registration_invitations.password_reentry_notice"))
+    expect(form.css('input[type="password"]').map { |field| field["value"] }).to all(be_blank)
+    expect(response.body).not_to include(sign_up_attributes[:password], sign_up_attributes[:password_confirmation], "spoofed@example.com")
+    expect(invitation.reload.consumed_at).to be_nil
+  end
+
+  it "does not restore a sign-up form for an invalid invitation when rate limited" do
+    token = invitation_token
+    invitation.cancel!
+    allow(Users::RegistrationsController.cache_store).to receive(:increment).and_return(61)
+
+    expect {
+      attempt_registration(invitation_token: token, user: sign_up_attributes)
+    }.not_to change(User, :count)
+
+    expect(response).to have_http_status(:too_many_requests)
+    expect(response.body).to include(I18n.t("auth.alerts.rate_limited"))
+    expect(Nokogiri::HTML(response.body).at_css(%(form[action="#{user_registration_path}"]))).to be_nil
+    expect(response.body).not_to include(token, sign_up_attributes[:password], sign_up_attributes[:password_confirmation])
+    expect(invitation.reload.consumed_at).to be_nil
   end
 
   it "allows 120 login attempts from one IP across distinct emails and rejects the next" do
@@ -145,11 +186,18 @@ RSpec.describe "Authentication rate limits", type: :request do
       expect(response.body).to include(I18n.t("auth.actions.sign_in"))
 
       60.times { attempt_registration }
-      attempt_registration(headers: { "ACCEPT" => "text/vnd.turbo-stream.html, text/html" })
+      attempt_registration(invitation_token:, user: sign_up_attributes,
+                           headers: { "ACCEPT" => "text/vnd.turbo-stream.html, text/html" })
 
       expect(response).to have_http_status(:too_many_requests)
       expect(response.media_type).to eq("text/html")
       expect(response.body).to include(I18n.t("auth.alerts.rate_limited"))
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css(%(form[action="#{user_registration_path}"]))).to be_present
+      expect(page.at_css('input[name="user[name]"]')["value"]).to eq(sign_up_attributes[:name])
+      expect(page.css('input[type="password"]').map { |field| field["value"] }).to all(be_blank)
+      expect(page.text).to include(I18n.t("registration_invitations.password_reentry_notice"))
+      expect(invitation.reload.consumed_at).to be_nil
     end
   end
 
