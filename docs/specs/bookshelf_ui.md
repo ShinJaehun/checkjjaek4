@@ -806,6 +806,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 
 ## 관련 문서
 
+- [공통 오류 메시지 표시 정책과 적용 현황](error_feedback.md)
 - `docs/specs/bookshelf_foundation.md`
 - `docs/architecture/current_system.md`
 - `docs/architecture/authorization.md`
