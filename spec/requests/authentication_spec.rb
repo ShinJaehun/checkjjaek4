@@ -82,6 +82,27 @@ RSpec.describe "Authentication", type: :request do
       expect(page.at_css("#flash-messages").text.strip).to be_empty
     end
 
+    it "shows the exact Korean duplicate-handle message with its field error connection" do
+      User.create!(name: "Existing Reader", email: "existing-handle@example.com", password: "password123!", handle: "used_handle")
+      token = registration_token("duplicate-handle@example.com")
+
+      I18n.with_locale(:ko) do
+        expect {
+          post user_registration_path, params: { invitation_token: token,
+            user: { name: "New Reader", handle: "USED_HANDLE", password: "password123!",
+                    password_confirmation: "password123!", terms_accepted: "1" }
+          }
+        }.not_to change(User, :count)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css('#user_errors[role="alert"] #user_handle_errors').text).to eq("이미 사용 중인 공개 주소입니다.")
+        handle = page.at_css('input[name="user[handle]"]')
+        expect(handle["aria-invalid"]).to eq("true")
+        expect(handle["aria-describedby"].split).to include("user_handle_errors")
+      end
+    end
+
     it "does not permit global admin through registration params" do
       post user_registration_path, params: { invitation_token: registration_token("regular-reader@example.com"),
         user: {
