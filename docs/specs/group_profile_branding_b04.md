@@ -70,7 +70,8 @@
 - `Group#profile_image`와 `Group#cover_image`는 독립된 Active Storage 단건 첨부다.
   `GroupImageChanges`가 업로드 파일만 받고 signed Blob ID·다른 부모의 첨부 재사용 입력은 거부한다.
   파일은 metadata를 제거한 WebP로 정규화하며 대표 이미지는 최대 512px, 배너 이미지는 최대 1600px로 줄여 저장한다.
-  운영은 기존 비공개 `oci_photos` 서비스를 재사용하고 로컬·테스트는 기존 환경의 서비스를 사용한다.
+  운영의 신규 원본과 해당 Variant는 비공개 `oci_group_images`에 저장한다. 기존 이미지는 Blob에 기록된
+  서비스에서 계속 조회·변환·삭제하며, 로컬·테스트는 환경별 기본 서비스를 사용한다.
 - Blob에 동아리·이미지 종류를 기록하고 모델과 이미지 제공 경로에서 검증한다.
   이미지 처리·업로드 후 User → Group 순서로 행을 잠그고 계정 상태와 동아리 관리 권한을 재검사한다.
   교체·삭제할 이미지마다 폼을 열었을 때의 attachment ID(미등록은 빈 값)를 현재 첨부와 비교한다.
@@ -110,8 +111,8 @@
   허용 목적지·제출·실패 시 선택 유지 검증을 보존하며 유형 배지·색상·기본 아이콘·링크 비포함을 확인한다.
 - `spec/models/group_spec.rb`: 색상 저장·허용값 검증·ID 기반 기본색을 확인한다.
 - 색상 컬럼과 CHECK를 추가하는 migration이 필요하다. 이미지용 DB 테이블은 기존 Active Storage를 사용한다.
-  새 환경변수·bucket·스토리지 서비스는 필요 없다. 기존 `OCI_PHOTO_BUCKET`의 비공개 설정,
-  OCI 접근 자격 증명과 libvips·Solid Queue 실행 환경을 유지하고 새 정리 작업을 기존 scheduler에서 실행한다.
+  운영의 `OCI_GROUP_IMAGE_BUCKET`은 [OCI 운영 배포](../ops/deploy_oci.md)에 따라 준비한다.
+  libvips·Solid Queue 실행 환경과 기존 scheduler의 정리 작업을 유지한다.
 - 사용자 검증: 모바일/PC 상세 배너·정보 분리, 기본 아이콘, 업로드·교체·삭제와 실패 메시지,
   동아리 꾸미기의 두 이미지 미리보기·X·삭제 예정/취소·키보드 조작·저장 실패 보존,
   목록·검색·발견 썸네일, 비회원 직접 URL·탈퇴 후 접근 차단, 8색 선택,

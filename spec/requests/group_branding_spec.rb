@@ -33,6 +33,41 @@ RSpec.describe "Group branding", type: :request do
     end
   end
 
+  it "serves and purges both production images and their variants from the group image service" do
+    Dir.mktmpdir("group-images") do |root|
+      services = ActiveStorage::Service::Registry.new(oci_group_images: { service: "Disk", root: root })
+      allow(ActiveStorage::Blob).to receive(:services).and_return(services)
+      allow(Rails.env).to receive(:production?).and_return(true)
+
+      upload_branding
+      storage = services.fetch(:oci_group_images)
+      profile = group.profile_image_attachment
+      cover = group.cover_image_attachment
+      originals = [ profile.blob, cover.blob ]
+
+      [ [ profile, :card ], [ cover, :cover ] ].each do |attachment, size|
+        get group_image_path(group, attachment, size: size)
+        expect(response).to have_http_status(:ok)
+        expect(response.media_type).to eq("image/webp")
+      end
+
+      variants = originals.map { |blob| blob.variant_records.sole.image.blob }
+      (originals + variants).each do |blob|
+        expect(blob.service_name).to eq("oci_group_images")
+        expect(storage.exist?(blob.key)).to be(true)
+      end
+
+      patch group_path(group), params: { group: {
+        remove_profile_image: "1", profile_image_attachment_id: profile.id,
+        remove_cover_image: "1", cover_image_attachment_id: cover.id
+      } }
+      expect(response).to redirect_to(group_path(group))
+
+      originals.each { |blob| PurgeGroupImageJob.perform_now(blob.id) }
+      (originals + variants).each { |blob| expect(storage.exist?(blob.key)).to be(false) }
+    end
+  end
+
   it "gives information and branding separate PATCH forms while preserving the single application form" do
     sign_in admin
     get edit_group_path(group)

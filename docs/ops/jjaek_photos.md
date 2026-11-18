@@ -5,8 +5,8 @@
 
 ## 배포 설정
 
-1. OCI에 공개 접근·공개 PAR이 없는 사진 전용 버킷을 준비한다. 기존 아바타 S3 호환 credentials와
-   endpoint/region을 사용하며 해당 principal에 사진 버킷의 object 읽기/쓰기/삭제 권한을 부여한다.
+1. OCI에 공개 접근·공개 PAR이 없는 사진 전용 버킷을 준비한다. 공통 `OCI_STORAGE_*` 설정을 사용하며
+   해당 principal에 사진 버킷의 object 읽기/쓰기/삭제 권한을 부여한다.
    사진 경로에 CDN 공개 캐시를 붙이지 않는다.
 2. 운영 `.env`에 `OCI_PHOTO_BUCKET`을 추가한다. 저장소 `.env.example`과 `compose.prod.yml`을 함께 반영한다.
    기본 제한은 아래와 같다. 값 변경은 웹 컨테이너 재생성 후 반영된다.

@@ -6,24 +6,23 @@ local:
   service: Disk
   root: <%= Rails.root.join("storage") %>
 
-oci_avatars:
+# The private OCI buckets share the S3-compatible connection settings.
+oci_avatars: &oci_storage
   service: S3
-  access_key_id: <%= ENV.fetch("OCI_AVATAR_ACCESS_KEY_ID") if Rails.env.production? %>
-  secret_access_key: <%= ENV.fetch("OCI_AVATAR_SECRET_ACCESS_KEY") if Rails.env.production? %>
-  region: <%= ENV.fetch("OCI_AVATAR_REGION") if Rails.env.production? %>
+  access_key_id: <%= ENV.fetch("OCI_STORAGE_ACCESS_KEY_ID") if Rails.env.production? %>
+  secret_access_key: <%= ENV.fetch("OCI_STORAGE_SECRET_ACCESS_KEY") if Rails.env.production? %>
+  region: <%= ENV.fetch("OCI_STORAGE_REGION") if Rails.env.production? %>
+  endpoint: <%= ENV.fetch("OCI_STORAGE_ENDPOINT") if Rails.env.production? %>
+  force_path_style: true
   bucket: <%= ENV.fetch("OCI_AVATAR_BUCKET") if Rails.env.production? %>
-  endpoint: <%= ENV.fetch("OCI_AVATAR_ENDPOINT") if Rails.env.production? %>
-  force_path_style: true
 
-# Same Active Storage/S3 integration and OCI credentials; a private photo bucket.
+oci_group_images:
+  <<: *oci_storage
+  bucket: <%= ENV.fetch("OCI_GROUP_IMAGE_BUCKET") if Rails.env.production? %>
+
 oci_photos:
-  service: S3
-  access_key_id: <%= ENV.fetch("OCI_AVATAR_ACCESS_KEY_ID") if Rails.env.production? %>
-  secret_access_key: <%= ENV.fetch("OCI_AVATAR_SECRET_ACCESS_KEY") if Rails.env.production? %>
-  region: <%= ENV.fetch("OCI_AVATAR_REGION") if Rails.env.production? %>
+  <<: *oci_storage
   bucket: <%= ENV.fetch("OCI_PHOTO_BUCKET") if Rails.env.production? %>
-  endpoint: <%= ENV.fetch("OCI_AVATAR_ENDPOINT") if Rails.env.production? %>
-  force_path_style: true
 
 # Use bin/rails credentials:edit to set the AWS secrets (as aws:access_key_id|secret_access_key)
 # amazon:
