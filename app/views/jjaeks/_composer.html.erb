@@ -79,9 +79,7 @@
     <%= render "jjaeks/photo_fields", jjaek: jjaek, photo_errors: photo_errors unless jjaek.requote? %>
     <% if book_errors.any? %>
       <div id="jjaek-book-errors" role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        <% book_errors.each do |error| %>
-          <p><%= error.full_message %></p>
-        <% end %>
+        <%= form_error_messages(book_errors.map(&:full_message)) %>
       </div>
     <% end %>
   <% end %>

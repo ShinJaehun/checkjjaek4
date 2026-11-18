@@ -9,6 +9,11 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+.form-error-list:has(> li:not([hidden]) ~ li:not([hidden])) {
+  list-style-type: disc;
+  padding-inline-start: 1.25rem;
+}
+
 .jjaek-photo-preview { position: relative; }
 .jjaek-photo-remove {
   position: absolute;

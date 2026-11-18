@@ -127,6 +127,7 @@ RSpec.describe "Content limits", type: :request do
     page = Nokogiri::HTML(response.body)
     field = page.at_css('[data-controller="content-length"]')
     expect(field.at_css('[data-content-length-target="serverErrors"]').text).to eq("내용을 입력해 주세요.")
+    expect(field.at_css('[data-content-length-target="serverErrors"]').name).to eq("p")
     expect(field.at_css('[data-content-length-target="errors"]')["hidden"]).to be_nil
     expect(field.at_css('[data-content-length-target="warning"]')["hidden"]).not_to be_nil
     expect(field.at_css('[data-content-length-target="counter"]').text).to eq("0 / 200")
@@ -135,5 +136,21 @@ RSpec.describe "Content limits", type: :request do
     expect(textarea["aria-invalid"]).to eq("true")
     expect(textarea["aria-describedby"].split).to include(field.at_css('[data-content-length-target="errors"]')["id"])
     expect(field.at_css('[data-content-error-type="blank"]').text).to eq("내용을 입력해 주세요.")
+  end
+
+  it "lists multiple composer server errors without mixing in the client length warning" do
+    attributes = { content: "", visibility: "everyone" }
+    invalid_jjaek = user.jjaeks.build(attributes)
+    invalid_jjaek.valid?
+
+    post jjaeks_path, params: { jjaek: attributes }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    page = Nokogiri::HTML(response.body)
+    server_errors = page.at_css('ul[data-content-length-target="serverErrors"]')
+    expect(server_errors.css("li").map(&:text)).to eq(invalid_jjaek.errors.full_messages)
+    expect(server_errors.at_css('li[data-content-error-type="blank"]')).to be_present
+    warning = server_errors.parent.at_css('[data-content-length-target="warning"]')
+    expect(warning["hidden"]).not_to be_nil
   end
 end

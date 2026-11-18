@@ -8,10 +8,32 @@ module ApplicationHelper
   end
 
   def validation_error_aria(form, attribute, describedby: [])
-    invalid = form.object.errors.include?(attribute)
-    descriptions = [ *describedby, (form.field_id(attribute, :errors) if invalid) ].compact
+    error_ids = form.object.errors.where(attribute).each_index.map { |index| validation_error_id(form, attribute, index) }
+    descriptions = [ *describedby, *error_ids ].compact
 
-    { invalid: (true if invalid), describedby: (descriptions.join(" ") if descriptions.any?) }.compact
+    { invalid: (true if error_ids.any?), describedby: (descriptions.join(" ") if descriptions.any?) }.compact
+  end
+
+  def validation_error_messages(form)
+    form.object.errors.group_by_attribute.flat_map do |attribute, errors|
+      errors.map.with_index do |error, index|
+        tag.span(yield(error), id: validation_error_id(form, attribute, index))
+      end
+    end
+  end
+
+  def validation_error_id(form, attribute, index)
+    return form.field_id(attribute, :errors) if index.zero?
+
+    form.field_id(attribute, :errors, index + 1)
+  end
+
+  def form_error_messages(messages, **attributes)
+    return if messages.empty?
+    return tag.p(messages.first, **attributes) if messages.one?
+
+    attributes[:class] = class_names(attributes[:class], "list-disc pl-5")
+    tag.ul(safe_join(messages.map { |message| tag.li(message) }), **attributes)
   end
 
   def unread_notifications_count

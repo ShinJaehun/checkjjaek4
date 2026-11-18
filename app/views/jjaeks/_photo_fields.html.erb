@@ -21,11 +21,14 @@
   <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
        data-jjaek-photos-target="error" <%= "hidden" if photo_errors.empty? %>>
     <p hidden data-jjaek-photos-target="clientError"></p>
-    <div data-jjaek-photos-target="serverErrors">
+    <% multiple_photo_errors = photo_errors.many? %>
+    <%= content_tag(multiple_photo_errors ? :ul : :div, class: ("form-error-list" if multiple_photo_errors),
+                    data: { jjaek_photos_target: "serverErrors" }) do %>
       <% photo_errors.each do |error| %>
-        <p data-photo-error-code="<%= error.type.to_s.delete_prefix('photo_') %>"><%= error.full_message %></p>
+        <%= content_tag(multiple_photo_errors ? :li : :p, error.full_message,
+                        data: { photo_error_code: error.type.to_s.delete_prefix("photo_") }) %>
       <% end %>
-    </div>
+    <% end %>
   </div>
   <p hidden role="status" class="text-sm text-stone-500" data-jjaek-photos-target="processing"><%= t("jjaek_photos.processing") %></p>
   <div class="grid select-none grid-cols-2 gap-3 sm:grid-cols-4" data-jjaek-photos-target="previews"

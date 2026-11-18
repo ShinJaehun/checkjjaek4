@@ -4,7 +4,7 @@
 
   <% if bookshelf_entry.errors.any? %>
     <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-      <%= bookshelf_entry.errors.full_messages.to_sentence %>
+      <%= form_error_messages(bookshelf_entry.errors.full_messages) %>
     </div>
   <% end %>
 

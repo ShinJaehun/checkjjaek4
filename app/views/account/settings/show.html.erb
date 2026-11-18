@@ -10,7 +10,7 @@
 
     <%= form_with model: @user, url: account_settings_path, method: :patch, class: "mt-6 space-y-5" do |form| %>
       <% if action_name == "update" && @user.errors.any? %>
-        <p role="alert" class="text-sm text-red-700"><%= @user.errors.map { |error| user_validation_error_message(error) }.to_sentence %></p>
+        <%= form_error_messages(@user.errors.map { |error| user_validation_error_message(error) }, role: "alert", class: "text-sm text-red-700") %>
       <% end %>
 
       <div>
@@ -61,7 +61,7 @@
     <p class="mt-2 hidden text-xs text-red-700" data-avatar-preview-target="error"><%= t("settings.avatar.preview_invalid") %></p>
 
     <% if @avatar_errors.present? %>
-      <p role="alert" class="mt-4 text-sm text-red-700"><%= @avatar_errors.to_sentence %></p>
+      <%= form_error_messages(@avatar_errors, role: "alert", class: "mt-4 text-sm text-red-700") %>
     <% end %>
 
     <%= form_with model: @user, url: avatar_account_settings_path, method: :patch, multipart: true, class: "mt-5 space-y-4" do |form| %>
@@ -98,7 +98,7 @@
     <p class="mt-2 text-sm text-stone-500"><%= t("settings.password.description") %></p>
 
     <% if @password_errors.present? %>
-      <p role="alert" class="mt-4 text-sm text-red-700"><%= @password_errors.to_sentence %></p>
+      <%= form_error_messages(@password_errors, role: "alert", class: "mt-4 text-sm text-red-700") %>
     <% end %>
 
     <%= form_with model: @user, url: password_account_settings_path, method: :patch, class: "mt-6 space-y-5" do |form| %>

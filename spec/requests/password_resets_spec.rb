@@ -171,6 +171,26 @@ RSpec.describe "Password resets", type: :request do
     expect(reader.reload.valid_password?("password123!")).to be(true)
   end
 
+  it "links each invalid password field to its message in the validation list" do
+    request_reset
+    token = reset_token_from_mail
+
+    put user_password_path, params: {
+      user: { reset_password_token: token, password: "x", password_confirmation: "different" }
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    page = Nokogiri::HTML(response.body)
+    messages = page.css('#user_errors[role="alert"] > ul.list-disc > li')
+    expect(messages.size).to eq(2)
+    %w[password password_confirmation].each do |attribute|
+      field = page.at_css("input[name='user[#{attribute}]']")
+      expect(field["aria-invalid"]).to eq("true")
+      expect(messages.css("##{field['aria-describedby']}")).to be_present
+      expect(field["value"]).to be_blank
+    end
+  end
+
   it "preserves a suspended account and its sign-in restriction after a password change" do
     reader.update!(suspended_at: Time.current)
     request_reset

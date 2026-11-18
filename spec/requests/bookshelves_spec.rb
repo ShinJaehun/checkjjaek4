@@ -60,7 +60,27 @@ RSpec.describe "Bookshelves", type: :request do
     }.not_to change(Bookshelf, :count)
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include(I18n.t("activerecord.errors.models.bookshelf.attributes.base.too_many_bookshelves", count: Bookshelf::MAX_PER_USER))
+    message = I18n.t("activerecord.errors.models.bookshelf.attributes.base.too_many_bookshelves", count: Bookshelf::MAX_PER_USER)
+    expect(response.body).to include(message)
+    form = Nokogiri::HTML(response.body).at_css("form[action='#{bookshelves_path}']")
+    expect(form.at_css(".border-red-200 p").text).to eq(message)
+    expect(form.css(".border-red-200 li")).to be_empty
+  end
+
+  it "lists multiple bookshelf errors in validation order and keeps the submitted name" do
+    sign_in user
+    attributes = { name: "보존할 이름", visibility: "everyone", color_key: "black" }
+    invalid_bookshelf = user.bookshelves.build(attributes)
+    invalid_bookshelf.valid?
+
+    post bookshelves_path, params: { bookshelf: attributes }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    form = Nokogiri::HTML(response.body).at_css("form[action='#{bookshelves_path}']")
+    messages = form.css(".border-red-200 ul.list-disc li").map(&:text)
+    expect(messages.size).to be >= 2
+    expect(messages).to eq(invalid_bookshelf.errors.full_messages)
+    expect(form.at_css('input[name="bookshelf[name]"]')["value"]).to eq(attributes[:name])
   end
 
   it "does not create a bookshelf with an unsupported visibility" do
