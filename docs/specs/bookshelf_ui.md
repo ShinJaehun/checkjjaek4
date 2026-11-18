@@ -630,6 +630,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 - visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다.
 - 허용되지 않은 `sort` 값은 기본 정렬 정책으로 fallback한다.
 - 책장 탭 이동 시 현재 `sort` 값을 유지한다.
+- 책장 생성·수정 검증 실패 시에도 정상 서재 조회와 같은 집계와 정렬을 적용하고, 제출한 폼과 오류를 보존한다.
 - 정렬은 선택된 책장 안의 접근 가능한 책 목록에만 적용한다.
 - 책 순서 변경 handle은 owner 화면에서 `sort=manual`일 때 PC에 표시한다. 모바일에서는 같은 조건에 책이 2권 이상이면 순서 변경 버튼을 표시한다.
 - `recent`, `title`, `author`, `status` 정렬에서는 책 순서 변경 handle과 버튼을 숨긴다.

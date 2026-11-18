@@ -122,6 +122,15 @@ class Jjaek < ApplicationRecord
     ModerationAction.current_hide_for(self)
   end
 
+  def with_reaction_lock(&block)
+    # Group activity rules and the post's moderation state can change independently.
+    if group
+      group.with_lock { with_lock(&block) }
+    else
+      with_lock(&block)
+    end
+  end
+
   def destroy_or_tombstone!
     with_lock do
       if comments.exists?

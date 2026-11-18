@@ -10,9 +10,7 @@
       <%= hidden_field_tag :invitation_token, @invitation_token %>
       <% if resource.errors.any? %>
         <div id="<%= form.field_id(:errors) %>" role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <% resource.errors.attribute_names.each do |attribute| %>
-            <p id="<%= form.field_id(attribute, :errors) %>"><%= resource.errors.where(attribute).map { |error| user_validation_error_message(error) }.to_sentence %></p>
-          <% end %>
+          <%= form_error_messages(validation_error_messages(form) { |error| user_validation_error_message(error) }) %>
         </div>
       <% end %>
 

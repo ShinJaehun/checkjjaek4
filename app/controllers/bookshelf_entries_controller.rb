@@ -245,9 +245,11 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def before_entry_for_move
-    return if params[:before_entry_id].blank?
+    id = params[:before_entry_id]
+    return if id.nil? || id == ""
+    raise ActiveRecord::RecordNotFound unless id.to_s.match?(/\A[0-9]+\z/)
 
-    current_user.bookshelf_entries.find(params[:before_entry_id])
+    current_user.bookshelf_entries.find(id)
   end
 
   def inline_shelf_error?

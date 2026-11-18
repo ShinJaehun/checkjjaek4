@@ -14,6 +14,23 @@ RSpec.describe "Likes", type: :request do
     }.to change(Like, :count).by(1)
   end
 
+  it "does not create a like when a group jjaek is hidden during the request" do
+    moderator = User.create!(name: "Moderator", email: "like-race-admin@example.com", password: "password123!", global_admin: true)
+    group = Group.create!(name: "Readers", group_admin: author, group_type: :public_group, lifecycle_status: :active)
+    group.group_memberships.create!(user:, status: :active)
+    group_jjaek = group.jjaeks.create!(user: author, content: "Group post")
+    sign_in user
+    allow_any_instance_of(LikesController).to receive(:set_jjaek).and_wrap_original do |original|
+      original.call
+      Jjaeks::Hide.new(Jjaek.find(group_jjaek.id), actor: moderator, public_reason: "other").call!
+    end
+
+    expect { post jjaek_like_path(group_jjaek) }.not_to change(Like, :count)
+
+    expect(group_jjaek.reload).to be_hidden
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+  end
+
   it "keeps the html fallback redirect when liking a jjaek" do
     sign_in user
 

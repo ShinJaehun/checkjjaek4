@@ -4,6 +4,17 @@ RSpec.describe "BookFriendships", type: :request do
   let!(:user) { User.create!(name: "Reader", email: "reader-book-friend@example.com", password: "password123!", password_confirmation: "password123!") }
   let!(:other_user) { User.create!(name: "Other", email: "other-book-friend@example.com", password: "password123!", password_confirmation: "password123!") }
 
+  def friendship_params(friendship, **options)
+    { friendship_id: friendship.id, friendship_status: friendship.status, **options }
+  end
+
+  def rendered_friendship_params(other)
+    form = Nokogiri::HTML(response.body).at_css("form[action='#{user_book_friendship_path(other)}']")
+    %w[friendship_id friendship_status].to_h do |field|
+      [ field, form.at_css("input[name='#{field}']")["value"] ]
+    end
+  end
+
   it "lets a signed-in user request book friendship" do
     sign_in user
 
@@ -24,10 +35,10 @@ RSpec.describe "BookFriendships", type: :request do
     pending = BookFriendship.create!(requester: user, addressee: other_user)
     other_user.update!(accepts_book_friend_requests: false)
     sign_in other_user
-    patch user_book_friendship_path(user)
+    patch user_book_friendship_path(user), params: friendship_params(pending)
     expect(pending.reload).to be_accepted
 
-    delete user_book_friendship_path(user)
+    delete user_book_friendship_path(user), params: friendship_params(pending)
     expect(BookFriendship.exists?(pending.id)).to be(false)
   end
 
@@ -79,10 +90,10 @@ RSpec.describe "BookFriendships", type: :request do
   end
 
   it "lets the addressee accept the request" do
-    BookFriendship.create!(requester: user, addressee: other_user)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user
 
-    patch user_book_friendship_path(user)
+    patch user_book_friendship_path(user), params: friendship_params(friendship)
 
     expect(BookFriendship.last).to be_accepted
   end
@@ -94,7 +105,7 @@ RSpec.describe "BookFriendships", type: :request do
     friendship_count = BookFriendship.count
     notification_count = Notification.count
 
-    patch user_book_friendship_path(user)
+    patch user_book_friendship_path(user), params: friendship_params(friendship)
 
     expect(response).to have_http_status(:see_other)
     expect(response).to redirect_to(user_path(user))
@@ -110,7 +121,7 @@ RSpec.describe "BookFriendships", type: :request do
     friendship_count = BookFriendship.count
     notification_count = Notification.count
 
-    patch user_book_friendship_path(user), params: { return_to: "relationships" }
+    patch user_book_friendship_path(user), params: friendship_params(friendship, return_to: "relationships")
 
     expect(response).to have_http_status(:see_other)
     expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
@@ -127,7 +138,7 @@ RSpec.describe "BookFriendships", type: :request do
     friendship_count = BookFriendship.count
     notification_count = Notification.count
 
-    patch user_book_friendship_path(user)
+    patch user_book_friendship_path(user), params: friendship_params(old_request)
 
     expect(response).to have_http_status(:see_other)
     expect(response).to redirect_to(user_path(user))
@@ -137,6 +148,35 @@ RSpec.describe "BookFriendships", type: :request do
     expect(Notification.count).to eq(notification_count)
   end
 
+  it "does not accept a replacement request from the same requester using the old profile form" do
+    old_request = BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in other_user
+    get user_path(user)
+    old_params = rendered_friendship_params(user)
+    old_request.destroy!
+    replacement = BookFriendship.create!(requester: user, addressee: other_user)
+
+    expect { patch user_book_friendship_path(user), params: old_params }.not_to change(Notification, :count)
+
+    expect(response).to have_http_status(:see_other)
+    expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.stale_action"))
+    expect(replacement.reload).to be_pending
+  end
+
+  it "does not remove an accepted friendship using the old cancellation form" do
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
+    sign_in user
+    get account_relationships_path(tab: "sent_book_friend_requests")
+    old_params = rendered_friendship_params(other_user)
+    friendship.accepted!
+
+    expect { delete user_book_friendship_path(other_user), params: old_params }.not_to change(BookFriendship, :count)
+
+    expect(response).to have_http_status(:see_other)
+    expect(flash[:alert]).to eq(I18n.t("book_friendships.alerts.stale_action"))
+    expect(friendship.reload).to be_accepted
+  end
+
   it "uses Pundit for an already accepted received friendship without updating it" do
     friendship = BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
     updated_at = friendship.updated_at
@@ -144,7 +184,7 @@ RSpec.describe "BookFriendships", type: :request do
     friendship_count = BookFriendship.count
     notification_count = Notification.count
 
-    patch user_book_friendship_path(user)
+    patch user_book_friendship_path(user), params: friendship_params(friendship)
 
     expect(response).to redirect_to(root_path)
     expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
@@ -164,7 +204,7 @@ RSpec.describe "BookFriendships", type: :request do
     sign_in other_user
 
     expect {
-      patch user_book_friendship_path(user)
+      patch user_book_friendship_path(user), params: friendship_params(friendship)
     }.to change(Notification, :count).by(1)
 
     expect(friendship.reload).to be_accepted
@@ -176,10 +216,10 @@ RSpec.describe "BookFriendships", type: :request do
   end
 
   it "returns to the relationship hub when return_to is relationships" do
-    BookFriendship.create!(requester: user, addressee: other_user)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user
 
-    patch user_book_friendship_path(user), params: { return_to: "relationships" }
+    patch user_book_friendship_path(user), params: friendship_params(friendship, return_to: "relationships")
 
     expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
     expect(Notification.find_by!(action: :book_friendship_accepted)).to have_attributes(
@@ -192,7 +232,7 @@ RSpec.describe "BookFriendships", type: :request do
     sign_in other_user
 
     patch user_book_friendship_path(user),
-          params: { return_to: "relationships", tab: "received_book_friend_requests" },
+          params: friendship_params(friendship, return_to: "relationships", tab: "received_book_friend_requests"),
           headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
@@ -211,20 +251,20 @@ RSpec.describe "BookFriendships", type: :request do
   end
 
   it "falls back to the user profile for an unknown return_to value" do
-    BookFriendship.create!(requester: user, addressee: other_user)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user
 
-    patch user_book_friendship_path(user), params: { return_to: "https://example.com" }
+    patch user_book_friendship_path(user), params: friendship_params(friendship, return_to: "https://example.com")
 
     expect(response).to redirect_to(user_path(user))
   end
 
   it "shows a cancel notice when the requester deletes a pending request" do
-    BookFriendship.create!(requester: user, addressee: other_user)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
     sign_in user
 
     expect {
-      delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
+      delete user_book_friendship_path(other_user), params: friendship_params(friendship, return_to: "relationships")
     }.not_to change(Notification, :count)
 
     expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
@@ -232,12 +272,12 @@ RSpec.describe "BookFriendships", type: :request do
   end
 
   it "updates the sent book friend requests section when cancelling from the relationship hub with Turbo" do
-    BookFriendship.create!(requester: user, addressee: other_user)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
     sign_in user
 
     expect {
       delete user_book_friendship_path(other_user),
-             params: { return_to: "relationships", tab: "sent_book_friend_requests" },
+             params: friendship_params(friendship, return_to: "relationships", tab: "sent_book_friend_requests"),
              headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.to change(BookFriendship, :count).by(-1)
 
@@ -249,11 +289,11 @@ RSpec.describe "BookFriendships", type: :request do
   end
 
   it "shows a reject notice when the addressee deletes a pending request" do
-    BookFriendship.create!(requester: user, addressee: other_user)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user
 
     expect {
-      delete user_book_friendship_path(user), params: { return_to: "relationships" }
+      delete user_book_friendship_path(user), params: friendship_params(friendship, return_to: "relationships")
     }.not_to change(Notification, :count)
 
     expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
@@ -261,12 +301,12 @@ RSpec.describe "BookFriendships", type: :request do
   end
 
   it "updates the received book friend requests section when rejecting from the relationship hub with Turbo" do
-    BookFriendship.create!(requester: user, addressee: other_user)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user)
     sign_in other_user
 
     expect {
       delete user_book_friendship_path(user),
-             params: { return_to: "relationships", tab: "received_book_friend_requests" },
+             params: friendship_params(friendship, return_to: "relationships", tab: "received_book_friend_requests"),
              headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.to change(BookFriendship, :count).by(-1)
 
@@ -278,11 +318,11 @@ RSpec.describe "BookFriendships", type: :request do
   end
 
   it "shows a remove notice when deleting an accepted book friendship" do
-    BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
     sign_in user
 
     expect {
-      delete user_book_friendship_path(other_user), params: { return_to: "relationships" }
+      delete user_book_friendship_path(other_user), params: friendship_params(friendship, return_to: "relationships")
     }.not_to change(Notification, :count)
 
     expect(response).to redirect_to(account_relationships_path(tab: "book_friends", page: 1))
@@ -290,9 +330,9 @@ RSpec.describe "BookFriendships", type: :request do
   end
 
   it "allows either user to request again after removing an accepted friendship" do
-    BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    removed_friendship = BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
     sign_in user
-    delete user_book_friendship_path(other_user)
+    delete user_book_friendship_path(other_user), params: friendship_params(removed_friendship)
 
     sign_out user
     sign_in other_user
@@ -309,10 +349,12 @@ RSpec.describe "BookFriendships", type: :request do
   it "updates the book friends section when removing a book friendship from the relationship hub with Turbo" do
     BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
     sign_in user
+    get account_relationships_path(tab: "book_friends")
+    form_params = rendered_friendship_params(other_user)
 
     expect {
       delete user_book_friendship_path(other_user),
-             params: { return_to: "relationships" },
+             params: form_params.merge(return_to: "relationships"),
              headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.to change(BookFriendship, :count).by(-1)
 
@@ -325,13 +367,13 @@ RSpec.describe "BookFriendships", type: :request do
 
   it "keeps remaining book friends when removing one book friendship from the relationship hub with Turbo" do
     remaining_user = User.create!(name: "Remaining Friend", email: "remaining-book-friend@example.com", password: "password123!", password_confirmation: "password123!")
-    BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
+    friendship = BookFriendship.create!(requester: user, addressee: other_user, status: :accepted)
     BookFriendship.create!(requester: user, addressee: remaining_user, status: :accepted)
     sign_in user
 
     expect {
       delete user_book_friendship_path(other_user),
-             params: { return_to: "relationships" },
+             params: friendship_params(friendship, return_to: "relationships"),
              headers: { "Accept" => "text/vnd.turbo-stream.html" }
     }.to change(BookFriendship, :count).by(-1)
 

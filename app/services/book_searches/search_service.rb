@@ -53,10 +53,18 @@ module BookSearches
 
       def normalize_meta(meta)
         {
-          total_count: meta["total_count"].to_i,
-          pageable_count: meta["pageable_count"].to_i,
+          total_count: normalize_count(meta["total_count"]),
+          pageable_count: normalize_count(meta["pageable_count"]),
           is_end: meta["is_end"]
         }
+      end
+
+      def normalize_count(value)
+        return 0 if value.nil?
+        return value if value.is_a?(Integer) && value >= 0
+        return value.to_i if value.is_a?(String) && value.match?(/\A[0-9]+\z/)
+
+        raise BookSearches::KakaoAdapter::Error, "invalid_response"
       end
     end
   end

@@ -41,6 +41,23 @@ RSpec.describe "Comments", type: :request do
     expect(response).to redirect_to(jjaek_path(jjaek))
   end
 
+  it "does not create a comment or its notification when a personal jjaek is hidden during the request" do
+    moderator = User.create!(name: "Moderator", email: "comment-race-admin@example.com", password: "password123!", global_admin: true)
+    sign_in user
+    allow_any_instance_of(CommentsController).to receive(:set_readable_jjaek).and_wrap_original do |original|
+      original.call
+      Jjaeks::Hide.new(Jjaek.find(jjaek.id), actor: moderator, public_reason: "other").call!
+    end
+
+    expect {
+      post jjaek_comments_path(jjaek), params: { comment: { content: "In flight" } }
+    }.not_to change(Comment, :count)
+
+    expect(jjaek.reload).to be_hidden
+    expect(flash[:alert]).to eq(I18n.t("auth.alerts.not_authorized"))
+    expect(Notification.where(action: :comment_created, actor: user)).to be_empty
+  end
+
   it "keeps the html fallback redirect when creating a comment" do
     sign_in user
 

@@ -60,7 +60,27 @@ RSpec.describe "Bookshelves", type: :request do
     }.not_to change(Bookshelf, :count)
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include(I18n.t("activerecord.errors.models.bookshelf.attributes.base.too_many_bookshelves", count: Bookshelf::MAX_PER_USER))
+    message = I18n.t("activerecord.errors.models.bookshelf.attributes.base.too_many_bookshelves", count: Bookshelf::MAX_PER_USER)
+    expect(response.body).to include(message)
+    form = Nokogiri::HTML(response.body).at_css("form[action='#{bookshelves_path}']")
+    expect(form.at_css(".border-red-200 p").text).to eq(message)
+    expect(form.css(".border-red-200 li")).to be_empty
+  end
+
+  it "lists multiple bookshelf errors in validation order and keeps the submitted name" do
+    sign_in user
+    attributes = { name: "보존할 이름", visibility: "everyone", color_key: "black" }
+    invalid_bookshelf = user.bookshelves.build(attributes)
+    invalid_bookshelf.valid?
+
+    post bookshelves_path, params: { bookshelf: attributes }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    form = Nokogiri::HTML(response.body).at_css("form[action='#{bookshelves_path}']")
+    messages = form.css(".border-red-200 ul.list-disc li").map(&:text)
+    expect(messages.size).to be >= 2
+    expect(messages).to eq(invalid_bookshelf.errors.full_messages)
+    expect(form.at_css('input[name="bookshelf[name]"]')["value"]).to eq(attributes[:name])
   end
 
   it "does not create a bookshelf with an unsupported visibility" do
@@ -153,8 +173,13 @@ RSpec.describe "Bookshelves", type: :request do
     user.bookshelves.create!(name: "중복 이름", visibility: :public)
     bookshelf = user.bookshelves.create!(name: "수정 대상", visibility: :book_friends)
     book = Book.create!(title: "수정 실패에도 보이는 책", authors_text: "저자")
-    user.bookshelf_entries.create!(book:, bookshelf:)
+    first = user.bookshelf_entries.create!(book:, bookshelf:, updated_at: 2.days.ago)
+    second = user.bookshelf_entries.create!(book: Book.create!(title: "더 최근에 담은 책"), bookshelf:)
     sign_in user
+
+    get user_library_path(user, bookshelf_id: bookshelf.id)
+    normal_summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]").text.strip
+    expect(normal_summary).to eq(I18n.t("reading_experience.library_summary", shelves: 3, books: 2))
 
     patch bookshelf_path(bookshelf), params: { bookshelf: { name: "중복 이름", visibility: "private" } }
 
@@ -162,8 +187,34 @@ RSpec.describe "Bookshelves", type: :request do
     expect(response.body).to include(I18n.t("users.profile.bookshelf_tabs"))
     expect(response.body).to include("수정 실패에도 보이는 책")
     expect(response.body).to include("중복 이름")
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("[data-library-bookshelf-summary]").text.strip).to eq(normal_summary)
+    expect(page.at_css('select[name="sort"] option[selected]')["value"]).to eq("manual")
+    expect(page.css("[data-bookshelf-entry-id]").map { |node| node["data-bookshelf-entry-id"].to_i }).to eq([ first.id, second.id ])
+    edit_form = page.at_css("form[action='#{bookshelf_path(bookshelf)}']")
+    expect(edit_form.at_css('input[name="bookshelf[name]"]')["value"]).to eq("중복 이름")
     expect(bookshelf.reload.name).to eq("수정 대상")
     expect(bookshelf.visibility).to eq("book_friends")
+  end
+
+  it "keeps the selected bookshelf and explicit sort when creation fails" do
+    shelf = user.bookshelves.create!(name: "선택한 책장", visibility: :private)
+    user.bookshelf_entries.create!(book: Book.create!(title: "선택한 책장의 책"), bookshelf: shelf)
+    sign_in user
+
+    get user_library_path(user, bookshelf_id: shelf.id, sort: "title")
+    form = Nokogiri::HTML(response.body).at_css("form[action='#{bookshelves_path}']")
+    selection = form.css('input[name="bookshelf_id"], input[name="sort"]').to_h { |input| [ input["name"], input["value"] ] }
+    expect(selection).to eq("bookshelf_id" => shelf.id.to_s, "sort" => "title")
+
+    post bookshelves_path, params: selection.merge(bookshelf: { name: shelf.name, visibility: "private" })
+
+    expect(response).to have_http_status(:unprocessable_content)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("[data-library-bookshelf-summary]").text.strip)
+      .to eq(I18n.t("reading_experience.library_summary", shelves: 2, books: 1))
+    expect(page.at_css('select[name="sort"] option[selected]')["value"]).to eq("title")
+    expect(page.text).to include("선택한 책장의 책")
   end
 
   it "rerenders the library bookshelf section when update visibility is unsupported" do

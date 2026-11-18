@@ -10,6 +10,46 @@ RSpec.describe "Settings", type: :request do
     Rack::Test::UploadedFile.new(path, "image/png")
   end
 
+  [
+    [ Account::SettingsController, :settings_params, :account_settings_path ],
+    [ Users::RegistrationsController, :account_update_params, :user_registration_path ]
+  ].each do |controller, params_method, path_helper|
+    it "preserves the anonymous name if withdrawal finishes during #{controller.name} update" do
+      sign_in user
+      allow_any_instance_of(controller).to receive(params_method).and_wrap_original do |original|
+        original.call.tap do
+          Users::WithdrawAccount.new(User.find(user.id), current_password: "password123!").call!
+        end
+      end
+
+      patch public_send(path_helper), params: { user: { name: "Former identity", current_password: "password123!" } }
+
+      expect(response).to redirect_to(root_path)
+      expect(user.reload).to be_withdrawn
+      expect(user.name).to eq(User::WITHDRAWN_NAME)
+    end
+  end
+
+  it "purges the staged avatar if withdrawal finishes before the attachment is saved" do
+    sign_in user
+    staged_blob_id = nil
+    allow(ActiveStorage::Blob.service).to receive(:upload).and_wrap_original do |original, key, io, **options|
+      original.call(key, io, **options)
+      staged_blob_id = ActiveStorage::Blob.find_by!(key:).id
+      Users::WithdrawAccount.new(User.find(user.id), current_password: "password123!").call!
+    end
+
+    perform_enqueued_jobs(only: ActiveStorage::PurgeJob) do
+      patch avatar_account_settings_path, params: { user: { avatar: png_upload } }
+    end
+
+    expect(response).to redirect_to(root_path)
+    expect(user.reload).to be_withdrawn
+    expect(user.avatar).not_to be_attached
+    expect(staged_blob_id).to be_present
+    expect(ActiveStorage::Blob.exists?(staged_blob_id)).to be(false)
+  end
+
   [ false, true ].each do |authenticated|
     it "blocks unused direct uploads #{authenticated ? 'after sign in' : 'for guests'} without creating blobs" do
       sign_in user if authenticated

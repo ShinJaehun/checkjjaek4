@@ -10,7 +10,7 @@
   <% if @error_message.present? %>
     <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @error_message %></p>
   <% elsif @group.errors.any? %>
-    <p class="mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700"><%= @group.errors.full_messages.to_sentence %></p>
+    <%= form_error_messages(@group.errors.full_messages, class: "mt-5 rounded-2xl bg-red-50 p-4 text-sm text-red-700") %>
   <% end %>
 
   <%= form_with url: group_closures_path(@group), method: :post, scope: :group, class: "mt-6 space-y-4" do |form| %>

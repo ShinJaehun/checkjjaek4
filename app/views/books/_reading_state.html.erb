@@ -6,9 +6,7 @@
   <%= hidden_field_tag :group_id, @group.id if @group.present? %>
   <%= hidden_field_tag :return_to, return_path if return_path %>
 
-  <% if bookshelf_entry.errors.any? %>
-    <p role="alert" class="text-sm text-red-700"><%= bookshelf_entry.errors.full_messages.to_sentence %></p>
-  <% end %>
+  <%= form_error_messages(bookshelf_entry.errors.full_messages, role: "alert", class: "text-sm text-red-700") %>
 
   <fieldset class="space-y-3" data-reading-status-card>
     <legend class="text-sm font-semibold text-stone-900"><%= t("books.show.status_label") %></legend>

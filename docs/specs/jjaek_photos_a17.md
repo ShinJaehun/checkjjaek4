@@ -52,7 +52,8 @@
   이는 완전한 저장 방지가 아니며 이미 전달된 파일·화면을 회수하지 못한다.
 - 원본/Variant 모두 로그인과 `JjaekPolicy#view_photos?`를 확인하고 해당 Jjaek의 `photos` 첨부 ID로 조회한다.
   숨김 placeholder만 볼 수 있는 사람, 삭제 짹, 부모를 못 보는 사용자는 파일을 받지 못한다.
-  숨김 원문을 읽을 수 있는 작성자/운영자의 기존 권한은 유지한다. 변환 대기 후 권한과 소속도 재검사한다.
+  숨김 원문을 읽을 수 있는 작성자/운영자의 기존 권한은 유지한다.
+  응답 직전에 요청자의 정지·탈퇴 상태, 현재 열람 권한과 사진 첨부 소속을 다시 검사한다.
 - Active Storage 기본 Blob/representation/Disk/direct-upload 라우트를 닫고 아바타도 로그인 경로로 제공한다.
   사진을 아바타 또는 다른 부모 경로에 넣어 읽을 수 없다. 아바타 기본 asset fallback과 128/512px를 유지한다.
 - OCI URL로 redirect하지 않고 파일을 chunk 단위로 중계한다. `private, no-store`로 인증 응답을 캐시하지 않는다.

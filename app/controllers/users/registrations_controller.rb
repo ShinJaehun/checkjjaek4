@@ -21,7 +21,7 @@ module Users
       return render_invalid_invitation unless invitation
 
       invitation.with_lock do
-        return render_invalid_invitation unless invitation.active?
+        return render_invalid_invitation unless invitation.active? && invitation.matches_token?(@invitation_token)
 
         build_resource(sign_up_params.merge(email: invitation.email))
         if resource.terms_accepted == "1"
@@ -51,6 +51,14 @@ module Users
     end
 
     protected
+
+    def update_resource(resource, params)
+      resource.with_lock do
+        raise Pundit::NotAuthorizedError unless resource.active_account? && !resource.suspended?
+
+        super
+      end
+    end
 
     def build_resource(hash = nil)
       super.tap { |user| user.handle_required_for_registration = true }

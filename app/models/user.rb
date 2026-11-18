@@ -207,6 +207,15 @@ class User < ApplicationRecord
     end
   end
 
+  # The caller validated and uploaded this exact blob before acquiring the user lock.
+  def save_validated_avatar(blob)
+    @validated_avatar_blob = blob
+    self.avatar = blob
+    save
+  ensure
+    @validated_avatar_blob = nil
+  end
+
   private
 
   def terms_acceptance_for_registration
@@ -223,6 +232,8 @@ class User < ApplicationRecord
 
   def validate_avatar_image
     attachable = attachment_changes.fetch("avatar").attachable
+    return if attachable.equal?(@validated_avatar_blob)
+
     io = case attachable
     when Hash then attachable.fetch(:io)
     when File then attachable

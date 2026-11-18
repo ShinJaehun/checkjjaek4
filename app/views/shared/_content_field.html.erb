@@ -2,8 +2,10 @@
 <% over_limit = content_length > 200 %>
 <% excluded_errors = local_assigns.fetch(:excluded_errors, []) %>
 <% server_errors = form.object.errors.reject { |error| (error.attribute == :content && error.type == :too_long) || excluded_errors.include?(error) } %>
+<% multiple_server_errors = server_errors.many? %>
 <% server_messages = server_errors.map do |error|
-  tag.span(error.full_message, data: { content_error_type: (error.type if error.attribute == :content) })
+  content_tag(multiple_server_errors ? :li : :span, error.full_message,
+              data: { content_error_type: (error.type if error.attribute == :content) })
 end %>
 <% content_invalid = form.object.errors.include?(:content) || over_limit %>
 <% errors_id = form.field_id(:content, :errors) %>
@@ -18,7 +20,9 @@ end %>
        data-content-length-target="errors"
        role="alert"
        <%= "hidden" unless server_messages.any? || over_limit %>>
-    <p data-content-length-target="serverErrors" <%= "hidden" if server_messages.empty? %>><%= safe_join(server_messages, " ") %></p>
+    <%= content_tag(multiple_server_errors ? :ul : :p, safe_join(server_messages),
+                    class: ("form-error-list" if multiple_server_errors),
+                    data: { content_length_target: "serverErrors" }, hidden: server_messages.empty?) %>
     <p data-content-length-target="warning" <%= "hidden" unless over_limit %>><%= t("content_form.too_long", count: 200) %></p>
   </div>
   <%= form.label :content, t(label_key), class: "sr-only" %>

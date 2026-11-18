@@ -4,11 +4,15 @@ class FollowsController < ApplicationController
   before_action :set_user
 
   def create
-    authorize @user, :follow?
+    # Serialize this follower's requests without blocking foreign-key checks for reciprocal follows.
+    follow = current_user.with_lock("FOR NO KEY UPDATE") do
+      authorize @user.reload, :follow?
+      record = current_user.active_follows.find_or_initialize_by(followee: @user)
+      record.save unless record.persisted?
+      record
+    end
 
-    follow = current_user.active_follows.find_or_initialize_by(followee: @user)
-
-    if follow.persisted? || follow.save
+    if follow.persisted?
       redirect_to redirect_target, notice: t("follows.notices.created")
     else
       redirect_to redirect_target, alert: follow.errors.full_messages.to_sentence

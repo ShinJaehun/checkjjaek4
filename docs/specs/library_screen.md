@@ -157,6 +157,7 @@ Library Screen은 Bookshelf UI의 주 화면이다.
 
 지원 값:
 
+- `manual`
 - `recent`
 - `title`
 - `author`
@@ -164,9 +165,8 @@ Library Screen은 Bookshelf UI의 주 화면이다.
 
 정책:
 
-- 기본값은 `recent`다.
-- 허용되지 않은 sort 값은 `recent`로 fallback한다.
-- 책장 탭 이동 시 현재 sort 값을 유지한다.
+- 본인 서재는 `manual`, 타인 서재는 `recent`를 기본값으로 사용한다. 허용되지 않은 `sort` 값에도 같은 기본값을 적용한다.
+- 책장 탭 이동과 책장 생성·수정의 검증 실패 시 현재 정렬을 유지한다.
 
 ### 책 이동
 

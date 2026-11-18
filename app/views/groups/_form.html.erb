@@ -3,7 +3,7 @@
               class: settings_section ? "mt-5 space-y-5" : "space-y-5" do |form| %>
   <% if group.errors.any? && (settings_section.nil? || @failed_group_form == settings_section) %>
     <div role="alert" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-      <%= group.errors.full_messages.to_sentence %>
+      <%= form_error_messages(group.errors.full_messages) %>
     </div>
   <% end %>
 

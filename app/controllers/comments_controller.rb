@@ -22,15 +22,9 @@ class CommentsController < ApplicationController
   end
 
   def create
-    @comment = Comment.new(comment_params.merge(jjaek: @jjaek, user: current_user))
-    authorize @comment
-
-    saved = if @jjaek.group
-      @jjaek.group.with_lock do
-        authorize @comment
-        @comment.save
-      end
-    else
+    saved = @jjaek.with_reaction_lock do
+      @comment = Comment.new(comment_params.merge(jjaek: @jjaek, user: current_user))
+      authorize @comment
       @comment.save
     end
 
