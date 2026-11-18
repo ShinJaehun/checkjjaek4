@@ -19,4 +19,10 @@ module RelationshipsHelper
   def relationship_action_params
     @relationship_page.navigation_params.merge(return_to: "relationships")
   end
+
+  def book_friendship_action_params(friendship)
+    return {} unless friendship
+
+    { friendship_id: friendship.id, friendship_status: friendship.status }
+  end
 end

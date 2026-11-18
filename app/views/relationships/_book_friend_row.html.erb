@@ -5,7 +5,7 @@
     <%= button_to t("users.actions.remove_book_friend"),
                   user_book_friendship_path(book_friend),
                   method: :delete,
-                  params: relationship_action_params,
+                  params: relationship_action_params.merge(friendship_id: book_friend.book_friendship_id, friendship_status: "accepted"),
                   class: "ui-button ui-button-secondary whitespace-nowrap px-2 text-xs" %>
   </div>
 </article>

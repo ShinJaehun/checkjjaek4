@@ -92,6 +92,25 @@ RSpec.describe "Password resets", type: :request do
     UsersMailer.default_url_options = original_options
   end
 
+  it "keeps the public response identical when SMTP delivery fails" do
+    withdrawn = User.create!(name: "Withdrawn", email: "withdrawn-reset@example.com", password: "password123!",
+      withdrawn_at: Time.current)
+    delivery = double("reset mail")
+    expect(UsersMailer).to receive(:reset_password_instructions).once.and_return(delivery)
+    allow(delivery).to receive(:deliver_now).and_raise(Net::SMTPFatalError, "Rejected reader@example.com private-token")
+    allow(Rails.logger).to receive(:warn).and_call_original
+    expect(Rails.logger).to receive(:warn).with("Password reset mail delivery failed (Net::SMTPFatalError)")
+
+    [ reader.email, "missing@example.com", withdrawn.email ].each do |email|
+      request_reset(email:)
+
+      expect(response).to redirect_to(new_user_password_path)
+      expect(response).to have_http_status(:found)
+      expect(flash[:notice]).to eq(I18n.t("auth.passwords.request_sent"))
+      expect(response.body).not_to include(email, "private-token")
+    end
+  end
+
   it "changes a password once and requires a fresh sign-in" do
     request_reset
     token = reset_token_from_mail

@@ -25,7 +25,9 @@
 
         <% book_friend_button = profile_book_friend_button_options(user, book_friendship) %>
         <% if book_friend_button %>
-          <%= button_to book_friend_button[:label], book_friend_button[:path], method: book_friend_button[:method], class: book_friend_button[:class_name] %>
+          <%= button_to book_friend_button[:label], book_friend_button[:path],
+                        method: book_friend_button[:method], class: book_friend_button[:class_name],
+                        params: book_friendship_action_params(book_friendship) %>
         <% end %>
 
         <% if invitable_private_groups.any? || cancelable_private_group_invitations.any? %>

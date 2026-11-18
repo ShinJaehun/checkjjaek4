@@ -23,15 +23,15 @@ class BookFriendshipsController < ApplicationController
   end
 
   def update
-    friendship = current_user.received_book_friendships.find_by(requester: @user)
-    unless friendship
-      redirect_to redirect_target, alert: t("book_friendships.alerts.stale_action"), status: :see_other
-      return
+    friendship = BookFriendship.transaction do
+      received = current_user.received_book_friendships.lock.find_by(requester: @user)
+      return redirect_stale_action unless matching_friendship?(received)
+
+      authorize received, :accept?
+      received.accepted!
+      received
     end
 
-    authorize friendship, :accept?
-
-    friendship.accepted!
     Notification.notify_book_friendship_accepted(friendship)
 
     if params[:return_to] == "relationships"
@@ -42,16 +42,17 @@ class BookFriendshipsController < ApplicationController
   end
 
   def destroy
-    friendship = BookFriendship.between(current_user, @user)
+    notice_key = BookFriendship.transaction do
+      friendship = BookFriendship.lock.between(current_user, @user)
 
-    unless friendship
-      redirect_to redirect_target, alert: t("book_friendships.alerts.not_found")
-      return
+      return redirect_to(redirect_target, alert: t("book_friendships.alerts.not_found")) unless friendship
+      return redirect_stale_action unless matching_friendship?(friendship)
+
+      authorize friendship
+      key = destroy_notice_key(friendship)
+      friendship.destroy!
+      key
     end
-
-    authorize friendship
-    notice_key = destroy_notice_key(friendship)
-    friendship.destroy!
 
     if params[:return_to] == "relationships"
       render_relationships_change(notice: t("book_friendships.notices.#{notice_key}"))
@@ -61,6 +62,15 @@ class BookFriendshipsController < ApplicationController
   end
 
   private
+
+  def matching_friendship?(friendship)
+    friendship && friendship.id.to_s == params[:friendship_id].to_s &&
+      friendship.status == params[:friendship_status]
+  end
+
+  def redirect_stale_action
+    redirect_to redirect_target, alert: t("book_friendships.alerts.stale_action"), status: :see_other
+  end
 
   def set_user
     @user = User.find_by_public_param!(params[:user_id])

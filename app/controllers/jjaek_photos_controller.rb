@@ -21,7 +21,8 @@ class JjaekPhotosController < ApplicationController
     end
     # Recheck after the transform lock: queued requests must see changed policy.
     jjaek.reload
-    raise ActiveRecord::RecordNotFound unless policy(jjaek).view_photos? && jjaek.photos_attachments.exists?(attachment.id)
+    current_user.reload
+    return head :not_found unless policy(jjaek).view_photos? && jjaek.photos_attachments.exists?(attachment.id)
 
     send_image_blob(blob)
   rescue ActiveStorage::FileNotFoundError, ActiveStorage::IntegrityError

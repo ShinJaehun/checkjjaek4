@@ -39,17 +39,21 @@ class RelationshipsQuery
   private
 
   def relationship_scopes(user)
-    accepted = BookFriendship.accepted_only
-    friends = User.where(id: accepted.where(requester: user).select(:addressee_id))
-      .or(User.where(id: accepted.where(addressee: user).select(:requester_id)))
-
     {
-      "book_friends" => friends,
+      "book_friends" => book_friends_scope(user),
       "received_book_friend_requests" => user.received_book_friendships.pending.joins(:requester),
       "sent_book_friend_requests" => user.requested_book_friendships.pending.joins(:addressee),
       "following_users" => user.followees,
       "followers" => user.followers
     }
+  end
+
+  def book_friends_scope(user)
+    users = User.arel_table
+    friendships = BookFriendship.arel_table
+    sent = friendships[:requester_id].eq(user.id).and(friendships[:addressee_id].eq(users[:id]))
+    received = friendships[:addressee_id].eq(user.id).and(friendships[:requester_id].eq(users[:id]))
+    User.joins(users.join(friendships).on(sent.or(received)).join_sources).merge(BookFriendship.accepted_only)
   end
 
   def ordered_records(scope)
@@ -58,6 +62,9 @@ class RelationshipsQuery
       scope.order(created_at: :desc, id: :desc).includes(requester: { avatar_attachment: :blob })
     when "sent_book_friend_requests"
       scope.order(created_at: :desc, id: :desc).includes(addressee: { avatar_attachment: :blob })
+    when "book_friends"
+      scope.select("users.*", "book_friendships.id AS book_friendship_id")
+        .order(:name, :id).includes(avatar_attachment: :blob)
     else
       scope.order(:name, :id).includes(avatar_attachment: :blob)
     end

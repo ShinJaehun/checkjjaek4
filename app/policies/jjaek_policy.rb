@@ -99,7 +99,7 @@ class JjaekPolicy < ApplicationPolicy
   end
 
   def view_photos?
-    user.present? && !record.deleted? && show? && view_original_content?
+    user&.active_account? && !user.suspended? && !record.deleted? && show? && view_original_content?
   end
 
   def create?

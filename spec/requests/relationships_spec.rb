@@ -12,7 +12,7 @@ RSpec.describe "Relationships", type: :request do
   let!(:hidden_book_friend) { User.create!(name: "Hidden Book Friend", email: "hidden-book-friend-relationships@example.com", password: "password123!", password_confirmation: "password123!") }
 
   before do
-    received_requester.requested_book_friendships.create!(addressee: viewer)
+    @received_friendship = received_requester.requested_book_friendships.create!(addressee: viewer)
     viewer.requested_book_friendships.create!(addressee: sent_addressee)
     BookFriendship.create!(requester: viewer, addressee: book_friend, status: :accepted)
     viewer.active_follows.create!(followee: followee)
@@ -291,7 +291,8 @@ RSpec.describe "Relationships", type: :request do
     sign_in viewer
 
     patch user_book_friendship_path(received_requester),
-          params: { return_to: "relationships", tab: "received_book_friend_requests", q: "Received", page: 2 },
+          params: { friendship_id: @received_friendship.id, friendship_status: "pending",
+                    return_to: "relationships", tab: "received_book_friend_requests", q: "Received", page: 2 },
           headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
@@ -319,7 +320,8 @@ RSpec.describe "Relationships", type: :request do
       headers = format == :turbo_stream ? { "Accept" => "text/vnd.turbo-stream.html" } : {}
 
       patch user_book_friendship_path(received_requester),
-            params: { return_to: "relationships", tab: "received_book_friend_requests", q: "Received", page: 2 },
+            params: { friendship_id: @received_friendship.id, friendship_status: "pending",
+                      return_to: "relationships", tab: "received_book_friend_requests", q: "Received", page: 2 },
             headers: headers
 
       expect(response).to have_http_status(:see_other)

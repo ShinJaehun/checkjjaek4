@@ -2,11 +2,16 @@ class BookshelvesController < ApplicationController
   before_action :set_bookshelf, only: %i[update destroy move_up move_down]
 
   def create
-    @bookshelf = current_user.bookshelves.build(bookshelf_params)
-    @bookshelf.is_default = false
-    authorize @bookshelf
+    saved = current_user.with_lock do
+      raise Pundit::NotAuthorizedError unless current_user.active_account? && !current_user.suspended?
 
-    if @bookshelf.save
+      @bookshelf = current_user.bookshelves.build(bookshelf_params)
+      @bookshelf.is_default = false
+      authorize @bookshelf
+      @bookshelf.save
+    end
+
+    if saved
       redirect_to bookshelf_redirect_path(@bookshelf.id),
                   notice: t("bookshelves.notices.created", bookshelf_name: @bookshelf.name)
     else

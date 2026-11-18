@@ -4,18 +4,10 @@ class LikesController < ApplicationController
              with: :like_rate_limit_exceeded, only: %i[create destroy]
 
   def create
-    @like = @jjaek.likes.find_or_initialize_by(user: current_user)
-    authorize @like
-
-    saved = if @like.persisted?
-      true
-    elsif @jjaek.group
-      @jjaek.group.with_lock do
-        authorize @like
-        @like.save
-      end
-    else
-      @like.save
+    saved = @jjaek.with_reaction_lock do
+      @like = @jjaek.likes.find_or_initialize_by(user: current_user)
+      authorize @like
+      @like.persisted? || @like.save
     end
 
     if saved

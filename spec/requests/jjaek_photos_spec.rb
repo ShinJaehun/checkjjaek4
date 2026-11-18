@@ -294,6 +294,22 @@ RSpec.describe "Jjaek photos", type: :request do
     expect_photo_access(jjaek, photo, :not_found)
   end
 
+  it "does not deliver a variant when the viewer is suspended during processing" do
+    BookFriendship.create!(requester: writer, addressee: reader, status: :accepted)
+    jjaek = create_photo_post(visibility: :book_friends)
+    photo = jjaek.ordered_photos.first
+    sign_in reader
+    allow(ImageProcessingLock).to receive(:synchronize).and_wrap_original do |original, &process|
+      original.call(&process).tap { User.where(id: reader.id).update_all(suspended_at: Time.current) }
+    end
+
+    get jjaek_photo_path(jjaek, photo, size: "card")
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.media_type).not_to eq("image/webp")
+    expect(response.headers["Cache-Control"]).to include("private", "no-store")
+  end
+
   it "keeps a profile conversation exclusive to its two participants after friendship ends" do
     friendship = BookFriendship.create!(
       requester: writer,

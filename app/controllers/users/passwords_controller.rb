@@ -1,3 +1,4 @@
+require "net/smtp"
 require "openssl"
 
 module Users
@@ -8,12 +9,19 @@ module Users
                name: "password-reset-ip-email", with: :password_reset_rate_limit_exceeded, only: :create
 
     def create
-      email = normalized_email
-      resource_class.active_accounts.find_by(email:)&.send_reset_password_instructions
+      user = resource_class.active_accounts.find_by(email: normalized_email)
+      send_reset_instructions(user) if user
       redirect_to new_user_password_path, notice: t("auth.passwords.request_sent")
     end
 
     private
+
+    def send_reset_instructions(user)
+      user.send_reset_password_instructions
+    rescue Net::SMTPError, Net::ProtocolError, SocketError, SystemCallError,
+           IOError, Timeout::Error, OpenSSL::SSL::SSLError => error
+      Rails.logger.warn("Password reset mail delivery failed (#{error.class})")
+    end
 
     def normalized_email
       user_params = params[:user]
