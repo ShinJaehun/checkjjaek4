@@ -52,7 +52,12 @@ class GroupImageChanges
         attachments[name] = nil
       end
     end
-    old_blob_ids = attachments.keys.filter_map { |name| group.public_send("#{name}_attachment")&.blob_id }
+    current_attachments = attachments.keys.index_with { |name| group.public_send("#{name}_attachment") }
+    if current_attachments.any? { |name, attachment| @parameters["#{name}_attachment_id"] != attachment&.id.to_s }
+      return fail_with(group, :base, :image_conflict)
+    end
+
+    old_blob_ids = current_attachments.values.compact.map(&:blob_id)
     saved = yield(attachments)
     if saved
       ActiveRecord.after_all_transactions_commit do

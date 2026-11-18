@@ -1,7 +1,7 @@
 <% items.each do |item| %>
   <% if item.is_a?(Jjaek) %>
     <%= render "jjaeks/jjaek", jjaek: item,
-               group_activity: controller_name == "groups" && action_name.in?(%w[index show]),
+               group_activity: context == :group,
                inline_comments_context: context == :book && item.group_id.present? ? :group : context,
                inline_comments_profile_user: profile_user, inline_comments_book: book %>
   <% else %>

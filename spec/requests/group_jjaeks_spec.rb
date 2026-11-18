@@ -33,7 +33,7 @@ RSpec.describe "Group Jjaeks", type: :request do
   end
 
   it "rerenders the group page with its members, form, and errors when a general jjaek is invalid" do
-    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Readers", group_type: :public_group)
+    group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Readers", group_type: :public_group, brand_color: "teal")
     group.group_memberships.create!(user: member, status: :active)
     existing_jjaek = group_admin.jjaeks.create!(group:, content: "Existing group jjaek")
     sign_in member
@@ -48,6 +48,8 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).to include(I18n.t("groups.active_member_count", count: 1))
     expect(response.body).to include(group_jjaeks_path(group), 'name="jjaek[content]"')
     page = Nokogiri::HTML(response.body)
+    stripe = page.at_css("article#jjaek_#{existing_jjaek.id} [data-group-color]")
+    expect(stripe["data-group-color"]).to eq("teal")
     expect(page.text).to include("내용을 입력해 주세요.")
     expect(page.text).not_to include("Content", "can't be blank")
     expect(page.at_css('textarea[name="jjaek[content]"]').text.delete_prefix("\n")).to eq("")

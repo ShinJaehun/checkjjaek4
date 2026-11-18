@@ -1,6 +1,11 @@
 class GroupsController < ApplicationController
   include GroupShowContext
 
+  GROUP_IMAGE_FIELDS = %i[
+    profile_image_file cover_image_file remove_profile_image remove_cover_image
+    profile_image_attachment_id cover_image_attachment_id
+  ].freeze
+
   before_action :prepare_feed_response_format, only: %i[index show]
   before_action :set_group, only: %i[show edit update]
   before_action :prepare_group_creation, only: :create
@@ -80,13 +85,18 @@ class GroupsController < ApplicationController
   def update
     authorize @group
     image_changes = GroupImageChanges.new(group_image_params)
+    prepared = image_changes.prepare(@group)
 
-    updated = image_changes.prepare(@group) && @group.with_lock do
-      authorize @group
-      next false unless image_changes.save(@group) { |images| @group.update(update_group_params.merge(images)) }
+    updated = current_user.with_lock("FOR NO KEY UPDATE") do
+      raise Pundit::NotAuthorizedError unless current_user.active_account? && !current_user.suspended?
 
-      sync_opening_request_detail
-      true
+      @group.with_lock do
+        authorize @group
+        next false unless prepared && image_changes.save(@group) { |images| @group.update(update_group_params.merge(images)) }
+
+        sync_opening_request_detail
+        true
+      end
     end
 
     if updated
@@ -126,8 +136,13 @@ class GroupsController < ApplicationController
     hidden_group_ids = current_user.group_list_hidings.select(:group_id)
     groups = policy_scope(Group, policy_scope_class: GroupPolicy::MembershipScope).where.not(id: hidden_group_ids)
     memberships = GroupMembership.displayed_for(user: current_user, groups:)
-      .preload(group: [ :profile_image_attachment, { group_admin: { avatar_attachment: :blob } } ]).to_a
+      .preload(group: { group_admin: { avatar_attachment: :blob } }).to_a
     @groups = memberships.map(&:group)
+    @profile_image_group_ids = policy_scope(Group).where(id: @groups.map(&:id)).pluck(:id).to_set
+    ActiveRecord::Associations::Preloader.new(
+      records: @groups.select { |group| @profile_image_group_ids.include?(group.id) },
+      associations: :profile_image_attachment
+    ).call
     @memberships_by_group_id = memberships.index_by(&:group_id)
     prepare_group_card_members
     managed_approval_group_ids = @groups.select { |group| group.approval_group? && group.group_admin?(current_user) }.map(&:id)
@@ -233,15 +248,14 @@ class GroupsController < ApplicationController
   def update_group_params
     permitted = %i[name description brand_color]
     permitted << :application_purpose if @group.pending_approval?
-    params.fetch(:group, {}).except(:profile_image_file, :cover_image_file, :remove_profile_image, :remove_cover_image)
+    params.fetch(:group, {}).except(*GROUP_IMAGE_FIELDS)
       .permit(*permitted).tap do |attributes|
         attributes[:brand_color] = nil if attributes[:brand_color] == ""
       end
   end
 
   def group_image_params
-    params.fetch(:group, {}).slice(:profile_image_file, :cover_image_file, :remove_profile_image, :remove_cover_image)
-      .permit(:profile_image_file, :cover_image_file, :remove_profile_image, :remove_cover_image)
+    params.fetch(:group, {}).slice(*GROUP_IMAGE_FIELDS).permit(*GROUP_IMAGE_FIELDS)
   end
 
   def prepare_lifecycle_history

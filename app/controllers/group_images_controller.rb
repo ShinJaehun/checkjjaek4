@@ -26,7 +26,9 @@ class GroupImagesController < ApplicationController
         saver: { strip: true, quality: 85 }).processed.image.blob
     end
     group.reload
-    unless policy(group).view_images? && ActiveStorage::Attachment.where(record: group, name: Group::IMAGE_NAMES).exists?(attachment.id)
+    current_user.reload
+    unless current_user.active_account? && !current_user.suspended? && policy(group).view_images? &&
+        ActiveStorage::Attachment.where(record: group, name: Group::IMAGE_NAMES).exists?(attachment.id)
       raise ActiveRecord::RecordNotFound
     end
     send_image_blob(blob)

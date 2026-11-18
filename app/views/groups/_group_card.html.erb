@@ -5,7 +5,7 @@
     <%= render "groups/color_stripe", group: %>
   <% end %>
   <div class="flex min-w-0 items-center gap-3">
-    <%= render "groups/profile_image", group:, show_image: show_details, image_class: "h-12 w-12" %>
+    <%= render "groups/profile_image", group:, show_image: show_details && local_assigns.fetch(:profile_image_accessible, true), image_class: "h-12 w-12" %>
     <h3 class="min-w-0 text-lg font-semibold text-stone-900">
       <%= link_to group.name, group_path(group), class: "block truncate", title: group.name %>
     </h3>
