@@ -6,8 +6,9 @@ module Account
 
     def update
       @user = current_user
+      attributes = settings_params
 
-      if @user.update(settings_params)
+      if with_settings_lock { @user.update(attributes) }
         redirect_to account_settings_path, notice: t("settings.notices.updated")
       else
         render :show, status: :unprocessable_content
@@ -20,7 +21,7 @@ module Account
 
       if attributes[:password].blank?
         @user.errors.add(:password, :blank)
-      elsif @user.update_with_password(attributes)
+      elsif with_settings_lock { @user.update_with_password(attributes) }
         sign_out @user
         return redirect_to new_user_session_path, notice: t("devise.passwords.updated"), status: :see_other
       end
@@ -40,35 +41,43 @@ module Account
       @user.avatar = upload if upload.present?
       @user.errors.add(:avatar, :blank) if upload.blank?
 
-      if upload.present? && @user.valid?
-        blob = @user.avatar.blob
-        begin
-          blob.save!
-          blob.upload_without_unfurling(upload.open)
-        rescue StandardError => error
-          blob.purge_later if blob.persisted?
-          Rails.logger.error("Avatar upload failed: #{error.class}: #{error.message}")
-          @avatar_errors = [ t("settings.avatar.upload_failed") ]
-          return render_avatar_failure
-        end
+      return render_avatar_failure if upload.blank? || !@user.valid?
 
-        @user.avatar = blob
-        if @user.save
-          return redirect_to account_settings_path, notice: t("settings.avatar.updated")
-        end
-        blob.purge_later
+      blob = @user.avatar.blob
+      begin
+        blob.save!
+        blob.upload_without_unfurling(upload.open)
+      rescue StandardError => error
+        Rails.logger.error("Avatar upload failed: #{error.class}: #{error.message}")
+        @avatar_errors = [ t("settings.avatar.upload_failed") ]
+        return render_avatar_failure
       end
 
-      render_avatar_failure
+      saved = with_settings_lock { @user.save_validated_avatar(blob) }
+      if saved
+        redirect_to account_settings_path, notice: t("settings.avatar.updated")
+      else
+        render_avatar_failure
+      end
+    ensure
+      blob.purge_later if !saved && blob&.persisted? && !blob.attachments.exists?
     end
 
     def destroy_avatar
       @user = current_user
-      @user.avatar.purge_later if @user.avatar.attached?
+      with_settings_lock { @user.avatar_attachment&.destroy! }
       redirect_to account_settings_path, notice: t("settings.avatar.removed"), status: :see_other
     end
 
     private
+
+    def with_settings_lock
+      current_user.with_lock do
+        raise Pundit::NotAuthorizedError unless current_user.active_account? && !current_user.suspended?
+
+        yield
+      end
+    end
 
     def password_params
       attributes = params.require(:user).permit(:current_password, :password, :password_confirmation)

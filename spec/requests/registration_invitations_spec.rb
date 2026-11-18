@@ -120,6 +120,26 @@ RSpec.describe "Registration invitations", type: :request do
     RegistrationInvitationMailer.default_url_options = original_options
   end
 
+  it "rejects a token rotated after sign-up looked up the invitation" do
+    invitation, token = issue_invitation
+    new_digest = nil
+    allow(RegistrationInvitation).to receive(:find_by_token).with(token).and_wrap_original do |original, submitted_token|
+      original.call(submitted_token).tap do
+        invitation.with_lock { invitation.resend_token! }
+        new_digest = invitation.token_digest
+      end
+    end
+
+    expect {
+      post user_registration_path, params: { invitation_token: token, user: registration_attributes }
+    }.not_to change(User, :count)
+
+    expect(response).to have_http_status(:forbidden)
+    expect(invitation.reload).to have_attributes(token_digest: new_digest, consumed_at: nil, user_id: nil)
+    expect(new_digest).not_to eq(RegistrationInvitation.digest(token))
+    expect(response.body).not_to include(token, new_digest)
+  end
+
   it "invalidates the old link on resend and both links on cancel" do
     invitation, old_token = issue_invitation
     sign_in admin

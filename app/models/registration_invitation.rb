@@ -29,6 +29,10 @@ class RegistrationInvitation < ApplicationRecord
     !anonymized_email? && consumed_at.nil? && canceled_at.nil? && expires_at.future?
   end
 
+  def matches_token?(token)
+    ActiveSupport::SecurityUtils.secure_compare(token_digest, self.class.digest(token))
+  end
+
   def anonymized_email
     "withdrawn-invitation-#{id}@users.invalid"
   end

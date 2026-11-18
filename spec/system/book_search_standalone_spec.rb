@@ -14,10 +14,15 @@ RSpec.describe "Standalone book search", type: :system do
   after { Warden.test_reset! }
 
   def open_global_search
-    if page.has_button?(I18n.t("navigation.menu"), visible: true)
-      click_button I18n.t("navigation.menu")
+    within("header[data-controller='mobile-navigation']") do
+      unless page.has_button?(I18n.t("book_search.nav"), visible: true, wait: 0)
+        click_button I18n.t("navigation.menu")
+      end
+
+      expect(page).to have_button(I18n.t("book_search.nav"), visible: true)
+      click_button I18n.t("book_search.nav")
     end
-    within("header[data-controller='mobile-navigation']") { click_button I18n.t("book_search.nav") }
+
     expect(page).to have_css("#global-book-search-dialog[open]")
     expect(page).to have_css("#global-book-search-query:focus")
   end
