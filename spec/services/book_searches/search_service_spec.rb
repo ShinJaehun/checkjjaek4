@@ -4,7 +4,7 @@ RSpec.describe BookSearches::SearchService do
   it "normalizes kakao book search results for the view" do
     allow(BookSearches::KakaoAdapter).to receive(:search).with(query: "미움받을 용기", page: 2, size: 10).and_return(
       {
-        "meta" => { "total_count" => 1, "pageable_count" => 1, "is_end" => true },
+        "meta" => { "total_count" => 1, "pageable_count" => "1", "is_end" => true },
         "documents" => [
           {
             "title" => "미움받을 용기",
@@ -27,7 +27,7 @@ RSpec.describe BookSearches::SearchService do
     expect(result[:results].first[:translators_text]).to eq("첫 역자, 둘째 역자")
     expect(result[:results].first[:published_on]).to eq(Date.new(2026, 4, 22))
     expect(result[:results].first[:thumbnail]).to eq("https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Fexample.com%2Fcover.jpg")
-    expect(result[:meta][:total_count]).to eq(1)
+    expect(result[:meta]).to eq(total_count: 1, pageable_count: 1, is_end: true)
   end
 
   it "accepts partial fields and ignores malformed documents" do
@@ -68,6 +68,17 @@ RSpec.describe BookSearches::SearchService do
   it "treats an invalid provider response as an external search failure" do
     allow(BookSearches::KakaoAdapter).to receive(:search).and_return([])
     expect { described_class.call(query: "Book", page: 1) }.to raise_error(BookSearches::KakaoAdapter::Error)
+  end
+
+  it "treats malformed nested counts as an external search failure" do
+    { "total_count" => [], "pageable_count" => { "count" => 1 } }.each do |field, value|
+      allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
+        "meta" => { field => value }, "documents" => [ { "title" => "Book" } ]
+      )
+
+      expect { described_class.call(query: "Book", page: 1) }
+        .to raise_error(BookSearches::KakaoAdapter::Error, "invalid_response")
+    end
   end
 
   it "drops unsafe book and thumbnail URLs" do

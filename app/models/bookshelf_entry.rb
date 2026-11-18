@@ -35,12 +35,19 @@ class BookshelfEntry < ApplicationRecord
   }
 
   def move_to_bookshelf!(target_bookshelf, before_entry: nil)
-    validate_before_entry_for_move!(target_bookshelf, before_entry) if before_entry
     return true if bookshelf_id == target_bookshelf.id && before_entry.blank?
 
     self.class.transaction do
       target_entries = target_bookshelf.bookshelf_entries.where.not(id: id).order(:position, :id).to_a
-      insert_at = before_entry ? target_entries.index { |entry| entry.id == before_entry.id } : target_entries.size
+      insert_at = if before_entry
+        target_entries.index { |entry| entry.id == before_entry.id && entry.user_id == user_id }
+      else
+        target_entries.size
+      end
+      unless insert_at
+        errors.add(:base, :invalid)
+        raise ActiveRecord::RecordInvalid.new(self)
+      end
       target_entries.insert(insert_at, self)
 
       target_entries.each_with_index do |entry, index|
@@ -102,12 +109,5 @@ class BookshelfEntry < ApplicationRecord
 
   def next_position_in(target_bookshelf)
     target_bookshelf.bookshelf_entries.where.not(id: id).maximum(:position).to_i + 1
-  end
-
-  def validate_before_entry_for_move!(target_bookshelf, before_entry)
-    return if before_entry.user_id == user_id && before_entry.bookshelf_id == target_bookshelf.id
-
-    errors.add(:base, :invalid)
-    raise ActiveRecord::RecordInvalid.new(self)
   end
 end

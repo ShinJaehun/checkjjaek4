@@ -482,6 +482,40 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.reload.bookshelf).to eq(original_bookshelf)
   end
 
+  it "rejects using the moved entry itself as the insertion point" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    sign_in user
+
+    expect {
+      patch move_bookshelf_entry_path(entry), params: { bookshelf_id: entry.bookshelf_id, before_entry_id: entry.id }, as: :json
+    }.not_to change { entry.reload.attributes }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.parsed_body["error"]).to be_present
+  end
+
+  it "rejects a move when its insertion point leaves the target bookshelf after lookup" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    target = user.bookshelves.create!(name: "받을 책장")
+    other = user.bookshelves.create!(name: "기준이 옮겨 간 책장")
+    anchor = user.bookshelf_entries.create!(book: Book.create!(title: "이동 기준 책"), bookshelf: target)
+    allow_any_instance_of(BookshelfEntry).to receive(:move_to_bookshelf!).and_wrap_original do |original, shelf, before_entry:|
+      expect(before_entry.id).to eq(anchor.id)
+      anchor.update!(bookshelf: other)
+      original.call(shelf, before_entry:)
+    end
+    sign_in user
+
+    expect {
+      patch move_bookshelf_entry_path(entry), params: { bookshelf_id: target.id, before_entry_id: anchor.id }, as: :json
+    }.not_to change { entry.reload.attributes }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.parsed_body["error"]).to be_present
+    expect(anchor.reload.bookshelf).to eq(other)
+    expect(target.bookshelf_entries).to be_empty
+  end
+
   it "rejects moving before an entry outside the target bookshelf" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     target_bookshelf = user.bookshelves.create!(name: "삽입 target 책장", visibility: :private)

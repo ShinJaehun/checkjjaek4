@@ -316,4 +316,21 @@ RSpec.describe "BookSearches", type: :request do
     expect(page.text).not_to include(I18n.t("book_search.errors.generic"), I18n.t("book_search.empty.title"))
     expect(page.at_css("main form input[name='query']")["value"]).to eq("실패")
   end
+
+  it "keeps local results and pagination when external count metadata is malformed" do
+    11.times { |index| Book.create!(title: "Local result #{index.to_s.rjust(2, '0')}") }
+    sign_in user
+    allow(BookSearches::KakaoAdapter).to receive(:search).and_return(
+      "meta" => { "total_count" => [], "is_end" => true },
+      "documents" => [ { "title" => "External result" } ]
+    )
+
+    get book_search_path, params: { query: "Local result" }
+
+    expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("main [role='status']").text).to eq(I18n.t("search_ui.external_unavailable"))
+    expect(page.css("main article h3").map(&:text)).to eq(10.times.map { |index| "Local result 0#{index}" })
+    expect(page.text).to include(I18n.t("book_search.pagination.next"))
+  end
 end
