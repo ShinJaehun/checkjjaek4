@@ -3,6 +3,7 @@
   <% Group::IMAGE_NAMES.each do |name| %>
     <% image = group.public_send(name) %>
     <% saved_source = image.attached? ? group_image_path(group, image.attachment, size: name == "profile_image" ? :card : :cover) : nil %>
+    <%= hidden_field_tag "group[#{name}_attachment_id]", image.attachment&.id.to_s %>
     <div class="space-y-2"
          data-controller="group-image-preview"
          data-action="turbo:before-cache@document->group-image-preview#reset"

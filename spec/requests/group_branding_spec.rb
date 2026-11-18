@@ -18,7 +18,10 @@ RSpec.describe "Group branding", type: :request do
 
   def upload_branding(target = group)
     sign_in admin
-    patch group_path(target), params: { group: { profile_image_file: image_upload, cover_image_file: image_upload } }
+    patch group_path(target), params: { group: {
+      profile_image_file: image_upload, profile_image_attachment_id: "",
+      cover_image_file: image_upload, cover_image_attachment_id: ""
+    } }
     expect(response).to have_http_status(:found)
     target.reload
   end
@@ -78,7 +81,10 @@ RSpec.describe "Group branding", type: :request do
     expect(group.reload).to have_attributes(name: "Updated readers", description: "After", brand_color: "blue")
     expect([ group.profile_image_attachment.id, group.cover_image_attachment.id ]).to eq(original_ids)
 
-    patch group_path(group), params: { group: { brand_color: "invalid", profile_image_file: image_upload, remove_cover_image: "1" } }
+    patch group_path(group), params: { group: {
+      brand_color: "invalid", profile_image_file: image_upload, profile_image_attachment_id: original_ids.first,
+      remove_cover_image: "1", cover_image_attachment_id: original_ids.last
+    } }
     expect(response).to have_http_status(:unprocessable_content)
     page = Nokogiri::HTML(response.body)
     expect(page.at_css("#group-branding-form [role='alert']:not([hidden])")).to be_present
@@ -86,7 +92,10 @@ RSpec.describe "Group branding", type: :request do
     expect(group.reload).to have_attributes(name: "Updated readers", description: "After", brand_color: "blue")
     expect([ group.profile_image_attachment.id, group.cover_image_attachment.id ]).to eq(original_ids)
 
-    patch group_path(group), params: { group: { brand_color: "teal", profile_image_file: image_upload, remove_cover_image: "1" } }
+    patch group_path(group), params: { group: {
+      brand_color: "teal", profile_image_file: image_upload, profile_image_attachment_id: original_ids.first,
+      remove_cover_image: "1", cover_image_attachment_id: original_ids.last
+    } }
     expect(response).to redirect_to(group_path(group.reload))
     expect(group).to have_attributes(name: "Updated readers", description: "After", brand_color: "teal")
     expect(group.profile_image_attachment.id).not_to eq(original_ids.first)
@@ -98,7 +107,9 @@ RSpec.describe "Group branding", type: :request do
     profile_id = group.profile_image_attachment.id
     cover_id = group.cover_image_attachment.id
 
-    patch group_path(group), params: { group: { profile_image_file: image_upload("jpg"), brand_color: "blue" } }
+    patch group_path(group), params: { group: {
+      profile_image_file: image_upload("jpg"), profile_image_attachment_id: profile_id, brand_color: "blue"
+    } }
     expect(response).to redirect_to(group_path(group))
     expect(group.reload.profile_image_attachment.id).not_to eq(profile_id)
     expect(group.cover_image_attachment.id).to eq(cover_id)
@@ -107,18 +118,51 @@ RSpec.describe "Group branding", type: :request do
     expect(response).to have_http_status(:not_found)
 
     profile_id = group.profile_image_attachment.id
-    patch group_path(group), params: { group: { cover_image_file: image_upload("webp") } }
+    patch group_path(group), params: { group: { cover_image_file: image_upload("webp"), cover_image_attachment_id: cover_id } }
     expect(response).to redirect_to(group_path(group))
     expect(group.reload.cover_image_attachment.id).not_to eq(cover_id)
     expect(group.profile_image_attachment.id).to eq(profile_id)
 
-    patch group_path(group), params: { group: { remove_profile_image: "1" } }
+    patch group_path(group), params: { group: { remove_profile_image: "1", profile_image_attachment_id: profile_id } }
     expect(response).to redirect_to(group_path(group))
     expect(group.reload.profile_image).not_to be_attached
     expect(group.cover_image).to be_attached
-    patch group_path(group), params: { group: { remove_cover_image: "1" } }
+    patch group_path(group), params: { group: { remove_cover_image: "1", cover_image_attachment_id: group.cover_image_attachment.id } }
     expect(response).to redirect_to(group_path(group))
     expect(group.reload.cover_image).not_to be_attached
+  end
+
+  it "rejects the entire branding update when an older tab removes or replaces an image" do
+    upload_branding
+    get edit_group_path(group)
+    form = Nokogiri::HTML(response.body).at_css("#group-branding-form")
+    profile_id = form.at_css("input[name='group[profile_image_attachment_id]']")["value"]
+    cover_id = form.at_css("input[name='group[cover_image_attachment_id]']")["value"]
+
+    patch group_path(group), params: { group: {
+      profile_image_file: image_upload, profile_image_attachment_id: profile_id,
+      cover_image_file: image_upload, cover_image_attachment_id: cover_id, brand_color: "blue"
+    } }
+    expect(response).to redirect_to(group_path(group))
+    group.reload
+    latest_profile_id = group.profile_image_attachment.id
+    latest_cover_id = group.cover_image_attachment.id
+
+    [
+      { remove_profile_image: "1", profile_image_attachment_id: profile_id,
+        cover_image_file: image_upload, cover_image_attachment_id: latest_cover_id },
+      { cover_image_file: image_upload, cover_image_attachment_id: cover_id }
+    ].each do |changes|
+      patch group_path(group), params: { group: changes.merge(brand_color: "red") }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      form = Nokogiri::HTML(response.body).at_css("#group-branding-form")
+      expect(form.at_css("[role='alert']:not([hidden])").text).to include(I18n.t("groups.branding.image_conflict"))
+      expect(form.at_css("input[name='group[profile_image_attachment_id]']")["value"]).to eq(latest_profile_id.to_s)
+      expect(group.reload.brand_color).to eq("blue")
+      expect(group.profile_image_attachment.id).to eq(latest_profile_id)
+      expect(group.cover_image_attachment.id).to eq(latest_cover_id)
+    end
   end
 
   it "preserves both attachments and settings if a replacement fails validation" do
@@ -126,7 +170,8 @@ RSpec.describe "Group branding", type: :request do
     ids = [ group.profile_image_attachment.id, group.cover_image_attachment.id ]
 
     patch group_path(group), params: { group: {
-      name: "Do not save", brand_color: "#123456", profile_image_file: image_upload, remove_cover_image: "1"
+      name: "Do not save", brand_color: "#123456", profile_image_file: image_upload,
+      profile_image_attachment_id: ids.first, remove_cover_image: "1", cover_image_attachment_id: ids.last
     } }
     expect(response).to have_http_status(:unprocessable_content)
     expect(group.reload.name).to eq("Branded readers")
@@ -230,6 +275,36 @@ RSpec.describe "Group branding", type: :request do
     expect(response).to redirect_to(new_user_session_path)
   end
 
+  it "does not deliver a variant if the viewer is suspended during image processing" do
+    upload_branding
+    allow(ImageProcessingLock).to receive(:synchronize).and_wrap_original do |original, &process|
+      original.call(&process).tap { User.where(id: admin.id).update_all(suspended_at: Time.current) }
+    end
+
+    get group_image_path(group, group.profile_image_attachment, size: :card)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "does not save an image replacement or removal if the administrator is suspended during preparation" do
+    upload_branding
+    profile_id = group.profile_image_attachment.id
+    cover_id = group.cover_image_attachment.id
+    allow(ImageProcessingLock).to receive(:synchronize).and_wrap_original do |original, &process|
+      original.call(&process).tap { User.where(id: admin.id).update_all(suspended_at: Time.current) }
+    end
+
+    patch group_path(group), params: { group: {
+      profile_image_file: image_upload, profile_image_attachment_id: profile_id,
+      remove_cover_image: "1", cover_image_attachment_id: cover_id, brand_color: "red"
+    } }
+
+    expect(response).to redirect_to(root_path)
+    expect(group.reload.brand_color).to be_nil
+    expect(group.profile_image_attachment.id).to eq(profile_id)
+    expect(group.cover_image_attachment.id).to eq(cover_id)
+  end
+
   it "shows profile thumbnails on accessible cards and uses an icon for private name-only search results" do
     upload_branding
     profile_path = group_image_path(group, group.profile_image_attachment, size: :card)
@@ -289,6 +364,32 @@ RSpec.describe "Group branding", type: :request do
     public_image = public_card.at_css("img[src='#{group_image_path(public_past, public_past.profile_image_attachment, size: :card)}']")
     expect(public_image["class"].split).to include("h-12", "w-12")
     expect(page.at_css("[data-group-membership-sort-target='item'] [data-icon='users-round']")).to be_present
+  end
+
+  it "uses icons in current and excluded cards for a retained member during reactivation review" do
+    upload_branding
+    group.group_memberships.create!(user: reader, status: :active)
+    group.update!(lifecycle_status: :inactive, closure_reason: "Closed", closed_at: Time.current)
+    group.pending_approval!
+    path = group_image_path(group, group.profile_image_attachment, size: :card)
+    sign_in reader
+
+    get groups_path
+    page = Nokogiri::HTML(response.body)
+    card = page.at_css("[data-group-grid] a[href='#{group_path(group)}']").ancestors("article").first
+    expect(card.at_css("[data-icon='users-round']")).to be_present
+    expect(response.body).not_to include(path)
+
+    get edit_groups_membership_order_path
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("[data-group-membership-sort-target='item'] [data-icon='users-round']")).to be_present
+    expect(response.body).not_to include(path)
+
+    reader.group_list_hidings.create!(group:)
+    get edit_groups_membership_order_path
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css("[data-hidden-groups] [data-icon='users-round']")).to be_present
+    expect(response.body).not_to include(path)
   end
 
   it "colors group activity and detail feeds using each post's destination, including book posts and requotes" do

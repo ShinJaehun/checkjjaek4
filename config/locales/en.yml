@@ -279,6 +279,7 @@ en:
       remove_image: "Mark %{image} for removal"
       cancel_selection: "Cancel selected %{image}"
       removal_pending: "Removal pending"
+      image_conflict: "The group images have changed. Check the current images and make your selection again."
       undo_removal: "Undo removal"
       preview_error: "Choose a valid JPEG, PNG, or WebP image up to 5MB."
       invalid_format: "must be a valid JPEG, PNG, or WebP image"
