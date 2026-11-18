@@ -23,7 +23,7 @@ class GroupImageChanges
       blob = ActiveStorage::Blob.build_after_unfurling(
         io: optimized, filename: "group-#{SecureRandom.hex(12)}.webp", content_type: "image/webp",
         identify: false, metadata: { group_image: true, group_id: group.id, group_image_kind: name, analyzed: true },
-        service_name: Rails.env.production? ? :oci_photos : Rails.application.config.active_storage.service
+        service_name: Rails.env.production? ? :oci_group_images : Rails.application.config.active_storage.service
       )
       # Persist the cleanup key before uploading, including partially failed uploads.
       blob.save!

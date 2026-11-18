@@ -282,7 +282,8 @@
   인용 원문·홈·검색·개인 프로필·단건 짹 상세에는 띠를 추가하지 않음.
   `GroupImageChanges`가 5MiB JPEG/PNG/WebP를 검증·축소 WebP로 저장하고 Group 잠금 안의 첨부 변경을 처리함.
   `GroupImagesController`는 기존 Group 상세 권한·부모·종류를 매 요청 검사해 고정 Variant만 private/no-store로 중계함.
-  기존 비공개 `oci_photos`·libvips 잠금을 재사용하며 원본·공개 URL은 제공하지 않음.
+  운영의 신규 동아리 원본과 Variant는 비공개 `oci_group_images`에 저장하고, 기존 Blob은 기록된 서비스에서 조회·정리함.
+  libvips 잠금을 재사용하며 원본·공개 URL은 제공하지 않음.
   교체·삭제 파일은 `PurgeGroupImageJob`, 중단된 staging은 `CleanupGroupImagesJob`이 정리함.
   상세 계약과 검증 기준은 `docs/specs/group_profile_branding_b04.md`를 따름.
 - global admin 운영 관리에는 User·Group monitoring inventory가 있으며, 고밀도 표에서 검색·기본 상태/역할/종류 필터·허용된 정렬·30/50/100건 선택 페이지네이션(기본 30건)을 조합할 수 있음. User 콘텐츠는 통합 테이블 항목, Group 콘텐츠는 전체 댓글을 포함한 root thread 단위로 같은 건수 선택을 제공함. 상세 정책은 `docs/specs/moderation_mvp.md`를 따름. Group은 lifecycle 상태, 재활성화 대기와 platform 운영 정지를 하나의 현재 상태 필터로 제공하며 운영 정지가 다른 lifecycle 표시보다 우선함. 가입·생성 기간 필터는 아직 없음

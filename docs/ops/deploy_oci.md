@@ -26,8 +26,10 @@ chmod 600 ~/apps/checkjjaek/.env
 | `SECRET_KEY_BASE` 또는 `RAILS_MASTER_KEY` | 둘 중 하나 필수. 기존 암호화 credentials를 쓴다면 master key 제공 |
 | `RESEND_API_KEY` | 필수. Resend SMTP 인증 키. 웹 컨테이너에만 전달하며 Git에 저장하지 않음 |
 | `RAILS_LOG_LEVEL`, `RAILS_MAX_THREADS`, `WEB_CONCURRENCY` | 선택. 기본 `info`, `5`, `1`; OCI E2 Micro에서 확인한 스레드 설정 |
-| `OCI_AVATAR_ACCESS_KEY_ID`, `OCI_AVATAR_SECRET_ACCESS_KEY`, `OCI_AVATAR_REGION`, `OCI_AVATAR_BUCKET`, `OCI_AVATAR_ENDPOINT` | 현재 production의 `oci_avatars` 서비스에 모두 필수. 값과 스토리지 운영 절차는 E10에서 관리 |
-| `OCI_PHOTO_BUCKET` | A17의 비공개 사진 버킷. 기존 OCI credentials에 해당 버킷 권한 필요 |
+| `OCI_STORAGE_ACCESS_KEY_ID`, `OCI_STORAGE_SECRET_ACCESS_KEY`, `OCI_STORAGE_REGION`, `OCI_STORAGE_ENDPOINT` | 필수. 세 버킷이 공유하는 OCI S3 호환 인증 및 연결 설정 |
+| `OCI_AVATAR_BUCKET` | 필수. 사용자 아바타 전용 비공개 버킷 (`oci_avatars`) |
+| `OCI_GROUP_IMAGE_BUCKET` | 필수. 신규 동아리 대표·배너 이미지 전용 비공개 버킷 (`oci_group_images`) |
+| `OCI_PHOTO_BUCKET` | 필수. 짹 사진과 전환 전 동아리 이미지가 남아 있는 비공개 버킷 (`oci_photos`) |
 | `JJAEK_PHOTO_UPLOADS_ENABLED`, `JJAEK_PHOTO_DAILY_LIMIT`, `JJAEK_PHOTO_RETAINED_LIMIT`, `JJAEK_PHOTO_STORAGE_LIMIT_BYTES` | A17 운영 제한. 기본 true / 4 / 50 / 1073741824. [사진 운영](jjaek_photos.md) 참고 |
 
 `RAILS_ENV=production`, 웹 컨테이너의 Thruster 포트 80, `SOLID_QUEUE_IN_PUMA=1`은 Compose에서 고정한다. Puma는 기존 설정대로 컨테이너 안의 3000 포트를 사용한다. 운영 주소/도메인, GHCR 읽기 권한, Cloudflare와 Nginx 인증서도 서버에서 준비한다. GHCR 패키지가 private이면 서버에서 해당 패키지 `read:packages` 권한으로 `docker login ghcr.io`를 먼저 수행한다.
@@ -79,6 +81,23 @@ curl -fsS http://127.0.0.1:3000/up
 ```
 
 재시작만 필요한 경우 `docker compose -p checkjjaek --env-file .env -f compose.prod.yml restart web`을 사용한다. 문제가 생기면 DB와 호환되는 이전 `APP_IMAGE`에 한해 `pull web`, `up -d web`으로 복귀한다. 코드만 이전으로 되돌려도 이미 적용된 DB migration은 되돌아가지 않는다. 통합 짹 전환은 아래 예외 절차를 반드시 따른다.
+
+## OCI Object Storage 환경변수 전환과 동아리 이미지 분리
+
+1. 공개 접근과 공개 PAR이 없는 동아리 이미지 전용 버킷을 준비한다. 기존 S3 호환 인증 주체에 새 버킷의 객체 목록 조회·읽기·쓰기·삭제 권한을 부여한다.
+2. 운영 `.env`에서 아래 네 항목의 **이름만** 바꾸고 `OCI_GROUP_IMAGE_BUCKET`에 새 버킷 이름을 추가한다. `OCI_AVATAR_BUCKET`과 `OCI_PHOTO_BUCKET`은 기존 설정값을 사용한다.
+
+   | 기존 이름 | 새 이름 |
+   | --- | --- |
+   | `OCI_AVATAR_ACCESS_KEY_ID` | `OCI_STORAGE_ACCESS_KEY_ID` |
+   | `OCI_AVATAR_SECRET_ACCESS_KEY` | `OCI_STORAGE_SECRET_ACCESS_KEY` |
+   | `OCI_AVATAR_REGION` | `OCI_STORAGE_REGION` |
+   | `OCI_AVATAR_ENDPOINT` | `OCI_STORAGE_ENDPOINT` |
+
+3. 새 `compose.prod.yml`과 `APP_IMAGE`를 함께 반영한다. `docker compose -p checkjjaek --env-file .env -f compose.prod.yml config --quiet`을 실행한 뒤 일반 업데이트 절차로 웹 컨테이너를 재생성한다.
+4. 테스트용 동아리에서 대표·배너 이미지를 업로드하고 허용된 화면을 열어 원본과 Variant가 새 버킷에 생성되는지 확인한다. 비공개 동아리의 비회원은 이미지 URL에 접근할 수 없어야 한다. 두 이미지를 제거한 뒤 정리 작업이 원본과 Variant를 회수하는지, 기존 동아리 이미지·아바타·짹 사진은 계속 표시되는지 확인한다.
+
+전환 전 동아리 이미지는 Blob에 기록된 `oci_photos`에서 계속 읽고 변환하고 삭제한다. 기존 객체와 Blob 행은 일괄 이동하지 않으며, 사진 버킷 접근 권한을 유지한다. 이전 릴리스로 복귀하려면 당시 Compose와 환경변수 이름도 함께 복구해야 한다. 새 버킷을 참조하는 Blob이 생긴 뒤에는 이전 이미지가 해당 Blob을 처리할 수 없으므로 새 서비스를 읽을 수 있는 릴리스로 수정 배포한다.
 
 ## 통합 짹 migration 배포 예외
 
