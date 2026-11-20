@@ -109,6 +109,7 @@ module Users
     def clean_personal_reading_data!
       user.book_activities.destroy_all
       user.bookshelf_entries.destroy_all
+      user.user_books.destroy_all
       user.bookshelves.delete_all
     end
 

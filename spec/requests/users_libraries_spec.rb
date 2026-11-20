@@ -12,9 +12,9 @@ RSpec.describe "User libraries", type: :request do
 
   it "uses shared badges for reading information in the library" do
     entry = user.bookshelf_entries.find_by!(book: book)
-    entry.update!(status: :reading)
+    entry.user_book.update!(status: :reading)
     sticker = StickerDefinition.create!(key: "recommended_to_me", name: "Legacy recommendation label")
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     sign_in user
 
     get user_library_path(user, bookshelf_id: target_bookshelf.id)
@@ -35,7 +35,7 @@ RSpec.describe "User libraries", type: :request do
     stickers = %w[loved_it really_loved_it stayed_with_me want_to_reread recommended_to_me want_to_recommend].map do |key|
       StickerDefinition.create!(key: key, name: key)
     end
-    entry.sticker_definitions << stickers
+    entry.user_book.sticker_definitions << stickers
     sign_in user
 
     paths = [
@@ -147,20 +147,34 @@ RSpec.describe "User libraries", type: :request do
     expect(document.at_css(%(input[name="return_to_target_as_source"][value="1"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-target="selectionCheckboxWrapper"] input[type="checkbox"][value="#{source_entry.id}"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-bookshelf-id="#{target_bookshelf.id}"] article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_present
+
+    [ source_entry, entry ].each do |card_entry|
+      remove_form = document.at_css(%(article[data-bookshelf-entry-id="#{card_entry.id}"] form[action="#{bookshelf_entry_path(card_entry)}"]))
+      expect(remove_form.at_css("input[name='_method']")["value"]).to eq("delete")
+      expect(remove_form["class"].split).to include("hidden", "md:block")
+      expect(remove_form.at_css("button")["aria-label"]).to eq(I18n.t("bookshelf_entries.actions.remove_book", title: card_entry.book.title))
+    end
+    bulk_remove_form = document.at_css(%(form[action="#{bulk_destroy_bookshelf_entries_path}"]))
+    expect(bulk_remove_form.at_css("input[name='_method']")["value"]).to eq("delete")
+    expect(document.at_css(%([role="dialog"] button[form="#{bulk_remove_form['id']}"])).text).to include(I18n.t("bookshelf_entries.actions.remove"))
   end
 
   it "does not render transfer drag targets on the default library screen" do
     sign_in user
 
-    get user_library_path(user, bookshelf_id: selected_bookshelf.id, sort: "manual")
+    get user_library_path(user, bookshelf_id: target_bookshelf.id, sort: "manual")
 
     document = Nokogiri::HTML(response.body)
+    entry = user.bookshelf_entries.find_by!(book:)
 
+    expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"]))).to be_present
     expect(document.at_css(%([data-controller="bookshelf-transfer"]))).to be_nil
     expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"]))).to be_nil
     expect(document.at_css(%([data-bookshelf-transfer-target="list"]))).to be_nil
     expect(document.at_css(%(form[action="#{bulk_move_bookshelf_entries_path}"]))).to be_nil
+    expect(document.at_css(%(form[action="#{bookshelf_entry_path(entry)}"]))).to be_nil
+    expect(document.at_css(%(form[action="#{bulk_destroy_bookshelf_entries_path}"]))).to be_nil
     expect(response.body).not_to include(I18n.t("users.library.transfer.selected_count_suffix"))
   end
 

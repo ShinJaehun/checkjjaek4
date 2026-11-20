@@ -420,7 +420,8 @@ RSpec.describe "Feed pagination", type: :request do
   end
 
   it "keeps moderation, reading state, avatars and card actions on later pages" do
-    entry = viewer.bookshelf_entries.create!(book:, status: :reading)
+    entry = viewer.bookshelf_entries.create!(book:)
+    entry.user_book.update!(status: :reading)
     File.open(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png")) do |file|
       viewer.avatar.attach(io: file, filename: "avatar.png", content_type: "image/png")
     end
@@ -435,7 +436,7 @@ RSpec.describe "Feed pagination", type: :request do
     get next_url, headers: stream_headers
 
     card = page_document.at_css("article#jjaek_#{post.id}")
-    expect(card.text).to include(post.content, I18n.t("bookshelf_entries.statuses.#{entry.status}"), I18n.t("jjaeks.meta.requotes", count: 1))
+    expect(card.text).to include(post.content, I18n.t("bookshelf_entries.statuses.#{entry.user_book.status}"), I18n.t("jjaeks.meta.requotes", count: 1))
     expect(card.at_css("img[src*='/avatar_image']")).to be_present
     expect(card.at_css("form[action='#{jjaek_like_path(post)}']")).to be_present
     expect(card.at_css("a[href*='#{jjaek_comments_path(post)}']")).to be_present

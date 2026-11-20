@@ -7,7 +7,11 @@ RSpec.describe "Users", type: :request do
   let!(:book) { Book.create!(title: "프로필 책", authors_text: "저자") }
   let!(:shelf_book) { Book.create!(title: "프로필 서재 전용 책", authors_text: "저자") }
   let!(:profile_shelf_sticker) { StickerDefinition.create!(key: "users_spec_profile_shelf_unique_sticker", name: "PROFILE_SHELF_UNIQUE_STICKER") }
-  let!(:profile_entry) { profile_user.bookshelf_entries.create!(book: shelf_book, status: :reading) }
+  let!(:profile_entry) do
+    entry = profile_user.bookshelf_entries.create!(book: shelf_book)
+    entry.user_book.update!(status: :reading)
+    entry
+  end
   let!(:profile_jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: profile_user, content: "Profile Jjaek") }
   let!(:profile_friend_jjaek) { profile_user.jjaeks.create!(content: "Book friend profile Jjaek", visibility: :book_friends) }
   let!(:profile_private_jjaek) { profile_user.jjaeks.create!(content: "Private profile Jjaek", visibility: :private_jjaek) }
@@ -15,7 +19,7 @@ RSpec.describe "Users", type: :request do
   let!(:activity_book) { Book.create!(title: "프로필 활동 책", authors_text: "저자") }
 
   before do
-    profile_entry.sticker_definitions << profile_shelf_sticker
+    profile_entry.user_book.sticker_definitions << profile_shelf_sticker
   end
 
   describe "GET /users/:id" do
@@ -222,8 +226,9 @@ RSpec.describe "Users", type: :request do
     it "shows the user's own summarized shelf, library link, and private jjaeks without a profile-context form" do
       own_book = Book.create!(title: "내 책", authors_text: "저자")
       own_sticker = StickerDefinition.create!(key: "users_spec_own_profile_shelf_sticker", name: "OWN_PROFILE_SHELF_STICKER")
-      own_entry = viewer.bookshelf_entries.create!(book: own_book, status: :finished)
-      own_entry.sticker_definitions << own_sticker
+      own_entry = viewer.bookshelf_entries.create!(book: own_book)
+      own_entry.user_book.update!(status: :finished)
+      own_entry.user_book.sticker_definitions << own_sticker
       viewer.jjaeks.create!(content: "내 비공개 짹", visibility: :private_jjaek)
       sign_in viewer
 
@@ -290,11 +295,12 @@ RSpec.describe "Users", type: :request do
 
     it "prepares up to six responsive profile sticker icons with an accessible initial summary" do
       book = Book.create!(title: "STICKER_OVERFLOW_BOOK", authors_text: "Author")
-      entry = viewer.bookshelf_entries.create!(book:, status: :reading)
+      entry = viewer.bookshelf_entries.create!(book:)
+      entry.user_book.update!(status: :reading)
       stickers = 7.times.map do |index|
         StickerDefinition.create!(key: "profile_overflow_#{index}", name: "OVERFLOW_STICKER_#{index}")
       end
-      entry.sticker_definitions << stickers
+      entry.user_book.sticker_definitions << stickers
       sign_in viewer
 
       get user_path(viewer)
@@ -623,7 +629,7 @@ RSpec.describe "Users", type: :request do
     it "keeps status and stickers hidden from strangers when sorting" do
       bookshelf = profile_user.bookshelves.create!(name: "STRANGER_SORT_SHELF", visibility: :public)
       entry = create_bookshelf_entry(user: profile_user, bookshelf: bookshelf, book_title: "STRANGER_SORT_BOOK", status: :finished)
-      entry.sticker_definitions << profile_shelf_sticker
+      entry.user_book.sticker_definitions << profile_shelf_sticker
       sign_in viewer
 
       get user_path(profile_user, bookshelf_id: bookshelf.id, sort: "status")
@@ -954,7 +960,8 @@ RSpec.describe "Users", type: :request do
     it "keeps profile visibility, bookshelf summaries, relationships, and requotes after overlong input fails" do
       BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
       friend_shelf = profile_user.bookshelves.create!(name: "Friends shelf", visibility: :book_friends)
-      friend_entry = profile_user.bookshelf_entries.create!(bookshelf: friend_shelf, book: activity_book, status: :finished)
+      friend_entry = profile_user.bookshelf_entries.create!(bookshelf: friend_shelf, book: activity_book)
+      friend_entry.user_book.update!(status: :finished)
       private_shelf = profile_user.bookshelves.create!(name: "Private shelf", visibility: :private)
       private_book = Book.create!(title: "PROFILE_EXCLUDED_PRIVATE_BOOK", authors_text: "Author")
       profile_user.bookshelf_entries.create!(bookshelf: private_shelf, book: private_book)
@@ -1122,7 +1129,7 @@ RSpec.describe "Users", type: :request do
 
     if sticker_name
       sticker = StickerDefinition.create!(key: "users_spec_#{sticker_name.downcase}", name: sticker_name)
-      entry.sticker_definitions << sticker
+      entry.user_book.sticker_definitions << sticker
     end
 
     [ bookshelf, entry ]
@@ -1131,6 +1138,8 @@ RSpec.describe "Users", type: :request do
   def create_bookshelf_entry(user:, bookshelf:, book_title:, status: nil, authors_text: "탭 테스트 저자")
     book = Book.create!(title: book_title, authors_text: authors_text)
 
-    user.bookshelf_entries.create!(book: book, bookshelf: bookshelf, status: status)
+    entry = user.bookshelf_entries.create!(book: book, bookshelf: bookshelf)
+    entry.user_book.update!(status: status)
+    entry
   end
 end

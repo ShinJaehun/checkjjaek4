@@ -4,9 +4,12 @@
 
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-2 pb-24 md:pb-0"
          data-controller="bookshelf-transfer"
+         data-action="turbo:before-cache@document->bookshelf-transfer#clearSelection"
          data-bookshelf-transfer-move-error-message-value="<%= t('bookshelf_entries.alerts.move_failed') %>"
          data-bookshelf-transfer-reorder-error-message-value="<%= t('bookshelf_entries.alerts.reorder_failed') %>"
          data-bookshelf-transfer-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
+         data-bookshelf-transfer-remove-confirmation-value="<%= bookshelf_removal_confirmation %>"
+         data-bookshelf-transfer-bulk-remove-confirmation-value="<%= bookshelf_removal_confirmation(count: '%{books_count}') %>"
          data-bookshelf-transfer-ui-source-bookshelf-id-value="<%= @source_bookshelf.id %>"
          data-bookshelf-transfer-ui-target-bookshelf-id-value="<%= @target_bookshelf.id %>">
   <style>
@@ -97,13 +100,14 @@
          role="dialog"
          aria-modal="true"
          aria-labelledby="transfer-target-title"
-         aria-describedby="transfer-selected-count">
+         aria-describedby="transfer-target-description transfer-selected-count">
       <%= form_with url: bulk_move_bookshelf_entries_path,
                     method: :patch,
                     class: "flex max-h-[90dvh] w-full flex-col rounded-t-2xl bg-white shadow-2xl" do %>
         <header class="flex shrink-0 items-start justify-between gap-3 border-b border-stone-200 px-4 py-4">
           <div>
             <h2 id="transfer-target-title" class="text-lg font-semibold text-stone-900"><%= t("users.library.transfer.bulk_target_label") %></h2>
+            <p id="transfer-target-description" class="mt-1 text-sm text-stone-600"><%= t("users.library.transfer.bulk_target_description") %></p>
             <p id="transfer-selected-count" class="mt-1 text-sm text-stone-600">
               <span data-bookshelf-transfer-target="sheetSelectedCount">0</span><%= t("users.library.transfer.selected_count_suffix") %>
             </p>
@@ -131,6 +135,10 @@
                 <%= bookshelf.name %>
               <% end %>
             <% end %>
+            <%= button_tag t("bookshelf_entries.actions.remove"),
+                           type: :submit, form: "bookshelf-transfer-remove-form",
+                           data: { bookshelf_transfer_target: "removeButton" },
+                           class: "ui-button ui-button-secondary w-full justify-start text-red-700" %>
           </div>
         </div>
 
@@ -139,6 +147,12 @@
                   class="ui-button ui-button-secondary w-full"
                   data-action="bookshelf-transfer#closeMovePanel"><%= t("users.library.transfer.cancel_move") %></button>
         </footer>
+      <% end %>
+      <%= form_with url: bulk_destroy_bookshelf_entries_path, method: :delete,
+                    id: "bookshelf-transfer-remove-form", class: "hidden" do %>
+        <div data-bookshelf-transfer-target="selectedIds"></div>
+        <%= hidden_field_tag :source_bookshelf_id, @source_bookshelf.id, id: nil %>
+        <%= hidden_field_tag :target_bookshelf_id, @target_bookshelf.id, id: nil %>
       <% end %>
     </div>
   </div>

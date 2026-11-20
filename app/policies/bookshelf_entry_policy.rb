@@ -31,6 +31,10 @@ class BookshelfEntryPolicy < ApplicationPolicy
     create?
   end
 
+  def bulk_destroy?
+    user.present?
+  end
+
   class Scope < ApplicationPolicy::Scope
     def resolve
       return scope.none unless user.present?

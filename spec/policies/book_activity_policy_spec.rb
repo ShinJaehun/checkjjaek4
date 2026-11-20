@@ -129,4 +129,27 @@ RSpec.describe BookActivityPolicy do
     friendship.destroy!
     expect(scope.call.where(id: [ activity.id, change.id ])).to be_empty
   end
+
+  it "keeps activity from a removed placement hidden even after the same reading record is shelved again" do
+    entry = activity.bookshelf_entry
+    entry.bookshelf.update!(visibility: :public)
+    BookFriendship.create!(requester: viewer, addressee: profile_user, status: :accepted)
+    viewer.active_follows.create!(followee: profile_user)
+    scopes = [ described_class::FeedScope, described_class::ProfileScope, described_class::BookFriendScope ]
+    scopes.each { |scope| expect(scope.new(viewer, BookActivity.all).resolve).to include(activity) }
+
+    entry.destroy!
+
+    expect(described_class.new(profile_user, activity.reload).show?).to be(false)
+    scopes.each { |scope| expect(scope.new(viewer, BookActivity.all).resolve).not_to include(activity) }
+
+    replacement = profile_user.bookshelf_entries.create!(book:)
+    new_activity = replacement.book_activities.create!(user: profile_user, book:, action: :added_to_shelf)
+
+    scopes.each do |scope|
+      visible_activities = scope.new(viewer, BookActivity.all).resolve
+      expect(visible_activities).to include(new_activity)
+      expect(visible_activities).not_to include(activity)
+    end
+  end
 end

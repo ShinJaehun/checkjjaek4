@@ -101,11 +101,12 @@ RSpec.describe "Books", type: :request do
     end
 
     it "allows the shelf owner to open the book page" do
-      entry = user.bookshelf_entries.create!(book:, status: :reading)
+      entry = user.bookshelf_entries.create!(book:)
+      entry.user_book.update!(status: :reading)
       stickers = 2.times.map do |index|
         StickerDefinition.create!(key: "book_detail_selected_#{index}", name: "선택 스티커 #{index}")
       end
-      entry.sticker_definitions = stickers
+      entry.user_book.sticker_definitions = stickers
       sign_in user
 
       get book_path(book)
@@ -113,7 +114,7 @@ RSpec.describe "Books", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
       page = Nokogiri::HTML(response.body)
-      state = page.at_css("form[action='#{bookshelf_entry_path(entry)}']")
+      state = page.at_css("#book-reading-dialog form[action='#{bookshelf_entry_path(entry)}']")
       expect(state).to be_present
       expect(state.at_css('[data-reading-status-card] legend').text).to eq(I18n.t("books.show.status_label"))
       expect(state.at_css('[data-reading-stickers-card] legend').text).to eq(I18n.t("bookshelf_entries.form.stickers"))
@@ -173,7 +174,7 @@ RSpec.describe "Books", type: :request do
 
     it "shows the current bookshelf context for a shelved book" do
       bookshelf = user.bookshelves.create!(name: "상세 책장", visibility: :private)
-      user.bookshelf_entries.create!(book:, bookshelf:, status: :reading)
+      user.bookshelf_entries.create!(book:, bookshelf:).user_book.update!(status: :reading)
       sign_in user
 
       get book_path(book)
@@ -211,11 +212,39 @@ RSpec.describe "Books", type: :request do
       expect(current_badge["class"].split).to eq(%w[ui-choice])
       expect(target_badge["class"]).to eq(current_badge["class"])
       expect(form.at_css("input[type='submit']")["value"]).to eq(I18n.t("bookshelf_entries.actions.move"))
+
+      remove_form = dialog.at_css(%(form[action="#{bookshelf_entry_path(entry)}"]))
+      expect(remove_form.at_css("input[name='_method']")["value"]).to eq("delete")
+      expect(remove_form["data-turbo-confirm"]).to include(
+        I18n.t("bookshelf_entries.confirmations.remove"), I18n.t("bookshelf_entries.confirmations.reading_record_preserved")
+      )
+    end
+
+    it "returns to the book and shows the add control after removing its only shelf placement" do
+      entry = user.bookshelf_entries.create!(book:)
+      group = Group.create!(name: "꺼내기 문맥 동아리", group_admin: user, lifecycle_status: :active)
+      origin = root_path
+      detail_path = book_path(book, group_id: group.id, return_to: origin)
+      sign_in user
+      get detail_path
+
+      dialog = Nokogiri::HTML(response.body).at_css("#book-move-dialog")
+      expect(dialog.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))).to be_nil
+      expect(dialog.at_css(%(form[action="#{bookshelf_entry_path(entry)}"]))).to be_present
+
+      delete bookshelf_entry_path(entry), params: { return_to: "book", group_id: group.id, book_return_to: origin }
+
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(detail_path)
+      follow_redirect!
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("#book-shelf-dialog")).to be_present
+      expect(page.at_css("#book-reading-dialog")).to be_nil
     end
 
     it "shows the book-context label for book-linked jjaeks" do
       book.update!(thumbnail: "https://example.com/book-context.jpg")
-      user.bookshelf_entries.create!(book:, status: :reading)
+      user.bookshelf_entries.create!(book:).user_book.update!(status: :reading)
       book_jjaek = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "BOOK_CONTEXT_LABEL_BODY")
       sign_in user
 
@@ -242,7 +271,7 @@ RSpec.describe "Books", type: :request do
     end
 
     it "shows only original book jjaeks on the book page while keeping the requote count on the original" do
-      user.bookshelf_entries.create!(book:, status: :reading)
+      user.bookshelf_entries.create!(book:).user_book.update!(status: :reading)
       original = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: user, content: "BOOK_ORIGINAL_BODY")
       requote = create_legacy_book_requote(user: user, book:, content: "BOOK_REQUOTE_BODY", quoted_jjaek: original)
       sign_in user
@@ -324,7 +353,7 @@ RSpec.describe "Books", type: :request do
       expect(form.ancestors("#book-jjaek-form")).not_to be_empty
       expect(form.at_css("input[name='jjaek[quoted_jjaek_id]']")).to be_nil
       expect(form.at_css("input[name='return_to']")["value"]).to eq(root_path)
-      reading_form = page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}']")
+      reading_form = page.at_css("#book-reading-dialog form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}']")
       expect(reading_form.at_css("input[name='group_id']")["value"]).to eq(group.id.to_s)
       expect(reading_form.at_css("input[name='quote_id']")).to be_nil
       expect(reading_form.at_css("input[name='return_to']")["value"]).to eq(root_path)
@@ -384,7 +413,7 @@ RSpec.describe "Books", type: :request do
     end
 
     it "redirects guests before showing the library context" do
-      user.bookshelf_entries.create!(book:, status: :reading)
+      user.bookshelf_entries.create!(book:).user_book.update!(status: :reading)
 
       get book_path(book)
 
@@ -427,7 +456,7 @@ RSpec.describe "Books", type: :request do
       }.to change(user.bookshelf_entries, :count).by(1)
 
       expect(response).to redirect_to(book_path(book))
-      expect(user.bookshelf_entries.find_by!(book:).status).to be_nil
+      expect(user.user_books.find_by!(book:).status).to be_nil
 
       follow_redirect!
 
@@ -439,7 +468,7 @@ RSpec.describe "Books", type: :request do
       status_choices = document.css('input[type="radio"][name="bookshelf_entry[status]"]')
 
       expect(status_select).to be_nil
-      expect(status_choices.map { |choice| choice["value"] }).to match_array([ "", *BookshelfEntry.statuses.keys ])
+      expect(status_choices.map { |choice| choice["value"] }).to match_array([ "", *UserBook.statuses.keys ])
       expect(status_choices.select { |choice| choice.attribute("checked") }.map { |choice| choice["value"] }).to eq([ "" ])
     end
 
@@ -560,11 +589,12 @@ RSpec.describe "Books", type: :request do
       friend = User.create!(name: "History friend", email: "book-preview-history@example.com", password: "password123!")
       BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
       shelf = friend.bookshelves.create!(name: "Open shelf", visibility: :public)
-      entry = friend.bookshelf_entries.create!(book:, bookshelf: shelf, status: :wish)
+      entry = friend.bookshelf_entries.create!(book:, bookshelf: shelf)
+      entry.user_book.update!(status: :wish)
       added = StickerDefinition.create!(key: "loved_it", name: "좋았어요")
       removed = StickerDefinition.create!(key: "recommended_to_me", name: "추천받았어요")
       current = StickerDefinition.create!(key: "stayed_with_me", name: "마음에 남아요")
-      entry.sticker_definitions << current
+      entry.user_book.sticker_definitions << current
       activity = entry.book_activities.create!(user: friend, book:, action: :bookshelf_entry_updated, metadata: {
         from_status: "reading", to_status: "finished",
         added_sticker_definition_ids: [ added.id ], added_sticker_names: [ added.name ],

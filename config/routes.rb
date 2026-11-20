@@ -86,6 +86,7 @@ Rails.application.routes.draw do
   resources :bookshelf_entries, only: %i[create edit update destroy] do
     patch :move, on: :member
     patch :bulk_move, on: :collection
+    delete :bulk_destroy, on: :collection
     patch :reorder, on: :collection
   end
   resources :bookshelves, only: %i[create update destroy] do

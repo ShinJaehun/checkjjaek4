@@ -102,6 +102,37 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
     expect(second_entry.reload.bookshelf).to eq(target_shelf)
   end
 
+  it "confirms removal from the destination sheet and only clears selection on success" do
+    driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 700 ]
+    page.driver.browser.manage.window.resize_to(390, 700)
+    visit transfer_user_library_path(user, source_bookshelf_id: first_entry.bookshelf_id, target_bookshelf_id: target_shelf.id)
+
+    move_label = I18n.t("bookshelf_entries.actions.move")
+    remove_label = I18n.t("bookshelf_entries.actions.remove")
+    preservation = I18n.t("bookshelf_entries.confirmations.reading_record_preserved")
+    expect(page).to have_no_button(I18n.t("bookshelf_entries.actions.remove_book", title: first_entry.book.title))
+    find("[data-bookshelf-entry-id='#{first_entry.id}']").click
+    click_button move_label
+    dismiss_confirm([ I18n.t("bookshelf_entries.confirmations.remove"), preservation ].join("\n\n")) do
+      click_button remove_label
+    end
+    expect(find("[data-bookshelf-transfer-target='sheetSelectedCount']")).to have_text("1")
+    expect(first_entry.reload).to be_persisted
+
+    click_button I18n.t("users.library.transfer.cancel_move")
+    find("[data-bookshelf-entry-id='#{second_entry.id}']").click
+    click_button move_label
+    accept_confirm([ I18n.t("bookshelf_entries.confirmations.remove_selected", books_count: 2), preservation ].join("\n\n")) do
+      click_button remove_label
+    end
+
+    expect(page).to have_no_css("[data-bookshelf-transfer-list-role='source'] [data-bookshelf-entry-id]")
+    expect(page).to have_no_css("[role='dialog']", visible: true)
+    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
+    expect(page).to have_button(move_label, disabled: true)
+    expect(user.user_books.count).to eq(2)
+  end
+
   it "reports asynchronous move failures and reloads the original membership and registration" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 1280, 900 ]
     original = first_entry.attributes

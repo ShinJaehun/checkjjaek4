@@ -8,6 +8,7 @@ export default class extends Controller {
     "list",
     "moveButton",
     "movePanel",
+    "removeButton",
     "selectedCount",
     "selectedIds",
     "selectionBar",
@@ -20,6 +21,8 @@ export default class extends Controller {
     moveErrorMessage: String,
     reorderErrorMessage: String,
     reorderUrl: String,
+    removeConfirmation: String,
+    bulkRemoveConfirmation: String,
     uiSourceBookshelfId: Number,
     uiTargetBookshelfId: Number
   }
@@ -151,10 +154,15 @@ export default class extends Controller {
       this.moveButtonTarget.disabled = selectedIds.length === 0
     }
 
-    if (this.hasSelectedIdsTarget) {
-      this.selectedIdsTarget.replaceChildren(
-        ...selectedIds.map((id) => this.hiddenEntryIdInput(id))
-      )
+    this.selectedIdsTargets.forEach((target) => {
+      target.replaceChildren(...selectedIds.map((id) => this.hiddenEntryIdInput(id)))
+    })
+
+    if (this.hasRemoveButtonTarget) {
+      this.removeButtonTarget.disabled = selectedIds.length === 0
+      this.removeButtonTarget.dataset.turboConfirm = selectedIds.length > 1
+        ? this.bulkRemoveConfirmationValue.replace("%{books_count}", selectedIds.length)
+        : this.removeConfirmationValue
     }
 
     if (!mobile || selectedIds.length === 0) {

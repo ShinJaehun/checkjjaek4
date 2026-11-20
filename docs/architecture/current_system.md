@@ -20,6 +20,7 @@
 - Book
 - Bookshelf
 - BookshelfEntry
+- UserBook
 - Follow
 - BookFriendship
 - Comment
@@ -35,7 +36,8 @@
 - Jjaek: 사용자 콘텐츠 단위
 - Book: 외부 검색 기반 도서 데이터
 - Bookshelf: 사용자의 책장 단위와 책장 visibility, 기본 책장 여부
-- BookshelfEntry: 사용자-책-책장 관계 (상태/스티커)
+- BookshelfEntry: 사용자의 책장 배치와 순서
+- UserBook: 사용자·책 조합별 독서 상태와 스티커를 보관하는 기록
 - BookFriendship: 관계 기반 권한 확장
 - Follow: 피드 구독
 - Comment: Jjaek에 대한 댓글
@@ -106,11 +108,12 @@
 - 서재 미등록 책과 외부 검색 책 미리보기에도 현재 Pundit 작성 권한 안에서 통합 짹 폼을 제공한다. 현재 책 1권을 기본 첨부하며 제거·다른 책 추가로 0~5권을 선택한다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
 - 미등록 책은 타이틀 카드에서 서재에 담기 모달을 열고 기본 책장이 선택된 단일 라디오 배지로 등록한다. 등록된 책은 현재 상태·스티커 배지와 독서 활동 버튼을 표시한다. 작성 권한이 있으면 등록 여부와 무관하게 타이틀 카드 다음에 공통 인라인 짹 폼을 표시한다
-- 독서 활동 모달은 기존 reading_state 폼에서 상태 3종·상태 없음·스티커 선택과 전체 해제를 한 번의 PATCH로 저장한다. 항목 잠금·transaction 안에서 상태·스티커·BookActivity를 함께 저장한다. HTML 실패 응답은 제출값과 오류를 복원해 독서 활동 모달만 다시 열고, JSON 실패 응답은 현재 저장값과 오류를 반환한다
-- 단일 첨부 개인·동아리 짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 항목과 스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
+- 독서 활동 모달은 기존 reading_state 폼에서 상태 3종·상태 없음·스티커 선택과 전체 해제를 한 번의 PATCH로 저장한다. `UserBook` 잠금·transaction 안에서 상태·스티커·BookActivity를 함께 저장한다. HTML 실패 응답은 제출값과 오류를 복원해 독서 활동 모달만 다시 열고, JSON 실패 응답은 현재 저장값과 오류를 반환한다
+- 단일 첨부 개인·동아리 짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 배치와 그 `UserBook`·스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
 - 책 상세 작성은 공통 인라인 폼과 `selected_books[]`를 사용한다. 본문 200자·공개 범위·첨부 순서와 검증 실패 입력을 보존하며, 동아리 게시 대상은 기존 경로와 서버 인가로 결정한다. 구형 게시 위치 selector·`book-posting` Stimulus·book_id 게시 입력은 사용하지 않는다
 - `prepare_book_show_form_context`가 개인/동아리 Pundit 작성 가능 여부를 준비한다. 책 문맥은 `book_context_id/token`으로 유지하며 현재 책을 실제 첨부해 저장하면 해당 책으로, 제거하고 저장하면 홈으로 이동한다. 공유·다시짹은 기존 별도 경로를 유지한다
 - 담긴 책장 이름은 기존 책장 색상의 `user_library_path(current_user, bookshelf_id:)` 링크다. 긴 이름은 줄바꿈한다. 책장이 2개 이상이면 책장 이동 버튼으로 radio 모달을 열고 현재 책장을 기본 선택한다. 이동 대상은 책장 고유 색상 없이 평면형 `.ui-choice`의 체크 표시·stone 테두리·배경으로 구분하며 이동 버튼으로 PATCH 경로·return_to=book·group_id를 유지한다
+- 책 상세의 이동 모달에서 확인 후 현재 책장 배치를 꺼낼 수 있다. 책장이 하나면 같은 모달을 꺼내기 버튼으로 열고, 성공 후 현재 책 상세에 등록 버튼을 표시한다
 - 서재에 담기·책장 이동·독서 활동 모달은 각각 고유 ID와 book-modal Stimulus 범위를 사용한다. 닫기·Escape·포커스 복귀·모바일 내부 스크롤·body scroll lock·Turbo cache 닫기를 유지한다
 - 별도 책친구 활동은 현재 accepted 관계와 public/book_friends 책장의 연결 항목에 허용된 BookActivity(상태·스티커 변경 포함), 기존 가시성 안의 개인 첨부 짹을 합쳐 최근 3건 표시한다. 홈의 소식받기 조건은 적용하지 않으며 본인 활동은 제외한다. 첨부 짹 목록에는 BookActivity를 섞지 않는다
 
@@ -215,6 +218,7 @@
 - 작은 화면 bulk move 후에는 이동한 target 책장을 source로 열어 보여준다
 - bulk move는 선택된 entry id 순서를 보존하며, 대상 책장 끝에 append한다
 - bulk move에서 같은 책장으로 이동하는 entry는 건너뛰고, 다른 사용자 entry나 다른 사용자 target 책장은 거부한다
+- 책장 이동 모드에서 PC는 카드의 아이콘 버튼으로 한 권을, 모바일은 목적지 선택 대화 상자에서 선택한 책을 꺼낸다. 확인 뒤 배치만 제거하며, 모바일 묶음 제거는 본인 출발 책장의 항목을 모두 검증한 뒤 한 트랜잭션에서 처리한다
 - 이동 후에는 transfer 화면의 UI source / target 조합을 유지한다
 - 같은 책장 안 reorder는 `PATCH /bookshelf_entries/reorder`를 그대로 사용한다
 - compact book card는 한 화면에 더 많은 책이 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
@@ -407,7 +411,7 @@
 - 업로드한 아바타는 탈퇴 transaction commit 뒤 정리하며, rollback이면 보존함. 탈퇴 사용자 이미지는 기존 placeholder로 표시함
 - User row는 삭제하지 않고 `withdrawn_at`, 익명 이름과 비전송 placeholder 이메일로 갱신해 Jjaek·Comment 작성자 연결을 보존함
 - 관련 `RegistrationInvitation`의 원래 이메일과 User 연결을 같은 transaction에서 정리하며, 탈퇴 실패 시 함께 rollback함
-- Follow, BookFriendship, Like, Notification, 일반 GroupMembership과 개인 서재·BookActivity를 정리함
+- Follow, BookFriendship, Like, Notification, 일반 GroupMembership과 개인 서재·UserBook·BookActivity를 정리함
 - active Group 관리자는 이전 또는 운영 종료 전 탈퇴할 수 없음
 - 최초 개설 pending 신청은 관리자 외 membership·콘텐츠·예상 밖 event가 없을 때만 정리하며 아니면 탈퇴를 rollback함
 - 재운영 pending Group은 삭제하지 않고 inactive로 복귀시키며 `group_admin_id`와 withdrawn User, 콘텐츠, lifecycle history로 역사적 관리자 attribution을 보존함
@@ -461,7 +465,7 @@
 - 검색 결과의 `서재에 담기`는 책장이 하나이면 바로 등록하고, 2개 이상이면 기존 book-modal과 `ui-choice` 라디오를 사용하는 카드 전용 dialog를 표시함. 책장은 기본 책장 우선 순서이며 기본 책장을 미리 선택하고 카드별 dialog·input ID와 controller 범위를 분리함
 - 대상 책장을 선택하지 않으면 기본 책장 “내 책장”에 담김
 - Book의 제목·저자·출판사를 DB에서 검색하고, 기존 `BookSearches::SearchService`와 `KakaoAdapter`의 외부 결과를 `검색 결과` 한 목록에 기존 순서·중복 제거 정책대로 표시함. 각 검색의 페이지네이션은 유지하고 외부 API 건수를 전체 결과 건수로 표시하지 않음. 외부 장애 시 DB 결과와 안내를 유지함
-- DB·외부 검색은 현재 사용자 소유 BookshelfEntry와 Bookshelf를 일괄 조회해 실제 책장을 카드에 전달함. 등록된 책은 기본 책장의 `내 서재에 있음` 또는 일반 책장의 `{실제 책장 이름}에 있음` 비활성 버튼을 표시함. POST 성공 시 기존 Turbo Stream으로 해당 카드만 교체하고 실제 등록 책장을 표시하며, 재등록은 기존 책장·BookActivity를 유지함
+- DB·외부 검색은 현재 사용자 소유 BookshelfEntry와 Bookshelf를 일괄 조회해 실제 책장을 카드에 전달함. 등록된 책은 기본 책장의 `내 서재에 있음` 또는 일반 책장의 `{실제 책장 이름}에 있음` 비활성 버튼을 표시함. POST 성공 시 기존 Turbo Stream으로 해당 카드만 교체하고 실제 등록 책장을 표시함. 현재 배치가 있는 책을 중복 등록하면 기존 책장과 활동을 유지하며, 제거한 책을 다시 담으면 기존 `UserBook`을 연결함
 - 로그인 사용자의 Navbar·본인 Library 책 검색은 공통 Navbar에서 한 번 렌더링하는 global-book-search-dialog를 열고 GET으로 `/book_search`에 제출함. 공통 `book-modal`은 layout body가 소유하며 중첩된 동아리·카드·책장 모달 범위와 분리됨. 기존 검색 폼 partial·입력창 autofocus·닫기·Esc·실행 버튼으로 포커스 복귀·body scroll lock·Turbo 이동/캐시 전 닫기를 유지함. Navbar의 모바일 메뉴는 열기 전에 접고 닫은 뒤 메뉴 버튼으로 포커스를 복귀함
 - Navbar 검색은 group_id를 전달하지 않고 검증된 search_origin만 복귀 경로로 보존함. 동아리의 현재 작성 폼은 공통 composer의 책 선택창을 사용하며, 검색 모달과 독립된 선택 문맥·동아리 인가를 유지함
 - Library 검색은 공통 모달을 재사용하고 현재 서재 경로·책장·정렬을 검증된 search_origin으로 유지함. 모든 검색 모달은 GET 제출 후 같은 결과 페이지로 이동하며 결과·재검색 폼·pagination·서재 등록은 해당 페이지에 유지함. 직접 진입용 book_search_entry_path는 사용처가 없어 제거했으며 `/book_search`는 오류 복귀에도 계속 사용함
@@ -588,9 +592,12 @@ deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 p
 ## 데이터 책임 분리
 
 - BookshelfEntry
-  - 사용자-책-책장 관계
-  - 상태 / 스티커
+  - 사용자 책의 현재 책장 배치와 책장 안 순서
   - 목록 화면은 별도로 제공하지 않으며, 대표 서재 화면은 `/users/:user_id/library`를 사용한다
+
+- UserBook
+  - 사용자·책별로 유일한 개인 독서 기록
+  - 독서 상태와 `UserBookSticker` 연결은 배치를 제거해도 보존하며 다시 담을 때 재사용한다
 
 - Bookshelf
   - 책장 이름 / visibility
@@ -603,10 +610,10 @@ deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 p
 - BookActivity
   - 책 관련 활동 이벤트 기반
 
-`BookActivity`는 개인 BookshelfEntry 최초 생성 성공 시 `added_to_shelf`를 기록한다.
-상태·스티커의 실제 변경은 저장 1회당 `bookshelf_entry_updated` 한 건으로 기록하며 무변경·재등록·책장 이동은 활동을 생성하지 않는다.
+`BookActivity`는 개인 BookshelfEntry 배치를 새로 생성할 때 `added_to_shelf`를 기록한다.
+상태·스티커의 실제 변경은 저장 1회당 `bookshelf_entry_updated` 한 건으로 기록하며 무변경·현재 배치 중복 등록·책장 이동은 활동을 생성하지 않는다.
 홈·프로필 피드는 연결된 항목의 추가 활동만 표시하고, 책 상세 책친구 활동은 허용된 상태·스티커 변경도 표시한다.
-BookshelfEntry 제거 시 연결된 모든 활동을 dependent destroy로 정리한다.
+BookshelfEntry 제거 시 활동 행은 보존하고 배치 연결만 해제한다. 연결이 해제된 활동은 다시 담은 뒤에도 표시하지 않는다.
 프로필은 self / accepted book_friend, 홈은 self / 소식받는 accepted book_friend 관계를 유지하며,
 다른 사용자의 활동은 연결된 항목의 현재 책장이 public/book_friends인 경우에만 표시한다.
 private 변경 또는 private 책장 이동은 과거 추가 활동에도 즉시 적용된다.

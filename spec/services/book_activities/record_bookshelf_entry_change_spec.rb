@@ -3,13 +3,17 @@ require "rails_helper"
 RSpec.describe BookActivities::RecordBookshelfEntryChange do
   let(:user) { User.create!(name: "Reader", email: "activity-service@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "활동 책", authors_text: "저자") }
-  let(:entry) { user.bookshelf_entries.create!(book:, status: :reading) }
+  let(:entry) do
+    entry = user.bookshelf_entries.create!(book:)
+    entry.user_book.update!(status: :reading)
+    entry
+  end
   let(:first_sticker) { StickerDefinition.create!(key: "service_first", name: "재미있음") }
   let(:second_sticker) { StickerDefinition.create!(key: "service_second", name: "감동") }
   let(:third_sticker) { StickerDefinition.create!(key: "service_third", name: "추천") }
 
   it "records a status change once" do
-    entry.update!(status: :finished)
+    entry.user_book.update!(status: :finished)
 
     expect {
       record_change
@@ -18,7 +22,7 @@ RSpec.describe BookActivities::RecordBookshelfEntryChange do
   end
 
   it "records multiple added stickers in one activity" do
-    entry.sticker_definitions = [ first_sticker, second_sticker, third_sticker ]
+    entry.user_book.sticker_definitions = [ first_sticker, second_sticker, third_sticker ]
 
     expect {
       record_change
@@ -27,9 +31,9 @@ RSpec.describe BookActivities::RecordBookshelfEntryChange do
   end
 
   it "records multiple removed stickers in one activity" do
-    entry.sticker_definitions = [ first_sticker, second_sticker, third_sticker ]
-    previous_ids = entry.sticker_definition_ids
-    entry.sticker_definitions = []
+    entry.user_book.sticker_definitions = [ first_sticker, second_sticker, third_sticker ]
+    previous_ids = entry.user_book.sticker_definition_ids
+    entry.user_book.sticker_definitions = []
 
     expect {
       record_change(previous_sticker_definition_ids: previous_ids)
@@ -38,9 +42,9 @@ RSpec.describe BookActivities::RecordBookshelfEntryChange do
   end
 
   it "records status, added stickers, and removed stickers together" do
-    entry.sticker_definitions = [ second_sticker, third_sticker ]
-    entry.update!(status: :finished)
-    entry.sticker_definitions = [ first_sticker, second_sticker ]
+    entry.user_book.sticker_definitions = [ second_sticker, third_sticker ]
+    entry.user_book.update!(status: :finished)
+    entry.user_book.sticker_definitions = [ first_sticker, second_sticker ]
 
     expect {
       record_change(previous_sticker_definition_ids: [ second_sticker.id, third_sticker.id ])
@@ -56,7 +60,7 @@ RSpec.describe BookActivities::RecordBookshelfEntryChange do
   end
 
   it "does not record activity when nothing changes" do
-    entry.sticker_definitions = [ first_sticker ]
+    entry.user_book.sticker_definitions = [ first_sticker ]
 
     expect {
       record_change(previous_sticker_definition_ids: [ first_sticker.id ])

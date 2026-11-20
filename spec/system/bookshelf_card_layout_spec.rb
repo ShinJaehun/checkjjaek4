@@ -5,13 +5,17 @@ RSpec.describe "Bookshelf card layout", type: :system do
 
   let(:user) { User.create!(name: "Layout reader", email: "layout-reader@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "긴 책 제목 " * 20, authors_text: "긴 저자 " * 15, publisher: "긴 출판사 " * 15) }
-  let!(:entry) { user.bookshelf_entries.create!(book: book, status: :reading) }
+  let!(:entry) do
+    entry = user.bookshelf_entries.create!(book: book)
+    entry.user_book.update!(status: :reading)
+    entry
+  end
   let!(:empty_entry) { user.bookshelf_entries.create!(book: Book.create!(title: "No reading information")) }
   let!(:target_shelf) { user.bookshelves.create!(name: "Target", visibility: :private) }
 
   before do
     7.times do |index|
-      entry.sticker_definitions << StickerDefinition.create!(key: "layout_#{index}", name: "Layout sticker #{index}")
+      entry.user_book.sticker_definitions << StickerDefinition.create!(key: "layout_#{index}", name: "Layout sticker #{index}")
     end
     login_as user, scope: :user
   end

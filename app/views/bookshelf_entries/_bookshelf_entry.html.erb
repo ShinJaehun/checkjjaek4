@@ -12,14 +12,14 @@
           <%= link_to bookshelf_entry.book.title, book_path(bookshelf_entry.book, book_navigation_params), class: "text-lg font-semibold text-stone-900 hover:text-stone-700" %>
           <p class="mt-1 text-sm text-stone-500"><%= bookshelf_entry.book.authors_text.presence || "-" %></p>
         </div>
-        <% if bookshelf_entry.status.present? %>
-          <%= reading_status_badge(bookshelf_entry.status) %>
+        <% if bookshelf_entry.user_book.status.present? %>
+          <%= reading_status_badge(bookshelf_entry.user_book.status) %>
         <% end %>
       </div>
 
-      <% if bookshelf_entry.sticker_definitions.any? %>
+      <% if bookshelf_entry.user_book.sticker_definitions.any? %>
         <div class="mt-3 flex flex-wrap gap-2">
-          <% bookshelf_entry.sticker_definitions.each do |sticker| %>
+          <% bookshelf_entry.user_book.sticker_definitions.each do |sticker| %>
             <%= reading_sticker_badge(sticker) %>
           <% end %>
         </div>

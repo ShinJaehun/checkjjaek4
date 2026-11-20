@@ -4,6 +4,8 @@ class Book < ApplicationRecord
   class IdentityConflict < StandardError; end
 
   has_many :bookshelf_entries, dependent: :destroy
+  has_many :user_books, dependent: :destroy
+  has_many :book_activities
   has_many :users, through: :bookshelf_entries
   has_many :jjaek_book_attachments, dependent: :restrict_with_error
   has_many :attached_jjaeks, through: :jjaek_book_attachments, source: :jjaek

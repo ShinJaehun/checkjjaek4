@@ -84,9 +84,9 @@ class ApplicationController < ActionController::Base
 
     entries = policy_scope(BookshelfEntry, policy_scope_class: BookshelfEntryPolicy::ReadingStateScope)
       .where(user_id: records.map(&:user_id), book_id: records.map { |jjaek| jjaek.single_attached_book.id })
-      .includes(:sticker_definitions)
+      .includes(user_book: :sticker_definitions)
     entries.each do |entry|
-      @current_reading_states[[ entry.user_id, entry.book_id ]] = entry
+      @current_reading_states[[ entry.user_id, entry.book_id ]] = entry.user_book
     end
   end
 

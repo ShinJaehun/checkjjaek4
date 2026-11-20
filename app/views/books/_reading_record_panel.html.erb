@@ -3,10 +3,10 @@
          data-book-modal-auto-open-value="<%= bookshelf_entry.errors.any? %>"
          data-action="turbo:before-cache@document->book-modal#close">
   <div class="flex min-w-0 flex-1 flex-wrap gap-2">
-    <% if bookshelf_entry.status.present? %>
-      <%= reading_status_badge(bookshelf_entry.status) %>
+    <% if bookshelf_entry.user_book.status.present? %>
+      <%= reading_status_badge(bookshelf_entry.user_book.status) %>
     <% end %>
-    <% bookshelf_entry.sticker_definitions.each do |sticker| %>
+    <% bookshelf_entry.user_book.sticker_definitions.each do |sticker| %>
       <%= reading_sticker_badge(sticker) %>
     <% end %>
   </div>

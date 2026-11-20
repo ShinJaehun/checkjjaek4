@@ -153,10 +153,11 @@ RSpec.describe "Book context in the common composer", type: :request do
   it "stores shelved and unshelved attachments without changing existing reading data" do
     shelved_book = Book.create!(title: "Shelved context book")
     shelf = user.bookshelves.create!(name: "Existing reading shelf")
-    entry = user.bookshelf_entries.create!(book: shelved_book, bookshelf: shelf, status: :reading)
+    entry = user.bookshelf_entries.create!(book: shelved_book, bookshelf: shelf)
+    entry.user_book.update!(status: :reading)
     sticker = StickerDefinition.create!(key: "book_posting_preserved", name: "Preserved sticker")
-    entry.sticker_definitions << sticker
-    reading_state = [ entry.status, entry.bookshelf_id, entry.sticker_definition_ids.sort ]
+    entry.user_book.sticker_definitions << sticker
+    reading_state = [ entry.user_book.status, entry.bookshelf_id, entry.user_book.sticker_definition_ids.sort ]
 
     expect {
       post group_jjaeks_path(group), params: { selected_books: [ book.id, shelved_book.id ], jjaek: { content: "Group note", visibility: :private_jjaek } }
@@ -164,7 +165,7 @@ RSpec.describe "Book context in the common composer", type: :request do
     expect(Jjaek.last).to have_attributes(group_id: group.id, visibility: "public_jjaek")
     expect(Jjaek.last.attached_books).to eq([ book, shelved_book ])
     entry.reload
-    expect([ entry.status, entry.bookshelf_id, entry.sticker_definition_ids.sort ]).to eq(reading_state)
+    expect([ entry.user_book.status, entry.bookshelf_id, entry.user_book.sticker_definition_ids.sort ]).to eq(reading_state)
     expect(user.bookshelf_entries.exists?(book:)).to be(false)
   end
 

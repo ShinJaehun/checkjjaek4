@@ -22,10 +22,10 @@ UI에서 책장을 어떻게 표시하고 조작할지는 `docs/specs/bookshelf_
 
 - `Book`은 전역 책 정보를 나타낸다.
 - `Bookshelf`는 사용자가 책을 꽂아두는 책장이다.
-- `BookshelfEntry`는 사용자와 책의 관계를 나타낸다.
-- `BookshelfEntry`는 상태와 스티커 정보를 가진다.
+- `UserBook`은 사용자와 책 조합마다 하나이며, 독서 상태와 `UserBookSticker` 연결을 보관한다.
+- `BookshelfEntry`는 `UserBook`을 현재 어느 책장에 배치했는지 나타낸다.
 - `BookshelfEntry`는 같은 책장 안에서 사용자 지정 순서를 위한 `position`을 가진다.
-- `BookActivity`는 개인 `BookshelfEntry` 최초 생성 시 추가 활동만 기록한다.
+- `BookActivity`는 배치 추가와 실제 독서 기록 변경을 기록한다. 홈·프로필 피드에는 추가 활동만 표시한다.
 - BookActivity는 현재 self / accepted book_friend에게만 노출한다.
 - BookActivity는 기존 관계 범위 안에서 현재 Bookshelf visibility로 추가 제한한다.
 
@@ -37,6 +37,12 @@ UI에서 책장을 어떻게 표시하고 조작할지는 `docs/specs/bookshelf_
 User
   has_many :bookshelves
   has_many :bookshelf_entries
+  has_many :user_books
+
+UserBook
+  belongs_to :user
+  belongs_to :book
+  has_many :user_book_stickers
 
 Bookshelf
   belongs_to :user
@@ -46,6 +52,7 @@ BookshelfEntry
   belongs_to :user
   belongs_to :book
   belongs_to :bookshelf
+  belongs_to :user_book
   position within bookshelf
 ```
 
@@ -126,7 +133,9 @@ bookshelf_entry.user_id == bookshelf_entry.bookshelf.user_id
 user_id + book_id = unique
 ```
 
-이 정책은 validation과 테스트로 보강한다.
+배치의 사용자와 책은 `UserBook`의 사용자와 책과 일치해야 한다. DB 고유 인덱스로 사용자·책별 `UserBook` 하나와 `UserBook`별 현재 배치 하나를 보장한다.
+
+책을 서재에서 제거하면 `BookshelfEntry` 배치를 삭제한다. `UserBook`의 상태와 스티커, 기존 `BookActivity`는 보존한다. 다시 담으면 새 배치에 기존 `UserBook`을 연결해 상태와 스티커를 표시한다. 독서 기록 편집과 공유는 현재 배치와 기존 권한을 기준으로 한다.
 
 `BookshelfEntry.position`은 같은 `bookshelf_id` 안에서 책의 사용자 지정 순서를 저장한다.
 새 BookshelfEntry는 해당 책장의 마지막 position으로 들어간다.
@@ -269,6 +278,8 @@ enum :visibility,
 15. BookshelfEntry는 같은 책장 안에서 position을 가진다.
 16. 책장 이동 시 BookshelfEntry는 target 책장의 마지막 position으로 이동한다.
 17. 책장 안 재정렬은 같은 Bookshelf의 전체 entry id 세트를 기준으로만 성공한다.
+18. 책장을 옮기거나 배치를 지운 뒤 다시 담아도 동일한 `UserBook`, 상태, 스티커를 사용한다.
+19. 배치를 제거해도 관련 활동 행을 보존하며 이전 배치의 활동은 피드와 책 상세에서 숨긴다.
 
 ---
 
@@ -289,6 +300,18 @@ enum :visibility,
 ```text
 app/assets/builds/tailwind.css
 ```
+
+### 기존 서재 데이터 이전 확인
+
+PostgreSQL 순방향 migration은 기존 배치마다 같은 사용자·책·상태를 가진 `UserBook`을 만든다. 스티커 테이블은 행과 ID를 유지하면서 소유 참조만 옮긴다. 새 참조의 외래 키·필수값과 고유 인덱스를 적용한 뒤 기존 상태 열과 스티커의 배치 참조를 제거한다.
+
+기존 데이터가 있는 비운영 복제본에서 쓰기를 멈춘 뒤 `bin/rails db:migrate` 전후의 다음 데이터를 비교한다.
+
+- 배치 ID별 사용자·책·책장·순서와 상태 값. 적용 후 상태는 `bookshelf_entries.user_book_id`로 연결해 확인하며 `NULL`도 비교한다.
+- 스티커 ID별 정의 ID·사용자·책·생성 및 수정 시각. 적용 전에는 배치를, 적용 후에는 `UserBook`을 통해 사용자와 책을 확인한다.
+- BookActivity 행의 ID·배치 참조·action·metadata·시각. migration 전후의 값은 동일해야 한다.
+
+배치가 없는 독서 기록을 기존 형식으로 표현할 수 없어 자동 역방향 migration은 제공하지 않는다. 되돌리려면 이전 코드와 migration 직전 백업이 필요하다.
 
 ---
 

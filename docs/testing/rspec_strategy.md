@@ -46,7 +46,7 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - 인증 이후 기본 진입 흐름
 - Pundit policy / policy_scope 핵심 분기
 - Book 생성/재사용과 BookshelfEntry 생성/재사용 흐름
-- BookshelfEntry 상태/스티커 저장 규칙
+- UserBook 상태·스티커 저장과 책장 배치 제거·재등록 시 보존 규칙
 - Jjaek 생성 / 수정 / 삭제 / 조회 request 흐름
 - ReJjaek 공개 범위 규칙
 - ReJjaek 조회 시 원문 접근 권한 재검사 규칙
@@ -85,8 +85,8 @@ Coverage 수치 자체를 목표로 삼지 않는다.
 - 입력값 검증
 
 예시:
-- BookshelfEntry 상태 규칙
-- BookshelfEntrySticker 중복 방지
+- UserBook 상태 규칙
+- UserBook과 UserBookSticker 중복 방지
 - Jjaek visibility / ReJjaek 규칙
 - Book 검색 결과 매핑 규칙
 

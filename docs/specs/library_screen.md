@@ -60,9 +60,10 @@ BookshelfEntry는 사용자가 특정 책을 자신의 서재에 담은 기록�
 다만 `BookshelfEntry` 자체의 생성/수정/이동/삭제 흐름은 유지한다.
 
 - 책 검색이나 책 상세에서 책을 서재에 담을 때 `BookshelfEntry`를 생성한다.
-- 책 상태와 스티커를 수정할 때 `BookshelfEntry`를 수정한다.
+- 책 상태와 스티커를 수정하면 현재 배치의 `UserBook`에 저장한다.
 - Library 안에서 책을 다른 책장으로 옮길 때 `BookshelfEntry`의 `bookshelf_id`를 변경한다.
-- 서재에서 책을 제거할 때 `BookshelfEntry`를 삭제한다.
+- 서재에서 책을 제거할 때 `BookshelfEntry`를 삭제하고 `UserBook`의 상태·스티커와 활동 이력을 보존한다.
+- PC 이동 모드에서는 카드 우측 상단 버튼으로 한 권을 꺼낸다. 모바일 이동 모드에서는 선택한 책의 목적지 대화 상자에서 한 권 이상을 꺼낸다. 두 경우 모두 확인 후 실행한다. 세부 UI는 `docs/specs/bookshelf_ui.md`를 따른다.
 
 ---
 

@@ -37,11 +37,11 @@
 - Like 등 탈퇴 사용자의 개인 반응 관계를 제거한다.
 - GroupMembership에서 탈퇴 사용자가 더 이상 active member로 남지 않게 정리한다.
 - active Group의 동아리 관리자는 아래 관리자 lifecycle을 먼저 해결하지 않으면 탈퇴할 수 없다.
-- Notification과 개인 Bookshelf, BookshelfEntry, BookActivity도 정리한다.
+- Notification과 개인 Bookshelf, BookshelfEntry, UserBook 및 스티커, BookActivity도 정리한다.
 
 탈퇴한 사용자를 대상으로 새 Follow, BookFriendship, Group 초대와 profile-context Jjaek을 만들 수 없다.
 
-현재 구현은 Notification, Bookshelf, BookshelfEntry와 BookActivity를 삭제하고,
+현재 구현은 Notification, Bookshelf, BookshelfEntry, UserBook 및 스티커와 BookActivity를 삭제하고,
 공용 Book과 익명화된 User에 연결된 Jjaek·Comment는 보존한다.
 
 global admin의 self-withdrawal과 다른 사용자를 강제 탈퇴시키는 기능은 제공하지 않는다.

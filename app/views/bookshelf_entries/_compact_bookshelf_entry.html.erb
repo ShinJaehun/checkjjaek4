@@ -23,6 +23,18 @@
     </label>
   <% end %>
 
+  <% if local_assigns[:removal_params] %>
+    <% remove_label = t("bookshelf_entries.actions.remove_book", title: bookshelf_entry.book.title) %>
+    <%= button_to bookshelf_entry_path(bookshelf_entry), method: :delete, params: removal_params,
+                  form: { class: "absolute right-2 top-2 z-10 hidden md:block", data: { turbo_confirm: bookshelf_removal_confirmation } },
+                  class: "inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-red-700 shadow-sm hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700",
+                  title: remove_label, aria: { label: remove_label } do %>
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 18V5a2 2 0 0 1 2-2h12v18H8a3 3 0 0 1 0-6h11M9 9h6" />
+      </svg>
+    <% end %>
+  <% end %>
+
   <div class="flex h-full min-w-0 <%= transfer_selection ? "items-start gap-3 md:flex-col md:gap-2" : "flex-col gap-2" %>">
     <div class="flex items-start justify-center <%= transfer_selection ? "w-20 shrink-0 md:min-h-28 md:w-full md:shrink" : "min-h-28" %>"
          <% if local_assigns.fetch(:show_sort_handle, false) %>

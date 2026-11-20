@@ -1,6 +1,6 @@
 class StickerDefinition < ApplicationRecord
-  has_many :bookshelf_entry_stickers, dependent: :destroy
-  has_many :bookshelf_entries, through: :bookshelf_entry_stickers
+  has_many :user_book_stickers, dependent: :destroy
+  has_many :user_books, through: :user_book_stickers
 
   validates :key, presence: true, uniqueness: true
   validates :name, presence: true

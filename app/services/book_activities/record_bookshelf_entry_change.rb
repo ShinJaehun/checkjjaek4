@@ -10,11 +10,12 @@ module BookActivities
         return
       end
 
-      current_ids = bookshelf_entry.sticker_definition_ids.map(&:to_i).sort
+      user_book = bookshelf_entry.user_book
+      current_ids = user_book.sticker_definition_ids.map(&:to_i).sort
       previous_ids = Array(previous_sticker_definition_ids).map(&:to_i).sort
       added_ids = current_ids - previous_ids
       removed_ids = previous_ids - current_ids
-      return if previous_status == bookshelf_entry.status && added_ids.empty? && removed_ids.empty?
+      return if previous_status == user_book.status && added_ids.empty? && removed_ids.empty?
 
       stickers = StickerDefinition.where(id: added_ids + removed_ids).index_by(&:id)
       bookshelf_entry.book_activities.create!(
@@ -23,7 +24,7 @@ module BookActivities
         action: :bookshelf_entry_updated,
         metadata: {
           from_status: previous_status,
-          to_status: bookshelf_entry.status,
+          to_status: user_book.status,
           added_sticker_definition_ids: added_ids,
           added_sticker_names: added_ids.map { |id| stickers.fetch(id).name },
           removed_sticker_definition_ids: removed_ids,

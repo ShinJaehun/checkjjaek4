@@ -1290,6 +1290,8 @@ ko:
     actions:
       create: "서재에 저장"
       move: "이동"
+      remove: "책장에서 꺼내기"
+      remove_book: "%{title} 책장에서 꺼내기"
       reorder: "순서 변경"
       update: "서재 항목 수정"
     form:
@@ -1299,17 +1301,23 @@ ko:
       target_bookshelf: "담을 책장"
       status: "대표 상태"
       stickers: "스티커"
+    confirmations:
+      remove: "이 책을 책장에서 꺼낼까요?"
+      remove_selected: "선택한 책 %{books_count}권을 책장에서 꺼낼까요?"
+      reading_record_preserved: "독서 상태와 스티커는 보존됩니다."
     new:
       title: "책장에 담기"
     edit:
       title: "서재 항목 수정"
     notices:
+      bulk_destroyed: "책장에서 책 %{count}권을 꺼냈습니다."
       bulk_moved: "%{count}권을 '%{bookshelf_name}' 책장으로 옮겼습니다."
       created: "책을 서재에 담았습니다."
-      destroyed: "서재 항목을 삭제했습니다."
+      destroyed: "책장에서 책을 꺼냈습니다."
       moved: "책을 '%{bookshelf_name}' 책장으로 옮겼습니다."
       updated: "서재 항목을 수정했습니다."
     alerts:
+      bulk_destroy_failed: "선택한 책을 꺼내지 못했습니다."
       bulk_move_failed: "선택한 책을 옮기지 못했습니다."
       move_failed: "책 이동 결과를 확인할 수 없습니다. 현재 저장 상태를 다시 불러옵니다."
       reorder_failed: "책 순서 저장을 확인할 수 없습니다. 현재 저장된 순서를 다시 불러옵니다."
@@ -1552,12 +1560,13 @@ ko:
       transfer:
         back_to_library: "서재로 돌아가기"
         bulk_submit: "옮기기"
-        bulk_target_label: "어느 책장으로 옮길까요?"
+        bulk_target_label: "선택한 책을 어떻게 할까요?"
+        bulk_target_description: "다른 책장으로 옮기거나 현재 책장에서 꺼낼 수 있습니다."
         cancel_move: "취소"
         choose_source: "출발 책장 선택"
         choose_target: "이동 대상 책장 선택"
         clear_selection: "선택 해제"
-        close_targets: "이동 대상 선택 닫기"
+        close_targets: "책 정리 대화 상자 닫기"
         mobile_source_label: "정리할 책장"
         not_enough_bookshelves: "책장이 2개 이상일 때 책장 이동 모드를 사용할 수 있습니다."
         open: "책장 이동"

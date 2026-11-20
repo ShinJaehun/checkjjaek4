@@ -1,34 +1,35 @@
 class BookshelfEntry < ApplicationRecord
   PROFILE_SORTS = %w[recent manual title author status].freeze
 
-  enum :status, { wish: 0, reading: 1, finished: 2 }, validate: { allow_nil: true }
-
   belongs_to :user
   belongs_to :book
   belongs_to :bookshelf
+  belongs_to :user_book
 
-  has_many :book_activities, dependent: :destroy
-  has_many :bookshelf_entry_stickers, dependent: :destroy
-  has_many :sticker_definitions, through: :bookshelf_entry_stickers
+  # The foreign key clears the placement when it is removed and retains the activity rows.
+  has_many :book_activities
 
+  before_validation :assign_user_book, on: :create
   before_validation :assign_default_bookshelf
   before_validation :assign_position, on: :create
 
   validates :book_id, uniqueness: { scope: :user_id }
   validates :position, numericality: { only_integer: true, greater_than: 0 }
   validate :bookshelf_belongs_to_user
+  validate :user_book_matches_entry, if: -> { new_record? || user_book_id_changed? || user_id_changed? || book_id_changed? }
 
-  scope :recent_first, -> { includes(:book, :sticker_definitions).order(updated_at: :desc) }
+  scope :with_reading_record, -> { includes(:book, user_book: :sticker_definitions) }
+  scope :recent_first, -> { with_reading_record.order(bookshelf_entries: { updated_at: :desc }) }
   scope :profile_sorted, ->(sort) {
     case sort
     when "manual"
-      includes(:book, :sticker_definitions).order(position: :asc, id: :asc)
+      with_reading_record.order(position: :asc, id: :asc)
     when "title"
-      joins(:book).includes(:book, :sticker_definitions).order(books: { title: :asc }, id: :asc)
+      joins(:book).with_reading_record.order(books: { title: :asc }, id: :asc)
     when "author"
-      joins(:book).includes(:book, :sticker_definitions).order(books: { authors_text: :asc }, id: :asc)
+      joins(:book).with_reading_record.order(books: { authors_text: :asc }, id: :asc)
     when "status"
-      includes(:book, :sticker_definitions).order(status: :asc, updated_at: :desc, id: :asc)
+      joins(:user_book).with_reading_record.order(user_books: { status: :asc }, bookshelf_entries: { updated_at: :desc, id: :asc })
     else
       recent_first
     end
@@ -86,6 +87,19 @@ class BookshelfEntry < ApplicationRecord
   end
 
   private
+
+  def assign_user_book
+    return if user_book.present? || user_id.blank? || book_id.blank?
+
+    self.user_book = UserBook.find_or_initialize_by(user_id:, book_id:)
+  end
+
+  def user_book_matches_entry
+    return if user_book.blank?
+    return if user_book.user_id == user_id && user_book.book_id == book_id
+
+    errors.add(:user_book, :invalid)
+  end
 
   def assign_default_bookshelf
     return if bookshelf.present?

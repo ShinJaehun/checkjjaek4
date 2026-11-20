@@ -93,6 +93,12 @@ RSpec.describe Users::WithdrawAccount do
     Notification.create!(recipient: other, actor: user, action: :profile_jjaek_created, notifiable: jjaek)
     entry = user.bookshelf_entries.create!(book: book, bookshelf: user.default_bookshelf, position: 1)
     user.book_activities.create!(book: book, bookshelf_entry: entry, action: :added_to_shelf)
+    retained_book = Book.create!(title: "Previously shelved book")
+    removed_entry = user.bookshelf_entries.create!(book: retained_book)
+    sticker = StickerDefinition.create!(key: "withdrawal_reading", name: "Withdrawal sticker")
+    removed_entry.user_book.sticker_definitions << sticker
+    user.book_activities.create!(book: retained_book, bookshelf_entry: removed_entry, action: :added_to_shelf)
+    removed_entry.destroy!
     group = Group.create!(lifecycle_status: :active, group_admin: other, name: "Joined", group_type: :public_group)
     group.group_memberships.create!(user: user, status: :active)
 
@@ -113,8 +119,11 @@ RSpec.describe Users::WithdrawAccount do
     expect(user.group_memberships).to be_empty
     expect(user.bookshelves).to be_empty
     expect(user.bookshelf_entries).to be_empty
+    expect(user.user_books).to be_empty
+    expect(sticker.user_book_stickers).to be_empty
     expect(user.book_activities).to be_empty
     expect(Book.exists?(book.id)).to be(true)
+    expect(Book.exists?(retained_book.id)).to be(true)
   end
 
   it "clears the original email and user link from past invitations without changing their status or other members' invitations" do

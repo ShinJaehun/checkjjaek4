@@ -19,21 +19,26 @@ class BookshelfEntriesController < ApplicationController
 
     Book.transaction do
       @book.save! if @book.new_record?
-      @bookshelf_entry = current_user.bookshelf_entries.find_or_initialize_by(book: @book)
-      authorize @bookshelf_entry
+      user_book = current_user.user_books.find_or_create_by!(book: @book)
+      first_registration = user_book.previously_new_record?
 
-      was_new_record = @bookshelf_entry.new_record?
+      user_book.with_lock do
+        @bookshelf_entry = current_user.bookshelf_entries.find_or_initialize_by(book: @book)
+        authorize @bookshelf_entry
 
-      @bookshelf_entry.bookshelf = bookshelf_for_create if was_new_record && bookshelf_entry_params[:bookshelf_id].present?
-      @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
-      assign_stickers(@bookshelf_entry)
-      @bookshelf_entry.save!
+        new_placement = @bookshelf_entry.new_record?
+        @bookshelf_entry.user_book = user_book
+        @bookshelf_entry.bookshelf = bookshelf_for_create if new_placement && bookshelf_entry_params[:bookshelf_id].present?
+        @bookshelf_entry.save! if new_placement
+        # Keep the stored selections when giving a previously removed book a new placement.
+        save_reading_record! if first_registration || !new_placement
 
-      if was_new_record
-        BookActivities::RecordBookshelfEntryChange.call(
-          bookshelf_entry: @bookshelf_entry,
-          was_new_record: true
-        )
+        if new_placement
+          BookActivities::RecordBookshelfEntryChange.call(
+            bookshelf_entry: @bookshelf_entry,
+            was_new_record: true
+          )
+        end
       end
     end
 
@@ -72,12 +77,12 @@ class BookshelfEntriesController < ApplicationController
   def update
     authorize @bookshelf_entry
 
-    @bookshelf_entry.with_lock do
-      previous_status = @bookshelf_entry.status
-      previous_sticker_definition_ids = @bookshelf_entry.sticker_definition_ids
-      @bookshelf_entry.assign_attributes(bookshelf_entry_params.except(:bookshelf_id, :sticker_definition_ids))
-      assign_stickers(@bookshelf_entry)
-      @bookshelf_entry.save!
+    @bookshelf_entry.user_book.with_lock do
+      @bookshelf_entry.lock!
+      user_book = @bookshelf_entry.user_book
+      previous_status = user_book.status
+      previous_sticker_definition_ids = user_book.sticker_definition_ids
+      save_reading_record!
       BookActivities::RecordBookshelfEntryChange.call(
         bookshelf_entry: @bookshelf_entry,
         was_new_record: false,
@@ -166,9 +171,47 @@ class BookshelfEntriesController < ApplicationController
 
   def destroy
     authorize @bookshelf_entry
-    @bookshelf_entry.destroy!
+    @bookshelf_entry.user_book.with_lock { @bookshelf_entry.destroy! }
 
-    redirect_to user_library_path(current_user), notice: t("bookshelf_entries.notices.destroyed"), status: :see_other
+    redirect_to bookshelf_entry_destroy_redirect_path, notice: t("bookshelf_entries.notices.destroyed"), status: :see_other
+  end
+
+  def bulk_destroy
+    authorize BookshelfEntry, :bulk_destroy?
+
+    source_id = params[:source_bookshelf_id].to_s
+    selected_ids = Array(params[:bookshelf_entry_ids]).map(&:to_s)
+
+    if selected_ids.empty? ||
+       !source_id.match?(/\A[1-9]\d*\z/) ||
+       selected_ids.any? { |id| !id.match?(/\A[1-9]\d*\z/) }
+      return head :not_found
+    end
+
+    unless current_user.bookshelves.exists?(id: source_id) &&
+           current_user.bookshelf_entries.where(
+             bookshelf_id: source_id,
+             id: selected_ids.map(&:to_i)
+           ).count == selected_ids.uniq.size
+      return head :not_found
+    end
+
+    source_bookshelf = current_user.bookshelves.find(params.expect(:source_bookshelf_id))
+    return_path = transfer_user_library_path(current_user, source_bookshelf_id: source_bookshelf.id,
+      target_bookshelf_id: params[:target_bookshelf_id].presence)
+    scope = policy_scope(BookshelfEntry).where(bookshelf: source_bookshelf)
+    ids = bulk_destroy_entry_ids
+
+    BookshelfEntry.transaction do
+      entries = scope.find(ids)
+      # Use the same lock order as single removal, then recheck placements under row locks.
+      UserBook.where(id: entries.map(&:user_book_id)).order(:id).lock.load
+      scope.lock.find(ids).each(&:destroy!)
+    end
+
+    redirect_to return_path, notice: t("bookshelf_entries.notices.bulk_destroyed", count: ids.size), status: :see_other
+  rescue ActiveRecord::RecordNotDestroyed
+    redirect_to return_path, alert: t("bookshelf_entries.alerts.bulk_destroy_failed"), status: :see_other
   end
 
   private
@@ -187,6 +230,15 @@ class BookshelfEntriesController < ApplicationController
     raise ActiveRecord::RecordNotFound if entries_by_id.size != requested_ids.size
 
     requested_ids.map { |id| entries_by_id.fetch(id) }
+  end
+
+  def bulk_destroy_entry_ids
+    ids = params[:bookshelf_entry_ids]
+    unless ids.is_a?(Array) && ids.present? && ids.all? { |id| id.to_s.match?(/\A[1-9][0-9]*\z/) }
+      raise ActiveRecord::RecordNotFound
+    end
+
+    ids.map(&:to_i).uniq
   end
 
   def bulk_move_redirect_options(target_bookshelf)
@@ -308,10 +360,13 @@ class BookshelfEntriesController < ApplicationController
     prepare_book_show_read_context
   end
 
-  def assign_stickers(entry)
-    return unless bookshelf_entry_params.key?(:sticker_definition_ids)
+  def save_reading_record!
+    attributes = bookshelf_entry_params.slice(:status, :sticker_definition_ids)
+    return if attributes.empty?
 
-    entry.sticker_definition_ids = Array(bookshelf_entry_params[:sticker_definition_ids]).reject(&:blank?)
+    user_book = @bookshelf_entry.user_book
+    user_book.update!(attributes)
+    @bookshelf_entry.touch if user_book.saved_change_to_status?
   end
 
   def group_context_id
@@ -319,7 +374,8 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def reading_state
-    { status: @bookshelf_entry.status, sticker_definition_ids: @bookshelf_entry.sticker_definition_ids }
+    user_book = @bookshelf_entry.user_book
+    { status: user_book.status, sticker_definition_ids: user_book.sticker_definition_ids }
   end
 
   def bookshelf_entry_move_redirect_path(bookshelf)
@@ -330,6 +386,18 @@ class BookshelfEntriesController < ApplicationController
     options[:sort] = library_sort_param if library_sort_param
 
     user_library_path(current_user, options.compact)
+  end
+
+  def bookshelf_entry_destroy_redirect_path
+    case params[:return_to]
+    when "book"
+      book_path(@bookshelf_entry.book, group_id: group_context_id,
+        return_to: view_context.validated_jjaek_return_path(params[:book_return_to]))
+    when "library_transfer"
+      bookshelf_entry_transfer_redirect_path(@bookshelf_entry.bookshelf)
+    else
+      user_library_path(current_user)
+    end
   end
 
   def bookshelf_entry_transfer_redirect_path(bookshelf)
