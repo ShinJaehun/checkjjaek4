@@ -4,9 +4,7 @@ class BookshelvesController < ApplicationController
   before_action :set_bookshelf, only: %i[update destroy move_up move_down]
 
   def create
-    saved = current_user.with_lock do
-      raise Pundit::NotAuthorizedError unless current_user.active_account? && !current_user.suspended?
-
+    saved = with_active_user_lock do
       @bookshelf = current_user.bookshelves.build(bookshelf_params)
       @bookshelf.is_default = false
       authorize @bookshelf

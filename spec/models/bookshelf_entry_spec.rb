@@ -69,4 +69,21 @@ RSpec.describe BookshelfEntry, type: :model do
     expect(entry).not_to be_valid
     expect(entry.errors.of_kind?(:user_book, :invalid)).to be(true)
   end
+
+  it "rejects a different owner or book at the database even when validations are bypassed" do
+    entry = described_class.create!(user:, book:)
+    other = User.create!(name: "Other", email: "other-user-book@example.com", password: "password123!")
+    other_owner_record = other.user_books.create!(book:)
+    other_book_record = user.user_books.create!(book: Book.create!(title: "Other book"))
+
+    [ other_owner_record, other_book_record ].each do |record|
+      expect {
+        described_class.transaction(requires_new: true) do
+          entry.update_columns(user_book_id: record.id)
+        end
+      }.to raise_error(ActiveRecord::InvalidForeignKey, /fk_bookshelf_entries_matching_user_book/)
+    end
+
+    expect(entry.reload.user_book).to have_attributes(user:, book:)
+  end
 end

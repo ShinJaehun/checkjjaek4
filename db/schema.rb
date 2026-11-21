@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_21_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_22_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -422,6 +422,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_21_000000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["book_id"], name: "index_user_books_on_book_id"
+    t.index ["id", "user_id", "book_id"], name: "index_user_books_on_id_and_user_id_and_book_id", unique: true
     t.index ["user_id", "book_id"], name: "index_user_books_on_user_id_and_book_id", unique: true
   end
 
@@ -461,7 +462,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_21_000000) do
   add_foreign_key "book_notes", "user_books"
   add_foreign_key "bookshelf_entries", "books"
   add_foreign_key "bookshelf_entries", "bookshelves"
-  add_foreign_key "bookshelf_entries", "user_books"
+  add_foreign_key "bookshelf_entries", "user_books", column: ["user_book_id", "user_id", "book_id"], primary_key: ["id", "user_id", "book_id"], name: "fk_bookshelf_entries_matching_user_book"
   add_foreign_key "bookshelf_entries", "users"
   add_foreign_key "bookshelves", "users"
   add_foreign_key "comments", "jjaeks"

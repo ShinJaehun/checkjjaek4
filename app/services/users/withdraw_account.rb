@@ -107,6 +107,7 @@ module Users
     end
 
     def clean_personal_reading_data!
+      # Reading writes acquire the same User row lock before accessing these records.
       user.book_activities.destroy_all
       user.bookshelf_entries.destroy_all
       user.user_books.destroy_all
