@@ -1,7 +1,7 @@
 class BookshelfEntriesController < ApplicationController
   include BookShowContext
 
-  before_action :set_bookshelf_entry, only: %i[edit update destroy move]
+  before_action :set_bookshelf_entry, only: :edit
 
   def edit
     authorize @bookshelf_entry
@@ -17,28 +17,26 @@ class BookshelfEntriesController < ApplicationController
       return redirect_to_search_error("book_search.errors.missing_identity")
     end
 
-    Book.transaction do
+    with_active_user_lock do
       @book.save! if @book.new_record?
       user_book = current_user.user_books.find_or_create_by!(book: @book)
       first_registration = user_book.previously_new_record?
 
-      user_book.with_lock do
-        @bookshelf_entry = current_user.bookshelf_entries.find_or_initialize_by(book: @book)
-        authorize @bookshelf_entry
+      @bookshelf_entry = current_user.bookshelf_entries.find_or_initialize_by(book: @book)
+      authorize @bookshelf_entry
 
-        new_placement = @bookshelf_entry.new_record?
-        @bookshelf_entry.user_book = user_book
-        @bookshelf_entry.bookshelf = bookshelf_for_create if new_placement && bookshelf_entry_params[:bookshelf_id].present?
-        @bookshelf_entry.save! if new_placement
-        # Keep the stored selections when giving a previously removed book a new placement.
-        save_reading_record! if first_registration || !new_placement
+      new_placement = @bookshelf_entry.new_record?
+      @bookshelf_entry.user_book = user_book
+      @bookshelf_entry.bookshelf = bookshelf_for_create if new_placement && bookshelf_entry_params[:bookshelf_id].present?
+      @bookshelf_entry.save! if new_placement
+      # Keep the stored selections when giving a previously removed book a new placement.
+      save_reading_record! if first_registration || !new_placement
 
-        if new_placement
-          BookActivities::RecordBookshelfEntryChange.call(
-            bookshelf_entry: @bookshelf_entry,
-            was_new_record: true
-          )
-        end
+      if new_placement
+        BookActivities::RecordBookshelfEntryChange.call(
+          bookshelf_entry: @bookshelf_entry,
+          was_new_record: true
+        )
       end
     end
 
@@ -76,10 +74,10 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def update
-    authorize @bookshelf_entry
+    saved_reading_state = with_active_user_lock do
+      set_bookshelf_entry
+      authorize @bookshelf_entry
 
-    @bookshelf_entry.user_book.with_lock do
-      @bookshelf_entry.lock!
       user_book = @bookshelf_entry.user_book
       previous_status = user_book.status
       previous_sticker_definition_ids = user_book.sticker_definition_ids
@@ -90,10 +88,11 @@ class BookshelfEntriesController < ApplicationController
         previous_status: previous_status,
         previous_sticker_definition_ids: previous_sticker_definition_ids
       )
+      reading_state
     end
 
     respond_to do |format|
-      format.json { render json: reading_state }
+      format.json { render json: saved_reading_state }
       format.html do
         redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id,
           return_to: view_context.validated_jjaek_return_path(params[:return_to]), tab: reading_tab),
@@ -117,12 +116,15 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def move
-    authorize @bookshelf_entry, :move?
+    target_bookshelf = with_active_user_lock do
+      set_bookshelf_entry
+      authorize @bookshelf_entry, :move?
 
-    target_bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
-    before_entry = before_entry_for_move
+      target = current_user.bookshelves.find(params[:bookshelf_id])
+      @bookshelf_entry.move_to_bookshelf!(target, before_entry: before_entry_for_move)
+      target
+    end
 
-    @bookshelf_entry.move_to_bookshelf!(target_bookshelf, before_entry:)
     location = bookshelf_entry_move_redirect_path(target_bookshelf)
     notice = t("bookshelf_entries.notices.moved", bookshelf_name: target_bookshelf.name)
     respond_to do |format|
@@ -141,10 +143,13 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def bulk_move
-    authorize BookshelfEntry, :bulk_move?
+    target_bookshelf, moved_count = with_active_user_lock do
+      authorize BookshelfEntry, :bulk_move?
 
-    target_bookshelf = current_user.bookshelves.find(params[:target_bookshelf_id])
-    moved_count = BookshelfEntry.bulk_move_to_bookshelf!(entries: bulk_move_entries, target_bookshelf:)
+      target = current_user.bookshelves.find(params[:target_bookshelf_id])
+      count = BookshelfEntry.bulk_move_to_bookshelf!(entries: bulk_move_entries, target_bookshelf: target)
+      [ target, count ]
+    end
 
     redirect_to transfer_user_library_path(current_user, bulk_move_redirect_options(target_bookshelf)),
                 notice: t("bookshelf_entries.notices.bulk_moved", count: moved_count, bookshelf_name: target_bookshelf.name)
@@ -153,10 +158,13 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def reorder
-    bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
-    authorize BookshelfEntry, :reorder?
+    bookshelf = with_active_user_lock do
+      bookshelf = current_user.bookshelves.find(params[:bookshelf_id])
+      authorize BookshelfEntry, :reorder?
 
-    BookshelfEntry.reorder_within!(bookshelf:, ordered_ids: params[:bookshelf_entry_ids])
+      BookshelfEntry.reorder_within!(bookshelf:, ordered_ids: params[:bookshelf_entry_ids])
+      bookshelf
+    end
     options = { bookshelf_id: bookshelf.id, sort: "manual" }
 
     respond_to do |format|
@@ -171,8 +179,11 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def destroy
-    authorize @bookshelf_entry
-    @bookshelf_entry.user_book.with_lock { @bookshelf_entry.destroy! }
+    with_active_user_lock do
+      set_bookshelf_entry
+      authorize @bookshelf_entry
+      @bookshelf_entry.destroy!
+    end
 
     redirect_to bookshelf_entry_destroy_redirect_path, notice: t("bookshelf_entries.notices.destroyed"), status: :see_other
   end
@@ -181,34 +192,24 @@ class BookshelfEntriesController < ApplicationController
     authorize BookshelfEntry, :bulk_destroy?
 
     source_id = params[:source_bookshelf_id].to_s
-    selected_ids = Array(params[:bookshelf_entry_ids]).map(&:to_s)
+    return head :not_found unless source_id.match?(/\A[1-9]\d*\z/)
 
-    if selected_ids.empty? ||
-       !source_id.match?(/\A[1-9]\d*\z/) ||
-       selected_ids.any? { |id| !id.match?(/\A[1-9]\d*\z/) }
-      return head :not_found
-    end
-
-    unless current_user.bookshelves.exists?(id: source_id) &&
-           current_user.bookshelf_entries.where(
-             bookshelf_id: source_id,
-             id: selected_ids.map(&:to_i)
-           ).count == selected_ids.uniq.size
-      return head :not_found
-    end
-
-    source_bookshelf = current_user.bookshelves.find(params.expect(:source_bookshelf_id))
-    return_path = transfer_user_library_path(current_user, source_bookshelf_id: source_bookshelf.id,
-      target_bookshelf_id: params[:target_bookshelf_id].presence)
-    scope = policy_scope(BookshelfEntry).where(bookshelf: source_bookshelf)
     ids = bulk_destroy_entry_ids
+    return head :not_found unless ids
 
-    BookshelfEntry.transaction do
-      entries = scope.find(ids)
-      # Use the same lock order as single removal, then recheck placements under row locks.
-      UserBook.where(id: entries.map(&:user_book_id)).order(:id).lock.load
-      scope.lock.find(ids).each(&:destroy!)
+    return_path = nil
+    with_active_user_lock do
+      source_bookshelf = current_user.bookshelves.find_by(id: source_id)
+      next unless source_bookshelf
+
+      entries = policy_scope(BookshelfEntry).where(bookshelf: source_bookshelf, id: ids).to_a
+      next unless entries.size == ids.size
+      return_path = transfer_user_library_path(current_user, source_bookshelf_id: source_bookshelf.id,
+        target_bookshelf_id: params[:target_bookshelf_id].presence)
+      entries.each(&:destroy!)
     end
+
+    return head :not_found unless return_path
 
     redirect_to return_path, notice: t("bookshelf_entries.notices.bulk_destroyed", count: ids.size), status: :see_other
   rescue ActiveRecord::RecordNotDestroyed
@@ -236,7 +237,7 @@ class BookshelfEntriesController < ApplicationController
   def bulk_destroy_entry_ids
     ids = params[:bookshelf_entry_ids]
     unless ids.is_a?(Array) && ids.present? && ids.all? { |id| id.to_s.match?(/\A[1-9][0-9]*\z/) }
-      raise ActiveRecord::RecordNotFound
+      return nil
     end
 
     ids.map(&:to_i).uniq

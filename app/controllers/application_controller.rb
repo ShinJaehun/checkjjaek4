@@ -31,6 +31,15 @@ class ApplicationController < ActionController::Base
 
   private
 
+  def with_active_user_lock
+    # Serialize with account withdrawal while allowing unrelated FK key-share locks.
+    current_user.with_lock("FOR NO KEY UPDATE") do
+      raise Pundit::NotAuthorizedError unless current_user.active_account? && !current_user.suspended?
+
+      yield
+    end
+  end
+
   def feed_page_request?
     request.get? && request.format.turbo_stream? &&
       request.headers["X-Feed-Pagination"] == "true" && params[:cursor].present?

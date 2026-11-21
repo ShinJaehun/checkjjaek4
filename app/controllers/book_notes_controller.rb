@@ -1,7 +1,7 @@
 class BookNotesController < ApplicationController
   include BookShowContext
 
-  before_action :set_user_book
+  before_action :set_user_book, only: :show
   before_action :no_store
 
   def show
@@ -12,8 +12,9 @@ class BookNotesController < ApplicationController
   end
 
   def create
-    @new_book_note = @user_book.book_notes.build
-    saved = @user_book.with_lock do
+    saved = with_active_user_lock do
+      set_user_book
+      @new_book_note = @user_book.book_notes.build
       authorize @new_book_note
       @new_book_note.update(book_note_params)
     end
@@ -32,7 +33,8 @@ class BookNotesController < ApplicationController
   end
 
   def update
-    saved = @user_book.with_lock do
+    saved = with_active_user_lock do
+      set_user_book
       set_book_note
       authorize @book_note
       @book_note.update(book_note_params)
@@ -49,7 +51,8 @@ class BookNotesController < ApplicationController
   end
 
   def destroy
-    @user_book.with_lock do
+    with_active_user_lock do
+      set_user_book
       set_book_note
       authorize @book_note
       @book_note.destroy!

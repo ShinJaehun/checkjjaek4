@@ -516,8 +516,8 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.parsed_body["error"]).to be_present
-    expect(anchor.reload.bookshelf).to eq(other)
-    expect(target.bookshelf_entries).to be_empty
+    expect(anchor.reload.bookshelf).to eq(target)
+    expect(target.bookshelf_entries.reload).to contain_exactly(anchor)
   end
 
   it "rejects moving before an entry outside the target bookshelf" do
@@ -1253,7 +1253,12 @@ RSpec.describe "BookshelfEntries", type: :request do
         }
       }.not_to change(BookshelfEntry, :count)
 
-      expect(response).to have_http_status(:not_found)
+      expect(response).to have_http_status(:not_found),
+        "invalid_id=#{invalid_id.inspect}, " \
+        "foreign=#{foreign_entry.id}, moved=#{moved_entry.id}, " \
+        "status=#{response.status}, " \
+        "location=#{response.location.inspect}, " \
+        "notice=#{flash[:notice].inspect}, alert=#{flash[:alert].inspect}"
     end
   end
 

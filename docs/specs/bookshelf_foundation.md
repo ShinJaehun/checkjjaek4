@@ -110,6 +110,11 @@ BookshelfEntry = 하나의 Bookshelf에만 속함
 `bookshelf_id`가 전달되면 반드시 `current_user` 소유 책장이어야 한다.
 이미 존재하는 `BookshelfEntry`를 다시 POST해도 기존 책장 소속은 덮어쓰지 않는다.
 
+`BookshelfEntry`의 `(user_book_id, user_id, book_id)`는 복합 외래 키로 연결된
+`UserBook`의 `(id, user_id, book_id)`와 일치해야 한다. 세 참조 열은 모두 필수다.
+책장 배치와 독서 노트의 변경은 계정 탈퇴와 같은 `User` 행에서 잠금을 획득한 뒤
+계정 상태를 다시 확인하고 처리한다.
+
 이 정책을 유지하는 이유는 다음과 같다.
 
 - 같은 책이 여러 책장에 동시에 들어가면 상태/스티커 맥락이 흐려진다.
@@ -312,6 +317,20 @@ PostgreSQL 순방향 migration은 기존 배치마다 같은 사용자·책·상
 - BookActivity 행의 ID·배치 참조·action·metadata·시각. migration 전후의 값은 동일해야 한다.
 
 배치가 없는 독서 기록을 기존 형식으로 표현할 수 없어 자동 역방향 migration은 제공하지 않는다. 되돌리려면 이전 코드와 migration 직전 백업이 필요하다.
+
+UserBook 데이터 이전을 마친 DB에서 `20261122000000` 복합 외래 키를 적용하기 전에
+다음 조회가 0행을 반환하는지 확인한다.
+마이그레이션에서 불일치가 발견되면 해당 ID와 연결 값을 보고하고 중단한다.
+
+```sql
+SELECT entries.id AS bookshelf_entry_id, entries.user_book_id,
+       entries.user_id AS entry_user_id, entries.book_id AS entry_book_id,
+       records.user_id AS record_user_id, records.book_id AS record_book_id
+FROM bookshelf_entries AS entries
+LEFT JOIN user_books AS records ON records.id = entries.user_book_id
+WHERE records.id IS NULL
+   OR (entries.user_id, entries.book_id) IS DISTINCT FROM (records.user_id, records.book_id);
+```
 
 ---
 
