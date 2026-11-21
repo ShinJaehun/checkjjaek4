@@ -19,6 +19,13 @@ RSpec.describe "Book navigation", type: :request do
     expect(Rack::Utils.parse_query(URI.parse(link["href"]).query)["return_to"]).to eq(origin)
     get link["href"]
     expect(back_link["href"]).to eq(origin)
+    reading_tab = Nokogiri::HTML(response.body).at_css("#book-reading-tab")
+    expect(reading_tab["aria-selected"]).to eq("true")
+
+    sharing_tab = Nokogiri::HTML(response.body).at_css("#book-jjaeks-tab")
+    get sharing_tab["href"]
+    expect(Nokogiri::HTML(response.body).at_css("#book-jjaeks-tab")["aria-selected"]).to eq("true")
+    expect(back_link["href"]).to eq(origin)
   end
 
   it "separates the library origin from search result returns through forms and pagination" do
@@ -39,6 +46,7 @@ RSpec.describe "Book navigation", type: :request do
     expect(Rack::Utils.parse_query(URI.parse(detail["href"]).query)["return_to"]).to eq(results_path)
     get detail["href"]
     expect(back_link["href"]).to eq(results_path)
+    expect(Nokogiri::HTML(response.body).at_css("#book-jjaeks-tab")["aria-selected"]).to eq("true")
     get back_link["href"]
     expect(back_link["href"]).to eq(origin)
   end

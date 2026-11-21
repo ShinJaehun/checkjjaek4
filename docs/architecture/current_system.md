@@ -98,22 +98,21 @@
 
 ### 2. 책 화면 (/books/:id)
 
-- 통합 책 타이틀 카드는 홈 작성 폼과 같은 max-w-4xl(896px) 가운데 정렬이며, 아래 책친구 활동·첨부 짹 목록은 max-w-3xl(768px)을 유지한다. 표지·서지 정보, 소개·외부 링크 다음에 구분선 하나로 책장 정보·독서 활동을 구분한다. 별도 내 서재·독서 활동 카드는 없다
-- 모바일은 최대 너비 96px 표지 왼쪽·서지 정보 오른쪽, 소개·외부 링크는 그 아래 전체 너비다. md 이상은 기존 최대 160×224px 표지 왼쪽·서지 정보와 소개 오른쪽이다. 긴 소개의 펼침·접기와 반응형 정보의 단일 렌더링을 유지한다
-- Book의 nullable `published_on`(date)·`translators_text`(string)는 Kakao SearchService의 datetime·translators 정규화와 서명 토큰을 거쳐 새 Book 등록에 저장됨. 기존 Book 재사용 시 메타데이터를 보완하지 않으며 추가 API 호출이나 일괄 보완은 없음. 책 상세/미리보기의 `BooksHelper#book_metadata_rows`와 공통 header는 저자·역자·출판사·출간일·ISBN을 레이블/값 1열로 표시하고 누락 행은 생략함. 날짜는 locale의 book_publication 형식(`2026. 4. 22.`)을 사용하며 전체 값을 줄바꿈함
+- 책 타이틀 카드는 max-w-4xl(896px)을 사용하며 표지, 제목, 저자·역자·출판사·출간일과 외부 링크를 표시한다. 누락된 서지 행은 생략한다. ISBN과 소개는 외부 검색에서 아직 저장되지 않은 책의 미리보기에서만 기존 방식으로 표시한다. 메타데이터 저장·식별은 기존 흐름을 사용한다
+- 등록된 책은 아래에 `나의 독서`와 `책짹` 탭을 제공한다. `BookShowContext`가 명시적 선택과 진입 문맥, 폼 실패를 반영하고 `book-detail` Stimulus가 현재 URL과 패널을 갱신한다. 나의 독서는 책장·상태·스티커·노트, 책짹은 작성 버튼·첨부 짹 목록·책친구 활동을 제공한다
 - 책 상세 목록은 `Book#attached_jjaeks`에 개인 `BookScope` 또는 명시적인 동아리 문맥의 `GroupContentScope`를 적용한다. 서재 등록 여부로 읽기·작성 권한을 바꾸지 않으며 여러 권 첨부 시 각 책에 같은 짹이 한 번씩 표시된다
 - `books/:id`의 첨부 짹 목록에는 ReJjaek을 직접 포함하지 않는다
 - 원본 짹 카드의 visible ReJjaek count는 유지한다
 - ReJjaek 목록 조회 기준은 `docs/specs/requotes_mvp.md`를 본다
 - 서재 미등록 책과 외부 검색 책 미리보기에도 현재 Pundit 작성 권한 안에서 통합 짹 폼을 제공한다. 현재 책 1권을 기본 첨부하며 제거·다른 책 추가로 0~5권을 선택한다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
-- 미등록 책은 타이틀 카드에서 서재에 담기 모달을 열고 기본 책장이 선택된 단일 라디오 배지로 등록한다. 등록된 책은 현재 상태·스티커 배지와 독서 활동 버튼을 표시한다. 작성 권한이 있으면 등록 여부와 무관하게 타이틀 카드 다음에 공통 인라인 짹 폼을 표시한다
+- 개인 [독서 노트](../specs/book_notes.md)는 `UserBook`에 연결된다. 책 상세와 본인 서재에서 페이지 단위로 조회하며, 읽기 화면과 변경 요청에는 `BookNotePolicy`를 적용한다.
+- 미등록 책은 탭 없이 타이틀 카드 아래에서 등록 모달과 인가된 짹 작성 버튼을 제공한다. 짹 버튼은 등록 여부와 무관하게 공통 인라인 폼을 펼치며, 접기와 탭 전환에서 폼 DOM을 유지한다. 검증 실패 응답은 열린 폼을 렌더링한다
 - 독서 활동 모달은 기존 reading_state 폼에서 상태 3종·상태 없음·스티커 선택과 전체 해제를 한 번의 PATCH로 저장한다. `UserBook` 잠금·transaction 안에서 상태·스티커·BookActivity를 함께 저장한다. HTML 실패 응답은 제출값과 오류를 복원해 독서 활동 모달만 다시 열고, JSON 실패 응답은 현재 저장값과 오류를 반환한다
 - 단일 첨부 개인·동아리 짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 배치와 그 `UserBook`·스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
 - 책 상세 작성은 공통 인라인 폼과 `selected_books[]`를 사용한다. 본문 200자·공개 범위·첨부 순서와 검증 실패 입력을 보존하며, 동아리 게시 대상은 기존 경로와 서버 인가로 결정한다. 구형 게시 위치 selector·`book-posting` Stimulus·book_id 게시 입력은 사용하지 않는다
 - `prepare_book_show_form_context`가 개인/동아리 Pundit 작성 가능 여부를 준비한다. 책 문맥은 `book_context_id/token`으로 유지하며 현재 책을 실제 첨부해 저장하면 해당 책으로, 제거하고 저장하면 홈으로 이동한다. 공유·다시짹은 기존 별도 경로를 유지한다
-- 담긴 책장 이름은 기존 책장 색상의 `user_library_path(current_user, bookshelf_id:)` 링크다. 긴 이름은 줄바꿈한다. 책장이 2개 이상이면 책장 이동 버튼으로 radio 모달을 열고 현재 책장을 기본 선택한다. 이동 대상은 책장 고유 색상 없이 평면형 `.ui-choice`의 체크 표시·stone 테두리·배경으로 구분하며 이동 버튼으로 PATCH 경로·return_to=book·group_id를 유지한다
-- 책 상세의 이동 모달에서 확인 후 현재 책장 배치를 꺼낼 수 있다. 책장이 하나면 같은 모달을 꺼내기 버튼으로 열고, 성공 후 현재 책 상세에 등록 버튼을 표시한다
+- 담긴 책장 이름은 기존 색상의 `user_library_path(current_user, bookshelf_id:)` 링크다. `책장 관리` 버튼으로 이동과 꺼내기 모달을 열며, 책장이 여러 개면 `.ui-choice`에서 현재 책장을 기본 선택한다. 배치 제거 후 현재 책 상세에 등록 버튼을 표시하고 본인의 기존 노트 읽기 링크를 유지한다
 - 서재에 담기·책장 이동·독서 활동 모달은 각각 고유 ID와 book-modal Stimulus 범위를 사용한다. 닫기·Escape·포커스 복귀·모바일 내부 스크롤·body scroll lock·Turbo cache 닫기를 유지한다
 - 별도 책친구 활동은 현재 accepted 관계와 public/book_friends 책장의 연결 항목에 허용된 BookActivity(상태·스티커 변경 포함), 기존 가시성 안의 개인 첨부 짹을 합쳐 최근 3건 표시한다. 홈의 소식받기 조건은 적용하지 않으며 본인 활동은 제외한다. 첨부 짹 목록에는 BookActivity를 섞지 않는다
 
@@ -175,7 +174,7 @@
 - global admin 자격 자체로는 접근할 수 없으며 타인의 private 책장도 볼 수 없다
 - stranger / follow-only가 접근하면 프로필 화면으로 redirect된다
 - 접근 가능한 책장 탭, 선택된 책장 책 목록, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
-- 서재 타이틀 요약은 기존 policy scope 결과와 책장별 집계를 재사용한다. 표시 정책은 `docs/specs/library_screen.md`를 따른다
+- 서재 타이틀 카드는 아바타와 서재 제목을 표시한다. 책장별 집계는 기존 policy scope를 따른다
 - 관리 기능은 self에게만 제공한다
 - 기본 Library는 책장 하나만 detail 카드로 표시한다
 - 기본 Library의 책장 전환 UI는 선택 책장을 바꾸는 탐색만 담당한다
@@ -192,8 +191,8 @@
 - 책장 tab/index는 horizontal scroll로 탐색하며, 실제 overflow가 있을 때만 좌우 버튼을 표시하고 양 끝에서는 해당 방향을 비활성화한다. overflow가 없으면 버튼용 여백도 남기지 않으며, 탭·화면 크기 변경과 Turbo 재연결 시 상태를 갱신하고 선택된 tab을 자동으로 화면 안에 보이게 한다
 - 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
 - 정렬은 선택된 책장 header 오른쪽 컨트롤로 제공하며, 새 책장 생성과 선택된 일반 책장 관리는 tab/index와 책 목록 사이의 drag 동선을 방해하지 않도록 페이지 내 사전 렌더링 modal로 분리한다
-- 책장 관리 modal은 Turbo Frame fetch 없이 Stimulus로 create/edit panel을 전환하고, 기존 create/update/move_up/move_down/destroy 흐름을 재사용한다
-- owner의 모바일 타이틀 카드 `+ 새 책장`과 PC 탭 끝 `+`는 서재 전체의 단일 `bookshelf-management-modal` controller와 기존 생성 modal을 공유한다
+- 본인 서재는 `library_tab`으로 책장과 독서 노트 중 선택한 목록을 렌더링한다. 서재와 책 상세는 책 정보·노트 제목·본문 미리보기·작성 시각을 표시하는 공통 노트 카드를 사용한다
+- 책장 탭 상단 `새 책장`과 PC 탭 끝의 `+`는 기존 생성 모달을 연다. 일반 책장 설정은 기존 편집 모달을 열고, 상단 `책장 관리`는 책장 이동 화면에 직접 연결한다
 - 기본 책장 “내 책장”은 삭제할 수 없다
 - 일반 책장은 비어 있을 때만 삭제할 수 있고, 책이 들어 있는 책장은 삭제 버튼 대신 안내 문구를 보여준다
 - Library 카드 안에는 책장 이동 select/form을 두지 않는다
@@ -491,7 +490,7 @@
 
 - 현재 사용자의 `BookshelfEntry`가 없어도 상세 열람과 인가된 짹 작성은 가능함. 독서 상태·스티커 편집은 서재 등록 후에만 제공함
 - 이 상태에서 `서재에 담기`를 할 수 있음
-- 타이틀 카드의 서재에 담기 버튼으로 모달을 열고 단일 라디오 배지로 책장을 선택한다. 기본 책장 “내 책장”이 우선 선택되며 기존 등록 경로·search_result_token·group_id·return_to를 유지한다
+- 타이틀 카드 아래의 책장에 담기 버튼으로 모달을 열고 단일 라디오 배지로 책장을 선택한다. 기본 책장 “내 책장”이 우선 선택되며 기존 등록 경로·search_result_token·group_id·return_to를 유지한다
 
 ---
 

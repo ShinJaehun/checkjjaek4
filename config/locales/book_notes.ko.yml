@@ -1,0 +1,26 @@
+ko:
+  book_notes:
+    heading: "독서 노트"
+    new: "노트 작성"
+    edit: "노트 수정"
+    title: "제목 (선택)"
+    body: "본문"
+    untitled: "제목 없는 노트"
+    empty: "아직 작성한 독서 노트가 없습니다."
+    created_at: "작성"
+    updated_at: "수정"
+    save: "저장"
+    cancel: "취소"
+    delete: "노트 삭제"
+    confirm_delete: "이 독서 노트를 삭제할까요?"
+    confirm_discard: "저장하지 않은 내용을 버리고 닫을까요?"
+    attachments_not_allowed: "독서 노트에는 이미지나 파일을 첨부할 수 없습니다."
+  activerecord:
+    errors:
+      models:
+        book_note:
+          attributes:
+            body:
+              blank: "본문을 입력해 주세요."
+              too_long: "본문은 일반 텍스트 기준 %{count}자까지 입력할 수 있습니다."
+              attachments_not_allowed: "독서 노트에는 이미지나 파일을 첨부할 수 없습니다."

@@ -14,6 +14,43 @@
   padding-inline-start: 1.25rem;
 }
 
+.book-note-dialog {
+  width: min(46rem, calc(100% - 1.5rem));
+  max-height: calc(100dvh - 1.5rem);
+  margin: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.book-note-dialog::backdrop { background-color: rgb(28 25 23 / 65%); }
+
+.book-note-dialog trix-toolbar .trix-button-group--file-tools { display: none; }
+.book-note-dialog trix-toolbar .trix-button-row {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  column-gap: 0.5rem;
+  overflow: visible;
+}
+.book-note-dialog trix-toolbar .trix-button-group {
+  max-width: 100%;
+  flex-wrap: wrap;
+  margin-inline: 0;
+}
+.book-note-dialog trix-toolbar .trix-button--icon { width: 2.5rem; height: 2.25rem; max-width: none; }
+.book-note-dialog trix-toolbar input { min-width: 0; }
+.book-note-dialog trix-editor { min-height: clamp(10rem, 35dvh, 22rem); }
+.book-note-dialog trix-editor,
+.book-note-body { overflow-wrap: anywhere; }
+.book-note-dialog .trix-content ul,
+.book-note-body .trix-content ul { list-style-type: disc; padding-inline-start: 1.25rem; }
+.book-note-dialog .trix-content ol,
+.book-note-body .trix-content ol { list-style-type: decimal; padding-inline-start: 1.25rem; }
+.book-note-dialog .trix-content a,
+.book-note-body .trix-content a { color: #1d4ed8; text-decoration: underline; }
+.book-note-dialog :is(trix-editor, trix-toolbar button):focus-visible {
+  outline: 2px solid #57534e;
+  outline-offset: 2px;
+}
+
 .jjaek-photo-preview { position: relative; }
 .jjaek-photo-remove {
   position: absolute;

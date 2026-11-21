@@ -147,6 +147,9 @@ RSpec.describe "Unified inline composition", type: :system do
     [ [ root_path, [], :close, nil, nil ], [ book_path(book), [ book.id ], :back, nil, nil ],
      [ group_path(club), [], :browser_back, club.id, nil ], [ user_path(recipient), [], :close, nil, recipient.id ] ].each do |origin, original_ids, exit_method, group_id, target_id|
       visit origin
+      if origin == book_path(book)
+        find("button[aria-controls='book-jjaek-form'][aria-expanded='false']").click
+      end
       fill_in "jjaek[content]", with: "Cancel keeps this draft"
       choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true unless group_id || target_id
       click_button I18n.t("jjaek_books.add")

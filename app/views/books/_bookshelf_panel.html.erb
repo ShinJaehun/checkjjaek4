@@ -1,14 +1,7 @@
 <% if bookshelf_entry.present? %>
   <% can_move = local_assigns[:bookshelves]&.size.to_i > 1 %>
-  <% dialog_title = t(can_move ? "books.show.move_bookshelf" : "bookshelf_entries.actions.remove") %>
-  <div class="flex min-w-0 items-start justify-between gap-3 text-sm text-stone-700" data-controller="book-modal" data-action="turbo:before-cache@document->book-modal#close">
-    <p class="min-w-0 flex-1 break-words leading-6">
-      <span class="mr-2 text-stone-500"><%= t("books.show.current_bookshelf") %></span>
-      <%= link_to bookshelf_entry.bookshelf.name,
-                  user_library_path(current_user, bookshelf_id: bookshelf_entry.bookshelf_id),
-                  class: "inline-block max-w-full break-words rounded-lg border px-3 py-2 align-middle text-sm font-semibold underline decoration-current underline-offset-4 #{bookshelf_tab_class(bookshelf_entry.bookshelf, selected: false)} transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900" %>
-    </p>
-
+  <% dialog_title = t("books.show.manage_bookshelf") %>
+  <div class="min-w-0" data-controller="book-modal" data-action="turbo:before-cache@document->book-modal#close">
     <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-move-dialog" class="ui-button ui-button-secondary shrink-0">
       <%= dialog_title %>
     </button>
@@ -20,6 +13,8 @@
       <% if can_move %>
         <%= form_with url: move_bookshelf_entry_path(bookshelf_entry), method: :patch, class: "min-w-0 space-y-5" do %>
           <%= hidden_field_tag :return_to, "book" %>
+          <%= hidden_field_tag :tab, "reading", id: nil %>
+          <%= hidden_field_tag :book_return_to, @book_return_path if @book_return_path %>
           <%= hidden_field_tag :group_id, local_assigns[:group_id] if local_assigns[:group_id].present? %>
 
           <fieldset class="min-w-0 space-y-3">
@@ -38,13 +33,12 @@
       <% end %>
       <%= button_to t("bookshelf_entries.actions.remove"), bookshelf_entry_path(bookshelf_entry),
                     method: :delete,
-                    params: { return_to: "book", group_id: local_assigns[:group_id], book_return_to: validated_jjaek_return_path(params[:return_to]) }.compact,
+                    params: { return_to: "book", group_id: local_assigns[:group_id], book_return_to: @book_return_path }.compact,
                     form: { class: ("mt-5 border-t border-stone-200 pt-4" if can_move), data: { turbo_confirm: bookshelf_removal_confirmation } },
                     class: "ui-button ui-button-secondary text-red-700" %>
     </dialog>
   </div>
 <% else %>
-  <% return_path = validated_jjaek_return_path(params[:return_to]) %>
   <div class="min-w-0 text-sm text-stone-500" data-controller="book-modal" data-action="turbo:before-cache@document->book-modal#close">
     <button type="button" data-action="book-modal#open" aria-haspopup="dialog" aria-controls="book-shelf-dialog" class="ui-button ui-button-primary">
       <%= t("bookshelf_entries.new.title") %>
@@ -55,7 +49,8 @@
         <button type="button" data-action="book-modal#close" class="ui-button ui-button-secondary shrink-0"><%= t("bookshelves.actions.close") %></button>
       </div>
       <%= form_with url: bookshelf_entries_path, method: :post, local: true, class: "min-w-0 space-y-5" do |form| %>
-        <%= hidden_field_tag :return_to, return_path if return_path %>
+        <%= hidden_field_tag :return_to, @book_return_path if @book_return_path %>
+        <%= hidden_field_tag :tab, "reading", id: nil %>
         <% if book.persisted? %>
           <%= hidden_field_tag :book_id, book.id %>
         <% else %>

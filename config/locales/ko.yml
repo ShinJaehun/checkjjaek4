@@ -1354,7 +1354,7 @@ ko:
       pink: "분홍"
     form:
       color_key: "색상"
-      edit_title: "책장 관리"
+      edit_title: "책장 설정"
       manage_title: "책장 관리"
       name: "책장 이름"
       name_placeholder: "새 책장 이름"
@@ -1384,6 +1384,11 @@ ko:
       library_context_title: "내 서재"
       reading_record_title: "독서 활동"
       current_bookshelf: "담긴 책장"
+      manage_bookshelf: "책장 관리"
+      detail_tabs: "책 상세 보기"
+      tabs:
+        reading: "나의 독서"
+        jjaeks: "책짹"
       status_label: "상태"
       authors: "저자"
       translators: "역자"
@@ -1400,7 +1405,8 @@ ko:
       edit_reading_record: "독서 활동"
       save_reading_record: "독서 기록 저장"
       write_book_jjaek: "이 책에 책짹 쓰기"
-      friend_activity_title: "책 친구 활동"
+      friend_activity_title: "책친구 활동"
+      empty_friend_activities: "이 책에 표시할 수 있는 책친구 활동이 없습니다."
   jjaeks:
     contexts:
       group_badge: "동아리"
@@ -1557,6 +1563,9 @@ ko:
       empty_bookshelf_preview: "아직 이 책장에 담긴 책이 없습니다."
       title: "전체 서재"
       title_with_name: "%{name}의 서재"
+      tabs:
+        label: "서재 보기"
+        bookshelves: "책장"
       transfer:
         back_to_library: "서재로 돌아가기"
         bulk_submit: "옮기기"

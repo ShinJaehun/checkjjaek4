@@ -4,6 +4,7 @@ class UserBook < ApplicationRecord
   belongs_to :user
   belongs_to :book
 
+  has_many :book_notes, dependent: :destroy
   has_many :user_book_stickers, dependent: :destroy
   has_many :sticker_definitions, through: :user_book_stickers
 end

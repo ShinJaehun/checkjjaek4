@@ -178,8 +178,8 @@ RSpec.describe "Bookshelves", type: :request do
     sign_in user
 
     get user_library_path(user, bookshelf_id: bookshelf.id)
-    normal_summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]").text.strip
-    expect(normal_summary).to eq(I18n.t("reading_experience.library_summary", shelves: 3, books: 2))
+    normal_selection = Nokogiri::HTML(response.body).at_css("select[data-library-mobile-bookshelf-select] option[selected]").text.squish
+    expect(normal_selection).to eq("#{bookshelf.name} (2)")
 
     patch bookshelf_path(bookshelf), params: { bookshelf: { name: "중복 이름", visibility: "private" } }
 
@@ -188,7 +188,7 @@ RSpec.describe "Bookshelves", type: :request do
     expect(response.body).to include("수정 실패에도 보이는 책")
     expect(response.body).to include("중복 이름")
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("[data-library-bookshelf-summary]").text.strip).to eq(normal_summary)
+    expect(page.at_css("select[data-library-mobile-bookshelf-select] option[selected]").text.squish).to eq(normal_selection)
     expect(page.at_css('select[name="sort"] option[selected]')["value"]).to eq("manual")
     expect(page.css("[data-bookshelf-entry-id]").map { |node| node["data-bookshelf-entry-id"].to_i }).to eq([ first.id, second.id ])
     edit_form = page.at_css("form[action='#{bookshelf_path(bookshelf)}']")
@@ -211,8 +211,7 @@ RSpec.describe "Bookshelves", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     page = Nokogiri::HTML(response.body)
-    expect(page.at_css("[data-library-bookshelf-summary]").text.strip)
-      .to eq(I18n.t("reading_experience.library_summary", shelves: 2, books: 1))
+    expect(page.at_css("select[data-library-mobile-bookshelf-select] option[selected]").text.squish).to eq("#{shelf.name} (1)")
     expect(page.at_css('select[name="sort"] option[selected]')["value"]).to eq("title")
     expect(page.text).to include("선택한 책장의 책")
   end

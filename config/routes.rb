@@ -79,6 +79,8 @@ Rails.application.routes.draw do
   end
   resource :book_search, only: :show, controller: "book_searches"
   resources :books, only: :show do
+    resources :book_notes, only: %i[show create update destroy]
+
     collection do
       get :lookup
     end

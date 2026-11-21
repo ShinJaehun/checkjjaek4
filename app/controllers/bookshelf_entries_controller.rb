@@ -51,7 +51,8 @@ class BookshelfEntriesController < ApplicationController
         format.html { redirect_to book_path(@book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to])), notice: t("bookshelf_entries.notices.created") }
       end
     else
-      redirect_to book_path(@book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to])), notice: t("bookshelf_entries.notices.created")
+      redirect_to book_path(@book, group_id: group_context_id, return_to: view_context.validated_jjaek_return_path(params[:return_to]), tab: reading_tab),
+                  notice: t("bookshelf_entries.notices.created")
     end
   rescue ActiveRecord::RecordInvalid => error
     return render_shelf_error(error.record.errors.full_messages.to_sentence) if inline_shelf_error?
@@ -95,7 +96,7 @@ class BookshelfEntriesController < ApplicationController
       format.json { render json: reading_state }
       format.html do
         redirect_to book_path(@bookshelf_entry.book, group_id: group_context_id,
-          return_to: view_context.validated_jjaek_return_path(params[:return_to])),
+          return_to: view_context.validated_jjaek_return_path(params[:return_to]), tab: reading_tab),
           notice: t("bookshelf_entries.notices.updated"), status: :see_other
       end
     end
@@ -379,13 +380,20 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def bookshelf_entry_move_redirect_path(bookshelf)
-    return book_path(@bookshelf_entry.book, group_id: group_context_id) if params[:return_to] == "book"
+    if params[:return_to] == "book"
+      return book_path(@bookshelf_entry.book, group_id: group_context_id, tab: reading_tab,
+        return_to: view_context.validated_jjaek_return_path(params[:book_return_to]))
+    end
     return bookshelf_entry_transfer_redirect_path(bookshelf) if params[:return_to] == "library_transfer"
 
     options = { bookshelf_id: bookshelf&.id }
     options[:sort] = library_sort_param if library_sort_param
 
     user_library_path(current_user, options.compact)
+  end
+
+  def reading_tab
+    "reading" if params[:tab] == "reading"
   end
 
   def bookshelf_entry_destroy_redirect_path

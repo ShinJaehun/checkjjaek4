@@ -135,7 +135,7 @@ user_id + book_id = unique
 
 배치의 사용자와 책은 `UserBook`의 사용자와 책과 일치해야 한다. DB 고유 인덱스로 사용자·책별 `UserBook` 하나와 `UserBook`별 현재 배치 하나를 보장한다.
 
-책을 서재에서 제거하면 `BookshelfEntry` 배치를 삭제한다. `UserBook`의 상태와 스티커, 기존 `BookActivity`는 보존한다. 다시 담으면 새 배치에 기존 `UserBook`을 연결해 상태와 스티커를 표시한다. 독서 기록 편집과 공유는 현재 배치와 기존 권한을 기준으로 한다.
+책을 서재에서 제거하면 `BookshelfEntry` 배치를 삭제한다. `UserBook`의 상태, 스티커, [개인 독서 노트](book_notes.md)와 기존 `BookActivity`는 보존한다. 다시 담으면 새 배치에 기존 `UserBook`을 연결한다. 독서 기록 편집과 공유는 현재 배치와 각 기능의 권한을 기준으로 한다.
 
 `BookshelfEntry.position`은 같은 `bookshelf_id` 안에서 책의 사용자 지정 순서를 저장한다.
 새 BookshelfEntry는 해당 책장의 마지막 position으로 들어간다.

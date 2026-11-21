@@ -10,7 +10,8 @@
   "pink" => "border-pink-300 bg-pink-300"
 } %>
 
-<div class="<%= "hidden" unless modal_mode %> fixed inset-0 z-50 flex items-end justify-center bg-stone-950/30 p-4 sm:items-center"
+<div id="library-bookshelf-management-dialog"
+     class="<%= "hidden" unless modal_mode %> fixed inset-0 z-50 flex items-end justify-center bg-stone-950/30 p-4 sm:items-center"
      data-bookshelf-management-modal-target="modal"
      data-action="click->bookshelf-management-modal#closeOnBackdrop"
      role="dialog"
@@ -20,6 +21,7 @@
     <div class="flex justify-end">
       <button type="button"
               class="ui-button ui-button-secondary"
+              data-bookshelf-management-modal-target="closeButton"
               data-action="bookshelf-management-modal#close"
               aria-label="<%= t("bookshelves.actions.close") %>">
         ×

@@ -20,7 +20,7 @@ RSpec.describe "Books", type: :request do
       sign_in user
       [ book, second_book ].each do |attached_book|
         get book_path(attached_book)
-        cards = Nokogiri::HTML(response.body).css("[data-book-friend-activity]")
+        cards = Nokogiri::HTML(response.body).css("#book-sharing #book-friend-activities [data-book-friend-activity]")
         expect(cards.map { |card| card["id"] }).to eq(posts.last(3).reverse.map { |record| "book_friend_activity_jjaek_#{record.id}" })
       end
       friendship.destroy!
@@ -109,11 +109,20 @@ RSpec.describe "Books", type: :request do
       entry.user_book.sticker_definitions = stickers
       sign_in user
 
-      get book_path(book)
+      get book_path(book, return_to: user_library_path(user))
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
       page = Nokogiri::HTML(response.body)
+      tabs = page.css("[role='tablist'] [role='tab']")
+      expect(tabs.map { |tab| tab.text.strip }).to eq(%w[reading jjaeks].map { |tab| I18n.t("books.show.tabs.#{tab}") })
+      expect(tabs.map { |tab| tab["aria-selected"] }).to eq(%w[true false])
+      reading = page.at_css("#book-my-reading:not([hidden])")
+      expect(reading).to be_present
+      expect(reading.element_children.first.css("button[aria-haspopup='dialog']").map { |button| button.text.strip }).to eq([
+        I18n.t("books.show.manage_bookshelf"), I18n.t("books.show.edit_reading_record"), I18n.t("book_notes.new")
+      ])
+      expect(page.at_css("#book-sharing[hidden]")).to be_present
       state = page.at_css("#book-reading-dialog form[action='#{bookshelf_entry_path(entry)}']")
       expect(state).to be_present
       expect(state.at_css('[data-reading-status-card] legend').text).to eq(I18n.t("books.show.status_label"))
@@ -122,18 +131,18 @@ RSpec.describe "Books", type: :request do
       expect(state.ancestors("dialog").first["open"]).to be_nil
       expect(state.ancestors("[data-book-modal-auto-open-value='false']")).not_to be_empty
       header = page.at_css("h1").ancestors("section").first
-      expect(state.ancestors("section").first).to eq(header)
-      expect(header.text).to include(I18n.t("books.show.current_bookshelf"))
-      expect(header.css("h2").reject { |heading| heading.ancestors("dialog").any? }).to be_empty
-      expect(header.at_css("#book-reading-dialog h2").text).to eq(I18n.t("books.show.reading_record_title"))
-      expect(header.at_css("[data-reading-status='reading']")).to be_present
-      expect(header.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to match_array(stickers.map(&:key))
-      expect(header.text).not_to include(I18n.t("books.show.library_context_title"))
+      expect(state.ancestors("section").first).to eq(reading)
+      expect(reading.text).to include(I18n.t("books.show.current_bookshelf"))
+      expect(header.css("h2, dialog, [data-reading-status], [data-reading-sticker]")).to be_empty
+      expect(reading.at_css("#book-reading-dialog h2").text).to eq(I18n.t("books.show.reading_record_title"))
+      expect(reading.at_css("[data-reading-status='reading']")).to be_present
+      expect(reading.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to match_array(stickers.map(&:key))
+      expect(reading.text).not_to include(I18n.t("books.show.library_context_title"))
       expect(response.body).to include('name="jjaek[content]"')
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_short"))
     end
 
-    it "renders the cover, bibliography, and expandable description once in the title card" do
+    it "renders the cover, bibliography, and external link without ISBN or description" do
       book.update!(title: "긴 제목 " * 12, authors_text: "긴 저자 이름 " * 8,
         translators_text: "긴 역자 이름 " * 8, published_on: Date.new(2026, 4, 22),
         publisher: "긴 출판사 이름 " * 8, isbn: "9780000000099",
@@ -149,11 +158,10 @@ RSpec.describe "Books", type: :request do
       header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
       expect(header.css("h1").map(&:text)).to eq([ book.title ])
       expect(header.css("img[alt='#{book.title}']").size).to eq(1)
-      expect(header.css("dl dt").map(&:text)).to eq(%w[authors translators publisher published_on isbn].map { |key| I18n.t("books.show.#{key}") })
-      expect(header.css("dl dd").map(&:text)).to eq([ book.authors_text, book.translators_text, book.publisher, "2026. 4. 22.", book.isbn ])
-      expect(header.css("#book-description").map(&:text)).to eq([ book.description ])
-      expect(header.css("[data-controller='book-description']").size).to eq(1)
-      expect(header.at_css("button[aria-controls='book-description']")["data-action"]).to eq("book-description#toggle")
+      expect(header.css("dl dt").map(&:text)).to eq(%w[authors translators publisher published_on].map { |key| I18n.t("books.show.#{key}") })
+      expect(header.css("dl dd").map(&:text)).to eq([ book.authors_text, book.translators_text, book.publisher, "2026. 4. 22." ])
+      expect(header.text).not_to include(book.isbn, book.description)
+      expect(header.css("#book-description, [data-controller='book-description']")).to be_empty
       expect(header.css("a[href='#{book.external_url}']").map { |link| link.text.strip }).to eq([ I18n.t("books.show.external_link") ])
     end
 
@@ -293,10 +301,16 @@ RSpec.describe "Books", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
       expect(response.body).to include("다른 독자의 공개 Jjaek")
-      header = Nokogiri::HTML(response.body).at_css("h1").ancestors("section").first
-      expect(header.at_css("button[aria-controls='book-shelf-dialog']")).to be_present
-      expect(header.at_css("#book-shelf-dialog")).to be_present
-      expect(header.at_css("#book-reading-dialog")).to be_nil
+      page = Nokogiri::HTML(response.body)
+      header = page.at_css("h1").ancestors("section").first
+      expect(page.css("[role='tablist'], #book-my-reading, #book-reading-dialog, #book-note-editor")).to be_empty
+      sharing = page.at_css("#book-sharing:not([hidden])")
+      expect(sharing.at_css("button[aria-controls='book-shelf-dialog']").text.strip).to eq(I18n.t("bookshelf_entries.new.title"))
+      expect(sharing.at_css("#book-shelf-dialog")).to be_present
+      expect(sharing.at_css("button[aria-controls='book-jjaek-form']").text.strip).to eq(I18n.t("jjaeks.actions.publish_short"))
+      expect(sharing.at_css("#book-jjaek-form[hidden]")).to be_present
+      expect(sharing.at_css("#book-timeline #feed-items").text).to include("다른 독자의 공개 Jjaek")
+      expect(sharing.at_css("#book-timeline + #book-friend-activities").text).to include(I18n.t("books.show.empty_friend_activities"))
       expect(header.text).not_to include(I18n.t("books.show.library_context_title"), I18n.t("books.show.read_only_description"))
       expect(response.body).to include(%(action="#{bookshelf_entries_path}"))
       expect(response.body).to include(%(name="book_id"))
@@ -329,12 +343,14 @@ RSpec.describe "Books", type: :request do
       expect(panel.at_css("[data-book-posting-target='title']")).to be_nil
       expect(page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}'] input[type='submit']")).to be_present
       header = page.at_css("h1").ancestors("section").first
-      expect(header.at_css("button[aria-controls='book-reading-dialog']").text.strip).to eq(I18n.t("books.show.edit_reading_record"))
+      expect(page.at_css("#book-my-reading button[aria-controls='book-reading-dialog']").text.strip).to eq(I18n.t("books.show.edit_reading_record"))
       expect(panel.ancestors("section")).not_to include(header)
       expect(page.at_css("#book-writing-dialog")).to be_nil
       expect(page.at_css("button[aria-controls='book-writing-dialog']")).to be_nil
       expect(page.at_css("#book-reading-dialog")).to be_present
-      expect(header.next_element).to eq(panel)
+      expect(page.at_css("#book-my-reading[hidden] #book-notes")).to be_present
+      expect(page.at_css("#book-sharing:not([hidden]) #book-jjaek-form[hidden]")).to eq(panel)
+      expect(page.at_css("button[aria-controls='book-jjaek-form'][aria-expanded='false']").text.strip).to eq("짹")
     end
 
     it "ignores the retired quote input while preserving book reading and group context" do
@@ -369,10 +385,14 @@ RSpec.describe "Books", type: :request do
       user.bookshelf_entries.create!(book:)
       sign_in user
 
-      post jjaeks_path, params: { selected_books: [ book.id ], book_context_id: book.id, jjaek: { content: "" } }
+      post jjaeks_path, params: { selected_books: [ book.id ], book_context_id: book.id, return_to: user_library_path(user), jjaek: { content: "" } }
 
       expect(response).to have_http_status(:unprocessable_content)
-      form = Nokogiri::HTML(response.body).at_css("form[action='#{jjaeks_path}']")
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css("#book-jjaeks-tab[aria-selected='true']")).to be_present
+      expect(page.at_css("button[aria-controls='book-jjaek-form'][aria-expanded='true']")).to be_present
+      form = page.at_css("#book-sharing:not([hidden]) #book-jjaek-form:not([hidden]) form[action='#{jjaeks_path}']")
+      expect(form).to be_present
       expect(form.ancestors("dialog")).to be_empty
       expect(form.ancestors("#book-jjaek-form")).not_to be_empty
       expect(form.at_css("[role='alert']:not([hidden])")).to be_present
@@ -497,12 +517,14 @@ RSpec.describe "Books", type: :request do
       deleted_jjaek.update_columns(content: "", deleted_at: Time.current)
       sign_in user
 
-      get book_path(book)
+      get book_path(book, tab: "jjaeks", return_to: user_library_path(user))
 
       page = Nokogiri::HTML(response.body)
-      preview = page.css("[data-book-friend-activity]")
+      section = page.at_css("#book-sharing:not([hidden]) > #book-timeline + #book-friend-activities")
+      expect(section.at_css("h2").text).to eq("책친구 활동")
+      expect(section.text).not_to include(I18n.t("books.show.empty_friend_activities"))
+      preview = section.css("[data-book-friend-activity]")
       preview_ids = preview.map { |card| card["id"] }
-      expect(page.css("h2").map(&:text)).to include("책 친구 활동")
       expect(preview_ids).to include("book_friend_activity_book_activity_#{visible_activity.id}", "book_friend_activity_jjaek_#{public_jjaek.id}")
       excluded_ids = [
         "book_friend_activity_book_activity_#{private_activity.id}", "book_friend_activity_book_activity_#{own_activity.id}",
@@ -624,11 +646,14 @@ RSpec.describe "Books", type: :request do
       sign_in user
 
       get book_path(book)
-      expect(response.body).to include(%(id="book_friend_activity_book_activity_#{activity.id}"))
+      section = Nokogiri::HTML(response.body).at_css("#book-sharing:not([hidden]) > #book-timeline + #book-friend-activities")
+      expect(section.at_css("#book_friend_activity_book_activity_#{activity.id}")).to be_present
 
       shelf.update!(visibility: :private)
       get book_path(book)
       expect(response.body).not_to include(%(id="book_friend_activity_book_activity_#{activity.id}"))
+      section = Nokogiri::HTML(response.body).at_css("#book-sharing > #book-friend-activities")
+      expect(section.text).to include(I18n.t("books.show.empty_friend_activities"))
 
       shelf.update!(visibility: :public)
       friendship.destroy!

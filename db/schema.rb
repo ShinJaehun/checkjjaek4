@@ -10,9 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_20_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_21_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "action_text_rich_texts", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "body"
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["record_type", "record_id", "name"], name: "index_action_text_rich_texts_uniqueness", unique: true
+  end
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
@@ -66,6 +76,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_000000) do
     t.index "LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id)", name: "index_book_friendships_on_unordered_pair", unique: true
     t.index ["addressee_id"], name: "index_book_friendships_on_addressee_id"
     t.index ["requester_id"], name: "index_book_friendships_on_requester_id"
+  end
+
+  create_table "book_notes", force: :cascade do |t|
+    t.bigint "user_book_id", null: false
+    t.text "title"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_book_id", "created_at", "id"], name: "index_book_notes_on_user_book_id_and_created_at_and_id"
   end
 
   create_table "books", force: :cascade do |t|
@@ -440,6 +458,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_000000) do
   add_foreign_key "book_activities", "users"
   add_foreign_key "book_friendships", "users", column: "addressee_id"
   add_foreign_key "book_friendships", "users", column: "requester_id"
+  add_foreign_key "book_notes", "user_books"
   add_foreign_key "bookshelf_entries", "books"
   add_foreign_key "bookshelf_entries", "bookshelves"
   add_foreign_key "bookshelf_entries", "user_books"

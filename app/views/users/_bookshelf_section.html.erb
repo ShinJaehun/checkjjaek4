@@ -1,6 +1,6 @@
 <section class="space-y-4">
   <% bookshelves = Array(local_assigns[:bookshelves]) %>
-  <% bookshelf_section_path = ->(options = {}) { user_library_path(user, options) } %>
+  <% library_tab_options = @library_notes_page_number ? { library_tab: "bookshelves", notes_page: @library_notes_page_number } : {} %>
   <% return_to = "library" %>
   <% bookshelf_entry_counts = local_assigns[:bookshelf_entry_counts] || {} %>
   <% bookshelf_sort = local_assigns[:bookshelf_sort] || "recent" %>
@@ -22,7 +22,10 @@
   <% end %>
 
   <% if bookshelves.any? %>
-    <%= form_with url: bookshelf_section_path.call, method: :get, class: "px-1 pb-1 md:hidden", data: { library_mobile_bookshelf_select_form: true } do |form| %>
+    <%= form_with url: user_library_path(user), method: :get, class: "px-1 pb-1 md:hidden", data: { library_mobile_bookshelf_select_form: true } do |form| %>
+      <% library_tab_options.each do |name, value| %>
+        <%= form.hidden_field name, value:, id: nil %>
+      <% end %>
       <%= form.hidden_field :sort, value: bookshelf_sort %>
       <%= form.label :bookshelf_id, t("users.profile.bookshelf_tabs"), class: "sr-only" %>
       <%= form.select :bookshelf_id,
@@ -50,7 +53,7 @@
         <% bookshelves.each do |bookshelf| %>
           <% selected = bookshelf == selected_bookshelf %>
           <% tab_data = selected ? { horizontal_scroll_target: "selected" } : {} %>
-          <%= link_to bookshelf_section_path.call(bookshelf_id: bookshelf.id, sort: bookshelf_sort),
+          <%= link_to user_library_path(user, **library_tab_options, bookshelf_id: bookshelf.id, sort: bookshelf_sort),
                       class: [
                         "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-t-xl border-2 px-4 py-2 text-sm font-semibold transition",
                         ("max-w-48" unless selected),
@@ -112,7 +115,10 @@
                   role="status"><%= t("users.profile.bookshelf_sort.reorder_editing") %></span>
           <% end %>
           <% if bookshelf_sort_options.any? %>
-            <%= form_with url: bookshelf_section_path.call, method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
+            <%= form_with url: user_library_path(user), method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
+              <% library_tab_options.each do |name, value| %>
+                <%= form.hidden_field name, value:, id: nil %>
+              <% end %>
               <%= form.hidden_field :bookshelf_id, value: selected_bookshelf.id %>
 
               <div>

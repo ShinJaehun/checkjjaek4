@@ -322,6 +322,7 @@ class JjaeksController < ApplicationController
     if @book.present?
       @bookshelf_entry = current_user.bookshelf_entries.find_by(book: @book)
       @sticker_definitions = StickerDefinition.alphabetical
+      @book_jjaek_form_open = true
       prepare_book_show_read_context
       render "books/show", formats: :html, status:
     elsif @group.present?
@@ -363,7 +364,8 @@ class JjaeksController < ApplicationController
       return root_path unless book.persisted? && @jjaek.attached_books.exists?(id: book.id)
 
       return book_path(book, group_id: @jjaek.group_id,
-        return_to: view_context.validated_jjaek_return_path(params[:return_to]))
+        return_to: view_context.validated_jjaek_return_path(params[:return_to]),
+        tab: ("jjaeks" if params[:tab] == "jjaeks"))
     end
     return group_path(@group) if @group.present?
 
