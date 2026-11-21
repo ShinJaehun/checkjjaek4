@@ -1,6 +1,6 @@
 <section class="mx-auto w-full max-w-4xl min-w-0 overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-sm">
   <div class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-6 p-6 md:grid-cols-[10rem_minmax(0,1fr)] md:gap-x-7 lg:p-8">
-    <div class="flex items-start justify-center md:row-span-2">
+    <div class="flex items-start justify-center <%= "md:row-span-2" if book.new_record? || book.external_url.present? %>">
       <%= render "books/thumbnail",
                  title: book.title,
                  thumbnail: book.thumbnail,
@@ -14,6 +14,7 @@
       <h1 class="break-words text-xl font-semibold leading-tight tracking-tight text-stone-900 sm:text-4xl"><%= book.title %></h1>
 
       <% metadata_rows = book_metadata_rows(book) %>
+      <% metadata_rows.delete(:isbn) if book.persisted? %>
       <% if metadata_rows.any? %>
         <dl class="mt-3 space-y-2 text-xs leading-5 md:mt-5 md:text-sm md:leading-6">
           <% metadata_rows.each do |label, value| %>
@@ -26,32 +27,21 @@
       <% end %>
     </div>
 
-    <div class="col-span-2 min-w-0 md:col-span-1 md:col-start-2">
-      <div data-controller="book-description">
-        <p id="book-description" data-book-description-target="text" class="line-clamp-4 whitespace-pre-wrap break-words text-sm leading-7 text-stone-600 lg:line-clamp-none"><%= book.description.presence || t("books.show.empty_description") %></p>
-        <button type="button" hidden data-book-description-target="toggle" data-action="book-description#toggle" aria-expanded="false" aria-controls="book-description" class="mt-3 rounded-lg text-sm font-medium text-stone-900 underline decoration-stone-300 underline-offset-4 hover:decoration-stone-700 lg:hidden">
-          <span data-book-description-target="expand"><%= t("books.show.expand_description") %></span>
-          <span data-book-description-target="collapse" hidden><%= t("books.show.collapse_description") %></span>
-        </button>
-      </div>
-
-      <% if book.external_url.present? %>
-        <div class="mt-5">
+    <% if book.new_record? || book.external_url.present? %>
+      <div class="col-span-2 min-w-0 space-y-4 md:col-span-1 md:col-start-2">
+        <% if book.new_record? %>
+          <div data-controller="book-description">
+            <p id="book-description" data-book-description-target="text" class="line-clamp-4 whitespace-pre-wrap break-words text-sm leading-7 text-stone-600 lg:line-clamp-none"><%= book.description.presence || t("books.show.empty_description") %></p>
+            <button type="button" hidden data-book-description-target="toggle" data-action="book-description#toggle" aria-expanded="false" aria-controls="book-description" class="mt-3 rounded-lg text-sm font-medium text-stone-900 underline decoration-stone-300 underline-offset-4 hover:decoration-stone-700 lg:hidden">
+              <span data-book-description-target="expand"><%= t("books.show.expand_description") %></span>
+              <span data-book-description-target="collapse" hidden><%= t("books.show.collapse_description") %></span>
+            </button>
+          </div>
+        <% end %>
+        <% if book.external_url.present? %>
           <%= link_to t("books.show.external_link"), book.external_url, target: "_blank", rel: "noopener", class: "ui-button ui-button-secondary" %>
-        </div>
-      <% end %>
-    </div>
-  </div>
-
-  <div class="mx-6 space-y-4 border-t border-stone-100 py-6 lg:mx-8 lg:py-8">
-    <%= render "books/bookshelf_panel",
-               book: book,
-               bookshelf_entry: bookshelf_entry,
-               bookshelves: bookshelves,
-               search_result_token: search_result_token,
-               group_id: group_id %>
-    <% if bookshelf_entry&.persisted? %>
-      <%= render "books/reading_record_panel", bookshelf_entry: bookshelf_entry, sticker_definitions: sticker_definitions, form_values: form_values %>
+        <% end %>
+      </div>
     <% end %>
   </div>
 </section>

@@ -1,0 +1,21 @@
+<section id="book-notes" class="mx-auto w-full max-w-3xl scroll-mt-20 space-y-4">
+  <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("book_notes.heading") %></h2>
+
+  <% if page.total_count.positive? %>
+    <% return_path = book_path(book, tab: "reading", notes_page: page.page) if page.page > 1 %>
+    <ul class="space-y-3">
+      <% page.records.each do |note| %>
+        <li>
+          <%= render "book_notes/card", note:, book:, return_to: return_path %>
+        </li>
+      <% end %>
+    </ul>
+    <% if page.total_pages > 1 %>
+      <%= render "shared/pagination", page:, page_param: :notes_page,
+                 query_params: { controller: "/books", action: "show", id: book.id, return_to: @book_note_return_path,
+                                 tab: ("reading" if @bookshelf_entry), anchor: "book-notes" } %>
+    <% end %>
+  <% else %>
+    <p class="text-sm text-stone-500"><%= t("book_notes.empty") %></p>
+  <% end %>
+</section>

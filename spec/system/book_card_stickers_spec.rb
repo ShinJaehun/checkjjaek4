@@ -5,7 +5,11 @@ RSpec.describe "Responsive book card stickers", type: :system do
 
   let(:user) { User.create!(name: "Sticker reader", email: "responsive-stickers@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "Responsive sticker book", authors_text: "Author", publisher: "Publisher") }
-  let!(:entry) { user.bookshelf_entries.create!(book:, status: :reading) }
+  let!(:entry) do
+    entry = user.bookshelf_entries.create!(book:)
+    entry.user_book.update!(status: :reading)
+    entry
+  end
   let!(:stickers) do
     7.times.map do |index|
       StickerDefinition.create!(key: "responsive_sticker_#{index}", name: "Sticker #{index}")
@@ -14,7 +18,7 @@ RSpec.describe "Responsive book card stickers", type: :system do
 
   before do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 1280, 900 ]
-    entry.sticker_definitions = stickers
+    entry.user_book.sticker_definitions = stickers
     login_as user, scope: :user
   end
 
@@ -65,7 +69,7 @@ RSpec.describe "Responsive book card stickers", type: :system do
   end
 
   it "shows all six icons without a summary when they fit and adds the summary only when needed" do
-    entry.sticker_definitions.delete(stickers.last)
+    entry.user_book.sticker_definitions.delete(stickers.last)
     visit user_library_path(user)
     row = find("[data-bookshelf-entry-id='#{entry.id}'] [data-reading-stickers-row]")
 

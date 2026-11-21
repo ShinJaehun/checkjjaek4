@@ -11,6 +11,15 @@ module BookshelfEntriesHelper
     "want_to_recommend" => "m21 3-7 18-3-8-8-3 18-7ZM11 13 21 3"
   }.freeze
 
+  def bookshelf_removal_confirmation(count: nil)
+    prompt = if count
+      t("bookshelf_entries.confirmations.remove_selected", books_count: count)
+    else
+      t("bookshelf_entries.confirmations.remove")
+    end
+    [ prompt, t("bookshelf_entries.confirmations.reading_record_preserved") ].join("\n\n")
+  end
+
   def reading_state_icon(key)
     tag.svg(viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
             "stroke-width": 1.7, "stroke-linecap": "round", "stroke-linejoin": "round",

@@ -4,16 +4,10 @@ RSpec.describe BookshelfEntry, type: :model do
   let(:user) { User.create!(name: "Reader", email: "visibility@example.com", password: "password123!", password_confirmation: "password123!") }
   let(:book) { Book.create!(title: "북짹", authors_text: "저자") }
 
-  it "defaults status to nil" do
+  it "creates a reading record for a new placement" do
     entry = described_class.create!(user:, book:)
 
-    expect(entry.status).to be_nil
-  end
-
-  it "allows status to be nil" do
-    entry = described_class.new(user:, book:, status: nil)
-
-    expect(entry).to be_valid
+    expect(entry.reload.user_book).to have_attributes(user: user, book: book, status: nil)
   end
 
   it "does not allow duplicate shelf entries for the same user and book" do
@@ -67,10 +61,12 @@ RSpec.describe BookshelfEntry, type: :model do
     expect(entry.errors[:bookshelf]).to be_present
   end
 
-  it "validates status against the declared enum values" do
-    entry = described_class.new(user:, book:, status: :archived)
+  it "requires the reading record to match the placement owner and book" do
+    other = User.create!(name: "Other", email: "other-user-book@example.com", password: "password123!")
+    other_record = other.user_books.create!(book:)
+    entry = described_class.new(user:, book:, user_book: other_record)
 
     expect(entry).not_to be_valid
-    expect(entry.errors.of_kind?(:status, :inclusion)).to be(true)
+    expect(entry.errors.of_kind?(:user_book, :invalid)).to be(true)
   end
 end

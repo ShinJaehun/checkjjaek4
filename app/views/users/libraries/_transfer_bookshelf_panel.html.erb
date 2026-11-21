@@ -1,6 +1,11 @@
 <%
   panel_role = local_assigns.fetch(:panel_role)
   target_panel = panel_role == :target
+  removal_params = {
+    return_to: "library_transfer",
+    source_bookshelf_id: (target_panel ? paired_bookshelf : bookshelf).id,
+    target_bookshelf_id: (target_panel ? bookshelf : paired_bookshelf).id
+  }
 %>
 
 <section class="mt-2 animate-[fade-slide-in_180ms_ease-out] space-y-0">
@@ -57,6 +62,7 @@
                      show_status: true,
                      show_move_control: false,
                      show_sort_handle: true,
+                     removal_params:,
                      show_transfer_selection: !target_panel %>
         <% end %>
       </div>

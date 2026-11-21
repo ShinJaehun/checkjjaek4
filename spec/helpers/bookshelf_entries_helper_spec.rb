@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe BookshelfEntriesHelper, type: :helper do
   it "renders a status icon and translated label and omits an unset status" do
-    BookshelfEntry.statuses.each_key do |status|
+    UserBook.statuses.each_key do |status|
       badge = Nokogiri::HTML.fragment(helper.reading_status_badge(status)).at_css("[data-reading-status]")
       expect(badge.text).to eq(I18n.t("bookshelf_entries.statuses.#{status}"))
       expect(badge.at_css("svg")["aria-hidden"]).to eq("true")

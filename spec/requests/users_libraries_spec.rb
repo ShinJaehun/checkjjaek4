@@ -12,9 +12,9 @@ RSpec.describe "User libraries", type: :request do
 
   it "uses shared badges for reading information in the library" do
     entry = user.bookshelf_entries.find_by!(book: book)
-    entry.update!(status: :reading)
+    entry.user_book.update!(status: :reading)
     sticker = StickerDefinition.create!(key: "recommended_to_me", name: "Legacy recommendation label")
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     sign_in user
 
     get user_library_path(user, bookshelf_id: target_bookshelf.id)
@@ -35,7 +35,7 @@ RSpec.describe "User libraries", type: :request do
     stickers = %w[loved_it really_loved_it stayed_with_me want_to_reread recommended_to_me want_to_recommend].map do |key|
       StickerDefinition.create!(key: key, name: key)
     end
-    entry.sticker_definitions << stickers
+    entry.user_book.sticker_definitions << stickers
     sign_in user
 
     paths = [
@@ -59,23 +59,38 @@ RSpec.describe "User libraries", type: :request do
     end
   end
 
-  it "shows the library title card with aggregate counts and the existing transfer link" do
+  it "keeps the library title and avatar and defaults to the bookshelf tab with a direct transfer link" do
     sign_in user
 
     get user_library_path(user)
 
-    summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
-    expect(summary.text.squish).to eq("책장 3개 · 총 1권")
-    header = Nokogiri::HTML(response.body).at_css("header[data-library-summary]")
+    document = Nokogiri::HTML(response.body)
+    header = document.at_css("header[data-library-summary]")
     expect(header["class"].split).to include("bg-white", "rounded-2xl", "border", "border-stone-200", "shadow-sm", "p-4")
-    expect(header.at_css("img")).to be_present
-    expect(header.at_css(%(a[href="#{transfer_user_library_path(user, source_bookshelf_id: user.bookshelves.find_by!(is_default: true).id)}"]))).to be_present
-    expect(Nokogiri::HTML(response.body).at_css("h1").text).to eq("Reader의 서재")
-    expect(summary.css("li, [data-bookshelf-visibility]")).to be_empty
-    expect(Nokogiri::HTML(response.body).at_css('[data-bookshelf-visibility="public"]')).to be_present
+    expect(header.at_css("img")["class"].split).to include("h-12", "w-12", "shrink-0")
+    expect(header.at_css("[data-library-bookshelf-summary]")).to be_nil
+    transfer_path = transfer_user_library_path(user, source_bookshelf_id: user.bookshelves.find_by!(is_default: true).id)
+    actions = document.at_css("#library-bookshelves").element_children.first
+    expect(actions.css("button, a").map { |control| control.text.squish }).to eq([
+      I18n.t("book_search.nav"), I18n.t("bookshelves.actions.new"), I18n.t("bookshelves.form.manage_title")
+    ])
+    expect(actions.at_css("a")["href"]).to eq(transfer_path)
+    expect(header.at_css("h1").text).to eq("Reader의 서재")
+    expect(header.css("li, [data-bookshelf-visibility]")).to be_empty
+    expect(document.at_css('[data-bookshelf-visibility="public"]')).to be_present
+    tabs = document.at_css("[data-library-tabs]")
+    expect(tabs.at_css('[aria-current="page"]').text).to eq(I18n.t("users.library.tabs.bookshelves"))
+    expect(document.at_css("#library-bookshelves button[aria-controls='global-book-search-dialog']").text.strip).to eq(I18n.t("book_search.nav"))
+    expect(document.at_css("#book-notes")).to be_nil
+
+    get tabs.at_css("[data-library-notes-link]")["href"]
+    document = Nokogiri::HTML(response.body)
+    expect(document.at_css('[data-library-notes-link][aria-current="page"]')).to be_present
+    expect(document.at_css("#library-bookshelves")).to be_nil
+    expect(document.at_css("#book-notes").text).to include(I18n.t("book_notes.empty"))
   end
 
-  it "limits another user's title summary to visible non-private shelves" do
+  it "lists only public and book-friends shelves in another user's library" do
     friend = User.create!(name: "Friend", email: "summary-friend@example.com", password: "password123!")
     BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
     public_shelf = user.bookshelves.create!(name: "Public Summary", visibility: :public)
@@ -85,13 +100,13 @@ RSpec.describe "User libraries", type: :request do
 
     get user_library_path(user)
 
-    summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
-    expect(summary.text.squish).to eq("책장 3개 · 총 1권")
-    expect(summary.text).not_to include(selected_bookshelf.name, target_bookshelf.name)
+    options = Nokogiri::HTML(response.body).css("select[data-library-mobile-bookshelf-select] option")
+    expect(options.map { |option| option["value"] }).to match_array([ user.default_bookshelf.id, public_shelf.id, friend_shelf.id ].map(&:to_s))
+    expect(options.find { |option| option["value"] == friend_shelf.id.to_s }.text).to eq("#{friend_shelf.name} (1)")
     expect(response.body).not_to include("Target Shelf", "Selected Shelf")
   end
 
-  it "does not include private shelves in another user's title summary for an admin book friend" do
+  it "does not list private shelves for an admin book friend" do
     admin_friend = User.create!(name: "Admin Friend", email: "summary-admin-friend@example.com", password: "password123!", global_admin: true)
     BookFriendship.create!(requester: user, addressee: admin_friend, status: :accepted)
     sign_in admin_friend
@@ -99,9 +114,9 @@ RSpec.describe "User libraries", type: :request do
     get user_library_path(user)
 
     expect(response).to have_http_status(:ok)
-    summary = Nokogiri::HTML(response.body).at_css("[data-library-bookshelf-summary]")
-    expect(summary.text.squish).to eq("책장 1개 · 총 0권")
-    expect(summary.text).not_to include(selected_bookshelf.name, target_bookshelf.name)
+    options = Nokogiri::HTML(response.body).css("select[data-library-mobile-bookshelf-select] option")
+    expect(options.map { |option| option["value"] }).to eq([ user.default_bookshelf.id.to_s ])
+    expect(response.body).not_to include(selected_bookshelf.name, target_bookshelf.name)
   end
 
   it "redirects a global admin without book friendship away from another user's library" do
@@ -147,20 +162,34 @@ RSpec.describe "User libraries", type: :request do
     expect(document.at_css(%(input[name="return_to_target_as_source"][value="1"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-target="selectionCheckboxWrapper"] input[type="checkbox"][value="#{source_entry.id}"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-bookshelf-id="#{target_bookshelf.id}"] article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_present
+
+    [ source_entry, entry ].each do |card_entry|
+      remove_form = document.at_css(%(article[data-bookshelf-entry-id="#{card_entry.id}"] form[action="#{bookshelf_entry_path(card_entry)}"]))
+      expect(remove_form.at_css("input[name='_method']")["value"]).to eq("delete")
+      expect(remove_form["class"].split).to include("hidden", "md:block")
+      expect(remove_form.at_css("button")["aria-label"]).to eq(I18n.t("bookshelf_entries.actions.remove_book", title: card_entry.book.title))
+    end
+    bulk_remove_form = document.at_css(%(form[action="#{bulk_destroy_bookshelf_entries_path}"]))
+    expect(bulk_remove_form.at_css("input[name='_method']")["value"]).to eq("delete")
+    expect(document.at_css(%([role="dialog"] button[form="#{bulk_remove_form['id']}"])).text).to include(I18n.t("bookshelf_entries.actions.remove"))
   end
 
   it "does not render transfer drag targets on the default library screen" do
     sign_in user
 
-    get user_library_path(user, bookshelf_id: selected_bookshelf.id, sort: "manual")
+    get user_library_path(user, bookshelf_id: target_bookshelf.id, sort: "manual")
 
     document = Nokogiri::HTML(response.body)
+    entry = user.bookshelf_entries.find_by!(book:)
 
+    expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"]))).to be_present
     expect(document.at_css(%([data-controller="bookshelf-transfer"]))).to be_nil
     expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"]))).to be_nil
     expect(document.at_css(%([data-bookshelf-transfer-target="list"]))).to be_nil
     expect(document.at_css(%(form[action="#{bulk_move_bookshelf_entries_path}"]))).to be_nil
+    expect(document.at_css(%(form[action="#{bookshelf_entry_path(entry)}"]))).to be_nil
+    expect(document.at_css(%(form[action="#{bulk_destroy_bookshelf_entries_path}"]))).to be_nil
     expect(response.body).not_to include(I18n.t("users.library.transfer.selected_count_suffix"))
   end
 

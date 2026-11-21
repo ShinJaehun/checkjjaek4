@@ -5,11 +5,27 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
   let(:viewer) { User.create!(name: "Viewer", email: "reading-viewer@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "Reading context", authors_text: "Book author") }
   let(:shelf) { author.bookshelves.create!(name: "Reading shelf", visibility: :public) }
-  let!(:entry) { author.bookshelf_entries.create!(book: book, bookshelf: shelf, status: :reading) }
+  let!(:entry) do
+    entry = author.bookshelf_entries.create!(book: book, bookshelf: shelf)
+    entry.user_book.update!(status: :reading)
+    entry
+  end
   let!(:sticker) { StickerDefinition.create!(key: "current_reading_test", name: "CURRENT_READING_STICKER") }
   let!(:jjaek) { create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: author, content: "Book thoughts") }
 
-  before { entry.sticker_definitions << sticker }
+  before { entry.user_book.sticker_definitions << sticker }
+
+  it "hides a saved reading record while it has no bookshelf placement" do
+    befriend
+    sign_in viewer
+    entry.destroy!
+
+    get jjaek_path(jjaek)
+
+    expect(response).to have_http_status(:ok)
+    expect(reading_info).to be_empty
+    expect(author.user_books.find_by!(book:).sticker_definitions).to include(sticker)
+  end
 
   def reading_info
     Nokogiri::HTML(response.body).css("[data-current-reading-state]").text
@@ -57,8 +73,9 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
   end
 
   it "keeps the requote author's reading badges without a title label" do
-    viewer_entry = viewer.bookshelf_entries.create!(book: book, status: :wish)
-    viewer_entry.sticker_definitions << sticker
+    viewer_entry = viewer.bookshelf_entries.create!(book: book)
+    viewer_entry.user_book.update!(status: :wish)
+    viewer_entry.user_book.sticker_definitions << sticker
     requote = create_legacy_book_requote(user: viewer, book: book, quoted_jjaek: jjaek, content: "Requote thoughts")
     sign_in viewer
 
@@ -75,8 +92,8 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
     get jjaek_path(jjaek)
     expect(reading_info).to include(sticker.name)
 
-    entry.update!(status: :finished)
-    entry.sticker_definitions.clear
+    entry.user_book.update!(status: :finished)
+    entry.user_book.sticker_definitions.clear
     get jjaek_path(jjaek)
     expect(reading_info).to include(I18n.t("bookshelf_entries.statuses.finished"))
     expect(reading_info).not_to include(sticker.name)
@@ -92,15 +109,15 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
   end
 
   it "uses the author's entry rather than the viewer's and omits empty information" do
-    viewer.bookshelf_entries.create!(book: book, status: :wish)
+    viewer.bookshelf_entries.create!(book: book).user_book.update!(status: :wish)
     befriend
     sign_in viewer
     get jjaek_path(jjaek)
     expect(reading_info).to include(I18n.t("bookshelf_entries.statuses.reading"))
     expect(reading_info).not_to include(I18n.t("bookshelf_entries.statuses.wish"))
 
-    entry.update!(status: nil)
-    entry.sticker_definitions.clear
+    entry.user_book.update!(status: nil)
+    entry.user_book.sticker_definitions.clear
     get jjaek_path(jjaek)
     expect(reading_info).to be_empty
   end
@@ -140,7 +157,7 @@ RSpec.describe "Current reading information on book jjaeks", type: :request do
     sign_in viewer
     queries = []
     subscriber = ->(_name, _start, _finish, _id, payload) do
-      queries << payload[:sql] if payload[:sql].match?(/SELECT.*FROM "(?:bookshelf_entries|sticker_definitions|bookshelf_entry_stickers)"/)
+      queries << payload[:sql] if payload[:sql].match?(/SELECT.*FROM "(?:bookshelf_entries|user_books|sticker_definitions|user_book_stickers)"/)
     end
     ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") { get book_path(book) }
     single_card_query_count = queries.size

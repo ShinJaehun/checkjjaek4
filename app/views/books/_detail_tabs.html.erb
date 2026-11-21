@@ -1,0 +1,13 @@
+<% tabs = { "reading" => "book-my-reading", "jjaeks" => "book-sharing" } %>
+<% options = params.slice(:notes_page, :cursor).permit(:notes_page, :cursor).to_h.merge(group_id: @group&.id, return_to: @book_return_path) %>
+<div role="tablist" aria-label="<%= t("books.show.detail_tabs") %>" class="flex gap-2"
+     data-action="keydown->book-detail#navigateTabs">
+  <% tabs.each do |tab, panel_id| %>
+    <% selected = selected_tab == tab %>
+    <%= link_to t("books.show.tabs.#{tab}"), book_path(book, options.merge(tab:)),
+                id: "book-#{tab}-tab", role: "tab", tabindex: (selected ? 0 : -1),
+                class: "ui-button ui-button-secondary flex-1 aria-selected:border-emerald-700 aria-selected:bg-emerald-50 aria-selected:text-emerald-900",
+                aria: { controls: panel_id, selected: selected },
+                data: { book_detail_target: "tab", action: "book-detail#selectTab", turbo_prefetch: false } %>
+  <% end %>
+</div>

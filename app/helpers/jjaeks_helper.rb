@@ -193,7 +193,8 @@ module JjaeksHelper
 
   def book_navigation_params
     path = validated_jjaek_return_path(request.fullpath)
-    path ? { return_to: path } : {}
+    tab = "reading" if controller_path == "users/libraries" && action_name == "transfer" && @user == current_user
+    { return_to: path, tab: }.compact
   end
 
   def jjaek_default_return_path(jjaek)
@@ -332,7 +333,7 @@ module JjaeksHelper
         return unless query[:bookshelf_id].is_a?(String)
         return unless policy_scope(user.bookshelves).exists?(id: query[:bookshelf_id])
       end
-      [ user_library_path(user), %i[bookshelf_id sort] ]
+      [ user_library_path(user), %i[bookshelf_id sort notes_page library_tab] ]
     when [ "users", "show" ]
       user = User.find_by_public_param!(route[:id])
       [ user_path(user), [] ] if policy(user).show?
@@ -344,7 +345,7 @@ module JjaeksHelper
         group = Group.find(query[:group_id])
         return unless policy(group).create_jjaek?
       end
-      [ book_path(book), [ :group_id ] ]
+      [ book_path(book), %i[group_id tab notes_page cursor] ]
     when [ "groups", "index" ]
       [ groups_path, [] ] if policy(Group).index?
     when [ "groups", "show" ], [ "groups/contents", "index" ]

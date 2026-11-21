@@ -120,20 +120,18 @@ Jjaek처럼 본문이 있는 글이 아니라,
 - 어떤 책을 읽는 중으로 바꿈
 - 어떤 책에 너무 좋았어요 스티커를 붙임
 
-현재 구현에서는 책활동을 사용자-facing 개념으로 유지하면서,
-`BookActivity`는 개인 서재 최초 추가만 이벤트로 기록한다. 상태·스티커는 개인 독서 관리로 유지한다.
+`BookActivity`는 개인 서재 배치 추가와 `UserBook`의 실제 상태·스티커 변경을 기록한다.
 세부 구현 기준과 남은 범위는 `docs/specs/book_activity_mvp.md`를 따른다.
 
 ### BookActivity
 `BookActivity`는 책과 관련된 사용자 행동을
 피드에서 소비하기 좋은 형태로 기록하는 **피드용 이벤트 모델**이다.
 
-현재 기록 대상은 책을 개인 서재에 처음 담은 사건이다.
-상태·스티커 변경은 새 활동을 생성하지 않으며 과거 변경 활동도 피드에서 제외한다.
+홈·프로필 피드는 배치 추가를 표시하고, 책 상세의 책친구 활동은 권한이 있는 상태·스티커 변경도 표시한다.
 
 중요한 점:
 - `BookActivity`는 책에 대한 본문 글이 아니다.
-- `BookActivity`는 `BookshelfEntry`나 `BookshelfEntrySticker` 자체를 대체하지 않는다.
+- `UserBook`과 `UserBookSticker`가 현재 독서 상태와 스티커를 보관한다.
 - `BookActivity`의 목적은 **도메인 상태 저장**이 아니라
   **피드 노출용 이벤트 표현**이다.
 
@@ -250,19 +248,16 @@ Jjaek의 공개 범위는 아래 3개만 둔다.
 - 사용자에게는 필요 이상으로 복잡하게 드러내지 않는다.
 - 피드에서는 둘을 하나의 흐름처럼 함께 보여줄 수 있다.
 - 현재 구현에서는 BookActivity 모델과 프로필 최근 활동 타임라인 노출이 도입되어 있다.
-- 홈 피드 합성은 구현되어 있으며, 현재 책장 visibility로 기존 관계 범위를 추가 제한한다. books/:id에는 합성하지 않는다.
+- 홈 피드 합성은 현재 책장 공개 범위로 기존 관계 범위를 추가 제한한다. 책 상세의 첨부 짹 목록과 책친구 활동은 각각 표시한다.
 
-### BookshelfEntry / BookshelfEntrySticker / BookActivity 책임 경계
+### 개인 독서 기록과 활동의 책임 경계
 
 #### BookshelfEntry
-- 사용자가 특정 책을 어떤 상태로 가지고 있는지 저장하는 **현재 상태 모델**이다.
-- 대표 상태의 source of truth다.
-- 피드 이벤트 자체를 표현하지 않는다.
+- `UserBook`의 현재 책장 배치와 책장 안 순서를 저장한다.
 
-#### BookshelfEntrySticker
-- 특정 서재 항목에 어떤 스티커가 붙어 있는지 저장하는 **연결 모델**이다.
-- 스티커 부착 상태의 source of truth다.
-- 피드 이벤트 자체를 표현하지 않는다.
+#### UserBook과 UserBookSticker
+- 사용자·책별 `UserBook` 하나가 현재 독서 상태를 저장하고, `UserBookSticker`가 스티커 연결을 저장한다.
+- 책을 뺀 뒤에도 기록을 보존하고 같은 책을 다시 담으면 기존 기록을 사용한다.
 
 #### Jjaek
 - 사용자가 직접 쓴 **본문 글 모델**이다.
@@ -271,16 +266,8 @@ Jjaek의 공개 범위는 아래 3개만 둔다.
 - 댓글/좋아요/ReJjaek의 대상이 된다.
 
 #### BookActivity
-- 개인 `BookshelfEntry` 최초 추가에서 파생되는 **피드용 이벤트 모델**이다.
-- 어떤 변화가 있었는지를 시간순으로 보여주기 위한 표현 계층이다.
-- 상태의 source of truth가 아니다.
-- 책에 대한 자유 본문 글도 아니다.
-
-즉:
-- 현재 상태는 `BookshelfEntry`
-- 현재 스티커 부착 상태는 `BookshelfEntrySticker`
-- 본문 글은 `Jjaek`
-- 피드용 활동 이벤트는 `BookActivity`
+- 개인 책장 배치 추가와 독서 기록 변경을 시간순으로 보관하는 **피드용 이벤트 모델**이다.
+- 배치 제거 시 이력을 보존하며 각 화면은 현재 배치와 기존 공개 조건에 따라 활동을 표시한다.
 
 ---
 
@@ -535,13 +522,11 @@ ReJjaek은 새 Jjaek이지만,
 
 ### 홈 피드와 책활동
 - 현재 홈 피드는 Jjaek과 BookActivity를 함께 보여준다.
-- 현재 `BookActivity`는 개인 `BookshelfEntry` 최초 추가만 기록하고, 상태·스티커 변경 활동은 생성하거나 피드에 표시하지 않는다.
+- 홈 피드는 현재 배치에 연결된 추가 활동을 표시한다.
 - 홈 피드의 BookActivity 노출 범위는 현재 사용자와 소식받는 accepted book_friend로 제한한다.
 - 책친구 관계만으로는 상대의 Jjaek과 BookActivity가 홈에 자동 편입되지 않는다.
 - follow-only / stranger의 BookActivity는 public 책장인 경우에도 홈 피드에 노출하지 않는다.
-- `BookActivity`는 `BookshelfEntry`, `BookshelfEntrySticker`, `Jjaek`의
-  source of truth를 대체하지 않는다.
-- 현재 책장 공개 범위와 서재 항목 제거 시 활동 정리 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
+- 현재 책장 공개 범위와 서재 항목 제거 시 활동 보존 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
 
 ---
 
@@ -628,8 +613,9 @@ Classroom 정책과 함께 후속 단계에서 검토한다.
 - Book
 - Bookshelf
 - BookshelfEntry
+- UserBook
 - StickerDefinition
-- BookshelfEntrySticker
+- UserBookSticker
 - BookActivity
 - Jjaek
 - Follow

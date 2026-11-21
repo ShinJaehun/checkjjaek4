@@ -178,7 +178,7 @@ export default class extends Controller {
     // 같은 페이지를 새로 방문하면 초안을 폐기한다.
     // 책 선택 창에서 돌아오는 방문은 기존 초안을 유지한다.
     if (event?.type === "turbo:before-visit" &&
-        new URL(event.detail.url, window.location.href).href === window.location.href &&
+        this.revisitsComposerPage(event.detail.url) &&
         document.querySelector("#book-selection-window")?.hidden !== false) {
       drafts.delete(this.key)
       this.discardDraftOnVisit = true
@@ -192,6 +192,20 @@ export default class extends Controller {
       visibility: this.form.querySelector("[name='jjaek[visibility]']:checked")?.value,
       books: Array.from(this.element.querySelector("#jjaek-attached-books")?.childNodes || [], node => node.cloneNode(true))
     })
+  }
+
+  revisitsComposerPage(url) {
+    const current = new URL(window.location.href)
+    const destination = new URL(url, current)
+    if (destination.href === current.href) return true
+    if (!this.element.closest("#book-jjaek-form")) return false
+
+    for (const location of [current, destination]) {
+      location.searchParams.delete("tab")
+      location.searchParams.delete("return_to")
+      location.searchParams.sort()
+    }
+    return destination.href === current.href
   }
 
   prepare(event) {

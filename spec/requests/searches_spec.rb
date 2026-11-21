@@ -255,9 +255,10 @@ RSpec.describe "Unified search", type: :request do
 
   it "reuses read-only post cards with author, visibility, cover, book information, and reading badges" do
     book.update!(thumbnail: "https://example.com/search-cover.jpg", authors_text: "카드 저자")
-    entry = viewer.bookshelf_entries.create!(book:, status: :reading)
+    entry = viewer.bookshelf_entries.create!(book:)
+    entry.user_book.update!(status: :reading)
     sticker = StickerDefinition.create!(key: "loved_it", name: "Loved it")
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     post = create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: viewer, content: "카드검색 본문", visibility: :book_friends)
     sign_in viewer
     get search_path, params: { q: "카드검색", type: "jjaeks" }
@@ -277,7 +278,8 @@ RSpec.describe "Unified search", type: :request do
   end
 
   it "keeps reading metadata on public book-post cards restricted to accepted book friends" do
-    entry = writer.bookshelf_entries.create!(book:, status: :finished)
+    entry = writer.bookshelf_entries.create!(book:)
+    entry.user_book.update!(status: :finished)
     entry.bookshelf.update!(visibility: :public)
     create_jjaek_with_books(legacy_source_kind: "book", books: [ book ], user: writer, content: "독서카드검색")
     sign_in viewer

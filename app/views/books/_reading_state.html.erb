@@ -1,8 +1,10 @@
 <% form_values = local_assigns[:form_values] || {} %>
-<% selected_status = form_values.fetch("status", bookshelf_entry.status) %>
-<% selected_sticker_ids = Array(form_values.fetch("sticker_definition_ids", bookshelf_entry.sticker_definition_ids)).map(&:to_s) %>
+<% user_book = bookshelf_entry.user_book %>
+<% selected_status = form_values.fetch("status", user_book.status) %>
+<% selected_sticker_ids = Array(form_values.fetch("sticker_definition_ids", user_book.sticker_definition_ids)).map(&:to_s) %>
 <% return_path = validated_jjaek_return_path(params[:return_to]) %>
-<%= form_with model: bookshelf_entry, url: bookshelf_entry_path(bookshelf_entry), method: :patch, class: "space-y-5" do |form| %>
+<%= form_with model: user_book, scope: :bookshelf_entry, url: bookshelf_entry_path(bookshelf_entry), method: :patch, class: "space-y-5" do |form| %>
+  <%= hidden_field_tag :tab, "reading", id: nil %>
   <%= hidden_field_tag :group_id, @group.id if @group.present? %>
   <%= hidden_field_tag :return_to, return_path if return_path %>
 
@@ -15,7 +17,7 @@
         <%= form.radio_button :status, "", checked: selected_status.blank?, class: "shrink-0" %>
         <span><%= t("books.show.clear_status") %></span>
       </label>
-      <% BookshelfEntry.statuses.keys.each do |status| %>
+      <% UserBook.statuses.keys.each do |status| %>
         <label class="ui-choice ui-choice-status">
           <%= form.radio_button :status, status, checked: selected_status == status, class: "shrink-0" %>
           <%= reading_status_content(status) %>

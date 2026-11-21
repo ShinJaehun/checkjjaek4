@@ -59,6 +59,12 @@ RSpec.describe "Standalone book search", type: :system do
     expect(parameters.fetch("selected_books").reject(&:empty?)).to eq(book_ids.map(&:to_s))
   end
 
+  def open_book_composer
+    expect(page).to have_css("#book-jjaeks-tab[aria-selected='true']")
+    expect(page).to have_no_css("#book-jjaek-form")
+    find("button[aria-controls='book-jjaek-form'][aria-expanded='false']").click
+  end
+
   def expect_composer(book:, group_context: nil)
     expect(page).to have_no_css("#jjaek-composer[data-turbo-permanent]", visible: :all)
     destination = group_context ? group_jjaeks_path(group_context) : jjaeks_path
@@ -120,6 +126,7 @@ RSpec.describe "Standalone book search", type: :system do
     expect(page).to have_text(I18n.t("book_search.actions.in_shelf"))
     expect(page).to have_no_button(I18n.t("book_search.actions.add_to_shelf"))
     click_link I18n.t("book_search.actions.open_internal")
+    open_book_composer
     expect_composer(book:)
     expect([ Book.count, BookshelfEntry.count ]).to eq(counts)
     fill_in "jjaek[content]", with: "Personal search reading note"
@@ -150,6 +157,7 @@ RSpec.describe "Standalone book search", type: :system do
     click_link I18n.t("book_search.actions.open_internal")
     search_path = book_search_path(query: "Replacement global", page: 1, search_origin: group_path(group))
     expect(page).to have_current_path(book_path(book, return_to: search_path))
+    open_book_composer
     expect_composer(book:)
     find("a[data-back-link]").click
     expect(page).to have_current_path(search_path)
@@ -206,6 +214,7 @@ RSpec.describe "Standalone book search", type: :system do
       click_link I18n.t("book_search.actions.open_internal")
       results_path = book_search_path(query: "Library modal", page: 1, search_origin: origin)
       expect(page).to have_current_path(book_path(book, return_to: results_path))
+      open_book_composer
       expect_composer(book:)
       find("a[data-back-link]").click
       expect(page).to have_current_path(results_path)
@@ -542,8 +551,13 @@ RSpec.describe "Standalone book search", type: :system do
     expect(user.bookshelf_entries.exists?(book: book)).to be(true)
 
     expect(page).to have_current_path(
-      book_path(book, return_to: search_path)
+      book_path(book, return_to: search_path, tab: "reading")
     )
+    expect(page).to have_css("#book-reading-tab[aria-selected='true']")
+    expect(page).to have_no_css("#book-jjaek-form")
+    find("#book-jjaeks-tab").click
+    expect(page).to have_current_path(book_path(book, return_to: search_path, tab: "jjaeks"))
+    open_book_composer
     expect_composer(book:)
     expect(page).to have_no_css("#jjaek-publish-form [name='jjaek[group_id]']", visible: :all)
     find("a[data-back-link]").click

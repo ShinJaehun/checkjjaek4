@@ -1290,6 +1290,8 @@ ko:
     actions:
       create: "서재에 저장"
       move: "이동"
+      remove: "책장에서 꺼내기"
+      remove_book: "%{title} 책장에서 꺼내기"
       reorder: "순서 변경"
       update: "서재 항목 수정"
     form:
@@ -1299,17 +1301,23 @@ ko:
       target_bookshelf: "담을 책장"
       status: "대표 상태"
       stickers: "스티커"
+    confirmations:
+      remove: "이 책을 책장에서 꺼낼까요?"
+      remove_selected: "선택한 책 %{books_count}권을 책장에서 꺼낼까요?"
+      reading_record_preserved: "독서 상태와 스티커는 보존됩니다."
     new:
       title: "책장에 담기"
     edit:
       title: "서재 항목 수정"
     notices:
+      bulk_destroyed: "책장에서 책 %{count}권을 꺼냈습니다."
       bulk_moved: "%{count}권을 '%{bookshelf_name}' 책장으로 옮겼습니다."
       created: "책을 서재에 담았습니다."
-      destroyed: "서재 항목을 삭제했습니다."
+      destroyed: "책장에서 책을 꺼냈습니다."
       moved: "책을 '%{bookshelf_name}' 책장으로 옮겼습니다."
       updated: "서재 항목을 수정했습니다."
     alerts:
+      bulk_destroy_failed: "선택한 책을 꺼내지 못했습니다."
       bulk_move_failed: "선택한 책을 옮기지 못했습니다."
       move_failed: "책 이동 결과를 확인할 수 없습니다. 현재 저장 상태를 다시 불러옵니다."
       reorder_failed: "책 순서 저장을 확인할 수 없습니다. 현재 저장된 순서를 다시 불러옵니다."
@@ -1346,7 +1354,7 @@ ko:
       pink: "분홍"
     form:
       color_key: "색상"
-      edit_title: "책장 관리"
+      edit_title: "책장 설정"
       manage_title: "책장 관리"
       name: "책장 이름"
       name_placeholder: "새 책장 이름"
@@ -1376,6 +1384,11 @@ ko:
       library_context_title: "내 서재"
       reading_record_title: "독서 활동"
       current_bookshelf: "담긴 책장"
+      manage_bookshelf: "책장 관리"
+      detail_tabs: "책 상세 보기"
+      tabs:
+        reading: "나의 독서"
+        jjaeks: "책짹"
       status_label: "상태"
       authors: "저자"
       translators: "역자"
@@ -1392,7 +1405,8 @@ ko:
       edit_reading_record: "독서 활동"
       save_reading_record: "독서 기록 저장"
       write_book_jjaek: "이 책에 책짹 쓰기"
-      friend_activity_title: "책 친구 활동"
+      friend_activity_title: "책친구 활동"
+      empty_friend_activities: "이 책에 표시할 수 있는 책친구 활동이 없습니다."
   jjaeks:
     contexts:
       group_badge: "동아리"
@@ -1549,15 +1563,19 @@ ko:
       empty_bookshelf_preview: "아직 이 책장에 담긴 책이 없습니다."
       title: "전체 서재"
       title_with_name: "%{name}의 서재"
+      tabs:
+        label: "서재 보기"
+        bookshelves: "책장"
       transfer:
         back_to_library: "서재로 돌아가기"
         bulk_submit: "옮기기"
-        bulk_target_label: "어느 책장으로 옮길까요?"
+        bulk_target_label: "선택한 책을 어떻게 할까요?"
+        bulk_target_description: "다른 책장으로 옮기거나 현재 책장에서 꺼낼 수 있습니다."
         cancel_move: "취소"
         choose_source: "출발 책장 선택"
         choose_target: "이동 대상 책장 선택"
         clear_selection: "선택 해제"
-        close_targets: "이동 대상 선택 닫기"
+        close_targets: "책 정리 대화 상자 닫기"
         mobile_source_label: "정리할 책장"
         not_enough_bookshelves: "책장이 2개 이상일 때 책장 이동 모드를 사용할 수 있습니다."
         open: "책장 이동"

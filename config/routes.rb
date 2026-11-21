@@ -79,6 +79,8 @@ Rails.application.routes.draw do
   end
   resource :book_search, only: :show, controller: "book_searches"
   resources :books, only: :show do
+    resources :book_notes, only: %i[show create update destroy]
+
     collection do
       get :lookup
     end
@@ -86,6 +88,7 @@ Rails.application.routes.draw do
   resources :bookshelf_entries, only: %i[create edit update destroy] do
     patch :move, on: :member
     patch :bulk_move, on: :collection
+    delete :bulk_destroy, on: :collection
     patch :reorder, on: :collection
   end
   resources :bookshelves, only: %i[create update destroy] do

@@ -23,6 +23,7 @@ RSpec.describe "Content error accessibility", type: :system do
     forms.each do |path, selector, name, submit|
       visit path
       if name == "jjaek[content]"
+        find("button[aria-controls='book-jjaek-form'][aria-expanded='false']").click
         within("#jjaek-composer") { click_button submit }
       else
         within(selector) { click_button submit }

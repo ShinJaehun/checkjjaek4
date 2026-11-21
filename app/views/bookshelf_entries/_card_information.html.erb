@@ -1,7 +1,7 @@
 <%
   book = bookshelf_entry.book
   metadata = [ book.authors_text.presence, book.publisher.presence ].compact.join(" · ").presence || "-"
-  stickers = show_status ? bookshelf_entry.sticker_definitions.to_a : []
+  stickers = show_status ? bookshelf_entry.user_book.sticker_definitions.to_a : []
   extra_names = stickers.drop(6).map { |sticker| reading_sticker_label(sticker) }
   remaining_stickers = stickers.drop(3)
   remaining_names = remaining_stickers.map { |sticker| reading_sticker_label(sticker) }.join(", ")
@@ -15,7 +15,7 @@
 
   <div class="mt-2 space-y-1">
     <div class="flex h-7 min-w-0 items-center" data-reading-status-row>
-      <%= reading_status_badge(bookshelf_entry.status) if show_status %>
+      <%= reading_status_badge(bookshelf_entry.user_book.status) if show_status %>
     </div>
     <div class="flex h-7 min-w-0 items-center gap-0.5 overflow-hidden"
          data-reading-stickers-row

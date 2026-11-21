@@ -10,9 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_21_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "action_text_rich_texts", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "body"
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["record_type", "record_id", "name"], name: "index_action_text_rich_texts_uniqueness", unique: true
+  end
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
@@ -68,6 +78,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000000) do
     t.index ["requester_id"], name: "index_book_friendships_on_requester_id"
   end
 
+  create_table "book_notes", force: :cascade do |t|
+    t.bigint "user_book_id", null: false
+    t.text "title"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_book_id", "created_at", "id"], name: "index_book_notes_on_user_book_id_and_created_at_and_id"
+  end
+
   create_table "books", force: :cascade do |t|
     t.string "authors_text"
     t.datetime "created_at", null: false
@@ -91,24 +109,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000000) do
     t.bigint "bookshelf_id", null: false
     t.datetime "created_at", null: false
     t.integer "position", null: false
-    t.integer "status"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.bigint "user_book_id", null: false
     t.index ["book_id"], name: "index_bookshelf_entries_on_book_id"
     t.index ["bookshelf_id", "position"], name: "index_bookshelf_entries_on_bookshelf_id_and_position"
     t.index ["bookshelf_id"], name: "index_bookshelf_entries_on_bookshelf_id"
+    t.index ["user_book_id"], name: "index_bookshelf_entries_on_user_book_id", unique: true
     t.index ["user_id", "book_id"], name: "index_bookshelf_entries_on_user_id_and_book_id", unique: true
     t.index ["user_id"], name: "index_bookshelf_entries_on_user_id"
-  end
-
-  create_table "bookshelf_entry_stickers", force: :cascade do |t|
-    t.bigint "bookshelf_entry_id", null: false
-    t.datetime "created_at", null: false
-    t.bigint "sticker_definition_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["bookshelf_entry_id", "sticker_definition_id"], name: "index_bookshelf_entry_stickers_on_entry_and_sticker", unique: true
-    t.index ["bookshelf_entry_id"], name: "index_bookshelf_entry_stickers_on_bookshelf_entry_id"
-    t.index ["sticker_definition_id"], name: "index_bookshelf_entry_stickers_on_sticker_definition_id"
   end
 
   create_table "bookshelves", force: :cascade do |t|
@@ -397,6 +406,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000000) do
     t.index ["name"], name: "index_tags_on_name", unique: true
   end
 
+  create_table "user_book_stickers", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "sticker_definition_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_book_id", null: false
+    t.index ["sticker_definition_id"], name: "index_user_book_stickers_on_sticker_definition_id"
+    t.index ["user_book_id", "sticker_definition_id"], name: "index_user_book_stickers_on_book_and_sticker", unique: true
+  end
+
+  create_table "user_books", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "book_id", null: false
+    t.integer "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_user_books_on_book_id"
+    t.index ["user_id", "book_id"], name: "index_user_books_on_user_id_and_book_id", unique: true
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "default_avatar_index"
@@ -426,15 +454,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "book_activities", "books"
-  add_foreign_key "book_activities", "bookshelf_entries"
+  add_foreign_key "book_activities", "bookshelf_entries", on_delete: :nullify
   add_foreign_key "book_activities", "users"
   add_foreign_key "book_friendships", "users", column: "addressee_id"
   add_foreign_key "book_friendships", "users", column: "requester_id"
+  add_foreign_key "book_notes", "user_books"
   add_foreign_key "bookshelf_entries", "books"
   add_foreign_key "bookshelf_entries", "bookshelves"
+  add_foreign_key "bookshelf_entries", "user_books"
   add_foreign_key "bookshelf_entries", "users"
-  add_foreign_key "bookshelf_entry_stickers", "bookshelf_entries"
-  add_foreign_key "bookshelf_entry_stickers", "sticker_definitions"
   add_foreign_key "bookshelves", "users"
   add_foreign_key "comments", "jjaeks"
   add_foreign_key "comments", "users"
@@ -474,4 +502,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000000) do
   add_foreign_key "notifications", "users", column: "recipient_id"
   add_foreign_key "registration_invitations", "users"
   add_foreign_key "registration_invitations", "users", column: "invited_by_id"
+  add_foreign_key "user_book_stickers", "sticker_definitions"
+  add_foreign_key "user_book_stickers", "user_books"
+  add_foreign_key "user_books", "books"
+  add_foreign_key "user_books", "users"
 end

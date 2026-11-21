@@ -508,7 +508,7 @@ RSpec.describe "Comments", type: :request do
 
   it "preserves the edited comment and detail summaries when an HTML update fails" do
     BookFriendship.create!(requester: user, addressee: author, status: :accepted)
-    author.bookshelf_entries.create!(book: book, status: :reading)
+    author.bookshelf_entries.create!(book: book).user_book.update!(status: :reading)
     jjaek.likes.create!(user: user)
     user.jjaeks.create!(quoted_jjaek: jjaek, content: "Visible requote")
     sign_in user

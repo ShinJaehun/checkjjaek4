@@ -1,0 +1,26 @@
+en:
+  book_notes:
+    heading: "Reading notes"
+    new: "Write a note"
+    edit: "Edit note"
+    title: "Title (optional)"
+    body: "Body"
+    untitled: "Untitled note"
+    empty: "You haven’t written any reading notes yet."
+    created_at: "Created"
+    updated_at: "Updated"
+    save: "Save"
+    cancel: "Cancel"
+    delete: "Delete note"
+    confirm_delete: "Delete this reading note?"
+    confirm_discard: "Discard your unsaved changes and close?"
+    attachments_not_allowed: "Reading notes can’t include images or files."
+  activerecord:
+    errors:
+      models:
+        book_note:
+          attributes:
+            body:
+              blank: "Enter the body of your note."
+              too_long: "Keep the body within %{count} plain-text characters."
+              attachments_not_allowed: "Reading notes can’t include images or files."

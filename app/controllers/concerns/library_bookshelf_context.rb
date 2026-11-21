@@ -3,16 +3,15 @@ module LibraryBookshelfContext
 
   private
 
-  def prepare_library_bookshelf(selected_bookshelf_id: params[:bookshelf_id], new_bookshelf: nil, managed_bookshelf: nil)
+  def prepare_library_bookshelf(selected_bookshelf_id: params[:bookshelf_id], new_bookshelf: nil, managed_bookshelf: nil, show_notes: false)
     profile_policy = policy(@user)
     owner = current_user == @user
+    @library_notes_page_number = Integer(params[:notes_page], exception: false) if owner
+    prepare_library_book_notes if owner && show_notes
     @show_bookshelf = profile_policy.show_profile_bookshelf?
     @show_profile_bookshelf_status = profile_policy.show_profile_bookshelf_status?
     @show_profile_bookshelf_move_control = owner
     @show_profile_bookshelf_create_form = owner
-    @bookshelf = new_bookshelf || @user.bookshelves.build(visibility: :public, color_key: "stone") if owner
-    @profile_bookshelf_visibility_options = Bookshelf.visibilities.keys
-    @profile_bookshelf_color_options = Bookshelf::COLOR_KEYS
     @profile_bookshelf_sort = library_bookshelf_sort
     @profile_bookshelf_sort_options = BookshelfEntry::PROFILE_SORTS
 
@@ -32,6 +31,11 @@ module LibraryBookshelfContext
       @profile_bookshelf_entry_counts.fetch(bookshelf.id, 0)
     end
     @selected_bookshelf = selected_library_bookshelf(@profile_bookshelves, selected_bookshelf_id)
+    return if @library_book_note_page
+
+    @bookshelf = new_bookshelf || @user.bookshelves.build(visibility: :public, color_key: "stone") if owner
+    @profile_bookshelf_visibility_options = Bookshelf.visibilities.keys
+    @profile_bookshelf_color_options = Bookshelf::COLOR_KEYS
     @managed_bookshelf = managed_bookshelf || @selected_bookshelf if owner && @selected_bookshelf&.is_default? == false
     @profile_bookshelf_order_controls = owner ? bookshelf_order_controls(@profile_bookshelves) : {}
     @bookshelf_entries =
@@ -40,6 +44,13 @@ module LibraryBookshelfContext
       else
         BookshelfEntry.none
       end
+  end
+
+  def prepare_library_book_notes
+    notes = policy_scope(BookNote).recent_first.with_rich_text_body.includes(user_book: :book)
+    @library_book_note_page = Admin::InventoryPage.new(notes, page: @library_notes_page_number)
+    @library_notes_page_number = @library_book_note_page.page
+    no_store
   end
 
   def library_bookshelf_sort

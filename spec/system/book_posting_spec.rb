@@ -14,6 +14,7 @@ RSpec.describe "Book context composition", type: :system do
 
   it "keeps the Group destination when the preselected book is removed and the note is saved" do
     visit book_path(book, group_id: group.id)
+    open_book_composer
     within("#book-jjaek-form") do
       expect(page).to have_no_css("[name='jjaek[visibility]']", visible: :all)
       fill_in "jjaek[content]", with: "Group note without a book"
@@ -32,6 +33,7 @@ RSpec.describe "Book context composition", type: :system do
     other_book = Book.create!(title: "Additional context book", authors_text: "Additional author")
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
     visit book_path(book)
+    open_book_composer
     fill_in "jjaek[content]", with: "Book page draft"
     choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
     click_button I18n.t("jjaek_books.add")
@@ -53,9 +55,11 @@ RSpec.describe "Book context composition", type: :system do
       expect(page).to have_text(other_book.title)
       expect(page).to have_text(other_book.authors_text)
     end
-    click_button I18n.t("jjaeks.actions.publish_short")
+    within("#book-jjaek-form") { click_button I18n.t("jjaeks.actions.publish_short") }
     expect(page).to have_text(I18n.t("jjaeks.notices.created"))
     expect(page).to have_current_path(book_path(book), ignore_query: true)
+    expect(page).to have_no_css("#book-jjaek-form", visible: :visible)
+    open_book_composer
     expect(page).to have_field("jjaek[content]", with: "")
     expect(page).to have_checked_field(I18n.t("jjaeks.visibility.public_jjaek"), visible: :all)
     expect(page).to have_no_css("#jjaek-attached-books [data-book-key='#{other_book.id}']")
@@ -65,7 +69,12 @@ RSpec.describe "Book context composition", type: :system do
 
     fill_in "jjaek[content]", with: "Discard this draft"
     within("#jjaek-attached-books") { click_button I18n.t("jjaek_books.remove_book", title: book.title), enable_aria_label: true }
-    within("#jjaek_#{record.id}") { click_link book.title, exact: true }
+    book_link = find("#jjaek_#{record.id}").find_link(book.title, exact: true)
+    destination = URI.join(page.current_url, book_link[:href]).request_uri
+    book_link.click
+    expect(page).to have_current_path(destination)
+    expect(page).to have_no_css("#book-jjaek-form", visible: :visible)
+    open_book_composer
     expect(page).to have_field("jjaek[content]", with: "")
     expect(page).to have_css("#jjaek-attached-books [data-book-key='#{book.id}']")
     expect(page).to have_no_css("#jjaek-attached-books [data-book-key='#{other_book.id}']")
@@ -76,6 +85,7 @@ RSpec.describe "Book context composition", type: :system do
     shelf = user.bookshelves.create!(name: "Search registration shelf", visibility: :private)
     allow(BookSearches::SearchService).to receive(:call).and_return(results: [], meta: { is_end: true })
     visit book_path(book)
+    open_book_composer
     fill_in "jjaek[content]", with: "Keep this draft while shelving"
     choose I18n.t("jjaeks.visibility.private_jjaek"), allow_label_click: true
     attach_file("jjaek-photo-picker", Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"), make_visible: true)
@@ -136,5 +146,9 @@ RSpec.describe "Book context composition", type: :system do
     expect(page.evaluate_script("new FormData(document.getElementById('jjaek-publish-form')).getAll('jjaek[photo_files][]').filter(file => file.size > 0).length")).to eq(1)
     expect(user.bookshelf_entries.find_by!(book: book).bookshelf).to eq(shelf)
     expect(user.jjaeks).to be_empty
+  end
+
+  def open_book_composer
+    find("button[aria-controls='book-jjaek-form'][aria-expanded='false']").click
   end
 end

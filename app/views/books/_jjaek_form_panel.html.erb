@@ -1,3 +1,4 @@
-<section id="book-jjaek-form" class="mx-auto w-full max-w-3xl rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+<section id="book-jjaek-form" class="mx-auto w-full max-w-3xl scroll-mt-20 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6"
+         data-book-detail-target="composer" <%= "hidden" unless @book_jjaek_form_open %>>
   <%= render "jjaeks/composer", jjaek: jjaek, book_context: book %>
 </section>

@@ -185,7 +185,7 @@ RSpec.describe "Libraries", type: :request do
       expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
     end
 
-    it "connects the owner's mobile and desktop create buttons to one existing modal" do
+    it "connects both new bookshelf buttons directly to one existing create modal" do
       sign_in viewer
 
       get user_library_path(viewer)
@@ -194,9 +194,8 @@ RSpec.describe "Libraries", type: :request do
       controllers = document.css('[data-controller~="bookshelf-management-modal"]')
       expect(controllers.size).to eq(1)
       controller = controllers.first
-      mobile_button = controller.at_css('[data-library-summary] button[data-action="bookshelf-management-modal#openCreate"]')
-      expect(mobile_button.text.squish).to eq("+ #{I18n.t('bookshelves.actions.new')}")
-      expect(mobile_button["class"].split).to include("md:hidden")
+      create_button = controller.at_css('#library-bookshelves button[aria-controls="library-bookshelf-management-dialog"][data-action="bookshelf-management-modal#openCreate"]')
+      expect(create_button.text.squish).to eq(I18n.t("bookshelves.actions.new"))
       expect(controller.at_css('[data-horizontal-scroll-target="scroller"] button[data-action="bookshelf-management-modal#openCreate"]')).to be_present
       expect(controller.css('[data-bookshelf-management-modal-target="modal"]').size).to eq(1)
       form = controller.at_css(%([data-bookshelf-management-modal-target="createPanel"] form[action="#{bookshelves_path}"]))
@@ -279,6 +278,8 @@ RSpec.describe "Libraries", type: :request do
       expect(response.body).to include(second_bookshelf.name)
       expect(response.body).to include('name="return_to"')
       expect(response.body).to include('value="library"')
+      expect(document.at_css('header button[data-action="bookshelf-management-modal#openEdit"]')).to be_present
+      expect(document.at_css(%([data-bookshelf-management-modal-target="editPanel"] form[action="#{bookshelf_path(bookshelf)}"]))).to be_present
       expect(document.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))).to be_nil
 
       get user_library_path(viewer, bookshelf_id: second_bookshelf.id)

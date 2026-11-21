@@ -44,14 +44,14 @@ if Rails.env.development?
   existing_demo_users = User.where(email: demo_emails)
 
   demo_book_ids =
-    BookshelfEntry.where(user_id: existing_demo_users.select(:id)).pluck(:book_id) +
-    Jjaek.where(user_id: existing_demo_users.select(:id)).where.not(book_id: nil).pluck(:book_id)
+    UserBook.where(user_id: existing_demo_users.select(:id)).pluck(:book_id) +
+    JjaekBookAttachment.where(jjaek_id: Jjaek.where(user_id: existing_demo_users.select(:id)).select(:id)).pluck(:book_id)
 
   User.transaction do
     existing_demo_users.destroy_all
 
     Book.where(id: demo_book_ids.uniq).find_each do |book|
-      next if book.bookshelf_entries.exists? || book.jjaeks.exists?
+      next if book.user_books.exists? || book.book_activities.exists? || book.attached_jjaeks.exists?
 
       book.destroy!
     end
@@ -76,8 +76,8 @@ if Rails.env.development?
       book
     end
 
-    entry_a = BookshelfEntry.create!(user: users.fetch("a@a"), book: books[0], status: :reading)
-    entry_a.sticker_definition_ids = StickerDefinition.where(key: %w[loved_it stayed_with_me]).pluck(:id)
+    entry_a = BookshelfEntry.create!(user: users.fetch("a@a"), book: books[0])
+    entry_a.user_book.update!(status: :reading, sticker_definition_ids: StickerDefinition.where(key: %w[loved_it stayed_with_me]).pluck(:id))
 
     BookFriendship.create!(
       requester: users.fetch("a@a"),
@@ -85,12 +85,13 @@ if Rails.env.development?
       status: :accepted
     )
 
-    jjaek_a = Jjaek.create!(
+    jjaek_a = Jjaek.new(
       user: users.fetch("a@a"),
-      book: books[0],
       content: "서재를 먼저 세우고 나니 어떤 글을 남길지 더 분명해졌어요.",
       visibility: :public_jjaek
     )
+    jjaek_a.jjaek_book_attachments.build(book: books[0], position: 0)
+    jjaek_a.save!
 
     Comment.create!(
       user: users.fetch("b@b"),

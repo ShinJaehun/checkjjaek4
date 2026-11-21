@@ -7,7 +7,8 @@ class Users::LibrariesController < ApplicationController
     return redirect_to user_path(@user) unless policy(@user).show_library?
 
     @book_friendship = current_user == @user ? nil : current_user.book_friendship_with(@user)
-    prepare_library_bookshelf
+    show_notes = params[:library_tab] == "notes" || (params[:library_tab].blank? && params[:notes_page].present?)
+    prepare_library_bookshelf(show_notes:)
   end
 
   def transfer

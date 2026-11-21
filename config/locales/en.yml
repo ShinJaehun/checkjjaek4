@@ -1268,6 +1268,8 @@ en:
     actions:
       create: "Save to shelf"
       move: "Move"
+      remove: "Remove from shelf"
+      remove_book: "Remove %{title} from the shelf"
       reorder: "Reorder"
       update: "Update shelf entry"
     form:
@@ -1277,17 +1279,25 @@ en:
       target_bookshelf: "Bookshelf"
       status: "Reading status"
       stickers: "Stickers"
+    confirmations:
+      remove: "Remove this book from the shelf?"
+      remove_selected: "Remove the %{books_count} selected books from the shelf?"
+      reading_record_preserved: "Your reading status and stickers will be kept."
     new:
       title: "Add to shelf"
     edit:
       title: "Edit shelf entry"
     notices:
+      bulk_destroyed:
+        one: "Removed 1 book from the shelf."
+        other: "Removed %{count} books from the shelf."
       bulk_moved: "Moved %{count} books to '%{bookshelf_name}'."
       created: "Book added to your shelf."
-      destroyed: "Shelf entry removed."
+      destroyed: "Book removed from the shelf."
       moved: "Book moved to '%{bookshelf_name}'."
       updated: "Shelf entry updated."
     alerts:
+      bulk_destroy_failed: "Could not remove the selected books from the shelf."
       bulk_move_failed: "Could not move the selected books."
       move_failed: "Could not confirm the move. The current saved state will be reloaded."
       reorder_failed: "Could not confirm the book order was saved. The current saved order will be reloaded."
@@ -1324,7 +1334,7 @@ en:
       pink: "Pink"
     form:
       color_key: "Color"
-      edit_title: "Manage bookshelf"
+      edit_title: "Bookshelf settings"
       manage_title: "Manage bookshelf"
       name: "Bookshelf name"
       name_placeholder: "New bookshelf name"
@@ -1354,6 +1364,11 @@ en:
       library_context_title: "My library"
       reading_record_title: "Reading activity"
       current_bookshelf: "Shelved in"
+      manage_bookshelf: "Manage shelf"
+      detail_tabs: "Book details"
+      tabs:
+        reading: "My reading"
+        jjaeks: "Book Jjaeks"
       status_label: "Status"
       authors: "Authors"
       translators: "Translators"
@@ -1371,6 +1386,7 @@ en:
       save_reading_record: "Save reading record"
       write_book_jjaek: "Write a book post about this book"
       friend_activity_title: "Book friend activity"
+      empty_friend_activities: "There is no book friend activity to show for this book."
   jjaeks:
     contexts:
       group_badge: "Club"
@@ -1532,10 +1548,14 @@ en:
       empty_bookshelf_preview: "No books are in this bookshelf yet."
       title: "Full Library"
       title_with_name: "%{name}'s Library"
+      tabs:
+        label: "Library views"
+        bookshelves: "Bookshelves"
       transfer:
         back_to_library: "Back to library"
         bulk_submit: "Move"
-        bulk_target_label: "Move to which bookshelf?"
+        bulk_target_label: "What would you like to do with the selected books?"
+        bulk_target_description: "Move them to another shelf or remove them from this shelf."
         cancel_move: "Cancel"
         choose_source: "Choose source bookshelf"
         choose_target: "Choose target bookshelf"

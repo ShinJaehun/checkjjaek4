@@ -37,6 +37,7 @@ class User < ApplicationRecord
   MAX_AVATAR_SIZE = 5.megabytes
 
   has_many :bookshelf_entries, dependent: :destroy
+  has_many :user_books, dependent: :destroy
   has_many :bookshelves, dependent: :destroy
   has_many :books, through: :bookshelf_entries
   has_many :book_activities, dependent: :destroy

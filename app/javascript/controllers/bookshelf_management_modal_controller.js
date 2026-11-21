@@ -1,20 +1,22 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["modal", "createPanel", "editPanel"]
+  static targets = ["modal", "createPanel", "editPanel", "closeButton"]
 
-  openCreate() {
-    this.open("create")
+  openCreate(event) {
+    this.open("create", event.currentTarget)
   }
 
-  openEdit() {
-    this.open("edit")
+  openEdit(event) {
+    this.open("edit", event.currentTarget)
   }
 
   close() {
-    if (!this.hasModalTarget) return
+    if (!this.hasModalTarget || this.modalTarget.classList.contains("hidden")) return
 
     this.modalTarget.classList.add("hidden")
+    this.opener?.focus()
+    this.opener = null
   }
 
   closeOnBackdrop(event) {
@@ -23,11 +25,13 @@ export default class extends Controller {
     this.close()
   }
 
-  open(mode) {
+  open(mode, opener) {
     if (!this.hasModalTarget) return
 
+    if (this.modalTarget.classList.contains("hidden")) this.opener = opener
     this.showPanel(mode)
     this.modalTarget.classList.remove("hidden")
+    this.closeButtonTarget.focus()
   }
 
   showPanel(mode) {

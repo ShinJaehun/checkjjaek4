@@ -13,9 +13,9 @@ RSpec.describe "BookshelfEntries", type: :request do
   let!(:stranger_book) { Book.create!(title: "낯선 사람 서재 책", authors_text: "저자") }
 
   before do
-    user.bookshelf_entries.create!(book: user_book, status: :reading)
-    book_friend.bookshelf_entries.create!(book: friend_book, status: :wish)
-    stranger.bookshelf_entries.create!(book: stranger_book, status: :finished)
+    user.bookshelf_entries.create!(book: user_book).user_book.update!(status: :reading)
+    book_friend.bookshelf_entries.create!(book: friend_book).user_book.update!(status: :wish)
+    stranger.bookshelf_entries.create!(book: stranger_book).user_book.update!(status: :finished)
     BookFriendship.create!(requester: user, addressee: book_friend, status: :accepted)
   end
 
@@ -28,8 +28,8 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(Book, :count).by(1).and change(BookshelfEntry, :count).by(1)
 
     expect(response).to redirect_to(book_path(Book.last))
-    expect(BookshelfEntry.last.status).to be_nil
-    expect(BookshelfEntry.last.sticker_definitions).to be_empty
+    expect(BookshelfEntry.last.user_book.status).to be_nil
+    expect(BookshelfEntry.last.user_book.sticker_definitions).to be_empty
     expect(BookshelfEntry.last.bookshelf).to eq(user.default_bookshelf)
   end
 
@@ -171,7 +171,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect {
       post bookshelf_entries_path, params: { search_result_token: token }
-    }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+    }.not_to change { [ Book.count, UserBook.count, BookshelfEntry.count, BookActivity.count ] }
 
     expect(response).to have_http_status(:see_other)
     expect(flash[:alert]).to eq(I18n.t("book_search.errors.missing_identity"))
@@ -291,7 +291,7 @@ RSpec.describe "BookshelfEntries", type: :request do
         search_result_token: token,
         bookshelf_entry: { bookshelf_id: other_bookshelf.id }
       }
-    }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+    }.not_to change { [ Book.count, UserBook.count, BookshelfEntry.count, BookActivity.count ] }
 
     expect(response).to have_http_status(:not_found)
   end
@@ -308,7 +308,7 @@ RSpec.describe "BookshelfEntries", type: :request do
           bookshelf_id: other_bookshelf.id
         }
       }
-    }.not_to change(BookshelfEntry, :count)
+    }.not_to change { [ user.user_books.count, user.bookshelf_entries.count ] }
 
     expect(response).to have_http_status(:not_found)
   end
@@ -337,7 +337,10 @@ RSpec.describe "BookshelfEntries", type: :request do
     token = search_result_token_for(title: "활동 기록 책", authors_text: "저자", isbn: "activity-001", url: "https://example.com/activity-001")
 
     expect {
-      post bookshelf_entries_path, params: { search_result_token: token }
+      post bookshelf_entries_path, params: {
+        search_result_token: token,
+        bookshelf_entry: { status: :reading, sticker_definition_ids: [ sticker.id ] }
+      }
     }.to change(BookActivity, :count).by(1)
 
     activity = BookActivity.last
@@ -347,11 +350,12 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(activity.book).to eq(entry.book)
     expect(activity.bookshelf_entry).to eq(entry)
     expect(activity.metadata).to eq({})
+    expect(entry.user_book).to have_attributes(status: "reading", sticker_definitions: [ sticker ])
   end
 
   it "does not record added_to_shelf again or change reading selections on duplicate registration" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     sign_in user
 
     expect {
@@ -359,8 +363,8 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.not_to change(BookActivity, :count)
 
     expect(response).to redirect_to(book_path(user_book))
-    expect(entry.reload.status).to eq("reading")
-    expect(entry.sticker_definition_ids).to eq([ sticker.id ])
+    expect(entry.reload.user_book.status).to eq("reading")
+    expect(entry.user_book.sticker_definition_ids).to eq([ sticker.id ])
   end
 
   it "does not record activity when an existing book is submitted through create with changes" do
@@ -373,7 +377,7 @@ RSpec.describe "BookshelfEntries", type: :request do
       }
     }.not_to change(BookActivity, :count)
 
-    expect(user.bookshelf_entries.find_by!(book: user_book).status).to eq("finished")
+    expect(user.user_books.find_by!(book: user_book).status).to eq("finished")
   end
 
   it "updates a shelf entry status and stickers" do
@@ -390,8 +394,8 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
-    expect(entry.reload.status).to eq("finished")
-    expect(entry.sticker_definitions).to include(sticker)
+    expect(entry.reload.user_book.status).to eq("finished")
+    expect(entry.user_book.sticker_definitions).to include(sticker)
     expect(BookActivity.last.metadata).to include(
       "from_status" => "reading",
       "to_status" => "finished",
@@ -548,11 +552,11 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "changes only the bookshelf when moving a shelf entry" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     original_book_id = entry.book_id
     original_user_id = entry.user_id
-    original_status = entry.status
-    original_sticker_ids = entry.sticker_definition_ids
+    original_status = entry.user_book.status
+    original_sticker_ids = entry.user_book.sticker_definition_ids
     target_bookshelf = user.bookshelves.create!(name: "책장 변경만 확인", visibility: :public)
     sign_in user
 
@@ -562,8 +566,8 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(entry.bookshelf_id).to eq(target_bookshelf.id)
     expect(entry.book_id).to eq(original_book_id)
     expect(entry.user_id).to eq(original_user_id)
-    expect(entry.status).to eq(original_status)
-    expect(entry.sticker_definition_ids).to match_array(original_sticker_ids)
+    expect(entry.user_book.status).to eq(original_status)
+    expect(entry.user_book.sticker_definition_ids).to match_array(original_sticker_ids)
   end
 
   it "does not move another user's shelf entry" do
@@ -622,10 +626,10 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(normal_bookshelf_ids).to contain_exactly(entry.bookshelf_id.to_s, target_bookshelf.id.to_s)
     expect(page.at_css('input[type="radio"][name="bookshelf_id"][checked]')["value"]).to eq(entry.bookshelf_id.to_s)
     expect(page.at_css("input[name='bookshelf_entry[sticker_definition_ids][]'][value='#{sticker.id}'][checked]")).to be_present
-    expect(entry.reload.sticker_definition_ids).to be_empty
-    entry.errors.add(:status, :inclusion)
-    expect(page.text).to include(entry.errors.full_messages.to_sentence)
-    expect(entry.reload.status).to eq("reading")
+    expect(entry.reload.user_book.sticker_definition_ids).to be_empty
+    entry.user_book.errors.add(:status, :inclusion)
+    expect(page.text).to include(entry.user_book.errors.full_messages.to_sentence)
+    expect(entry.reload.user_book.status).to eq("reading")
   end
 
   it "returns to the book page when a book-context move fails validation" do
@@ -891,7 +895,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
-    expect(entry.reload.status).to eq("finished")
+    expect(entry.reload.user_book.status).to eq("finished")
   end
 
   it "allows a shelf entry status to be cleared" do
@@ -906,7 +910,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     }
 
     expect(response).to redirect_to(book_path(user_book))
-    expect(entry.reload.status).to be_nil
+    expect(entry.reload.user_book.status).to be_nil
   end
 
   it "records a shelf entry status clear once" do
@@ -923,7 +927,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
-    expect(entry.reload.status).to be_nil
+    expect(entry.reload.user_book.status).to be_nil
   end
 
   it "does not record activity when the same status is saved again" do
@@ -954,12 +958,12 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
-    expect(entry.reload.sticker_definition_ids).to eq([ sticker.id ])
+    expect(entry.reload.user_book.sticker_definition_ids).to eq([ sticker.id ])
   end
 
   it "records a sticker removal once" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     sign_in user
 
     expect {
@@ -972,12 +976,12 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
 
     expect(response).to redirect_to(book_path(user_book))
-    expect(entry.reload.sticker_definition_ids).to be_empty
+    expect(entry.reload.user_book.sticker_definition_ids).to be_empty
   end
 
   it "does not record activity when the sticker list is unchanged" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     sign_in user
 
     expect {
@@ -1002,14 +1006,14 @@ RSpec.describe "BookshelfEntries", type: :request do
           sticker_definition_ids: []
         }
       }
-    }.not_to change { [ Book.count, BookshelfEntry.count, BookActivity.count ] }
+    }.not_to change { [ Book.count, UserBook.count, BookshelfEntry.count, BookActivity.count ] }
 
     expect(response).to redirect_to(book_search_path)
   end
 
   it "saves status through JSON without replacing attached stickers" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     sign_in user
 
     expect {
@@ -1018,13 +1022,13 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body).to include("status" => "finished", "sticker_definition_ids" => [ sticker.id ])
-    expect(entry.reload.sticker_definition_ids).to eq([ sticker.id ])
+    expect(entry.reload.user_book.sticker_definition_ids).to eq([ sticker.id ])
   end
 
   it "saves the selected sticker set while preserving status" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     other_sticker = StickerDefinition.create!(key: "autosave_other", name: "다른 스티커")
-    entry.sticker_definitions << other_sticker
+    entry.user_book.sticker_definitions << other_sticker
     sign_in user
 
     expect {
@@ -1033,7 +1037,7 @@ RSpec.describe "BookshelfEntries", type: :request do
       }, as: :json
     }.to change(BookActivity, :count).by(1)
     expect(response).to have_http_status(:ok)
-    expect(entry.reload.sticker_definition_ids).to match_array([ sticker.id, other_sticker.id ])
+    expect(entry.reload.user_book.sticker_definition_ids).to match_array([ sticker.id, other_sticker.id ])
 
     expect {
       patch bookshelf_entry_path(entry), params: {
@@ -1042,8 +1046,8 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.to change(BookActivity, :count).by(1)
     expect(response).to have_http_status(:ok)
 
-    expect(entry.reload.status).to eq("reading")
-    expect(entry.sticker_definition_ids).to eq([ other_sticker.id ])
+    expect(entry.reload.user_book.status).to eq("reading")
+    expect(entry.user_book.sticker_definition_ids).to eq([ other_sticker.id ])
   end
 
   it "makes the same sticker set idempotent" do
@@ -1058,7 +1062,7 @@ RSpec.describe "BookshelfEntries", type: :request do
         expect(response).to have_http_status(:ok)
       end
     }.to change(BookActivity, :count).by(1)
-    expect(entry.reload.bookshelf_entry_stickers.where(sticker_definition: sticker).count).to eq(1)
+    expect(entry.reload.user_book.user_book_stickers.where(sticker_definition: sticker).count).to eq(1)
 
     expect {
       2.times do
@@ -1068,7 +1072,7 @@ RSpec.describe "BookshelfEntries", type: :request do
         expect(response).to have_http_status(:ok)
       end
     }.to change(BookActivity, :count).by(1)
-    expect(entry.reload.sticker_definition_ids).to be_empty
+    expect(entry.reload.user_book.sticker_definition_ids).to be_empty
   end
 
   it "rolls back state, stickers, and activity when activity recording fails" do
@@ -1090,8 +1094,8 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.not_to change(BookActivity, :count)
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(entry.reload.status).to eq("reading")
-    expect(entry.sticker_definition_ids).to be_empty
+    expect(entry.reload.user_book.status).to eq("reading")
+    expect(entry.user_book.sticker_definition_ids).to be_empty
     page = Nokogiri::HTML(response.body)
     dialog = page.at_css("#book-reading-dialog")
     expect(dialog.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
@@ -1106,7 +1110,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "preserves submitted status and sticker clearing when activity recording fails" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     sign_in user
     failed_activity = BookActivity.new
     failed_activity.errors.add(:base, "recording failed")
@@ -1119,8 +1123,8 @@ RSpec.describe "BookshelfEntries", type: :request do
     }.not_to change(BookActivity, :count)
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(entry.reload.status).to eq("reading")
-    expect(entry.sticker_definition_ids).to eq([ sticker.id ])
+    expect(entry.reload.user_book.status).to eq("reading")
+    expect(entry.user_book.sticker_definition_ids).to eq([ sticker.id ])
     dialog = Nokogiri::HTML(response.body).at_css("#book-reading-dialog")
     expect(dialog.ancestors("[data-book-modal-auto-open-value='true']")).not_to be_empty
     expect(dialog.at_css("input[name='bookshelf_entry[status]'][checked]")["value"]).to eq("")
@@ -1130,7 +1134,7 @@ RSpec.describe "BookshelfEntries", type: :request do
 
   it "returns saved state and an error without persisting an invalid update" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
-    entry.sticker_definitions << sticker
+    entry.user_book.sticker_definitions << sticker
     sign_in user
 
     patch bookshelf_entry_path(entry), params: { bookshelf_entry: { status: "invalid", sticker_definition_ids: [] } }, as: :json
@@ -1138,8 +1142,8 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.parsed_body["error"]).to be_present
     expect(response.parsed_body).to include("status" => "reading", "sticker_definition_ids" => [ sticker.id ])
-    expect(entry.reload.status).to eq("reading")
-    expect(entry.sticker_definition_ids).to eq([ sticker.id ])
+    expect(entry.reload.user_book.status).to eq("reading")
+    expect(entry.user_book.sticker_definition_ids).to eq([ sticker.id ])
   end
 
   it "does not update another user's shelf entry" do
@@ -1151,24 +1155,132 @@ RSpec.describe "BookshelfEntries", type: :request do
     }, as: :json
 
     expect(response).to have_http_status(:not_found)
-    expect(entry.reload.sticker_definition_ids).to be_empty
+    expect(entry.reload.user_book.status).to eq("wish")
+    expect(entry.reload.user_book.sticker_definition_ids).to be_empty
   end
 
-  it "removes all activities connected to a removed entry and keeps other entries' activities" do
+  it "preserves reading and activity history and reuses the reading record when the book is shelved again" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
+    reading_record = entry.user_book
+    reading_record.sticker_definitions << sticker
+    sticker_link = reading_record.user_book_stickers.find_by!(sticker_definition: sticker)
     addition = entry.book_activities.create!(user: user, book: user_book, action: :added_to_shelf)
-    old_change = entry.book_activities.create!(user: user, book: user_book, action: :status_changed)
+    old_change = entry.book_activities.create!(user: user, book: user_book, action: :status_changed, metadata: { to_status: "reading" })
     other_entry = book_friend.bookshelf_entries.find_by!(book: friend_book)
     other_activity = other_entry.book_activities.create!(user: book_friend, book: friend_book, action: :added_to_shelf)
+    target_shelf = user.bookshelves.create!(name: "다시 담을 책장", visibility: :private)
     sign_in user
 
-    delete bookshelf_entry_path(entry)
+    expect { delete bookshelf_entry_path(entry) }.not_to change(BookActivity, :count)
 
     expect(response).to redirect_to(user_library_path(user))
     expect(BookshelfEntry.exists?(entry.id)).to be(false)
-    expect(BookActivity.where(id: [ addition.id, old_change.id ])).to be_empty
-    expect(BookActivity.exists?(other_activity.id)).to be(true)
+    expect(reading_record.reload).to have_attributes(status: "reading", user_book_stickers: [ sticker_link ])
+    expect(addition.reload).to have_attributes(bookshelf_entry_id: nil, action: "added_to_shelf")
+    expect(old_change.reload).to have_attributes(bookshelf_entry_id: nil, action: "status_changed", metadata: { "to_status" => "reading" })
+    expect(other_activity.reload.bookshelf_entry).to eq(other_entry)
     expect(Book.exists?(user_book.id)).to be(true)
+
+    expect {
+      post bookshelf_entries_path, params: {
+        book_id: user_book.id,
+        bookshelf_entry: { bookshelf_id: target_shelf.id, status: :finished, sticker_definition_ids: [] }
+      }
+    }.to change(BookActivity, :count).by(1).and change(BookshelfEntry, :count).by(1)
+
+    expect(response).to redirect_to(book_path(user_book))
+    new_entry = user.bookshelf_entries.find_by!(book: user_book)
+    expect(new_entry).to have_attributes(bookshelf: target_shelf, user_book: reading_record)
+    expect(new_entry.user_book).to have_attributes(status: "reading", user_book_stickers: [ sticker_link ])
+    expect(BookActivity.last).to have_attributes(action: "added_to_shelf", bookshelf_entry: new_entry)
+    expect(BookActivity.where(id: [ addition.id, old_change.id ]).pluck(:bookshelf_entry_id)).to eq([ nil, nil ])
+  end
+
+  it "returns to the same transfer shelves after removing a card from the target panel" do
+    source_bookshelf = user.default_bookshelf
+    target_bookshelf = user.bookshelves.create!(name: "Target panel")
+    entry = user.bookshelf_entries.create!(book: Book.create!(title: "Remove from target"), bookshelf: target_bookshelf)
+    sign_in user
+
+    delete bookshelf_entry_path(entry), params: {
+      return_to: "library_transfer", source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: target_bookshelf.id
+    }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(transfer_user_library_path(user, source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: target_bookshelf.id))
+    expect(target_bookshelf.bookshelf_entries).to be_empty
+  end
+
+  it "removes selected placements together and returns to the same transfer shelves" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    second_entry = user.bookshelf_entries.create!(book: Book.create!(title: "Second selected book"))
+    source_bookshelf = entry.bookshelf
+    target_bookshelf = user.bookshelves.create!(name: "Transfer target")
+    unselected = user.bookshelf_entries.create!(book: Book.create!(title: "Unselected book"), bookshelf: source_bookshelf)
+    reading_record = entry.user_book
+    reading_record.sticker_definitions << sticker
+    activity = entry.book_activities.create!(user:, book: user_book, action: :added_to_shelf)
+    post_with_book = create_jjaek_with_books(legacy_source_kind: "book", user:, books: [ user_book ], content: "Keep this attachment")
+    sign_in user
+
+    expect {
+      delete bulk_destroy_bookshelf_entries_path, params: {
+        source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: target_bookshelf.id,
+        bookshelf_entry_ids: [ entry.id, second_entry.id ]
+      }
+    }.to change(BookshelfEntry, :count).by(-2)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(transfer_user_library_path(user, source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: target_bookshelf.id))
+    expect(source_bookshelf.bookshelf_entries).to contain_exactly(unselected)
+    expect(reading_record.reload).to have_attributes(status: "reading", sticker_definitions: [ sticker ])
+    expect(second_entry.user_book.reload).to be_persisted
+    expect(activity.reload.bookshelf_entry_id).to be_nil
+    expect(post_with_book.reload.attached_books).to contain_exactly(user_book)
+  end
+
+  it "rejects a whole removal when any selected placement is foreign, stale or malformed" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    foreign_entry = book_friend.bookshelf_entries.find_by!(book: friend_book)
+    other_shelf = user.bookshelves.create!(name: "Different shelf")
+    moved_entry = user.bookshelf_entries.create!(book: Book.create!(title: "Already moved book"), bookshelf: other_shelf)
+    sign_in user
+
+    [ foreign_entry.id, moved_entry.id, BookshelfEntry.maximum(:id) + 1, "#{entry.id}x" ].each do |invalid_id|
+      expect {
+        delete bulk_destroy_bookshelf_entries_path, params: {
+          source_bookshelf_id: entry.bookshelf_id, bookshelf_entry_ids: [ entry.id, invalid_id ]
+        }
+      }.not_to change(BookshelfEntry, :count)
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  it "restores already removed placements and their activity links if bulk removal fails" do
+    first_entry = user.bookshelf_entries.find_by!(book: user_book)
+    second_entry = user.bookshelf_entries.create!(book: Book.create!(title: "Second rollback book"))
+    activity = first_entry.book_activities.create!(user:, book: user_book, action: :added_to_shelf)
+    sign_in user
+    removed = []
+    allow_any_instance_of(BookshelfEntry).to receive(:destroy!).and_wrap_original do |original|
+      raise ActiveRecord::RecordNotDestroyed if removed.any?
+
+      original.call
+      removed << original.receiver.id
+    end
+
+    expect {
+      delete bulk_destroy_bookshelf_entries_path, params: {
+        source_bookshelf_id: first_entry.bookshelf_id, bookshelf_entry_ids: [ first_entry.id, second_entry.id ]
+      }
+    }.not_to change(BookshelfEntry, :count)
+
+    expect(removed).to eq([ first_entry.id ])
+    expect(response).to have_http_status(:see_other)
+    expect(flash[:alert]).to eq(I18n.t("bookshelf_entries.alerts.bulk_destroy_failed"))
+    expect(activity.reload.bookshelf_entry_id).to eq(first_entry.id)
+    expect(first_entry.bookshelf.bookshelf_entries).to contain_exactly(first_entry, second_entry)
   end
 
   def search_result_token_for(title:, authors_text:, publisher: "", thumbnail: nil, isbn: "", contents_excerpt: "", url: "")
