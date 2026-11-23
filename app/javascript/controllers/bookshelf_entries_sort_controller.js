@@ -43,7 +43,7 @@ export default class extends Controller {
         animation: 120,
         handle: "[data-bookshelf-entries-sort-handle]",
         draggable: "[data-bookshelf-entry-id]",
-        filter: "a, button, input, select, textarea, summary, details, form",
+        filter: "a, button:not([data-bookshelf-cover]), input, select, textarea, summary, details, form, dialog",
         preventOnFilter: false,
         onEnd: (event) => this.handleEnd(event)
       })

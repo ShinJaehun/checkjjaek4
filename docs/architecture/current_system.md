@@ -176,7 +176,7 @@
 - 접근 가능한 책장 탭, 선택된 책장 책 목록, 일반 책장 생성/수정/삭제, 색상, 순서 변경, 책 목록 정렬을 제공한다
 - 서재 타이틀 카드는 아바타와 서재 제목을 표시한다. 책장별 집계는 기존 policy scope를 따른다
 - 관리 기능은 self에게만 제공한다
-- 기본 Library는 책장 하나만 detail 카드로 표시한다
+- 기본 Library는 선택된 책장의 표지만 하나의 CSS Grid에 표시하고, 그리드의 각 줄 아래에 CSS 받침대를 그린다
 - 기본 Library의 책장 전환 UI는 선택 책장을 바꾸는 탐색만 담당한다
 - 기본 Library의 작은 화면에서는 책장 탭 대신 책장 전환 select/dropdown을 표시한다
 - 기본 Library의 중간/큰 화면에서는 기존 책장 탭을 표시한다
@@ -185,8 +185,8 @@
 - 본인 Library의 기본 책 목록 정렬은 `manual`이고, visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다
 - 책장 안 책 순서 변경은 `sort=manual`에서만 활성화되며, `BookshelfEntry.position`과 `PATCH /bookshelf_entries/reorder`를 사용한다
 - owner의 `manual` 정렬에서는 같은 목록 안 카드 drag로 같은 책장 안 순서를 바꿀 수 있다
-- 버튼, input, select, textarea, form 같은 control 요소는 reorder drag 대상에서 제외한다
-- detail 카드 전체는 `manual` 정렬에서 SortableJS drag source로 동작하며, 책 제목 링크는 클릭 시 책 상세 링크로 동작한다
+- 표지는 `manual` 정렬에서 SortableJS drag source다. 나머지 버튼, 폼 요소와 정보 카드 내부는 drag 대상에서 제외한다
+- 표지를 클릭하면 `book-modal`이 제목·저자·출판사와 허용된 `UserBook`의 상태·스티커를 담은 정보 카드를 연다. 상세 버튼은 본인 책의 `나의 독서` 탭과 기존 편집 흐름으로 연결한다
 - Library UX는 책장 tab/index를 사전 index 또는 바인더 tab처럼 보이게 하고, 선택된 책장과 책 목록 영역을 `Bookshelf.color_key` 기반 accent로 약하게 연결한다
 - 책장 tab/index는 horizontal scroll로 탐색하며, 실제 overflow가 있을 때만 좌우 버튼을 표시하고 양 끝에서는 해당 방향을 비활성화한다. overflow가 없으면 버튼용 여백도 남기지 않으며, 탭·화면 크기 변경과 Turbo 재연결 시 상태를 갱신하고 선택된 tab을 자동으로 화면 안에 보이게 한다
 - 책 목록 전체를 진하게 칠하지 않고, 선택된 tab/index와 목록 container border/top border/ring/옅은 tint 수준만 사용한다
@@ -203,7 +203,7 @@
 - 책장이 2개 미만이면 기본 Library로 redirect된다
 - 작은 화면은 md 미만, 중간 화면은 md 이상 lg 미만, 큰 화면은 lg 이상으로 나눈다
 - 중간/큰 화면에서는 위쪽에 출발 책장, 아래쪽에 이동 대상 책장을 표시한다
-- transfer mode는 compact 카드로만 표시한다
+- transfer 모드는 기본 Library와 같은 서가형 표지와 정보 카드를 사용한다. PC에서는 출발과 대상 목록에 SortableJS 인스턴스를 하나씩 적용한다
 - 중간/큰 화면에서는 source / target 책장 선택 UI를 각각 제공한다
 - source와 target은 항상 달라야 하며, 중복되면 `changed=source|target` 기준으로 사용자가 바꾼 쪽은 유지하고 반대쪽을 다음 책장으로 순환 보정한다
 - 다음 책장은 책장 정렬 순서 기준으로 순환하며, 마지막 책장 다음은 첫 책장이다
@@ -212,7 +212,7 @@
 - target header에 drop하면 `before_entry_id` 없이 target 책장 끝에 append한다
 - 작은 화면에서는 source 책장 하나만 표시하고 target panel은 숨긴다
 - 작은 화면에서는 source compact dropdown으로 정리할 책장을 바꾼다
-- 작은 화면에서는 선택 버튼으로 selection mode에 들어가 여러 권을 선택한 뒤 하단 action bar의 target 책장 버튼 목록에서 대상 책장을 골라 `PATCH /bookshelf_entries/bulk_move`로 이동할 수 있다
+- 작은 화면에서는 표지 위 체크박스로 여러 권을 선택한 뒤 하단 action bar에서 대상 책장을 골라 `PATCH /bookshelf_entries/bulk_move`로 이동할 수 있다
 - 작은 화면에서는 책장 안 순서 변경 Drag and Drop을 제공하지 않는다
 - 작은 화면 bulk move 후에는 이동한 target 책장을 source로 열어 보여준다
 - bulk move는 선택된 entry id 순서를 보존하며, 대상 책장 끝에 append한다
@@ -220,9 +220,7 @@
 - 책장 이동 모드에서 PC는 카드의 아이콘 버튼으로 한 권을, 모바일은 목적지 선택 대화 상자에서 선택한 책을 꺼낸다. 확인 뒤 배치만 제거하며, 모바일 묶음 제거는 본인 출발 책장의 항목을 모두 검증한 뒤 한 트랜잭션에서 처리한다
 - 이동 후에는 transfer 화면의 UI source / target 조합을 유지한다
 - 같은 책장 안 reorder는 `PATCH /bookshelf_entries/reorder`를 그대로 사용한다
-- compact book card는 한 화면에 더 많은 책이 보이는 간단 카드 격자이며, 표지를 충분히 크게 보여주고 카드 크기와 썸네일 영역을 안정적으로 유지한다
-- compact / detail 카드의 썸네일과 카드 여백은 drag handle로 동작하며, 책 제목 링크는 클릭 시 책 상세로 이동한다
-- detail/compact 모두 저자와 출판사를 한 줄 metadata로 표시하고, 상태와 스티커를 카드 하단 footer row에 표시한다. 프로필·Library 목록은 스티커를 접근 가능한 이름과 title이 있는 아이콘 전용으로 표시하며, 상태는 아이콘·텍스트를 유지한다. 세 화면은 공통 `bookshelf_entries/card_information` partial에서 제목·메타정보 한 줄과 상태·스티커 각각 한 줄을 예약한다. 가로형 카드는 9rem, compact 카드는 16rem로 고정한다
+- 프로필 요약 카드와 Library·transfer 정보 카드는 공통 `bookshelf_entries/card_information` partial에서 제목, 저자·출판사, 상태·스티커를 표시한다. 프로필은 제목과 메타정보를 한 줄씩 유지하고 Library·transfer 정보 카드에서는 줄바꿈을 허용한다
 - 프로필·Library·transfer는 공통 sticker-overflow Stimulus가 실제 영역·아이콘·요약 배지 너비를 측정해 최대 6개 아이콘을 한 줄로 표시한다. 공간이 부족할 때만 정확한 숨김 개수와 이름을 `+N`의 title·aria-label로 제공하고, ResizeObserver로 창 크기·carousel 표시 변경에 대응한다. 독서 정보가 없어도 목록 카드의 두 줄 공간은 유지한다
 
 관련 코드:
@@ -231,8 +229,8 @@
   - app/views/users/libraries/transfer.html.erb
   - app/views/users/_bookshelf_section.html.erb
   - app/views/users/libraries/_transfer_bookshelf_panel.html.erb
-  - app/views/bookshelf_entries/_profile_bookshelf_entry.html.erb
-  - app/views/bookshelf_entries/_compact_bookshelf_entry.html.erb
+  - app/views/bookshelf_entries/_shelf_bookshelf_entry.html.erb
+  - app/views/bookshelf_entries/_card_information.html.erb
 
 ---
 

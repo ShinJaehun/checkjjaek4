@@ -56,7 +56,7 @@ RSpec.describe "Mobile bookshelf ordering", type: :system do
       enable_aria_label: true
     )
     expect(page).to have_button(I18n.t("users.profile.bookshelf_sort.move_down", title: third_entry.book.title), disabled: true, enable_aria_label: true)
-    expect(page).to have_link(first_entry.book.title)
+    expect(page).to have_button(first_entry.book.title, enable_aria_label: true)
     expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-bookshelf-entries-sort-target=controls]')).position")).to eq("absolute")
 
     click_button I18n.t("users.profile.bookshelf_sort.move_down", title: first_entry.book.title), enable_aria_label: true

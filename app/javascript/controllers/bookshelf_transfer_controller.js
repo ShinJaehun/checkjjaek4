@@ -50,7 +50,7 @@ export default class extends Controller {
       group: options.group || "bookshelf-transfer",
       handle: options.handle || "[data-bookshelf-entries-sort-handle]",
       draggable: "[data-bookshelf-entry-id]",
-      filter: "a, button, input, select, textarea, summary, details, form",
+      filter: "a, button:not([data-bookshelf-cover]), input, select, textarea, summary, details, form, dialog",
       preventOnFilter: false,
       onStart: (event) => this.startDragging(event),
       onAdd: (event) => this.moveEntry(event),
@@ -121,19 +121,6 @@ export default class extends Controller {
     event.currentTarget.form.requestSubmit()
   }
 
-  toggleCardSelection(event) {
-    if (this.controlElement(event.target)) return
-
-    if (this.desktopTransfer()) return
-
-    const checkbox = this.checkboxForEntry(event.currentTarget)
-    if (!checkbox) return
-
-    event.preventDefault()
-    checkbox.checked = !checkbox.checked
-    this.syncSelection()
-  }
-
   syncSelection() {
     const selectedIds = this.selectedEntryIds()
     const mobile = !this.desktopTransfer()
@@ -183,7 +170,6 @@ export default class extends Controller {
         return
       }
 
-      entry.classList.toggle("border-stone-900", selected)
       entry.classList.toggle("bg-stone-50", selected)
       entry.classList.toggle("ring-2", selected)
       entry.classList.toggle("ring-stone-900", selected)
@@ -327,12 +313,8 @@ export default class extends Controller {
     return entry.querySelector("input[name^='transfer_selection_']")
   }
 
-  controlElement(element) {
-    return element.closest("a, button, input, select, textarea, summary, details, form, label")
-  }
-
   clearEntrySelectionStyle(entry) {
-    entry.classList.remove("border-stone-900", "bg-stone-50", "ring-2", "ring-stone-900")
+    entry.classList.remove("bg-stone-50", "ring-2", "ring-stone-900")
   }
 
   resetForBreakpoint() {

@@ -1,17 +1,26 @@
 <%
   book = bookshelf_entry.book
-  metadata = [ book.authors_text.presence, book.publisher.presence ].compact.join(" · ").presence || "-"
+  title_id = local_assigns[:title_id]
+  metadata = [ book.authors_text.presence, book.publisher.presence ].compact.join(" · ").presence
   stickers = show_status ? bookshelf_entry.user_book.sticker_definitions.to_a : []
   extra_names = stickers.drop(6).map { |sticker| reading_sticker_label(sticker) }
   remaining_stickers = stickers.drop(3)
   remaining_names = remaining_stickers.map { |sticker| reading_sticker_label(sticker) }.join(", ")
 %>
 
-<div class="flex h-28 w-full min-w-0 shrink-0 flex-col" data-book-card-information>
-  <%= link_to book.title, book_path(book, book_navigation_params),
-              class: "block h-5 shrink-0 truncate text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700",
-              title: book.title %>
-  <p class="mt-1 h-5 shrink-0 truncate text-xs leading-5 text-stone-500" title="<%= metadata %>"><%= metadata %></p>
+<div class="flex w-full min-w-0 shrink-0 flex-col <%= 'h-28' unless title_id %>" data-book-card-information>
+  <% if title_id %>
+    <h2 id="<%= title_id %>" class="break-words text-lg font-semibold text-stone-900"><%= book.title %></h2>
+    <% if metadata %>
+      <p class="mt-1 break-words text-sm text-stone-600"><%= metadata %></p>
+    <% end %>
+  <% else %>
+    <% profile_metadata = metadata || "-" %>
+    <%= link_to book.title, book_path(book, book_navigation_params),
+                class: "block h-5 shrink-0 truncate text-sm font-semibold leading-5 text-stone-900 hover:text-stone-700",
+                title: book.title %>
+    <p class="mt-1 h-5 shrink-0 truncate text-xs leading-5 text-stone-500" title="<%= profile_metadata %>"><%= profile_metadata %></p>
+  <% end %>
 
   <div class="mt-2 space-y-1">
     <div class="flex h-7 min-w-0 items-center" data-reading-status-row>

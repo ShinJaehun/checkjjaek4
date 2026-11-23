@@ -30,7 +30,7 @@ RSpec.describe "User libraries", type: :request do
     expect(card.text).not_to include(sticker.name)
   end
 
-  it "prepares all six ordered sticker icons and an accessible initial summary on detail and compact cards" do
+  it "prepares all six ordered sticker icons and an accessible initial summary in the information dialogs" do
     entry = user.bookshelf_entries.find_by!(book: book)
     stickers = %w[loved_it really_loved_it stayed_with_me want_to_reread recommended_to_me want_to_recommend].map do |key|
       StickerDefinition.create!(key: key, name: key)
@@ -45,7 +45,7 @@ RSpec.describe "User libraries", type: :request do
     paths.each do |path|
       get path
       expect(response).to have_http_status(:ok)
-      card = Nokogiri::HTML(response.body).at_css("[data-bookshelf-entry-id='#{entry.id}']")
+      card = Nokogiri::HTML(response.body).at_css("[data-bookshelf-entry-id='#{entry.id}'] dialog")
       icons = card.css("[data-reading-sticker]")
       expect(icons.map { |icon| icon["data-reading-sticker"] }).to eq(stickers.map(&:key))
       expect(icons.all? { |icon| icon.at_css("svg") && icon.text.empty? && icon["title"] == icon["aria-label"] }).to be(true)
@@ -161,7 +161,7 @@ RSpec.describe "User libraries", type: :request do
     expect(document.at_css(%(button[name="target_bookshelf_id"][value="#{selected_bookshelf.id}"]))).to be_nil
     expect(document.at_css(%(input[name="return_to_target_as_source"][value="1"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-target="selectionCheckboxWrapper"] input[type="checkbox"][value="#{source_entry.id}"]))).to be_present
-    expect(document.at_css(%([data-bookshelf-transfer-bookshelf-id="#{target_bookshelf.id}"] article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_present
+    expect(document.at_css(%([data-bookshelf-transfer-target="list"][data-bookshelf-transfer-bookshelf-id="#{target_bookshelf.id}"] > article[data-bookshelf-entry-id="#{entry.id}"] button[data-bookshelf-cover]))).to be_present
 
     [ source_entry, entry ].each do |card_entry|
       remove_form = document.at_css(%(article[data-bookshelf-entry-id="#{card_entry.id}"] form[action="#{bookshelf_entry_path(card_entry)}"]))

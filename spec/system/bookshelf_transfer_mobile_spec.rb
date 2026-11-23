@@ -11,59 +11,35 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
   before { login_as user, scope: :user }
   after { Warden.test_reset! }
 
-  it "selects horizontal cards and moves them through the bottom sheet without losing selection on cancel" do
+  it "selects books on the shelf and moves them through the bottom sheet without losing selection on cancel" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 700 ]
     page.driver.browser.manage.window.resize_to(390, 700)
     visit transfer_user_library_path(user, source_bookshelf_id: first_entry.bookshelf_id, target_bookshelf_id: target_shelf.id)
 
     expect(page).to have_css("[data-bookshelf-transfer-list-role='source'] [data-bookshelf-entry-id]", count: 2)
     expect(page).to have_css("[data-bookshelf-transfer-list-role='target']", visible: false)
-    layout = page.evaluate_script(<<~JS)
-      (() => {
-        const card = document.querySelector('[data-bookshelf-entry-id="#{first_entry.id}"]')
-        const cover = card.querySelector('.w-20').getBoundingClientRect()
-        const information = card.querySelector('[data-book-card-information]').getBoundingClientRect()
-        return {
-          viewport: window.innerWidth,
-          desktopBreakpoint: window.matchMedia("(min-width: 768px)").matches,
-          cardHeight: card.getBoundingClientRect().height,
-          coverRight: cover.right,
-          informationLeft: information.left,
-          flexDirection: getComputedStyle(card.querySelector(".flex.h-full")).flexDirection
-        }
-      })()
-    JS
-    expect(layout["cardHeight"]).to be_within(0.01).of(144)
-    expect(layout["coverRight"]).to be <= layout["informationLeft"]
     expect(page).to have_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
     expect(page).to have_button(I18n.t("bookshelf_entries.actions.move"), disabled: true)
     expect(page).to have_no_css("[data-bookshelf-transfer-target='selectionModeButton']")
 
     first_card = find("[data-bookshelf-entry-id='#{first_entry.id}']")
-    expect(first_card).to have_css("input[type='checkbox']", visible: true)
-    expect(first_card).to have_link("First transfer book")
-    expect(page.evaluate_script(<<~JS)).to be(true)
-      (() => {
-        const card = document.querySelector('[data-bookshelf-entry-id="#{first_entry.id}"]')
-        const information = card.querySelector('[data-book-card-information]').getBoundingClientRect()
-        const checkbox = card.querySelector('[data-bookshelf-transfer-target=selectionCheckboxWrapper]').getBoundingClientRect()
-        return information.right > checkbox.left
-      })()
-    JS
-    first_card.click
+    second_card = find("[data-bookshelf-entry-id='#{second_entry.id}']")
+    first_checkbox = first_card.find("input[type='checkbox']")
+    second_checkbox = second_card.find("input[type='checkbox']")
+    first_card.find("button[data-bookshelf-cover]").click
+    expect(first_card).to have_css("dialog[open]", text: first_entry.book.title)
+    click_button I18n.t("bookshelves.actions.close")
+    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
+
+    first_checkbox.click
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("1")
     expect(page).to have_button(I18n.t("bookshelf_entries.actions.move"), disabled: false)
-    expect(first_card[:class]).to include("border-stone-900")
-    expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-bookshelf-transfer-target=selectionCheckboxWrapper]')).position")).to eq("absolute")
-    first_card.find("input[type='checkbox']").click
+    expect(first_card[:class].split).to include("ring-2")
+    first_checkbox.click
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
-    first_card.find("input[type='checkbox']").click
-    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("1")
-    first_card.click
-    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
-    first_card.click
-    find("[data-bookshelf-entry-id='#{second_entry.id}']").click
+    first_checkbox.click
+    second_checkbox.click
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("2")
     click_button I18n.t("users.library.transfer.clear_selection")
     expect(first_card).to have_css("input[type='checkbox']", visible: true)
@@ -71,8 +47,8 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
     expect(page).to have_button(I18n.t("bookshelf_entries.actions.move"), disabled: true)
 
-    first_card.click
-    find("[data-bookshelf-entry-id='#{second_entry.id}']").click
+    first_checkbox.click
+    second_checkbox.click
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("2")
     click_button I18n.t("bookshelf_entries.actions.move")
     expect(page).to have_css("[role='dialog'][aria-modal='true']", visible: true)
@@ -111,7 +87,7 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
     remove_label = I18n.t("bookshelf_entries.actions.remove")
     preservation = I18n.t("bookshelf_entries.confirmations.reading_record_preserved")
     expect(page).to have_no_button(I18n.t("bookshelf_entries.actions.remove_book", title: first_entry.book.title))
-    find("[data-bookshelf-entry-id='#{first_entry.id}']").click
+    find("input[name='transfer_selection_#{first_entry.id}']").click
     click_button move_label
     dismiss_confirm([ I18n.t("bookshelf_entries.confirmations.remove"), preservation ].join("\n\n")) do
       click_button remove_label
@@ -120,7 +96,7 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
     expect(first_entry.reload).to be_persisted
 
     click_button I18n.t("users.library.transfer.cancel_move")
-    find("[data-bookshelf-entry-id='#{second_entry.id}']").click
+    find("input[name='transfer_selection_#{second_entry.id}']").click
     click_button move_label
     accept_confirm([ I18n.t("bookshelf_entries.confirmations.remove_selected", books_count: 2), preservation ].join("\n\n")) do
       click_button remove_label
@@ -190,20 +166,20 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
     expect(ids).to eq(user.bookshelf_entries.order(:position, :id).pluck(:id))
   end
 
-  it "keeps two compact panels and drag handles on desktop" do
+  it "keeps two shelf lists and drag handles on desktop" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 1280, 900 ]
     page.driver.browser.manage.window.resize_to(1280, 900)
     visit transfer_user_library_path(user, source_bookshelf_id: first_entry.bookshelf_id, target_bookshelf_id: target_shelf.id)
 
     expect(page).to have_css("[data-bookshelf-transfer-target='list']", count: 2, visible: true)
-    expect(page).to have_css("[data-bookshelf-entry-view='compact']", count: 2)
+    expect(page).to have_css("[data-bookshelf-transfer-target='list'] > [data-bookshelf-entry-id] button[data-bookshelf-cover]", count: 2)
     expect(page).to have_css("[data-bookshelf-entry-id][data-bookshelf-entries-sort-handle]", count: 2)
     expect(page).to have_no_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
     expect(page).to have_no_css("[data-bookshelf-transfer-target='selectionCheckboxWrapper']", visible: true)
 
     page.driver.browser.manage.window.resize_to(390, 700)
     expect(page).to have_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
-    find("[data-bookshelf-entry-id='#{first_entry.id}']").click
+    find("input[name='transfer_selection_#{first_entry.id}']").click
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("1")
 
     page.driver.browser.manage.window.resize_to(1280, 900)

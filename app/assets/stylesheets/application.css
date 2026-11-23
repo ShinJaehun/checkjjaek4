@@ -14,6 +14,122 @@
   padding-inline-start: 1.25rem;
 }
 
+.bookshelf-shelf {
+  --cover-height: 9rem;
+  --shelf-side-depth: clamp(16px, 3vw, 28px);
+  --shelf-post-width: clamp(5px, 0.8vw, 9px);
+  --shelf-frame-color: #d8b995;
+  --shelf-floor-slope: 1.6;
+  --shelf-books-top: 1.25rem;
+  --shelf-books-bottom: calc(var(--shelf-books-top) + var(--cover-height));
+  /* Cover bottoms sit halfway into the side depth from the back of the floor. */
+  --shelf-floor-back: calc(var(--shelf-books-bottom) - var(--shelf-side-depth) * 0.5);
+  --shelf-floor-front: calc(var(--shelf-floor-back) + var(--shelf-side-depth) * var(--shelf-floor-slope));
+  --shelf-face-height: 14px;
+  --shelf-bay-height: calc(var(--shelf-floor-front) + var(--shelf-face-height));
+
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 7rem));
+  /* Keep one full bay in an empty shelf, with the same spacing as later rows. */
+  grid-template-rows: var(--cover-height);
+  grid-auto-rows: var(--cover-height);
+  align-content: start;
+  gap: calc(var(--shelf-bay-height) - var(--cover-height)) 6px;
+  padding-block: var(--shelf-books-top) calc(var(--shelf-bay-height) - var(--shelf-books-bottom));
+  padding-inline: calc(var(--shelf-side-depth) + 6px);
+  border: solid var(--shelf-frame-color);
+  border-width: var(--shelf-face-height) var(--shelf-post-width) 0;
+  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    #e7dac8,
+    #f3ebdd var(--shelf-books-top),
+    #f3ebdd calc(var(--shelf-floor-back) - 28px),
+    #ddcdb7 var(--shelf-floor-back),
+    #bc9b74 var(--shelf-floor-back),
+    #e1c49e calc(var(--shelf-floor-back) + 5px),
+    #f1dbb9 calc(var(--shelf-floor-front) - 2px),
+    #f6e4c8 var(--shelf-floor-front),
+    #ddb990 var(--shelf-floor-front),
+    #c29d78 calc(var(--shelf-bay-height) - 1px),
+    #ae8a67 var(--shelf-bay-height)
+  ) top / 100% var(--shelf-bay-height) repeat-y #f3ebdd;
+}
+
+.bookshelf-shelf::before,
+.bookshelf-shelf::after {
+  --floor-angle: atan(var(--shelf-floor-slope));
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inline-size: var(--shelf-side-depth);
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    var(--shelf-frame-color),
+    #c7ab88 calc(100% - 3px),
+    #b69b7c
+  );
+  /* The wall starts square under the shared plank and angles out only at the floor. */
+  mask-image: linear-gradient(
+    calc(180deg - var(--floor-angle)),
+    #000 calc(var(--shelf-floor-front) * cos(var(--floor-angle))),
+    transparent 0
+  );
+  mask-size: 100% var(--shelf-bay-height);
+  mask-repeat: repeat-y;
+}
+
+.bookshelf-shelf::before {
+  left: 0;
+}
+
+.bookshelf-shelf::after {
+  right: 0;
+  transform: scaleX(-1);
+}
+
+@media (min-width: 375px) {
+  .bookshelf-shelf { grid-template-columns: repeat(3, minmax(0, 7rem)); }
+}
+
+@media (min-width: 768px) {
+  .bookshelf-shelf {
+    --cover-height: 10rem;
+    grid-template-columns: repeat(auto-fill, 7rem);
+  }
+}
+
+.bookshelf-cover {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.bookshelf-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(1px 2px 1px rgb(82 54 33 / 28%));
+}
+
+.bookshelf-cover-placeholder {
+  align-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d6d3d1;
+  border-left-width: 4px;
+  border-radius: 0.125rem;
+  background: #f5f5f4;
+  color: #57534e;
+  font-size: 0.75rem;
+}
+
 .book-note-dialog {
   width: min(46rem, calc(100% - 1.5rem));
   max-height: calc(100dvh - 1.5rem);

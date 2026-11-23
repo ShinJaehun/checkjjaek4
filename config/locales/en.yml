@@ -1267,6 +1267,7 @@ en:
     nav: "My Shelf"
     actions:
       create: "Save to shelf"
+      details: "View details"
       move: "Move"
       remove: "Remove from shelf"
       remove_book: "Remove %{title} from the shelf"

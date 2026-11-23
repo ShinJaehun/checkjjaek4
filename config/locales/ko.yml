@@ -1289,6 +1289,7 @@ ko:
     nav: "내 서재"
     actions:
       create: "서재에 저장"
+      details: "상세 보기"
       move: "이동"
       remove: "책장에서 꺼내기"
       remove_book: "%{title} 책장에서 꺼내기"
