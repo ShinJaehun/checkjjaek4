@@ -1270,7 +1270,6 @@ en:
       details: "View details"
       move: "Move"
       remove: "Remove from shelf"
-      remove_book: "Remove %{title} from the shelf"
       reorder: "Reorder"
       update: "Update shelf entry"
     form:
@@ -1299,8 +1298,11 @@ en:
       updated: "Shelf entry updated."
     alerts:
       bulk_destroy_failed: "Could not remove the selected books from the shelf."
+      bulk_action_unconfirmed: "Could not confirm the changes. The current saved shelves will be reloaded."
       bulk_move_failed: "Could not move the selected books."
+      destroy_failed: "Could not remove this book from the shelf."
       move_failed: "Could not confirm the move. The current saved state will be reloaded."
+      remove_failed: "Could not confirm the removal. The current saved state will be reloaded."
       reorder_failed: "Could not confirm the book order was saved. The current saved order will be reloaded."
     statuses:
       wish: "Want to read"
@@ -1563,13 +1565,15 @@ en:
         clear_selection: "Clear"
         close_targets: "Close bookshelf choices"
         mobile_source_label: "Bookshelf to organize"
-        not_enough_bookshelves: "Bookshelf transfer is available when you have at least two bookshelves."
-        open: "Move books"
+        not_enough_bookshelves: "You need at least two bookshelves to move books."
+        organize: "Organize multiple books"
+        exit_selection_mode: "Exit selection mode"
+        manage_selection: "Manage selected books"
         select_book: "Select %{title}"
         selected_count_suffix: " selected"
         source_label: "Source bookshelf"
         target_label: "Target bookshelf"
-        title: "Move books between bookshelves"
+        title: "Move books"
     profile:
       activity_title: "Recent updates"
       invite_to_group: "Invite to %{group_name}"

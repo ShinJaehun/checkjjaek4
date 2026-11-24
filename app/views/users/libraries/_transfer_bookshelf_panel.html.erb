@@ -2,17 +2,20 @@
   panel_role = local_assigns.fetch(:panel_role)
   target_panel = panel_role == :target
   book_detail_options = book_navigation_params
-  removal_params = {
-    return_to: "library_transfer",
-    source_bookshelf_id: (target_panel ? paired_bookshelf : bookshelf).id,
-    target_bookshelf_id: (target_panel ? bookshelf : paired_bookshelf).id
-  }
+  unless @organizing_bookshelf
+    removal_params = {
+      return_to: "library_transfer",
+      bookshelf_id: bookshelf.id,
+      source_bookshelf_id: (target_panel ? paired_bookshelf : bookshelf).id,
+      target_bookshelf_id: (target_panel ? bookshelf : paired_bookshelf).id
+    }
+  end
 %>
 
 <section class="mt-2 animate-[fade-slide-in_180ms_ease-out] space-y-0">
   <div class="relative z-10 hidden md:block">
     <nav class="flex items-end gap-1 overflow-x-auto px-2 pt-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-         aria-label="<%= t("users.library.transfer.choose_#{panel_role}") %>">
+         aria-label="<%= t("users.library.transfer.#{@organizing_bookshelf ? 'mobile_source_label' : "choose_#{panel_role}"}") %>">
       <% bookshelves.each do |candidate| %>
         <% selected = candidate == bookshelf %>
         <% path =
@@ -43,13 +46,13 @@
             data-bookshelf-transfer-bookshelf-id="<%= bookshelf.id %>"
             data-action="dragover->bookshelf-transfer#dragoverAppend drop->bookshelf-transfer#dropOnAppend"
           <% end %>>
-    <div class="flex flex-wrap items-center gap-2">
-      <h2 class="sr-only"><%= t("users.library.transfer.#{target_panel ? "target_label" : "source_label"}") %></h2>
-      <p class="break-words text-xl font-semibold text-stone-900"><%= bookshelf.name %></p>
-      <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
-        <%= bookshelf_entry_count %>
-      </span>
-    </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 class="sr-only"><%= t("users.library.transfer.#{target_panel ? "target_label" : "source_label"}") %></h2>
+        <p class="break-words text-xl font-semibold text-stone-900"><%= bookshelf.name %></p>
+        <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
+          <%= bookshelf_entry_count %>
+        </span>
+      </div>
     </header>
 
     <div class="p-3">
@@ -62,7 +65,7 @@
                      bookshelf_entry:,
                      book_detail_options:,
                      show_status: true,
-                     show_sort_handle: true,
+                     show_sort_handle: !@organizing_bookshelf,
                      removal_params:,
                      show_transfer_selection: !target_panel %>
         <% end %>

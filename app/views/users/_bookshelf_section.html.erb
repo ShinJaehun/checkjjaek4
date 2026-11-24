@@ -157,6 +157,7 @@
                        bookshelf_entry:,
                        book_detail_options:,
                        show_status: show_status,
+                       removal_params: ({ return_to: "library", bookshelf_id: selected_bookshelf.id, sort: bookshelf_sort, **library_tab_options } if local_assigns[:show_move_control]),
                        show_sort_handle: bookshelf_sort_enabled,
                        show_mobile_reorder_controls: mobile_reorder_enabled %>
           <% end %>

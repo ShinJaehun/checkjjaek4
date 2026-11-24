@@ -59,7 +59,7 @@ RSpec.describe "User libraries", type: :request do
     end
   end
 
-  it "keeps the library title and avatar and defaults to the bookshelf tab with a direct transfer link" do
+  it "keeps the library header and links both bookshelf tasks to the selected shelf" do
     sign_in user
 
     get user_library_path(user)
@@ -69,12 +69,16 @@ RSpec.describe "User libraries", type: :request do
     expect(header["class"].split).to include("bg-white", "rounded-2xl", "border", "border-stone-200", "shadow-sm", "p-4")
     expect(header.at_css("img")["class"].split).to include("h-12", "w-12", "shrink-0")
     expect(header.at_css("[data-library-bookshelf-summary]")).to be_nil
-    transfer_path = transfer_user_library_path(user, source_bookshelf_id: user.bookshelves.find_by!(is_default: true).id)
+    source_id = user.default_bookshelf.id
     actions = document.at_css("#library-bookshelves").element_children.first
     expect(actions.css("button, a").map { |control| control.text.squish }).to eq([
-      I18n.t("book_search.nav"), I18n.t("bookshelves.actions.new"), I18n.t("bookshelves.form.manage_title")
+      I18n.t("book_search.nav"), I18n.t("bookshelves.actions.new"),
+      I18n.t("users.library.transfer.title"), I18n.t("users.library.transfer.organize")
     ])
-    expect(actions.at_css("a")["href"]).to eq(transfer_path)
+    expect(actions.css("a").map { |link| link["href"] }).to eq([
+      transfer_user_library_path(user, source_bookshelf_id: source_id),
+      transfer_user_library_path(user, mode: "organize", source_bookshelf_id: source_id)
+    ])
     expect(header.at_css("h1").text).to eq("Reader의 서재")
     expect(header.css("li, [data-bookshelf-visibility]")).to be_empty
     expect(document.at_css('[data-bookshelf-visibility="public"]')).to be_present
@@ -95,7 +99,7 @@ RSpec.describe "User libraries", type: :request do
     BookFriendship.create!(requester: user, addressee: friend, status: :accepted)
     public_shelf = user.bookshelves.create!(name: "Public Summary", visibility: :public)
     friend_shelf = user.bookshelves.create!(name: "Friends Summary", visibility: :book_friends)
-    user.bookshelf_entries.create!(book: Book.create!(title: "Friend summary book"), bookshelf: friend_shelf)
+    friend_entry = user.bookshelf_entries.create!(book: Book.create!(title: "Friend summary book"), bookshelf: friend_shelf)
     sign_in friend
 
     get user_library_path(user)
@@ -104,6 +108,12 @@ RSpec.describe "User libraries", type: :request do
     expect(options.map { |option| option["value"] }).to match_array([ user.default_bookshelf.id, public_shelf.id, friend_shelf.id ].map(&:to_s))
     expect(options.find { |option| option["value"] == friend_shelf.id.to_s }.text).to eq("#{friend_shelf.name} (1)")
     expect(response.body).not_to include("Target Shelf", "Selected Shelf")
+
+    get user_library_path(user, bookshelf_id: friend_shelf.id)
+
+    card = Nokogiri::HTML(response.body).at_css(%(article[data-bookshelf-entry-id="#{friend_entry.id}"] dialog))
+    expect(card).to be_present
+    expect(card.at_css(%(form[action="#{bookshelf_entry_path(friend_entry)}"]))).to be_nil
   end
 
   it "does not list private shelves for an admin book friend" do
@@ -164,11 +174,29 @@ RSpec.describe "User libraries", type: :request do
     expect(document.at_css(%([data-bookshelf-transfer-target="list"][data-bookshelf-transfer-bookshelf-id="#{target_bookshelf.id}"] > article[data-bookshelf-entry-id="#{entry.id}"] button[data-bookshelf-cover]))).to be_present
 
     [ source_entry, entry ].each do |card_entry|
-      remove_form = document.at_css(%(article[data-bookshelf-entry-id="#{card_entry.id}"] form[action="#{bookshelf_entry_path(card_entry)}"]))
+      card = document.at_css(%(article[data-bookshelf-entry-id="#{card_entry.id}"]))
+      remove_form = card.at_css(%(dialog form[action="#{bookshelf_entry_path(card_entry)}"]))
       expect(remove_form.at_css("input[name='_method']")["value"]).to eq("delete")
-      expect(remove_form["class"].split).to include("hidden", "md:block")
-      expect(remove_form.at_css("button")["aria-label"]).to eq(I18n.t("bookshelf_entries.actions.remove_book", title: card_entry.book.title))
+      expect(remove_form.at_css("input[name='bookshelf_id']")["value"]).to eq(card_entry.bookshelf_id.to_s)
+      expect(remove_form.at_css("input[name='source_bookshelf_id']")["value"]).to eq(selected_bookshelf.id.to_s)
+      expect(remove_form.at_css("input[name='target_bookshelf_id']")["value"]).to eq(target_bookshelf.id.to_s)
     end
+    expect(document.at_css(%(form[action="#{bulk_destroy_bookshelf_entries_path}"]))).to be_nil
+  end
+
+  it "organizes only the selected shelf and uses the existing bulk forms" do
+    sign_in user
+
+    get transfer_user_library_path(user, mode: "organize", source_bookshelf_id: target_bookshelf.id)
+
+    expect(response).to have_http_status(:ok)
+    document = Nokogiri::HTML(response.body)
+    lists = document.css(%([data-bookshelf-transfer-target="list"]))
+    expect(lists.map { |list| list["data-bookshelf-transfer-bookshelf-id"] }).to eq([ target_bookshelf.id.to_s ])
+    expect(document.at_css(%([data-bookshelf-entries-sort-handle]))).to be_nil
+    expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
+    expect(document.at_css(%(a[href="#{transfer_user_library_path(user, mode: "organize", source_bookshelf_id: selected_bookshelf.id)}"]))).to be_present
+    expect(document.at_css(%(form[action="#{bulk_move_bookshelf_entries_path}"] input[name="source_bookshelf_id"][value="#{target_bookshelf.id}"]))).to be_present
     bulk_remove_form = document.at_css(%(form[action="#{bulk_destroy_bookshelf_entries_path}"]))
     expect(bulk_remove_form.at_css("input[name='_method']")["value"]).to eq("delete")
     expect(document.at_css(%([role="dialog"] button[form="#{bulk_remove_form['id']}"])).text).to include(I18n.t("bookshelf_entries.actions.remove"))
@@ -188,18 +216,26 @@ RSpec.describe "User libraries", type: :request do
     expect(document.at_css(%(select[data-bookshelf-transfer-source-select="true"]))).to be_nil
     expect(document.at_css(%([data-bookshelf-transfer-target="list"]))).to be_nil
     expect(document.at_css(%(form[action="#{bulk_move_bookshelf_entries_path}"]))).to be_nil
-    expect(document.at_css(%(form[action="#{bookshelf_entry_path(entry)}"]))).to be_nil
+    expect(document.at_css(%(dialog form[action="#{bookshelf_entry_path(entry)}"] input[name="bookshelf_id"][value="#{target_bookshelf.id}"]))).to be_present
     expect(document.at_css(%(form[action="#{bulk_destroy_bookshelf_entries_path}"]))).to be_nil
     expect(response.body).not_to include(I18n.t("users.library.transfer.selected_count_suffix"))
   end
 
-  it "redirects transfer mode to the library when the user has one bookshelf" do
+  it "requires two shelves for moving and still allows organizing one shelf" do
     lone_user = User.create!(name: "One Shelf", email: "one-shelf@example.com", password: "password123!", password_confirmation: "password123!")
     sign_in lone_user
 
     get transfer_user_library_path(lone_user)
 
     expect(response).to redirect_to(user_library_path(lone_user))
+
+    get transfer_user_library_path(lone_user, mode: "organize")
+
+    expect(response).to have_http_status(:ok)
+    document = Nokogiri::HTML(response.body)
+    expect(document.css(%([data-bookshelf-transfer-target="list"])).size).to eq(1)
+    expect(document.at_css(%(form[action="#{bulk_destroy_bookshelf_entries_path}"]))).to be_present
+    expect(document.at_css(%(button[name="target_bookshelf_id"]))).to be_nil
   end
 
   it "adjusts the target bookshelf when source changed to the current target" do
@@ -231,8 +267,10 @@ RSpec.describe "User libraries", type: :request do
     BookFriendship.create!(requester: friend, addressee: user, status: :accepted)
     sign_in friend
 
-    get transfer_user_library_path(user)
+    [ nil, "organize" ].each do |mode|
+      get transfer_user_library_path(user, mode:)
 
-    expect(response).to redirect_to(user_library_path(user))
+      expect(response).to redirect_to(user_library_path(user))
+    end
   end
 end

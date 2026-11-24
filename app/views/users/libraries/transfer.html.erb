@@ -1,17 +1,26 @@
 <%
-  mobile_target_bookshelves = @profile_bookshelves.reject { |bookshelf| bookshelf == @source_bookshelf }
+  bulk_form_data = {
+    controller: "bookshelf-form-recovery",
+    bookshelf_form_recovery_message_value: t("bookshelf_entries.alerts.bulk_action_unconfirmed"),
+    action: "turbo:before-fetch-response->bookshelf-form-recovery#checkResponse turbo:fetch-request-error->bookshelf-form-recovery#recover"
+  }
+  library_path = user_library_path(@user, bookshelf_id: @source_bookshelf.id)
+  show_bulk_description = @organizing_bookshelf && @profile_bookshelves.many?
 %>
 
-<section class="mx-auto flex w-full max-w-4xl flex-col gap-2 pb-24 md:pb-0"
+<section class="mx-auto flex w-full max-w-4xl flex-col gap-2"
          data-controller="bookshelf-transfer"
          data-action="turbo:before-cache@document->bookshelf-transfer#clearSelection"
+         data-bookshelf-transfer-organize-value="<%= @organizing_bookshelf %>"
          data-bookshelf-transfer-move-error-message-value="<%= t('bookshelf_entries.alerts.move_failed') %>"
          data-bookshelf-transfer-reorder-error-message-value="<%= t('bookshelf_entries.alerts.reorder_failed') %>"
          data-bookshelf-transfer-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
-         data-bookshelf-transfer-remove-confirmation-value="<%= bookshelf_removal_confirmation %>"
-         data-bookshelf-transfer-bulk-remove-confirmation-value="<%= bookshelf_removal_confirmation(count: '%{books_count}') %>"
+         <% if @organizing_bookshelf %>
+           data-bookshelf-transfer-remove-confirmation-value="<%= bookshelf_removal_confirmation %>"
+           data-bookshelf-transfer-bulk-remove-confirmation-value="<%= bookshelf_removal_confirmation(count: '%{books_count}') %>"
+         <% end %>
          data-bookshelf-transfer-ui-source-bookshelf-id-value="<%= @source_bookshelf.id %>"
-         data-bookshelf-transfer-ui-target-bookshelf-id-value="<%= @target_bookshelf.id %>">
+         data-bookshelf-transfer-ui-target-bookshelf-id-value="<%= @target_bookshelf&.id %>">
   <style>
     @keyframes fade-slide-in {
       from {
@@ -25,18 +34,22 @@
     }
   </style>
 
-  <%= render "shared/back_link", path: user_library_path(@user, bookshelf_id: @source_bookshelf.id) %>
+  <%= render "shared/back_link", path: library_path, label: t("users.library.transfer.back_to_library") %>
 
   <header class="rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-sm">
-    <h1 class="truncate text-xl font-semibold tracking-tight text-stone-900"><%= t("users.library.transfer.title") %></h1>
+    <h1 class="truncate text-xl font-semibold tracking-tight text-stone-900"><%= t("users.library.transfer.#{@organizing_bookshelf ? 'organize' : 'title'}") %></h1>
   </header>
 
   <div>
     <%= form_with url: transfer_user_library_path(@user),
                   method: :get,
                   class: "px-1 py-1 md:hidden" do %>
-      <%= hidden_field_tag :target_bookshelf_id, @target_bookshelf.id %>
-      <%= hidden_field_tag :changed, "source" %>
+      <% if @organizing_bookshelf %>
+        <%= hidden_field_tag :mode, "organize" %>
+      <% else %>
+        <%= hidden_field_tag :target_bookshelf_id, @target_bookshelf.id %>
+        <%= hidden_field_tag :changed, "source" %>
+      <% end %>
       <%= label_tag :source_bookshelf_id, t("users.library.transfer.mobile_source_label"), class: "sr-only" %>
       <%= select_tag :source_bookshelf_id,
                      options_for_select(
@@ -57,26 +70,32 @@
                bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@source_bookshelf.id, 0),
                panel_role: :source %>
 
-    <div class="hidden md:block">
-      <%= render "users/libraries/transfer_bookshelf_panel",
-                 user: @user,
-                 bookshelves: @profile_bookshelves,
-                 bookshelf: @target_bookshelf,
-                 paired_bookshelf: @source_bookshelf,
-                 bookshelf_entries: @target_bookshelf_entries,
-                 bookshelf_entry_counts: @profile_bookshelf_entry_counts,
-                 bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@target_bookshelf.id, 0),
-                 panel_role: :target %>
-    </div>
+    <% unless @organizing_bookshelf %>
+      <div class="hidden md:block">
+        <%= render "users/libraries/transfer_bookshelf_panel",
+                   user: @user,
+                   bookshelves: @profile_bookshelves,
+                   bookshelf: @target_bookshelf,
+                   paired_bookshelf: @source_bookshelf,
+                   bookshelf_entries: @target_bookshelf_entries,
+                   bookshelf_entry_counts: @profile_bookshelf_entry_counts,
+                   bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@target_bookshelf.id, 0),
+                   panel_role: :target %>
+      </div>
+    <% end %>
 
-    <div class="fixed inset-x-0 bottom-0 z-40 hidden border-t border-stone-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur md:hidden"
+    <div class="fixed inset-x-0 bottom-0 z-40 hidden border-t border-stone-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur"
          data-bookshelf-transfer-target="selectionBar">
       <div class="mx-auto flex max-w-4xl flex-col gap-3">
-        <div class="flex items-center justify-between gap-3">
-          <p class="text-sm font-semibold text-stone-900">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm font-semibold text-stone-900" role="status">
+            <span class="block"><%= @source_bookshelf.name %></span>
             <span data-bookshelf-transfer-target="selectedCount">0</span><%= t("users.library.transfer.selected_count_suffix") %>
           </p>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <% if @organizing_bookshelf %>
+              <%= link_to t("users.library.transfer.exit_selection_mode"), library_path, class: "ui-button ui-button-secondary" %>
+            <% end %>
             <button type="button"
                     class="ui-button ui-button-secondary"
                     data-action="bookshelf-transfer#clearSelection">
@@ -87,27 +106,30 @@
                     data-bookshelf-transfer-target="moveButton"
                     data-action="bookshelf-transfer#openMovePanel"
                     disabled>
-              <%= t("bookshelf_entries.actions.move") %>
+              <%= t(@organizing_bookshelf ? "users.library.transfer.manage_selection" : "bookshelf_entries.actions.move") %>
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="fixed inset-0 z-50 hidden items-end bg-stone-950/40 md:hidden"
+    <div class="fixed inset-0 z-50 hidden items-end bg-stone-950/40 md:items-center md:justify-center md:p-6"
          data-bookshelf-transfer-target="movePanel"
          data-action="click->bookshelf-transfer#closeOnBackdrop keydown->bookshelf-transfer#handleMovePanelKeydown"
          role="dialog"
          aria-modal="true"
          aria-labelledby="transfer-target-title"
-         aria-describedby="transfer-target-description transfer-selected-count">
+         aria-describedby="<%= 'transfer-target-description ' if show_bulk_description %>transfer-selected-count">
       <%= form_with url: bulk_move_bookshelf_entries_path,
                     method: :patch,
-                    class: "flex max-h-[90dvh] w-full flex-col rounded-t-2xl bg-white shadow-2xl" do %>
+                    data: bulk_form_data,
+                    class: "flex max-h-[90dvh] w-full flex-col rounded-t-2xl bg-white shadow-2xl md:max-w-lg md:rounded-2xl" do %>
         <header class="flex shrink-0 items-start justify-between gap-3 border-b border-stone-200 px-4 py-4">
           <div>
-            <h2 id="transfer-target-title" class="text-lg font-semibold text-stone-900"><%= t("users.library.transfer.bulk_target_label") %></h2>
-            <p id="transfer-target-description" class="mt-1 text-sm text-stone-600"><%= t("users.library.transfer.bulk_target_description") %></p>
+            <h2 id="transfer-target-title" class="text-lg font-semibold text-stone-900"><%= t("users.library.transfer.#{@organizing_bookshelf ? 'bulk_target_label' : 'choose_target'}") %></h2>
+            <% if show_bulk_description %>
+              <p id="transfer-target-description" class="mt-1 text-sm text-stone-600"><%= t("users.library.transfer.bulk_target_description") %></p>
+            <% end %>
             <p id="transfer-selected-count" class="mt-1 text-sm text-stone-600">
               <span data-bookshelf-transfer-target="sheetSelectedCount">0</span><%= t("users.library.transfer.selected_count_suffix") %>
             </p>
@@ -121,10 +143,15 @@
 
         <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           <div data-bookshelf-transfer-target="selectedIds"></div>
-          <%= hidden_field_tag :source_bookshelf_id, @source_bookshelf.id %>
-          <%= hidden_field_tag :return_to_target_as_source, "1" %>
+          <%= hidden_field_tag :source_bookshelf_id, @source_bookshelf.id, id: nil %>
+          <% if @organizing_bookshelf %>
+            <%= hidden_field_tag :return_to, "library_organize", id: nil %>
+          <% else %>
+            <%= hidden_field_tag :return_to_target_as_source, "1" %>
+          <% end %>
           <div class="grid grid-cols-1 gap-2">
-            <% mobile_target_bookshelves.each do |bookshelf| %>
+            <% @profile_bookshelves.each do |bookshelf| %>
+              <% next if bookshelf == @source_bookshelf %>
               <%= button_tag type: :submit,
                              name: :target_bookshelf_id,
                              value: bookshelf.id,
@@ -135,10 +162,12 @@
                 <%= bookshelf.name %>
               <% end %>
             <% end %>
-            <%= button_tag t("bookshelf_entries.actions.remove"),
-                           type: :submit, form: "bookshelf-transfer-remove-form",
-                           data: { bookshelf_transfer_target: "removeButton" },
-                           class: "ui-button ui-button-secondary w-full justify-start text-red-700" %>
+            <% if @organizing_bookshelf %>
+              <%= button_tag t("bookshelf_entries.actions.remove"),
+                             type: :submit, form: "bookshelf-transfer-remove-form",
+                             data: { bookshelf_transfer_target: "removeButton" },
+                             class: "ui-button ui-button-secondary w-full justify-start text-red-700" %>
+            <% end %>
           </div>
         </div>
 
@@ -148,11 +177,14 @@
                   data-action="bookshelf-transfer#closeMovePanel"><%= t("users.library.transfer.cancel_move") %></button>
         </footer>
       <% end %>
-      <%= form_with url: bulk_destroy_bookshelf_entries_path, method: :delete,
-                    id: "bookshelf-transfer-remove-form", class: "hidden" do %>
-        <div data-bookshelf-transfer-target="selectedIds"></div>
-        <%= hidden_field_tag :source_bookshelf_id, @source_bookshelf.id, id: nil %>
-        <%= hidden_field_tag :target_bookshelf_id, @target_bookshelf.id, id: nil %>
+      <% if @organizing_bookshelf %>
+        <%= form_with url: bulk_destroy_bookshelf_entries_path, method: :delete,
+                      data: bulk_form_data,
+                      id: "bookshelf-transfer-remove-form", class: "hidden" do %>
+          <div data-bookshelf-transfer-target="selectedIds"></div>
+          <%= hidden_field_tag :source_bookshelf_id, @source_bookshelf.id, id: nil %>
+          <%= hidden_field_tag :return_to, "library_organize", id: nil %>
+        <% end %>
       <% end %>
     </div>
   </div>

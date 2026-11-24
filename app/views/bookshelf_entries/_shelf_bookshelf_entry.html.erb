@@ -18,34 +18,22 @@
            data-bookshelf-entries-sort-handle
          <% end %>>
   <% if transfer_selection %>
-    <label class="absolute right-1 top-1 z-10 hidden h-11 w-11 items-center justify-center rounded-full border border-stone-300 bg-white/95 md:hidden"
+    <label class="absolute right-1 top-1 z-10 hidden h-11 w-11 items-center justify-center rounded-full border border-stone-300 bg-white/95"
            data-bookshelf-transfer-target="selectionCheckboxWrapper">
       <span class="sr-only"><%= t("users.library.transfer.select_book", title: book.title) %></span>
       <%= check_box_tag "transfer_selection_#{bookshelf_entry.id}",
                         bookshelf_entry.id,
                         false,
                         class: "h-4 w-4 rounded border-stone-300 text-stone-900",
-                        data: { bookshelf_transfer_target: "selectionCheckbox", action: "bookshelf-transfer#toggleEntrySelection" },
+                        data: { bookshelf_transfer_target: "selectionCheckbox", action: "change->bookshelf-transfer#syncSelection" },
                         autocomplete: "off" %>
     </label>
-  <% end %>
-
-  <% if local_assigns[:removal_params] %>
-    <% remove_label = t("bookshelf_entries.actions.remove_book", title: book.title) %>
-    <%= button_to bookshelf_entry_path(bookshelf_entry), method: :delete, params: removal_params,
-                  form: { class: "absolute right-1 top-1 z-10 hidden md:block", data: { turbo_confirm: bookshelf_removal_confirmation } },
-                  class: "inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-red-700 shadow-sm hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700",
-                  title: remove_label, aria: { label: remove_label } do %>
-      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M5 18V5a2 2 0 0 1 2-2h12v18H8a3 3 0 0 1 0-6h11M9 9h6" />
-      </svg>
-    <% end %>
   <% end %>
 
   <button type="button"
           class="bookshelf-cover rounded-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-stone-700 <%= 'md:cursor-grab md:active:cursor-grabbing' if local_assigns.fetch(:show_sort_handle, false) %>"
           data-bookshelf-cover
-          data-action="book-modal#open"
+          data-action="<%= "bookshelf-transfer#selectFromCover " if transfer_selection %>book-modal#open"
           aria-haspopup="dialog" aria-controls="<%= dialog_id %>" aria-label="<%= book.title %>">
     <% if book.thumbnail.present? %>
       <%= image_tag book.thumbnail, alt: "", loading: "lazy", draggable: false %>
@@ -79,8 +67,26 @@
   <dialog id="<%= dialog_id %>" aria-labelledby="<%= title_id %>"
           class="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto overscroll-contain rounded-2xl bg-white p-5 shadow-xl backdrop:bg-stone-900/40"
           data-book-modal-target="dialog" data-action="close->book-modal#restore">
-    <%= render "bookshelf_entries/card_information", bookshelf_entry:, show_status:, title_id: %>
+    <div class="flex items-start gap-3">
+      <div class="flex w-20 shrink-0 justify-center">
+        <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :medium, loading: "lazy" %>
+      </div>
+      <div class="min-w-0 flex-1">
+        <%= render "bookshelf_entries/card_information", bookshelf_entry:, show_status:, title_id: %>
+      </div>
+    </div>
     <div class="mt-5 flex flex-wrap justify-end gap-2 border-t border-stone-200 pt-4">
+      <% if local_assigns[:removal_params] %>
+        <%= button_to t("bookshelf_entries.actions.remove"), bookshelf_entry_path(bookshelf_entry),
+                      method: :delete, params: removal_params,
+                      form: { data: {
+                        turbo_confirm: bookshelf_removal_confirmation,
+                        controller: "bookshelf-form-recovery",
+                        bookshelf_form_recovery_message_value: t("bookshelf_entries.alerts.remove_failed"),
+                        action: "turbo:before-fetch-response->bookshelf-form-recovery#checkResponse turbo:fetch-request-error->bookshelf-form-recovery#recover"
+                      } },
+                      class: "ui-button ui-button-secondary text-red-700" %>
+      <% end %>
       <button type="button" class="ui-button ui-button-secondary" data-action="book-modal#close" autofocus>
         <%= t("bookshelves.actions.close") %>
       </button>

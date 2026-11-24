@@ -197,30 +197,29 @@
 - 일반 책장은 비어 있을 때만 삭제할 수 있고, 책이 들어 있는 책장은 삭제 버튼 대신 안내 문구를 보여준다
 - Library 카드 안에는 책장 이동 select/form을 두지 않는다
 
-### 4-1. 책장 이동 모드 (/users/:user_id/library/transfer)
+### 4-1. 책 옮기기와 여러 권 정리 (/users/:user_id/library/transfer)
 
 - owner만 접근할 수 있다
-- 책장이 2개 미만이면 기본 Library로 redirect된다
+- 서재 상단의 두 진입점은 현재 책장 ID를 전달한다. 책장이 두 개 미만이면 `책 옮기기`는 서재로 돌아가며, `여러 권 정리`는 책장 하나에서도 열린다
 - 작은 화면은 md 미만, 중간 화면은 md 이상 lg 미만, 큰 화면은 lg 이상으로 나눈다
-- 중간/큰 화면에서는 위쪽에 출발 책장, 아래쪽에 이동 대상 책장을 표시한다
-- transfer 모드는 기본 Library와 같은 서가형 표지와 정보 카드를 사용한다. PC에서는 출발과 대상 목록에 SortableJS 인스턴스를 하나씩 적용한다
+- PC `책 옮기기`에서는 위쪽에 출발 책장, 아래쪽에 이동 대상 책장을 표시하고 두 목록을 하나의 SortableJS group으로 연결한다
+- 기본 Library와 PC `책 옮기기`는 같은 서가형 표지와 정보 카드를 사용한다
 - 중간/큰 화면에서는 source / target 책장 선택 UI를 각각 제공한다
 - source와 target은 항상 달라야 하며, 중복되면 `changed=source|target` 기준으로 사용자가 바꾼 쪽은 유지하고 반대쪽을 다음 책장으로 순환 보정한다
 - 다음 책장은 책장 정렬 순서 기준으로 순환하며, 마지막 책장 다음은 첫 책장이다
 - 중간/큰 화면에서는 source list에서 target list로 Drag and Drop 이동할 수 있다
 - target list 안에 drop하면 `PATCH /bookshelf_entries/:id/move`에 `before_entry_id`를 함께 보내 해당 위치에 삽입한다
 - target header에 drop하면 `before_entry_id` 없이 target 책장 끝에 append한다
-- 작은 화면에서는 source 책장 하나만 표시하고 target panel은 숨긴다
-- 작은 화면에서는 source compact dropdown으로 정리할 책장을 바꾼다
-- 작은 화면에서는 표지 위 체크박스로 여러 권을 선택한 뒤 하단 action bar에서 대상 책장을 골라 `PATCH /bookshelf_entries/bulk_move`로 이동할 수 있다
+- 모바일 `책 옮기기`는 출발 책장 하나와 일괄 이동 도구를 표시한다. PC 폭으로 전환하면 선택을 비우고 두 목록의 드래그를 시작한다
+- `여러 권 정리`는 `mode=organize`에서 현재 책장 하나를 선택 상태로 표시한다. 표지나 체크박스로 고른 책은 기존 대화 상자에서 `PATCH /bookshelf_entries/bulk_move`로 이동하거나 `DELETE /bookshelf_entries/bulk_destroy`로 꺼낸다. 책장 탭·드롭다운 전환 시 선택을 비우며, 종료하면 현재 책장의 일반 서재로 돌아간다
 - 작은 화면에서는 책장 안 순서 변경 Drag and Drop을 제공하지 않는다
-- 작은 화면 bulk move 후에는 이동한 target 책장을 source로 열어 보여준다
+- 모바일 `책 옮기기`에서 일괄 이동 후에는 대상 책장을 연다. `여러 권 정리`에서는 일괄 처리 후 현재 책장을 다시 연다
 - bulk move는 선택된 entry id 순서를 보존하며, 대상 책장 끝에 append한다
 - bulk move에서 같은 책장으로 이동하는 entry는 건너뛰고, 다른 사용자 entry나 다른 사용자 target 책장은 거부한다
-- 책장 이동 모드에서 PC는 카드의 아이콘 버튼으로 한 권을, 모바일은 목적지 선택 대화 상자에서 선택한 책을 꺼낸다. 확인 뒤 배치만 제거하며, 모바일 묶음 제거는 본인 출발 책장의 항목을 모두 검증한 뒤 한 트랜잭션에서 처리한다
-- 이동 후에는 transfer 화면의 UI source / target 조합을 유지한다
+- 기본 Library와 관리 화면에서 소유자는 책 정보 카드에서 단일 꺼내기를 확인할 수 있다. 기존 `DELETE /bookshelf_entries/:id`가 표시된 책장을 검증하고 배치만 제거한다. 일괄 꺼내기 서버는 선택한 항목이 모두 본인 출발 책장에 남아 있는지 검증한 뒤 한 트랜잭션에서 처리한다
+- 단일 이동·꺼내기 후에는 transfer 화면의 UI source / target 조합을 유지한다. 일괄 조작 및 카드 꺼내기 폼에서 응답을 확인할 수 없으면 알림 후 서버 상태를 다시 읽는다
 - 같은 책장 안 reorder는 `PATCH /bookshelf_entries/reorder`를 그대로 사용한다
-- 프로필 요약 카드와 Library·transfer 정보 카드는 공통 `bookshelf_entries/card_information` partial에서 제목, 저자·출판사, 상태·스티커를 표시한다. 프로필은 제목과 메타정보를 한 줄씩 유지하고 Library·transfer 정보 카드에서는 줄바꿈을 허용한다
+- 프로필 요약 카드와 Library·transfer 정보 카드는 공통 `bookshelf_entries/card_information` partial에서 제목, 저자·출판사, 상태·스티커를 표시한다. Library·transfer 정보 카드에는 공통 표지 partial도 표시하며 제목과 메타정보의 줄바꿈을 허용한다. 프로필은 제목과 메타정보를 한 줄씩 유지한다
 - 프로필·Library·transfer는 공통 sticker-overflow Stimulus가 실제 영역·아이콘·요약 배지 너비를 측정해 최대 6개 아이콘을 한 줄로 표시한다. 공간이 부족할 때만 정확한 숨김 개수와 이름을 `+N`의 title·aria-label로 제공하고, ResizeObserver로 창 크기·carousel 표시 변경에 대응한다. 독서 정보가 없어도 목록 카드의 두 줄 공간은 유지한다
 
 관련 코드:

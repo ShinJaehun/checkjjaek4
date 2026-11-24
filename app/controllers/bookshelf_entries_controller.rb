@@ -154,7 +154,8 @@ class BookshelfEntriesController < ApplicationController
     redirect_to transfer_user_library_path(current_user, bulk_move_redirect_options(target_bookshelf)),
                 notice: t("bookshelf_entries.notices.bulk_moved", count: moved_count, bookshelf_name: target_bookshelf.name)
   rescue ActiveRecord::RecordInvalid
-    redirect_to transfer_user_library_path(current_user), alert: t("bookshelf_entries.alerts.bulk_move_failed")
+    redirect_to transfer_user_library_path(current_user, bookshelf_organize_options || {}),
+                alert: t("bookshelf_entries.alerts.bulk_move_failed")
   end
 
   def reorder
@@ -182,10 +183,17 @@ class BookshelfEntriesController < ApplicationController
     with_active_user_lock do
       set_bookshelf_entry
       authorize @bookshelf_entry
+      if params[:bookshelf_id].present? && @bookshelf_entry.bookshelf_id.to_s != params[:bookshelf_id].to_s
+        raise ActiveRecord::RecordNotFound
+      end
       @bookshelf_entry.destroy!
     end
 
     redirect_to bookshelf_entry_destroy_redirect_path, notice: t("bookshelf_entries.notices.destroyed"), status: :see_other
+  rescue ActiveRecord::RecordNotDestroyed
+    raise unless params[:bookshelf_id].present?
+
+    redirect_to bookshelf_entry_destroy_redirect_path, alert: t("bookshelf_entries.alerts.destroy_failed"), status: :see_other
   end
 
   def bulk_destroy
@@ -204,8 +212,8 @@ class BookshelfEntriesController < ApplicationController
 
       entries = policy_scope(BookshelfEntry).where(bookshelf: source_bookshelf, id: ids).to_a
       next unless entries.size == ids.size
-      return_path = transfer_user_library_path(current_user, source_bookshelf_id: source_bookshelf.id,
-        target_bookshelf_id: params[:target_bookshelf_id].presence)
+      options = bookshelf_organize_options || { source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: params[:target_bookshelf_id].presence }
+      return_path = transfer_user_library_path(current_user, options)
       entries.each(&:destroy!)
     end
 
@@ -244,10 +252,16 @@ class BookshelfEntriesController < ApplicationController
   end
 
   def bulk_move_redirect_options(target_bookshelf)
-    {
+    bookshelf_organize_options || {
       source_bookshelf_id: bulk_move_source_bookshelf_id(target_bookshelf),
       target_bookshelf_id: bulk_move_target_bookshelf_id(target_bookshelf)
     }.compact
+  end
+
+  def bookshelf_organize_options
+    return unless params[:return_to] == "library_organize"
+
+    { mode: "organize", source_bookshelf_id: params[:source_bookshelf_id].presence }
   end
 
   def bulk_move_source_bookshelf_id(target_bookshelf)
@@ -404,6 +418,12 @@ class BookshelfEntriesController < ApplicationController
         return_to: view_context.validated_jjaek_return_path(params[:book_return_to]))
     when "library_transfer"
       bookshelf_entry_transfer_redirect_path(@bookshelf_entry.bookshelf)
+    when "library"
+      user_library_path(current_user, {
+        bookshelf_id: params[:bookshelf_id].presence, sort: library_sort_param,
+        library_tab: ("bookshelves" if params[:library_tab] == "bookshelves"),
+        notes_page: Integer(params[:notes_page], exception: false)
+      }.compact)
     else
       user_library_path(current_user)
     end

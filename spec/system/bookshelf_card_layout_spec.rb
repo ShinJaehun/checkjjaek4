@@ -68,6 +68,7 @@ RSpec.describe "Bookshelf card layout", type: :system do
   it "opens an information card from the cover and reaches the existing reading editor through details" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 900 ]
     page.current_window.resize_to(390, 900)
+    book.update!(thumbnail: "https://example.test/cover.png")
     library_path = user_library_path(user, bookshelf_id: entry.bookshelf_id)
     visit library_path
 
@@ -78,15 +79,23 @@ RSpec.describe "Bookshelf card layout", type: :system do
 
     expect(page).to have_current_path(library_path)
     within("dialog[open]") do
+      expect(page).to have_css("img[src='#{book.thumbnail}']")
       expect(page).to have_selector("h2", text: book.title.strip)
       expect(page).to have_text(book.authors_text.strip)
       expect(page).to have_css("[data-reading-status='reading']")
       expect(page).to have_css("[data-reading-sticker='layout_0']")
+      expect(page).to have_button(I18n.t("bookshelf_entries.actions.remove"))
     end
 
     page.driver.browser.action.send_keys(:escape).perform
     expect(page).to have_no_css("dialog[open]")
     expect(page).to have_css("[data-bookshelf-entry-id='#{entry.id}'] [data-bookshelf-cover]:focus")
+
+    find("[data-bookshelf-entry-id='#{empty_entry.id}'] button[data-bookshelf-cover]").click
+    within("dialog[open]") do
+      expect(page).to have_text(I18n.t("books.thumbnail.no_thumbnail"))
+      click_button I18n.t("bookshelves.actions.close")
+    end
 
     cover.click
     click_link details

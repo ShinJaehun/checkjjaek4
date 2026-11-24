@@ -39,8 +39,11 @@
                   data-action="book-modal#open"><%= t("book_search.nav") %></button>
           <button type="button" class="ui-button ui-button-secondary" aria-haspopup="dialog" aria-controls="library-bookshelf-management-dialog"
                   data-action="bookshelf-management-modal#openCreate"><%= t("bookshelves.actions.new") %></button>
-          <%= link_to t("bookshelves.form.manage_title"),
+          <%= link_to t("users.library.transfer.title"),
                       transfer_user_library_path(@user, source_bookshelf_id: @selected_bookshelf&.id),
+                      class: "ui-button ui-button-secondary" %>
+          <%= link_to t("users.library.transfer.organize"),
+                      transfer_user_library_path(@user, mode: "organize", source_bookshelf_id: @selected_bookshelf&.id),
                       class: "ui-button ui-button-secondary" %>
         </div>
       <% end %>

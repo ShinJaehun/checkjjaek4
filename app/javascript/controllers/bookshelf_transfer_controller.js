@@ -18,6 +18,7 @@ export default class extends Controller {
     "sheetSelectedCount"
   ]
   static values = {
+    organize: Boolean,
     moveErrorMessage: String,
     reorderErrorMessage: String,
     reorderUrl: String,
@@ -30,10 +31,11 @@ export default class extends Controller {
   connect() {
     this.sortables = []
     this.desktopQuery = window.matchMedia("(min-width: 768px)")
-    this.handleBreakpointChange = () => this.resetForBreakpoint()
+    this.handleBreakpointChange = () => {
+      if (!this.organizeValue) this.syncMode()
+    }
     this.addBreakpointListener()
-    this.syncSortables()
-    this.clearSelection()
+    this.syncMode()
   }
 
   disconnect() {
@@ -44,22 +46,53 @@ export default class extends Controller {
     this.destroySortables()
   }
 
-  createSortable(element, options = {}) {
+  createSortable(element) {
     return Sortable.create(element, {
       animation: 120,
-      group: options.group || "bookshelf-transfer",
-      handle: options.handle || "[data-bookshelf-entries-sort-handle]",
+      group: "bookshelf-transfer",
+      handle: "[data-bookshelf-entries-sort-handle]",
       draggable: "[data-bookshelf-entry-id]",
       filter: "a, button:not([data-bookshelf-cover]), input, select, textarea, summary, details, form, dialog",
       preventOnFilter: false,
       onStart: (event) => this.startDragging(event),
       onAdd: (event) => this.moveEntry(event),
-      onEnd: (event) => this.reorderWithinShelf(event)
+      onEnd: (event) => this.finishDragging(event)
     })
   }
 
-  toggleEntrySelection(event) {
-    event?.stopPropagation()
+  syncMode() {
+    const selecting = this.organizeValue || !this.desktopQuery.matches
+    this.selectionList = selecting ? this.listTarget : null
+    this.syncSortables()
+    this.selectionBarTarget.classList.toggle("hidden", !selecting)
+    this.element.classList.toggle("pb-32", selecting)
+
+    this.selectionCheckboxWrapperTargets.forEach((wrapper) => {
+      wrapper.classList.toggle("hidden", !selecting)
+      wrapper.classList.toggle("inline-flex", selecting)
+    })
+    this.entryTargets.forEach((entry) => {
+      const cover = entry.querySelector("[data-bookshelf-cover]")
+      cover.classList.toggle("md:cursor-grab", !selecting)
+      if (selecting) {
+        cover.removeAttribute("aria-haspopup")
+      } else {
+        cover.setAttribute("aria-haspopup", "dialog")
+        cover.removeAttribute("aria-pressed")
+      }
+    })
+    this.clearSelection()
+  }
+
+  selectFromCover(event) {
+    if (!this.selectionList) return
+
+    event.stopImmediatePropagation()
+    const entry = event.currentTarget.closest("[data-bookshelf-entry-id]")
+    if (entry.parentElement !== this.selectionList) return
+
+    const checkbox = this.checkboxForEntry(entry)
+    checkbox.checked = !checkbox.checked
     this.syncSelection()
   }
 
@@ -123,11 +156,6 @@ export default class extends Controller {
 
   syncSelection() {
     const selectedIds = this.selectedEntryIds()
-    const mobile = !this.desktopTransfer()
-
-    if (this.hasSelectionBarTarget) {
-      this.selectionBarTarget.classList.toggle("hidden", !mobile)
-    }
 
     if (this.hasSelectedCountTarget) {
       this.selectedCountTarget.textContent = selectedIds.length
@@ -152,22 +180,15 @@ export default class extends Controller {
         : this.removeConfirmationValue
     }
 
-    if (!mobile || selectedIds.length === 0) {
+    if (selectedIds.length === 0) {
       this.closeMovePanel()
     }
 
-    this.selectionCheckboxWrapperTargets.forEach((wrapper) => {
-      wrapper.classList.toggle("hidden", !mobile)
-      wrapper.classList.toggle("inline-flex", mobile)
-    })
-
     this.entryTargets.forEach((entry) => {
-      const checkbox = this.checkboxForEntry(entry)
-      const selected = mobile && checkbox?.checked
-
-      if (!checkbox) {
-        this.clearEntrySelectionStyle(entry)
-        return
+      const selectable = entry.parentElement === this.selectionList
+      const selected = selectable && this.checkboxForEntry(entry).checked
+      if (selectable) {
+        entry.querySelector("[data-bookshelf-cover]").setAttribute("aria-pressed", selected)
       }
 
       entry.classList.toggle("bg-stone-50", selected)
@@ -183,7 +204,7 @@ export default class extends Controller {
   }
 
   dragoverAppend(event) {
-    if (!this.draggingEntryId) return
+    if (this.selectionList || !this.draggingEntryId) return
 
     event.preventDefault()
   }
@@ -192,7 +213,7 @@ export default class extends Controller {
     event.preventDefault()
 
     const targetBookshelfId = event.currentTarget.dataset.bookshelfTransferBookshelfId
-    if (!this.draggingEntryId || !targetBookshelfId) return
+    if (this.selectionList || !this.draggingEntryId || !targetBookshelfId) return
     if (this.draggedFromBookshelfId === targetBookshelfId) return
 
     await this.move(this.draggingEntryId, targetBookshelfId, null)
@@ -244,7 +265,8 @@ export default class extends Controller {
     }
   }
 
-  async reorderWithinShelf(event) {
+  async finishDragging(event) {
+    this.draggingEntryId = null
     if (event.from !== event.to) return
 
     const bookshelfId = event.to.dataset.bookshelfTransferBookshelfId
@@ -293,12 +315,9 @@ export default class extends Controller {
     return previousIds.every((id, index) => id === currentIds[index])
   }
 
-  selectedCheckboxes() {
-    return Array.from(this.element.querySelectorAll("input[name^='transfer_selection_']:checked"))
-  }
-
   selectedEntryIds() {
-    return this.selectedCheckboxes().map((checkbox) => checkbox.value)
+    const checked = this.selectionList?.querySelectorAll("input[name^='transfer_selection_']:checked")
+    return Array.from(checked ?? [], (checkbox) => checkbox.value)
   }
 
   hiddenEntryIdInput(id) {
@@ -313,31 +332,18 @@ export default class extends Controller {
     return entry.querySelector("input[name^='transfer_selection_']")
   }
 
-  clearEntrySelectionStyle(entry) {
-    entry.classList.remove("bg-stone-50", "ring-2", "ring-stone-900")
-  }
-
-  resetForBreakpoint() {
-    this.clearSelection()
-    this.syncSortables()
-  }
-
   syncSortables() {
-    if (this.desktopTransfer()) {
-      if (this.sortableMode === "desktop") return
-
+    if (this.selectionList) {
       this.destroySortables()
+    } else if (this.sortables.length === 0) {
       this.sortables = this.listTargets.map((list) => this.createSortable(list))
-      this.sortableMode = "desktop"
-    } else {
-      this.destroySortables()
     }
   }
 
   destroySortables() {
+    this.draggingEntryId = null
     this.sortables?.forEach((sortable) => sortable.destroy())
     this.sortables = []
-    this.sortableMode = null
   }
 
   addBreakpointListener() {
@@ -356,10 +362,6 @@ export default class extends Controller {
     } else {
       this.desktopQuery.removeListener(this.handleBreakpointChange)
     }
-  }
-
-  desktopTransfer() {
-    return this.desktopQuery?.matches ?? window.matchMedia("(min-width: 768px)").matches
   }
 
   csrfToken() {
