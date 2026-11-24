@@ -11,6 +11,14 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
   before { login_as user, scope: :user }
   after { Warden.test_reset! }
 
+  def find_connected_transfer
+    find("[data-controller~='bookshelf-transfer']") do |element|
+      page.evaluate_script(<<~JS, element)
+        !!window.Stimulus?.getControllerForElementAndIdentifier(arguments[0], "bookshelf-transfer")
+      JS
+    end
+  end
+
   it "selects books on the shelf and moves them through the bottom sheet without losing selection on cancel" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 700 ]
     page.driver.browser.manage.window.resize_to(390, 700)
@@ -120,14 +128,15 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
     %w[validation network].each do |failure|
       visit transfer_user_library_path(user, source_bookshelf_id: first_entry.bookshelf_id, target_bookshelf_id: target_shelf.id)
       expect(page).to have_css("[data-bookshelf-transfer-list-role='source'] [data-bookshelf-entry-id]", count: 2)
+      transfer = find_connected_transfer
       page.execute_script(<<~JS)
         window.bookshelfFailureMarker = true
         if ("#{failure}" === "network") window.fetch = () => Promise.reject(new TypeError("Offline"))
       JS
       message = failure == "validation" ? I18n.t("errors.messages.invalid") : I18n.t("bookshelf_entries.alerts.move_failed")
       accept_alert(message) do
-        page.execute_script(<<~JS)
-          const element = document.querySelector('[data-controller="bookshelf-transfer"]')
+        page.execute_script(<<~JS, transfer)
+          const element = arguments[0]
           const target = element.querySelector('[data-bookshelf-transfer-list-role="target"]')
           target.append(element.querySelector('[data-bookshelf-entry-id="#{first_entry.id}"]'))
           window.Stimulus.getControllerForElementAndIdentifier(element, "bookshelf-transfer")
@@ -147,13 +156,14 @@ RSpec.describe "Bookshelf transfer on mobile", type: :system do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 1280, 900 ]
     visit transfer_user_library_path(user, source_bookshelf_id: first_entry.bookshelf_id, target_bookshelf_id: target_shelf.id)
     expect(page).to have_css("[data-bookshelf-transfer-list-role='source'] [data-bookshelf-entry-id]", count: 2)
+    transfer = find_connected_transfer
     page.execute_script(<<~JS)
       window.bookshelfFailureMarker = true
       window.fetch = () => Promise.reject(new TypeError("Offline"))
     JS
     accept_alert(I18n.t("bookshelf_entries.alerts.reorder_failed")) do
-      page.execute_script(<<~JS)
-        const element = document.querySelector('[data-controller="bookshelf-transfer"]')
+      page.execute_script(<<~JS, transfer)
+        const element = arguments[0]
         const list = element.querySelector('[data-bookshelf-transfer-list-role="source"]')
         Array.from(list.children).reverse().forEach(entry => list.append(entry))
         window.Stimulus.getControllerForElementAndIdentifier(element, "bookshelf-transfer")
