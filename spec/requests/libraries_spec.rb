@@ -162,25 +162,30 @@ RSpec.describe "Libraries", type: :request do
       get user_library_path(viewer, bookshelf_id: first.id, sort: "title")
 
       document = Nokogiri::HTML(response.body)
-      second_tab = document.css("a").find { |link| link.text.include?(second.name) }
+      second_tab = document.css('[data-horizontal-scroll-target="scroller"] a').find { |link| link.text.include?(second.name) }
       sort_form = document.at_css(%(form[action="#{user_library_path(viewer)}"]))
 
       expect(second_tab["href"]).to eq(user_library_path(viewer, bookshelf_id: second.id, sort: "title"))
       expect(sort_form).to be_present
     end
 
-    it "renders a mobile bookshelf switch select without move controls" do
-      first = viewer.bookshelves.create!(name: "MOBILE_SELECT_FIRST")
-      second = viewer.bookshelves.create!(name: "MOBILE_SELECT_SECOND")
+    it "renders a colored mobile bookshelf picker without move controls" do
+      first = viewer.bookshelves.create!(name: "MOBILE_SELECT_FIRST", color_key: "blue")
+      second = viewer.bookshelves.create!(name: "MOBILE_SELECT_SECOND", color_key: "red")
       sign_in viewer
 
       get user_library_path(viewer, bookshelf_id: first.id, sort: "title")
 
       document = Nokogiri::HTML(response.body)
-      mobile_select = document.at_css(%(select[data-library-mobile-bookshelf-select="true"][name="bookshelf_id"]))
+      picker = document.at_css("details[data-library-mobile-bookshelf-picker]")
+      summary = picker.at_css("summary")
 
-      expect(mobile_select).to be_present
-      expect(mobile_select.at_css(%(option[value="#{second.id}"]))).to be_present
+      expect(summary.text.squish).to eq("#{first.name} (0)")
+      expect(summary["class"].split).to include("border-blue-200", "bg-blue-50")
+      expect(picker.at_css('a[aria-current="page"]')["href"]).to eq(user_library_path(viewer, bookshelf_id: first.id, sort: "title"))
+      second_link = picker.at_css(%(a[href="#{user_library_path(viewer, bookshelf_id: second.id, sort: "title")}"]))
+      expect(second_link["class"].split).to include("border-red-200", "bg-red-50")
+      expect(second_link.at_css('span.bg-red-600[aria-hidden="true"]')).to be_present
       expect(document.at_css(%(form[action="#{bulk_move_bookshelf_entries_path}"]))).to be_nil
       expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
     end
@@ -201,6 +206,9 @@ RSpec.describe "Libraries", type: :request do
       form = controller.at_css(%([data-bookshelf-management-modal-target="createPanel"] form[action="#{bookshelves_path}"]))
       expect(form).to be_present
       expect(form.at_css('input[name="return_to"][value="library"]')).to be_present
+      visibility_radios = form.css('input[type="radio"][name="bookshelf[visibility]"]')
+      expect(visibility_radios.map { |radio| radio["value"] }).to eq(%w[public book_friends private])
+      expect(visibility_radios.select { |radio| radio.has_attribute?("checked") }.map { |radio| radio["value"] }).to eq([ "public" ])
     end
 
     it "renders desktop scroll controls hidden until overflow is measured" do
@@ -219,25 +227,44 @@ RSpec.describe "Libraries", type: :request do
       expect(controller.at_css('[data-horizontal-scroll-target="scroller"]')["data-action"]).to eq("scroll->horizontal-scroll#updateControls")
     end
 
-    it "renders detail view by default" do
-      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_DETAIL_SHELF")
-      entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_DETAIL_BOOK")
+    it "renders covers as direct sortable entries and links to the book from the information dialog" do
+      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_SHELF")
+      entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_SHELF_BOOK")
       sign_in viewer
 
-      get user_library_path(viewer, bookshelf_id: bookshelf.id)
+      library_path = user_library_path(viewer, bookshelf_id: bookshelf.id)
+      get library_path
 
       document = Nokogiri::HTML(response.body)
-      detail_card = document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="detail"]))
+      card = document.at_css(%([data-bookshelf-entries-sort-target="list"] > article[data-bookshelf-entry-id="#{entry.id}"]))
+      cover = card.at_css("button[data-bookshelf-cover]")
+      dialog = card.at_css("dialog")
       move_form = document.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))
 
-      expect(detail_card).to be_present
-      expect(detail_card.has_attribute?("data-bookshelf-entries-sort-handle")).to be(true)
-      expect(detail_card["draggable"]).to be_nil
-      expect(detail_card["data-action"]).to be_nil
+      expect(card.has_attribute?("data-bookshelf-entries-sort-handle")).to be(true)
+      expect(card["draggable"]).to be_nil
+      expect(cover["aria-controls"]).to eq(dialog["id"])
+      expect(dialog.has_attribute?("open")).to be(false)
+      expect(dialog.css("a").map { |link| [ link.text, link["href"] ] }).to eq([
+        [ I18n.t("bookshelf_entries.actions.details"), book_path(entry.book, return_to: library_path, tab: "reading") ]
+      ])
       expect(move_form).to be_nil
     end
 
-    it "keeps detail view even when compact view is requested" do
+    it "renders an empty shelf and its notice when there are no books" do
+      sign_in viewer
+
+      get user_library_path(viewer)
+
+      expect(response).to have_http_status(:ok)
+      document = Nokogiri::HTML(response.body)
+      shelf = document.at_css("#library-bookshelves .bookshelf-shelf")
+      expect(shelf).to be_present
+      expect(shelf.element_children).to be_empty
+      expect(document.text).to include(I18n.t("users.profile.empty_bookshelf"))
+    end
+
+    it "keeps the shelf view even when compact view is requested" do
       bookshelf = viewer.bookshelves.create!(name: "LIBRARY_COMPACT_SHELF")
       entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "LIBRARY_COMPACT_BOOK")
       sign_in viewer
@@ -246,8 +273,7 @@ RSpec.describe "Libraries", type: :request do
 
       document = Nokogiri::HTML(response.body)
 
-      expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="detail"]))).to be_present
-      expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"][data-bookshelf-entry-view="compact"]))).to be_nil
+      expect(document.at_css(%(article[data-bookshelf-entry-id="#{entry.id}"] button[data-bookshelf-cover]))).to be_present
     end
 
     it "does not render a view mode toggle on the library screen" do

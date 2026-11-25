@@ -23,13 +23,21 @@ class Users::LibrariesController < ApplicationController
   private
 
   def prepare_bookshelf_transfer
+    @organizing_bookshelf = params[:mode] == "organize"
     @profile_bookshelves = current_user.bookshelves.default_first.to_a
-    return redirect_to user_library_path(@user), alert: t("users.library.transfer.not_enough_bookshelves") if @profile_bookshelves.size < 2
+    required_shelves = @organizing_bookshelf ? 1 : 2
+    if @profile_bookshelves.size < required_shelves
+      return redirect_to user_library_path(@user), alert: t("users.library.transfer.not_enough_bookshelves")
+    end
 
     @profile_bookshelf_entry_counts = current_user.bookshelf_entries.group(:bookshelf_id).count
-    @source_bookshelf, @target_bookshelf = transfer_bookshelf_pair(@profile_bookshelves)
+    if @organizing_bookshelf
+      @source_bookshelf = transfer_source_bookshelf(@profile_bookshelves)
+    else
+      @source_bookshelf, @target_bookshelf = transfer_bookshelf_pair(@profile_bookshelves)
+      @target_bookshelf_entries = current_user.bookshelf_entries.where(bookshelf: @target_bookshelf).profile_sorted("manual")
+    end
     @source_bookshelf_entries = current_user.bookshelf_entries.where(bookshelf: @source_bookshelf).profile_sorted("manual")
-    @target_bookshelf_entries = current_user.bookshelf_entries.where(bookshelf: @target_bookshelf).profile_sorted("manual")
   end
 
   def transfer_bookshelf_pair(bookshelves)
@@ -67,6 +75,10 @@ class Users::LibrariesController < ApplicationController
   end
 
   def transfer_path_for(source_bookshelf:, target_bookshelf:, changed:)
+    if @organizing_bookshelf
+      return transfer_user_library_path(@user, mode: "organize", source_bookshelf_id: source_bookshelf.id)
+    end
+
     transfer_user_library_path(
       @user,
       source_bookshelf_id: source_bookshelf.id,

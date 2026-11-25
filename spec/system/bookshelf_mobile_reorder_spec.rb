@@ -20,6 +20,16 @@ RSpec.describe "Mobile bookshelf ordering", type: :system do
     all("[data-bookshelf-entries-sort-target='list'] > [data-bookshelf-entry-id]").map { |card| card["data-bookshelf-entry-id"].to_i }
   end
 
+  def start_mobile_reorder
+    find_button(I18n.t("users.profile.bookshelf_sort.reorder_start")) do |button|
+      page.evaluate_script(<<~JS, button)
+        !!window.Stimulus?.getControllerForElementAndIdentifier(
+          arguments[0].closest("[data-controller~='bookshelf-entries-sort']"), "bookshelf-entries-sort"
+        )
+      JS
+    end.click
+  end
+
   it "cancels draft moves or applies their final order once while keeping desktop drag handles" do
     visit user_library_path(owner, sort: "manual")
     page.execute_script(<<~JS)
@@ -34,7 +44,7 @@ RSpec.describe "Mobile bookshelf ordering", type: :system do
     expect(visible_entry_ids).to eq([ first_entry.id, second_entry.id, third_entry.id ])
     expect(page).to have_button(I18n.t("users.profile.bookshelf_sort.reorder_start"))
     expect(page).to have_no_css("[data-bookshelf-entries-sort-target='controls']", visible: true)
-    click_button I18n.t("users.profile.bookshelf_sort.reorder_start")
+    start_mobile_reorder
 
     expect(page).to have_css("[data-bookshelf-entries-sort-target='editingStatus']", visible: true, text: I18n.t("users.profile.bookshelf_sort.reorder_editing"))
     expect(page).to have_css("[data-bookshelf-entries-sort-target='actionBar']", visible: true)
@@ -56,7 +66,7 @@ RSpec.describe "Mobile bookshelf ordering", type: :system do
       enable_aria_label: true
     )
     expect(page).to have_button(I18n.t("users.profile.bookshelf_sort.move_down", title: third_entry.book.title), disabled: true, enable_aria_label: true)
-    expect(page).to have_link(first_entry.book.title)
+    expect(page).to have_button(first_entry.book.title, enable_aria_label: true)
     expect(page.evaluate_script("getComputedStyle(document.querySelector('[data-bookshelf-entries-sort-target=controls]')).position")).to eq("absolute")
 
     click_button I18n.t("users.profile.bookshelf_sort.move_down", title: first_entry.book.title), enable_aria_label: true
@@ -124,7 +134,7 @@ RSpec.describe "Mobile bookshelf ordering", type: :system do
           return originalFetch.apply(window, args).then(() => { throw new TypeError("Response lost") })
         }
       JS
-      click_button I18n.t("users.profile.bookshelf_sort.reorder_start")
+      start_mobile_reorder
       click_button I18n.t("users.profile.bookshelf_sort.move_down", title: first_entry.book.title), enable_aria_label: true
       accept_alert(I18n.t("bookshelf_entries.alerts.reorder_failed")) do
         click_button I18n.t("users.profile.bookshelf_sort.reorder_apply")

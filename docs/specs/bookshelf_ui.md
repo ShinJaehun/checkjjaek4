@@ -12,7 +12,7 @@ Bookshelf UI는 사용자가 Library 화면에서 책장을 확인하고 관리�
 - 상태/스티커 노출 정책
 - 새 책 서재 담기 시 대상 책장 선택 UI
 - Book 상세 라디오 배지 모달 기반 책 이동
-- 책장 이동 모드
+- 책장 관리 화면
 - 일반 책장 생성 UI
 - 일반 책장 수정/삭제 UI
 - 책장 `color_key` 표시와 선택
@@ -38,7 +38,7 @@ Bookshelf의 데이터 모델, 기본 책장, visibility, BookshelfEntry 인바�
 9. 본인은 일반 책장의 이름/visibility를 수정하고 빈 일반 책장을 삭제할 수 있다.
 10. 본인은 일반 책장 생성/수정 시 제한된 `color_key`를 선택할 수 있다.
 11. 본인은 Library 화면 안에서 일반 책장 순서를 위/아래 버튼으로 변경할 수 있다.
-12. 본인은 책장 이동 모드에서 SortableJS group 기반 Drag and Drop으로 책을 다른 내 책장으로 이동할 수 있다.
+12. 본인은 서재 상단의 `책 옮기기`와 `여러 권 정리`에서 현재 책장의 작업을 시작할 수 있다.
 
 아래 기능은 이 문서에 계속 누적하지 않고, 필요하면 별도 spec 문서 또는 해당 브랜치에서 구체화한다.
 
@@ -69,13 +69,13 @@ Bookshelf의 데이터 모델, 기본 책장, visibility, BookshelfEntry 인바�
 - 접근 가능한 Bookshelf만 탭으로 표시한다.
 - 선택된 책장의 BookshelfEntry만 목록에 표시한다.
 - 책장 탭에는 책장 이름과 책 개수를 표시한다.
-- 기본 Library의 작은 화면에서는 책장 탭 대신 책장 전환 select/dropdown으로 현재 보는 책장을 바꾼다.
-- 이 select/dropdown은 책장 간 이동이 아니라 현재 Library에서 볼 책장을 바꾸는 탐색 UI다.
+- 기본 Library의 작은 화면에서는 접이식 책장 선택기로 현재 볼 책장을 바꾼다. 닫힌 상태에 현재 책장의 이름, 책 수, 색상을 표시한다.
+- 펼친 목록은 PC 책장 탭의 `color_key` 스타일을 재사용하고, 색상 표시자와 테두리·배경을 사용한다. 현재 책장은 체크 표시와 `aria-current`로 구분한다.
+- 펼침 버튼과 책장 링크는 키보드와 스크린리더로 조작할 수 있다. 책장 링크는 현재 정렬을 유지한다.
 - 책장 탭에는 접근 가능한 책장의 `color_key`를 시각적으로 반영한다.
 - 책장이 많아지면 한 줄 tab/index를 유지하고 horizontal scroll과 좌우 이동 버튼으로 탐색한다.
 - PC 좌우 버튼은 탭 영역이 실제로 가로로 넘칠 때만 표시하고, 왼쪽/오른쪽 끝에서는 해당 방향 버튼을 비활성화한다. 넘치지 않으면 버튼과 버튼용 여백을 남기지 않는다.
 - 탭 개수·화면 크기 변경과 Turbo 페이지 이동 후에도 overflow와 버튼 상태를 다시 계산한다.
-- 작은 화면의 기본 Library에서는 tab/index 대신 책장 전환 select/dropdown을 사용한다.
 - 긴 책장명은 비선택 tab에서는 ellipsis로 줄이고, 선택된 tab에서는 전체 이름을 노출한다.
 - 선택된 tab은 화면 안으로 자동 가시화한다.
 - 선택된 탭은 색상뿐 아니라 border, font-weight 등으로 명확히 표시한다.
@@ -195,7 +195,7 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 본인은 자신의 BookshelfEntry를 다른 내 책장으로 이동할 수 있다.
 
 - Library 책 카드에는 책장 이동 select/form을 표시하지 않는다.
-- 책장 간 이동은 기본 Library가 아니라 `/users/:user_id/library/transfer` 책장 이동 모드에서 Drag and Drop으로 처리한다.
+- 책장 간 이동은 `/users/:user_id/library/transfer` 책장 관리 화면에서 제공한다. PC 일반 모드에서는 Drag and Drop으로 이동할 수 있다.
 - Book 상세 화면에서 현재 사용자의 해당 책 BookshelfEntry가 있으면 현재 책장 이름을 보여주고, 책장이 2개 이상일 때 책장 이동 버튼으로 라디오 배지 모달을 열어 옮길 수 있다.
 - 이동 모달의 라디오 배지에는 자신의 Bookshelf만 표시한다.
 - 현재 책장이 기본 선택값이다.
@@ -243,15 +243,15 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 책은 한 번에 하나의 책장에만 속한다.
 기본 책장인 “내 책장”도 이동 대상이 될 수 있다.
 책 이동이 성공하면 원래 책장에서는 해당 책이 사라진다.
-책장 이동 모드에서 이동한 경우에는 transfer 화면의 UI source / target 조합을 유지한다.
+드래그로 단일 이동한 경우에는 관리 화면의 UI source / target 조합을 유지한다.
 
-### 현재 구현: 책장 이동 모드
+### 현재 구현: 책 옮기기와 여러 권 정리
 
-현재 구현은 `/users/:user_id/library/transfer`에서 source 책장 list와 target 책장 list 두 개에만 SortableJS group을 적용하는 책장 이동 모드를 제공한다.
+두 작업은 `/users/:user_id/library/transfer`를 공유한다. `책 옮기기`는 책장이 두 개 이상일 때 사용할 수 있다. `여러 권 정리`는 `mode=organize`로 현재 책장 하나를 열고, 책장이 하나여도 일괄 꺼내기를 제공한다.
 
 구현된 동작:
 
-- self의 책장 이동 모드에서만 책 카드를 책장 간 드래그할 수 있다.
+- PC `책 옮기기` 화면에서 두 책장 목록을 하나의 SortableJS group으로 연결한다. 책장 안의 순서를 바꾸거나 책장 사이로 책을 드래그할 수 있다.
 - 책 카드를 이동 대상 책장 list에 드롭하면 해당 책장으로 이동한다.
 - 이동 대상 책장은 한 번에 하나만 실제 list DOM으로 렌더링한다.
 - 모든 책장 list를 한 번에 DOM에 렌더링하지 않는다.
@@ -259,7 +259,8 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - source와 target이 같아지면 `changed=source|target` 기준으로 사용자가 바꾼 쪽은 유지하고 반대쪽을 다음 책장으로 순환 보정한다.
 - 다음 책장은 책장 정렬 순서 기준으로 순환하며, 마지막 책장 다음은 첫 책장이다.
 - 데스크톱/넓은 화면의 단일 책 이동은 기존 `BookshelfEntriesController#move`와 `PATCH /bookshelf_entries/:id/move`를 사용한다.
-- PC 이동 모드의 두 패널에서 책 카드 우측 상단의 아이콘 버튼으로 책을 꺼낼 수 있다. 버튼은 책 제목을 포함한 접근 가능한 이름과 클릭 영역을 갖고 드래그 필터를 적용한다. 버튼은 이동 모드에서만 표시한다.
+- 기본 Library와 PC `책 옮기기`에서 표지를 누르면 표지·책 정보·상세 보기 링크가 있는 카드가 열린다. 소유자는 카드에서 단일 꺼내기를 확인할 수 있다. 취소하면 카드와 배치가 그대로 남는다.
+- 확인하면 기존 `DELETE /bookshelf_entries/:id`가 표시된 책장에 책이 남아 있는지 확인하고 배치만 제거한다. 독서 기록·상태·스티커는 보존하며 기존 책장 화면으로 돌아간다.
 - Library 카드 안 select 기반 책 이동 fallback은 제공하지 않는다.
 - 책장 인덱스 클릭은 기존 URL 기반 탭 선택 흐름을 유지한다.
 - 이동 대상 책장 list 안 원하는 위치에 드롭하면 해당 위치에 삽입한다.
@@ -276,32 +277,29 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 
 화면 폭별 책장 이동 UX는 다음 기준을 따른다.
 
-- 선택 기반 이동 UI는 기본 Library가 아니라 `/users/:user_id/library/transfer` 책장 이동 모드에만 노출한다.
+- 여러 권을 선택하여 정리하는 도구는 `/users/:user_id/library/transfer`에만 표시한다.
 - 작은 화면은 md 미만, 중간 화면은 md 이상 lg 미만, 큰 화면은 lg 이상으로 본다.
-- 작은 화면에서는 Drag and Drop 대신 선택 기반 책장 이동 UX를 제공한다.
-- 작은 화면에서는 source 책장 하나만 표시한다.
-- 작은 화면에서는 책장 탭 대신 현재 source 책장 이름이 보이는 compact dropdown으로 현재 선택/정리할 책장을 바꾼다.
-- 작은 화면의 target 책장 선택은 하단 action bar의 이동 버튼으로 여는 Bottom Sheet에서 제공하며 현재 source 책장은 대상에서 제외한다.
+- 모바일 `책 옮기기`는 출발 책장 하나와 일괄 이동 도구를 바로 표시한다. 일괄 꺼내기는 `여러 권 정리`에서 제공한다.
+- `여러 권 정리`는 PC와 모바일 모두 현재 책장 하나를 표시하고 선택 상태로 시작한다. PC 책장 탭 또는 모바일 드롭다운으로 정리할 책장을 바꾼다.
+- 선택 도구에서 열리는 기존 대화 상자는 작은 화면에서 Bottom Sheet, 큰 화면에서 가운데 대화 상자로 표시한다. 선택 중인 책장은 이동 대상에서 제외한다.
 - 작은 화면에서는 책장 안 순서 변경 Drag and Drop을 제공하지 않는다.
 - 작은 화면의 책장 간 이동은 selection mode 기반 bulk move로만 제공한다.
-- target panel 동시 표시는 중간/큰 화면 전용이다.
-- 중간/큰 화면에서는 기존 source/target 2-panel Drag and Drop UX를 유지한다.
-- 모바일 진입 즉시 checkbox와 하단 action bar를 표시하고, 일반 Library와 같은 가로형 책 카드에서 선택을 시작한다.
-- checkbox는 카드 오른쪽 상단에 겹쳐 표시하며 표지와 책 정보 영역을 좁히지 않는다.
-- 처음 선택 권수는 0권이며, 책 카드를 여러 권 선택할 수 있다. `선택 해제`는 체크된 책만 비운다.
-- selection mode에서 선택된 카드는 border/ring/background로 구분한다.
-- selection mode에서 카드 영역을 탭하면 선택/해제할 수 있고, 제목 링크는 계속 책 상세로 이동한다.
-- selection mode의 하단 fixed action bar에 선택 권수, 이동 버튼, 선택 해제 버튼을 표시한다. 선택 항목이 없으면 이동 버튼은 비활성화한다.
-- Bottom Sheet 안에서 대상 책장 목록을 스크롤할 수 있고, 닫기·취소·바깥 영역 탭·Escape로 닫아도 선택 상태는 유지한다.
+- 두 책장 패널은 중간/큰 화면의 `책 옮기기`에서만 표시한다.
+- 선택 화면에서는 표지에 체크박스를, 화면 하단에 책장 이름과 선택 수를 표시한다.
+- 처음 선택 권수는 0권이며, 표지나 checkbox를 눌러 책을 선택·해제한다. `선택 해제`는 선택한 책만 비운다.
+- 선택된 책은 표지 주변 테두리로 구분한다.
+- 다른 책장으로 전환하면 선택을 비운다. `선택 모드 종료`를 누르면 현재 책장의 일반 서재로 돌아간다. `책 옮기기`가 모바일 폭에서 PC 폭으로 바뀌면 선택을 비우고 드래그를 활성화한다.
+- 하단 도구의 `선택한 책 정리` 또는 `이동`으로 대화 상자를 연다. 선택 항목이 있어야 열 수 있으며, 닫기·취소·바깥 영역 탭·Escape로 닫아도 선택 상태를 유지한다.
 - 대상 책장 목록 아래의 `책장에서 꺼내기`는 `DELETE /bookshelf_entries/bulk_destroy`로 선택한 배치를 한 번에 제거한다. 서버는 선택한 모든 항목이 본인 소유이며 요청한 출발 책장에 남아 있는지 검증하고 한 트랜잭션에서 처리한다. 성공하면 같은 책장으로 돌아가 선택을 초기화한다.
 - PC와 모바일에서 실행 전 단일 또는 선택 수에 맞는 확인 문구와 독서 상태·스티커 보존 안내를 표시한다. 취소하면 현재 배치와 선택 상태를 유지한다.
+- 단일 꺼내기와 일괄 처리 폼은 서버가 반환한 결과를 표시한다. 처리 결과를 확인할 수 없으면 기본 알림창 확인 후 현재 서버 상태를 다시 읽는다.
 - 제출은 `PATCH /bookshelf_entries/bulk_move`를 사용한다.
 - `bookshelf_entry_ids[]`는 요청 순서를 보존해 처리한다.
 - `target_bookshelf_id`는 반드시 현재 사용자 소유 책장이어야 한다.
 - 다른 사용자의 entry가 섞이면 거부한다.
 - 같은 책장으로 이동하는 entry는 no-op으로 건너뛰고, 이동 가능한 entry만 대상 책장 끝에 순서대로 append한다.
 - 선택 기반 이동은 위치 지정 삽입을 지원하지 않는다.
-- 작은 화면에서 bulk move 성공 후에는 이동한 target 책장을 source로 열어 보여준다.
+- 모바일 `책 옮기기`에서 일괄 이동하면 대상 책장을 열어 보여준다. `여러 권 정리`에서 일괄 이동하거나 꺼내면 현재 책장에 머무르고 선택을 비운다.
 
 - 선택 기반 이동에서 특정 위치 삽입을 지원할지 별도 검토한다.
 
@@ -329,7 +327,7 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - reorder 요청은 owner만 가능하며, 다른 책장/다른 사용자 entry id가 섞이거나 id가 누락되면 실패한다.
 - sort가 `manual`이고 owner 화면일 때 PC의 같은 목록 안 drop은 reorder로 처리한다.
 - 모바일은 책이 2권 이상일 때 책장 헤더의 `순서 변경` 버튼으로 편집 모드를 연다. 편집 중 헤더에는 `순서 변경 중`을 표시하고, 하단 고정 action bar의 `취소` 또는 `적용`으로 닫는다. 마지막 카드 아래 여백에는 모바일 safe area를 반영한다.
-- 위·아래 버튼은 카드 오른쪽에 겹쳐 표시하여 기존 카드 크기와 책 정보 배치를 유지한다. 첫 책의 위 버튼과 마지막 책의 아래 버튼은 비활성화한다.
+- 위·아래 버튼은 표지 오른쪽에 겹쳐 표시한다. 첫 책의 위 버튼과 마지막 책의 아래 버튼은 비활성화한다.
 - 모바일 위·아래 버튼은 화면에서 한 칸씩 이동하며 저장 요청은 보내지 않는다. `취소`는 편집 전 순서를 복원하고, 변경 사항이 없으면 `적용`은 비활성화한다.
 - `적용`은 전체 책 순서를 기존 reorder endpoint로 한 번 저장한다. 저장 중 추가 조작을 막고 실패하면 새로고침해 서버 순서로 복구한다.
 - 비동기 정렬은 저장 성공의 JSON 요청 응답 `204`를 확인한다. 기본 Library와 transfer 목록 모두 실패 응답·통신 오류 시
@@ -342,21 +340,17 @@ follow-only와 stranger는 프로필의 public 책 목록 요약만 볼 수 있�
 - target 책장 list 안 원하는 위치에 놓으면 `before_entry_id` 기반으로 해당 위치에 삽입한다.
 - target 책장 header에 놓으면 `before_entry_id` 없이 target 책장 끝에 append한다.
 - 책장 간 이동은 move endpoint, 같은 책장 안 reorder는 reorder endpoint를 사용한다.
-- PC 기본 Library의 detail 카드와 책장 이동 모드의 compact 카드는 SortableJS drag source로 동작한다.
-- 썸네일과 카드 여백은 drag handle로 동작한다.
-- 책 제목 링크는 클릭 시 책 상세 링크로 동작한다.
-- 버튼, input, select, textarea, form 같은 control 요소는 reorder drag 시작 대상에서 제외한다.
-- reorder handle 밖의 책 카드 drag도 책장 간 이동 DnD 역할을 유지한다.
+- PC 기본 Library의 수동 정렬과 책장 이동 모드에서 책 표지를 드래그할 수 있다. 표지를 클릭하면 책 정보 카드가 열린다.
+- 표지 버튼을 제외한 버튼, input, select, textarea, form 및 열린 정보 카드 내부는 drag 시작 대상에서 제외한다.
 - 본인 Library의 기본 정렬은 `manual`이다.
 - visitor / book_friend 등 타인이 보는 Library의 기본 정렬은 `recent`이다.
 - 제목순, 저자순, 최근 추가순 같은 정렬은 별도 보기 옵션으로 유지할 수 있다.
 - PC 책 순서 DnD는 SortableJS를 사용하고 모바일 기본 Library에서는 비활성화한다.
-- 카드 안의 버튼, input, select, textarea, form 같은 control 요소에서는 drag가 시작되지 않도록 guard한다.
 - 같은 목록 안 drop은 reorder, 다른 책장 list drop은 move가 되도록 이벤트 경계를 분명히 나눈다.
 
 controller 역할은 분리한다.
 
-- `bookshelf_transfer_controller`: 책장 이동 모드에서 source / target 책장 사이의 이동과 list 내부 manual reorder
+- `bookshelf_transfer_controller`: 관리 화면의 공통 선택 모드와 PC 책장 간 이동·목록 순서 변경
 - `bookshelf_entries_sort_controller`: 기본 Library의 단일 list manual reorder
 
 아직 하지 않는 것:
@@ -373,13 +367,16 @@ controller 역할은 분리한다.
 - `sort=manual`에서 owner에게만 PC 순서 변경 handle과 모바일 순서 변경 버튼이 보인다.
 - 순서 변경 후 새로고침해도 같은 순서가 유지된다.
 - `recent`, `title`, `author`, `status` 정렬에서는 순서 변경 handle과 버튼이 숨겨진다.
-- 기본 Library는 detail 카드로 고정되고 detail/compact 전환 UI가 없다.
+- 기본 Library와 책장 이동 모드 모두 표지를 CSS 받침대 위에 배치한다. PC는 폭에 따라 줄바꿈하고 모바일은 2–3열을 사용한다.
 - owner는 책장 이동 모드에 진입할 수 있다.
 - 책장 이동 모드에서 source / target 책장을 각각 바꿀 수 있다.
 - source와 target이 같아지면 사용자가 바꾼 쪽은 유지되고 반대쪽이 다음 책장으로 순환 보정된다.
-- 썸네일과 카드 여백에서는 drag가 시작되고, 제목 링크 클릭은 책 상세로 이동한다.
+- 표지를 클릭하면 표지 또는 공통 대체 표지, 제목·저자·출판사, 독서 상태·스티커가 표시된다. `상세 보기` 버튼으로 책 상세에 진입한다.
+- 같은 책장의 다른 줄로 옮긴 뒤 새로고침해도 저장한 순서와 선반 배치가 유지된다.
 - source 책장 책을 target list로 드래그해 원하는 위치에 삽입할 수 있다.
 - target header에 드롭하면 target 책장 끝에 append된다.
+- 정보 카드에서 단일 꺼내기를 취소하고 다시 확인한다. 소유자에게만 버튼이 표시되며, 확인 후 배치만 제거된다.
+- 서재에서 `책 옮기기`와 `여러 권 정리`를 각각 연다. 모바일 이동, 정리 화면의 일괄 이동·꺼내기 및 실패 안내, 책장 전환·종료 후 선택 초기화와 PC 드래그 재개를 확인한다.
 - drag 중 카드 폭이 책장 전체로 깨지지 않는다.
 - Library 카드 안에는 책장 이동 select/form이 노출되지 않고, Book 상세에서는 단일 선택 배지를 사용하는 책장 이동 모달을 제공한다.
  
@@ -534,7 +531,7 @@ pink
 ### Library UX 색상 원칙
 
 - 책 목록 전체 배경을 강하게 칠하지 않는다.
-- 선택된 책장 tab/index에만 배경색 또는 accent 색을 적용한다.
+- 선택된 PC 책장 tab/index는 진한 accent로 구분한다. 모바일 선택기에서 각 책장의 링크와 색상 표시자에 같은 palette를 사용한다.
 - 책 목록 container에는 같은 색의 border, top border, ring, 또는 아주 옅은 tint만 적용한다.
 - Drag and Drop 대상 list 상태일 때만 임시로 조금 더 강한 배경색을 사용할 수 있다.
 - 책 표지와 충돌할 수 있는 진한 전체 배경색은 피한다.
@@ -586,7 +583,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 
 ## 빈 책장 처리
 
-선택된 책장에 표시할 책이 없으면 빈 상태 문구를 보여준다.
+선택된 책장에 표시할 책이 없으면 상단 프레임·좌우 측판·바닥 선반이 이어진 빈 책장을 렌더링하고 아래에 빈 상태 문구를 보여준다.
 
 기본 문구:
 
@@ -644,25 +641,16 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 
 ---
 
-## Library book card modes
+## 서가형 책 목록과 정보 카드
 
-기본 Library와 책장 이동 모드는 보기 방식을 분리한다.
+기본 Library와 책장 이동 모드는 같은 서가형 책 목록을 사용한다.
 
-- 기본 Library는 detail 카드로 고정한다.
-- 책장 이동 모드는 모바일에서 가로형 detail 배치, md 이상에서 세로형 compact 배치로 고정한다.
-- 보기 모드는 DB, session, 사용자 preference에 저장하지 않는다.
-- 기본 Library에는 detail/compact 전환 UI를 두지 않는다.
-- compact 카드는 책을 빠르게 훑고 책장 간 이동하는 데 집중한다.
-- compact 카드에서도 표지는 충분히 크게 보여주고, 카드 크기와 썸네일 영역은 안정적으로 유지한다.
-- 표지, 제목, 저자, 상태/별점 정도를 중심으로 compact하게 표시한다.
-- detail 카드 제목은 한 줄 truncate로 표시한다.
-- 저자와 출판사는 한 줄 metadata로 표시한다.
-- 프로필·Library·transfer 카드의 스티커는 실제 표시 영역 너비에 맞춰 최대 6개의 아이콘을 표시하고, 공간이 부족할 때 숨겨진 개수와 이름을 제공하는 `+N`으로 요약한다.
-- detail/compact 카드의 스티커는 아이콘 전용 배지로 표시하고 각각 `title`/`aria-label`로 이름을 제공한다.
-- detail/compact 카드 모두 상태와 스티커는 각각 한 줄의 공간을 유지한다. 제목·메타정보·두 줄의 독서 정보는 공통 partial을 사용한다.
-- detail/compact 모두 Library 카드 안에는 책장 이동 select/form을 두지 않는다.
-- 책 카드 안의 버튼, input, select, textarea, form 같은 control 요소는 full-card drag 대상에서 제외한다.
-- 책 제목 링크는 클릭 시 책 상세로 이동한다.
+- 표지 비율을 유지하고 책을 왼쪽부터 6px 간격으로 배치한다. PC는 목록 폭에 따라 열 수를 정하고 모바일은 375px 미만에서 2열, 그 이상에서 3열로 표시한다.
+- 줄마다 CSS 받침대를 표시한다. 표지는 같은 책장 목록의 직계 자식으로 유지해 줄바꿈 때에도 SortableJS가 하나의 순서를 다룬다.
+- 표지를 선택하면 정보 카드에 제목·저자·출판사와 기존 노출 정책을 적용한 `UserBook`의 상태·스티커를 표시한다.
+- 정보 카드의 `상세 보기` 버튼으로 책 상세에 이동한다. 본인의 책은 상세의 `나의 독서` 탭에서 기존 독서 활동 편집을 계속 사용할 수 있다.
+- 공통 partial의 독서 상태·스티커는 각각 한 줄로 표시한다. 스티커는 영역 너비에 맞춰 최대 6개 아이콘을 표시하고, 나머지의 개수와 이름을 `+N` 요약으로 제공한다. 아이콘 이름은 `title`과 `aria-label`로 제공한다.
+- 보기 전환 UI와 책장 이동 select/form은 표시하지 않는다.
 
 후속 검토 후보:
 
@@ -680,7 +668,8 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 - 하나의 `bookshelf-management-modal` Stimulus 범위에서 create/edit panel을 전환한다. modal markup은 페이지 안에 한 번 미리 렌더링한다.
 - create/edit modal shell은 공유하되, form action은 기존 `POST /bookshelves`, `PATCH /bookshelves/:id` 흐름을 재사용한다.
 - edit mode에는 책장 이름, 공개 범위, 색상 수정과 move_up / move_down, 빈 책장 삭제 controls를 함께 둔다.
-- validation 실패 시 실패한 create/edit modal을 다시 열린 상태로 렌더링하고 form errors를 표시한다.
+- create/edit modal의 공개 범위는 짹 작성 폼의 아이콘과 선택·포커스 스타일을 재사용하는 세 개의 라디오 카드로 표시한다. 작은 화면에서는 카드를 세로로 배치한다.
+- validation 실패 시 실패한 create/edit modal을 다시 열린 상태로 렌더링하고 form errors와 제출된 공개 범위 선택을 표시한다.
 - 기존 details 접이식 관리 영역은 제거한다.
 - 책장 tab/index 영역에는 책장 선택 역할만 남긴다.
 - Library 화면 상단은 프로필 card를 재사용하지 않고, 작은 avatar와 “사용자 이름의 서재” header만 둔다.
@@ -744,7 +733,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 5. 다른 사용자의 Bookshelf로 이동할 수 없다.
 6. Library 카드 안에는 책장 이동 select/form이 보이지 않는다.
 7. Book 상세의 책장 이동 모달은 self에게만 보인다.
-8. 책장 이동 모드에서 이동한 경우에는 transfer 화면의 UI source / target 조합을 유지한다.
+8. 책장 관리 화면에서 드래그로 단일 이동한 경우에는 UI source / target 조합을 유지한다.
 
 ### 책장 생성
 
@@ -873,7 +862,7 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
   남은 스티커는 정확한 숨김 개수와 순서를 유지한 이름 목록을 title·aria-label로 제공하는 포커스 가능한 `+N`으로 요약한다.
   공통 card_information의 sticker-overflow Stimulus가 ResizeObserver로 너비 변경과 숨겨진 carousel 페이지의 표시를 감지해 아이콘·요약 너비를 측정한다. JS 적용 전에는 기존 3개 아이콘과 요약을 제공하며, 같은 아이콘을 중복 렌더링하지 않는다.
 - 책 정보 영역은 7rem, 상태·스티커 줄은 각각 1.75rem를 예약한다. 데이터가 없거나 열람 권한이 없어도 줄의 공간은 유지하되 배지·이름은 출력하지 않는다.
-- 가로형 프로필·Library·모바일 transfer 카드는 9rem, md 이상에서 표지가 위에 있는 compact transfer 카드는 16rem로 통일한다.
+- 가로형 프로필 카드는 9rem로 표시한다. Library와 transfer의 서가형 목록과 정보 카드는 위 기준을 따른다.
   내용 개수에 따라 높이가 바뀌지 않으며 스티커는 줄바꿈하거나 잘라서 높이를 맞추지 않는다.
   프로필 carousel과 Library 정렬·DnD·이동 선택의 기존 속성과 동작은 유지한다.
 - 위 목록 외의 책짹은 상태·스티커가 모두 없으면 표시 영역을 만들지 않는다.

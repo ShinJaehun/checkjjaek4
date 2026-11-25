@@ -18,4 +18,21 @@ RSpec.configure do |config|
   config.infer_spec_type_from_file_location!
   config.filter_rails_from_backtrace!
   config.include Devise::Test::IntegrationHelpers, type: :request
+
+  # Chrome rejects the wildcard origin in Capybara's storage reset.
+  config.prepend_after(:example, type: :system) do
+    # Read Capybara's existing state without creating a session or driver.
+    session_key = "#{Capybara.current_driver}:#{Capybara.session_name}:#{Capybara.app.object_id}"
+    session = Capybara.send(:session_pool).fetch(session_key, nil)
+    driver = session&.instance_variable_get(:@driver)
+    next unless driver.is_a?(Capybara::Selenium::Driver) && driver.options[:browser] == :chrome
+
+    # Report server errors before quit clears them and Rails resets the sessions.
+    begin
+      session.server&.wait_for_pending_requests
+      session.raise_server_error!
+    ensure
+      session.quit
+    end
+  end
 end

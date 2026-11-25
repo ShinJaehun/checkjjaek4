@@ -1211,6 +1211,46 @@ RSpec.describe "BookshelfEntries", type: :request do
     expect(target_bookshelf.bookshelf_entries).to be_empty
   end
 
+  it "rejects a stale information card and removes only from the book's current shelf" do
+    source_bookshelf = user.default_bookshelf
+    target_bookshelf = user.bookshelves.create!(name: "Target panel")
+    entry = user.bookshelf_entries.create!(book: Book.create!(title: "Card book"), bookshelf: target_bookshelf)
+    transfer_params = {
+      return_to: "library_transfer", source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: target_bookshelf.id
+    }
+    sign_in user
+    # Establish the session before the stale DELETE raises and skips the session commit.
+    transfer_path = transfer_user_library_path(user, source_bookshelf_id: source_bookshelf.id, target_bookshelf_id: target_bookshelf.id)
+    get transfer_path
+    expect(response).to have_http_status(:ok)
+
+    delete bookshelf_entry_path(entry), params: { **transfer_params, bookshelf_id: source_bookshelf.id }
+
+    expect(response).to have_http_status(:not_found)
+    expect(entry.reload.bookshelf).to eq(target_bookshelf)
+
+    delete bookshelf_entry_path(entry), params: { **transfer_params, bookshelf_id: target_bookshelf.id }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(transfer_path)
+    expect(flash[:notice]).to eq(I18n.t("bookshelf_entries.notices.destroyed"))
+    expect(BookshelfEntry.exists?(entry.id)).to be(false)
+    expect(entry.user_book.reload).to be_persisted
+  end
+
+  it "reports a failed information-card removal and returns to the same library shelf and sort" do
+    entry = user.bookshelf_entries.find_by!(book: user_book)
+    allow_any_instance_of(BookshelfEntry).to receive(:destroy!).and_raise(ActiveRecord::RecordNotDestroyed)
+    sign_in user
+
+    delete bookshelf_entry_path(entry), params: { return_to: "library", bookshelf_id: entry.bookshelf_id, sort: "title" }
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(user_library_path(user, bookshelf_id: entry.bookshelf_id, sort: "title"))
+    expect(flash[:alert]).to eq(I18n.t("bookshelf_entries.alerts.destroy_failed"))
+    expect(entry.reload.user_book.status).to eq("reading")
+  end
+
   it "removes selected placements together and returns to the same transfer shelves" do
     entry = user.bookshelf_entries.find_by!(book: user_book)
     second_entry = user.bookshelf_entries.create!(book: Book.create!(title: "Second selected book"))
@@ -1262,7 +1302,7 @@ RSpec.describe "BookshelfEntries", type: :request do
     end
   end
 
-  it "restores already removed placements and their activity links if bulk removal fails" do
+  it "returns to the organizer and restores placements and activity links if bulk removal fails" do
     first_entry = user.bookshelf_entries.find_by!(book: user_book)
     second_entry = user.bookshelf_entries.create!(book: Book.create!(title: "Second rollback book"))
     activity = first_entry.book_activities.create!(user:, book: user_book, action: :added_to_shelf)
@@ -1277,12 +1317,14 @@ RSpec.describe "BookshelfEntries", type: :request do
 
     expect {
       delete bulk_destroy_bookshelf_entries_path, params: {
-        source_bookshelf_id: first_entry.bookshelf_id, bookshelf_entry_ids: [ first_entry.id, second_entry.id ]
+        return_to: "library_organize", source_bookshelf_id: first_entry.bookshelf_id,
+        bookshelf_entry_ids: [ first_entry.id, second_entry.id ]
       }
     }.not_to change(BookshelfEntry, :count)
 
     expect(removed).to eq([ first_entry.id ])
     expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(transfer_user_library_path(user, mode: "organize", source_bookshelf_id: first_entry.bookshelf_id))
     expect(flash[:alert]).to eq(I18n.t("bookshelf_entries.alerts.bulk_destroy_failed"))
     expect(activity.reload.bookshelf_entry_id).to eq(first_entry.id)
     expect(first_entry.bookshelf.bookshelf_entries).to contain_exactly(first_entry, second_entry)

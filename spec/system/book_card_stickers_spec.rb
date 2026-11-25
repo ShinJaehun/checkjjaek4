@@ -25,21 +25,25 @@ RSpec.describe "Responsive book card stickers", type: :system do
   after { Warden.test_reset! }
 
   %i[profile library].each do |location|
-    it "fits icons and exact overflow names in the #{location} card without changing its height" do
+    it "fits icons and exact overflow names without changing the #{location} layout at a fixed viewport width" do
       visit(location == :profile ? user_path(user) : user_library_path(user))
       card = find("[data-bookshelf-entry-id='#{entry.id}']")
+      layout = location == :library ? find(".bookshelf-shelf") : card
+      measure_height = "this.getBoundingClientRect().height"
+      desktop_height = layout.evaluate_script(measure_height)
+      card.find("button[data-bookshelf-cover]").click if location == :library
       row = card.find("[data-reading-stickers-row]")
-      card_height = card.evaluate_script("this.getBoundingClientRect().height")
       information = card.find("[data-book-card-information]")
       height_script = <<~JS
         Array.from(this.querySelectorAll(
-          ':scope > a, :scope > p, [data-reading-status-row], [data-reading-stickers-row]'
+          ':scope > a, :scope > h2, :scope > p, [data-reading-status-row], [data-reading-stickers-row]'
         )).map(element => element.getBoundingClientRect().height)
       JS
       row_heights = information.evaluate_script(height_script)
 
       expect(row).to have_css("[data-reading-sticker]", count: 6)
       expect(row).to have_css("[data-reading-sticker-overflow][title='Sticker 6']", text: "+1")
+      expect(layout.evaluate_script(measure_height)).to eq(desktop_height)
 
       # Resize the measured area without navigating, so ResizeObserver must recalculate.
       page.execute_script("arguments[0].style.width = '76px'", row)
@@ -48,7 +52,7 @@ RSpec.describe "Responsive book card stickers", type: :system do
       expect(summary["title"]).to eq(stickers.drop(2).map(&:name).join(", "))
       expect(summary["aria-label"]).to eq("#{I18n.t('bookshelf_entries.stickers.summary', count: 5)}: #{stickers.drop(2).map(&:name).join(', ')}")
       expect(summary["tabindex"]).to eq("0")
-      expect(card.evaluate_script("this.getBoundingClientRect().height")).to eq(card_height)
+      expect(layout.evaluate_script(measure_height)).to eq(desktop_height)
       expect(information.evaluate_script(height_script)).to eq(row_heights)
 
       page.execute_script("arguments[0].style.removeProperty('width')", row)
@@ -64,13 +68,22 @@ RSpec.describe "Responsive book card stickers", type: :system do
           overflow.evaluate_script("this.getBoundingClientRect().right <= this.parentElement.getBoundingClientRect().right + 0.5")
       end
       expect(row.evaluate_script("this.scrollWidth <= this.clientWidth")).to be(true)
-      expect(card.evaluate_script("this.getBoundingClientRect().height")).to eq(card_height)
+
+      if location == :library
+        open_shelf_height = layout.evaluate_script(measure_height)
+        card.find("dialog[open]").click_button I18n.t("bookshelves.actions.close")
+        expect(card).to have_no_css("dialog[open]")
+        expect(layout.evaluate_script(measure_height)).to eq(open_shelf_height)
+      else
+        expect(layout.evaluate_script(measure_height)).to eq(desktop_height)
+      end
     end
   end
 
   it "shows all six icons without a summary when they fit and adds the summary only when needed" do
     entry.user_book.sticker_definitions.delete(stickers.last)
     visit user_library_path(user)
+    find("[data-bookshelf-entry-id='#{entry.id}'] button[data-bookshelf-cover]").click
     row = find("[data-bookshelf-entry-id='#{entry.id}'] [data-reading-stickers-row]")
 
     expect(row).to have_css("[data-reading-sticker]", count: 6)

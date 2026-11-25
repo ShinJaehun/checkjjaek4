@@ -22,7 +22,7 @@
 
 <% thumbnail_content = capture do %>
   <% if thumbnail.present? %>
-    <%= image_tag thumbnail, alt: title, class: image_class %>
+    <%= image_tag thumbnail, alt: title, class: image_class, loading: local_assigns[:loading] %>
   <% else %>
     <div class="<%= fallback_class %>">
       <div class="flex h-full w-full items-center justify-center px-2 text-center text-[0.7rem] font-medium leading-4 text-stone-400">

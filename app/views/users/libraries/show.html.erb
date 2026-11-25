@@ -39,8 +39,11 @@
                   data-action="book-modal#open"><%= t("book_search.nav") %></button>
           <button type="button" class="ui-button ui-button-secondary" aria-haspopup="dialog" aria-controls="library-bookshelf-management-dialog"
                   data-action="bookshelf-management-modal#openCreate"><%= t("bookshelves.actions.new") %></button>
-          <%= link_to t("bookshelves.form.manage_title"),
+          <%= link_to t("users.library.transfer.title"),
                       transfer_user_library_path(@user, source_bookshelf_id: @selected_bookshelf&.id),
+                      class: "ui-button ui-button-secondary hidden md:inline-flex" %>
+          <%= link_to t("users.library.transfer.organize"),
+                      transfer_user_library_path(@user, mode: "organize", source_bookshelf_id: @selected_bookshelf&.id),
                       class: "ui-button ui-button-secondary" %>
         </div>
       <% end %>
@@ -61,8 +64,7 @@
                  bookshelf_management_modal_mode: @bookshelf_management_modal_mode,
                  bookshelf_order_controls: @profile_bookshelf_order_controls,
                  bookshelf_visibility_options: @profile_bookshelf_visibility_options,
-                 bookshelf_color_options: @profile_bookshelf_color_options,
-                 bookshelf_view: "detail" %>
+                 bookshelf_color_options: @profile_bookshelf_color_options %>
     </section>
   <% end %>
 </section>
