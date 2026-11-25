@@ -2,7 +2,11 @@
   book = bookshelf_entry.book
   title_id = local_assigns[:title_id]
   metadata = [ book.authors_text.presence, book.publisher.presence ].compact.join(" · ").presence
-  stickers = show_status ? bookshelf_entry.user_book.sticker_definitions.to_a : []
+  stickers = if show_status
+    bookshelf_entry.user_book.sticker_definitions.sort_by { |sticker| [sticker.position, sticker.id] }
+  else
+    []
+  end
   extra_names = stickers.drop(6).map { |sticker| reading_sticker_label(sticker) }
   remaining_stickers = stickers.drop(3)
   remaining_names = remaining_stickers.map { |sticker| reading_sticker_label(sticker) }.join(", ")
