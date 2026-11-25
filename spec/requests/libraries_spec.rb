@@ -190,7 +190,7 @@ RSpec.describe "Libraries", type: :request do
       expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
     end
 
-    it "connects both new bookshelf buttons directly to one existing create modal" do
+    it "connects the single new bookshelf menu item to the existing create modal" do
       sign_in viewer
 
       get user_library_path(viewer)
@@ -199,9 +199,10 @@ RSpec.describe "Libraries", type: :request do
       controllers = document.css('[data-controller~="bookshelf-management-modal"]')
       expect(controllers.size).to eq(1)
       controller = controllers.first
-      create_button = controller.at_css('#library-bookshelves button[aria-controls="library-bookshelf-management-dialog"][data-action="bookshelf-management-modal#openCreate"]')
+      create_buttons = controller.css('button[data-action="bookshelf-management-modal#openCreate"]')
+      expect(create_buttons.size).to eq(1)
+      create_button = controller.at_css('[data-library-bookshelf-management] button[aria-controls="library-bookshelf-management-dialog"][data-action="bookshelf-management-modal#openCreate"]')
       expect(create_button.text.squish).to eq(I18n.t("bookshelves.actions.new"))
-      expect(controller.at_css('[data-horizontal-scroll-target="scroller"] button[data-action="bookshelf-management-modal#openCreate"]')).to be_present
       expect(controller.css('[data-bookshelf-management-modal-target="modal"]').size).to eq(1)
       form = controller.at_css(%([data-bookshelf-management-modal-target="createPanel"] form[action="#{bookshelves_path}"]))
       expect(form).to be_present
@@ -289,7 +290,7 @@ RSpec.describe "Libraries", type: :request do
     end
 
     it "shows owner management controls on the library screen" do
-      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_MANAGED_SHELF")
+      bookshelf = viewer.bookshelves.create!(name: "LIBRARY_MANAGED_SHELF", color_key: "yellow")
       second_bookshelf = viewer.bookshelves.create!(name: "LIBRARY_SECOND_MANAGED_SHELF")
       entry = create_bookshelf_entry(user: viewer, bookshelf: bookshelf, book_title: "SELF_LIBRARY_MOVABLE_BOOK")
       sign_in viewer
@@ -304,9 +305,21 @@ RSpec.describe "Libraries", type: :request do
       expect(response.body).to include(second_bookshelf.name)
       expect(response.body).to include('name="return_to"')
       expect(response.body).to include('value="library"')
-      expect(document.at_css('header button[data-action="bookshelf-management-modal#openEdit"]')).to be_present
+      edit_buttons = document.css('button[data-action="bookshelf-management-modal#openEdit"]')
+      expect(edit_buttons.size).to eq(1)
+      expect(document.at_css('[data-library-bookshelf-management] button[aria-controls="library-bookshelf-management-dialog"][data-action="bookshelf-management-modal#openEdit"]')).to be_present
       expect(document.at_css(%([data-bookshelf-management-modal-target="editPanel"] form[action="#{bookshelf_path(bookshelf)}"]))).to be_present
       expect(document.at_css(%(form[action="#{move_bookshelf_entry_path(entry)}"]))).to be_nil
+      shelf_panel = document.at_css(".bookshelf-shelf").ancestors("section").first
+      expect(shelf_panel["class"].split).to include("border", "border-yellow-600", "shadow-sm")
+      expect(document.at_css('a[data-horizontal-scroll-target="selected"]')["class"].split).to include("border-yellow-600")
+      shelf_header = shelf_panel.at_css("header")
+      expect(shelf_header["class"].split).to include("bg-yellow-50", "px-4", "py-4")
+      expect(shelf_header.at_css("h2").text).to eq(bookshelf.name)
+      expect(shelf_header.at_css("h2 + [data-bookshelf-book-count]").text).to eq(I18n.t("reading_experience.book_count", count: 1))
+      expect(shelf_header.at_css('select[name="sort"]')).to be_present
+      expect(shelf_header.at_css("h2").parent.next_element["data-bookshelf-visibility"]).to eq(bookshelf.visibility)
+      expect(shelf_panel.css("[data-bookshelf-visibility]").size).to eq(1)
 
       get user_library_path(viewer, bookshelf_id: second_bookshelf.id)
 
@@ -329,6 +342,7 @@ RSpec.describe "Libraries", type: :request do
       expect(response.body).not_to include(I18n.t("bookshelf_entries.actions.move"))
       expect(response.body).not_to include('name="return_to"')
       document = Nokogiri::HTML(response.body)
+      expect(document.at_css("[data-library-bookshelf-management]")).to be_nil
       expect(document.css('button[data-action="bookshelf-management-modal#openCreate"]')).to be_empty
       expect(document.css('[data-bookshelf-management-modal-target="modal"]')).to be_empty
     end

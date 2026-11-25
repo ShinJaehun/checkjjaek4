@@ -1319,7 +1319,6 @@ en:
       move_down: "Move right"
       move_up: "Move left"
       new: "New bookshelf"
-      open_create: "Create bookshelf"
       update: "Update bookshelf"
     alerts:
       default_destroy_denied: "The default bookshelf cannot be deleted."
@@ -1337,7 +1336,7 @@ en:
       pink: "Pink"
     form:
       color_key: "Color"
-      edit_title: "Bookshelf settings"
+      edit_title: "Current bookshelf settings"
       manage_title: "Manage bookshelf"
       name: "Bookshelf name"
       name_placeholder: "New bookshelf name"
@@ -1588,10 +1587,7 @@ en:
           status: "Status"
           title: "Title"
         submit: "Sort"
-        reorder_apply: "Apply"
-        reorder_cancel: "Cancel"
-        reorder_editing: "Changing order"
-        reorder_start: "Change order"
+        reorder_keyboard_hint: "In the mobile library, press Shift+Enter to open the reorder controls for this book."
       bookshelf_scroll:
         next: "Next bookshelf"
         previous: "Previous bookshelf"

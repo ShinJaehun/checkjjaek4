@@ -65,6 +65,26 @@ RSpec.describe "Bookshelf card layout", type: :system do
     end
   end
 
+  it "renders the library sort select and submit button at the same height on mobile and desktop" do
+    driven_by :selenium, using: :headless_chrome, screen_size: [ 1280, 900 ]
+    visit user_library_path(user, bookshelf_id: entry.bookshelf_id, sort: "manual")
+
+    [ 390, 1280 ].each do |width|
+      page.current_window.resize_to(width, 900)
+      sort_select = find("#library-bookshelves select[name='sort']")
+      sort_button = sort_select.ancestor("form").find("input[type='submit']")
+      bounds = page.evaluate_script(<<~JS, sort_select, sort_button)
+        Array.from(arguments, control => {
+          const { top, height } = control.getBoundingClientRect()
+          return { top, height }
+        })
+      JS
+
+      expect(bounds.first["height"]).to be > 0
+      expect(bounds.first).to eq(bounds.last), "Sort controls are misaligned at #{width}px: #{bounds.inspect}"
+    end
+  end
+
   it "opens an information card from the cover and reaches the existing reading editor through details" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 900 ]
     page.current_window.resize_to(390, 900)

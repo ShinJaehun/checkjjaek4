@@ -59,7 +59,7 @@ RSpec.describe "User libraries", type: :request do
     end
   end
 
-  it "keeps the library header and links both bookshelf tasks to the selected shelf" do
+  it "keeps the library header and groups bookshelf tasks in one menu for the selected shelf" do
     sign_in user
 
     get user_library_path(user)
@@ -70,26 +70,33 @@ RSpec.describe "User libraries", type: :request do
     expect(header.at_css("img")["class"].split).to include("h-12", "w-12", "shrink-0")
     expect(header.at_css("[data-library-bookshelf-summary]")).to be_nil
     source_id = user.default_bookshelf.id
-    actions = document.at_css("#library-bookshelves").element_children.first
-    expect(actions.css("button, a").map { |control| control.text.squish }).to eq([
-      I18n.t("book_search.nav"), I18n.t("bookshelves.actions.new"),
+    toolbar = document.at_css("[data-library-toolbar]")
+    expect(toolbar.element_children.map(&:name)).to eq(%w[nav div])
+    actions = toolbar.element_children.last
+    expect(actions.element_children.map(&:name)).to eq(%w[button details])
+    menu = actions.at_css("details[data-library-bookshelf-management]")
+    expect(menu.at_css("summary").text.squish).to eq(I18n.t("bookshelves.form.manage_title"))
+    expect(menu.css("button, a").map { |control| control.text.squish }).to eq([
+      I18n.t("bookshelves.actions.new"),
       I18n.t("users.library.transfer.title"), I18n.t("users.library.transfer.organize")
     ])
-    expect(actions.css("a").map { |link| link["href"] }).to eq([
+    expect(menu.css("a").map { |link| link["href"] }).to eq([
       transfer_user_library_path(user, source_bookshelf_id: source_id),
       transfer_user_library_path(user, mode: "organize", source_bookshelf_id: source_id)
     ])
     expect(header.at_css("h1").text).to eq("Reader의 서재")
     expect(header.css("li, [data-bookshelf-visibility]")).to be_empty
     expect(document.at_css('[data-bookshelf-visibility="public"]')).to be_present
-    tabs = document.at_css("[data-library-tabs]")
+    tabs = toolbar.at_css("[data-library-tabs]")
     expect(tabs.at_css('[aria-current="page"]').text).to eq(I18n.t("users.library.tabs.bookshelves"))
-    expect(document.at_css("#library-bookshelves button[aria-controls='global-book-search-dialog']").text.strip).to eq(I18n.t("book_search.nav"))
+    expect(tabs.at_css('span[aria-hidden="true"]').text).to eq("/")
+    expect(actions.at_css("button[aria-controls='global-book-search-dialog']").text.strip).to eq(I18n.t("book_search.nav"))
     expect(document.at_css("#book-notes")).to be_nil
 
     get tabs.at_css("[data-library-notes-link]")["href"]
     document = Nokogiri::HTML(response.body)
     expect(document.at_css('[data-library-notes-link][aria-current="page"]')).to be_present
+    expect(document.at_css("[data-library-toolbar] [data-library-bookshelf-management]")).to be_nil
     expect(document.at_css("#library-bookshelves")).to be_nil
     expect(document.at_css("#book-notes").text).to include(I18n.t("book_notes.empty"))
   end
@@ -148,6 +155,8 @@ RSpec.describe "User libraries", type: :request do
   end
 
   it "renders source and target lists on the transfer screen" do
+    selected_bookshelf.update!(color_key: "yellow", visibility: :book_friends)
+    target_bookshelf.update!(color_key: "blue")
     source_book = Book.create!(title: "Source Book", authors_text: "Source Author")
     source_entry = user.bookshelf_entries.create!(book: source_book, bookshelf: selected_bookshelf)
     sign_in user
@@ -163,6 +172,22 @@ RSpec.describe "User libraries", type: :request do
     expect(response.body).to include(I18n.t("users.library.transfer.target_label"))
     expect(response.body).not_to include("spike")
     expect(document.css(%([data-bookshelf-transfer-target="list"])).size).to eq(2)
+    {
+      source: [ selected_bookshelf, "border-yellow-600", "bg-yellow-50" ],
+      target: [ target_bookshelf, "border-blue-700", "bg-blue-50" ]
+    }.each do |role, (bookshelf, border, header_color)|
+      panel = document.at_css(%([data-bookshelf-transfer-list-role="#{role}"])).ancestors("section").first
+      header = panel.at_css("header")
+      expect(panel["class"].split).to include("border", border, "shadow-sm")
+      expect(header["class"].split).to include(header_color)
+      expect(header.at_css("h2").text).to eq(bookshelf.name)
+      expect(header.at_css("h2 + [data-bookshelf-book-count]").text).to eq(I18n.t("reading_experience.book_count", count: 1))
+      expect(header.at_css("h2").parent.next_element["data-bookshelf-visibility"]).to eq(bookshelf.visibility)
+      expect(header.at_css("form")).to be_nil
+    end
+    append_header = document.at_css('header[data-bookshelf-transfer-target="append"]')
+    expect(append_header["data-bookshelf-transfer-bookshelf-id"]).to eq(target_bookshelf.id.to_s)
+    expect(append_header["data-action"].split).to include("dragover->bookshelf-transfer#dragoverAppend", "drop->bookshelf-transfer#dropOnAppend")
     expect(document.at_css(%([data-controller="bookshelf-transfer"]))).to be_present
     expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
     expect(document.at_css(%([data-bookshelf-transfer-target="selectionBar"]))).to be_present

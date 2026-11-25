@@ -2,155 +2,234 @@ import { Controller } from "@hotwired/stimulus"
 import Sortable from "sortablejs"
 
 export default class extends Controller {
-  static targets = ["actionBar", "applyButton", "bottomSpacer", "cancelButton", "controls", "editingStatus", "list", "modeButton"]
+  static targets = ["controls", "downButton", "list", "selectedStatus", "spacer", "upButton"]
   static values = {
     bookshelfId: Number,
     reorderUrl: String,
-    errorMessage: String
+    errorMessage: String,
+    moveUpLabel: String,
+    moveDownLabel: String
   }
 
   connect() {
-    this.editing = false
-    this.saving = false
     this.desktopQuery = window.matchMedia("(min-width: 768px)")
-    this.handleBreakpointChange = () => this.syncBreakpoint()
-    if (this.desktopQuery.addEventListener) {
-      this.desktopQuery.addEventListener("change", this.handleBreakpointChange)
-    } else {
-      this.desktopQuery.addListener(this.handleBreakpointChange)
-    }
-    this.syncBreakpoint()
+    this.touchQuery = window.matchMedia("(pointer: coarse)")
+    this.useSortable(this.hasControlsTarget && this.touchQuery.matches)
+    this.syncControls()
   }
 
   disconnect() {
-    if (this.desktopQuery.removeEventListener) {
-      this.desktopQuery.removeEventListener("change", this.handleBreakpointChange)
-    } else {
-      this.desktopQuery.removeListener(this.handleBreakpointChange)
-    }
-    this.sortable?.destroy()
+    if (this.dragStartOrder) Sortable.ghost?.remove()
+    this.clearSelection()
+    this.destroySortable()
+    this.dragStartOrder = null
+    this.holdingCover = false
+    this.suppressClickUntil = 0
   }
 
-  syncBreakpoint() {
-    if (this.editing && !this.saving) this.restoreOrder()
-    if (!this.saving) this.editing = false
-    this.syncControls()
+  prepareInput(event) {
+    if (!this.listTarget.contains(event.target) || Sortable.dragged) return
 
-    if (this.desktopQuery.matches) {
-      if (this.sortable) return
+    const touch = event.type === "touchstart" || event.pointerType === "touch"
+    if (!touch && event.sourceCapabilities?.firesTouchEvents) return
+    if (event.type === "mousedown" && this.clickSuppressed()) return
+    if (touch || event.type === "pointerdown") this.suppressClickUntil = 0
+    if (this.saving) return
 
-      this.sortable = Sortable.create(this.listTarget, {
-        animation: 120,
-        handle: "[data-bookshelf-entries-sort-handle]",
-        draggable: "[data-bookshelf-entry-id]",
-        filter: "a, button:not([data-bookshelf-cover]), input, select, textarea, summary, details, form, dialog",
-        preventOnFilter: false,
-        onEnd: (event) => this.handleEnd(event)
-      })
-    } else if (this.sortable) {
-      this.sortable.destroy()
-      this.sortable = null
-    }
+    // Choose on input, not on resize. A phone can be wider than the desktop breakpoint in landscape.
+    const mobile = this.hasControlsTarget && touch && (this.touchInput || this.touchQuery.matches || !this.desktopQuery.matches)
+    this.useSortable(mobile)
   }
 
-  startEditing() {
-    if (this.editing || this.desktopQuery.matches || this.saving) return
+  useSortable(mobile) {
+    if (this.sortable && this.touchInput === mobile) return
 
-    this.initialEntryIds = this.entryIds()
-    this.editing = true
-    this.syncControls()
-  }
+    this.destroySortable()
+    this.touchInput = mobile
+    this.listTarget.toggleAttribute("data-touch-reorder", mobile)
+    if (!mobile && !this.touchQuery.matches) this.clearSelection()
 
-  cancelEditing() {
-    if (!this.editing || this.saving) return
-
-    this.restoreOrder()
-    this.editing = false
-    this.syncControls()
-    this.modeButtonTarget.focus()
-  }
-
-  restoreOrder() {
-    const entriesById = new Map(this.entries().map((entry) => [ entry.dataset.bookshelfEntryId, entry ]))
-    this.initialEntryIds.forEach((id) => this.listTarget.append(entriesById.get(id)))
-  }
-
-  async applyOrder() {
-    if (!this.editing || this.saving || this.desktopQuery.matches || !this.hasChanges()) return
-
-    this.saving = true
-    this.syncControls()
-
-    if (await this.reorder()) {
-      this.saving = false
-      this.editing = false
-      this.syncControls()
-      this.modeButtonTarget.focus()
-    }
-  }
-
-  hasChanges() {
-    if (!this.editing) return false
-
-    const currentIds = this.entryIds()
-    return this.initialEntryIds.some((id, index) => currentIds[index] !== id)
-  }
-
-  syncControls() {
-    if (this.hasModeButtonTarget) {
-      this.modeButtonTarget.classList.toggle("hidden", this.editing)
-      this.editingStatusTarget.classList.toggle("hidden", !this.editing)
-      this.actionBarTarget.classList.toggle("hidden", !this.editing)
-      this.bottomSpacerTarget.classList.toggle("hidden", !this.editing)
-      this.cancelButtonTarget.disabled = this.saving
-      this.applyButtonTarget.disabled = this.saving || !this.hasChanges()
+    const options = mobile ? {
+      handle: "[data-bookshelf-cover]",
+      filter: (event) => event.type !== "touchstart",
+      group: { pull: false, put: false },
+      delay: 350,
+      touchStartThreshold: 5,
+      fallbackTolerance: 4,
+      // Touch events allow a swipe before the hold and cancel scrolling once dragging.
+      supportPointer: false,
+      forceFallback: true,
+      fallbackOnBody: true,
+      chosenClass: "bookshelf-reorder-held",
+      ghostClass: "bookshelf-reorder-placeholder",
+      onChoose: ({ item }) => {
+        this.holdingCover = true
+        this.selectEntry(item)
+      },
+      onUnchoose: () => {
+        if (this.holdingCover) this.suppressClickUntil = performance.now() + 500
+        this.holdingCover = false
+        this.syncControls()
+      }
+    } : {
+      handle: "[data-bookshelf-entries-sort-handle]",
+      filter: (event, _item, sortable) => !this.desktopQuery.matches || !!sortable.closest(event.target,
+        "a, button:not([data-bookshelf-cover]), input, select, textarea, summary, details, form, dialog")
     }
 
-    const entries = this.entries()
-    this.controlsTargets.forEach((controls, index) => {
-      const visible = this.editing && !this.desktopQuery.matches
-      controls.classList.toggle("hidden", !visible)
-      controls.classList.toggle("flex", visible)
-      const [upButton, downButton] = controls.querySelectorAll("button")
-      upButton.disabled = this.saving || index === 0
-      downButton.disabled = this.saving || index === entries.length - 1
+    this.sortable = Sortable.create(this.listTarget, {
+      animation: 120,
+      draggable: "[data-bookshelf-entry-id]",
+      preventOnFilter: false,
+      onStart: () => this.startDrag(),
+      onEnd: (event) => this.endDrag(event),
+      ...options
     })
   }
 
+  destroySortable() {
+    if (!this.sortable) return
+
+    const coverImages = this.sortable.el.querySelectorAll("[data-bookshelf-cover] img")
+    this.sortable.destroy()
+    this.sortable = null
+    // Sortable removes draggable attributes on destroy. Cover images must stay non-draggable.
+    coverImages.forEach((image) => { image.draggable = false })
+  }
+
+  clickSuppressed() {
+    return performance.now() < this.suppressClickUntil
+  }
+
+  handleCoverClick(event) {
+    const pointerClick = event.detail || event.pointerType === "touch" || event.sourceCapabilities?.firesTouchEvents
+    if (pointerClick && this.clickSuppressed()) {
+      this.suppressClickUntil = 0
+      event.stopImmediatePropagation()
+      return
+    }
+    this.clearSelection()
+  }
+
+  selectWithKeyboard(event) {
+    if (!this.hasControlsTarget || (!this.touchInput && !this.touchQuery.matches)) return
+
+    event.preventDefault()
+    if (this.saving || Sortable.dragged) return
+
+    this.selectEntry(event.currentTarget.closest("[data-bookshelf-entry-id]"))
+    this.controlsTarget.querySelector("button:not(:disabled)")?.focus({ preventScroll: true })
+  }
+
+  selectEntry(entry) {
+    this.selectedEntry?.removeAttribute("data-reorder-selected")
+    this.selectedEntry = entry
+    this.selectedEntry?.setAttribute("data-reorder-selected", "")
+    this.syncControls()
+  }
+
+  clearSelection(event) {
+    if (!this.selectedEntry) return
+
+    const cover = this.selectedEntry.querySelector("[data-bookshelf-cover]")
+    this.selectEntry(null)
+    if (event?.type === "keydown" || event?.detail === 0) cover?.focus({ preventScroll: true })
+  }
+
+  preventCoverContextMenu(event) {
+    if (this.touchInput && (this.holdingCover || event.pointerType === "touch")) event.preventDefault()
+  }
+
+  startDrag() {
+    this.dragStartOrder = this.entries()
+    this.dragStartWidth = window.innerWidth
+    if (this.touchInput && Sortable.ghost) Sortable.ghost.inert = true
+    this.syncControls()
+  }
+
+  endDrag(event) {
+    const previousOrder = this.dragStartOrder
+    this.dragStartOrder = null
+    if (!previousOrder) return
+
+    const gesture = event.originalEvent?.type
+    const cancelled = gesture === "pointercancel" || gesture === "touchcancel" || (this.touchInput && gesture !== "touchend")
+    if (cancelled || this.dragStartWidth !== window.innerWidth || event.from !== event.to) {
+      this.restoreOrder(previousOrder)
+    } else if (event.oldIndex !== event.newIndex) {
+      if (this.touchInput) {
+        this.saveMobileOrder(previousOrder)
+        return
+      }
+      this.reorder()
+    }
+    this.syncControls()
+  }
+
+  syncControls() {
+    if (!this.hasControlsTarget) return
+
+    const entries = this.entries()
+    const index = entries.indexOf(this.selectedEntry)
+    this.controlsTarget.classList.toggle("hidden", index < 0)
+    this.spacerTarget.classList.toggle("hidden", index < 0)
+    if (index < 0) return
+
+    const busy = this.saving || this.holdingCover || !!this.dragStartOrder
+    const title = this.selectedEntry.querySelector("[data-bookshelf-cover]").getAttribute("aria-label")
+    this.selectedStatusTarget.textContent = `${title} (${index + 1}/${entries.length})`
+    this.upButtonTarget.setAttribute("aria-label", this.moveUpLabelValue.replace("%{title}", () => title))
+    this.downButtonTarget.setAttribute("aria-label", this.moveDownLabelValue.replace("%{title}", () => title))
+    this.upButtonTarget.disabled = busy || index === 0
+    this.downButtonTarget.disabled = busy || index === entries.length - 1
+  }
+
   moveUp(event) {
-    this.moveEntry(event, -1)
+    this.moveEntry(event.currentTarget, -1)
   }
 
   moveDown(event) {
-    this.moveEntry(event, 1)
+    this.moveEntry(event.currentTarget, 1)
   }
 
-  moveEntry(event, direction) {
-    if (!this.editing || this.saving || this.desktopQuery.matches) return
+  async moveEntry(button, direction) {
+    if (this.saving || Sortable.dragged) return
 
-    const button = event.currentTarget
-    const entry = button.closest("[data-bookshelf-entry-id]")
-    const entries = this.entries()
-    const index = entries.indexOf(entry)
-    const neighbor = entries[index + direction]
-    if (!neighbor) return
+    const previousOrder = this.entries()
+    const entry = this.selectedEntry
+    const index = previousOrder.indexOf(entry)
+    const neighbor = previousOrder[index + direction]
+    if (index < 0 || !neighbor) return
 
     if (direction < 0) {
       this.listTarget.insertBefore(entry, neighbor)
     } else {
       this.listTarget.insertBefore(neighbor, entry)
     }
+    if (await this.saveMobileOrder(previousOrder) && this.selectedEntry === entry) {
+      const nextButton = button.disabled ? this.controlsTarget.querySelector("button:not(:disabled)") : button
+      nextButton?.focus({ preventScroll: true })
+    }
+  }
+
+  async saveMobileOrder(previousOrder) {
+    this.saving = true
+    this.sortable.option("disabled", true)
     this.syncControls()
-    if (!button.disabled) button.focus()
+
+    if (!await this.reorder(previousOrder)) return false
+
+    this.saving = false
+    this.sortable?.option("disabled", false)
+    this.syncControls()
+    return true
   }
 
-  handleEnd(event) {
-    if (event.from !== event.to || event.oldIndex === event.newIndex) return
-
-    this.reorder()
+  restoreOrder(previousOrder) {
+    this.listTarget.append(...previousOrder)
   }
 
-  async reorder() {
+  async reorder(previousOrder) {
     const formData = new FormData()
     formData.append("bookshelf_id", this.bookshelfIdValue)
     this.entryIds().forEach((id) => formData.append("bookshelf_entry_ids[]", id))
@@ -168,6 +247,7 @@ export default class extends Controller {
       if (response.status !== 204) throw new Error("Reorder failed")
       return true
     } catch (_error) {
+      if (previousOrder) this.restoreOrder(previousOrder)
       window.alert(this.errorMessageValue)
       window.location.reload()
       return false
@@ -175,7 +255,7 @@ export default class extends Controller {
   }
 
   entries() {
-    return Array.from(this.listTarget.querySelectorAll("[data-bookshelf-entry-id]"))
+    return Array.from(this.listTarget.children).filter((entry) => entry.dataset.bookshelfEntryId && entry !== Sortable.ghost)
   }
 
   entryIds() {

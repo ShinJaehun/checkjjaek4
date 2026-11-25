@@ -1339,7 +1339,6 @@ ko:
       move_down: "오른쪽으로 이동"
       move_up: "왼쪽으로 이동"
       new: "새 책장"
-      open_create: "새 책장 만들기"
       update: "책장 수정"
     alerts:
       default_destroy_denied: "기본 책장은 삭제할 수 없습니다."
@@ -1357,7 +1356,7 @@ ko:
       pink: "분홍"
     form:
       color_key: "색상"
-      edit_title: "책장 설정"
+      edit_title: "현재 책장 설정"
       manage_title: "책장 관리"
       name: "책장 이름"
       name_placeholder: "새 책장 이름"
@@ -1603,10 +1602,7 @@ ko:
           status: "상태순"
           title: "제목순"
         submit: "정렬"
-        reorder_apply: "적용"
-        reorder_cancel: "취소"
-        reorder_editing: "순서 변경 중"
-        reorder_start: "순서 변경"
+        reorder_keyboard_hint: "모바일 서재에서 Shift+Enter를 누르면 이 책의 순서 이동 버튼이 열립니다."
       bookshelf_scroll:
         next: "다음 책장"
         previous: "이전 책장"

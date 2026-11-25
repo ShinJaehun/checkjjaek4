@@ -5,6 +5,7 @@
     action: "turbo:before-fetch-response->bookshelf-form-recovery#checkResponse turbo:fetch-request-error->bookshelf-form-recovery#recover"
   }
   library_path = user_library_path(@user, bookshelf_id: @source_bookshelf.id)
+  move_targets = @profile_bookshelves.reject { |bookshelf| bookshelf == @source_bookshelf }
 %>
 
 <% unless @organizing_bookshelf %>
@@ -51,23 +52,28 @@
   </header>
 
   <div>
-    <%= form_with url: transfer_user_library_path(@user),
-                  method: :get,
-                  class: "px-1 py-1 md:hidden" do %>
-      <% if @organizing_bookshelf %>
-        <%= hidden_field_tag :mode, "organize" %>
-      <% else %>
+    <% if @organizing_bookshelf %>
+      <%= render "users/libraries/mobile_bookshelf_picker",
+                 bookshelves: @profile_bookshelves,
+                 selected_bookshelf: @source_bookshelf,
+                 bookshelf_entry_counts: @profile_bookshelf_entry_counts,
+                 picker_label: t("users.library.transfer.mobile_source_label"),
+                 path_for_bookshelf: ->(bookshelf) { transfer_user_library_path(@user, mode: "organize", source_bookshelf_id: bookshelf.id) } %>
+    <% else %>
+      <%= form_with url: transfer_user_library_path(@user),
+                    method: :get,
+                    class: "px-1 py-1 md:hidden" do %>
         <%= hidden_field_tag :target_bookshelf_id, @target_bookshelf.id %>
         <%= hidden_field_tag :changed, "source" %>
+        <%= label_tag :source_bookshelf_id, t("users.library.transfer.mobile_source_label"), class: "sr-only" %>
+        <%= select_tag :source_bookshelf_id,
+                       options_for_select(
+                         @profile_bookshelves.map { |bookshelf| [ "#{bookshelf.name} (#{@profile_bookshelf_entry_counts.fetch(bookshelf.id, 0)})", bookshelf.id ] },
+                         @source_bookshelf.id
+                       ),
+                       class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-900 shadow-sm",
+                       data: { action: "change->bookshelf-transfer#submitSourceSelect", bookshelf_transfer_source_select: true } %>
       <% end %>
-      <%= label_tag :source_bookshelf_id, t("users.library.transfer.mobile_source_label"), class: "sr-only" %>
-      <%= select_tag :source_bookshelf_id,
-                     options_for_select(
-                       @profile_bookshelves.map { |bookshelf| [ "#{bookshelf.name} (#{@profile_bookshelf_entry_counts.fetch(bookshelf.id, 0)})", bookshelf.id ] },
-                       @source_bookshelf.id
-                     ),
-                     class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-900 shadow-sm",
-                     data: { action: "change->bookshelf-transfer#submitSourceSelect", bookshelf_transfer_source_select: true } %>
     <% end %>
 
     <%= render "users/libraries/transfer_bookshelf_panel",
@@ -77,7 +83,6 @@
                paired_bookshelf: @target_bookshelf,
                bookshelf_entries: @source_bookshelf_entries,
                bookshelf_entry_counts: @profile_bookshelf_entry_counts,
-               bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@source_bookshelf.id, 0),
                panel_role: :source %>
 
     <% unless @organizing_bookshelf %>
@@ -89,7 +94,6 @@
                    paired_bookshelf: @source_bookshelf,
                    bookshelf_entries: @target_bookshelf_entries,
                    bookshelf_entry_counts: @profile_bookshelf_entry_counts,
-                   bookshelf_entry_count: @profile_bookshelf_entry_counts.fetch(@target_bookshelf.id, 0),
                    panel_role: :target %>
       </div>
     <% end %>
@@ -157,25 +161,29 @@
             <%= hidden_field_tag :return_to_target_as_source, "1" %>
           <% end %>
           <div class="grid grid-cols-1 gap-2">
-            <% @profile_bookshelves.each do |bookshelf| %>
-              <% next if bookshelf == @source_bookshelf %>
+            <% move_targets.each do |bookshelf| %>
               <%= button_tag type: :submit,
                              name: :target_bookshelf_id,
                              value: bookshelf.id,
                              class: [
-                               "w-full rounded-xl border px-3 py-2 text-left text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1",
+                               "flex min-w-0 w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1",
                                bookshelf_tab_class(bookshelf, selected: false)
                              ].join(" ") do %>
-                <%= bookshelf.name %>
+                <span class="min-w-0 flex-1 break-words"><%= bookshelf.name %></span>
+                <span class="shrink-0 whitespace-nowrap text-xs font-medium">
+                  <%= t("reading_experience.book_count", count: @profile_bookshelf_entry_counts.fetch(bookshelf.id, 0)) %>
+                </span>
               <% end %>
             <% end %>
-            <% if @organizing_bookshelf %>
+          </div>
+          <% if @organizing_bookshelf %>
+            <div class="<%= "mt-3 border-t border-stone-200 pt-3" if move_targets.any? %>">
               <%= button_tag t("bookshelf_entries.actions.remove"),
                              type: :submit, form: "bookshelf-transfer-remove-form",
                              data: { bookshelf_transfer_target: "removeButton" },
-                             class: "ui-button ui-button-secondary w-full justify-start text-red-700" %>
-            <% end %>
-          </div>
+                             class: "ui-button w-full justify-start border-red-200 bg-red-50 text-red-800 [--button-hover-bg:var(--color-red-100)] [--button-active-bg:var(--color-red-200)]" %>
+            </div>
+          <% end %>
         </div>
 
         <footer class="shrink-0 border-t border-stone-200 px-4 py-3">
