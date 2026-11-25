@@ -30,18 +30,21 @@ RSpec.describe "Bookshelf transfer", type: :system do
     end.click
   end
 
-  it "selects books on the shelf and moves them through the bottom sheet without losing selection on cancel" do
+  it "opens the source shelf in the organizer from the old mobile URL and preserves selection on cancel" do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 700 ]
     page.driver.browser.manage.window.resize_to(390, 700)
-    visit transfer_user_library_path(user, source_bookshelf_id: first_entry.bookshelf_id, target_bookshelf_id: target_shelf.id)
+    source_shelf = first_entry.bookshelf
+    visit transfer_user_library_path(user, source_bookshelf_id: source_shelf.id, target_bookshelf_id: target_shelf.id)
 
+    expect(page).to have_current_path(transfer_user_library_path(user, mode: "organize", source_bookshelf_id: source_shelf.id))
+    expect(page).to have_selector("h1", text: I18n.t("users.library.transfer.organize"), exact_text: true)
     expect(page).to have_css("[data-bookshelf-transfer-list-role='source'] [data-bookshelf-entry-id]", count: 2)
-    expect(page).to have_css("[data-bookshelf-transfer-list-role='target']", visible: false)
+    expect(page).to have_no_css("[data-bookshelf-transfer-list-role='target']", visible: :all)
     first_card = find("[data-bookshelf-entry-id='#{first_entry.id}']")
     second_card = find("[data-bookshelf-entry-id='#{second_entry.id}']")
     expect(page).to have_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
-    manage_label = I18n.t("bookshelf_entries.actions.move")
+    manage_label = I18n.t("users.library.transfer.manage_selection")
     expect(page).to have_button(manage_label, disabled: true)
     first_checkbox = first_card.find("input[type='checkbox']")
     second_checkbox = second_card.find("input[type='checkbox']")
@@ -70,7 +73,7 @@ RSpec.describe "Bookshelf transfer", type: :system do
     expect(find("[data-bookshelf-transfer-target='sheetSelectedCount']")).to have_text("2")
     expect(page).to have_button("Target shelf")
     expect(page).to have_no_button(first_entry.bookshelf.name)
-    expect(page).to have_no_button(I18n.t("bookshelf_entries.actions.remove"))
+    expect(page).to have_button(I18n.t("bookshelf_entries.actions.remove"))
 
     click_button I18n.t("users.library.transfer.cancel_move")
     expect(page).to have_no_css("[role='dialog']", visible: true)
@@ -89,7 +92,7 @@ RSpec.describe "Bookshelf transfer", type: :system do
 
     click_button manage_label
     click_button "Target shelf"
-    expect(page).to have_select("source_bookshelf_id", selected: "Target shelf (2)")
+    expect(page).to have_select("source_bookshelf_id", selected: "#{source_shelf.name} (0)")
     expect(first_entry.reload.bookshelf).to eq(target_shelf)
     expect(second_entry.reload.bookshelf).to eq(target_shelf)
   end
@@ -99,6 +102,7 @@ RSpec.describe "Bookshelf transfer", type: :system do
     page.driver.browser.manage.window.resize_to(390, 700)
     source_shelf = first_entry.bookshelf
     visit user_library_path(user, bookshelf_id: source_shelf.id)
+    expect(page).to have_no_link(I18n.t("users.library.transfer.title"), exact: true)
     click_link I18n.t("users.library.transfer.organize")
     expect(page).to have_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
 
@@ -323,6 +327,7 @@ RSpec.describe "Bookshelf transfer", type: :system do
     page.driver.browser.manage.window.resize_to(1280, 900)
     visit transfer_user_library_path(user, source_bookshelf_id: first_entry.bookshelf_id, target_bookshelf_id: target_shelf.id)
 
+    expect(page).to have_selector("h1", text: I18n.t("users.library.transfer.title"), exact_text: true)
     expect(page).to have_css("[data-bookshelf-transfer-target='list']", count: 2, visible: true)
     expect(page).to have_css("[data-bookshelf-transfer-target='list'] > [data-bookshelf-entry-id] button[data-bookshelf-cover]", count: 2)
     expect(page).to have_css("[data-bookshelf-entry-id][data-bookshelf-entries-sort-handle]", count: 2)
@@ -330,21 +335,15 @@ RSpec.describe "Bookshelf transfer", type: :system do
     expect(page).to have_no_css("[data-bookshelf-transfer-target='selectionCheckboxWrapper']", visible: true)
 
     page.driver.browser.manage.window.resize_to(390, 700)
-    find_connected_transfer(sortable_count: 0)
-    expect(page).to have_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
-    find("input[name='transfer_selection_#{first_entry.id}']").click
-    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("1")
+    expect(page).to have_link(I18n.t("users.library.transfer.organize"),
+                              href: transfer_user_library_path(user, mode: "organize", source_bookshelf_id: first_entry.bookshelf_id))
+    expect(page).to have_no_css("[data-bookshelf-transfer-target='list']", visible: true)
+    expect(page).to have_no_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
 
     page.driver.browser.manage.window.resize_to(1280, 900)
     expect(page).to have_no_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
     expect(page).to have_css("[data-bookshelf-transfer-target='list']", count: 2, visible: true)
-    expect(page).to have_css("input[name='transfer_selection_#{first_entry.id}']:not(:checked)", visible: :all)
-
-    page.driver.browser.manage.window.resize_to(390, 700)
-    find_connected_transfer(sortable_count: 0)
-    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
-    expect(page).to have_button(I18n.t("bookshelf_entries.actions.move"), disabled: true)
-    page.driver.browser.manage.window.resize_to(1280, 900)
+    expect(page).to have_no_link(I18n.t("users.library.transfer.organize"), exact: true)
     find_connected_transfer(sortable_count: 2)
     page.execute_script(<<~JS)
       const element = document.querySelector('[data-controller="bookshelf-transfer"]')

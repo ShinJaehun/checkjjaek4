@@ -162,25 +162,30 @@ RSpec.describe "Libraries", type: :request do
       get user_library_path(viewer, bookshelf_id: first.id, sort: "title")
 
       document = Nokogiri::HTML(response.body)
-      second_tab = document.css("a").find { |link| link.text.include?(second.name) }
+      second_tab = document.css('[data-horizontal-scroll-target="scroller"] a').find { |link| link.text.include?(second.name) }
       sort_form = document.at_css(%(form[action="#{user_library_path(viewer)}"]))
 
       expect(second_tab["href"]).to eq(user_library_path(viewer, bookshelf_id: second.id, sort: "title"))
       expect(sort_form).to be_present
     end
 
-    it "renders a mobile bookshelf switch select without move controls" do
-      first = viewer.bookshelves.create!(name: "MOBILE_SELECT_FIRST")
-      second = viewer.bookshelves.create!(name: "MOBILE_SELECT_SECOND")
+    it "renders a colored mobile bookshelf picker without move controls" do
+      first = viewer.bookshelves.create!(name: "MOBILE_SELECT_FIRST", color_key: "blue")
+      second = viewer.bookshelves.create!(name: "MOBILE_SELECT_SECOND", color_key: "red")
       sign_in viewer
 
       get user_library_path(viewer, bookshelf_id: first.id, sort: "title")
 
       document = Nokogiri::HTML(response.body)
-      mobile_select = document.at_css(%(select[data-library-mobile-bookshelf-select="true"][name="bookshelf_id"]))
+      picker = document.at_css("details[data-library-mobile-bookshelf-picker]")
+      summary = picker.at_css("summary")
 
-      expect(mobile_select).to be_present
-      expect(mobile_select.at_css(%(option[value="#{second.id}"]))).to be_present
+      expect(summary.text.squish).to eq("#{first.name} (0)")
+      expect(summary["class"].split).to include("border-blue-200", "bg-blue-50")
+      expect(picker.at_css('a[aria-current="page"]')["href"]).to eq(user_library_path(viewer, bookshelf_id: first.id, sort: "title"))
+      second_link = picker.at_css(%(a[href="#{user_library_path(viewer, bookshelf_id: second.id, sort: "title")}"]))
+      expect(second_link["class"].split).to include("border-red-200", "bg-red-50")
+      expect(second_link.at_css('span.bg-red-600[aria-hidden="true"]')).to be_present
       expect(document.at_css(%(form[action="#{bulk_move_bookshelf_entries_path}"]))).to be_nil
       expect(document.at_css(%([data-bookshelf-transfer-target="selectionModeButton"]))).to be_nil
     end
@@ -201,6 +206,9 @@ RSpec.describe "Libraries", type: :request do
       form = controller.at_css(%([data-bookshelf-management-modal-target="createPanel"] form[action="#{bookshelves_path}"]))
       expect(form).to be_present
       expect(form.at_css('input[name="return_to"][value="library"]')).to be_present
+      visibility_radios = form.css('input[type="radio"][name="bookshelf[visibility]"]')
+      expect(visibility_radios.map { |radio| radio["value"] }).to eq(%w[public book_friends private])
+      expect(visibility_radios.select { |radio| radio.has_attribute?("checked") }.map { |radio| radio["value"] }).to eq([ "public" ])
     end
 
     it "renders desktop scroll controls hidden until overflow is measured" do

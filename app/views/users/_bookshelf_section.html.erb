@@ -21,19 +21,8 @@
   <% end %>
 
   <% if bookshelves.any? %>
-    <%= form_with url: user_library_path(user), method: :get, class: "px-1 pb-1 md:hidden", data: { library_mobile_bookshelf_select_form: true } do |form| %>
-      <% library_tab_options.each do |name, value| %>
-        <%= form.hidden_field name, value:, id: nil %>
-      <% end %>
-      <%= form.hidden_field :sort, value: bookshelf_sort %>
-      <%= form.label :bookshelf_id, t("users.profile.bookshelf_tabs"), class: "sr-only" %>
-      <%= form.select :bookshelf_id,
-                      bookshelves.map { |bookshelf| [ "#{bookshelf.name} (#{bookshelf_entry_counts.fetch(bookshelf.id, 0)})", bookshelf.id ] },
-                      { selected: selected_bookshelf&.id },
-                      class: "w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-base font-semibold text-stone-900 shadow-sm",
-                      data: { library_mobile_bookshelf_select: true },
-                      onchange: "this.form.requestSubmit()" %>
-    <% end %>
+    <%= render "users/libraries/mobile_bookshelf_picker", user:, bookshelves:, selected_bookshelf:,
+               bookshelf_entry_counts:, bookshelf_sort:, library_tab_options: %>
 
     <div class="relative z-10 hidden items-center gap-1 md:flex" data-controller="horizontal-scroll">
       <button type="button"

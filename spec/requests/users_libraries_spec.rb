@@ -104,9 +104,13 @@ RSpec.describe "User libraries", type: :request do
 
     get user_library_path(user)
 
-    options = Nokogiri::HTML(response.body).css("select[data-library-mobile-bookshelf-select] option")
-    expect(options.map { |option| option["value"] }).to match_array([ user.default_bookshelf.id, public_shelf.id, friend_shelf.id ].map(&:to_s))
-    expect(options.find { |option| option["value"] == friend_shelf.id.to_s }.text).to eq("#{friend_shelf.name} (1)")
+    links = Nokogiri::HTML(response.body).css("[data-library-mobile-bookshelf-picker] a")
+    paths = [ user.default_bookshelf, public_shelf, friend_shelf ].map do |shelf|
+      user_library_path(user, bookshelf_id: shelf.id, sort: "recent")
+    end
+    expect(links.map { |link| link["href"] }).to match_array(paths)
+    friend_path = user_library_path(user, bookshelf_id: friend_shelf.id, sort: "recent")
+    expect(links.find { |link| link["href"] == friend_path }.text.squish).to eq("#{friend_shelf.name} (1)")
     expect(response.body).not_to include("Target Shelf", "Selected Shelf")
 
     get user_library_path(user, bookshelf_id: friend_shelf.id)
@@ -124,8 +128,8 @@ RSpec.describe "User libraries", type: :request do
     get user_library_path(user)
 
     expect(response).to have_http_status(:ok)
-    options = Nokogiri::HTML(response.body).css("select[data-library-mobile-bookshelf-select] option")
-    expect(options.map { |option| option["value"] }).to eq([ user.default_bookshelf.id.to_s ])
+    links = Nokogiri::HTML(response.body).css("[data-library-mobile-bookshelf-picker] a")
+    expect(links.map { |link| link["href"] }).to eq([ user_library_path(user, bookshelf_id: user.default_bookshelf.id, sort: "recent") ])
     expect(response.body).not_to include(selected_bookshelf.name, target_bookshelf.name)
   end
 

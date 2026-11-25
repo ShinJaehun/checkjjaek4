@@ -12,13 +12,19 @@
                       **name_options %>
 </div>
 
-<div>
-  <%= form.label :visibility, t("bookshelves.form.visibility"), class: "block text-xs font-medium text-stone-500" %>
-  <%= form.select :visibility,
-                  bookshelf_visibility_options.map { |visibility| [t("bookshelves.visibility.#{visibility}"), visibility] },
-                  {},
-                  class: "mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-900" %>
-</div>
+<fieldset class="min-w-0 space-y-2">
+  <legend class="text-sm font-medium text-stone-700"><%= t("bookshelves.form.visibility") %></legend>
+  <% visibility_icons = { "public" => "public_jjaek", "private" => "private_jjaek" } %>
+  <div class="grid gap-2 sm:grid-cols-3">
+    <% bookshelf_visibility_options.each do |visibility| %>
+      <label class="<%= jjaek_option_card_classes %>">
+        <%= form.radio_button :visibility, visibility, id: "bookshelf_#{mode}_visibility_#{visibility}", required: true, class: "sr-only" %>
+        <%= jjaek_option_icon(visibility_icons.fetch(visibility, visibility)) %>
+        <span class="min-w-0 break-words"><%= t("bookshelves.visibility.#{visibility}") %></span>
+      </label>
+    <% end %>
+  </div>
+</fieldset>
 
 <div>
   <%= form.label :color_key, t("bookshelves.form.color_key"), class: "block text-xs font-medium text-stone-500" %>

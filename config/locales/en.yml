@@ -1557,8 +1557,6 @@ en:
       transfer:
         back_to_library: "Back to library"
         bulk_submit: "Move"
-        bulk_target_label: "What would you like to do with the selected books?"
-        bulk_target_description: "Move them to another shelf or remove them from this shelf."
         cancel_move: "Cancel"
         choose_source: "Choose source bookshelf"
         choose_target: "Choose target bookshelf"
@@ -1568,7 +1566,7 @@ en:
         not_enough_bookshelves: "You need at least two bookshelves to move books."
         organize: "Organize multiple books"
         exit_selection_mode: "Exit selection mode"
-        manage_selection: "Manage selected books"
+        manage_selection: "Move multiple books"
         select_book: "Select %{title}"
         selected_count_suffix: " selected"
         source_label: "Source bookshelf"

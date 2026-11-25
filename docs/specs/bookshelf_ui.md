@@ -69,13 +69,13 @@ Bookshelf의 데이터 모델, 기본 책장, visibility, BookshelfEntry 인바�
 - 접근 가능한 Bookshelf만 탭으로 표시한다.
 - 선택된 책장의 BookshelfEntry만 목록에 표시한다.
 - 책장 탭에는 책장 이름과 책 개수를 표시한다.
-- 기본 Library의 작은 화면에서는 책장 탭 대신 책장 전환 select/dropdown으로 현재 보는 책장을 바꾼다.
-- 이 select/dropdown은 책장 간 이동이 아니라 현재 Library에서 볼 책장을 바꾸는 탐색 UI다.
+- 기본 Library의 작은 화면에서는 접이식 책장 선택기로 현재 볼 책장을 바꾼다. 닫힌 상태에 현재 책장의 이름, 책 수, 색상을 표시한다.
+- 펼친 목록은 PC 책장 탭의 `color_key` 스타일을 재사용하고, 색상 표시자와 테두리·배경을 사용한다. 현재 책장은 체크 표시와 `aria-current`로 구분한다.
+- 펼침 버튼과 책장 링크는 키보드와 스크린리더로 조작할 수 있다. 책장 링크는 현재 정렬을 유지한다.
 - 책장 탭에는 접근 가능한 책장의 `color_key`를 시각적으로 반영한다.
 - 책장이 많아지면 한 줄 tab/index를 유지하고 horizontal scroll과 좌우 이동 버튼으로 탐색한다.
 - PC 좌우 버튼은 탭 영역이 실제로 가로로 넘칠 때만 표시하고, 왼쪽/오른쪽 끝에서는 해당 방향 버튼을 비활성화한다. 넘치지 않으면 버튼과 버튼용 여백을 남기지 않는다.
 - 탭 개수·화면 크기 변경과 Turbo 페이지 이동 후에도 overflow와 버튼 상태를 다시 계산한다.
-- 작은 화면의 기본 Library에서는 tab/index 대신 책장 전환 select/dropdown을 사용한다.
 - 긴 책장명은 비선택 tab에서는 ellipsis로 줄이고, 선택된 tab에서는 전체 이름을 노출한다.
 - 선택된 tab은 화면 안으로 자동 가시화한다.
 - 선택된 탭은 색상뿐 아니라 border, font-weight 등으로 명확히 표시한다.
@@ -531,7 +531,7 @@ pink
 ### Library UX 색상 원칙
 
 - 책 목록 전체 배경을 강하게 칠하지 않는다.
-- 선택된 책장 tab/index에만 배경색 또는 accent 색을 적용한다.
+- 선택된 PC 책장 tab/index는 진한 accent로 구분한다. 모바일 선택기에서 각 책장의 링크와 색상 표시자에 같은 palette를 사용한다.
 - 책 목록 container에는 같은 색의 border, top border, ring, 또는 아주 옅은 tint만 적용한다.
 - Drag and Drop 대상 list 상태일 때만 임시로 조금 더 강한 배경색을 사용할 수 있다.
 - 책 표지와 충돌할 수 있는 진한 전체 배경색은 피한다.
@@ -668,7 +668,8 @@ stranger/follow-only는 Library에 접근할 수 없으며 프로필로 redirect
 - 하나의 `bookshelf-management-modal` Stimulus 범위에서 create/edit panel을 전환한다. modal markup은 페이지 안에 한 번 미리 렌더링한다.
 - create/edit modal shell은 공유하되, form action은 기존 `POST /bookshelves`, `PATCH /bookshelves/:id` 흐름을 재사용한다.
 - edit mode에는 책장 이름, 공개 범위, 색상 수정과 move_up / move_down, 빈 책장 삭제 controls를 함께 둔다.
-- validation 실패 시 실패한 create/edit modal을 다시 열린 상태로 렌더링하고 form errors를 표시한다.
+- create/edit modal의 공개 범위는 짹 작성 폼의 아이콘과 선택·포커스 스타일을 재사용하는 세 개의 라디오 카드로 표시한다. 작은 화면에서는 카드를 세로로 배치한다.
+- validation 실패 시 실패한 create/edit modal을 다시 열린 상태로 렌더링하고 form errors와 제출된 공개 범위 선택을 표시한다.
 - 기존 details 접이식 관리 영역은 제거한다.
 - 책장 tab/index 영역에는 책장 선택 역할만 남긴다.
 - Library 화면 상단은 프로필 card를 재사용하지 않고, 작은 avatar와 “사용자 이름의 서재” header만 둔다.

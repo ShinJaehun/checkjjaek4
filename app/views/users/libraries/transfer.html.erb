@@ -5,10 +5,20 @@
     action: "turbo:before-fetch-response->bookshelf-form-recovery#checkResponse turbo:fetch-request-error->bookshelf-form-recovery#recover"
   }
   library_path = user_library_path(@user, bookshelf_id: @source_bookshelf.id)
-  show_bulk_description = @organizing_bookshelf && @profile_bookshelves.many?
 %>
 
-<section class="mx-auto flex w-full max-w-4xl flex-col gap-2"
+<% unless @organizing_bookshelf %>
+  <%= link_to t("users.library.transfer.organize"),
+              transfer_user_library_path(@user, mode: "organize", source_bookshelf_id: @source_bookshelf.id),
+              id: "mobile-bookshelf-organize-link", class: "ui-button ui-button-secondary w-fit md:hidden" %>
+  <%= javascript_tag nonce: true do %>
+    if (!window.matchMedia("(min-width: 768px)").matches) {
+      window.location.replace(document.getElementById("mobile-bookshelf-organize-link").href)
+    }
+  <% end %>
+<% end %>
+
+<section class="mx-auto w-full max-w-4xl flex-col gap-2 <%= @organizing_bookshelf ? 'flex' : 'hidden md:flex' %>"
          data-controller="bookshelf-transfer"
          data-action="turbo:before-cache@document->bookshelf-transfer#clearSelection"
          data-bookshelf-transfer-organize-value="<%= @organizing_bookshelf %>"
@@ -119,17 +129,14 @@
          role="dialog"
          aria-modal="true"
          aria-labelledby="transfer-target-title"
-         aria-describedby="<%= 'transfer-target-description ' if show_bulk_description %>transfer-selected-count">
+         aria-describedby="transfer-selected-count">
       <%= form_with url: bulk_move_bookshelf_entries_path,
                     method: :patch,
                     data: bulk_form_data,
                     class: "flex max-h-[90dvh] w-full flex-col rounded-t-2xl bg-white shadow-2xl md:max-w-lg md:rounded-2xl" do %>
         <header class="flex shrink-0 items-start justify-between gap-3 border-b border-stone-200 px-4 py-4">
           <div>
-            <h2 id="transfer-target-title" class="text-lg font-semibold text-stone-900"><%= t("users.library.transfer.#{@organizing_bookshelf ? 'bulk_target_label' : 'choose_target'}") %></h2>
-            <% if show_bulk_description %>
-              <p id="transfer-target-description" class="mt-1 text-sm text-stone-600"><%= t("users.library.transfer.bulk_target_description") %></p>
-            <% end %>
+            <h2 id="transfer-target-title" class="text-lg font-semibold text-stone-900"><%= t("users.library.transfer.#{@organizing_bookshelf ? 'manage_selection' : 'choose_target'}") %></h2>
             <p id="transfer-selected-count" class="mt-1 text-sm text-stone-600">
               <span data-bookshelf-transfer-target="sheetSelectedCount">0</span><%= t("users.library.transfer.selected_count_suffix") %>
             </p>
