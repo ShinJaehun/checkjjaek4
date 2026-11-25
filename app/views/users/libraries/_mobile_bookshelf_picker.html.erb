@@ -1,10 +1,10 @@
-<% picker_label = t("users.profile.bookshelf_tabs") %>
+<% picker_label = local_assigns.fetch(:picker_label) { t("users.profile.bookshelf_tabs") } %>
 <% selected_count = bookshelf_entry_counts.fetch(selected_bookshelf.id, 0) %>
 <details class="group relative px-1 pb-1 md:hidden" data-library-mobile-bookshelf-picker>
   <summary class="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl border-2 px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 [&::-webkit-details-marker]:hidden <%= bookshelf_tab_class(selected_bookshelf, selected: false) %>"
            aria-label="<%= picker_label %>, <%= t('users.library.bookshelf_summary', name: selected_bookshelf.name, count: selected_count) %>">
     <span class="size-3 shrink-0 rounded-full border <%= bookshelf_tab_class(selected_bookshelf, selected: true) %>" aria-hidden="true"></span>
-    <span class="min-w-0 flex-1 break-words"><%= selected_bookshelf.name %> (<%= selected_count %>)</span>
+    <span class="min-w-0 flex-1 wrap-anywhere"><%= selected_bookshelf.name %> (<%= selected_count %>)</span>
     <span class="mr-1 size-2 shrink-0 rotate-45 border-b-2 border-r-2 group-open:rotate-[225deg]" aria-hidden="true"></span>
   </summary>
 
@@ -12,11 +12,11 @@
        aria-label="<%= picker_label %>">
     <% bookshelves.each do |bookshelf| %>
       <% selected = bookshelf == selected_bookshelf %>
-      <%= link_to user_library_path(user, **library_tab_options, bookshelf_id: bookshelf.id, sort: bookshelf_sort),
+      <%= link_to path_for_bookshelf.call(bookshelf),
                   class: "flex min-h-11 items-center gap-3 rounded-lg border-2 px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 #{bookshelf_tab_class(bookshelf, selected:)}",
                   aria: { current: ("page" if selected) } do %>
         <span class="size-3 shrink-0 rounded-full border <%= bookshelf_tab_class(bookshelf, selected: true) %>" aria-hidden="true"></span>
-        <span class="min-w-0 flex-1 break-words"><%= bookshelf.name %> (<%= bookshelf_entry_counts.fetch(bookshelf.id, 0) %>)</span>
+        <span class="min-w-0 flex-1 wrap-anywhere"><%= bookshelf.name %> (<%= bookshelf_entry_counts.fetch(bookshelf.id, 0) %>)</span>
         <% if selected %>
           <span class="shrink-0" aria-hidden="true">✓</span>
         <% end %>

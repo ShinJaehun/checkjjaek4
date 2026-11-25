@@ -19,35 +19,52 @@
 
   <% if current_user == @user %>
     <% library_options = { bookshelf_id: @selected_bookshelf&.id, sort: @profile_bookshelf_sort, notes_page: @library_notes_page_number }.compact %>
-    <% tab_classes = "ui-button ui-button-secondary flex-1 aria-[current=page]:border-emerald-700 aria-[current=page]:bg-emerald-50 aria-[current=page]:text-emerald-900" %>
-    <nav class="flex gap-2" aria-label="<%= t("users.library.tabs.label") %>" data-library-tabs>
-      <%= link_to t("users.library.tabs.bookshelves"), user_library_path(@user, **library_options, library_tab: "bookshelves"),
-                  class: tab_classes, aria: { current: ("page" unless @library_book_note_page) } %>
-      <%= link_to t("book_notes.heading"), user_library_path(@user, **library_options, library_tab: "notes"),
-                  class: tab_classes, aria: { current: ("page" if @library_book_note_page) },
-                  data: { library_notes_link: true } %>
-    </nav>
+    <% tab_classes = "inline-flex min-h-11 items-center text-sm font-medium text-stone-600 underline-offset-4 hover:text-stone-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 aria-[current=page]:text-lg aria-[current=page]:font-bold aria-[current=page]:text-stone-900" %>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2" data-library-toolbar>
+      <nav class="flex flex-wrap items-baseline gap-x-2 px-1" aria-label="<%= t("users.library.tabs.label") %>" data-library-tabs>
+        <%= link_to t("users.library.tabs.bookshelves"), user_library_path(@user, **library_options, library_tab: "bookshelves"),
+                    class: tab_classes, aria: { current: ("page" unless @library_book_note_page) } %>
+        <span class="text-sm text-stone-500" aria-hidden="true">/</span>
+        <%= link_to t("book_notes.heading"), user_library_path(@user, **library_options, library_tab: "notes"),
+                    class: tab_classes, aria: { current: ("page" if @library_book_note_page) },
+                    data: { library_notes_link: true } %>
+      </nav>
+      <% if @show_bookshelf && !@library_book_note_page && @show_profile_bookshelf_create_form %>
+        <div class="relative ml-auto flex flex-wrap justify-end gap-2">
+          <button type="button" class="ui-button ui-button-primary" aria-haspopup="dialog" aria-controls="global-book-search-dialog"
+                  data-action="book-modal#open"><%= t("book_search.nav") %></button>
+          <details class="group sm:relative" data-library-bookshelf-management data-bookshelf-management-modal-target="menu"
+                   data-action="keydown.esc->bookshelf-management-modal#closeMenu click@document->bookshelf-management-modal#closeMenuOnOutsideClick">
+            <summary class="ui-button ui-button-secondary list-none [&::-webkit-details-marker]:hidden"
+                     data-bookshelf-management-modal-target="menuTrigger">
+              <%= t("bookshelves.form.manage_title") %>
+              <span class="mr-1 size-2 shrink-0 rotate-45 border-b-2 border-r-2 group-open:rotate-[225deg]" aria-hidden="true"></span>
+            </summary>
+            <div class="absolute right-0 top-full z-30 mt-1 grid w-56 max-w-full gap-1 rounded-xl border border-stone-200 bg-white p-2 shadow-lg sm:max-w-none">
+              <% item_classes = "min-h-11 rounded-lg px-3 py-2 text-left text-sm font-medium text-stone-800 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-stone-900" %>
+              <button type="button" class="<%= item_classes %>" aria-haspopup="dialog" aria-controls="library-bookshelf-management-dialog"
+                      data-action="bookshelf-management-modal#openCreate"><%= t("bookshelves.actions.new") %></button>
+              <%= link_to t("users.library.transfer.title"),
+                          transfer_user_library_path(@user, source_bookshelf_id: @selected_bookshelf&.id),
+                          class: "#{item_classes} hidden md:flex md:items-center" %>
+              <%= link_to t("users.library.transfer.organize"),
+                          transfer_user_library_path(@user, mode: "organize", source_bookshelf_id: @selected_bookshelf&.id),
+                          class: "#{item_classes} flex items-center" %>
+              <% if @managed_bookshelf.present? && !@managed_bookshelf.is_default? %>
+                <button type="button" class="<%= item_classes %>" aria-haspopup="dialog" aria-controls="library-bookshelf-management-dialog"
+                        data-action="bookshelf-management-modal#openEdit"><%= t("bookshelves.form.edit_title") %></button>
+              <% end %>
+            </div>
+          </details>
+        </div>
+      <% end %>
+    </div>
   <% end %>
 
   <% if @library_book_note_page %>
     <%= render "book_notes/library_section", page: @library_book_note_page, library_options: library_options.except(:notes_page) %>
   <% elsif @show_bookshelf %>
-    <section id="library-bookshelves" class="space-y-4">
-      <% if @show_profile_bookshelf_create_form %>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="ui-button ui-button-primary" aria-haspopup="dialog" aria-controls="global-book-search-dialog"
-                  data-action="book-modal#open"><%= t("book_search.nav") %></button>
-          <button type="button" class="ui-button ui-button-secondary" aria-haspopup="dialog" aria-controls="library-bookshelf-management-dialog"
-                  data-action="bookshelf-management-modal#openCreate"><%= t("bookshelves.actions.new") %></button>
-          <%= link_to t("users.library.transfer.title"),
-                      transfer_user_library_path(@user, source_bookshelf_id: @selected_bookshelf&.id),
-                      class: "ui-button ui-button-secondary hidden md:inline-flex" %>
-          <%= link_to t("users.library.transfer.organize"),
-                      transfer_user_library_path(@user, mode: "organize", source_bookshelf_id: @selected_bookshelf&.id),
-                      class: "ui-button ui-button-secondary" %>
-        </div>
-      <% end %>
-
+    <section id="library-bookshelves" class="space-y-2">
       <%= render "users/bookshelf_section",
                  user: @user,
                  bookshelves: @profile_bookshelves,

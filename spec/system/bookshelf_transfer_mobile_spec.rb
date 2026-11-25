@@ -34,6 +34,8 @@ RSpec.describe "Bookshelf transfer", type: :system do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 700 ]
     page.driver.browser.manage.window.resize_to(390, 700)
     source_shelf = first_entry.bookshelf
+    user.bookshelf_entries.create!(book: Book.create!(title: "Book already on the target shelf"), bookshelf: target_shelf)
+    target_label = "#{target_shelf.name} #{I18n.t("reading_experience.book_count", count: 1)}"
     visit transfer_user_library_path(user, source_bookshelf_id: source_shelf.id, target_bookshelf_id: target_shelf.id)
 
     expect(page).to have_current_path(transfer_user_library_path(user, mode: "organize", source_bookshelf_id: source_shelf.id))
@@ -71,7 +73,7 @@ RSpec.describe "Bookshelf transfer", type: :system do
     click_button manage_label
     expect(page).to have_css("[role='dialog'][aria-modal='true']", visible: true)
     expect(find("[data-bookshelf-transfer-target='sheetSelectedCount']")).to have_text("2")
-    expect(page).to have_button("Target shelf")
+    expect(page).to have_button(target_label, exact: true)
     expect(page).to have_no_button(first_entry.bookshelf.name)
     expect(page).to have_button(I18n.t("bookshelf_entries.actions.remove"))
 
@@ -91,8 +93,8 @@ RSpec.describe "Bookshelf transfer", type: :system do
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("2")
 
     click_button manage_label
-    click_button "Target shelf"
-    expect(page).to have_select("source_bookshelf_id", selected: "#{source_shelf.name} (0)")
+    click_button target_label, exact: true
+    expect(page).to have_css("[data-library-mobile-bookshelf-picker] summary", text: "#{source_shelf.name} (0)")
     expect(first_entry.reload.bookshelf).to eq(target_shelf)
     expect(second_entry.reload.bookshelf).to eq(target_shelf)
   end
@@ -101,9 +103,13 @@ RSpec.describe "Bookshelf transfer", type: :system do
     driven_by :selenium, using: :headless_chrome, screen_size: [ 390, 700 ]
     page.driver.browser.manage.window.resize_to(390, 700)
     source_shelf = first_entry.bookshelf
+    target_shelf.update!(color_key: "green")
     visit user_library_path(user, bookshelf_id: source_shelf.id)
-    expect(page).to have_no_link(I18n.t("users.library.transfer.title"), exact: true)
-    click_link I18n.t("users.library.transfer.organize")
+    within("[data-library-bookshelf-management]") do
+      find("summary").send_keys(:space)
+      expect(page).to have_no_link(I18n.t("users.library.transfer.title"), exact: true)
+      click_link I18n.t("users.library.transfer.organize")
+    end
     expect(page).to have_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
 
     manage_label = I18n.t("users.library.transfer.manage_selection")
@@ -123,14 +129,41 @@ RSpec.describe "Bookshelf transfer", type: :system do
     click_button manage_label
     click_button target_shelf.name
     expect(page).to have_css("#flash-messages [role='status']", text: I18n.t("bookshelf_entries.notices.bulk_moved", count: 2, bookshelf_name: target_shelf.name))
-    expect(page).to have_select("source_bookshelf_id", selected: "#{source_shelf.name} (0)")
+    picker = "[data-library-mobile-bookshelf-picker]"
+    expect(page).to have_css("#{picker} summary", text: "#{source_shelf.name} (0)")
     expect(first_entry.reload.bookshelf).to eq(target_shelf)
     expect(second_entry.reload.bookshelf).to eq(target_shelf)
 
-    select "#{target_shelf.name} (2)", from: "source_bookshelf_id"
+    target_path = transfer_user_library_path(user, mode: "organize", source_bookshelf_id: target_shelf.id)
+    source_path = transfer_user_library_path(user, mode: "organize", source_bookshelf_id: source_shelf.id)
+    within(picker) do
+      find("summary").send_keys(:space)
+      expect(page).to have_css("a.bg-green-50", text: "#{target_shelf.name} (2)")
+      click_link "#{target_shelf.name} (2)", href: target_path
+    end
+    expect(page).to have_current_path(target_path)
+    expect(page).to have_css("#{picker} summary.bg-green-50", text: "#{target_shelf.name} (2)")
     expect(page).to have_css("[data-bookshelf-transfer-target='list'][data-bookshelf-transfer-bookshelf-id='#{target_shelf.id}']")
     expect(page).to have_css("[data-bookshelf-transfer-target='selectionBar']", visible: true)
     expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
+
+    find("input[name='transfer_selection_#{first_entry.id}']").click
+    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("1")
+    within(picker) do
+      find("summary").click
+      expect(page).to have_css("a.bg-green-600[aria-current='page']", text: "#{target_shelf.name} (2)")
+      click_link "#{source_shelf.name} (0)", href: source_path
+    end
+    expect(page).to have_current_path(source_path)
+    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
+
+    within(picker) do
+      find("summary").click
+      click_link "#{target_shelf.name} (2)", href: target_path
+    end
+    expect(page).to have_current_path(target_path)
+    expect(find("[data-bookshelf-transfer-target='selectedCount']")).to have_text("0")
+
     find("input[name='transfer_selection_#{first_entry.id}']").click
     find("input[name='transfer_selection_#{second_entry.id}']").click
     click_button manage_label
@@ -271,7 +304,10 @@ RSpec.describe "Bookshelf transfer", type: :system do
     source_shelf = first_entry.bookshelf
     target_entry = user.bookshelf_entries.create!(book: Book.create!(title: "Target book"), bookshelf: target_shelf)
     visit user_library_path(user, bookshelf_id: source_shelf.id)
-    click_link I18n.t("users.library.transfer.organize")
+    within("[data-library-bookshelf-management]") do
+      find("summary").click
+      click_link I18n.t("users.library.transfer.organize")
+    end
     find_connected_transfer(sortable_count: 0)
     expect(page).to have_css("[data-bookshelf-transfer-target='list']", count: 1)
     manage_label = I18n.t("users.library.transfer.manage_selection")
@@ -318,7 +354,10 @@ RSpec.describe "Bookshelf transfer", type: :system do
     click_cover(target_entry)
     expect(page).to have_css("dialog[open]", text: target_entry.book.title)
     click_button I18n.t("bookshelves.actions.close")
-    click_link I18n.t("users.library.transfer.title")
+    within("[data-library-bookshelf-management]") do
+      find("summary").click
+      click_link I18n.t("users.library.transfer.title")
+    end
     find_connected_transfer(sortable_count: 2)
   end
 

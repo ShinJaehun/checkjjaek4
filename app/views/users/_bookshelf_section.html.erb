@@ -17,14 +17,14 @@
   <% empty_message = local_assigns[:empty_message] || t("users.profile.empty_bookshelf") %>
 
   <% if bookshelves.any? || selected_bookshelf.present? %>
-    <div class="space-y-0">
+    <div class="space-y-2 md:space-y-0">
   <% end %>
 
   <% if bookshelves.any? %>
-    <%= render "users/libraries/mobile_bookshelf_picker", user:, bookshelves:, selected_bookshelf:,
-               bookshelf_entry_counts:, bookshelf_sort:, library_tab_options: %>
+    <%= render "users/libraries/mobile_bookshelf_picker", bookshelves:, selected_bookshelf:, bookshelf_entry_counts:,
+               path_for_bookshelf: ->(bookshelf) { user_library_path(user, **library_tab_options, bookshelf_id: bookshelf.id, sort: bookshelf_sort) } %>
 
-    <div class="relative z-10 hidden items-center gap-1 md:flex" data-controller="horizontal-scroll">
+    <div class="relative z-10 mx-[calc(0.5rem+1px)] hidden items-center gap-1 md:flex" data-controller="horizontal-scroll">
       <button type="button"
               class="hidden flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-xs font-semibold text-stone-500 shadow-sm disabled:opacity-40"
               data-horizontal-scroll-target="previous"
@@ -45,21 +45,13 @@
                       class: [
                         "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-t-xl border-2 px-4 py-2 text-sm font-semibold transition",
                         ("max-w-48" unless selected),
-                        (selected ? "relative z-20 -mb-[2px]" : "relative z-0"),
+                        (selected ? "relative z-20" : "relative z-0"),
                         bookshelf_tab_class(bookshelf, selected: selected)
                       ].compact,
                       data: tab_data do %>
             <span class="<%= selected ? "whitespace-nowrap" : "min-w-0 truncate" %>"><%= bookshelf.name %></span>
             <span class="shrink-0 <%= bookshelf_tab_count_class(bookshelf, selected: selected) %>">(<%= bookshelf_entry_counts.fetch(bookshelf.id, 0) %>)</span>
           <% end %>
-        <% end %>
-        <% if local_assigns[:show_create_form] && new_bookshelf.present? %>
-          <button type="button"
-                  class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-t-xl border-2 border-stone-200 bg-white text-lg font-semibold text-stone-500 hover:border-stone-400 hover:text-stone-900"
-                  data-action="bookshelf-management-modal#openCreate"
-                  aria-label="<%= t("bookshelves.actions.open_create") %>">
-            +
-          </button>
         <% end %>
       </nav>
       <button type="button"
@@ -74,70 +66,49 @@
   <% end %>
 
   <% if selected_bookshelf.present? %>
-    <section class="mt-0.5 relative z-0 overflow-visible rounded-b-2xl rounded-tr-2xl border-2 bg-white shadow-sm ring-2 <%= bookshelf_panel_class(selected_bookshelf) %>"
+    <%# The outer margin, border and inner padding keep the shelf's previous width. %>
+    <section class="relative z-0 mx-[calc(0.5rem+1px)] rounded-xl border shadow-sm md:rounded-tl-none <%= bookshelf_selected_border_class(selected_bookshelf) %>"
+             aria-labelledby="library-selected-bookshelf-title"
              <% if bookshelf_reorder_available %>
                data-controller="bookshelf-entries-sort"
+               data-action="pointerdown->bookshelf-entries-sort#prepareInput:capture mousedown->bookshelf-entries-sort#prepareInput:capture touchstart->bookshelf-entries-sort#prepareInput:capture turbo:before-visit@document->bookshelf-entries-sort#clearSelection turbo:before-cache@document->bookshelf-entries-sort#clearSelection"
                data-bookshelf-entries-sort-bookshelf-id-value="<%= selected_bookshelf.id %>"
                data-bookshelf-entries-sort-reorder-url-value="<%= reorder_bookshelf_entries_path %>"
                data-bookshelf-entries-sort-error-message-value="<%= t('bookshelf_entries.alerts.reorder_failed') %>"
+               data-bookshelf-entries-sort-move-up-label-value="<%= t('users.profile.bookshelf_sort.move_up', title: '%{title}') %>"
+               data-bookshelf-entries-sort-move-down-label-value="<%= t('users.profile.bookshelf_sort.move_down', title: '%{title}') %>"
              <% end %>>
-      <header class="flex flex-col gap-3 border-b border-stone-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between <%= bookshelf_header_class(selected_bookshelf) %>">
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
-            <h3 class="break-words text-xl font-semibold text-stone-900"><%= selected_bookshelf.name %></h3>
-            <span class="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
-              <%= bookshelf_entry_counts.fetch(selected_bookshelf.id, 0) %>
-            </span>
-            <%= bookshelf_visibility_badge(selected_bookshelf) %>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-end gap-2">
-          <% if mobile_reorder_enabled %>
-            <button type="button"
-                    class="ui-button ui-button-secondary md:hidden"
-                    data-bookshelf-entries-sort-target="modeButton"
-                    data-action="bookshelf-entries-sort#startEditing"><%= t("users.profile.bookshelf_sort.reorder_start") %></button>
-            <span class="hidden rounded-xl bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-700 md:hidden"
-                  data-bookshelf-entries-sort-target="editingStatus"
-                  role="status"><%= t("users.profile.bookshelf_sort.reorder_editing") %></span>
-          <% end %>
+      <%= render layout: "users/libraries/bookshelf_header", locals: {
+        bookshelf: selected_bookshelf, title_id: "library-selected-bookshelf-title",
+        bookshelf_entry_count: bookshelf_entry_counts.fetch(selected_bookshelf.id, 0)
+      } do %>
+        <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
           <% if bookshelf_sort_options.any? %>
-            <%= form_with url: user_library_path(user), method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
+            <%= form_with url: user_library_path(user), method: :get, class: "flex flex-wrap items-center gap-2" do |form| %>
               <% library_tab_options.each do |name, value| %>
                 <%= form.hidden_field name, value:, id: nil %>
               <% end %>
               <%= form.hidden_field :bookshelf_id, value: selected_bookshelf.id %>
 
-              <div>
-                <%= form.label :sort, t("users.profile.bookshelf_sort.label"), class: "sr-only" %>
-                <%= form.select :sort,
-                                bookshelf_sort_options.map { |sort| [ t("users.profile.bookshelf_sort.options.#{sort}"), sort ] },
-                                { selected: bookshelf_sort },
-                                class: "rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700" %>
-              </div>
+              <%= form.label :sort, t("users.profile.bookshelf_sort.label"), class: "sr-only" %>
+              <%= form.select :sort,
+                              bookshelf_sort_options.map { |sort| [ t("users.profile.bookshelf_sort.options.#{sort}"), sort ] },
+                              { selected: bookshelf_sort },
+                              class: "h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-700" %>
 
               <%= form.submit t("users.profile.bookshelf_sort.submit"),
-                              class: "ui-button ui-button-secondary" %>
+                              class: "ui-button ui-button-secondary h-11" %>
             <% end %>
           <% end %>
-
-          <% if managed_bookshelf.present? && !managed_bookshelf.is_default? %>
-            <button type="button"
-                    class="ui-button ui-button-secondary"
-                    data-action="bookshelf-management-modal#openEdit">
-              <%= t("bookshelves.form.edit_title") %>
-            </button>
-          <% end %>
         </div>
-      </header>
+      <% end %>
 
-      <div class="space-y-3 p-4">
+      <div class="space-y-3 px-2 pb-2">
         <% if bookshelf_entries.any? %>
           <% book_detail_options = book_navigation_params %>
           <% book_detail_options[:tab] = "reading" if local_assigns[:show_move_control] %>
         <% end %>
-        <div class="bookshelf-shelf"
+        <div class="bookshelf-shelf group"
              <% if bookshelf_reorder_available %>
                data-bookshelf-entries-sort-target="list"
              <% end %>>
@@ -148,31 +119,35 @@
                        show_status: show_status,
                        removal_params: ({ return_to: "library", bookshelf_id: selected_bookshelf.id, sort: bookshelf_sort, **library_tab_options } if local_assigns[:show_move_control]),
                        show_sort_handle: bookshelf_sort_enabled,
-                       show_mobile_reorder_controls: mobile_reorder_enabled %>
+                       enable_mobile_reorder: mobile_reorder_enabled %>
           <% end %>
         </div>
         <% if bookshelf_entries.empty? %>
           <p class="px-1 text-sm text-stone-500"><%= empty_message %></p>
         <% end %>
-        <% if mobile_reorder_enabled %>
-          <div class="hidden h-[calc(env(safe-area-inset-bottom)+6rem)] md:hidden"
-               data-bookshelf-entries-sort-target="bottomSpacer"></div>
-        <% end %>
       </div>
-
       <% if mobile_reorder_enabled %>
-        <div class="fixed inset-x-0 bottom-0 z-40 hidden border-t border-stone-200 bg-white/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-2xl backdrop-blur md:hidden"
-             data-bookshelf-entries-sort-target="actionBar">
-          <div class="mx-auto flex max-w-4xl items-center justify-end gap-2">
-            <button type="button"
-                    class="ui-button ui-button-secondary"
-                    data-bookshelf-entries-sort-target="cancelButton"
-                    data-action="bookshelf-entries-sort#cancelEditing"><%= t("users.profile.bookshelf_sort.reorder_cancel") %></button>
-            <button type="button"
-                    class="ui-button ui-button-primary"
-                    data-bookshelf-entries-sort-target="applyButton"
-                    data-action="bookshelf-entries-sort#applyOrder"
-                    disabled><%= t("users.profile.bookshelf_sort.reorder_apply") %></button>
+        <div class="md:hidden [@media(pointer:coarse)]:md:block">
+          <p id="library-bookshelf-order-hint" class="sr-only"><%= t("users.profile.bookshelf_sort.reorder_keyboard_hint") %></p>
+          <div class="hidden h-[calc(env(safe-area-inset-bottom)+4rem)]" aria-hidden="true"
+               data-bookshelf-entries-sort-target="spacer"></div>
+          <div class="fixed inset-x-0 bottom-0 z-40 hidden border-t border-stone-200 bg-white/95 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-2xl backdrop-blur"
+               role="group" aria-labelledby="library-bookshelf-selected-order"
+               data-bookshelf-entries-sort-target="controls" data-action="keydown.esc->bookshelf-entries-sort#clearSelection">
+            <div class="mx-auto flex max-w-4xl items-center gap-2">
+              <p id="library-bookshelf-selected-order" class="min-w-0 flex-1 truncate text-sm font-semibold text-stone-900"
+                 data-bookshelf-entries-sort-target="selectedStatus" role="status"></p>
+              <div class="flex shrink-0 items-center gap-1">
+                <button type="button" class="ui-button ui-button-secondary h-11 w-11 p-0"
+                        data-bookshelf-entries-sort-target="upButton" data-action="bookshelf-entries-sort#moveUp" disabled><span aria-hidden="true">↑</span></button>
+                <button type="button" class="ui-button ui-button-secondary h-11 w-11 p-0"
+                        data-bookshelf-entries-sort-target="downButton" data-action="bookshelf-entries-sort#moveDown" disabled><span aria-hidden="true">↓</span></button>
+                <button type="button" class="ui-button ui-button-secondary h-11 whitespace-nowrap px-3"
+                        data-action="bookshelf-entries-sort#clearSelection">
+                  <%= t("users.library.transfer.clear_selection") %>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       <% end %>

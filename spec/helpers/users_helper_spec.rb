@@ -10,6 +10,11 @@ RSpec.describe UsersHelper, type: :helper do
   end
 
   it "renders bookshelf visibility labels and badges without database queries" do
+    badge_colors = {
+      "public" => %w[border-blue-200 bg-blue-50 text-blue-800],
+      "book_friends" => %w[border-green-200 bg-green-50 text-green-800],
+      "private" => %w[border-stone-200 bg-stone-100 text-stone-700]
+    }
     shelves = Bookshelf.visibilities.keys.map { |visibility| Bookshelf.new(visibility: visibility) }
     queries = []
     subscriber = ->(_name, _start, _finish, _id, payload) { queries << payload[:sql] }
@@ -20,7 +25,7 @@ RSpec.describe UsersHelper, type: :helper do
             badge = Nokogiri::HTML.fragment(helper.bookshelf_visibility_badge(shelf)).at_css("span")
             expect(badge.text).to eq(I18n.t("bookshelves.visibility.#{shelf.visibility}"))
             expect(badge["data-bookshelf-visibility"]).to eq(shelf.visibility)
-            expect(badge["class"]).to include("rounded-full", "border-stone-200")
+            expect(badge["class"].split).to include("rounded-full", *badge_colors.fetch(shelf.visibility))
           end
         end
       end
