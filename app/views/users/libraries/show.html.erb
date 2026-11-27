@@ -25,9 +25,12 @@
         <%= link_to t("users.library.tabs.bookshelves"), user_library_path(@user, **library_options, library_tab: "bookshelves"),
                     class: tab_classes, aria: { current: ("page" unless @library_book_note_page) } %>
         <span class="text-sm text-stone-500" aria-hidden="true">/</span>
-        <%= link_to t("book_notes.heading"), user_library_path(@user, **library_options, library_tab: "notes"),
-                    class: tab_classes, aria: { current: ("page" if @library_book_note_page) },
-                    data: { library_notes_link: true } %>
+        <%= link_to user_library_path(@user, **library_options, library_tab: "notes"),
+                    class: "#{tab_classes} gap-1.5", aria: { current: ("page" if @library_book_note_page) },
+                    data: { library_notes_link: true } do %>
+          <%= render "book_notes/book_icon", class_name: "size-4 shrink-0" %>
+          <%= t("book_notes.heading") %>
+        <% end %>
       </nav>
       <% if @show_bookshelf && !@library_book_note_page && @show_profile_bookshelf_create_form %>
         <div class="relative ml-auto flex flex-wrap justify-end gap-2">

@@ -114,14 +114,29 @@ RSpec.describe "Books", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("서재에 있는 책")
       page = Nokogiri::HTML(response.body)
-      tabs = page.css("[role='tablist'] [role='tab']")
+      tablist = page.at_css("[role='tablist']")
+      tabs = tablist.css("[role='tab']")
       expect(tabs.map { |tab| tab.text.strip }).to eq(%w[reading jjaeks].map { |tab| I18n.t("books.show.tabs.#{tab}") })
       expect(tabs.map { |tab| tab["aria-selected"] }).to eq(%w[true false])
+      expect(tabs.map { |tab| tab["tabindex"] }).to eq(%w[0 -1])
+      expect(tablist.at_css("span[aria-hidden='true']").text).to eq("/")
+      reading_actions = tablist.parent.at_css("[data-tab-panel='book-my-reading']:not([hidden])")
+      expect(reading_actions.css("button[aria-haspopup='dialog']").map { |button| button.text.strip }).to eq([
+        I18n.t("book_notes.new")
+      ])
+      expect(tablist.parent.at_css("[data-tab-panel='book-sharing'][hidden]")).to be_present
       reading = page.at_css("#book-my-reading:not([hidden])")
       expect(reading).to be_present
-      expect(reading.element_children.first.css("button[aria-haspopup='dialog']").map { |button| button.text.strip }).to eq([
-        I18n.t("books.show.manage_bookshelf"), I18n.t("books.show.edit_reading_record"), I18n.t("book_notes.new")
-      ])
+      activity = reading.at_css("section[aria-labelledby='book-reading-activity-title']")
+      shelf = reading.at_css("section[aria-labelledby='book-reading-shelf-title']")
+      expect(activity.next_element).to eq(shelf)
+      expect(activity.at_css("#book-reading-activity-title").text).to eq(I18n.t("books.show.reading_record_title"))
+      edit_activity = activity.at_css("button[aria-controls='book-reading-dialog']")
+      expect(edit_activity.text.strip).to eq(I18n.t("books.show.edit_reading_record"))
+      expect(edit_activity["aria-label"]).to eq(I18n.t("books.show.edit_reading_record_label"))
+      expect(shelf.at_css("#book-reading-shelf-title").text).to eq(I18n.t("books.show.current_bookshelf"))
+      expect(shelf.at_css("a[href='#{user_library_path(user, bookshelf_id: entry.bookshelf_id)}']").text).to eq(entry.bookshelf.name)
+      expect(shelf.at_css("button[aria-controls='book-move-dialog']").text.strip).to eq(I18n.t("books.show.manage_bookshelf"))
       expect(page.at_css("#book-sharing[hidden]")).to be_present
       state = page.at_css("#book-reading-dialog form[action='#{bookshelf_entry_path(entry)}']")
       expect(state).to be_present
@@ -131,12 +146,11 @@ RSpec.describe "Books", type: :request do
       expect(state.ancestors("dialog").first["open"]).to be_nil
       expect(state.ancestors("[data-book-modal-auto-open-value='false']")).not_to be_empty
       header = page.at_css("h1").ancestors("section").first
-      expect(state.ancestors("section").first).to eq(reading)
-      expect(reading.text).to include(I18n.t("books.show.current_bookshelf"))
+      expect(state.ancestors("section").first).to eq(activity)
       expect(header.css("h2, dialog, [data-reading-status], [data-reading-sticker]")).to be_empty
-      expect(reading.at_css("#book-reading-dialog h2").text).to eq(I18n.t("books.show.reading_record_title"))
-      expect(reading.at_css("[data-reading-status='reading']")).to be_present
-      expect(reading.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to match_array(stickers.map(&:key))
+      expect(activity.at_css("#book-reading-dialog h2").text).to eq(I18n.t("books.show.reading_record_title"))
+      expect(activity.at_css("[data-reading-status='reading']")).to be_present
+      expect(activity.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to match_array(stickers.map(&:key))
       expect(reading.text).not_to include(I18n.t("books.show.library_context_title"))
       expect(response.body).to include('name="jjaek[content]"')
       expect(response.body).to include(I18n.t("jjaeks.actions.publish_short"))
@@ -343,14 +357,17 @@ RSpec.describe "Books", type: :request do
       expect(panel.at_css("[data-book-posting-target='title']")).to be_nil
       expect(page.at_css("form[action='#{bookshelf_entry_path(user.bookshelf_entries.find_by!(book:))}'] input[type='submit']")).to be_present
       header = page.at_css("h1").ancestors("section").first
-      expect(page.at_css("#book-my-reading button[aria-controls='book-reading-dialog']").text.strip).to eq(I18n.t("books.show.edit_reading_record"))
+      reading = page.at_css("#book-my-reading[hidden]")
+      expect(reading.at_css("button[aria-controls='book-reading-dialog']").text.strip).to eq(I18n.t("books.show.edit_reading_record"))
+      expect(reading.at_css("section[aria-labelledby='book-reading-activity-title']").text).to include(I18n.t("books.show.reading_record_empty"))
       expect(panel.ancestors("section")).not_to include(header)
       expect(page.at_css("#book-writing-dialog")).to be_nil
       expect(page.at_css("button[aria-controls='book-writing-dialog']")).to be_nil
       expect(page.at_css("#book-reading-dialog")).to be_present
-      expect(page.at_css("#book-my-reading[hidden] #book-notes")).to be_present
+      expect(reading.at_css("#book-notes")).to be_present
       expect(page.at_css("#book-sharing:not([hidden]) #book-jjaek-form[hidden]")).to eq(panel)
-      expect(page.at_css("button[aria-controls='book-jjaek-form'][aria-expanded='false']").text.strip).to eq("짹")
+      sharing_actions = page.at_css("[role='tablist']").parent.at_css("[data-tab-panel='book-sharing']:not([hidden])")
+      expect(sharing_actions.at_css("button[aria-controls='book-jjaek-form'][aria-expanded='false']").text.strip).to eq("짹")
     end
 
     it "ignores the retired quote input while preserving book reading and group context" do

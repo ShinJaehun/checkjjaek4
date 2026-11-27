@@ -1,5 +1,8 @@
 <section id="book-notes" class="mx-auto w-full max-w-3xl scroll-mt-20 space-y-4">
-  <h2 class="text-2xl font-semibold tracking-tight text-stone-900"><%= t("book_notes.heading") %></h2>
+  <h2 class="text-2xl font-semibold tracking-tight text-stone-900">
+    <%= render "book_notes/book_icon", class_name: "mr-1 inline-block size-5 align-middle" %>
+    <%= t("book_notes.heading") %>
+  </h2>
 
   <% if page.total_count.positive? %>
     <% return_path = book_path(book, tab: "reading", notes_page: page.page) if page.page > 1 %>

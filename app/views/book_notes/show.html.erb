@@ -4,41 +4,34 @@
 
 <section class="mx-auto w-full max-w-3xl space-y-4">
   <%= render "shared/back_link", path: @note_back_path %>
-  <article class="space-y-4 rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 text-stone-900 shadow-sm sm:p-6">
-    <header class="space-y-3">
-      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-900">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-4 shrink-0">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 3h8l4 4v14H6zM14 3v5h4m-9 4h6m-6 4h6" />
-          </svg>
-          <%= t("book_notes.heading") %>
-        </span>
-        <time class="text-xs text-stone-600" datetime="<%= @book_note.created_at.iso8601 %>"><%= l(@book_note.created_at, format: :short) %></time>
+  <article class="book-note-paper space-y-5 sm:space-y-6">
+    <header class="space-y-5">
+      <div class="book-note-meta">
+        <% book_details = [ @book.authors_text, @book.publisher ].compact_blank.join(" · ") %>
+        <%= link_to book_path(@book, tab: "reading"),
+                    class: "flex min-w-0 items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600" do %>
+          <% if @book.thumbnail.present? %>
+            <div class="flex h-20 w-14 shrink-0 items-center justify-center">
+              <%= render "books/thumbnail", title: @book.title, thumbnail: @book.thumbnail, url: nil, size: :small %>
+            </div>
+          <% end %>
+          <div class="min-w-0 space-y-1">
+            <p class="wrap-anywhere font-semibold underline underline-offset-2"><%= @book.title %></p>
+            <% if book_details.present? %>
+              <p class="wrap-anywhere text-sm text-stone-600"><%= book_details %></p>
+            <% end %>
+          </div>
+        <% end %>
+        <time class="book-note-date" datetime="<%= @book_note.created_at.iso8601 %>"><%= l(@book_note.created_at.to_date, format: :book_note) %></time>
       </div>
-      <h1 class="wrap-anywhere text-2xl font-semibold"><%= @book_note.title.presence || t("book_notes.untitled") %></h1>
+      <h1 class="book-note-title wrap-anywhere text-2xl font-semibold sm:text-3xl"><%= @book_note.title.presence || t("book_notes.untitled") %></h1>
     </header>
 
     <div class="book-note-body"><%= @book_note.body %></div>
 
-    <% book_details = [ @book.authors_text, @book.publisher ].compact_blank.join(" · ") %>
-    <%= link_to book_path(@book, tab: "reading"),
-                class: "flex min-w-0 items-center gap-3 border-t border-indigo-100 pt-3 hover:border-indigo-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" do %>
-      <% if @book.thumbnail.present? %>
-        <div class="flex h-20 w-14 shrink-0 items-center justify-center">
-          <%= render "books/thumbnail", title: @book.title, thumbnail: @book.thumbnail, url: nil, size: :small %>
-        </div>
-      <% end %>
-      <div class="min-w-0 space-y-1">
-        <p class="wrap-anywhere text-sm font-medium text-stone-800 underline underline-offset-2"><%= @book.title %></p>
-        <% if book_details.present? %>
-          <p class="wrap-anywhere text-xs text-stone-600"><%= book_details %></p>
-        <% end %>
-      </div>
-    <% end %>
-
     <% if @can_change_book_note %>
       <footer class="flex flex-wrap justify-end gap-2">
-        <%= render "book_notes/editor", book_note: @book_note_draft || @book_note,
+        <%= render "book_notes/editor", book_note: @book_note_draft || @book_note, book: @book,
                    url: @note_path, discard_path: @note_path, label: t("book_notes.edit") %>
         <%= button_to t("book_notes.delete"), @note_path, method: :delete,
                       class: "ui-button ui-button-danger",

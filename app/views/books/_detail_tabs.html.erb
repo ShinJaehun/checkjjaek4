@@ -1,12 +1,16 @@
 <% tabs = { "reading" => "book-my-reading", "jjaeks" => "book-sharing" } %>
 <% options = params.slice(:notes_page, :cursor).permit(:notes_page, :cursor).to_h.merge(group_id: @group&.id, return_to: @book_return_path) %>
-<div role="tablist" aria-label="<%= t("books.show.detail_tabs") %>" class="flex gap-2"
+<% tab_classes = "inline-flex min-h-11 items-center text-sm font-medium text-stone-600 underline-offset-4 hover:text-stone-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 aria-selected:text-lg aria-selected:font-bold aria-selected:text-stone-900" %>
+<div role="tablist" aria-label="<%= t("books.show.detail_tabs") %>" class="flex flex-wrap items-baseline gap-x-2 px-1"
      data-action="keydown->book-detail#navigateTabs">
-  <% tabs.each do |tab, panel_id| %>
+  <% tabs.each_with_index do |(tab, panel_id), index| %>
+    <% if index.positive? %>
+      <span class="text-sm text-stone-500" aria-hidden="true">/</span>
+    <% end %>
     <% selected = selected_tab == tab %>
     <%= link_to t("books.show.tabs.#{tab}"), book_path(book, options.merge(tab:)),
                 id: "book-#{tab}-tab", role: "tab", tabindex: (selected ? 0 : -1),
-                class: "ui-button ui-button-secondary flex-1 aria-selected:border-emerald-700 aria-selected:bg-emerald-50 aria-selected:text-emerald-900",
+                class: tab_classes,
                 aria: { controls: panel_id, selected: selected },
                 data: { book_detail_target: "tab", action: "book-detail#selectTab", turbo_prefetch: false } %>
   <% end %>

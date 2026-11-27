@@ -1,4 +1,7 @@
 en:
+  date:
+    formats:
+      book_note: "%b %-d, %Y"
   book_notes:
     heading: "Reading notes"
     new: "Write a note"

@@ -1,4 +1,7 @@
 ko:
+  date:
+    formats:
+      book_note: "%Y년 %-m월 %-d일"
   book_notes:
     heading: "독서 노트"
     new: "노트 작성"

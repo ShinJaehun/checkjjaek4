@@ -8,7 +8,24 @@
 
   <div class="mx-auto w-full max-w-3xl space-y-4">
     <% if @bookshelf_entry %>
-      <%= render "books/detail_tabs", book: @book, selected_tab: @book_detail_tab %>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <%= render "books/detail_tabs", book: @book, selected_tab: @book_detail_tab %>
+        <% if @new_book_note %>
+          <div class="ml-auto min-w-0" data-book-detail-target="tabActions" data-tab-panel="book-my-reading"
+               <%= "hidden" unless @book_detail_tab == "reading" %>>
+            <%= render "book_notes/editor", book_note: @new_book_note, book: @book,
+                       url: book_book_notes_path(@book, return_to: @book_note_return_path),
+                       discard_path: book_path(@book, return_to: @book_note_return_path, tab: "reading"),
+                       label: t("book_notes.new") %>
+          </div>
+        <% end %>
+        <% if @can_write_book_jjaek %>
+          <div class="ml-auto" data-book-detail-target="tabActions" data-tab-panel="book-sharing"
+               <%= "hidden" unless @book_detail_tab == "jjaeks" %>>
+            <%= render "books/jjaek_form_toggle" %>
+          </div>
+        <% end %>
+      </div>
       <section id="book-my-reading" role="tabpanel" aria-labelledby="book-reading-tab"
                class="space-y-4" <%= "hidden" unless @book_detail_tab == "reading" %>>
         <%= render "books/my_reading", book: @book, entry: @bookshelf_entry %>
@@ -19,23 +36,11 @@
                     role: ("tabpanel" if @bookshelf_entry),
                     aria: { labelledby: ("book-jjaeks-tab" if @bookshelf_entry) },
                     hidden: @book_detail_tab == "reading" do %>
-      <% if !@bookshelf_entry || @can_write_book_jjaek %>
+      <% unless @bookshelf_entry %>
         <div class="flex flex-wrap items-start gap-2">
-          <% unless @bookshelf_entry %>
-            <%= render "books/bookshelf_panel", book: @book, bookshelf_entry: nil, bookshelves: @bookshelves,
-                       search_result_token: @search_result_token, group_id: @group&.id %>
-          <% end %>
-          <% if @can_write_book_jjaek %>
-            <button type="button" class="ui-button ui-button-secondary group" aria-controls="book-jjaek-form"
-                    aria-expanded="<%= !!@book_jjaek_form_open %>"
-                    data-book-detail-target="composerToggle" data-action="book-detail#toggleComposer">
-              <%= t("jjaeks.actions.publish_short") %>
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2" class="size-4 group-aria-expanded:rotate-180">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </button>
-          <% end %>
+          <%= render "books/bookshelf_panel", book: @book, bookshelf_entry: nil, bookshelves: @bookshelves,
+                     search_result_token: @search_result_token, group_id: @group&.id %>
+          <%= render "books/jjaek_form_toggle" if @can_write_book_jjaek %>
         </div>
       <% end %>
 
