@@ -1,19 +1,27 @@
 module BookActivitiesHelper
   def book_activity_card_message(activity, context: :feed, sticker_definitions: {})
     user_link = link_to(activity.user.name, user_path(activity.user), class: "font-semibold text-stone-900 hover:text-stone-700")
+    copy_key = context
+    copy_options = {}
+    if context == :book
+      title = activity.book.title
+      copy_key = :book_html
+      copy_options = { book_title: tag.strong(title), object_particle: korean_object_particle(title) }
+    end
+
     if activity.added_to_shelf?
-      return safe_join([ user_link, t("book_activities.card_copy.added_to_shelf.#{context}") ])
+      return safe_join([ user_link, t("book_activities.card_copy.added_to_shelf.#{copy_key}", **copy_options) ])
     end
 
     clauses = book_activity_change_clauses(activity, sticker_definitions)
     if clauses.empty?
-      return safe_join([ user_link, t("book_activities.card_copy.changed.#{context}") ])
+      return safe_join([ user_link, t("book_activities.card_copy.changed.#{copy_key}", **copy_options) ])
     end
 
     parts = clauses.each_with_index.flat_map do |clause, index|
       [ (", " if index.positive?), *book_activity_clause_parts(clause, final: index == clauses.size - 1) ].compact
     end
-    safe_join([ user_link, t("book_activities.card_copy.change_prefix.#{context}"), *parts, ("." unless I18n.locale.to_s.start_with?("ko")) ])
+    safe_join([ user_link, t("book_activities.card_copy.change_prefix.#{copy_key}", **copy_options), *parts, ("." unless I18n.locale.to_s.start_with?("ko")) ])
   end
 
   private
@@ -83,10 +91,19 @@ module BookActivitiesHelper
   end
 
   def korean_direction_particle(text)
-    last_codepoint = text.to_s.each_codepoint.to_a.last
-    return "로" unless last_codepoint&.between?(0xAC00, 0xD7A3)
+    jongseong = korean_jongseong(text.to_s[-1])
+    [ nil, 0, 8 ].include?(jongseong) ? "로" : "으로"
+  end
 
-    jongseong = (last_codepoint - 0xAC00) % 28
-    jongseong.zero? || jongseong == 8 ? "로" : "으로"
+  def korean_object_particle(title)
+    last_character = title[/[[:alnum:]](?=[^[:alnum:]]*\z)/]
+    return "을" if korean_jongseong(last_character)&.positive? || last_character&.match?(/[013678]/)
+
+    "를"
+  end
+
+  def korean_jongseong(character)
+    codepoint = character&.ord
+    (codepoint - 0xAC00) % 28 if codepoint&.between?(0xAC00, 0xD7A3)
   end
 end

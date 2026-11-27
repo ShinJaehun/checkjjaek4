@@ -67,12 +67,13 @@ RSpec.describe "Relationships", type: :request do
 
     get root_path
 
-    nav = parse_html.at_css("nav")
+    nav = parse_html.at_css("body > header[data-controller='mobile-navigation'] nav")
     expect(nav.at_css(%(a[href="#{account_relationships_path}"]))).to be_nil
     expect(nav.at_css(%(a[href="#{account_settings_path}"]))).to be_nil
     profile_link = nav.at_css(%(a[href="#{user_path(viewer)}"]))
     expect(profile_link).to be_present
-    expect(profile_link.at_css(%(img[alt="#{viewer.name}"]))).to be_present
+    expect(profile_link["aria-label"]).to eq(viewer.name)
+    expect(profile_link.at_css('img[alt=""][src*="user_profile_"][src*="_128"]')).to be_present
     expect(profile_link.text).to include(viewer.name)
   end
 

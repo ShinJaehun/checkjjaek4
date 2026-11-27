@@ -1198,13 +1198,13 @@ en:
     card_copy:
       added_to_shelf:
         feed: " added a book to their shelf."
-        book: " added this book to their shelf."
+        book_html: " added %{book_title} to their shelf."
       change_prefix:
         feed: " updated a book: "
-        book: " updated this book: "
+        book_html: " updated their reading record for %{book_title}: "
       changed:
         feed: " updated a reading record."
-        book: " updated the reading record for this book."
+        book_html: " updated their reading record for %{book_title}."
     badges:
       status_cleared: "Status cleared"
     card:

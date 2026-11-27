@@ -1220,13 +1220,13 @@ ko:
     card_copy:
       added_to_shelf:
         feed: "님이 책을 서재에 담았습니다."
-        book: "님이 이 책을 서재에 담았습니다."
+        book_html: "님이 %{book_title}%{object_particle} 서재에 담았습니다."
       change_prefix:
         feed: "님이 책의 "
-        book: "님이 이 책의 "
+        book_html: "님이 %{book_title}의 "
       changed:
         feed: "님이 책의 독서 기록을 변경했습니다."
-        book: "님이 이 책의 독서 기록을 변경했습니다."
+        book_html: "님이 %{book_title}의 독서 기록을 변경했습니다."
     badges:
       status_cleared: "상태 비움"
     card:

@@ -75,7 +75,7 @@ module BookShowContext
 
   def prepare_book_friend_activities
     @book_friend_activities = policy_scope(BookActivity.where(book: @book), policy_scope_class: BookActivityPolicy::BookFriendScope)
-      .includes(user: { avatar_attachment: :blob })
+      .includes(:book, user: { avatar_attachment: :blob })
       .order(created_at: :desc, id: :desc)
       .limit(3)
       .to_a
