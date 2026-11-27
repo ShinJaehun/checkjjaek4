@@ -18,6 +18,14 @@ en:
     confirm_delete: "Delete this reading note?"
     confirm_discard: "Discard your unsaved changes and close?"
     attachments_not_allowed: "Reading notes can’t include images or files."
+  book_note_images:
+    errors:
+      invalid_image: "This image could not be read. Choose a different file."
+      too_large: "Each original image must be 5 MB or smaller."
+      unsupported_format: "Only JPEG, PNG, and WebP images are supported."
+      too_many_pixels: "This image has too many pixels. Resize it and try again."
+      storage_limit: "You have reached the 100 MB storage limit for reading note images."
+      upload_failed: "The image could not be saved. Try again in a moment."
   activerecord:
     errors:
       models:

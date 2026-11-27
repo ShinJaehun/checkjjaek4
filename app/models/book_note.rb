@@ -4,6 +4,7 @@ class BookNote < ApplicationRecord
                         "audio, video, source, object, embed, iframe, input[type=file]".freeze
 
   belongs_to :user_book
+  has_many :book_note_images
   has_rich_text :body
 
   validate :validate_body

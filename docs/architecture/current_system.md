@@ -107,6 +107,7 @@
 - 서재 미등록 책과 외부 검색 책 미리보기에도 현재 Pundit 작성 권한 안에서 통합 짹 폼을 제공한다. 현재 책 1권을 기본 첨부하며 제거·다른 책 추가로 0~5권을 선택한다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
 - 개인 [독서 노트](../specs/book_notes.md)는 `UserBook`에 연결된다. 책 상세와 본인 서재에서 페이지 단위로 조회하며, 읽기 화면과 변경 요청에는 `BookNotePolicy`를 적용한다.
+- 독서 노트 이미지 API는 `BookNoteImage`로 소유권·임시 상태·용량을 추적하며, `BookNoteImagePolicy`와 기존 비공개 스트리밍을 사용한다. 최적화 파일은 운영 `oci_book_note_images`에 저장하고 정기 Job에서 만료·삭제 대기 객체를 회수한다. Trix 본문 연결은 후속 단계다.
 - 미등록 책은 탭 없이 타이틀 카드 아래에서 등록 모달과 인가된 짹 작성 버튼을 제공한다. 짹 버튼은 등록 여부와 무관하게 공통 인라인 폼을 펼치며, 접기와 탭 전환에서 폼 DOM을 유지한다. 검증 실패 응답은 열린 폼을 렌더링한다
 - 독서 활동 모달은 기존 reading_state 폼에서 상태 3종·상태 없음·스티커 선택과 전체 해제를 한 번의 PATCH로 저장한다. `UserBook` 잠금·transaction 안에서 상태·스티커·BookActivity를 함께 저장한다. HTML 실패 응답은 제출값과 오류를 복원해 독서 활동 모달만 다시 열고, JSON 실패 응답은 현재 저장값과 오류를 반환한다
 - 단일 첨부 개인·동아리 짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 배치와 그 `UserBook`·스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다

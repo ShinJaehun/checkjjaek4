@@ -18,6 +18,14 @@ ko:
     confirm_delete: "이 독서 노트를 삭제할까요?"
     confirm_discard: "저장하지 않은 내용을 버리고 닫을까요?"
     attachments_not_allowed: "독서 노트에는 이미지나 파일을 첨부할 수 없습니다."
+  book_note_images:
+    errors:
+      invalid_image: "이미지를 읽을 수 없습니다. 다른 파일을 선택해 주세요."
+      too_large: "원본 이미지 한 장은 최대 5MB까지 업로드할 수 있습니다."
+      unsupported_format: "JPEG, PNG, WebP 이미지만 업로드할 수 있습니다."
+      too_many_pixels: "이미지 해상도가 너무 높습니다. 크기를 줄인 뒤 다시 올려 주세요."
+      storage_limit: "독서 노트 이미지 저장 용량 100MB를 초과했습니다."
+      upload_failed: "이미지를 저장하지 못했습니다. 잠시 뒤 다시 시도해 주세요."
   activerecord:
     errors:
       models:
