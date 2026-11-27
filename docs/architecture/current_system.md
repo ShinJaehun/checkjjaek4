@@ -99,7 +99,7 @@
 ### 2. 책 화면 (/books/:id)
 
 - 책 타이틀 카드는 max-w-4xl(896px)을 사용하며 표지, 제목, 저자·역자·출판사·출간일과 외부 링크를 표시한다. 누락된 서지 행은 생략한다. ISBN과 소개는 외부 검색에서 아직 저장되지 않은 책의 미리보기에서만 기존 방식으로 표시한다. 메타데이터 저장·식별은 기존 흐름을 사용한다
-- 등록된 책은 아래에 `나의 독서`와 `책짹` 탭을 제공한다. `BookShowContext`가 명시적 선택과 진입 문맥, 폼 실패를 반영하고 `book-detail` Stimulus가 현재 URL과 패널을 갱신한다. 나의 독서는 책장·상태·스티커·노트, 책짹은 작성 버튼·첨부 짹 목록·책친구 활동을 제공한다
+- 등록된 책은 아래에 `나의 독서`와 `책짹` 탭을 제공한다. `BookShowContext`가 명시적 선택과 진입 문맥, 폼 실패를 반영하고 `book-detail` Stimulus가 현재 URL과 패널을 갱신한다. 나의 독서는 책장·상태·스티커·노트, 책짹은 작성 버튼·첨부 짹 목록·`책친구의 독서 활동`을 제공한다
 - 책 상세 목록은 `Book#attached_jjaeks`에 개인 `BookScope` 또는 명시적인 동아리 문맥의 `GroupContentScope`를 적용한다. 서재 등록 여부로 읽기·작성 권한을 바꾸지 않으며 여러 권 첨부 시 각 책에 같은 짹이 한 번씩 표시된다
 - `books/:id`의 첨부 짹 목록에는 ReJjaek을 직접 포함하지 않는다
 - 원본 짹 카드의 visible ReJjaek count는 유지한다
@@ -114,7 +114,7 @@
 - `prepare_book_show_form_context`가 개인/동아리 Pundit 작성 가능 여부를 준비한다. 책 문맥은 `book_context_id/token`으로 유지하며 현재 책을 실제 첨부해 저장하면 해당 책으로, 제거하고 저장하면 홈으로 이동한다. 공유·다시짹은 기존 별도 경로를 유지한다
 - 담긴 책장 이름은 기존 색상의 `user_library_path(current_user, bookshelf_id:)` 링크다. `책장 관리` 버튼으로 이동과 꺼내기 모달을 열며, 책장이 여러 개면 `.ui-choice`에서 현재 책장을 기본 선택한다. 배치 제거 후 현재 책 상세에 등록 버튼을 표시하고 본인의 기존 노트 읽기 링크를 유지한다
 - 서재에 담기·책장 이동·독서 활동 모달은 각각 고유 ID와 book-modal Stimulus 범위를 사용한다. 닫기·Escape·포커스 복귀·모바일 내부 스크롤·body scroll lock·Turbo cache 닫기를 유지한다
-- 별도 책친구 활동은 현재 accepted 관계와 public/book_friends 책장의 연결 항목에 허용된 BookActivity(상태·스티커 변경 포함), 기존 가시성 안의 개인 첨부 짹을 합쳐 최근 3건 표시한다. 홈의 소식받기 조건은 적용하지 않으며 본인 활동은 제외한다. 첨부 짹 목록에는 BookActivity를 섞지 않는다
+- `책친구의 독서 활동`은 `BookActivityPolicy::BookFriendScope`로 현재 accepted 관계와 public/book_friends 책장에 연결된 해당 책의 BookActivity를 조회해 `created_at DESC, id DESC` 순으로 최근 3건 표시한다. 상태·스티커 변경을 포함하며 홈의 소식받기 조건은 적용하지 않고 본인 활동은 제외한다. 첨부 짹은 `이 책의 책짹` 목록에 표시한다
 
 관련 코드:
 - controller: app/controllers/books_controller.rb (show)
@@ -609,12 +609,12 @@ deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 p
 
 `BookActivity`는 개인 BookshelfEntry 배치를 새로 생성할 때 `added_to_shelf`를 기록한다.
 상태·스티커의 실제 변경은 저장 1회당 `bookshelf_entry_updated` 한 건으로 기록하며 무변경·현재 배치 중복 등록·책장 이동은 활동을 생성하지 않는다.
-홈·프로필 피드는 연결된 항목의 추가 활동만 표시하고, 책 상세 책친구 활동은 허용된 상태·스티커 변경도 표시한다.
+홈·프로필 피드는 연결된 항목의 추가 활동만 표시하고, 책 상세의 `책친구의 독서 활동`은 허용된 상태·스티커 변경도 표시한다.
 BookshelfEntry 제거 시 활동 행은 보존하고 배치 연결만 해제한다. 연결이 해제된 활동은 다시 담은 뒤에도 표시하지 않는다.
 프로필은 self / accepted book_friend, 홈은 self / 소식받는 accepted book_friend 관계를 유지하며,
 다른 사용자의 활동은 연결된 항목의 현재 책장이 public/book_friends인 경우에만 표시한다.
 private 변경 또는 private 책장 이동은 과거 추가 활동에도 즉시 적용된다.
-책 상세의 첨부 짹 목록에는 합성하지 않고 별도 책친구 활동 영역에 표시한다.
+책 상세에서는 별도 `책친구의 독서 활동` 영역에 표시한다.
 생성·조회·삭제의 canonical 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
 
 → 현재 상태, 본문 콘텐츠, 피드용 이벤트는 분리된 모델에서 관리한다

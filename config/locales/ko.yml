@@ -1409,7 +1409,7 @@ ko:
       reading_record_empty: "아직 기록 없음"
       save_reading_record: "독서 기록 저장"
       write_book_jjaek: "이 책에 책짹 쓰기"
-      friend_activity_title: "책친구 활동"
+      friend_activity_title: "책친구의 독서 활동"
       empty_friend_activities: "이 책에 표시할 수 있는 책친구 활동이 없습니다."
   jjaeks:
     contexts:

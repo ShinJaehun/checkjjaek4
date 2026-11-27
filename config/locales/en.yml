@@ -1389,7 +1389,7 @@ en:
       reading_record_empty: "No reading activity yet"
       save_reading_record: "Save reading record"
       write_book_jjaek: "Write a book post about this book"
-      friend_activity_title: "Book friend activity"
+      friend_activity_title: "Book friends’ reading activity"
       empty_friend_activities: "There is no book friend activity to show for this book."
   jjaeks:
     contexts:

@@ -59,8 +59,8 @@
           <h2 class="text-2xl font-semibold text-stone-900"><%= t("books.show.friend_activity_title") %></h2>
           <% if @book_friend_activities.present? %>
             <div class="space-y-3">
-              <% @book_friend_activities.each do |item| %>
-                <%= render "books/friend_activity", item: item %>
+              <% @book_friend_activities.each do |activity| %>
+                <%= render "books/friend_activity", activity: %>
               <% end %>
             </div>
           <% else %>
