@@ -20,6 +20,7 @@ en:
     add_image: "Add image"
     uploading_images: "Uploading images…"
     image_alt: "Image attached to a reading note"
+    open_image: "Enlarge attached image"
     image_limit: "You can add up to %{count} images to a reading note."
     attachments_not_allowed: "Only images uploaded for reading notes can be attached."
   book_note_images:

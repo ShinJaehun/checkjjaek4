@@ -46,7 +46,8 @@
 - 원본 Blob row를 게시 transaction 전에 만들어 프로세스 중단에도 object key를 보존한다.
   정리 job은 파일을 먼저 지우고 행을 지운다. 실패하면 키와 bytes를 유지하며 재시도한다.
   hourly cleanup은 하루 이상 된 미첨부 원본을 회수한다. 일일 성공 이력은 삭제하지 않는다.
-- 카드 800px/확대 1600px Variant는 처음 요청에서 생성해 같은 OCI 사진 버킷에 보관하고 재사용한다.
+- 카드 640px/확대 1600px Variant는 처음 요청에서 생성해 같은 OCI 사진 버킷에 보관하고 재사용한다.
+  기존 원본도 첫 카드 요청에서 640px Variant를 얻는다. 이미 저장된 800px Variant는 기존 원본 정리 때 회수한다.
   tracked Variant와 아바타는 위 1GB 원본 budget에 포함하지 않는다. OCI 버킷 지표/실제 object 목록으로
   **사진 원본+Variant 전체**, 아바타 버킷, object version과 미완료 multipart를 따로 확인한다.
 - OCI 비용/저장량 경보와 예산 알림을 설정한다. 버전 관리·삭제 보존이 켜져 있으면 현재 객체 삭제만으로
@@ -62,6 +63,7 @@ libvips concurrency=1, cache 비활성화와 단일 컨테이너 공유 파일 �
 
 현재 잠금은 **단일 VM의 단일 웹 컨테이너**를 전제로 한다. 웹/변환 컨테이너를 늘릴 때는 공유 잠금·처리
 worker 구조를 별도 검토해야 한다. 대기 요청은 Puma thread를 차지하므로 cold Variant가 많은 경우 지연이 생긴다.
+이미 생성된 Variant는 변환을 건너뛰고, 요청별 잠금 대기와 OCI 읽기·Rails 중계 비용은 남는다.
 새 요청의 권한 철회가 이미 표시/저장된 파일의 회수를 의미하지는 않는다.
 
 기본 Active Storage Blob/representation/Disk/direct-upload 라우트는 비활성화한다.

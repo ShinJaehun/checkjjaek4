@@ -1,6 +1,8 @@
 class BookNoteImagesController < ApplicationController
   include AuthenticatedImageDelivery
 
+  BODY_IMAGE_SIZE = 800
+
   skip_before_action :authenticate_user!, :reject_suspended_session!, only: :show
   rescue_from ActiveRecord::RecordNotFound, Pundit::NotAuthorizedError,
     ActiveStorage::FileNotFoundError, ActiveStorage::IntegrityError, with: -> { head :not_found }
@@ -22,18 +24,28 @@ class BookNoteImagesController < ApplicationController
 
     image = user_book.book_note_images.find(params[:id])
     authorize image
-    blob = image.blob
+    blob = case params.fetch(:size, "original")
+    when "original"
+      image.blob
+    when "body"
+      image_variant_blob(image.blob, BODY_IMAGE_SIZE) { verify_image_access!(image) }
+    else
+      return head :not_found
+    end
     return head :not_found unless blob.service.exist?(blob.key)
 
-    # Check the current ownership and attachment after the storage request.
-    image.reload
-    current_user.reload
-    raise ActiveRecord::RecordNotFound unless policy(image).show?
-
+    verify_image_access!(image)
     send_image_blob(blob)
   end
 
   private
+
+  def verify_image_access!(image)
+    # Ownership or attachment can change while waiting for the transform or storage.
+    image.reload
+    current_user.reload
+    raise ActiveRecord::RecordNotFound unless policy(image).show?
+  end
 
   def user_book
     current_user.user_books.find_by!(book_id: params[:book_id])

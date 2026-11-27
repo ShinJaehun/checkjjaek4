@@ -8,9 +8,9 @@ RSpec.describe "Jjaek photos", type: :request do
     Rack::Test::UploadedFile.new(Rails.root.join("app/assets/images/avatars/user_profile_01_128.png"), "image/png")
   end
 
-  def create_photo_post(**attributes)
+  def create_photo_post(file: photo_upload, **attributes)
     sign_in writer
-    post jjaeks_path, params: { jjaek: { content: "Photo #reading", photo_files: [ photo_upload ], **attributes } }
+    post jjaeks_path, params: { jjaek: { content: "Photo #reading", photo_files: [ file ], **attributes } }
     expect(response).to have_http_status(:see_other)
     writer.jjaeks.order(:id).last
   end
@@ -266,6 +266,34 @@ RSpec.describe "Jjaek photos", type: :request do
     expect(document.at_css("[data-content-length-target='serverErrors']").text.strip).to eq("")
     expect(document.at_css("textarea[name='jjaek[content]']").text.strip).to eq("Keep this body")
     expect(writer.jjaeks).to be_empty
+  end
+
+  it "uses a 640px card and a 1600px gallery variant on the home feed" do
+    jjaek = Tempfile.create([ "feed-photo", ".png" ]) do |file|
+      Vips::Image.black(1920, 960).write_to_file(file.path)
+      create_photo_post(file: Rack::Test::UploadedFile.new(file.path, "image/png"))
+    end
+    photo = jjaek.ordered_photos.first
+    blob = photo.blob
+    original = blob.download
+    get root_path
+    button = Nokogiri::HTML(response.body).at_css("#jjaek_#{jjaek.id} .jjaek-photo-grid button")
+    thumbnail = button.at_css("img")
+    card_path = jjaek_photo_path(jjaek, photo, size: :card)
+    gallery_path = jjaek_photo_path(jjaek, photo, size: :gallery)
+    expect(%w[src loading decoding].map { |name| thumbnail[name] }).to eq([ card_path, "lazy", "async" ])
+    expect(button["data-gallery-url"]).to eq(gallery_path)
+
+    { card_path => [ 640, 320 ], gallery_path => [ 1600, 800 ] }.each do |path, dimensions|
+      expect { get path }.to change { blob.variant_records.count }.by(1)
+      expect(response).to have_http_status(:ok)
+      variant = Vips::Image.new_from_buffer(response.body, "")
+      expect([ variant.width, variant.height ]).to eq(dimensions)
+    end
+
+    expect { get card_path }.not_to change { blob.variant_records.count }
+    expect(response).to have_http_status(:ok)
+    expect(blob.reload.download).to eq(original)
   end
 
   it "denies guests, wrong parents, strangers and stale URLs after visibility changes" do

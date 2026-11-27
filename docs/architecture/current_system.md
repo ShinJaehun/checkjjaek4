@@ -53,7 +53,7 @@
 - 같은 설정 화면의 비밀번호 변경은 `PATCH /account/settings/password`에서 Devise의 현재 비밀번호·유효성 검증으로 처리함. 실패하면 입력값을 비우고 오류를 표시하며, 성공하면 로그아웃 후 새 비밀번호로 로그인하도록 안내함 (`docs/specs/account_password_settings.md`)
 - 로그인 화면의 `로그인 상태 유지`는 기본 체크 해제이며 기존 Devise rememberable로 최대 30일 동안 인증을 복원함. 로그아웃 시 유지 토큰을 무효화하고 탈퇴 계정 인증 제한·쿠키 보안과 일반 세션 정책은 유지함 (`docs/specs/remember_me.md`)
 - 업로드 아바타는 서버에서 JPEG·PNG·WebP와 원본 5MB 제한을 검증하고 128px·512px 정사각형 variant로 표시함. 기본 32종 아바타는 업로드가 없을 때 유지됨. 개발·테스트는 Disk, 운영은 비공개 `checkjjaek-avatars` 버킷(`oci_avatars`)을 사용함. A17 코드부터 기본 Active Storage 공개 경로 대신 로그인된 아바타 중계 경로를 사용함
-- A17 코드는 통합 짹 사진 0~4장과 편집·삭제, 800/1600px Variant 카드/갤러리, 부모 policy 기반 파일 중계, 베타 한도를 추가함. `JjaekPhotoChanges`가 검증·OCI 저장·transaction과 성공 업로드 이력을 관리하고 `PurgeJjaekPhotoJob`/`CleanupJjaekPhotosJob`이 원본·Variant를 회수함. 운영의 비공개 `checkjjaek-photos` 버킷(`oci_photos`)은 짹 사진과 독서 노트 이미지를 저장함. [명세](../specs/jjaek_photos_a17.md)·[운영](../ops/jjaek_photos.md) 참고. 해당 작업의 migration·RSpec·브라우저·운영 검증은 아직 실행하지 않음
+- A17 코드는 통합 짹 사진 0~4장과 편집·삭제, 640/1600px Variant 카드/갤러리, 부모 policy 기반 파일 중계, 베타 한도를 추가함. `JjaekPhotoChanges`가 검증·OCI 저장·transaction과 성공 업로드 이력을 관리하고 `PurgeJjaekPhotoJob`/`CleanupJjaekPhotosJob`이 원본·Variant를 회수함. 운영의 비공개 `checkjjaek-photos` 버킷(`oci_photos`)은 짹 사진과 독서 노트 이미지를 저장함. [명세](../specs/jjaek_photos_a17.md)·[운영](../ops/jjaek_photos.md) 참고. 해당 작업의 migration·RSpec·브라우저·운영 검증은 아직 실행하지 않음
 - `/users/:id`는 사용자 프로필 surface로 유지하고, `/account/...`는 자기 계정 관리용 self-only 경로로 확장할 수 있으며 현재는 settings만 구현됨
 
 ---
@@ -107,7 +107,7 @@
 - 서재 미등록 책과 외부 검색 책 미리보기에도 현재 Pundit 작성 권한 안에서 통합 짹 폼을 제공한다. 현재 책 1권을 기본 첨부하며 제거·다른 책 추가로 0~5권을 선택한다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
 - 개인 [독서 노트](../specs/book_notes.md)는 `UserBook`에 연결된다. 책 상세와 본인 서재에서 페이지 단위로 조회하며, 읽기 화면과 변경 요청에는 `BookNotePolicy`를 적용한다.
-- 독서 노트 이미지 API는 `BookNoteImage`로 소유권·임시 상태·용량을 추적하며, `BookNoteImagePolicy`와 기존 비공개 스트리밍을 사용한다. 최적화 파일은 운영 `oci_photos`에 저장하고 정기 Job에서 만료·삭제 대기 객체를 회수한다. Trix는 이 API로 업로드하고 `BookNote#update_content`가 본문 식별자 검증과 이미지 연결을 같은 트랜잭션에서 처리한다.
+- 독서 노트 이미지 API는 `BookNoteImage`로 소유권·임시 상태·용량을 추적하며, `BookNoteImagePolicy`와 기존 비공개 스트리밍을 사용한다. 본문은 최대 800px Variant를, 갤러리와 Trix는 최대 1600px 최적화 원본을 요청한다. 두 파일은 운영 `oci_photos`에 저장하고 정기 Job에서 함께 회수한다. Trix는 이 API로 업로드하고 `BookNote#update_content`가 본문 식별자 검증과 이미지 연결을 같은 트랜잭션에서 처리한다.
 - 미등록 책은 탭 없이 타이틀 카드 아래에서 등록 모달과 인가된 짹 작성 버튼을 제공한다. 짹 버튼은 등록 여부와 무관하게 공통 인라인 폼을 펼치며, 접기와 탭 전환에서 폼 DOM을 유지한다. 검증 실패 응답은 열린 폼을 렌더링한다
 - 독서 활동 모달은 기존 reading_state 폼에서 상태 3종·상태 없음·스티커 선택과 전체 해제를 한 번의 PATCH로 저장한다. `UserBook` 잠금·transaction 안에서 상태·스티커·BookActivity를 함께 저장한다. HTML 실패 응답은 제출값과 오류를 복원해 독서 활동 모달만 다시 열고, JSON 실패 응답은 현재 저장값과 오류를 반환한다
 - 단일 첨부 개인·동아리 짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 배치와 그 `UserBook`·스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
@@ -194,7 +194,7 @@
 - 기본 Library는 선택된 탭 색상의 얇은 외곽선과 은은한 그림자로 색상 헤더와 나무 서가를 감싼다. 헤더는 `bookshelf_header_class`와 `bookshelf_visibility_badge`를 재사용해 왼쪽에 책장 이름과 기존 집계의 책 수, 그 아래 공개 범위 배지를 표시한다. 기본 Library는 오른쪽에 정렬을 표시한다
 - 새 책장 생성과 선택된 일반 책장 설정은 `책장 관리` 메뉴에서 기존 사전 렌더링 모달을 연다. 모달을 닫으면 메뉴 버튼으로 초점이 돌아간다
 - 책장 생성·설정 모달의 공개 범위는 짹 작성 폼과 같은 아이콘·선택 스타일의 라디오 카드로 표시하고, 검증 실패 응답은 제출된 선택을 다시 표시한다
-- 본인 서재는 `/`로 구분한 `책장 / 독서 노트` 텍스트 링크를 제공하고 `library_tab`으로 선택한 목록을 렌더링한다. 서재와 책 상세는 책 정보·노트 제목·본문 미리보기·작성 시각을 표시하는 공통 노트 카드를 사용한다
+- 본인 서재는 `/`로 구분한 `책장 / 독서 노트` 텍스트 링크를 제공하고 `library_tab`으로 선택한 목록을 렌더링한다. 서재와 책 상세는 노트 제목·본문 미리보기·작성 시각을 표시하는 공통 노트 카드를 사용한다. 서재 카드 하단에는 책 정보도 표시한다
 - 책장 화면 상단에서 탐색과 `책 찾기`·`책장 관리`를 좌우로 배치하며 좁은 폭에서는 줄바꿈한다. `책장 관리` 메뉴에 `새 책장`, PC 전용 `책 옮기기`, `여러 책 정리`, 일반 책장의 `현재 책장 설정`이 있다
 - 기본 책장 “내 책장”은 삭제할 수 없다
 - 일반 책장은 비어 있을 때만 삭제할 수 있고, 책이 들어 있는 책장은 삭제 버튼 대신 안내 문구를 보여준다

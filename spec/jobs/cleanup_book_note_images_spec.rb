@@ -30,6 +30,9 @@ RSpec.describe CleanupBookNoteImagesJob, type: :job do
     kept_note = user_book.book_notes.create!(body: "Keep this note")
     linked = create_image
     linked.attach_to!(kept_note, user: owner)
+    variant_blob = expired.blob.variant(resize_to_limit: [ 800, 800 ], format: :webp,
+      saver: { strip: true, quality: 85 }).processed.image.blob
+    expect(variant_blob.service.exist?(variant_blob.key)).to be(true)
 
     purged_images = [ expired, abandoned, detached ].map do |image|
       [ image, image.blob ]
@@ -44,6 +47,7 @@ RSpec.describe CleanupBookNoteImagesJob, type: :job do
     end
     expect(BookNoteImage.where(user: owner)).to contain_exactly(fresh, linked)
     expect(linked.blob.service.exist?(linked.blob.key)).to be(true)
+    expect(variant_blob.service.exist?(variant_blob.key)).to be(false)
   end
 
   it "retains the key and byte reservation and schedules a retry when deletion fails" do

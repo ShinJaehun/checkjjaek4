@@ -233,6 +233,13 @@
   margin-inline: 0;
 }
 .book-note-dialog trix-toolbar .trix-button--icon { width: 2.5rem; height: 2.25rem; max-width: none; }
+.book-note-dialog trix-toolbar .book-note-image-tool {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.25rem;
+  padding: 0;
+}
 .book-note-dialog trix-toolbar .trix-input--dialog { flex: 1; min-width: 0; font-size: 1rem; }
 .book-note-dialog trix-editor {
   min-height: clamp(10rem, 35dvh, 22rem);
@@ -256,6 +263,7 @@
 .book-note-body .book-note-image img { display: block; max-width: 100%; height: auto; }
 .book-note-dialog trix-editor .attachment__caption { display: none; }
 .book-note-body .book-note-image { margin-block: 0.75rem; }
+.book-note-body .book-note-image button { display: block; max-width: 100%; cursor: zoom-in; }
 .book-note-dialog :is(.book-note-title, trix-editor, trix-toolbar button, trix-toolbar input):focus-visible {
   outline: 2px solid #57534e;
   outline-offset: 2px;
@@ -292,17 +300,34 @@
 
 .jjaek-photo-grid {
   display: grid;
-  gap: 0.25rem;
-  overflow: hidden;
-  border-radius: 1rem;
+  max-width: 40rem;
+  gap: 0.375rem;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-.jjaek-photo-grid button { min-width: 0; min-height: 0; background: #f5f5f4; }
-.jjaek-photo-grid img { width: 100%; height: 100%; object-fit: contain; }
-.jjaek-photo-grid[data-count="1"] img { max-height: 28rem; }
-.jjaek-photo-grid[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); aspect-ratio: 2; }
+.jjaek-photo-grid button {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  cursor: zoom-in;
+}
+.jjaek-photo-grid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgb(28 25 23 / 14%);
+}
+.jjaek-photo-grid[data-count="1"] button { justify-self: start; max-width: 100%; }
+.jjaek-photo-grid[data-count="1"] img { width: auto; height: auto; max-width: 100%; max-height: 28rem; object-fit: contain; }
+.jjaek-photo-grid[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  aspect-ratio: 2;
+}
 .jjaek-photo-grid:is([data-count="3"], [data-count="4"]) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));

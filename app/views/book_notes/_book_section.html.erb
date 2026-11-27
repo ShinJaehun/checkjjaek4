@@ -9,7 +9,7 @@
     <ul class="space-y-3">
       <% page.records.each do |note| %>
         <li>
-          <%= render "book_notes/card", note:, book:, return_to: return_path %>
+          <%= render "book_notes/card", note:, book:, return_to: return_path, show_book_details: false %>
         </li>
       <% end %>
     </ul>

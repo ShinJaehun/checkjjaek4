@@ -23,5 +23,5 @@ bin/rails runner 'puts BookNoteImage.joins(:blob).group("active_storage_blobs.se
 ## 정리와 장애 확인
 
 - Solid Queue가 매시 55분에 `CleanupBookNoteImagesJob`을 실행한다. 이 작업은 만료·중단·삭제 대기 이미지의 ID를 `PurgeBookNoteImageJob`으로 넘긴다. 노트·계정 삭제는 주소 접근을 즉시 차단하고 객체는 정리 작업에서 회수한다.
-- 삭제 Job의 실패 내역과 `BookNoteImage.purgeable` 건수를 확인한다. 오류가 있으면 버킷 권한, 연결, 저장소 상태를 점검한다. 삭제가 성공할 때까지 `book_note_images`의 소유자별 예약과 `active_storage_blobs`의 키를 보존한다. DB 행을 수동으로 먼저 삭제하면 재시도와 용량 추적이 끊긴다.
-- 저장량은 앱에서 추적하는 최적화 객체 기준이다. 삭제된 객체의 이전 버전까지 보존하는 버킷 설정을 사용하면 OCI 사용량과 차이가 날 수 있다. 앱의 만료 조건과 별개로 활성 객체를 일괄 만료시키는 규칙은 피한다.
+- 삭제 Job의 실패 내역과 `BookNoteImage.purgeable` 건수를 확인한다. 오류가 있으면 버킷 권한, 연결, 저장소 상태를 점검한다. 원본과 생성된 본문용 Variant의 삭제가 성공할 때까지 `book_note_images`의 소유자별 예약과 객체 키를 보존한다. DB 행을 수동으로 먼저 삭제하면 재시도와 용량 추적이 끊긴다.
+- 저장량은 앱에서 추적하는 최적화 원본 기준이다. 본문용 Variant와 삭제된 객체의 이전 버전을 포함하면 OCI 사용량과 차이가 날 수 있다. 앱의 만료 조건과 별개로 활성 객체를 일괄 만료시키는 규칙은 피한다.

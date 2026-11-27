@@ -12,8 +12,8 @@ RSpec.describe "Images in a reading note body", type: :request do
     BookNoteImage.where(user:).find(response.parsed_body.fetch("id"))
   end
 
-  def image_path(image)
-    book_book_note_image_path(book, image)
+  def image_path(image, **options)
+    book_book_note_image_path(book, image, **options)
   end
 
   def figure(image, url: image_path(image))
@@ -36,7 +36,9 @@ RSpec.describe "Images in a reading note body", type: :request do
     sign_in owner
     first = upload_image
     second = upload_image
-    post book_book_notes_path(book), params: { book_note: { body: "<div>Before#{figure(first)}Between#{figure(second)}After</div>" } }
+    post book_book_notes_path(book), params: { book_note: {
+      body: %(<div data-action="click->photo-gallery#close">Before#{figure(first)}Between#{figure(second)}After</div>)
+    } }
     expect(response).to have_http_status(:see_other)
     note = entry.user_book.book_notes.sole
     expect(note.book_note_images).to contain_exactly(first, second)
@@ -46,12 +48,15 @@ RSpec.describe "Images in a reading note body", type: :request do
     get book_book_note_path(book, note)
     document = Nokogiri::HTML(response.body)
     body = document.at_css(".book-note-body .trix-content > div")
+    expect(body["data-action"]).to be_nil
     pieces = body.children.filter_map do |node|
       node.at_css("img")&.[]("src") || node.text.strip.presence
     end
-    expect(pieces).to eq([ "Before", image_path(first), "Between", image_path(second), "After" ])
-    expect(editor_draft.css("figure[data-trix-attachment]").map { |node| JSON.parse(node["data-trix-attachment"]).fetch("bookNoteImageId").to_i })
-      .to eq([ first.id, second.id ])
+    expect(pieces).to eq([ "Before", image_path(first, size: :body), "Between", image_path(second, size: :body), "After" ])
+    expect(body.css("figure button").map { |button| button["data-gallery-url"] }).to eq([ image_path(first), image_path(second) ])
+    attachments = editor_draft.css("figure[data-trix-attachment]").map { |node| JSON.parse(node["data-trix-attachment"]) }
+    expect(attachments.map { |attachment| attachment.fetch("bookNoteImageId").to_i }).to eq([ first.id, second.id ])
+    expect(attachments.map { |attachment| attachment.fetch("url") }).to eq([ image_path(first), image_path(second) ])
 
     get user_library_path(owner, library_tab: "notes")
     preview = Nokogiri::HTML(response.body).at_css(".book-note-preview")
@@ -66,12 +71,13 @@ RSpec.describe "Images in a reading note body", type: :request do
     get image_path(first)
     expect(response).to have_http_status(:not_found)
     get book_book_note_path(book, note)
-    expect(Nokogiri::HTML(response.body).css(".book-note-body img").map { |image| image["src"] }).to eq([ image_path(third), image_path(second) ])
+    expect(Nokogiri::HTML(response.body).css(".book-note-body .trix-content img").map { |image| image["src"] })
+      .to eq([ image_path(third, size: :body), image_path(second, size: :body) ])
 
     delete bookshelf_entry_path(entry)
     get book_book_note_path(book, note)
-    expect(Nokogiri::HTML(response.body).css(".book-note-body img, #book-note-editor").map { |node| node["src"] })
-      .to eq([ image_path(third), image_path(second) ])
+    expect(Nokogiri::HTML(response.body).css(".book-note-body .trix-content img, #book-note-editor").map { |node| node["src"] })
+      .to eq([ image_path(third, size: :body), image_path(second, size: :body) ])
     get image_path(second)
     expect(response).to have_http_status(:ok)
     patch book_book_note_path(book, note), params: { book_note: { body: "Blocked update" } }
@@ -79,8 +85,10 @@ RSpec.describe "Images in a reading note body", type: :request do
 
     owner.bookshelf_entries.create!(book:)
     delete book_book_note_path(book, note)
-    get image_path(second)
-    expect(response).to have_http_status(:not_found)
+    [ image_path(second), image_path(second, size: :body) ].each do |path|
+      get path
+      expect(response).to have_http_status(:not_found)
+    end
     expect(BookNoteImage.purgeable).to include(first, second, third)
   end
 

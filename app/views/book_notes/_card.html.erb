@@ -1,5 +1,4 @@
 <% preview = note.body.to_plain_text.squish %>
-<% book_details = [ book.authors_text, book.publisher ].compact_blank.join(" · ") %>
 <%= link_to book_book_note_path(book, note, return_to:),
             class: "book-note-paper book-note-card flex h-full min-w-0 flex-col gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600" do %>
   <div class="space-y-1">
@@ -12,15 +11,18 @@
     <% end %>
   </div>
 
-  <div class="mt-auto flex min-w-0 items-center gap-3 border-t border-[color:var(--book-note-border)] pt-3">
-    <div class="flex h-20 w-14 shrink-0 items-center justify-center">
-      <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :small %>
+  <% if local_assigns.fetch(:show_book_details, true) %>
+    <% book_details = [ book.authors_text, book.publisher ].compact_blank.join(" · ") %>
+    <div class="mt-auto flex min-w-0 items-center gap-3 border-t border-[color:var(--book-note-border)] pt-3">
+      <div class="flex h-20 w-14 shrink-0 items-center justify-center">
+        <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :small %>
+      </div>
+      <div class="min-w-0 space-y-1">
+        <p class="wrap-anywhere text-sm font-medium text-stone-800"><%= book.title %></p>
+        <% if book_details.present? %>
+          <p class="wrap-anywhere text-xs text-stone-600"><%= book_details %></p>
+        <% end %>
+      </div>
     </div>
-    <div class="min-w-0 space-y-1">
-      <p class="wrap-anywhere text-sm font-medium text-stone-800"><%= book.title %></p>
-      <% if book_details.present? %>
-        <p class="wrap-anywhere text-xs text-stone-600"><%= book_details %></p>
-      <% end %>
-    </div>
-  </div>
+  <% end %>
 <% end %>
