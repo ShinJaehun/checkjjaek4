@@ -80,6 +80,7 @@ Rails.application.routes.draw do
   resource :book_search, only: :show, controller: "book_searches"
   resources :books, only: :show do
     resources :book_notes, only: %i[show create update destroy]
+    resources :book_note_images, only: %i[create show]
 
     collection do
       get :lookup

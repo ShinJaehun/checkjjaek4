@@ -130,14 +130,95 @@
   font-size: 0.75rem;
 }
 
+.book-note-paper {
+  --book-note-gutter: clamp(0.875rem, 3vw, 1.75rem);
+  --book-note-padding: clamp(1rem, 3.5vw, 2rem);
+  --book-note-rule-height: 1.625rem;
+  --book-note-border: #ded0ba;
+  --book-note-serif: Georgia, "Noto Serif CJK KR", AppleMyungjo, Batang, serif;
+
+  padding: var(--book-note-padding);
+  padding-inline-start: calc(var(--book-note-gutter) + var(--book-note-padding));
+  padding-block-end: calc(var(--book-note-padding) + var(--book-note-rule-height) + 0.375rem);
+  border: 1px solid var(--book-note-border);
+  border-radius: 0.75rem;
+  /* Keep the horizontal rules in the blank margin below the content. */
+  background:
+    linear-gradient(#e3bcac, #e3bcac) left var(--book-note-gutter) top / 1px 100% no-repeat,
+    repeating-linear-gradient(to bottom, #e8decd 0 1px, transparent 1px 0.75rem)
+      left bottom 0.5rem / 100% var(--book-note-rule-height) no-repeat,
+    #fffaf0;
+  color: #302821;
+  box-shadow: 0 3px 10px rgb(60 43 25 / 9%);
+}
+
+.book-note-card {
+  --book-note-gutter: 0.75rem;
+  --book-note-padding: 1rem;
+  --book-note-rule-height: 0.875rem;
+  transition: border-color 150ms ease;
+}
+
+@media (hover: hover) {
+  .book-note-card:hover { border-color: #a98a65; }
+}
+
+.book-note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-block-end: 0.875rem;
+  border-block-end: 1px solid var(--book-note-border);
+}
+
+.book-note-meta > :first-child {
+  flex: 1 1 14rem;
+}
+
+.book-note-date {
+  padding-block-end: 0.125rem;
+  border-block-end: 1px solid var(--book-note-border);
+  color: #65584a;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-note-card .book-note-date { font-size: 0.75rem; }
+
+.book-note-title,
+.book-note-preview,
+.book-note-dialog trix-editor,
+.book-note-body .trix-content {
+  font-family: var(--book-note-serif);
+}
+
 .book-note-dialog {
   width: min(46rem, calc(100% - 1.5rem));
   max-height: calc(100dvh - 1.5rem);
   margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
   overflow-y: auto;
   overscroll-behavior: contain;
+  box-shadow: 0 8px 24px rgb(60 43 25 / 18%);
 }
 .book-note-dialog::backdrop { background-color: rgb(28 25 23 / 65%); }
+
+.book-note-dialog :is(.book-note-title, trix-editor) {
+  border: 1px solid #9b8b75;
+  border-radius: 0.375rem;
+  background-color: rgb(255 255 255 / 45%);
+}
+
+.book-note-dialog .book-note-title {
+  padding: 0.5rem 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
 
 .book-note-dialog trix-toolbar .trix-button-group--file-tools { display: none; }
 .book-note-dialog trix-toolbar .trix-button-row {
@@ -152,17 +233,30 @@
   margin-inline: 0;
 }
 .book-note-dialog trix-toolbar .trix-button--icon { width: 2.5rem; height: 2.25rem; max-width: none; }
-.book-note-dialog trix-toolbar input { min-width: 0; }
-.book-note-dialog trix-editor { min-height: clamp(10rem, 35dvh, 22rem); }
+.book-note-dialog trix-toolbar .trix-input--dialog { flex: 1; min-width: 0; font-size: 1rem; }
+.book-note-dialog trix-editor {
+  min-height: clamp(10rem, 35dvh, 22rem);
+  padding: 0.75rem;
+}
 .book-note-dialog trix-editor,
-.book-note-body { overflow-wrap: anywhere; }
+.book-note-body .trix-content {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
 .book-note-dialog .trix-content ul,
 .book-note-body .trix-content ul { list-style-type: disc; padding-inline-start: 1.25rem; }
 .book-note-dialog .trix-content ol,
 .book-note-body .trix-content ol { list-style-type: decimal; padding-inline-start: 1.25rem; }
 .book-note-dialog .trix-content a,
 .book-note-body .trix-content a { color: #1d4ed8; text-decoration: underline; }
-.book-note-dialog :is(trix-editor, trix-toolbar button):focus-visible {
+.book-note-dialog trix-editor .attachment,
+.book-note-body .book-note-image { max-width: 100%; }
+.book-note-dialog trix-editor .attachment img,
+.book-note-body .book-note-image img { display: block; max-width: 100%; height: auto; }
+.book-note-dialog trix-editor .attachment__caption { display: none; }
+.book-note-body .book-note-image { margin-block: 0.75rem; }
+.book-note-dialog :is(.book-note-title, trix-editor, trix-toolbar button, trix-toolbar input):focus-visible {
   outline: 2px solid #57534e;
   outline-offset: 2px;
 }

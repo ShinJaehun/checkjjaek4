@@ -26,10 +26,10 @@ chmod 600 ~/apps/checkjjaek/.env
 | `SECRET_KEY_BASE` 또는 `RAILS_MASTER_KEY` | 둘 중 하나 필수. 기존 암호화 credentials를 쓴다면 master key 제공 |
 | `RESEND_API_KEY` | 필수. Resend SMTP 인증 키. 웹 컨테이너에만 전달하며 Git에 저장하지 않음 |
 | `RAILS_LOG_LEVEL`, `RAILS_MAX_THREADS`, `WEB_CONCURRENCY` | 선택. 기본 `info`, `5`, `1`; OCI E2 Micro에서 확인한 스레드 설정 |
-| `OCI_STORAGE_ACCESS_KEY_ID`, `OCI_STORAGE_SECRET_ACCESS_KEY`, `OCI_STORAGE_REGION`, `OCI_STORAGE_ENDPOINT` | 필수. 세 버킷이 공유하는 OCI S3 호환 인증 및 연결 설정 |
-| `OCI_AVATAR_BUCKET` | 필수. 사용자 아바타 전용 비공개 버킷 (`oci_avatars`) |
-| `OCI_GROUP_IMAGE_BUCKET` | 필수. 신규 동아리 대표·배너 이미지 전용 비공개 버킷 (`oci_group_images`) |
-| `OCI_PHOTO_BUCKET` | 필수. 짹 사진과 전환 전 동아리 이미지가 남아 있는 비공개 버킷 (`oci_photos`) |
+| `OCI_STORAGE_ACCESS_KEY_ID`, `OCI_STORAGE_SECRET_ACCESS_KEY`, `OCI_STORAGE_REGION`, `OCI_STORAGE_ENDPOINT` | 필수. 이미지 버킷이 공유하는 OCI S3 호환 인증 및 연결 설정 |
+| `OCI_AVATAR_BUCKET` | 필수. 사용자 아바타용 비공개 `checkjjaek-avatars` 버킷 (`oci_avatars`) |
+| `OCI_GROUP_IMAGE_BUCKET` | 필수. 동아리 대표·배너 이미지용 비공개 `checkjjaek-group-images` 버킷 (`oci_group_images`) |
+| `OCI_PHOTO_BUCKET` | 필수. 짹 사진과 독서 노트 이미지용 비공개 `checkjjaek-photos` 버킷 (`oci_photos`). [독서 노트 이미지 운영](book_note_images.md) |
 | `JJAEK_PHOTO_UPLOADS_ENABLED`, `JJAEK_PHOTO_DAILY_LIMIT`, `JJAEK_PHOTO_RETAINED_LIMIT`, `JJAEK_PHOTO_STORAGE_LIMIT_BYTES` | A17 운영 제한. 기본 true / 4 / 50 / 1073741824. [사진 운영](jjaek_photos.md) 참고 |
 
 `RAILS_ENV=production`, 웹 컨테이너의 Thruster 포트 80, `SOLID_QUEUE_IN_PUMA=1`은 Compose에서 고정한다. Puma는 기존 설정대로 컨테이너 안의 3000 포트를 사용한다. 운영 주소/도메인, GHCR 읽기 권한, Cloudflare와 Nginx 인증서도 서버에서 준비한다. GHCR 패키지가 private이면 서버에서 해당 패키지 `read:packages` 권한으로 `docker login ghcr.io`를 먼저 수행한다.

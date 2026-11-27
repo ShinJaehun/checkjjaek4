@@ -1384,10 +1384,12 @@ en:
       requote_source: "ReJjaek from %{name}"
       timeline_title: "Book Jjaeks for this book"
       move_bookshelf: "Move to another shelf"
-      edit_reading_record: "Reading activity"
+      edit_reading_record: "Edit"
+      edit_reading_record_label: "Edit reading activity"
+      reading_record_empty: "No reading activity yet"
       save_reading_record: "Save reading record"
       write_book_jjaek: "Write a book post about this book"
-      friend_activity_title: "Book friend activity"
+      friend_activity_title: "Book friends’ reading activity"
       empty_friend_activities: "There is no book friend activity to show for this book."
   jjaeks:
     contexts:

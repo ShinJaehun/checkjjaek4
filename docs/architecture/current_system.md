@@ -52,8 +52,8 @@
 - `/account/settings`에서 자기 이름, 프로필 이미지 업로드·교체·삭제와 새 책친구 신청·비공개 동아리 초대·소식받기 허용을 관리하고, 기존 계정 탈퇴 확인 화면으로 이동함. 상호작용 설정은 기존 관계에 소급 적용하지 않음 (`docs/specs/interaction_preferences.md`)
 - 같은 설정 화면의 비밀번호 변경은 `PATCH /account/settings/password`에서 Devise의 현재 비밀번호·유효성 검증으로 처리함. 실패하면 입력값을 비우고 오류를 표시하며, 성공하면 로그아웃 후 새 비밀번호로 로그인하도록 안내함 (`docs/specs/account_password_settings.md`)
 - 로그인 화면의 `로그인 상태 유지`는 기본 체크 해제이며 기존 Devise rememberable로 최대 30일 동안 인증을 복원함. 로그아웃 시 유지 토큰을 무효화하고 탈퇴 계정 인증 제한·쿠키 보안과 일반 세션 정책은 유지함 (`docs/specs/remember_me.md`)
-- 업로드 아바타는 서버에서 JPEG·PNG·WebP와 원본 5MB 제한을 검증하고 128px·512px 정사각형 variant로 표시함. 기본 32종 아바타는 업로드가 없을 때 유지됨. 개발·테스트는 Disk, 운영은 비공개 OCI Object Storage 아바타 전용 S3 호환 서비스를 사용함. A17 코드부터 기본 Active Storage 공개 경로 대신 로그인된 아바타 중계 경로를 사용함
-- A17 코드는 통합 짹 사진 0~4장과 편집·삭제, 800/1600px Variant 카드/갤러리, 부모 policy 기반 파일 중계, 베타 한도를 추가함. `JjaekPhotoChanges`가 검증·OCI 저장·transaction과 성공 업로드 이력을 관리하고 `PurgeJjaekPhotoJob`/`CleanupJjaekPhotosJob`이 원본·Variant를 회수함. 운영은 별도 비공개 `oci_photos` 버킷과 기존 OCI credentials를 사용함. [명세](../specs/jjaek_photos_a17.md)·[운영](../ops/jjaek_photos.md) 참고. 해당 작업의 migration·RSpec·브라우저·운영 검증은 아직 실행하지 않음
+- 업로드 아바타는 서버에서 JPEG·PNG·WebP와 원본 5MB 제한을 검증하고 128px·512px 정사각형 variant로 표시함. 기본 32종 아바타는 업로드가 없을 때 유지됨. 개발·테스트는 Disk, 운영은 비공개 `checkjjaek-avatars` 버킷(`oci_avatars`)을 사용함. A17 코드부터 기본 Active Storage 공개 경로 대신 로그인된 아바타 중계 경로를 사용함
+- A17 코드는 통합 짹 사진 0~4장과 편집·삭제, 800/1600px Variant 카드/갤러리, 부모 policy 기반 파일 중계, 베타 한도를 추가함. `JjaekPhotoChanges`가 검증·OCI 저장·transaction과 성공 업로드 이력을 관리하고 `PurgeJjaekPhotoJob`/`CleanupJjaekPhotosJob`이 원본·Variant를 회수함. 운영의 비공개 `checkjjaek-photos` 버킷(`oci_photos`)은 짹 사진과 독서 노트 이미지를 저장함. [명세](../specs/jjaek_photos_a17.md)·[운영](../ops/jjaek_photos.md) 참고. 해당 작업의 migration·RSpec·브라우저·운영 검증은 아직 실행하지 않음
 - `/users/:id`는 사용자 프로필 surface로 유지하고, `/account/...`는 자기 계정 관리용 self-only 경로로 확장할 수 있으며 현재는 settings만 구현됨
 
 ---
@@ -99,7 +99,7 @@
 ### 2. 책 화면 (/books/:id)
 
 - 책 타이틀 카드는 max-w-4xl(896px)을 사용하며 표지, 제목, 저자·역자·출판사·출간일과 외부 링크를 표시한다. 누락된 서지 행은 생략한다. ISBN과 소개는 외부 검색에서 아직 저장되지 않은 책의 미리보기에서만 기존 방식으로 표시한다. 메타데이터 저장·식별은 기존 흐름을 사용한다
-- 등록된 책은 아래에 `나의 독서`와 `책짹` 탭을 제공한다. `BookShowContext`가 명시적 선택과 진입 문맥, 폼 실패를 반영하고 `book-detail` Stimulus가 현재 URL과 패널을 갱신한다. 나의 독서는 책장·상태·스티커·노트, 책짹은 작성 버튼·첨부 짹 목록·책친구 활동을 제공한다
+- 등록된 책은 아래에 `나의 독서`와 `책짹` 탭을 제공한다. `BookShowContext`가 명시적 선택과 진입 문맥, 폼 실패를 반영하고 `book-detail` Stimulus가 현재 URL과 패널을 갱신한다. 나의 독서는 책장·상태·스티커·노트, 책짹은 작성 버튼·첨부 짹 목록·`책친구의 독서 활동`을 제공한다
 - 책 상세 목록은 `Book#attached_jjaeks`에 개인 `BookScope` 또는 명시적인 동아리 문맥의 `GroupContentScope`를 적용한다. 서재 등록 여부로 읽기·작성 권한을 바꾸지 않으며 여러 권 첨부 시 각 책에 같은 짹이 한 번씩 표시된다
 - `books/:id`의 첨부 짹 목록에는 ReJjaek을 직접 포함하지 않는다
 - 원본 짹 카드의 visible ReJjaek count는 유지한다
@@ -107,6 +107,7 @@
 - 서재 미등록 책과 외부 검색 책 미리보기에도 현재 Pundit 작성 권한 안에서 통합 짹 폼을 제공한다. 현재 책 1권을 기본 첨부하며 제거·다른 책 추가로 0~5권을 선택한다
 - 현재 사용자의 `BookshelfEntry`가 있을 때만 상태/스티커 편집 컨텍스트가 열림
 - 개인 [독서 노트](../specs/book_notes.md)는 `UserBook`에 연결된다. 책 상세와 본인 서재에서 페이지 단위로 조회하며, 읽기 화면과 변경 요청에는 `BookNotePolicy`를 적용한다.
+- 독서 노트 이미지 API는 `BookNoteImage`로 소유권·임시 상태·용량을 추적하며, `BookNoteImagePolicy`와 기존 비공개 스트리밍을 사용한다. 최적화 파일은 운영 `oci_photos`에 저장하고 정기 Job에서 만료·삭제 대기 객체를 회수한다. Trix는 이 API로 업로드하고 `BookNote#update_content`가 본문 식별자 검증과 이미지 연결을 같은 트랜잭션에서 처리한다.
 - 미등록 책은 탭 없이 타이틀 카드 아래에서 등록 모달과 인가된 짹 작성 버튼을 제공한다. 짹 버튼은 등록 여부와 무관하게 공통 인라인 폼을 펼치며, 접기와 탭 전환에서 폼 DOM을 유지한다. 검증 실패 응답은 열린 폼을 렌더링한다
 - 독서 활동 모달은 기존 reading_state 폼에서 상태 3종·상태 없음·스티커 선택과 전체 해제를 한 번의 PATCH로 저장한다. `UserBook` 잠금·transaction 안에서 상태·스티커·BookActivity를 함께 저장한다. HTML 실패 응답은 제출값과 오류를 복원해 독서 활동 모달만 다시 열고, JSON 실패 응답은 현재 저장값과 오류를 반환한다
 - 단일 첨부 개인·동아리 짹의 현재 독서 정보는 `BookshelfEntryPolicy::ReadingStateScope`로 허용된 배치와 그 `UserBook`·스티커를 controller에서 일괄 조회해 표시한다. 본인 또는 accepted 책친구이면서 현재 책장에 접근할 수 있어야 하며, 타인의 private 책장 정보는 표시하지 않는다
@@ -114,7 +115,7 @@
 - `prepare_book_show_form_context`가 개인/동아리 Pundit 작성 가능 여부를 준비한다. 책 문맥은 `book_context_id/token`으로 유지하며 현재 책을 실제 첨부해 저장하면 해당 책으로, 제거하고 저장하면 홈으로 이동한다. 공유·다시짹은 기존 별도 경로를 유지한다
 - 담긴 책장 이름은 기존 색상의 `user_library_path(current_user, bookshelf_id:)` 링크다. `책장 관리` 버튼으로 이동과 꺼내기 모달을 열며, 책장이 여러 개면 `.ui-choice`에서 현재 책장을 기본 선택한다. 배치 제거 후 현재 책 상세에 등록 버튼을 표시하고 본인의 기존 노트 읽기 링크를 유지한다
 - 서재에 담기·책장 이동·독서 활동 모달은 각각 고유 ID와 book-modal Stimulus 범위를 사용한다. 닫기·Escape·포커스 복귀·모바일 내부 스크롤·body scroll lock·Turbo cache 닫기를 유지한다
-- 별도 책친구 활동은 현재 accepted 관계와 public/book_friends 책장의 연결 항목에 허용된 BookActivity(상태·스티커 변경 포함), 기존 가시성 안의 개인 첨부 짹을 합쳐 최근 3건 표시한다. 홈의 소식받기 조건은 적용하지 않으며 본인 활동은 제외한다. 첨부 짹 목록에는 BookActivity를 섞지 않는다
+- `책친구의 독서 활동`은 `BookActivityPolicy::BookFriendScope`로 현재 accepted 관계와 public/book_friends 책장에 연결된 해당 책의 BookActivity를 조회해 `created_at DESC, id DESC` 순으로 최근 3건 표시한다. 상태·스티커 변경을 포함하며 홈의 소식받기 조건은 적용하지 않고 본인 활동은 제외한다. 첨부 짹은 `이 책의 책짹` 목록에 표시한다
 
 관련 코드:
 - controller: app/controllers/books_controller.rb (show)
@@ -283,7 +284,7 @@
   인용 원문·홈·검색·개인 프로필·단건 짹 상세에는 띠를 추가하지 않음.
   `GroupImageChanges`가 5MiB JPEG/PNG/WebP를 검증·축소 WebP로 저장하고 Group 잠금 안의 첨부 변경을 처리함.
   `GroupImagesController`는 기존 Group 상세 권한·부모·종류를 매 요청 검사해 고정 Variant만 private/no-store로 중계함.
-  운영의 신규 동아리 원본과 Variant는 비공개 `oci_group_images`에 저장하고, 기존 Blob은 기록된 서비스에서 조회·정리함.
+  운영의 신규 동아리 원본과 Variant는 비공개 `checkjjaek-group-images` 버킷(`oci_group_images`)에 저장하고, 기존 Blob은 기록된 서비스에서 조회·정리함.
   libvips 잠금을 재사용하며 원본·공개 URL은 제공하지 않음.
   교체·삭제 파일은 `PurgeGroupImageJob`, 중단된 staging은 `CleanupGroupImagesJob`이 정리함.
   상세 계약과 검증 기준은 `docs/specs/group_profile_branding_b04.md`를 따름.
@@ -609,12 +610,12 @@ deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 p
 
 `BookActivity`는 개인 BookshelfEntry 배치를 새로 생성할 때 `added_to_shelf`를 기록한다.
 상태·스티커의 실제 변경은 저장 1회당 `bookshelf_entry_updated` 한 건으로 기록하며 무변경·현재 배치 중복 등록·책장 이동은 활동을 생성하지 않는다.
-홈·프로필 피드는 연결된 항목의 추가 활동만 표시하고, 책 상세 책친구 활동은 허용된 상태·스티커 변경도 표시한다.
+홈·프로필 피드는 연결된 항목의 추가 활동만 표시하고, 책 상세의 `책친구의 독서 활동`은 허용된 상태·스티커 변경도 표시한다.
 BookshelfEntry 제거 시 활동 행은 보존하고 배치 연결만 해제한다. 연결이 해제된 활동은 다시 담은 뒤에도 표시하지 않는다.
 프로필은 self / accepted book_friend, 홈은 self / 소식받는 accepted book_friend 관계를 유지하며,
 다른 사용자의 활동은 연결된 항목의 현재 책장이 public/book_friends인 경우에만 표시한다.
 private 변경 또는 private 책장 이동은 과거 추가 활동에도 즉시 적용된다.
-책 상세의 첨부 짹 목록에는 합성하지 않고 별도 책친구 활동 영역에 표시한다.
+책 상세에서는 별도 `책친구의 독서 활동` 영역에 표시한다.
 생성·조회·삭제의 canonical 기준은 `docs/specs/book_activity_mvp.md`를 따른다.
 
 → 현재 상태, 본문 콘텐츠, 피드용 이벤트는 분리된 모델에서 관리한다

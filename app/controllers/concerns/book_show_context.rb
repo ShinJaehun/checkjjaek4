@@ -23,10 +23,9 @@ module BookShowContext
     @jjaeks = @feed_page.items
     prepare_current_reading_states_for(@jjaeks)
     prepare_book_friend_activities unless feed_only
-    card_jjaeks = @jjaeks + Array(@book_friend_activities).grep(Jjaek)
-    prepare_jjaek_card_summaries_for(card_jjaeks)
-    prepare_visible_requote_counts_for(card_jjaeks)
-    prepare_group_share_destinations_for(card_jjaeks)
+    prepare_jjaek_card_summaries_for(@jjaeks)
+    prepare_visible_requote_counts_for(@jjaeks)
+    prepare_group_share_destinations_for(@jjaeks)
   end
 
   def prepare_book_show_form_context
@@ -75,24 +74,13 @@ module BookShowContext
   end
 
   def prepare_book_friend_activities
-    friend_ids = BookFriendship.connected_ids_for(current_user)
-    activities = policy_scope(BookActivity.where(book: @book), policy_scope_class: BookActivityPolicy::BookFriendScope)
-      .includes(:book, user: { avatar_attachment: :blob })
+    @book_friend_activities = policy_scope(BookActivity.where(book: @book), policy_scope_class: BookActivityPolicy::BookFriendScope)
+      .includes(user: { avatar_attachment: :blob })
       .order(created_at: :desc, id: :desc)
       .limit(3)
       .to_a
-    jjaeks = policy_scope(
-      @book.attached_jjaeks.where(user_id: friend_ids, group_id: nil, hidden_at: nil, deleted_at: nil),
-      policy_scope_class: JjaekPolicy::BookScope
-    ).includes(:attached_books, user: { avatar_attachment: :blob },
-      quoted_jjaek: [ { user: { avatar_attachment: :blob } }, :attached_books, :group ])
-      .order(created_at: :desc, id: :desc).limit(3).to_a
 
-    @book_friend_activities = (activities + jjaeks)
-      .sort_by { |item| [ -item.created_at.to_r, item.is_a?(BookActivity) ? 0 : 1, -item.id ] }
-      .first(3)
-
-    sticker_ids = @book_friend_activities.grep(BookActivity).flat_map do |activity|
+    sticker_ids = @book_friend_activities.flat_map do |activity|
       metadata = activity.metadata
       Array(metadata["added_sticker_definition_ids"]) + Array(metadata["removed_sticker_definition_ids"]) +
         Array(metadata["sticker_definition_ids"]) + Array(metadata["sticker_definition_id"])

@@ -1,23 +1,56 @@
 <% invalid_body = book_note.errors[:body].any? %>
-<% editor_value = String.new(sanitize_action_text_content(book_note.editable_body)) %>
+<% editor_value = String.new(book_note_body_html(book_note, editor: true)) %>
+<% note_date = book_note.created_at&.to_date || Date.current %>
+<% image_errors = t("book_note_images.errors").merge(
+     image_limit: t("book_notes.image_limit", count: BookNoteImage::MAX_PER_NOTE),
+     attachments_not_allowed: t("book_notes.attachments_not_allowed")
+   ) %>
+<% editor_actions = %w[
+     trix-file-accept->book-note-editor#acceptFile
+     trix-attachment-add->book-note-editor#addAttachment
+     trix-attachment-remove->book-note-editor#removeAttachment
+     paste->book-note-editor#pasteFiles:capture
+     trix-before-paste->book-note-editor#filterPaste
+     submit->book-note-editor#guardSubmit:capture
+   ].join(" ") %>
 <div data-controller="book-note-editor"
      data-book-note-editor-discard-message-value="<%= t("book_notes.confirm_discard") %>"
+     data-book-note-editor-upload-url-value="<%= book_book_note_images_path(book) %>"
+     data-book-note-editor-max-size-value="<%= BookNoteImageUpload::MAX_SIZE %>"
+     data-book-note-editor-image-limit-value="<%= BookNoteImage::MAX_PER_NOTE %>"
+     data-book-note-editor-image-alt-value="<%= t("book_notes.image_alt") %>"
+     data-book-note-editor-errors-value="<%= image_errors.to_json %>"
      <% if book_note.errors.any? %>
        data-book-note-editor-discard-path-value="<%= discard_path %>"
      <% end %>>
   <button type="button" class="ui-button ui-button-primary" aria-haspopup="dialog" aria-controls="book-note-editor"
           data-book-note-editor-target="opener" data-action="book-note-editor#open"><%= label %></button>
 
-  <dialog id="book-note-editor" class="book-note-dialog rounded-2xl border border-stone-200 bg-white text-stone-900 shadow-xl"
+  <dialog id="book-note-editor" class="book-note-dialog"
           aria-labelledby="book-note-editor-heading" data-book-note-editor-target="dialog"
           data-action="cancel->book-note-editor#close click->book-note-editor#backdrop">
-    <div class="space-y-4 p-4 sm:p-6">
-      <h2 id="book-note-editor-heading" class="text-xl font-semibold"><%= label %></h2>
-      <%= form_with model: book_note, url:, class: "space-y-4",
-                    data: { action: "trix-file-accept->book-note-editor#rejectFile trix-attachment-add->book-note-editor#rejectAttachment" } do |form| %>
+    <div class="book-note-paper space-y-4">
+      <header class="space-y-3">
+        <h2 id="book-note-editor-heading" class="text-lg font-semibold"><%= t("book_notes.heading") %></h2>
+        <div class="book-note-meta">
+          <div class="flex min-w-0 items-start gap-3">
+            <div class="flex h-[74px] w-[52px] shrink-0 items-center justify-center *:max-h-full *:max-w-full">
+              <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :small %>
+            </div>
+            <div class="min-w-0 flex-1 space-y-1">
+              <p class="line-clamp-2 wrap-anywhere font-semibold"><%= book.title %></p>
+              <% if book.authors_text.present? %>
+                <p class="truncate text-sm text-stone-600"><%= book.authors_text %></p>
+              <% end %>
+              <time class="book-note-date block w-fit" datetime="<%= note_date.iso8601 %>"><%= l(note_date, format: :book_note) %></time>
+            </div>
+          </div>
+        </div>
+      </header>
+      <%= form_with model: book_note, url:, class: "space-y-4", data: { action: editor_actions } do |form| %>
         <div class="space-y-1">
           <%= form.label :title, t("book_notes.title"), class: "block text-sm font-medium" %>
-          <%= form.text_field :title, class: "w-full rounded-lg border border-stone-300 px-3 py-2",
+          <%= form.text_field :title, class: "book-note-title w-full",
                               data: { book_note_editor_target: "title" } %>
         </div>
 
@@ -27,15 +60,21 @@
                                   aria: { labelledby: "book-note-body-label", invalid: ("true" if invalid_body),
                                           describedby: ("book-note-body-error" if invalid_body) },
                                   data: { book_note_editor_target: "editor", direct_upload_url: "", blob_url_template: "" } %>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <button type="button" class="ui-button ui-button-secondary" data-action="pointerdown->book-note-editor#rememberSelection click->book-note-editor#chooseImages"><%= t("book_notes.add_image") %></button>
+            <input id="book-note-image-picker" type="file" accept="<%= BookNoteImageUpload::CONTENT_TYPES.join(",") %>" multiple hidden
+                   data-book-note-editor-target="picker" data-action="change->book-note-editor#insertImages">
+            <p hidden role="status" class="text-sm text-stone-600" data-book-note-editor-target="uploadStatus"><%= t("book_notes.uploading_images") %></p>
+          </div>
           <% if invalid_body %>
             <p id="book-note-body-error" role="alert" class="text-sm text-red-700"><%= book_note.errors[:body].first %></p>
           <% end %>
-          <p hidden role="alert" class="text-sm text-red-700" data-book-note-editor-target="attachmentError"><%= t("book_notes.attachments_not_allowed") %></p>
+          <p hidden role="alert" class="text-sm text-red-700" data-book-note-editor-target="attachmentError"></p>
         </div>
 
         <div class="flex flex-wrap justify-end gap-2">
           <button type="button" class="ui-button ui-button-secondary" data-action="book-note-editor#close"><%= t("book_notes.cancel") %></button>
-          <%= form.submit t("book_notes.save"), class: "ui-button ui-button-primary" %>
+          <%= form.submit t("book_notes.save"), class: "ui-button ui-button-primary", data: { book_note_editor_target: "save" } %>
         </div>
       <% end %>
     </div>

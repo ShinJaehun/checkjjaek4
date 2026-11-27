@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { Turbo } from "@hotwired/turbo-rails"
 
 export default class extends Controller {
-  static targets = ["tab", "composer", "composerToggle"]
+  static targets = ["tab", "tabActions", "composer", "composerToggle"]
 
   connect() {
     if (this.hasComposerTarget) {
@@ -84,6 +84,10 @@ export default class extends Controller {
       tab.setAttribute("aria-selected", String(selected))
       tab.tabIndex = selected ? 0 : -1
       this.panelFor(tab).hidden = !selected
+    })
+    const selectedPanelId = selectedTab.getAttribute("aria-controls")
+    this.tabActionsTargets.forEach(actions => {
+      actions.hidden = actions.dataset.tabPanel !== selectedPanelId
     })
   }
 

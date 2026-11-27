@@ -1,4 +1,7 @@
 en:
+  date:
+    formats:
+      book_note: "%b %-d, %Y"
   book_notes:
     heading: "Reading notes"
     new: "Write a note"
@@ -14,7 +17,19 @@ en:
     delete: "Delete note"
     confirm_delete: "Delete this reading note?"
     confirm_discard: "Discard your unsaved changes and close?"
-    attachments_not_allowed: "Reading notes can’t include images or files."
+    add_image: "Add image"
+    uploading_images: "Uploading images…"
+    image_alt: "Image attached to a reading note"
+    image_limit: "You can add up to %{count} images to a reading note."
+    attachments_not_allowed: "Only images uploaded for reading notes can be attached."
+  book_note_images:
+    errors:
+      invalid_image: "This image could not be read. Choose a different file."
+      too_large: "Each original image must be 5 MB or smaller."
+      unsupported_format: "Only JPEG, PNG, and WebP images are supported."
+      too_many_pixels: "This image has too many pixels. Resize it and try again."
+      storage_limit: "You have reached the 100 MB storage limit for reading note images."
+      upload_failed: "The image could not be saved. Try again in a moment."
   activerecord:
     errors:
       models:
@@ -23,4 +38,6 @@ en:
             body:
               blank: "Enter the body of your note."
               too_long: "Keep the body within %{count} plain-text characters."
-              attachments_not_allowed: "Reading notes can’t include images or files."
+              attachments_not_allowed: "Only images uploaded for reading notes can be attached."
+              image_unavailable: "An image is unavailable. Upload it again to use it in this note."
+              image_limit: "You can add up to %{count} images to a reading note."

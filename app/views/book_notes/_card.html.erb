@@ -1,25 +1,18 @@
 <% preview = note.body.to_plain_text.squish %>
 <% book_details = [ book.authors_text, book.publisher ].compact_blank.join(" · ") %>
 <%= link_to book_book_note_path(book, note, return_to:),
-            class: "flex h-full min-w-0 flex-col gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 text-stone-900 shadow-sm transition-colors hover:border-indigo-400 hover:bg-indigo-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" do %>
-  <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-900">
-      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-4 shrink-0">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M6 3h8l4 4v14H6zM14 3v5h4m-9 4h6m-6 4h6" />
-      </svg>
-      <%= t("book_notes.heading") %>
-    </span>
-    <time class="text-xs text-stone-600" datetime="<%= note.created_at.iso8601 %>"><%= l(note.created_at, format: :short) %></time>
-  </div>
-
+            class: "book-note-paper book-note-card flex h-full min-w-0 flex-col gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600" do %>
   <div class="space-y-1">
-    <h3 class="wrap-anywhere text-lg font-semibold"><%= note.title.presence || t("book_notes.untitled") %></h3>
+    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <h3 class="book-note-title wrap-anywhere text-lg font-semibold"><%= note.title.presence || t("book_notes.untitled") %></h3>
+      <time class="book-note-date" datetime="<%= note.created_at.iso8601 %>"><%= l(note.created_at, format: :short) %></time>
+    </div>
     <% if preview.present? %>
-      <p class="wrap-anywhere text-sm leading-6 text-stone-700"><%= truncate(preview, length: 120) %></p>
+      <p class="book-note-preview wrap-anywhere text-sm leading-6 text-stone-700"><%= truncate(preview, length: 120) %></p>
     <% end %>
   </div>
 
-  <div class="mt-auto flex min-w-0 items-center gap-3 border-t border-indigo-100 pt-3">
+  <div class="mt-auto flex min-w-0 items-center gap-3 border-t border-[color:var(--book-note-border)] pt-3">
     <div class="flex h-20 w-14 shrink-0 items-center justify-center">
       <%= render "books/thumbnail", title: book.title, thumbnail: book.thumbnail, url: nil, size: :small %>
     </div>

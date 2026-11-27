@@ -1,30 +1,36 @@
-<div class="flex flex-wrap items-start gap-2">
-  <%= render "books/bookshelf_panel", bookshelf_entry: entry, bookshelves: @bookshelves, group_id: @group&.id %>
-  <%= render "books/reading_record_panel", bookshelf_entry: entry, sticker_definitions: @sticker_definitions,
-             form_values: @reading_state_form_values %>
-  <% if @new_book_note %>
-    <%= render "book_notes/editor", book_note: @new_book_note,
-               url: book_book_notes_path(book, return_to: @book_note_return_path),
-               discard_path: book_path(book, return_to: @book_note_return_path, tab: "reading"),
-               label: t("book_notes.new") %>
-  <% end %>
-</div>
+<% status = entry.user_book.status %>
+<% stickers = entry.user_book.sticker_definitions.to_a %>
 
-<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-  <p class="min-w-0 break-words text-sm leading-6">
-    <span class="mr-2 text-stone-500"><%= t("books.show.current_bookshelf") %></span>
-    <%= link_to entry.bookshelf.name,
-                user_library_path(current_user, bookshelf_id: entry.bookshelf_id),
-                class: "inline-block max-w-full break-words rounded-lg border px-3 py-2 align-middle font-semibold underline decoration-current underline-offset-4 #{bookshelf_tab_class(entry.bookshelf, selected: false)} transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900" %>
-  </p>
-  <% if entry.user_book.status.present? || entry.user_book.sticker_definitions.any? %>
-    <div class="flex min-w-0 flex-wrap gap-2">
-      <%= reading_status_badge(entry.user_book.status) if entry.user_book.status.present? %>
-      <% entry.user_book.sticker_definitions.each do |sticker| %>
-        <%= reading_sticker_badge(sticker) %>
-      <% end %>
+<div class="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white px-4 shadow-sm sm:px-5">
+  <section class="space-y-2 py-4" aria-labelledby="book-reading-activity-title">
+    <div class="flex items-center justify-between gap-3">
+      <h2 id="book-reading-activity-title" class="min-w-0 text-base font-semibold text-stone-900"><%= t("books.show.reading_record_title") %></h2>
+      <%= render "books/reading_record_panel", bookshelf_entry: entry,
+                 sticker_definitions: @sticker_definitions, form_values: @reading_state_form_values %>
     </div>
-  <% end %>
+    <% if status.present? || stickers.any? %>
+      <div class="flex min-w-0 flex-wrap gap-2">
+        <%= reading_status_badge(status) if status.present? %>
+        <% stickers.each do |sticker| %>
+          <%= reading_sticker_badge(sticker) %>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-sm text-stone-600"><%= t("books.show.reading_record_empty") %></p>
+    <% end %>
+  </section>
+
+  <section class="space-y-2 py-4" aria-labelledby="book-reading-shelf-title">
+    <div class="flex items-center justify-between gap-3">
+      <h2 id="book-reading-shelf-title" class="min-w-0 text-base font-semibold text-stone-900"><%= t("books.show.current_bookshelf") %></h2>
+      <%= render "books/bookshelf_panel", bookshelf_entry: entry, bookshelves: @bookshelves, group_id: @group&.id %>
+    </div>
+    <p class="text-sm leading-6">
+      <%= link_to entry.bookshelf.name,
+                  user_library_path(current_user, bookshelf_id: entry.bookshelf_id),
+                  class: "inline-block max-w-full break-words rounded-lg border px-3 py-2 align-middle font-semibold underline decoration-current underline-offset-4 #{bookshelf_tab_class(entry.bookshelf, selected: false)} transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900" %>
+    </p>
+  </section>
 </div>
 
 <% if @book_note_page %>

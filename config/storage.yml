@@ -23,6 +23,7 @@ oci_group_images:
 oci_photos:
   <<: *oci_storage
   bucket: <%= ENV.fetch("OCI_PHOTO_BUCKET") if Rails.env.production? %>
+  public: false
 
 # Use bin/rails credentials:edit to set the AWS secrets (as aws:access_key_id|secret_access_key)
 # amazon:

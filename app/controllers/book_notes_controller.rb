@@ -16,7 +16,7 @@ class BookNotesController < ApplicationController
       set_user_book
       @new_book_note = @user_book.book_notes.build
       authorize @new_book_note
-      @new_book_note.update(book_note_params)
+      @new_book_note.update_content(book_note_params, user: current_user)
     end
 
     if saved
@@ -37,7 +37,7 @@ class BookNotesController < ApplicationController
       set_user_book
       set_book_note
       authorize @book_note
-      @book_note.update(book_note_params)
+      @book_note.update_content(book_note_params, user: current_user)
     end
 
     if saved

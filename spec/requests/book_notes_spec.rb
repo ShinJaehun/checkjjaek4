@@ -10,13 +10,23 @@ RSpec.describe "Personal reading notes", type: :request do
   let(:note_attributes) { { title: "New thought", body: "<strong>Important detail</strong>" } }
 
   it "lets the owner create, read, update and delete a note independently of Jjaek and BookActivity" do
+    book.update!(authors_text: "Note Author")
     entry
     sign_in owner
     activity_count = BookActivity.count
     jjaek_count = Jjaek.count
 
     get book_path(book)
-    expect(response.body).to include(t("book_notes.new"))
+    document = Nokogiri::HTML(response.body)
+    expect(document.at_css("button[aria-controls='book-note-editor']").text).to eq(t("book_notes.new"))
+    new_note_dialog = document.at_css("#book-note-editor")
+    new_note_header = new_note_dialog.at_css("header")
+    expect(new_note_header.at_css("h2").text).to eq(t("book_notes.heading"))
+    expect(new_note_dialog.at_css("input[name='book_note[title]']")["required"]).to be_nil
+    expect(new_note_header.text).to include(book.title, book.authors_text, t("books.thumbnail.no_thumbnail"))
+    expect(new_note_header.css("a, img")).to be_empty
+    expect(new_note_header.at_css("time")["datetime"]).to eq(Date.current.iso8601)
+    expect(new_note_header.at_css("time").text).to eq(I18n.l(Date.current, format: :book_note))
 
     post book_book_notes_path(book), params: { book_note: note_attributes }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
     expect(response).to have_http_status(:see_other)
@@ -67,6 +77,7 @@ RSpec.describe "Personal reading notes", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     document = Nokogiri::HTML(response.body)
     editor = document.at_css("#book-note-editor")
+    expect(editor.css("header p").map(&:text)).to eq([ book.title ])
     expect(editor.at_css("input[name='book_note[title]']")["value"]).to eq("Draft")
     expect(editor.at_css("input[name='book_note[body]']")["value"]).to include("Keep these words")
     expect(editor.at_css("[role='alert']:not([hidden])").text).to include(t("book_notes.attachments_not_allowed"))
@@ -138,9 +149,10 @@ RSpec.describe "Personal reading notes", type: :request do
     post bookshelf_entries_path, params: { book_id: book.id }
     expect(owner.bookshelf_entries.find_by!(book:).user_book_id).to eq(saved_note.user_book_id)
     get book_path(book, tab: "reading")
-    reading = Nokogiri::HTML(response.body).at_css("#book-my-reading:not([hidden])")
+    document = Nokogiri::HTML(response.body)
+    reading = document.at_css("#book-my-reading:not([hidden])")
     expect(reading.at_css("#book-notes").text).to include(saved_note.title)
-    expect(reading.at_css("button[aria-controls='book-note-editor']")).to be_present
+    expect(document.at_css("[data-tab-panel='book-my-reading']:not([hidden]) button[aria-controls='book-note-editor']")).to be_present
     patch book_book_note_path(book, saved_note), params: { book_note: note_attributes }
     expect(response).to have_http_status(:see_other)
     expect(saved_note.reload.title).to eq("New thought")
@@ -149,6 +161,7 @@ RSpec.describe "Personal reading notes", type: :request do
   it "renders the same paginated card in the library and book detail and returns to either list" do
     book.update!(authors_text: "Note Author", publisher: "Note Publisher", thumbnail: "https://example.test/note-cover.jpg",
                  isbn: "9780000000002", description: "Publisher description")
+    travel_to(2.days.ago) { note }
     oldest_note = note
     oldest_note.update!(body: "<strong>Private observation</strong> <em>#{'긴' * 140}</em> END_OF_NOTE")
     user_book = entry.user_book
@@ -159,20 +172,26 @@ RSpec.describe "Personal reading notes", type: :request do
     get user_library_path(owner, library_options)
     document = Nokogiri::HTML(response.body)
     expect(document.at_css("#book-notes").text).not_to include(oldest_note.title)
-    expect(document.at_css("#book-notes").text).to include(t("book_notes.untitled"))
+    expect(document.at_css("#book-notes h3").text).to eq(t("book_notes.untitled"))
     next_page = document.at_css("#book-notes nav a")
     expect(next_page["href"]).to include("bookshelf_id=#{entry.bookshelf_id}", "sort=title", "library_tab=notes", "notes_page=2")
 
     get next_page["href"]
     document = Nokogiri::HTML(response.body)
+    library_notes_tab = document.at_css('[data-library-notes-link][aria-current="page"]')
+    expect(library_notes_tab.text.strip).to eq(t("book_notes.heading"))
+    expect(library_notes_tab.at_css('svg[aria-hidden="true"]')).to be_present
+    expect(document.css("#book-notes h2:not(.sr-only)")).to be_empty
     library_card = document.at_css("#book-notes ul a")
-    expect(library_card.text).to include(t("book_notes.heading"), book.title, book.authors_text, oldest_note.title)
-    expect(library_card.at_css('svg[aria-hidden="true"]')).to be_present
+    expect(library_card["class"].split).to include("book-note-paper")
+    expect(library_card.text).to include(book.title, book.authors_text, oldest_note.title)
+    expect(library_card.text).not_to include(t("book_notes.heading"))
+    expect(library_card.css("svg")).to be_empty
     expect(library_card.at_css("img")["src"]).to eq(book.thumbnail)
     expect(library_card.css("time").map { |time| time["datetime"] }).to eq([ oldest_note.created_at.iso8601 ])
     expect(library_card.at_css("time").text).to eq(I18n.l(oldest_note.created_at, format: :short))
     library_book_info = library_card.element_children.last
-    expect(library_card.at_css("h3").parent.next_element).to eq(library_book_info)
+    expect(library_card.css("h3, time, p").map(&:name)).to eq(%w[h3 time p p p])
     expect(library_book_info.css("p").map(&:text)).to eq([ book.title, "#{book.authors_text} · #{book.publisher}" ])
     expect(library_card.css("a")).to be_empty
     expect(URI.parse(library_card["href"]).path).to eq(book_book_note_path(book, oldest_note))
@@ -184,24 +203,32 @@ RSpec.describe "Personal reading notes", type: :request do
     note_header = detail_card.at_css("header")
     note_body = detail_card.at_css(".book-note-body")
     footer = detail_card.at_css("footer")
-    expect(detail_card["class"].split).to include("rounded-2xl", "border-indigo-200", "bg-indigo-50/50")
+    expect(detail_card["class"].split).to include("book-note-paper")
     expect(detail_card.ancestors("a")).to be_empty
-    expect(note_header.text).to include(t("book_notes.heading"))
-    expect(note_header.at_css('svg[aria-hidden="true"]')).to be_present
+    expect(note_header.at_css("a")).to eq(book_link)
     expect(note_header.at_css("h1").text).to eq(oldest_note.title)
     expect(note_header.next_element).to eq(note_body)
-    expect(note_body.next_element).to eq(book_link)
-    expect(book_link.next_element).to eq(footer)
-    expect(note_header.css("time").map(&:text)).to eq([ I18n.l(oldest_note.created_at, format: :short) ])
-    expect(detail_card.css("time").map { |time| time["datetime"] }).to eq([ oldest_note.created_at.iso8601 ])
+    expect(note_body.next_element).to eq(footer)
+    note_date = oldest_note.created_at.to_date
+    expect(note_header.css("time").map(&:text)).to eq([ I18n.l(note_date, format: :book_note) ])
+    expect(note_header.css("time").map { |time| time["datetime"] }).to eq([ oldest_note.created_at.iso8601 ])
     expect(book_link.at_css("img")["src"]).to eq(book.thumbnail)
     expect(book_link.css("p").map(&:text)).to eq([ book.title, "#{book.authors_text} · #{book.publisher}" ])
     expect(book_link.css("a, button, form")).to be_empty
-    expect(detail_card.text.scan(book.title).size).to eq(1)
+    expect(detail_card.text.scan(book.title).size).to eq(2)
     expect(detail_card.text).not_to include(book.description, book.isbn)
     expect(note_body.at_css(".trix-content strong").text).to eq("Private observation")
     expect(note_body.at_css(".trix-content").text).to include("END_OF_NOTE")
-    expect(footer.at_css("#book-note-editor trix-editor")).to be_present
+    expect(footer.at_css("button[aria-controls='book-note-editor']").text).to eq(t("book_notes.edit"))
+    edit_dialog = footer.at_css("#book-note-editor")
+    edit_header = edit_dialog.at_css(".book-note-paper header")
+    expect(edit_header.at_css("h2").text).to eq(t("book_notes.heading"))
+    expect(edit_header.text).to include(book.title, book.authors_text)
+    expect(edit_header.at_css("img")["src"]).to eq(book.thumbnail)
+    expect(edit_header.css("a")).to be_empty
+    expect(edit_header.at_css("time")["datetime"]).to eq(note_date.iso8601)
+    expect(edit_header.at_css("time").text).to eq(I18n.l(note_date, format: :book_note))
+    expect(edit_dialog.at_css("trix-editor")).to be_present
     delete_form = footer.at_css("form[data-turbo-confirm]")
     expect(delete_form["data-turbo-confirm"]).to eq(t("book_notes.confirm_delete"))
     expect(delete_form.at_css('input[name="_method"]')["value"]).to eq("delete")
@@ -221,6 +248,8 @@ RSpec.describe "Personal reading notes", type: :request do
     timeline = document.at_css("#book-timeline")
     expect(notes_section["class"]).to eq(timeline["class"])
     expect(notes_section.at_css("h2")["class"]).to eq(timeline.at_css("h2")["class"])
+    expect(notes_section.css("h2").map { |heading| heading.text.strip }).to eq([ t("book_notes.heading") ])
+    expect(notes_section.at_css('h2 svg[aria-hidden="true"]')).to be_present
     expect(notes_section.text).to include(oldest_note.title)
     book_card = notes_section.at_css("ul a")
     expect(book_card["class"]).to eq(library_card["class"])
