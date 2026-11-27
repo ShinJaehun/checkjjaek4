@@ -27,7 +27,7 @@ class BookNoteImageUpload
     blob = ActiveStorage::Blob.build_after_unfurling(
       io: optimized, filename: "book-note.webp", content_type: "image/webp",
       identify: false, metadata: { book_note_image: true, analyzed: true },
-      service_name: Rails.env.production? ? :oci_book_note_images : Rails.application.config.active_storage.service
+      service_name: Rails.env.production? ? :oci_photos : Rails.application.config.active_storage.service
     )
     reserve!(blob)
     upload!(blob, optimized)

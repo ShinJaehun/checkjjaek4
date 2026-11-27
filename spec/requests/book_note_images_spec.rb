@@ -30,6 +30,7 @@ RSpec.describe "Book note images", type: :request do
     expect(response.parsed_body).to include("id" => image.id, "url" => path)
     expect(image).to be_temporary
     expect(image.expires_at).to be_within(5.seconds).of(24.hours.from_now)
+    expect(image.blob.service_name).to eq("test")
     expect(image.blob.content_type).to eq("image/webp")
     image.blob.open do |file|
       stored = Vips::Image.new_from_file(file.path)
@@ -65,6 +66,43 @@ RSpec.describe "Book note images", type: :request do
     image.blob.service.delete(image.blob.key)
     get path
     expect(response).to have_http_status(:not_found)
+  end
+
+  it "uses the production photo service for new uploads and honors the recorded local service for existing images" do
+    Dir.mktmpdir("book-note-images") do |root|
+      services = ActiveStorage::Service::Registry.new(
+        local: { service: "Disk", root: File.join(root, "local") },
+        oci_photos: { service: "Disk", root: File.join(root, "photos") }
+      )
+      allow(ActiveStorage::Blob).to receive(:services).and_return(services)
+
+      original = Vips::Image.black(8, 8).write_to_buffer(".webp")
+      existing_blob = ActiveStorage::Blob.create_and_upload!(
+        io: StringIO.new(original), filename: "book-note.webp", content_type: "image/webp", service_name: :local
+      )
+      existing_image = entry.user_book.book_note_images.create!(
+        user: owner, blob: existing_blob, state: :temporary, expires_at: 24.hours.from_now
+      )
+
+      allow(Rails.env).to receive(:production?).and_return(true)
+      sign_in owner
+      upload_image
+
+      expect(response).to have_http_status(:created)
+      new_blob = entry.user_book.book_note_images.find(response.parsed_body.fetch("id")).blob
+      expect(new_blob.service_name).to eq("oci_photos")
+      expect(services.fetch(:oci_photos).exist?(new_blob.key)).to be(true)
+
+      get book_book_note_image_path(book, existing_image)
+      expect(response).to have_http_status(:ok)
+      expect(response.body.b).to eq(original.b)
+
+      existing_image.update!(expires_at: 1.second.ago)
+      PurgeBookNoteImageJob.perform_now(existing_image.id)
+      expect(ActiveStorage::Blob.exists?(existing_blob.id)).to be(false)
+      expect(services.fetch(:local).exist?(existing_blob.key)).to be(false)
+      expect(services.fetch(:oci_photos).exist?(new_blob.key)).to be(true)
+    end
   end
 
   it "rejects unsupported, corrupted, and oversized uploads before reserving storage" do
