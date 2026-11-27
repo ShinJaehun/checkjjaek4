@@ -17,7 +17,11 @@ en:
     delete: "Delete note"
     confirm_delete: "Delete this reading note?"
     confirm_discard: "Discard your unsaved changes and close?"
-    attachments_not_allowed: "Reading notes can’t include images or files."
+    add_image: "Add image"
+    uploading_images: "Uploading images…"
+    image_alt: "Image attached to a reading note"
+    image_limit: "You can add up to %{count} images to a reading note."
+    attachments_not_allowed: "Only images uploaded for reading notes can be attached."
   book_note_images:
     errors:
       invalid_image: "This image could not be read. Choose a different file."
@@ -34,4 +38,6 @@ en:
             body:
               blank: "Enter the body of your note."
               too_long: "Keep the body within %{count} plain-text characters."
-              attachments_not_allowed: "Reading notes can’t include images or files."
+              attachments_not_allowed: "Only images uploaded for reading notes can be attached."
+              image_unavailable: "An image is unavailable. Upload it again to use it in this note."
+              image_limit: "You can add up to %{count} images to a reading note."

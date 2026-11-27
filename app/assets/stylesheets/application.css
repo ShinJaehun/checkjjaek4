@@ -250,6 +250,12 @@
 .book-note-body .trix-content ol { list-style-type: decimal; padding-inline-start: 1.25rem; }
 .book-note-dialog .trix-content a,
 .book-note-body .trix-content a { color: #1d4ed8; text-decoration: underline; }
+.book-note-dialog trix-editor .attachment,
+.book-note-body .book-note-image { max-width: 100%; }
+.book-note-dialog trix-editor .attachment img,
+.book-note-body .book-note-image img { display: block; max-width: 100%; height: auto; }
+.book-note-dialog trix-editor .attachment__caption { display: none; }
+.book-note-body .book-note-image { margin-block: 0.75rem; }
 .book-note-dialog :is(.book-note-title, trix-editor, trix-toolbar button, trix-toolbar input):focus-visible {
   outline: 2px solid #57534e;
   outline-offset: 2px;

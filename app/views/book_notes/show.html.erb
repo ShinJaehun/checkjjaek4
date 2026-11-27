@@ -27,7 +27,9 @@
       <h1 class="book-note-title wrap-anywhere text-2xl font-semibold sm:text-3xl"><%= @book_note.title.presence || t("book_notes.untitled") %></h1>
     </header>
 
-    <div class="book-note-body"><%= @book_note.body %></div>
+    <div class="book-note-body">
+      <div class="trix-content"><%= book_note_body_html(@book_note) %></div>
+    </div>
 
     <% if @can_change_book_note %>
       <footer class="flex flex-wrap justify-end gap-2">

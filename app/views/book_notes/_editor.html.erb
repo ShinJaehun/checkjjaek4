@@ -1,8 +1,25 @@
 <% invalid_body = book_note.errors[:body].any? %>
-<% editor_value = String.new(sanitize_action_text_content(book_note.editable_body)) %>
+<% editor_value = String.new(book_note_body_html(book_note, editor: true)) %>
 <% note_date = book_note.created_at&.to_date || Date.current %>
+<% image_errors = t("book_note_images.errors").merge(
+     image_limit: t("book_notes.image_limit", count: BookNoteImage::MAX_PER_NOTE),
+     attachments_not_allowed: t("book_notes.attachments_not_allowed")
+   ) %>
+<% editor_actions = %w[
+     trix-file-accept->book-note-editor#acceptFile
+     trix-attachment-add->book-note-editor#addAttachment
+     trix-attachment-remove->book-note-editor#removeAttachment
+     paste->book-note-editor#pasteFiles:capture
+     trix-before-paste->book-note-editor#filterPaste
+     submit->book-note-editor#guardSubmit:capture
+   ].join(" ") %>
 <div data-controller="book-note-editor"
      data-book-note-editor-discard-message-value="<%= t("book_notes.confirm_discard") %>"
+     data-book-note-editor-upload-url-value="<%= book_book_note_images_path(book) %>"
+     data-book-note-editor-max-size-value="<%= BookNoteImageUpload::MAX_SIZE %>"
+     data-book-note-editor-image-limit-value="<%= BookNoteImage::MAX_PER_NOTE %>"
+     data-book-note-editor-image-alt-value="<%= t("book_notes.image_alt") %>"
+     data-book-note-editor-errors-value="<%= image_errors.to_json %>"
      <% if book_note.errors.any? %>
        data-book-note-editor-discard-path-value="<%= discard_path %>"
      <% end %>>
@@ -30,8 +47,7 @@
           </div>
         </div>
       </header>
-      <%= form_with model: book_note, url:, class: "space-y-4",
-                    data: { action: "trix-file-accept->book-note-editor#rejectFile trix-attachment-add->book-note-editor#rejectAttachment" } do |form| %>
+      <%= form_with model: book_note, url:, class: "space-y-4", data: { action: editor_actions } do |form| %>
         <div class="space-y-1">
           <%= form.label :title, t("book_notes.title"), class: "block text-sm font-medium" %>
           <%= form.text_field :title, class: "book-note-title w-full",
@@ -44,15 +60,21 @@
                                   aria: { labelledby: "book-note-body-label", invalid: ("true" if invalid_body),
                                           describedby: ("book-note-body-error" if invalid_body) },
                                   data: { book_note_editor_target: "editor", direct_upload_url: "", blob_url_template: "" } %>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <button type="button" class="ui-button ui-button-secondary" data-action="pointerdown->book-note-editor#rememberSelection click->book-note-editor#chooseImages"><%= t("book_notes.add_image") %></button>
+            <input id="book-note-image-picker" type="file" accept="<%= BookNoteImageUpload::CONTENT_TYPES.join(",") %>" multiple hidden
+                   data-book-note-editor-target="picker" data-action="change->book-note-editor#insertImages">
+            <p hidden role="status" class="text-sm text-stone-600" data-book-note-editor-target="uploadStatus"><%= t("book_notes.uploading_images") %></p>
+          </div>
           <% if invalid_body %>
             <p id="book-note-body-error" role="alert" class="text-sm text-red-700"><%= book_note.errors[:body].first %></p>
           <% end %>
-          <p hidden role="alert" class="text-sm text-red-700" data-book-note-editor-target="attachmentError"><%= t("book_notes.attachments_not_allowed") %></p>
+          <p hidden role="alert" class="text-sm text-red-700" data-book-note-editor-target="attachmentError"></p>
         </div>
 
         <div class="flex flex-wrap justify-end gap-2">
           <button type="button" class="ui-button ui-button-secondary" data-action="book-note-editor#close"><%= t("book_notes.cancel") %></button>
-          <%= form.submit t("book_notes.save"), class: "ui-button ui-button-primary" %>
+          <%= form.submit t("book_notes.save"), class: "ui-button ui-button-primary", data: { book_note_editor_target: "save" } %>
         </div>
       <% end %>
     </div>
