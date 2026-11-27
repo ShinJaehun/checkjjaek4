@@ -514,6 +514,7 @@ RSpec.describe "Books", type: :request do
     end
 
     it "shows only accepted friends' visible activity and readable personal book jjaeks" do
+      book.update!(title: "그리스 로마 신화 31: <em>새로운 여정</em> & 끝!")
       friend = User.create!(name: "Book friend", email: "book-preview-friend@example.com", password: "password123!")
       private_friend = User.create!(name: "Private friend", email: "book-preview-private@example.com", password: "password123!")
       stranger = User.create!(name: "Stranger", email: "book-preview-stranger@example.com", password: "password123!")
@@ -550,7 +551,10 @@ RSpec.describe "Books", type: :request do
         expect(page.at_css("#book_friend_activity_book_activity_#{activity.id}")).to be_nil
       end
       activity_card = section.at_css("#book_friend_activity_book_activity_#{visible_activity.id}")
-      expect(activity_card.at_css("p.leading-6").text).to eq("Book friend님이 이 책을 서재에 담았습니다.")
+      message = activity_card.at_css("p.leading-6")
+      expect(message.text).to eq("Book friend님이 #{book.title}을 서재에 담았습니다.")
+      expect(message.css("strong").map(&:text)).to eq([ book.title ])
+      expect(message.at_css("strong").element_children).to be_empty
       expect(activity_card.css("[data-reading-status], [data-reading-sticker]")).to be_empty
       expect(activity_card.css("a[href='#{user_path(friend)}']").size).to eq(2)
       expect(activity_card.at_css("img[alt='#{friend.name}']")).to be_present

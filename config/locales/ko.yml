@@ -1220,13 +1220,13 @@ ko:
     card_copy:
       added_to_shelf:
         feed: "님이 책을 서재에 담았습니다."
-        book: "님이 이 책을 서재에 담았습니다."
+        book_html: "님이 %{book_title}%{object_particle} 서재에 담았습니다."
       change_prefix:
         feed: "님이 책의 "
-        book: "님이 이 책의 "
+        book_html: "님이 %{book_title}의 "
       changed:
         feed: "님이 책의 독서 기록을 변경했습니다."
-        book: "님이 이 책의 독서 기록을 변경했습니다."
+        book_html: "님이 %{book_title}의 독서 기록을 변경했습니다."
     badges:
       status_cleared: "상태 비움"
     card:
@@ -1410,7 +1410,7 @@ ko:
       save_reading_record: "독서 기록 저장"
       write_book_jjaek: "이 책에 책짹 쓰기"
       friend_activity_title: "책친구의 독서 활동"
-      empty_friend_activities: "이 책에 표시할 수 있는 책친구 활동이 없습니다."
+      empty_friend_activities: "이 책에 대한 책친구의 독서 활동이 없습니다."
   jjaeks:
     contexts:
       group_badge: "동아리"

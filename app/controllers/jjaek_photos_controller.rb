@@ -1,7 +1,7 @@
 class JjaekPhotosController < ApplicationController
   include AuthenticatedImageDelivery
 
-  SIZES = { "card" => 800, "gallery" => 1600 }.freeze
+  SIZES = { "card" => 640, "gallery" => 1600 }.freeze
 
   def show
     jjaek = Jjaek.find(params[:jjaek_id])
@@ -14,10 +14,7 @@ class JjaekPhotosController < ApplicationController
     blob = if size == "original"
       attachment.blob
     else
-      ImageProcessingLock.synchronize do
-        attachment.blob.variant(resize_to_limit: [ SIZES.fetch(size), SIZES.fetch(size) ],
-          format: :webp, saver: { strip: true, quality: 85 }).processed.image.blob
-      end
+      image_variant_blob(attachment.blob, SIZES.fetch(size))
     end
     # Recheck after the transform lock: queued requests must see changed policy.
     jjaek.reload

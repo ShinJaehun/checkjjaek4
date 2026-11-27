@@ -2,17 +2,18 @@
   <% if user_signed_in? %>
     <%= turbo_stream_from current_user, :notifications %>
   <% end %>
-  <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-y-3 px-5 py-4 lg:flex-nowrap">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-y-3 px-5 py-4 lg:flex-nowrap<%= ' max-sm:px-3' if user_signed_in? %>">
     <%= link_to root_path, class: "mr-auto shrink-0" do %>
-      <%= image_tag "logo/logo_black_mini.png", alt: "책짹4", width: 75, height: 50, class: "block h-auto w-[75px]" %>
+      <%= image_tag "logo/logo_black_mini.png", alt: "책짹4", width: 75, height: 50,
+                    class: class_names("block h-auto w-[75px]", "max-[360px]:w-14" => user_signed_in?) %>
     <% end %>
     <nav class="contents text-sm text-stone-700 lg:flex lg:items-center lg:gap-3">
-      <div id="mobile-navigation-links" class="order-3 hidden w-full flex-col gap-3 border-t border-stone-200 pt-3 lg:order-none lg:flex lg:w-auto lg:flex-row lg:items-center lg:border-0 lg:pt-0" data-mobile-navigation-target="links">
+      <div id="mobile-navigation-links" class="order-2 hidden w-full flex-col gap-3 border-t border-stone-200 pt-3 lg:order-none lg:flex lg:w-auto lg:flex-row lg:items-center lg:border-0 lg:pt-0" data-mobile-navigation-target="links">
         <% if user_signed_in? %>
           <%= link_to t("home.nav"), root_path, class: "font-medium" %>
           <%= link_to t("discovery.nav"), discovery_path, class: "font-medium" %>
           <%= link_to t("unified_search.nav"), search_path, class: "font-medium" %>
-          <button type="button" class="text-left font-medium" aria-haspopup="dialog" aria-controls="global-book-search-dialog"
+          <button type="button" class="hidden text-left font-medium lg:block" aria-haspopup="dialog" aria-controls="global-book-search-dialog"
                   data-action="mobile-navigation#close book-modal#open"><%= t("book_search.nav") %></button>
           <%= link_to t("bookshelf_entries.nav"), user_library_path(current_user), class: "font-medium" %>
           <%= link_to t("groups.nav"), groups_path, class: "font-medium" %>
@@ -26,21 +27,48 @@
           <%= link_to t("auth.actions.sign_in"), new_user_session_path, class: "ui-button ui-button-secondary" %>
         <% end %>
       </div>
-      <% if user_signed_in? %>
-        <%= link_to notifications_path, class: "order-1 flex shrink-0 items-center whitespace-nowrap font-medium lg:order-none", data: { turbo_prefetch: false } do %>
-          <span><%= t("notifications.nav") %></span>
-          <span id="notification-badge-container">
-            <%= render "shared/notification_badge", unread_count: unread_notifications_count %>
-          </span>
-        <% end %>
-      <% end %>
-      <button type="button" class="ui-button ui-button-secondary order-2 lg:hidden" aria-controls="mobile-navigation-links<%= ' mobile-navigation-account' if user_signed_in? %>" aria-expanded="false" data-mobile-navigation-target="button" data-action="mobile-navigation#toggle"><%= t("navigation.menu") %></button>
-      <% if user_signed_in? %>
-        <div id="mobile-navigation-account" class="order-4 hidden w-full flex-col gap-3 pb-1 lg:order-none lg:flex lg:w-auto lg:flex-row lg:items-center lg:pb-0" data-mobile-navigation-target="links">
-          <%= link_to user_path(current_user), class: "flex items-center gap-2 font-medium" do %>
-            <%= user_avatar_image(current_user, size: 128, alt: current_user.name, class: "h-8 w-8 rounded-full object-cover") %>
-            <span><%= current_user.name %></span>
+      <div class="order-1 ml-1.5 flex min-w-0 flex-1 items-center justify-end gap-1.5 sm:gap-2 lg:contents">
+        <% if user_signed_in? %>
+          <button type="button" class="ui-button ui-button-secondary size-11 shrink-0 p-0 lg:hidden"
+                  aria-label="<%= t("book_search.nav") %>" aria-haspopup="dialog" aria-controls="global-book-search-dialog"
+                  data-action="mobile-navigation#close book-modal#open">
+            <svg aria-hidden="true" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m15.25 15.25 4.25 4.25" />
+            </svg>
+          </button>
+          <%= link_to notifications_path, class: "flex shrink-0 items-center whitespace-nowrap font-medium max-lg:relative max-lg:size-11 max-lg:justify-center",
+                      data: { turbo_prefetch: false } do %>
+            <svg aria-hidden="true" class="size-5 lg:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12a2 2 0 0 0 4 0" />
+            </svg>
+            <span class="sr-only lg:not-sr-only"><%= t("notifications.nav") %></span>
+            <span id="notification-badge-container" class="max-lg:absolute max-lg:right-0 max-lg:top-0">
+              <%= render "shared/notification_badge", unread_count: unread_notifications_count %>
+            </span>
           <% end %>
+          <%= link_to user_path(current_user), class: "flex min-w-10 items-center font-medium max-lg:size-11 max-lg:shrink-0 max-lg:justify-center lg:gap-2",
+                      aria: { label: current_user.name } do %>
+            <%= user_avatar_image(current_user, size: 128, alt: "", class: "h-8 w-8 shrink-0 rounded-full object-cover") %>
+            <span class="hidden truncate lg:inline"><%= current_user.name %></span>
+          <% end %>
+        <% end %>
+
+        <button type="button" class="ui-button ui-button-secondary shrink-0 lg:hidden<%= ' size-11 p-0' if user_signed_in? %>"
+                aria-label="<%= t("navigation.menu") %>"
+                aria-controls="mobile-navigation-links<%= ' mobile-navigation-account' if user_signed_in? %>" aria-expanded="false"
+                data-mobile-navigation-target="button" data-action="mobile-navigation#toggle">
+          <% if user_signed_in? %>
+            <svg aria-hidden="true" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          <% else %>
+            <%= t("navigation.menu") %>
+          <% end %>
+        </button>
+      </div>
+      <% if user_signed_in? %>
+        <div id="mobile-navigation-account" class="order-3 hidden w-full flex-col pb-1 lg:order-none lg:flex lg:w-auto lg:shrink-0 lg:pb-0" data-mobile-navigation-target="links">
           <%= button_to t("auth.actions.sign_out"), destroy_user_session_path, method: :delete, class: "ui-button ui-button-secondary" %>
         </div>
       <% end %>

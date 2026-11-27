@@ -15,12 +15,8 @@ RSpec.describe "Standalone book search", type: :system do
 
   def open_global_search
     within("header[data-controller='mobile-navigation']") do
-      unless page.has_button?(I18n.t("book_search.nav"), visible: true, wait: 0)
-        click_button I18n.t("navigation.menu")
-      end
-
-      expect(page).to have_button(I18n.t("book_search.nav"), visible: true)
-      click_button I18n.t("book_search.nav")
+      expect(page).to have_button(I18n.t("book_search.nav"), count: 1, visible: true, enable_aria_label: true)
+      click_button I18n.t("book_search.nav"), enable_aria_label: true
     end
 
     expect(page).to have_css("#global-book-search-dialog[open]")
@@ -227,12 +223,11 @@ RSpec.describe "Standalone book search", type: :system do
       page.driver.browser.manage.window.resize_to(width, 900)
       visit root_path
       if width < 1024
-        open_global_search
-        focus_selector = "header button[data-mobile-navigation-target='button']:focus"
-      else
-        within("header") { click_button I18n.t("book_search.nav") }
-        focus_selector = "header button[aria-controls='global-book-search-dialog']:focus"
+        click_button I18n.t("navigation.menu"), enable_aria_label: true
+        expect(page).to have_css("header button[data-mobile-navigation-target='button'][aria-expanded='true']")
       end
+      open_global_search
+      focus_selector = "header button[aria-controls='global-book-search-dialog']:focus"
       expect(page).to have_css("#global-book-search-query:focus")
       expect(page).to have_css("body[style*='overflow: hidden']")
       expect(page).to have_css("header button[data-mobile-navigation-target='button'][aria-expanded='false']", visible: :all)
@@ -241,14 +236,12 @@ RSpec.describe "Standalone book search", type: :system do
       expect(page).to have_no_css("body[style*='overflow: hidden']")
       expect(page).to have_css(focus_selector)
 
-      click_button I18n.t("navigation.menu") if width < 1024
-      within("header") { click_button I18n.t("book_search.nav") }
+      open_global_search
       within("#global-book-search-dialog") { click_button I18n.t("book_search.actions.close") }
       expect(page).to have_no_css("#global-book-search-dialog[open]")
       expect(page).to have_css(focus_selector)
 
-      click_button I18n.t("navigation.menu") if width < 1024
-      within("header") { click_button I18n.t("book_search.nav") }
+      open_global_search
       fill_in I18n.t("book_search.form.query"), with: "Cached search"
       submit_global_search
       expect(page).to have_current_path(book_search_path, ignore_query: true)
@@ -260,9 +253,7 @@ RSpec.describe "Standalone book search", type: :system do
       expect(page).to have_current_path(root_path)
       expect(page).to have_no_css("#global-book-search-dialog[open]")
       expect(page).to have_no_css("body[style*='overflow: hidden']")
-      click_button I18n.t("navigation.menu") if width < 1024
-      within("header") { click_button I18n.t("book_search.nav") }
-      expect(page).to have_css("#global-book-search-query:focus")
+      open_global_search
     end
   end
 

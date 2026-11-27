@@ -34,13 +34,16 @@ RSpec.describe "Users", type: :request do
 
       get user_path(profile_user)
 
-      profile_header = Nokogiri::HTML(response.body).at_css("#profile-header")
+      page = Nokogiri::HTML(response.body)
+      profile_header = page.at_css("#profile-header")
       expect(profile_header.at_css(%(a[href="#{account_relationships_path}"]))).to be_nil
       expect(profile_header.at_css(%(a[href="#{account_settings_path}"]))).to be_nil
       expect(response.body).to include("user_profile_")
       expect(response.body).to include("_512")
-      expect(response.body).to include(%(alt="#{viewer.name}"))
-      expect(response.body).to include("_128")
+      profile_link = page.at_css(%(body > header[data-controller="mobile-navigation"] nav a[href="#{user_path(viewer)}"]))
+      expect(profile_link).to be_present
+      expect(profile_link["aria-label"]).to eq(viewer.name)
+      expect(profile_link.at_css('img[alt=""][src*="user_profile_"][src*="_128"]')).to be_present
       expect(response.body).to include(I18n.t("users.profile.public_books_title"))
       expect(response.body).not_to include(I18n.t("users.profile.bookshelf_title"))
       expect(response.body).to include("프로필 서재 전용 책")

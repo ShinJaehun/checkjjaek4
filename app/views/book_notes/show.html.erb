@@ -27,18 +27,23 @@
       <h1 class="book-note-title wrap-anywhere text-2xl font-semibold sm:text-3xl"><%= @book_note.title.presence || t("book_notes.untitled") %></h1>
     </header>
 
-    <div class="book-note-body">
-      <div class="trix-content"><%= book_note_body_html(@book_note) %></div>
-    </div>
-
-    <% if @can_change_book_note %>
-      <footer class="flex flex-wrap justify-end gap-2">
-        <%= render "book_notes/editor", book_note: @book_note_draft || @book_note, book: @book,
-                   url: @note_path, discard_path: @note_path, label: t("book_notes.edit") %>
-        <%= button_to t("book_notes.delete"), @note_path, method: :delete,
-                      class: "ui-button ui-button-danger",
-                      form: { data: { turbo_confirm: t("book_notes.confirm_delete") } } %>
-      </footer>
+    <% images = @book_note.images_for_body %>
+    <%= tag.div class: "book-note-body", data: ({
+          controller: "photo-gallery",
+          action: "keydown@document->photo-gallery#keydown turbo:before-cache@document->photo-gallery#close"
+        } if images.any?) do %>
+      <div class="trix-content"><%= book_note_body_html(@book_note, images:) %></div>
+      <%= render "shared/photo_gallery", image_alt: t("book_notes.image_alt") if images.any? %>
     <% end %>
   </article>
+
+  <% if @can_change_book_note %>
+    <footer class="flex flex-wrap justify-end gap-2">
+      <%= render "book_notes/editor", book_note: @book_note_draft || @book_note, book: @book,
+                 url: @note_path, discard_path: @note_path, label: t("book_notes.edit") %>
+      <%= button_to t("book_notes.delete"), @note_path, method: :delete,
+                    class: "ui-button ui-button-danger",
+                    form: { data: { turbo_confirm: t("book_notes.confirm_delete") } } %>
+    </footer>
+  <% end %>
 </section>

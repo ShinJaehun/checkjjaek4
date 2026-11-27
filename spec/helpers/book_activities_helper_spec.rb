@@ -32,7 +32,8 @@ RSpec.describe BookActivitiesHelper, type: :helper do
     expect(badge_texts).not_to include("좋았어요, 너무 좋았어요")
     expect(fragment.css("[data-reading-status]").map { |badge| badge["data-reading-status"] }).to eq([ "reading" ])
     expect(fragment.css("[data-reading-sticker]").map { |badge| badge["data-reading-sticker"] }).to eq(stickers.map(&:key))
-    expect(fragment.text).not_to include(book.title)
+    expect(fragment.css("strong").map(&:text)).to eq([ book.title ])
+    expect(fragment.text).to include("#{book.title}의 상태를")
   end
 
   it "does not infer a reading state from an addition and keeps legacy sticker names" do
@@ -44,9 +45,24 @@ RSpec.describe BookActivitiesHelper, type: :helper do
     addition_html = Nokogiri::HTML.fragment(helper.book_activity_card_message(addition, context: :book).to_s)
     removal_html = Nokogiri::HTML.fragment(helper.book_activity_card_message(legacy_removal, context: :book).to_s)
 
-    expect(addition_html.text).to eq("혜정님이 이 책을 서재에 담았습니다.")
+    expect(addition_html.text).to eq("혜정님이 책 제목을 서재에 담았습니다.")
+    expect(addition_html.css("strong").map(&:text)).to eq([ book.title ])
     expect(addition_html.css("[data-reading-status], [data-reading-sticker]")).to be_empty
     expect(removal_html.text).to include("옛 스티커", "제거했습니다")
+
+    book.title = "바다"
+    vowel_ending = Nokogiri::HTML.fragment(helper.book_activity_card_message(addition, context: :book).to_s)
+    expect(vowel_ending.text).to eq("혜정님이 바다를 서재에 담았습니다.")
+
+    book.title = "그리스 로마 신화 31!"
+    number_ending = Nokogiri::HTML.fragment(helper.book_activity_card_message(addition, context: :book).to_s)
+    expect(number_ending.text).to eq("혜정님이 그리스 로마 신화 31!을 서재에 담았습니다.")
+
+    I18n.with_locale(:en) do
+      english = Nokogiri::HTML.fragment(helper.book_activity_card_message(addition, context: :book).to_s)
+      expect(english.text).to eq("혜정 added #{book.title} to their shelf.")
+      expect(english.css("strong").map(&:text)).to eq([ book.title ])
+    end
   end
 
   it "renders a cleared status and a legacy sticker ID from recorded metadata" do

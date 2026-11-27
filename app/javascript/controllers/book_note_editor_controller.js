@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { Turbo } from "@hotwired/turbo-rails"
 
 export default class extends Controller {
-  static targets = ["dialog", "opener", "title", "editor", "picker", "save", "attachmentError", "uploadStatus"]
+  static targets = ["dialog", "opener", "title", "bodyTemplate", "editor", "imageToolTemplate", "imageTool", "picker", "save", "attachmentError", "uploadStatus"]
   static values = { discardMessage: String, discardPath: String, uploadUrl: String, maxSize: Number, imageLimit: Number, imageAlt: String, errors: Object }
 
   connect() {
@@ -17,6 +17,12 @@ export default class extends Controller {
   open() {
     if (this.dialogTarget.open) return
 
+    if (this.hasBodyTemplateTarget) {
+      // Trix preloads attachments as soon as the editor connects.
+      const template = this.bodyTemplateTarget
+      template.replaceWith(template.content)
+    }
+    this.installImageTool()
     this.initialTitle = this.titleTarget.value
     this.initialBody = this.editorTarget.value
     this.attachmentErrorTarget.hidden = true
@@ -45,6 +51,13 @@ export default class extends Controller {
 
   backdrop(event) {
     if (event.target === this.dialogTarget) this.close(event)
+  }
+
+  installImageTool() {
+    if (this.hasImageToolTarget) return
+
+    const fileTools = this.editorTarget.toolbarElement?.querySelector(".trix-button-group--file-tools")
+    fileTools?.after(this.imageToolTemplateTarget.content.cloneNode(true))
   }
 
   rememberSelection() {

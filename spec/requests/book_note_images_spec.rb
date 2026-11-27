@@ -11,7 +11,11 @@ RSpec.describe "Book note images", type: :request do
   end
 
   after do
-    BookNoteImage.where(user: owner).includes(:blob).find_each { |image| image.blob.service.delete(image.blob.key) }
+    BookNoteImage.where(user: owner).includes(:blob).find_each do |image|
+      blob = image.blob
+      blob.variant_records.each { |variant| variant.image.blob.delete if variant.image.attached? }
+      blob.service.delete(blob.key)
+    end
   end
 
   it "stores an optimized private image and streams it only to its owner" do
@@ -26,6 +30,7 @@ RSpec.describe "Book note images", type: :request do
     expect(response).to have_http_status(:created)
     image = entry.user_book.book_note_images.sole
     path = book_book_note_image_path(book, image)
+    body_path = book_book_note_image_path(book, image, size: :body)
     expect(response.parsed_body.keys).to match_array(%w[id url expires_at])
     expect(response.parsed_body).to include("id" => image.id, "url" => path)
     expect(image).to be_temporary
@@ -44,28 +49,56 @@ RSpec.describe "Book note images", type: :request do
     expect(response.headers["Cache-Control"]).to include("private", "no-store")
     expect(response.body.b).to eq(image.blob.download)
 
+    get body_path
+    expect(response).to have_http_status(:ok)
+    expect(response.media_type).to eq("image/webp")
+    expect(response.headers["Cache-Control"]).to include("private", "no-store")
+    expect(response.headers["Location"]).to be_nil
+    preview = Vips::Image.new_from_buffer(response.body, "")
+    expect([ preview.width, preview.height ]).to eq([ 800, 400 ])
+
     sign_out owner
-    get path
-    expect(response).to have_http_status(:not_found)
+    [ path, body_path ].each do |image_path|
+      get image_path
+      expect(response).to have_http_status(:not_found)
+    end
 
     [ false, true ].each do |admin|
       other = User.create!(name: "Other", email: "note-image-viewer-#{admin}@example.com", password: "password123!", global_admin: admin)
       other.bookshelf_entries.create!(book:)
       sign_in other
-      get path
-      expect(response).to have_http_status(:not_found)
+      [ path, body_path ].each do |image_path|
+        get image_path
+        expect(response).to have_http_status(:not_found)
+      end
       sign_out other
     end
 
     sign_in owner
     image.update!(expires_at: 1.second.ago)
-    get path
-    expect(response).to have_http_status(:not_found)
+    [ path, body_path ].each do |image_path|
+      get image_path
+      expect(response).to have_http_status(:not_found)
+    end
 
     image.update!(expires_at: 24.hours.from_now)
     image.blob.service.delete(image.blob.key)
     get path
     expect(response).to have_http_status(:not_found)
+  end
+
+  it "rechecks image access after generating the body variant" do
+    sign_in owner
+    upload_image
+    image = entry.user_book.book_note_images.sole
+    allow(ImageProcessingLock).to receive(:synchronize).and_wrap_original do |lock, &process|
+      lock.call(&process).tap { image.update!(state: :purging, expires_at: nil) }
+    end
+
+    get book_book_note_image_path(book, image, size: :body)
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.media_type).not_to eq("image/webp")
   end
 
   it "uses the production photo service for new uploads and honors the recorded local service for existing images" do

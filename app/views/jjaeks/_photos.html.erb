@@ -2,8 +2,9 @@
   <% photos = jjaek.ordered_photos %>
   <% if photos.any? %>
     <div class="mt-4" data-controller="photo-gallery"
-         data-action="keydown@document->photo-gallery#keydown turbo:before-cache@document->photo-gallery#close contextmenu->photo-gallery#prevent dragstart->photo-gallery#prevent">
-      <div class="jjaek-photo-grid" data-count="<%= photos.size %>">
+         data-action="keydown@document->photo-gallery#keydown turbo:before-cache@document->photo-gallery#close">
+      <div class="jjaek-photo-grid" data-count="<%= photos.size %>"
+           data-action="contextmenu->photo-gallery#prevent dragstart->photo-gallery#prevent">
         <% photos.each_with_index do |photo, index| %>
           <button type="button" data-photo-gallery-target="thumbnail" data-action="photo-gallery#open"
                   data-gallery-url="<%= jjaek_photo_path(jjaek, photo, size: :gallery) %>"
@@ -13,24 +14,7 @@
           </button>
         <% end %>
       </div>
-      <dialog class="photo-gallery" data-photo-gallery-target="dialog" aria-label="<%= t('jjaek_photos.gallery') %>"
-              data-action="cancel->photo-gallery#close click->photo-gallery#backdrop">
-        <div class="photo-gallery-content">
-          <div class="photo-gallery-toolbar">
-            <span data-photo-gallery-target="counter" aria-live="polite"></span>
-            <button type="button" data-action="photo-gallery#close" aria-label="<%= t('jjaek_photos.close') %>">✕</button>
-          </div>
-          <div class="photo-gallery-stage" data-action="pointerdown->photo-gallery#touchStart pointerup->photo-gallery#touchEnd">
-            <img data-photo-gallery-target="image" alt="<%= t('jjaek_photos.photo') %>" draggable="false"
-                 data-action="error->photo-gallery#imageError load->photo-gallery#imageLoaded">
-            <p hidden data-photo-gallery-target="error" role="status"><%= t("jjaek_photos.unavailable") %></p>
-          </div>
-          <div class="photo-gallery-navigation">
-            <button type="button" data-photo-gallery-target="previous" data-action="photo-gallery#previous" aria-label="<%= t('jjaek_photos.previous') %>">←</button>
-            <button type="button" data-photo-gallery-target="next" data-action="photo-gallery#next" aria-label="<%= t('jjaek_photos.next') %>">→</button>
-          </div>
-        </div>
-      </dialog>
+      <%= render "shared/photo_gallery", image_alt: t("jjaek_photos.photo") %>
     </div>
   <% end %>
 <% end %>

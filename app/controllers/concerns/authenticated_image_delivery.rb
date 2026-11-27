@@ -14,6 +14,14 @@ module AuthenticatedImageDelivery
     response.headers["X-Content-Type-Options"] = "nosniff"
   end
 
+  def image_variant_blob(blob, size)
+    ImageProcessingLock.synchronize do
+      yield if block_given?
+      blob.variant(resize_to_limit: [ size, size ], format: :webp,
+        saver: { strip: true, quality: 85 }).processed.image.blob
+    end
+  end
+
   def send_image_blob(blob)
     response.headers["Content-Type"] = blob.content_type
     response.headers["Content-Length"] = blob.byte_size.to_s
