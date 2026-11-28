@@ -50,7 +50,7 @@ class Notification < ApplicationRecord
   }
 
   scope :unread, -> { where(read_at: nil) }
-  scope :recent, -> { order(created_at: :desc) }
+  scope :recent, -> { order(created_at: :desc, id: :desc) }
 
   after_create_commit :broadcast_badge
 

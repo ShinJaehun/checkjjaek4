@@ -99,6 +99,23 @@ RSpec.describe "Notifications", type: :request do
     expect(parse_html.at_css("article")["class"]).not_to include("opacity-60")
   end
 
+  it "keeps notifications received after the unread snapshot unread" do
+    first_post = actor.jjaeks.create!(target_user: recipient, content: "Existing notification")
+    existing = Notification.create!(recipient:, actor:, action: :profile_jjaek_created, notifiable: first_post)
+    later_post = actor.jjaeks.create!(target_user: recipient, content: "Later notification")
+    late = nil
+    sign_in recipient
+    allow_any_instance_of(NotificationsController).to receive(:mark_notifications_as_read).and_wrap_original do |original, *args|
+      late = Notification.create!(recipient:, actor:, action: :profile_jjaek_created, notifiable: later_post)
+      original.call(*args)
+    end
+
+    get notifications_path
+
+    expect(existing.reload.read_at).to be_present
+    expect(late.reload.read_at).to be_nil
+  end
+
   it "redirects guests to sign in" do
     get notifications_path
 
@@ -476,6 +493,44 @@ RSpec.describe "Notifications", type: :request do
     get notifications_path
 
     expect(notification.reload.read_at).to be_present
+  end
+
+  it "displays twenty notifications and marks all notifications present on entry as read" do
+    received_at = Time.current.change(usec: 0)
+    posts = Array.new(23) do |index|
+      post = actor.jjaeks.create!(target_user: recipient, content: "Notification #{index}")
+      Notification.create!(recipient:, actor:, action: :profile_jjaek_created, notifiable: post,
+        created_at: received_at, read_at: (received_at if index == 22))
+      post
+    end
+    paths = posts.reverse.map { |post| jjaek_path(post, return_to: notifications_path) }
+    sign_in recipient
+
+    loaded = Hash.new(0)
+    subscriber = lambda do |*args|
+      payload = args.last
+      loaded[payload[:class_name]] += payload[:record_count]
+    end
+    ActiveSupport::Notifications.subscribed(subscriber, "instantiation.active_record") do
+      get notifications_path
+    end
+
+    expect(response).to have_http_status(:ok)
+    page = parse_html
+    articles = page.css("article")
+    expect(articles.css("a").map { |link| link["href"] }).to eq(paths.first(20))
+    expect(articles.select { |article| article["class"].include?("opacity-60") }).to eq([ articles.first ])
+    expect(loaded.values_at("Notification", "Jjaek")).to eq([ 20, 20 ])
+    expect(recipient.received_notifications.unread).to be_empty
+
+    next_page = page.at_css("a[href='#{notifications_path(page: 2)}']")
+    expect(next_page).to be_present
+    get next_page["href"]
+
+    expect(response).to have_http_status(:ok)
+    articles = parse_html.css("article")
+    expect(articles.css("a").map { |link| link["href"] }).to eq(paths.drop(20))
+    expect(articles.map { |article| article["class"] }).to all(include("opacity-60"))
   end
 
   it "broadcasts the remaining unread count after reading only the current user's notifications" do

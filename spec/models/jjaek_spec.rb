@@ -372,7 +372,7 @@ RSpec.describe Jjaek, type: :model do
     expect(requote).to be_private_jjaek
     expect(requote).to be_quoted_source_deleted
     expect(requote.quoted_jjaek_id).to be_nil
-    expect(requote.quoted_source_author_name).to eq(other_user.name)
+    expect(requote.quoted_source_author_name).to be_nil
     expect(requote.quoted_source_kind).to eq("book")
   end
 
@@ -386,6 +386,7 @@ RSpec.describe Jjaek, type: :model do
     expect(original.reload).to be_deleted
     expect(requote.reload).to be_quoted_source_deleted
     expect(requote.quoted_jjaek_id).to be_nil
+    expect(requote.quoted_source_author_name).to be_nil
   end
 
   it "keeps personal requotes private and group shares public after a hard delete" do
@@ -401,7 +402,7 @@ RSpec.describe Jjaek, type: :model do
     original.destroy!
 
     expect(personal_requote.reload).to be_private_jjaek
-    expect(personal_requote.quoted_source_author_name).to eq(other_user.name)
+    expect(personal_requote.quoted_source_author_name).to be_nil
     expect(group_share.reload).to be_public_jjaek
     expect(group_share).to be_quoted_source_deleted
     expect(group_share.quoted_jjaek_id).to be_nil

@@ -36,7 +36,7 @@
           </div>
         <% elsif show_quoted_source && jjaek.quoted_source_deleted? %>
           <div class="mt-3">
-            <%= render "jjaeks/deleted_quoted_source", jjaek: jjaek %>
+            <%= render "jjaeks/deleted_quoted_source" %>
           </div>
         <% end %>
 
@@ -59,7 +59,7 @@
       </div>
     <% elsif show_quoted_source && jjaek.quoted_source_deleted? %>
       <div class="mt-4">
-        <%= render "jjaeks/deleted_quoted_source", jjaek: jjaek %>
+        <%= render "jjaeks/deleted_quoted_source" %>
       </div>
     <% end %>
 

@@ -1450,9 +1450,6 @@ en:
       profile_conversation_participants: "Participants only"
       requote: "ReJjaek from %{name}"
       quoted_general_suffix: "'s Jjaek"
-      deleted_quoted_source_title:
-        general: "%{name}'s Jjaek"
-      deleted_quoted_source_unknown_author: "Unknown user"
       deleted_quoted_source: "The original post was deleted."
       deleted: "This post was deleted by its author."
     reaction_cleanup:

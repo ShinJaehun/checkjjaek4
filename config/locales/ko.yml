@@ -237,11 +237,11 @@ ko:
         action: "비밀번호 재설정하기"
         expires: "이 링크는 발송 후 6시간 동안 유효하며 한 번만 사용할 수 있습니다."
     registrations:
-      description: "내 서재를 먼저 만들고, 책에 연결된 Jjaek을 차근히 쌓아갑니다."
+      description: "서재를 먼저 만들고, 책과 책짹을 쌓아갑니다."
       have_account: "이미 계정이 있나요?"
       title: "독자 계정을 만듭니다"
     sessions:
-      description: "서재에 책을 담고, 소식받는 독자와 책친구의 Jjaek을 읽으며 독서 흐름을 이어갑니다."
+      description: "서재에 책을 담고, 소식받는 독자와 책친구의 짹을 공유합니다."
       eyebrow: "북짹 리부트"
       no_account: "계정이 없나요?"
       title: "서재부터 시작합니다"
@@ -625,11 +625,11 @@ ko:
       moderation:
         title: "콘텐츠 관리"
         hide_title: "콘텐츠 숨김"
-        hide_description: "Jjaek 원문을 숨기고 운영 조치 이력을 남깁니다."
+        hide_description: "짹 원문을 숨기고 운영 조치 이력을 남깁니다."
         restore_title: "콘텐츠 숨김 해제"
         restore_description: "현재 숨김을 해제하고 별도의 복구 사유를 기록합니다."
         current_hide: "현재 숨김 조치"
-        cancel: "Jjaek 상세로 돌아가기"
+        cancel: "짹 상세로 돌아가기"
         status: "현재 상태"
         hidden: "숨김"
         visible: "공개"
@@ -1165,9 +1165,9 @@ ko:
     messages:
       book_friendship_requested: "%{actor_name}님이 책친구를 신청했습니다."
       book_friendship_accepted: "%{actor_name}님이 책친구 신청을 수락했습니다."
-      profile_jjaek_created: "%{actor_name}님이 내 프로필에 Jjaek을 남겼습니다."
+      profile_jjaek_created: "%{actor_name}님이 내 프로필에 짹을 남겼습니다."
       profile_jjaek_unavailable: "지금은 이 프로필 대화를 볼 수 없습니다."
-      comment_created: "%{actor_name}님이 내 Jjaek에 댓글을 남겼습니다."
+      comment_created: "%{actor_name}님이 내 짹에 댓글을 남겼습니다."
       group_comment_created: "%{group_name} 동아리에서 %{actor_name}님이 내 글에 댓글을 남겼습니다."
       requote_created: "%{actor_name}님이 회원님의 짹을 개인 소식에 다시짹했습니다."
       group_requote_created: "%{actor_name}님이 회원님의 짹을 %{group_name}에 다시짹했습니다."
@@ -1408,7 +1408,7 @@ ko:
       edit_reading_record_label: "독서 활동 수정"
       reading_record_empty: "아직 기록 없음"
       save_reading_record: "독서 기록 저장"
-      write_book_jjaek: "이 책에 책짹 쓰기"
+      write_book_jjaek: "이 책에 책짹 남기기"
       friend_activity_title: "책친구의 독서 활동"
       empty_friend_activities: "이 책에 대한 책친구의 독서 활동이 없습니다."
   jjaeks:
@@ -1432,7 +1432,7 @@ ko:
       back: "돌아가기"
       publish_book: "책짹"
       publish_group_book: "동아리 책짹"
-      publish: "Jjaek 남기기"
+      publish: "짹 남기기"
       publish_requote: "다시짹"
       publish_short: "짹"
       requote: "다시짹"
@@ -1441,7 +1441,7 @@ ko:
       save: "저장"
       view: "글 보기"
     confirmations:
-      destroy: "이 Jjaek을 삭제할까요?"
+      destroy: "이 짹을 삭제할까요?"
     form:
       content: "내용"
       jjaek_content: "짹 내용"
@@ -1470,9 +1470,6 @@ ko:
       profile_conversation_participants: "당사자만 보기"
       requote: "%{name}님의 짹"
       quoted_general_suffix: "님의 짹"
-      deleted_quoted_source_title:
-        general: "%{name}님의 짹"
-      deleted_quoted_source_unknown_author: "알 수 없는 사용자"
       deleted_quoted_source: "원문이 삭제되었습니다."
       deleted: "작성자가 삭제한 글입니다."
     reaction_cleanup:
@@ -1497,11 +1494,11 @@ ko:
       group_admin:
         title: "동아리 콘텐츠 관리"
         hide_title: "동아리 콘텐츠 숨김"
-        hide_description: "동아리 Jjaek 원문을 숨기고 운영 조치 이력을 남깁니다."
+        hide_description: "동아리 짹 원문을 숨기고 운영 조치 이력을 남깁니다."
         restore_title: "동아리 콘텐츠 복구"
         restore_description: "현재 숨김을 해제하고 별도의 복구 사유를 기록합니다."
         current_hide: "현재 숨김 조치"
-        cancel: "Jjaek 상세로 돌아가기"
+        cancel: "짹 상세로 돌아가기"
         reason_prompt: "숨김 사유를 선택하세요"
         hide: "숨기기"
         restore_reason: "복구 사유"
@@ -1526,9 +1523,9 @@ ko:
         service_disruption: "서비스 운영 방해"
         other: "기타"
     notices:
-      created: "Jjaek을 게시했습니다."
-      destroyed: "Jjaek을 삭제했습니다."
-      updated: "Jjaek을 수정했습니다."
+      created: "짹을 게시했습니다."
+      destroyed: "짹을 삭제했습니다."
+      updated: "짹을 수정했습니다."
     alerts:
       not_found_or_inaccessible: "짹을 찾을 수 없거나 더 이상 접근할 수 없습니다."
       requote_source_unavailable: "원본 짹을 찾을 수 없거나 더 이상 다시짹할 수 없습니다."

@@ -95,8 +95,9 @@
   source가 restore되면 보존된 관계를 기준으로 현재 접근 권한을 다시 판단한다.
 - source가 살아 있어도 viewer가 friendship, visibility 또는 Group context의 현재 read 권한을 잃으면 기존 ReJjaek도 볼 수 없다.
   과거에 source를 읽었다는 사실은 현재 source visibility를 우회하지 않으며 ReJjaek을 자동으로 private 전환하지 않는다.
-- source가 hard delete되거나 tombstone이 되면 개인 다시짹 A는 `quoted_jjaek_id`를 제거하고 삭제 source snapshot을 보존하며
-  `private_jjaek`으로 축소한다. source 원문 body는 보존하거나 노출하지 않는다.
+- source가 hard delete되거나 tombstone이 되면 개인 다시짹 A는 `quoted_jjaek_id`를 제거하고
+  `private_jjaek`으로 축소한다. 원문 종류와 삭제 시각을 보존하고 원문 작성자 이름은 지운다.
+  화면에는 원문 삭제 사실만 표시한다.
 - B·C는 source 삭제 뒤 원문 식별 정보를 제거하되 목적지 동아리의 독립 본문·댓글·좋아요를 보존한다. 이후 목록 노출은
   source 권한이 아니라 목적지 동아리 접근 권한과 해당 게시물의 숨김·삭제 상태로 판단한다.
 - deleted-source A 자체는 삭제된 Jjaek이 아니다. 작성자 자신의 콘텐츠로 남아 일반 personal Jjaek의 수정·삭제와

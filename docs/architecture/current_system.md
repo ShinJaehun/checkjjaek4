@@ -548,9 +548,8 @@ read boundary 안에서 읽고, Comment 작성자의 자기 삭제와 살아 있
 source hidden 또는 friendship·visibility·Group context 변화로 현재 read 권한을 잃은 경우에도 기존 ReJjaek 관계를 보존하며,
 과거 접근 사실로 우회하지 않는다. source hidden은 restore 가능한 노출 제한이고 이 경우 ReJjaek을 자동으로 private 전환하지 않는다.
 원문이 hard delete되거나 tombstone되면 개인 다시짹 A는 원문 연결을 끊고 `private_jjaek`으로 전환한다.
-이후 작성자 본인에게만 보이며 quoted block 위치에는 “원문이 삭제되어 나만 볼 수 있습니다.” 안내를 표시한다.
-deleted-source A는 원문 작성자 표시 이름·과거 종류·삭제 시각 snapshot을 보존한다.
-화면은 작성자와 통합 명칭의 원문 삭제 안내를 표시하며 과거 종류를 현재 유형으로 복원하지 않는다.
+이후 다시짹 작성자 본인에게만 보이며 quoted block 위치에는 “원문이 삭제되었습니다.”를 표시한다.
+deleted-source A는 원문 종류와 삭제 시각을 보존하고 기존 원문 작성자 이름은 삭제한다.
 원문 본문/책 메타/avatar snapshot은 저장하지 않는다. 공개 화면에는 placeholder를 표시하지 않는다.
 deleted-source A 자체는 삭제된 Jjaek이 아니므로 작성자는 일반 personal Jjaek과 같은 수정·삭제 lifecycle과
 살아 있는 Jjaek에 허용되는 Comment·Like interaction을 계속 사용할 수 있다.

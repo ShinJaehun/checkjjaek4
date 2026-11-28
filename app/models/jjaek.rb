@@ -274,7 +274,7 @@ class Jjaek < ApplicationRecord
   def mark_requotes_as_deleted_source(deletion_time = Time.current)
     requotes.where(group_id: nil).update_all(
       quoted_jjaek_id: nil,
-      quoted_source_author_name: user.name,
+      quoted_source_author_name: nil,
       quoted_source_deleted_at: deletion_time,
       quoted_source_kind: legacy_source_kind.presence || "general",
       visibility: self.class.visibilities[:private_jjaek],
