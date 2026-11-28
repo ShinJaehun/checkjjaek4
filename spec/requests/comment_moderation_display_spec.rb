@@ -89,7 +89,7 @@ RSpec.describe "Comment moderation display", type: :request do
     Comments::Hide.new(comment, actor: group_admin, public_reason: "other").call!
 
     admin.update!(global_admin: false)
-    Comments::Hide.new(own_comment, actor: group_admin, public_reason: "other").call!
+    Comments::Hide.new(own_comment, actor: group_admin, public_reason: "other", internal_note: "OWN COMMENT INTERNAL NOTE").call!
     admin.update!(global_admin: true)
 
     get jjaek_path(jjaek)
@@ -99,6 +99,7 @@ RSpec.describe "Comment moderation display", type: :request do
     expect(action["href"]).to eq(new_admin_jjaek_comment_restoration_path(jjaek, comment))
     expect(action.text.strip).to eq("숨김 해제")
     expect(response.body).to include("ADMIN OWN SECRET")
+    expect(response.body).not_to include("OWN COMMENT INTERNAL NOTE", "moderation_history_comment_#{own_comment.id}")
     expect(document.at_css("#comment_#{own_comment.id} [data-comment-moderation-action]")).to be_nil
     expect(response.body).not_to include(new_admin_jjaek_comment_restoration_path(jjaek, own_comment))
   end
@@ -186,6 +187,44 @@ RSpec.describe "Comment moderation display", type: :request do
     expect(history.css("li").size).to eq(1)
     expect(history.text).to include("동아리 관리자", "GROUP ONLY NOTE")
     expect(response.body).not_to include("PLATFORM ONLY NOTE", "PLATFORM HIDE NOTE", "Platform restored")
+  end
+
+  it "fetches visible comments' histories in one query as the panel grows" do
+    Comments::Hide.new(comment, actor: admin, public_reason: "other", internal_note: "FIRST COMMENT NOTE").call!
+    Comments::Restore.new(comment, actor: admin, public_reason: "Restored").call!
+    sign_in admin
+
+    history_query_count = lambda do
+      count = 0
+      subscriber = lambda do |*args|
+        sql = args.last.fetch(:sql)
+        count += 1 if sql.match?(/\A\s*SELECT\b.*\bFROM\s+"moderation_actions"/im)
+      end
+      ActiveRecord::Base.uncached do
+        ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+          get jjaek_comments_path(jjaek), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        end
+      end
+      expect(response).to have_http_status(:ok)
+      count
+    end
+
+    expect(history_query_count.call).to eq(1)
+    extra_comments = Array.new(3) do |index|
+      extra = jjaek.comments.create!(user: viewer, content: "Extra comment #{index}")
+      Comments::Hide.new(extra, actor: admin, public_reason: "other", internal_note: "Extra note #{index}").call!
+      Comments::Restore.new(extra, actor: admin, public_reason: "Restored").call!
+      extra
+    end
+
+    expect(history_query_count.call).to eq(1)
+    page = Nokogiri::HTML.fragment(response.body)
+    expect(page.at_css("#moderation_history_comment_#{comment.id}").text).to include("FIRST COMMENT NOTE")
+    extra_comments.each_with_index do |extra, index|
+      history = page.at_css("#moderation_history_comment_#{extra.id}")
+      expect(history.text).to include("Extra note #{index}")
+      expect(history.text).not_to include("FIRST COMMENT NOTE")
+    end
   end
 
   it "omits an empty panel when writing is forbidden and keeps one when writing is allowed" do
