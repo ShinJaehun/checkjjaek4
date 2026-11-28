@@ -236,6 +236,48 @@ RSpec.describe "Mobile bookshelf ordering", type: :system do
     expect(visible_entry_ids).to eq(reordered)
   end
 
+  it "starts a hold on the rendered cover but ignores the empty shelf slot above it" do
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: true, maxTouchPoints: 1)
+    image = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80"><rect width="200" height="80" fill="navy"/></svg>'
+    first_entry.book.update_columns(thumbnail: "data:image/svg+xml,#{ERB::Util.url_encode(image)}")
+    visit user_library_path(owner, sort: "manual")
+    cover = cover_for(first_entry)
+    page.execute_script("arguments[0].scrollIntoView({ block: 'center', behavior: 'instant' })", cover)
+    cover.find("img") { |img| page.evaluate_script("arguments[0].naturalWidth > 0", img) }
+    blank, painted = page.evaluate_script(<<~JS, cover)
+      (() => {
+        const rect = arguments[0].getBoundingClientRect()
+        const x = Math.round(rect.left + rect.width / 2)
+        return [[x, Math.ceil(rect.top) + 5], [x, Math.floor(rect.bottom) - 5]]
+      })()
+    JS
+
+    begin
+      dispatch_touch("touchStart", blank)
+      page.evaluate_async_script("setTimeout(arguments[0], 450)")
+      expect(page).to have_no_css("[data-reorder-selected], [data-bookshelf-entries-sort-target='controls']")
+    ensure
+      dispatch_touch("touchCancel")
+    end
+
+    touch(painted, hold: 0.45)
+    expect(page).to have_css("[data-bookshelf-entry-id='#{first_entry.id}'][data-reorder-selected]")
+    expect(page).to have_no_css("dialog[open]")
+    outline_style, top, expected_top, left, bottom = page.evaluate_script(<<~JS, cover)
+      (() => {
+        const cover = arguments[0]
+        const rect = cover.getBoundingClientRect()
+        const outline = getComputedStyle(cover, "::after")
+        return [outline.outlineStyle, parseFloat(outline.top), rect.height - rect.width * 80 / 200,
+          parseFloat(outline.left), parseFloat(outline.bottom)]
+      })()
+    JS
+    expect(outline_style).to eq("solid")
+    expect(top).to be_within(1).of(expected_top)
+    expect(top).to be > 5
+    expect([ left, bottom ]).to eq([ 0, 0 ])
+  end
+
   it "restores the preceding order before reporting failed saves and reloads the actual server order" do
     page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: true, maxTouchPoints: 1)
     %w[http network lost_response].each do |failure|

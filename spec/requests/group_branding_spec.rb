@@ -340,6 +340,14 @@ RSpec.describe "Group branding", type: :request do
     expect(group.cover_image_attachment.id).to eq(cover_id)
   end
 
+  it "starts the group header with its identity when no cover is attached" do
+    sign_in admin
+    get group_path(group)
+
+    header = Nokogiri::HTML(response.body).at_css("main > section > section")
+    expect(header.element_children.first.at_css("h1").text).to include(group.name)
+  end
+
   it "shows profile thumbnails on accessible cards and uses an icon for private name-only search results" do
     upload_branding
     profile_path = group_image_path(group, group.profile_image_attachment, size: :card)
@@ -355,6 +363,8 @@ RSpec.describe "Group branding", type: :request do
     get group_path(group)
     expect(response.body).to include(group_image_path(group, group.profile_image_attachment, size: :detail),
       group_image_path(group, group.cover_image_attachment, size: :cover))
+    cover = Nokogiri::HTML(response.body).at_css(%(img[src="#{group_image_path(group, group.cover_image_attachment, size: :cover)}"]))
+    expect(cover.parent["class"].split).to include("h-32", "sm:h-48")
     get search_path(q: group.name, type: "groups")
     expect(response.body).to include(profile_path)
     expect(response.body).not_to include(group_image_path(group, group.cover_image_attachment, size: :cover))

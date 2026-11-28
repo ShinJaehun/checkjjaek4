@@ -108,9 +108,8 @@ Requotes 화면의 inline comments panel은 아직 구현하지 않는다.
 - 상세 페이지 댓글 create/destroy는 Turbo Stream으로 comments panel을 갱신한다.
 - 댓글 create 실패 시 Turbo Stream 응답은 comments panel 내부를 422 상태로 다시 렌더링하고 validation error를 표시한다.
 - 댓글 create/destroy 성공 시 댓글 count/action 영역도 함께 갱신한다.
-- home/profile/book Jjaek card에는 댓글 count 링크와 별도의 `댓글 보기` inline trigger가 함께 표시된다.
-- 댓글 count 링크는 기존처럼 Jjaek 상세 페이지 comments panel anchor로 이동한다.
-- `댓글 보기` trigger는 context별 comments panel placeholder에 comments panel을 로드한다.
+- 홈·프로필·책·동아리 피드 카드의 `댓글 N개` 링크는 기존 문맥의 패널을 연다. 댓글이 0개여도 작성할 수 있으면 입력 폼을 열 수 있다.
+- 상세의 댓글 수 링크는 본문 아래 댓글 영역으로 이동한다.
 - comments panel target id는 아래처럼 context별로 구분한다.
   - detail: `comments_panel_jjaek_ID`
   - home: `comments_panel_home_jjaek_ID`
@@ -119,7 +118,7 @@ Requotes 화면의 inline comments panel은 아직 구현하지 않는다.
 - home/profile/book inline panel에서 댓글 create/destroy를 수행하면 해당 context panel을 갱신한다.
 - home/profile/book inline panel에는 닫기 액션이 있으며, 닫기 시 해당 context panel을 같은 id의 빈 placeholder로 되돌린다.
 - profile context는 `profile_user_id`가 존재할 때만 inline target을 사용하며, 없으면 detail fallback한다.
-- book context는 `book_id`가 있고 Jjaek의 `book_id`와 일치할 때만 inline target을 사용하며, 맞지 않으면 detail fallback한다.
+- book context는 `book_id`가 해당 짹의 첨부 책에 포함될 때 inline target을 사용하며, 맞지 않으면 detail fallback한다.
 - raw DOM id는 params로 받지 않는다.
 - detail comments panel에는 닫기 액션을 표시하지 않는다.
 - HTML fallback은 기존 상세 페이지 흐름을 유지한다.
@@ -134,48 +133,12 @@ Requotes 화면의 inline comments panel은 아직 구현하지 않는다.
 
 ---
 
-## 3차 대상: ReJjaek 목록 panel
+## 3차 대상: ReJjaek 목록
 
 상태: 부분 완료 - detail page 기준 구현 완료 / feed 확장 보류
 
-### 현재 문제
-
-ReJjaek count를 클릭하면 별도 목록 페이지로 이동한다.
-
-### 목표
-
-Jjaek 상세 페이지에서 ReJjaek 목록을 현재 화면 안에서 확인할 수 있게 한다.
-
-홈 피드, 프로필, 책 상세, ReJjaek 목록 화면의 inline ReJjaek panel은 아직 구현하지 않는다.
-
-### 주의
-
-ReJjaek은 visibility 정책 영향이 크다.  
-따라서 댓글보다 뒤에 적용한다.
-
-### 구현 기준
-
-- 기존 RequotesController#index와 policy_scope를 유지한다.
-- inline panel에서도 `requotes_mvp.md`의 일반/원문 작성자 전용 제한 카드 scope와 동일한 페이지 경계를 적용한다.
-- HTML fallback으로 기존 index 페이지 접근을 유지한다.
-
-### 현재 구현
-
-- Jjaek 상세 페이지에 detail-only `requotes_panel_jjaek_ID` placeholder를 둔다.
-- Jjaek 상세 페이지에만 `다시짹 보기` Turbo trigger를 표시한다.
-- 공통 Jjaek card action의 `_requote_link.html.erb`는 기존 `다시짹 N개` HTML 링크를 유지한다.
-- `GET /jjaeks/:jjaek_id/requotes` HTML 요청은 기존 ReJjaek index 페이지를 그대로 렌더한다.
-- Turbo Stream 요청은 `requotes_panel_jjaek_ID` target만 replace한다.
-- RequotesController#index는 `authorize @jjaek, :view_requotes?`로 원문 읽기 권한을 검사하며, 일반 카드는 `policy_scope(Jjaek)`로 제한한다. 원문 작성자 전용 제한 카드와 A04 번호형 페이지 처리 기준은 `requotes_mvp.md`를 따른다.
-- panel 안에서는 visible heading을 반복 표시하지 않고 `sr-only` heading만 유지한다.
-- ReJjaek policy, visibility, source deletion 로직은 변경하지 않는다.
-
-### 미구현/보류
-
-- home feed inline ReJjaek panel
-- profile 화면 inline ReJjaek panel
-- book 화면 inline ReJjaek panel
-- ReJjaek 목록 화면 안의 inline ReJjaek panel
+- 공통 카드의 `다시짹 N개`와 아바타 미리보기, 상세의 `다시짹 보기`는 모두 독립 목록 `GET /jjaeks/:jjaek_id/requotes`로 이동한다.
+- RequotesController#index는 원문 읽기 권한을 검사한다. 일반 카드와 원문 작성자 전용 제한 카드의 범위 및 번호형 페이지 기준은 `requotes_mvp.md`를 따른다.
 - Stimulus 기반 open/close toggle
 - modal 기반 ReJjaek UI
 - 실시간 broadcast
@@ -347,7 +310,7 @@ Turbo 1차 완료 기준:
 - 좋아요 클릭 시 전체 페이지 reload 없이 count/button이 갱신된다.
 - 권한/visibility 정책 변경이 없다.
 - 댓글 작성/삭제는 상세 페이지와 home/profile/book inline comments panel에서 panel과 count/action 영역을 갱신한다.
-- 상세 페이지 ReJjaek panel은 현재 화면 안에서 panel만 갱신한다.
+- 상세 페이지의 다시짹 보기와 카드의 다시짹 수 링크는 독립 목록을 연다.
 - flash는 stable wrapper 기반으로 일부 Turbo 성공 응답에서 update된다.
 - notification badge는 stable wrapper foundation을 갖추었고, 이후 알림 기능에서 수신자 전용 실시간 갱신이 구현되었다.
 - relationships hub의 핵심 관계 action은 탭 건수와 선택 목록의 panel replace 구조를 갖는다.
@@ -358,7 +321,7 @@ Turbo 1차 완료 기준:
 Turbo MVP 완료 기준:
 
 - Jjaek card 내부 주요 상호작용이 필요한 화면 맥락 안에서 단계적으로 처리된다.
-- 좋아요, home/profile/book 댓글, 상세 페이지 ReJjaek 목록은 partial 갱신 구조를 갖는다.
+- 좋아요와 피드 댓글은 partial 갱신 구조를 갖는다.
 - relationships hub의 핵심 관계 action은 탭 건수와 선택 목록의 panel replace 구조를 갖는다.
 - 책 검색 결과의 add-to-shelf 성공 케이스는 result card replace 구조를 갖는다.
 - Requotes 화면 inline comments panel은 별도 검토 대상으로 남긴다.
@@ -375,7 +338,7 @@ Turbo MVP 완료 기준:
 - 좋아요/취소가 count와 button만 갱신되는가.
 - 상세 페이지 댓글 작성/삭제가 comments panel과 comment count를 갱신하는가.
 - home/profile/book에서 댓글 보기/작성/삭제/닫기가 정상 동작하는가.
-- Jjaek 상세 페이지에서 다시짹 보기가 panel만 갱신하는가.
+- Jjaek 상세와 피드의 다시짹 링크가 독립 목록을 여는가.
 - 관계 화면에서 unfollow / 요청 취소 / 거절 / 수락 / 책친구 끊기 후 탭 건수·선택 목록·조회 상태가 갱신되며 마지막 페이지 소멸 시 유효한 페이지로 이동하는가.
 - 책 검색 결과에서 서재에 담기 후 해당 result card만 `내 서재에 있음` 상태로 바뀌는가.
 - 알림 badge unread count가 0이어도 wrapper DOM이 유지되는가.

@@ -8,6 +8,8 @@
 <% preview = local_assigns.fetch(:preview, false) %>
 <% hide_book_details = local_assigns.fetch(:hide_book_details, false) %>
 <% group_activity = local_assigns.fetch(:group_activity, false) && jjaek.group_id.present? %>
+<% show_hidden_view_link = jjaek.hidden? && !preview && !detail_context && inline_comments_context.present? &&
+     (jjaek_policy.view_hidden_read_actions? || (inline_comments_context == :group && jjaek_policy.show?)) %>
 <% header_moderation_action = if detail_context && jjaek_policy.hide?
   { path: new_admin_jjaek_hide_path(jjaek, jjaek_detail_return_params(jjaek)), label: t("admin.jjaeks.actions.hide") }
 elsif detail_context && jjaek_policy.restore?
@@ -24,12 +26,20 @@ else
   "rounded-3xl border border-stone-200 bg-white p-5 shadow-sm"
 end %>
 
-<article id="<%= book_friend_preview ? dom_id(jjaek, :book_friend_activity) : dom_id(jjaek) %>" class="<%= wrapper_class.squish %> <%= "relative overflow-hidden" if group_activity %>" <%= "data-book-friend-activity" if book_friend_preview %>>
+<article id="<%= book_friend_preview ? dom_id(jjaek, :book_friend_activity) : dom_id(jjaek) %>" class="<%= wrapper_class.squish %> <%= "relative" if group_activity %>" <%= "data-book-friend-activity" if book_friend_preview %>>
   <% if group_activity %>
-    <%= render "groups/color_stripe", group: jjaek.group %>
+    <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+      <%= render "groups/color_stripe", group: jjaek.group %>
+    </div>
   <% end %>
   <% if jjaek.hidden? %>
-    <%= render "jjaeks/hidden_placeholder", jjaek: jjaek %>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <%= render "jjaeks/hidden_placeholder", jjaek: jjaek %>
+      <% if show_hidden_view_link && !content_visible %>
+        <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek, jjaek_navigation_params),
+                    class: "ml-auto shrink-0 whitespace-nowrap text-xs font-medium text-red-800" %>
+      <% end %>
+    </div>
   <% end %>
 
   <% if content_visible %>
@@ -38,11 +48,12 @@ end %>
         <%= render "jjaeks/jjaek_header", jjaek: jjaek, show_actions: false,
                    show_context: local_assigns.fetch(:show_preview_context, false) %>
       <% elsif book_friend_preview %>
-        <%= render "jjaeks/jjaek_header", jjaek: jjaek, book_friend_preview: true %>
+        <%= render "jjaeks/jjaek_header", jjaek: jjaek, book_friend_preview: true, show_view_link: show_hidden_view_link %>
       <% elsif detail_context %>
         <%= render "jjaeks/jjaek_header", jjaek: jjaek, detail_context: true, moderation_action: header_moderation_action %>
       <% else %>
-        <%= render "jjaeks/jjaek_header", jjaek: jjaek, hide_book_details: hide_book_details %>
+        <%= render "jjaeks/jjaek_header", jjaek: jjaek, hide_book_details: hide_book_details,
+                   show_view_link: !jjaek.hidden? || show_hidden_view_link %>
       <% end %>
       <%= render "jjaeks/jjaek_body",
                  jjaek: jjaek,
@@ -60,8 +71,7 @@ end %>
                    inline_comments_context: inline_comments_context,
                    inline_comments_profile_user: inline_comments_profile_user,
                    inline_comments_book: inline_comments_book,
-                   book_friend_preview: book_friend_preview,
-                   detail_context: detail_context %>
+                   book_friend_preview: book_friend_preview %>
       <% end %>
 
       <% if inline_comments_context.present? %>
@@ -79,10 +89,6 @@ end %>
     <% if inline_comments_context.present? && !content_visible %>
       <div id="<%= comments_panel_dom_id(jjaek, context: inline_comments_context, profile_user: inline_comments_profile_user, book: inline_comments_book) %>"></div>
     <% end %>
-  <% elsif jjaek.hidden? && inline_comments_context == :group && jjaek_policy.show? %>
-    <div class="mt-4 text-xs">
-      <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek, jjaek_navigation_params), class: "font-medium text-red-800" %>
-    </div>
   <% end %>
 
   <% if detail_context %>

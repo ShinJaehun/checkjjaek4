@@ -1,12 +1,12 @@
 <section class="mx-auto flex w-full max-w-5xl flex-col gap-6">
   <%= render "shared/back_link", path: groups_path %>
   <section class="overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-sm">
-    <div class="h-32 bg-stone-100 sm:h-48">
-      <% if @group.cover_image.attached? %>
+    <% if @group.cover_image.attached? %>
+      <div class="h-32 bg-stone-100 sm:h-48">
         <%= image_tag group_image_path(@group, @group.cover_image_attachment, size: :cover),
                       alt: t("groups.branding.cover_alt", name: @group.name), class: "h-full w-full object-cover object-center" %>
-      <% end %>
-    </div>
+      </div>
+    <% end %>
     <div class="p-6">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <%= render "groups/identity_summary",

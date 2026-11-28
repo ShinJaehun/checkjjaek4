@@ -1208,7 +1208,7 @@ ko:
       group_membership_removed: "동아리 운영진이 %{group_name}에서 회원님을 내보냈습니다."
   requotes:
     actions:
-      view_panel: "다시짹 보기"
+      view_count: "다시짹 %{count}개 보기"
     restricted:
       context_html: "%{author_name}님이 %{source_author_name}님의 %{source_kind}을 %{group_name}에 다시짹"
       notice: "접근 권한이 없는 동아리에서 작성된 다시짹입니다."
@@ -1436,8 +1436,8 @@ ko:
       publish_requote: "다시짹"
       publish_short: "짹"
       requote: "다시짹"
+      requote_to_feed: "내 소식에 다시짹"
       share_to_group: "동아리에 다시짹"
-      quote_in_group: "이 동아리에 다시짹"
       save: "저장"
       view: "글 보기"
     confirmations:
@@ -1463,6 +1463,8 @@ ko:
       placeholders:
         home: "내 소식에 남길..."
         group: "%{name}에 남길..."
+        group_requote: "동아리에 남길..."
+        named_group_requote: "%{name} 동아리에 남길..."
         profile: "%{name}님에게 남길..."
         book: "이 책에 남길..."
     labels:

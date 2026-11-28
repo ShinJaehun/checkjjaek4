@@ -30,7 +30,7 @@ RSpec.describe "Requote pagination", type: :request do
     records.map { |record, restricted| [ restricted ? record.user.name : record.id, restricted ] }
   end
 
-  it "paginates readable and restricted cards together in HTML and the existing Turbo panel" do
+  it "paginates readable and restricted cards together on the standalone list" do
     expected = expected_cards(cards)
     sign_in author
     [ {}, { "Accept" => "text/vnd.turbo-stream.html" } ].each do |headers|
@@ -40,15 +40,14 @@ RSpec.describe "Requote pagination", type: :request do
       page = Nokogiri::HTML(response.body)
       link = page.at_css("nav a[href*='page=2']")
       expect(link).to be_present
-      expect(link["data-turbo-stream"]).to eq(headers.empty? ? nil : "true")
+      expect(link["data-turbo-stream"]).to be_nil
 
       get link["href"], headers: headers
       expect(displayed_cards).to eq(expected.last(2))
       expect(response.body).not_to include("RESTRICTED_PAGE_")
       expect(Nokogiri::HTML(response.body).at_css("[aria-current='page']").text).to eq("2")
-      if headers.any?
-        expect(Nokogiri::HTML(response.body).css("turbo-stream").map { |node| node["target"] }).to eq([ "requotes_panel_jjaek_#{source.id}" ])
-      end
+      expect(response.media_type).to eq("text/html")
+      expect(Nokogiri::HTML(response.body).css("turbo-stream")).to be_empty
     end
   end
 

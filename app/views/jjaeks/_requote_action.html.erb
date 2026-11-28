@@ -1,0 +1,48 @@
+<%
+  count = visible_requote_count_for(jjaek)
+  jjaek_policy = policy(jjaek)
+  can_view = count.positive? && jjaek_policy.view_requotes?
+  can_requote = jjaek_policy.create_requote?
+  can_share_to_group = show_group_share_action?(jjaek)
+  can_quote_in_group = jjaek_policy.quote_in_group?
+
+  items = []
+  items << { label: t("requotes.actions.view_count", count:), path: jjaek_requotes_path(jjaek) } if can_view
+  if can_requote || can_share_to_group || can_quote_in_group
+    requote_params = jjaek_navigation_params.merge(quoted_jjaek_id: jjaek.id)
+    if can_requote
+      items << { label: t("jjaeks.actions.requote_to_feed"), path: new_jjaek_path(requote_params), write: true }
+    end
+    if can_share_to_group
+      items << { label: t("jjaeks.actions.share_to_group"), path: new_jjaek_path(requote_params.merge(share_to_group: 1)), write: true }
+    end
+    if can_quote_in_group
+      items << { label: t("jjaeks.actions.share_to_group"), path: new_group_jjaek_path(jjaek.group, requote_params), write: true }
+    end
+  end
+%>
+<% if items.any? %>
+  <% label = can_view ? t("jjaeks.meta.requotes", count:) : t("jjaeks.actions.requote") %>
+  <% icon = jjaek_reaction_icon(:requote) %>
+  <% action = safe_join([ icon, label ]) %>
+  <% action_classes = "inline-flex items-center gap-1.5 font-medium text-stone-700" %>
+  <% if items.one? %>
+    <%= link_to action, items.first.fetch(:path), class: action_classes %>
+  <% else %>
+    <details class="group relative" data-controller="requote-menu"
+             data-action="toggle->requote-menu#updatePositioning keydown.esc->requote-menu#closeFromKeyboard click@document->requote-menu#closeFromOutside">
+      <summary class="<%= action_classes %> cursor-pointer list-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 [&::-webkit-details-marker]:hidden">
+        <%= action %>
+        <span class="ml-0.5 size-1.5 shrink-0 rotate-45 border-b border-r group-open:rotate-[225deg]" aria-hidden="true"></span>
+      </summary>
+      <div class="absolute left-0 top-full z-20 grid w-max max-w-[calc(100vw-1rem)] gap-1 overflow-y-auto rounded-xl border border-stone-200 bg-white p-1.5 shadow-lg"
+           data-requote-menu-target="panel">
+        <% item_classes = "flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-stone-900" %>
+        <% items.each do |item| %>
+          <% item_label = item[:write] ? safe_join([ icon, tag.span(item[:label]) ]) : item[:label] %>
+          <%= link_to item_label, item.fetch(:path), class: item_classes %>
+        <% end %>
+      </div>
+    </details>
+  <% end %>
+<% end %>

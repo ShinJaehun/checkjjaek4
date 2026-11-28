@@ -277,16 +277,20 @@ RSpec.describe "Books", type: :request do
       get book_path(book)
 
       expect(response.body).to include(book_jjaek.content)
-      expect(response.body).to include(%(id="comments_panel_book_#{book.id}_jjaek_#{book_jjaek.id}"))
-      expect(response.body).to include(%(href="/jjaeks/#{book_jjaek.id}/comments?book_id=#{book.id}&amp;comments_context=book))
-      expect(response.body).to include(%(data-turbo-stream="true"))
-      expect(response.body).to include(%(href="#{ERB::Util.html_escape(jjaek_path(book_jjaek, return_to: book_path(book), anchor: "comments_panel_jjaek_#{book_jjaek.id}"))}"))
       expect(response.body).to include(user.name)
       expect(response.body).to include(user_path(user))
       expect(response.body).to include(book.title)
       expect(response.body).to include("님의 짹")
 
       card = Nokogiri::HTML(response.body).at_css("#jjaek_#{book_jjaek.id}")
+      panel_id = "comments_panel_book_#{book.id}_jjaek_#{book_jjaek.id}"
+      link = card.at_css("#comment_action_jjaek_#{book_jjaek.id} a")
+      expect(link.text.strip).to eq(I18n.t("jjaeks.meta.comments", count: 0))
+      expect(link["href"]).to eq(jjaek_comments_path(book_jjaek, comments_context: :book, book_id: book.id))
+      expect(link["data-turbo-stream"]).to eq("true")
+      expect(link["aria-expanded"]).to eq("false")
+      expect(link["aria-controls"]).to eq(panel_id)
+      expect(card.at_css("##{panel_id}")).to be_present
       expect(card.text).to include(book.title, book.authors_text)
       expect(card.css("img[alt='#{book.title}']")).not_to be_empty
 
@@ -587,7 +591,7 @@ RSpec.describe "Books", type: :request do
       expect(book_list).to be_present
       expect(page.at_css("#book-friend-activities").text).not_to include(jjaek.content)
       expect(book_list.text).to include("Card friend님의 짹", jjaek.content)
-      expect(book_list.at_css("a[href='#{jjaek_requotes_path(jjaek)}']").text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(book_list.at_css("a[href='#{jjaek_requotes_path(jjaek)}']").text.strip).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
       expect(book_list.css("a").map { |link| link.text.strip }).to include(I18n.t("jjaeks.actions.view"))
       ids = [ book_list["id"], *book_list.css("[id]").map { |node| node["id"] } ]
       expect(ids.uniq.size).to eq(ids.size)
@@ -604,7 +608,10 @@ RSpec.describe "Books", type: :request do
            headers: { "Accept" => "text/vnd.turbo-stream.html" }
       comments_panel = "comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"
       expect(response.body).to include(%(target="#{comments_panel}"))
-      expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"), %(target="book_friend_comment_action_jjaek_#{jjaek.id}"))
+      toggle = Nokogiri::HTML(response.body).at_css("#comment_action_jjaek_#{jjaek.id} a")
+      expect(toggle["aria-expanded"]).to eq("true")
+      expect(toggle["href"]).to eq(jjaek_comments_path(jjaek, comments_context: :book, book_id: book.id, panel_state: :closed))
+      expect(response.body).not_to include(%(target="book_friend_comment_action_jjaek_#{jjaek.id}"))
       expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: 1))
       comment = jjaek.comments.find_by!(content: "FRIEND_POST_COMMENT")
       panel = Nokogiri::HTML.fragment(response.body).at_css("turbo-stream[target='#{comments_panel}'] template")
@@ -623,7 +630,8 @@ RSpec.describe "Books", type: :request do
              params: { comments_context: "book", book_id: book.id },
              headers: { "Accept" => "text/vnd.turbo-stream.html" }
       expect(response.body).to include(%(target="comments_panel_book_#{book.id}_jjaek_#{jjaek.id}"))
-      expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"), %(target="book_friend_comment_action_jjaek_#{jjaek.id}"))
+      expect(response.body).to include(%(target="comment_action_jjaek_#{jjaek.id}"))
+      expect(response.body).not_to include(%(target="book_friend_comment_action_jjaek_#{jjaek.id}"))
     end
 
     it "shows recorded status and sticker changes instead of the current bookshelf entry" do

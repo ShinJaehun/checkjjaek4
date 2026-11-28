@@ -1,8 +1,28 @@
-<span id="<%= dom_id(jjaek, local_assigns[:book_friend_preview] ? :book_friend_comment_action : :comment_action) %>">
-  <% navigation_params = jjaek_navigation_params %>
-  <% navigation_params = navigation_params.except(:return_to) if navigation_params[:return_to] == jjaek_path(jjaek) %>
+<% context = local_assigns[:comments_context] || :detail %>
+<% action_id = dom_id(jjaek, (context == :book_friend || local_assigns[:book_friend_preview]) ? :book_friend_comment_action : :comment_action) %>
+<% count = jjaek_comments_count(jjaek) %>
+<% label = t("jjaeks.meta.comments", count:) %>
+<% content = safe_join([ jjaek_reaction_icon(:comment), label ]) %>
+<% action_classes = "inline-flex items-center gap-1.5" %>
 
-  <%= link_to t("jjaeks.meta.comments", count: jjaek_comments_count(jjaek)),
-              jjaek_path(jjaek, navigation_params.merge(anchor: dom_id(jjaek, :comments_panel))),
-              class: "font-medium text-stone-700" %>
+<span id="<%= action_id %>">
+  <% if count.positive? || policy(Comment.new(jjaek:, user: current_user)).create? || policy(jjaek).view_admin_inventory? %>
+    <% if context == :detail %>
+      <% navigation_params = jjaek_navigation_params %>
+      <% navigation_params = navigation_params.except(:return_to) if navigation_params[:return_to] == jjaek_path(jjaek) %>
+      <%= link_to content, jjaek_path(jjaek, navigation_params.merge(anchor: comments_panel_dom_id(jjaek))),
+                  class: "#{action_classes} font-medium text-stone-700" %>
+    <% else %>
+      <% panel_open = local_assigns.fetch(:panel_open, false) %>
+      <% profile_user = local_assigns[:profile_user] %>
+      <% book = local_assigns[:book] %>
+      <% inline_params = { comments_context: context, profile_user_id: profile_user&.id, book_id: book&.id }.compact %>
+      <% inline_params[:panel_state] = :closed if panel_open %>
+      <%= link_to content, jjaek_comments_path(jjaek, inline_params),
+                  data: { turbo_stream: true }, class: "#{action_classes} font-medium text-stone-700",
+                  aria: { expanded: panel_open, controls: comments_panel_dom_id(jjaek, context:, profile_user:, book:) } %>
+    <% end %>
+  <% else %>
+    <span class="<%= action_classes %>"><%= content %></span>
+  <% end %>
 </span>

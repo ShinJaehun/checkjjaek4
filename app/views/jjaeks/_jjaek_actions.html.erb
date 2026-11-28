@@ -1,32 +1,12 @@
 <% inline_comments_context = local_assigns[:inline_comments_context] %>
 <% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
 <% inline_comments_book = local_assigns[:inline_comments_book] %>
-<% detail_context = local_assigns.fetch(:detail_context, false) %>
 <% book_friend_preview = local_assigns.fetch(:book_friend_preview, false) %>
-<% inline_comments_params = { comments_context: inline_comments_context } %>
-<% inline_comments_params[:profile_user_id] = inline_comments_profile_user.id if inline_comments_profile_user.present? %>
-<% inline_comments_params[:book_id] = inline_comments_book.id if inline_comments_book.present? %>
-
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-500">
   <% if show_like_summary_action?(jjaek) %>
     <%= render "jjaeks/like_summary_action", jjaek: jjaek, book_friend_preview: book_friend_preview %>
   <% end %>
-  <%= render "jjaeks/comment_action", jjaek: jjaek, book_friend_preview: book_friend_preview %>
-  <% if inline_comments_context.present? %>
-    <%= link_to t("comments.actions.view_inline"), jjaek_comments_path(jjaek, inline_comments_params), data: { turbo_stream: true }, class: "font-medium text-stone-700" %>
-  <% end %>
-  <%= render "jjaeks/requote_link", jjaek: jjaek %>
-  <% if show_group_share_action?(jjaek) %>
-    <%= link_to t("jjaeks.actions.share_to_group"),
-                new_jjaek_path(jjaek_navigation_params.merge(quoted_jjaek_id: jjaek.id, share_to_group: 1)),
-                class: "font-medium text-stone-700" %>
-  <% end %>
-  <% if policy(jjaek).quote_in_group? %>
-    <%= link_to t("jjaeks.actions.quote_in_group"),
-                new_group_jjaek_path(jjaek.group, jjaek_navigation_params.merge(quoted_jjaek_id: jjaek.id)),
-                class: "font-medium text-stone-700" %>
-  <% end %>
-  <% unless detail_context || book_friend_preview %>
-    <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek, jjaek_navigation_params), class: "font-medium text-stone-700" %>
-  <% end %>
+  <%= render "jjaeks/comment_action", jjaek:, book_friend_preview:,
+             comments_context: inline_comments_context, profile_user: inline_comments_profile_user, book: inline_comments_book %>
+  <%= render "jjaeks/requote_action", jjaek: jjaek %>
 </div>

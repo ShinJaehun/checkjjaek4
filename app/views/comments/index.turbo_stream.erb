@@ -14,3 +14,7 @@
                comments_book: @comments_book %>
   <% end %>
 <% end %>
+
+<% if @comments_context != :detail %>
+  <%= render "comments/refresh_comment_actions", panel_open: !@comments_panel_closed %>
+<% end %>

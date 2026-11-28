@@ -119,6 +119,9 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(%(name="comments_context"))
     expect(response.body).to include(%(value="home"))
     expect(response.body).to include(I18n.t("comments.actions.close_inline"))
+    link = Nokogiri::HTML(response.body).at_css("#comment_action_jjaek_#{jjaek.id} a")
+    expect(link["href"]).to eq(jjaek_comments_path(jjaek, comments_context: :home, panel_state: :closed))
+    expect(link["aria-expanded"]).to eq("true")
     expect(response.body).not_to include("JJAKE_CARD_INDEX_ONLY_BODY")
   end
 
@@ -133,6 +136,9 @@ RSpec.describe "Comments", type: :request do
     expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
     expect(response.body).not_to include(comment.content)
     expect(response.body).not_to include(%(name="comment[content]"))
+    link = Nokogiri::HTML(response.body).at_css("#comment_action_jjaek_#{jjaek.id} a")
+    expect(link["href"]).to eq(jjaek_comments_path(jjaek, comments_context: :home))
+    expect(link["aria-expanded"]).to eq("false")
   end
 
   it "ignores closed panel state outside inline comments contexts" do
@@ -326,11 +332,17 @@ RSpec.describe "Comments", type: :request do
               "comment_action_jjaek_#{jjaek.id}", "book_friend_comment_action_jjaek_#{jjaek.id}"
             )
           else
-            expect(streams.map { |stream| [ stream["action"], stream["target"] ] }).to include(
-              [ "replace", "comment_action_jjaek_#{jjaek.id}" ],
-              [ "replace", "book_friend_comment_action_jjaek_#{jjaek.id}" ]
-            )
-            expect(response.body).to include(I18n.t("jjaeks.meta.comments", count: operation == "create" ? 2 : 0))
+            target = requested_context == "book" ? "comment_action" : "book_friend_comment_action"
+            other_target = requested_context == "book" ? "book_friend_comment_action" : "comment_action"
+            action = streams.find { |stream| stream["target"] == "#{target}_jjaek_#{jjaek.id}" }
+            expect(action["action"]).to eq("replace")
+            expect(streams.map { |stream| stream["target"] }).not_to include("#{other_target}_jjaek_#{jjaek.id}")
+            link = action.at_css("a")
+            expect(link["href"]).to eq(jjaek_comments_path(jjaek, context_params.merge(panel_state: :closed)))
+            expect(link["data-turbo-stream"]).to eq("true")
+            expect(link["aria-expanded"]).to eq("true")
+            expect(link["aria-controls"]).to eq(panel_id)
+            expect(link.text).to eq(I18n.t("jjaeks.meta.comments", count: operation == "create" ? 2 : 0))
           end
           expect(streams.map { |stream| stream["target"] }).not_to include(
             "like_action_jjaek_#{jjaek.id}", "book_friend_like_action_jjaek_#{jjaek.id}"
@@ -856,8 +868,18 @@ RSpec.describe "Comments", type: :request do
     it "lets a public nonmember read comments without showing or accepting the form" do
       group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Public comments", group_type: :public_group)
       group_jjaek = author.jjaeks.create!(group:, content: "Public source")
-      existing = group_jjaek.comments.create!(user: author, content: "Readable comment")
       sign_in user
+
+      get group_path(group)
+      count = Nokogiri::HTML(response.body).at_css("#comment_action_jjaek_#{group_jjaek.id}")
+      expect(count.text.strip).to eq(I18n.t("jjaeks.meta.comments", count: 0))
+      expect(count.at_css("a")).to be_nil
+
+      existing = group_jjaek.comments.create!(user: author, content: "Readable comment")
+      get group_path(group)
+      link = Nokogiri::HTML(response.body).at_css("#comment_action_jjaek_#{group_jjaek.id} a")
+      expect(link["href"]).to eq(jjaek_comments_path(group_jjaek, comments_context: "group"))
+      expect(link["data-turbo-stream"]).to eq("true")
 
       get jjaek_comments_path(group_jjaek, comments_context: "group"),
           headers: { "Accept" => "text/vnd.turbo-stream.html" }
@@ -971,15 +993,20 @@ RSpec.describe "Comments", type: :request do
       expect(flash[:alert]).to eq(I18n.t("comments.alerts.stale_action"))
     end
 
-    it "shows comments but not likes or requotes on a group Jjaek card" do
+    it "shows a public nonmember the empty comment count and personal requote without member actions" do
       group = Group.create!(lifecycle_status: :active, group_admin: author, name: "Group card", group_type: :public_group)
       group_jjaek = author.jjaeks.create!(group:, content: "CARD_ACTIONS")
       sign_in user
 
       get group_path(group)
 
-      expect(response.body).to include(jjaek_comments_path(group_jjaek, comments_context: "group"))
-      expect(response.body).not_to include(jjaek_like_path(group_jjaek), new_jjaek_path(quoted_jjaek_id: group_jjaek.id))
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{group_jjaek.id}")
+      count = card.at_css("#comment_action_jjaek_#{group_jjaek.id}")
+      expect(count.text.strip).to eq(I18n.t("jjaeks.meta.comments", count: 0))
+      expect(count.at_css("a")).to be_nil
+      expect(card.at_css("form[action='#{jjaek_like_path(group_jjaek)}']")).to be_nil
+      expect(card.at_css("a[href='#{new_jjaek_path(quoted_jjaek_id: group_jjaek.id, return_to: group_path(group))}']")).to be_present
+      expect(card.at_css("a[href^='#{new_group_jjaek_path(group)}']")).to be_nil
     end
 
 

@@ -116,7 +116,7 @@ RSpec.describe "Jjaeks", type: :request do
       expect(normal_page.css("article[id^='jjaek_']").map { |article| article["id"] }).to eq([ "jjaek_#{visible_requote.id}", "jjaek_#{source.id}" ])
       expect(normal_page.text).to include(activity.book.title)
       requote_link = %(a[href="#{jjaek_requotes_path(source)}"])
-      expect(normal_page.at_css(requote_link).text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(normal_page.at_css(requote_link).text.strip).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
 
       expect {
         post jjaeks_path, params: { jjaek: { content:, visibility: :private_jjaek } }
@@ -940,16 +940,20 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response.body).not_to include(%(href="/jjaeks/#{original.id}/comments"))
     end
 
-    it "renders a stable detail requotes panel target" do
+    it "links to the standalone list once from the detail card when only viewing is available" do
       requote
       sign_in viewer
 
       get jjaek_path(original)
 
-      expect(response.body).to include(%(id="requotes_panel_jjaek_#{original.id}"))
-      expect(response.body).to include(%(href="/jjaeks/#{original.id}/requotes"))
-      expect(response.body).to include(%(data-turbo-stream="true"))
-      expect(response.body).to include(I18n.t("requotes.actions.view_panel"))
+      page = Nokogiri::HTML(response.body)
+      links = page.css("a[href='#{jjaek_requotes_path(original)}']")
+      expect(links.map { |link| link.text.strip }).to eq([ I18n.t("jjaeks.meta.requotes", count: 1) ])
+      link = links.first
+      expect(link.ancestors("article").first["id"]).to eq("jjaek_#{original.id}")
+      expect(link.ancestors("details")).to be_empty
+      expect(link["data-turbo-stream"]).to be_nil
+      expect(page.at_css("#requotes_panel_jjaek_#{original.id}")).to be_nil
     end
 
     it "shows the latest quoted original with its edited timestamp" do

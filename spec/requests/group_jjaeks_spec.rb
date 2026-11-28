@@ -88,7 +88,7 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(normal_page.at_css("#jjaek_#{hidden.id}")).to be_present
     expect(normal_page.text).not_to include(hidden.content)
     requote_link = %(a[href="#{jjaek_requotes_path(source)}"])
-    expect(normal_page.at_css(requote_link).text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
+    expect(normal_page.at_css(requote_link).text.strip).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
 
     expect {
       post group_jjaeks_path(group), params: { jjaek: { content: } }, headers: { "Accept" => "text/html" }
@@ -617,21 +617,24 @@ RSpec.describe "Group Jjaeks", type: :request do
     expect(response.body).to include(public_jjaek.content, approval_jjaek.content)
   end
 
-  it "renders comments, likes, and same-group quotes without a personal requote" do
+  it "renders member actions and both requote destinations on an active public group card" do
     group = Group.create!(lifecycle_status: :active, group_admin: group_admin, name: "Public", group_type: :public_group)
     jjaek = group_admin.jjaeks.create!(group:, content: "Read only group jjaek")
     sign_in group_admin
 
     get group_path(group)
 
-    expect(response.body).to include(edit_jjaek_path(jjaek))
-    expect(response.body).to include(
-      jjaek_comments_path(jjaek, comments_context: "group")
+    card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{jjaek.id}")
+    expect(card.at_css("a[href='#{edit_jjaek_path(jjaek, return_to: group_path(group))}']")).to be_present
+    comments = card.at_css("#comment_action_jjaek_#{jjaek.id} a")
+    expect(comments["href"]).to eq(jjaek_comments_path(jjaek, comments_context: :group))
+    expect(comments["data-turbo-stream"]).to eq("true")
+    expect(card.at_css("form[action='#{jjaek_like_path(jjaek)}'] button")).to be_present
+    menu = card.at_css("details[data-controller='requote-menu']")
+    expect(menu.css("a").map { |link| link["href"] }).to contain_exactly(
+      new_jjaek_path(return_to: group_path(group), quoted_jjaek_id: jjaek.id),
+      new_group_jjaek_path(group, return_to: group_path(group), quoted_jjaek_id: jjaek.id)
     )
-    expect(response.body).to include(jjaek_like_path(jjaek))
-    links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
-    expect(links).not_to include(new_jjaek_path(return_to: group_path(group), quoted_jjaek_id: jjaek.id))
-    expect(links).to include(new_group_jjaek_path(group, return_to: group_path(group), quoted_jjaek_id: jjaek.id))
   end
 
   it "shows the book search context only to an active member" do

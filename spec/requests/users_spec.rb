@@ -55,10 +55,15 @@ RSpec.describe "Users", type: :request do
       expect(response.body).not_to include("PROFILE_SHELF_UNIQUE_STICKER")
       expect(response.body).not_to include(I18n.t("users.profile.view_library"))
       expect(response.body).to include("Profile Jjaek")
-      expect(response.body).to include(%(id="comments_panel_profile_#{profile_user.id}_jjaek_#{profile_jjaek.id}"))
-      expect(response.body).to include(%(href="/jjaeks/#{profile_jjaek.id}/comments?comments_context=profile&amp;profile_user_id=#{profile_user.id}"))
-      expect(response.body).to include(%(data-turbo-stream="true"))
-      expect(response.body).to include(%(href="#{ERB::Util.html_escape(jjaek_path(profile_jjaek, return_to: user_path(profile_user), anchor: "comments_panel_jjaek_#{profile_jjaek.id}"))}"))
+      card = page.at_css("#jjaek_#{profile_jjaek.id}")
+      panel_id = "comments_panel_profile_#{profile_user.id}_jjaek_#{profile_jjaek.id}"
+      link = card.at_css("#comment_action_jjaek_#{profile_jjaek.id} a")
+      expect(link.text.strip).to eq(I18n.t("jjaeks.meta.comments", count: 0))
+      expect(link["href"]).to eq(jjaek_comments_path(profile_jjaek, comments_context: :profile, profile_user_id: profile_user.id))
+      expect(link["data-turbo-stream"]).to eq("true")
+      expect(link["aria-expanded"]).to eq("false")
+      expect(link["aria-controls"]).to eq(panel_id)
+      expect(card.at_css("##{panel_id}")).to be_present
       expect(response.body).not_to include("Book friend profile Jjaek")
       expect(response.body).not_to include("Private profile Jjaek")
       expect(response.body).not_to include("Other private")
@@ -987,7 +992,7 @@ RSpec.describe "Users", type: :request do
       expect(normal_page.at_css("[data-profile-books-summary] [data-reading-sticker]")["aria-label"]).to eq(profile_shelf_sticker.name)
       expect(normal_page.css("[data-bookshelf-entry-id]").map { |entry| entry["data-bookshelf-entry-id"] }).to contain_exactly(profile_entry.id.to_s, friend_entry.id.to_s)
       requote_link = %(a[href="#{jjaek_requotes_path(profile_jjaek)}"])
-      expect(normal_page.at_css(requote_link).text).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
+      expect(normal_page.at_css(requote_link).text.strip).to eq(I18n.t("requotes.actions.view_count", count: 1))
 
       expect {
         post jjaeks_path, params: { jjaek: { target_user_id: profile_user.id, content:, visibility: :public_jjaek } }

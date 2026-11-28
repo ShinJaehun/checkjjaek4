@@ -117,6 +117,40 @@
   filter: drop-shadow(1px 2px 1px rgb(82 54 33 / 28%));
 }
 
+.bookshelf-touch-reorder > .bookshelf-cover {
+  position: relative;
+}
+
+.bookshelf-touch-reorder > .bookshelf-cover::after {
+  position: absolute;
+  inset: var(--cover-outline-inset, 0);
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.bookshelf-reorder-held > .bookshelf-cover::after {
+  content: "";
+  outline: 2px solid #1c1917;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 15%);
+}
+
+.bookshelf-reorder-placeholder {
+  opacity: 0.4;
+}
+
+.bookshelf-reorder-placeholder > .bookshelf-cover::after {
+  content: "";
+  outline: 2px dashed #1c1917;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .bookshelf-touch-reorder[data-reorder-selected]:not(.bookshelf-reorder-placeholder) > .bookshelf-cover::after {
+    content: "";
+    outline: 2px solid #1c1917;
+  }
+}
+
 .bookshelf-cover-placeholder {
   align-content: center;
   width: 100%;
