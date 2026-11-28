@@ -163,10 +163,35 @@ RSpec.describe "Homes", type: :request do
 
       expect(response.body).to include("HOME_FEED_EXISTING_JJAEK")
       expect(response.body).to include(%(id="comments_panel_home_jjaek_#{jjaek.id}"))
-      expect(response.body).to include(%(href="/jjaeks/#{jjaek.id}/comments?comments_context=home"))
-      expect(response.body).to include(%(data-turbo-stream="true"))
-      expect(page_text).to include(I18n.t("comments.actions.view_inline"))
-      expect(response.body).to include(%(href="#{ERB::Util.html_escape(jjaek_path(jjaek, return_to: root_path, anchor: "comments_panel_jjaek_#{jjaek.id}"))}"))
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{jjaek.id}")
+      comments_link = card.at_css("#comment_action_jjaek_#{jjaek.id} a")
+      expect(comments_link["href"]).to eq(jjaek_comments_path(jjaek, comments_context: :home))
+      expect(comments_link["data-turbo-stream"]).to eq("true")
+      expect(comments_link["aria-expanded"]).to eq("false")
+      expect(comments_link["aria-controls"]).to eq("comments_panel_home_jjaek_#{jjaek.id}")
+      expect(comments_link.at_css("svg[aria-hidden='true']")).to be_present
+      expect(comments_link.text).to eq(I18n.t("jjaeks.meta.comments", count: 0))
+      expect(card.text).not_to include(I18n.t("comments.actions.view_inline"))
+      requote_link = card.at_css(%(a[href="#{new_jjaek_path(quoted_jjaek_id: jjaek.id, return_to: root_path)}"]))
+      expect(requote_link.text.strip).to eq(I18n.t("jjaeks.actions.requote"))
+      expect(requote_link.at_css("svg[aria-hidden='true']")).to be_present
+      view_link = card.css("a").select { |link| link.text.strip == I18n.t("jjaeks.actions.view") }.sole
+      expect(view_link["href"]).to eq(jjaek_path(jjaek, return_to: root_path))
+      expect(view_link.parent.at_css(%(a[href="#{edit_jjaek_path(jjaek, return_to: root_path)}"]))).to be_present
+      expect(view_link.parent.at_css(%(form[action="#{view_link['href']}"] input[name="_method"][value="delete"]))).to be_present
+    end
+
+    it "shows the view link for a followed user's card without edit or delete" do
+      viewer.active_follows.create!(followee:)
+      jjaek = followee.jjaeks.create!(content: "Followed reader's Jjaek", visibility: :public_jjaek)
+      sign_in viewer
+
+      get root_path
+
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{jjaek.id}")
+      view_link = card.css("a").select { |link| link.text.strip == I18n.t("jjaeks.actions.view") }.sole
+      expect(view_link["href"]).to eq(jjaek_path(jjaek, return_to: root_path))
+      expect(view_link.parent.at_css("a[href^='#{edit_jjaek_path(jjaek)}'], form")).to be_nil
     end
 
     it "keeps group jjaeks out of the people-based home feed" do

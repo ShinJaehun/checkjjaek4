@@ -51,8 +51,18 @@ RSpec.describe "Likes", type: :request do
     expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"))
     expect(response.body).to include("좋아요 1개")
     expect(response.body).to include("좋아요 취소")
-    preview = Nokogiri::HTML(response.body).at_css("turbo-stream[target='book_friend_like_action_jjaek_#{jjaek.id}']")
-    expect(preview.text).to include(I18n.t("jjaeks.meta.likes", count: 1), I18n.t("likes.actions.unlike"))
+    document = Nokogiri::HTML(response.body)
+    %w[like_action book_friend_like_action].each do |action|
+      summary = document.at_css("turbo-stream[target='#{action}_jjaek_#{jjaek.id}']")
+      expect(summary.css("button").size).to eq(1)
+      button = summary.at_css("form[action='#{jjaek_like_path(jjaek)}'] button")
+      expect(button["aria-label"]).to eq(I18n.t("likes.actions.like"))
+      expect(button["aria-description"]).to eq(I18n.t("jjaeks.meta.likes", count: 1))
+      expect(button["aria-pressed"]).to eq("true")
+      expect(button.text.strip).to eq("1")
+      expect(button.at_css("svg[aria-hidden='true']")["fill"]).to eq("currentColor")
+      expect(button.parent.at_css("input[name='_method']")["value"]).to eq("delete")
+    end
     expect(response.body).not_to include(jjaek.content)
   end
 
@@ -162,7 +172,12 @@ RSpec.describe "Likes", type: :request do
     expect(response.body).to include(%(target="like_action_jjaek_#{jjaek.id}"))
     expect(response.body).to include("좋아요 0개")
     preview = Nokogiri::HTML(response.body).at_css("turbo-stream[target='book_friend_like_action_jjaek_#{jjaek.id}']")
-    expect(preview.text).to include(I18n.t("jjaeks.meta.likes", count: 0))
+    button = preview.at_css("form[action='#{jjaek_like_path(jjaek)}'][method='post'] button")
+    expect(button["aria-description"]).to eq(I18n.t("jjaeks.meta.likes", count: 0))
+    expect(button["aria-pressed"]).to eq("false")
+    expect(button.text.strip).to eq("0")
+    expect(button.at_css("svg[aria-hidden='true']")["fill"]).to eq("none")
+    expect(button.parent.at_css("input[name='_method']")).to be_nil
     expect(response.body).not_to include("좋아요 취소")
     expect(response.body).not_to include(jjaek.content)
   end
@@ -349,6 +364,7 @@ RSpec.describe "Likes", type: :request do
     document = Nokogiri::HTML(response.body)
     expect(response.body).to include(%(action="replace"))
     like_button = document.at_css(%(form[action="#{jjaek_like_path(group_jjaek)}"] button))
-    expect(like_button&.text).to eq(I18n.t("likes.actions.like"))
+    expect(like_button["aria-label"]).to eq(I18n.t("likes.actions.like"))
+    expect(like_button["aria-pressed"]).to eq("false")
   end
 end

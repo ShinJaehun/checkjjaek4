@@ -1186,7 +1186,9 @@ en:
       group_membership_removed: "The club team removed you from %{group_name}."
   requotes:
     actions:
-      view_panel: "View ReJjaeks"
+      view_count:
+        one: "View 1 ReJjaek"
+        other: "View %{count} ReJjaeks"
     restricted:
       context_html: "%{author_name} ReJjaeked %{source_author_name}'s %{source_kind} in %{group_name}"
       notice: "This ReJjaek was posted in a club you cannot access."
@@ -1416,8 +1418,8 @@ en:
       publish_requote: "ReJjaek"
       publish_short: "Jjaek"
       requote: "ReJjaek"
+      requote_to_feed: "ReJjaek to my feed"
       share_to_group: "ReJjaek to a group"
-      quote_in_group: "ReJjaek in this group"
       save: "Save changes"
       view: "Open thread"
     confirmations:
@@ -1443,6 +1445,8 @@ en:
       placeholders:
         home: "Share an update..."
         group: "Leave a Jjaek in %{name}..."
+        group_requote: "Leave a ReJjaek in a club..."
+        named_group_requote: "Leave a ReJjaek in %{name}..."
         profile: "Leave a Jjaek for %{name}..."
         book: "Leave a Jjaek about this book..."
     labels:

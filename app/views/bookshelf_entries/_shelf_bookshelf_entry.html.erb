@@ -8,7 +8,7 @@
   details_label = t("bookshelf_entries.actions.details")
 %>
 
-<article class="relative min-w-0 rounded-sm <%= '[&.bookshelf-reorder-held]:shadow-md [&.bookshelf-reorder-held]:outline-2 [&.bookshelf-reorder-held]:outline-stone-900 [&.bookshelf-reorder-placeholder]:opacity-40 [&.bookshelf-reorder-placeholder]:outline-dashed [@media(max-width:767px),(pointer:coarse)]:data-[reorder-selected]:outline-2 [@media(max-width:767px),(pointer:coarse)]:data-[reorder-selected]:outline-stone-900' if mobile_reorder %>"
+<article class="relative min-w-0 rounded-sm <%= 'bookshelf-touch-reorder' if mobile_reorder %>"
          data-bookshelf-entry-id="<%= bookshelf_entry.id %>"
          data-controller="book-modal"
          data-action="turbo:before-cache@document->book-modal#close"
@@ -38,7 +38,8 @@
           data-action="<%= 'bookshelf-entries-sort#handleCoverClick contextmenu->bookshelf-entries-sort#preventCoverContextMenu keydown.shift+enter->bookshelf-entries-sort#selectWithKeyboard keydown.esc->bookshelf-entries-sort#clearSelection ' if mobile_reorder %><%= 'bookshelf-transfer#selectFromCover ' if transfer_selection %>book-modal#open"
           aria-haspopup="dialog" aria-controls="<%= dialog_id %>" aria-label="<%= book.title %>">
     <% if book.thumbnail.present? %>
-      <%= image_tag book.thumbnail, alt: "", loading: "lazy", draggable: false %>
+      <%= image_tag book.thumbnail, alt: "", loading: "lazy", draggable: false,
+                    data: (mobile_reorder ? { action: "load->bookshelf-entries-sort#updateCoverOutline" } : nil) %>
     <% else %>
       <span class="bookshelf-cover-placeholder"><span class="line-clamp-4 break-words"><%= book.title %></span></span>
     <% end %>

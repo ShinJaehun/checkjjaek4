@@ -58,34 +58,6 @@ class Jjaek < ApplicationRecord
   scope :visible, -> { where(hidden_at: nil) }
   scope :without_profile_conversations, -> { where("jjaeks.target_user_id IS NULL OR jjaeks.target_user_id = jjaeks.user_id") }
 
-  # The caller supplies the current viewer's readable requotes for this page.
-  def self.requote_previews_for(requotes:)
-    per_user = requotes.where(hidden_at: nil, deleted_at: nil)
-      .reorder(nil)
-      .select(<<~SQL.squish)
-        jjaeks.id, jjaeks.quoted_jjaek_id, jjaeks.user_id, jjaeks.created_at,
-        ROW_NUMBER() OVER (
-          PARTITION BY jjaeks.quoted_jjaek_id, jjaeks.user_id
-          ORDER BY jjaeks.created_at DESC, jjaeks.id DESC
-        ) AS user_requote_rank
-      SQL
-
-    per_original = from(per_user, :jjaeks)
-      .where("user_requote_rank = 1")
-      .select(<<~SQL.squish)
-        jjaeks.*,
-        ROW_NUMBER() OVER (
-          PARTITION BY jjaeks.quoted_jjaek_id
-          ORDER BY jjaeks.created_at DESC, jjaeks.id DESC
-        ) AS requote_preview_rank
-      SQL
-
-    from(per_original, :jjaeks)
-      .where("requote_preview_rank <= ?", 5)
-      .order(:quoted_jjaek_id, created_at: :desc, id: :desc)
-      .preload(user: { avatar_attachment: :blob })
-  end
-
   def profile_conversation?
     target_user_id.present? && target_user_id != user_id
   end

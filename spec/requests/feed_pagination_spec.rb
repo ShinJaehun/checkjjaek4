@@ -105,8 +105,9 @@ RSpec.describe "Feed pagination", type: :request do
       end
       card = page_document.at_css("article#jjaek_#{post.id}")
       expect(card.text).to include(I18n.t("jjaeks.meta.comments", count: grow ? 4 : 1))
-      expect(card.text).to include(I18n.t("jjaeks.meta.likes", count: grow ? 5 : 2))
-      expect(card.text).to include(I18n.t("likes.actions.unlike"))
+      like = card.at_css("#like_action_jjaek_#{post.id} button")
+      expect(like["aria-description"]).to eq(I18n.t("jjaeks.meta.likes", count: grow ? 5 : 2))
+      expect(like["aria-pressed"]).to eq("true")
       loaded_counts << counts
     end
 
@@ -132,10 +133,15 @@ RSpec.describe "Feed pagination", type: :request do
       get path_for(location)
 
       populated_card = page_document.at_css("article#jjaek_#{populated.id}")
-      expect(populated_card.text).to include(I18n.t("jjaeks.meta.comments", count: 2), I18n.t("jjaeks.meta.likes", count: 2))
-      expect(populated_card.text).to include(I18n.t("likes.actions.unlike"))
       empty_card = page_document.at_css("article#jjaek_#{empty.id}")
-      expect(empty_card.text).to include(I18n.t("jjaeks.meta.comments", count: 0), I18n.t("jjaeks.meta.likes", count: 0))
+      expect(populated_card.text).to include(I18n.t("jjaeks.meta.comments", count: 2))
+      expect(empty_card.text).to include(I18n.t("jjaeks.meta.comments", count: 0))
+      populated_like = populated_card.at_css("#like_action_jjaek_#{populated.id} button")
+      empty_like = empty_card.at_css("#like_action_jjaek_#{empty.id} button")
+      expect(populated_like["aria-description"]).to eq(I18n.t("jjaeks.meta.likes", count: 2))
+      expect(populated_like["aria-pressed"]).to eq("true")
+      expect(empty_like["aria-description"]).to eq(I18n.t("jjaeks.meta.likes", count: 0))
+      expect(empty_like["aria-pressed"]).to eq("false")
     end
   end
 
@@ -197,9 +203,8 @@ RSpec.describe "Feed pagination", type: :request do
       expect(page_document.at_css("html body header")).to be_present
       expect(page_document.css("turbo-stream")).to be_empty
       expect(card_ids).to eq([ "jjaek_#{posts.last.id}" ])
-      expect(page_document.at_css("#jjaek_#{posts.last.id}").text).to include(
-        I18n.t("jjaeks.meta.comments", count: 1), I18n.t("jjaeks.meta.likes", count: 1)
-      )
+      expect(page_document.at_css("#jjaek_#{posts.last.id}").text).to include(I18n.t("jjaeks.meta.comments", count: 1))
+      expect(page_document.at_css("#like_action_jjaek_#{posts.last.id} button")["aria-description"]).to eq(I18n.t("jjaeks.meta.likes", count: 1))
       if %i[book group_book].include?(location)
         card = page_document.at_css("#jjaek_#{posts.last.id}")
         expect(card.text).to include(book.title, book.authors_text)
@@ -209,9 +214,8 @@ RSpec.describe "Feed pagination", type: :request do
       get url, headers: stream_headers
       expect(response.media_type).to eq("text/vnd.turbo-stream.html")
       expect(card_ids).to eq([ "jjaek_#{posts.last.id}" ])
-      expect(page_document.at_css("#jjaek_#{posts.last.id}").text).to include(
-        I18n.t("jjaeks.meta.comments", count: 1), I18n.t("jjaeks.meta.likes", count: 1)
-      )
+      expect(page_document.at_css("#jjaek_#{posts.last.id}").text).to include(I18n.t("jjaeks.meta.comments", count: 1))
+      expect(page_document.at_css("#like_action_jjaek_#{posts.last.id} button")["aria-description"]).to eq(I18n.t("jjaeks.meta.likes", count: 1))
       if %i[book group_book].include?(location)
         card = page_document.at_css("#jjaek_#{posts.last.id}")
         expect(card.text).to include(book.title, book.authors_text)

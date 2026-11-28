@@ -106,7 +106,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
       sign_in moderator
       get group_path(group)
       moderator_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{target.id}")
-      expect(moderator_card.text).to include("좋아요 1개", "댓글 1개", "댓글 보기", "글 보기")
+      expect(moderator_card.text).to include("좋아요 1개", "댓글 1개", "글 보기")
       expect(moderator_card.at_css("#comment_action_jjaek_#{target.id}")).to be_present
       expect(moderator_card.at_css(%(a[href="#{jjaek_comments_path(target, comments_context: :group)}"]))).to be_present
       expect(moderator_card.at_css(%(a[href="#{jjaek_path(target, return_to: group_path(group))}"]))).to be_present
@@ -124,7 +124,7 @@ RSpec.describe "Group Jjaek moderation", type: :request do
     get group_path(group)
     member_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{target.id}")
     expect(member_card).to be_present
-    expect(member_card.text).to include("동아리 관리자에 의해 숨겨진 짹입니다.", "기타", "좋아요 1개", "댓글 1개", "댓글 보기", "글 보기")
+    expect(member_card.text).to include("동아리 관리자에 의해 숨겨진 짹입니다.", "기타", "좋아요 1개", "댓글 1개", "글 보기")
     expect(member_card.text).not_to include("Hidden group card target", "PRIVATE GROUP NOTE")
     expect(member_card.at_css(%(a[href="#{jjaek_comments_path(target, comments_context: :group)}"]))).to be_present
     expect(member_card.at_css(%(a[href="#{jjaek_path(target, return_to: group_path(group))}"]))).to be_present

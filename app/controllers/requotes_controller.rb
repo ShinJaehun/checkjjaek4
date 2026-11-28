@@ -39,5 +39,6 @@ class RequotesController < ApplicationController
     cards = readable_page.to_h { |requote| [ requote.id, [ requote, false ] ] }
       .merge(restricted_page.to_h { |requote| [ requote.id, [ requote, true ] ] })
     @requotes = page_ids.filter_map { |id| cards[id] }
+    render :index, formats: :html
   end
 end

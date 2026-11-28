@@ -1,4 +1,21 @@
+<% current_like = current_user_like_for(jjaek) %>
+<% can_unlike = current_like && policy(current_like).destroy? %>
+<% can_like = !can_unlike && policy(Like.new(jjaek: jjaek, user: current_user)).create? %>
+<% count = jjaek_likes_count(jjaek) %>
+<% count_label = t("jjaeks.meta.likes", count:) %>
+<% reaction_classes = "inline-flex items-center gap-1.5" %>
 <div id="<%= dom_id(jjaek, local_assigns[:book_friend_preview] ? :book_friend_like_action : :like_action) %>" class="contents">
-  <span><%= t("jjaeks.meta.likes", count: jjaek_likes_count(jjaek)) %></span>
-  <%= render "jjaeks/like_action", jjaek: jjaek %>
+  <% if can_unlike || can_like %>
+    <%= button_to jjaek_like_path(jjaek), method: (can_unlike ? :delete : :post),
+                  class: "#{reaction_classes} cursor-pointer font-medium text-stone-700",
+                  title: t(can_unlike ? "likes.actions.unlike" : "likes.actions.like"),
+                  aria: { label: t("likes.actions.like"), pressed: current_like.present?, description: count_label } do %>
+      <%= jjaek_reaction_icon(:heart, filled: current_like.present?) %><span><%= count %></span>
+    <% end %>
+  <% else %>
+    <span class="<%= reaction_classes %>">
+      <%= jjaek_reaction_icon(:heart, filled: current_like.present?) %><span aria-hidden="true"><%= count %></span>
+      <span class="sr-only"><%= count_label %></span>
+    </span>
+  <% end %>
 </div>

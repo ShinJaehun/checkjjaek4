@@ -6,25 +6,5 @@
              moderation_actions: @moderation_actions,
              group_moderation_actions: @group_moderation_actions %>
 
-  <% if policy(@jjaek).create_requote? %>
-    <div>
-      <%= link_to t("jjaeks.actions.requote"),
-                  new_jjaek_path(jjaek_navigation_params.merge(quoted_jjaek_id: @jjaek.id)),
-                  class: "ui-button ui-button-primary" %>
-    </div>
-  <% end %>
-
-  <% visible_requote_count = visible_requote_count_for(@jjaek) %>
-  <% if policy(@jjaek).view_requotes? && visible_requote_count.positive? %>
-    <div>
-      <%= link_to t("requotes.actions.view_panel"),
-                  jjaek_requotes_path(@jjaek),
-                  data: { turbo_stream: true },
-                  class: "ui-button ui-button-secondary" %>
-    </div>
-  <% end %>
-
-  <div id="<%= requotes_panel_dom_id(@jjaek) %>"></div>
-
   <%= render "comments/comments_panel", jjaek: @jjaek, comments: @comments, comment: @comment %>
 </section>

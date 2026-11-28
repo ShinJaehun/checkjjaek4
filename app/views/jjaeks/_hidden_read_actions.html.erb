@@ -1,18 +1,8 @@
 <% inline_comments_profile_user = local_assigns[:inline_comments_profile_user] %>
 <% inline_comments_book = local_assigns[:inline_comments_book] %>
-<% inline_comments_params = { comments_context: inline_comments_context } %>
-<% inline_comments_params[:profile_user_id] = inline_comments_profile_user.id if inline_comments_profile_user.present? %>
-<% inline_comments_params[:book_id] = inline_comments_book.id if inline_comments_book.present? %>
-<% show_navigation_actions = inline_comments_context.to_sym != :detail %>
 
 <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-stone-600">
   <span><%= t("jjaeks.meta.likes", count: jjaek_likes_count(jjaek)) %></span>
-  <%= render "jjaeks/comment_action", jjaek: jjaek %>
-  <% if show_navigation_actions %>
-    <%= link_to t("comments.actions.view_inline"),
-                jjaek_comments_path(jjaek, inline_comments_params),
-                data: { turbo_stream: true },
-                class: "font-medium text-stone-700" %>
-    <%= link_to t("jjaeks.actions.view"), jjaek_path(jjaek, jjaek_navigation_params), class: "font-medium text-stone-700" %>
-  <% end %>
+  <%= render "jjaeks/comment_action", jjaek:, comments_context: inline_comments_context,
+             profile_user: inline_comments_profile_user, book: inline_comments_book %>
 </div>

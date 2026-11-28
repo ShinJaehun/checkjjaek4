@@ -5,6 +5,64 @@ RSpec.describe "Group sharing and quotes", type: :request do
   let(:source_author) { User.create!(name: "Source author", email: "group-share-source@example.com", password: "password123!") }
   let(:book) { Book.create!(title: "Source book", authors_text: "Source writer") }
 
+  it "offers a menu or a direct link depending on the remaining personal and group routes" do
+    source = source_author.jjaeks.create!(content: "REQUOTE_MENU_SOURCE")
+    personal_route = new_jjaek_path(quoted_jjaek_id: source.id, return_to: jjaek_path(source))
+    group_route = new_jjaek_path(quoted_jjaek_id: source.id, share_to_group: 1, return_to: jjaek_path(source))
+    menu_selector = "details[data-controller='requote-menu']"
+    sign_in writer
+
+    get jjaek_path(source)
+    card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{source.id}")
+    expect(card.at_css(menu_selector)).to be_nil
+    expect(card.at_css("a[href='#{personal_route}']").text.strip).to eq(I18n.t("jjaeks.actions.requote"))
+    expect(card.at_css("a[href='#{group_route}']")).to be_nil
+    expect(card.at_css("a[href='#{jjaek_requotes_path(source)}']")).to be_nil
+
+    group = Group.create!(lifecycle_status: :active, group_admin: writer, name: "Menu readers", group_type: :public_group)
+    get jjaek_path(source)
+    card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{source.id}")
+    menu = card.at_css(menu_selector)
+    expect(menu.at_css("summary").text.strip).to eq(I18n.t("jjaeks.actions.requote"))
+    expect(menu.at_css("summary svg[aria-hidden='true']")).to be_present
+    expect(menu.css("a").map { |link| [ link.text.strip, link["href"] ] }).to eq([
+      [ I18n.t("jjaeks.actions.requote_to_feed"), personal_route ],
+      [ I18n.t("jjaeks.actions.share_to_group"), group_route ]
+    ])
+    expect(menu.css("a svg[aria-hidden='true']").size).to eq(2)
+    expect(card.css("a[href='#{personal_route}'], a[href='#{group_route}']").size).to eq(2)
+
+    writer.jjaeks.create!(quoted_jjaek: source, content: "Personal requote already made")
+    get jjaek_path(source)
+    card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{source.id}")
+    menu = card.at_css(menu_selector)
+    expect(menu.at_css("summary").text.strip).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
+    expect(menu.css("a").map { |link| [ link.text.strip, link["href"] ] }).to eq([
+      [ I18n.t("requotes.actions.view_count", count: 1), jjaek_requotes_path(source) ],
+      [ I18n.t("jjaeks.actions.share_to_group"), group_route ]
+    ])
+    expect(menu.at_css("a[href='#{jjaek_requotes_path(source)}'] svg")).to be_nil
+    expect(card.at_css("a[href='#{personal_route}']")).to be_nil
+
+    writer.jjaeks.create!(group:, quoted_jjaek: source, content: "Group requote already made")
+    get jjaek_path(source)
+    card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{source.id}")
+    expect(card.at_css(menu_selector)).to be_nil
+    expect(card.css("a[href^='#{new_jjaek_path}']")).to be_empty
+    expect(card.at_css("a[href='#{jjaek_requotes_path(source)}']").text.strip).to eq(I18n.t("jjaeks.meta.requotes", count: 2))
+  end
+
+  it "omits the unified action when neither viewing nor writing is available" do
+    source = writer.jjaeks.create!(content: "PRIVATE_REQUOTE_MENU_SOURCE", visibility: :private_jjaek)
+    sign_in writer
+
+    get jjaek_path(source)
+
+    card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{source.id}")
+    expect(card.at_css("details[data-controller='requote-menu']")).to be_nil
+    expect(card.css("a[href^='#{new_jjaek_path}'], a[href='#{jjaek_requotes_path(source)}']")).to be_empty
+  end
+
   it "rejects a B share if membership is suspended after the sharing form was opened" do
     group = Group.create!(lifecycle_status: :active, group_admin: source_author, name: "Readers", group_type: :private_group)
     membership = group.group_memberships.create!(user: writer, status: :active)
@@ -33,6 +91,8 @@ RSpec.describe "Group sharing and quotes", type: :request do
       create_personal = -> do
         get new_jjaek_path(quoted_jjaek_id: source.id)
         expect(response).to have_http_status(:ok)
+        textarea = Nokogiri::HTML(response.body).at_css("#jjaek-publish-form textarea[name='jjaek[content]']")
+        expect(textarea["placeholder"]).to eq(I18n.t("jjaeks.form.placeholders.home"))
         post jjaeks_path(quoted_jjaek_id: source.id), params: {
           jjaek: { quoted_jjaek_id: source.id, content: "PERSONAL_#{order}" }
         }
@@ -50,11 +110,24 @@ RSpec.describe "Group sharing and quotes", type: :request do
       get jjaek_path(source)
       expect(response.body).to include(new_jjaek_path(quoted_jjaek_id: source.id),
                                        new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+      menu = Nokogiri::HTML(response.body).at_css("#jjaek_#{source.id} details[data-controller='requote-menu']")
+      expect(menu.css("a").map { |link| link.text.strip }).to eq([
+        I18n.t("jjaeks.actions.requote_to_feed"), I18n.t("jjaeks.actions.share_to_group")
+      ])
 
       if order == :personal_first
         create_personal.call
         get jjaek_path(source)
         expect(response.body).to include(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
+        card = Nokogiri::HTML(response.body).at_css("#jjaek_#{source.id}")
+        menu = card.at_css("details[data-controller='requote-menu']")
+        internal_path = new_group_jjaek_path(group, quoted_jjaek_id: source.id, return_to: jjaek_path(source))
+        expect(menu.css("a").map { |link| [ link.text.strip, link["href"] ] }).to eq([
+          [ I18n.t("requotes.actions.view_count", count: 1), jjaek_requotes_path(source) ],
+          [ I18n.t("jjaeks.actions.share_to_group"), internal_path ]
+        ])
+        expect(menu.at_css("a[href='#{internal_path}'] svg[aria-hidden='true']")).to be_present
+        expect(card.css("a[href='#{internal_path}']").size).to eq(1)
         create_in_group.call
       else
         create_in_group.call
@@ -78,9 +151,14 @@ RSpec.describe "Group sharing and quotes", type: :request do
     sign_in writer
 
     get jjaek_path(source)
-    links = Nokogiri::HTML(response.body).css("a[href]").map { |link| link["href"] }
+    page = Nokogiri::HTML(response.body)
+    links = page.css("a[href]").map { |link| link["href"] }
+    card = page.at_css("#jjaek_#{source.id}")
+    internal_path = new_group_jjaek_path(group, quoted_jjaek_id: source.id, return_to: jjaek_path(source))
+    expect(card.at_css("details[data-controller='requote-menu']")).to be_nil
+    expect(card.at_css("a[href='#{internal_path}']").text.strip).to eq(I18n.t("jjaeks.actions.requote"))
     expect(links).to include(
-      new_group_jjaek_path(group, quoted_jjaek_id: source.id, return_to: jjaek_path(source))
+      internal_path
     )
     expect(links).not_to include(
       a_string_starting_with(new_jjaek_path(quoted_jjaek_id: source.id))
@@ -95,7 +173,11 @@ RSpec.describe "Group sharing and quotes", type: :request do
     expect(writer.jjaeks.where(group:, quoted_jjaek: source).count).to eq(1)
 
     get jjaek_path(source)
-    links = Nokogiri::HTML(response.body).css("a[href]").map { |link| link["href"] }
+    page = Nokogiri::HTML(response.body)
+    links = page.css("a[href]").map { |link| link["href"] }
+    card = page.at_css("#jjaek_#{source.id}")
+    expect(card.at_css("details[data-controller='requote-menu']")).to be_nil
+    expect(card.at_css("a[href='#{jjaek_requotes_path(source)}']").text.strip).to eq(I18n.t("jjaeks.meta.requotes", count: 1))
     expect(links).not_to include(
       a_string_starting_with(new_group_jjaek_path(group, quoted_jjaek_id: source.id))
     )
@@ -162,6 +244,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
     expect(response.body).to include("PUBLIC_BOOK_SOURCE", book.title)
     expect(response.body).to include(I18n.t("jjaeks.form.destination_group"))
     form = page.at_css("#jjaek-publish-form")
+    expect(form.at_css("textarea[name='jjaek[content]']")["placeholder"]).to eq(I18n.t("jjaeks.form.placeholders.group_requote"))
     expect(URI.parse(form["action"]).path).to eq(jjaeks_path)
     expect(Rack::Utils.parse_query(URI.parse(form["action"]).query)).to include("share_to_group" => "1", "quoted_jjaek_id" => source.id.to_s)
     expect(form.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(source.id.to_s)
@@ -237,14 +320,18 @@ RSpec.describe "Group sharing and quotes", type: :request do
     sign_in writer
 
     get jjaek_path(source)
-    links = Nokogiri::HTML(response.body).css("a").map { |link| link["href"] }
+    page = Nokogiri::HTML(response.body)
+    links = page.css("a").map { |link| link["href"] }
     expect(links).to include(
       new_group_jjaek_path(group, quoted_jjaek_id: source.id, return_to: jjaek_path(source))
     )
     expect(links).not_to include(
       a_string_starting_with(new_jjaek_path(quoted_jjaek_id: source.id))
     )
-    expect(response.body).to include(I18n.t("jjaeks.actions.quote_in_group"))
+    requote_link = page.at_css(
+      "article#jjaek_#{source.id} a[href='#{new_group_jjaek_path(group, quoted_jjaek_id: source.id, return_to: jjaek_path(source))}']"
+    )
+    expect(requote_link.text.strip).to eq(I18n.t("jjaeks.actions.requote"))
 
     get new_group_jjaek_path(group, quoted_jjaek_id: source.id)
     expect(response).to have_http_status(:ok)
@@ -252,6 +339,14 @@ RSpec.describe "Group sharing and quotes", type: :request do
 
     page = Nokogiri::HTML(response.body)
     form = page.at_css("#jjaek-publish-form")
+    destination = form.at_css("section[aria-labelledby='jjaek-requote-destination-title']")
+    expect(destination.text).to include(group.name, I18n.t("jjaeks.form.destination_group"))
+    expect(destination.at_css("[data-group-type='private_group']").text).to eq(I18n.t("groups.types.private_group"))
+    expect(destination.at_css("[data-icon='users-round']")).to be_present
+    expect(destination.css("input, select, button")).to be_empty
+    expect(form.at_css("textarea[name='jjaek[content]']")["placeholder"]).to eq(
+      I18n.t("jjaeks.form.placeholders.named_group_requote", name: group.name)
+    )
     expect(form["action"]).to eq(group_jjaeks_path(group))
     expect(form.at_css("input[name='jjaek[quoted_jjaek_id]']")["value"]).to eq(source.id.to_s)
     expect(page.at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
@@ -266,6 +361,7 @@ RSpec.describe "Group sharing and quotes", type: :request do
     page = Nokogiri::HTML(response.body)
     expect(page.text).to include("PRIVATE_GROUP_SOURCE")
     expect(page.at_css("#jjaek-publish-form")["action"]).to eq(group_jjaeks_path(group))
+    expect(page.at_css("#jjaek-publish-form section[aria-labelledby='jjaek-requote-destination-title']").text).to include(group.name)
     expect(page.at_css("#jjaek-composer")["data-group-id"]).to eq(group.id.to_s)
 
     expect {

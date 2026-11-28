@@ -1,8 +1,6 @@
-<%= turbo_stream.replace dom_id(@jjaek, :comment_action) do %>
-  <%= render "jjaeks/comment_action", jjaek: @jjaek %>
-<% end %>
-<% if @jjaek.attached_books.exists? && @jjaek.group_id.blank? %>
-  <%= turbo_stream.replace dom_id(@jjaek, :book_friend_comment_action) do %>
-    <%= render "jjaeks/comment_action", jjaek: @jjaek, book_friend_preview: true %>
-  <% end %>
+<% action_id = dom_id(@jjaek, @comments_context == :book_friend ? :book_friend_comment_action : :comment_action) %>
+<%= turbo_stream.replace action_id, method: :morph do %>
+  <%= render "jjaeks/comment_action", jjaek: @jjaek, comments_context: @comments_context,
+             profile_user: @comments_profile_user, book: @comments_book,
+             panel_open: local_assigns.fetch(:panel_open, true) %>
 <% end %>

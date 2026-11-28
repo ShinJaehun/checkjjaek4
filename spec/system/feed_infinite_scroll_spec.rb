@@ -37,8 +37,45 @@ RSpec.describe "Feed infinite scroll", type: :system do
     expect(page.evaluate_script("window.originalFeedForm === document.querySelector(\"textarea[name='jjaek[content]']\").form")).to be(true)
     expect(page.evaluate_script("window.originalFeedCard === document.querySelector('#feed-items > article')")).to be(true)
 
-    within("#jjaek_#{posts.first.id}") { click_link I18n.t("comments.actions.view_inline") }
+    within("#jjaek_#{posts.first.id}") { click_link I18n.t("jjaeks.meta.comments", count: 1) }
     expect(page).to have_css("#comments_panel_home_jjaek_#{posts.first.id}", text: "COMMENT_ON_APPENDED_CARD")
+
+    within("#jjaek_#{posts.second.id}") { click_link I18n.t("jjaeks.meta.comments", count: 0) }
+    within("#comments_panel_home_jjaek_#{posts.second.id}") do
+      find("textarea[name='comment[content]']").set("FIRST_INLINE_COMMENT")
+      click_button I18n.t("comments.actions.submit")
+    end
+    panel = "section#comments_panel_home_jjaek_#{posts.second.id}"
+    action = "#comment_action_jjaek_#{posts.second.id}"
+    expect(page).to have_css(panel, text: "FIRST_INLINE_COMMENT")
+    within(action) { find_link(I18n.t("jjaeks.meta.comments", count: 1), exact: true).click }
+    expect(page).to have_no_css(panel)
+    within(action) { find_link(I18n.t("jjaeks.meta.comments", count: 1), exact: true).click }
+    expect(page).to have_css(panel, text: "FIRST_INLINE_COMMENT")
+
+    within("#{panel} article", text: "FIRST_INLINE_COMMENT") do
+      click_button I18n.t("comments.actions.edit")
+      find("textarea[name='comment[content]']").set("UPDATED_INLINE_COMMENT")
+      click_button I18n.t("comments.actions.update")
+    end
+    expect(page).to have_css(panel, text: "UPDATED_INLINE_COMMENT")
+    within(panel) { click_link I18n.t("comments.actions.close_inline") }
+    expect(page).to have_no_css(panel)
+    within(action) { click_link I18n.t("jjaeks.meta.comments", count: 1) }
+    within(panel) { click_button I18n.t("comments.actions.delete") }
+    expect(page).to have_no_css("#{panel} article")
+    within(action) { click_link I18n.t("jjaeks.meta.comments", count: 0) }
+    expect(page).to have_no_css(panel)
+    within(action) { click_link I18n.t("jjaeks.meta.comments", count: 0) }
+    expect(page).to have_css("#{panel} textarea[name='comment[content]']")
+
+    like = "#like_action_jjaek_#{posts.second.id} button"
+    find("#{like}[aria-pressed='false']").click
+    expect(page).to have_css("#{like}[aria-pressed='true']", exact_text: "1")
+    find("#{like}[aria-pressed='true']").click
+    expect(page).to have_css("#{like}[aria-pressed='false']", exact_text: "0")
+    expect(page).to have_css("#{panel} textarea[name='comment[content]']")
+    expect(page).to have_current_path(root_path)
   end
 
   it "pauses automatic requests after an error and lets the same next link retry" do

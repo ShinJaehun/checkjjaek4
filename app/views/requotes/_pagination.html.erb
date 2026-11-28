@@ -9,7 +9,7 @@
         <span aria-current="page" class="font-semibold"><%= number %></span>
       <% else %>
         <%= link_to number, jjaek_requotes_path(@jjaek, jjaek_detail_return_params(@jjaek).merge(page: number)),
-                    class: "underline", data: { turbo_stream: (true if request.format.turbo_stream?) } %>
+                    class: "underline" %>
       <% end %>
     <% end %>
   </nav>

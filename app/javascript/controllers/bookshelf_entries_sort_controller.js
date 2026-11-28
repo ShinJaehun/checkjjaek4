@@ -51,7 +51,7 @@ export default class extends Controller {
 
     const options = mobile ? {
       handle: "[data-bookshelf-cover]",
-      filter: (event) => event.type !== "touchstart",
+      filter: (event) => event.type !== "touchstart" || !this.touchesVisibleCover(event),
       group: { pull: false, put: false },
       delay: 350,
       touchStartThreshold: 5,
@@ -85,6 +85,40 @@ export default class extends Controller {
       onEnd: (event) => this.endDrag(event),
       ...options
     })
+  }
+
+  touchesVisibleCover(event) {
+    const cover = event.target.closest("[data-bookshelf-cover]")
+    if (!cover) return false
+
+    const slot = cover.getBoundingClientRect()
+    const insets = this.coverInsets(cover, slot)
+    if (!insets) return false
+
+    const { clientX, clientY } = event.touches[0]
+    return clientX >= slot.left + insets.side && clientX <= slot.right - insets.side &&
+      clientY >= slot.top + insets.top && clientY <= slot.bottom
+  }
+
+  coverInsets(cover, { width, height }) {
+    const image = cover.querySelector("img")
+    if (!image) return { top: 0, side: 0 } // Text-only covers fill the button.
+    if (!image.naturalWidth || !image.naturalHeight) return null
+
+    // Match .bookshelf-cover img: object-fit: contain with object-position: center bottom.
+    const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight)
+    return {
+      top: Math.max(0, height - image.naturalHeight * scale),
+      side: Math.max(0, width - image.naturalWidth * scale) / 2
+    }
+  }
+
+  updateCoverOutline() {
+    const cover = this.selectedEntry?.querySelector("[data-bookshelf-cover]")
+    if (!cover) return
+
+    const insets = this.coverInsets(cover, cover.getBoundingClientRect())
+    if (insets) cover.style.setProperty("--cover-outline-inset", `${insets.top}px ${insets.side}px 0`)
   }
 
   destroySortable() {
@@ -122,9 +156,15 @@ export default class extends Controller {
   }
 
   selectEntry(entry) {
+    this.coverResizeObserver?.disconnect()
     this.selectedEntry?.removeAttribute("data-reorder-selected")
     this.selectedEntry = entry
-    this.selectedEntry?.setAttribute("data-reorder-selected", "")
+    if (entry) {
+      this.updateCoverOutline()
+      entry.setAttribute("data-reorder-selected", "")
+      this.coverResizeObserver ??= new ResizeObserver(() => this.updateCoverOutline())
+      this.coverResizeObserver.observe(entry.querySelector("[data-bookshelf-cover]"))
+    }
     this.syncControls()
   }
 

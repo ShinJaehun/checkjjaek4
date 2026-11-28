@@ -1,4 +1,6 @@
 <% posting_group = jjaek.group %>
+<% destination_groups = local_assigns[:destination_groups] %>
+<% fixed_quote_group = posting_group if jjaek.new_record? && posting_group && jjaek.quoted_jjaek&.group_id == posting_group.id %>
 <% form_url = local_assigns[:url] || (jjaek.persisted? ? jjaek_path(jjaek) : (posting_group ? group_jjaeks_path(posting_group) : jjaeks_path)) %>
 <% sharing_to_fixed_group = jjaek.new_record? && posting_group && jjaek.quoted_jjaek && jjaek.quoted_jjaek.group_id.nil? %>
 <% form_url = jjaeks_path(share_to_group: 1, quoted_jjaek_id: jjaek.quoted_jjaek_id) if sharing_to_fixed_group %>
@@ -32,28 +34,33 @@
       <% end %>
     <% end %>
     <% unless jjaek.persisted? %>
-      <%= form.hidden_field :group_id if sharing_to_fixed_group && !local_assigns[:destination_groups] %>
+      <%= form.hidden_field :group_id if sharing_to_fixed_group && !destination_groups %>
       <%= form.hidden_field :target_user_id if jjaek.target_user_id.present? %>
       <%= form.hidden_field :quoted_jjaek_id if jjaek.quoted_jjaek_id.present? %>
     <% end %>
-    <% if local_assigns[:destination_groups] %>
-      <fieldset class="min-w-0 space-y-2">
-        <legend class="text-sm font-medium text-stone-700"><%= t("jjaeks.form.destination_group") %></legend>
-        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <% destination_groups.each do |group| %>
-            <label class="<%= jjaek_option_card_classes %> relative items-start overflow-hidden">
+    <% if destination_groups || fixed_quote_group %>
+      <% heading_id = "jjaek-requote-destination-title" unless destination_groups %>
+      <%= content_tag(destination_groups ? :fieldset : :section, class: "min-w-0 space-y-2", aria: { labelledby: heading_id }) do %>
+        <%= content_tag(destination_groups ? :legend : :h2, t("jjaeks.form.destination_group"),
+                        id: heading_id, class: "text-sm font-medium text-stone-700") %>
+        <div class="grid gap-2 <%= 'grid-cols-1 sm:grid-cols-2' if destination_groups %>">
+          <% card_classes = destination_groups ? jjaek_option_card_classes : "flex gap-2 rounded-2xl border border-stone-300 bg-white p-4 text-sm font-medium text-stone-700" %>
+          <% (destination_groups || [fixed_quote_group]).each do |group| %>
+            <%= content_tag(destination_groups ? :label : :div, class: "#{card_classes} relative items-start overflow-hidden") do %>
               <%= render "groups/color_stripe", group: %>
-              <%= form.radio_button :group_id, group.id, required: true, class: "sr-only" %>
+              <%= form.radio_button :group_id, group.id, required: true, class: "sr-only" if destination_groups %>
               <%= render "groups/profile_image", group:, image_class: "h-12 w-12 pointer-events-none select-none" %>
               <span class="min-w-0 space-y-1 break-words">
                 <span class="block"><%= group.name %></span>
                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium <%= group_type_badge_classes(group) %>" data-group-type="<%= group.group_type %>"><%= group_type_label(group) %></span>
-                <span class="block text-xs font-normal"><%= t("jjaeks.form.group_sharing.#{group.public_group? ? 'public' : 'members'}") %></span>
+                <% if destination_groups %>
+                  <span class="block text-xs font-normal"><%= t("jjaeks.form.group_sharing.#{group.public_group? ? 'public' : 'members'}") %></span>
+                <% end %>
               </span>
-            </label>
+            <% end %>
           <% end %>
         </div>
-      </fieldset>
+      <% end %>
     <% elsif jjaek.profile_conversation? %>
       <p class="text-sm text-stone-600"><%= t("jjaeks.form.profile_conversation", name: jjaek.target_user.name) %></p>
     <% elsif posting_group.blank? %>
@@ -75,8 +82,15 @@
     <% end %>
     <% photo_errors = jjaek.requote? ? [] : jjaek_photo_errors(jjaek) %>
     <% book_errors = jjaek_book_errors(jjaek) %>
+    <% placeholder = if destination_groups
+      t("jjaeks.form.placeholders.group_requote")
+    elsif fixed_quote_group
+      t("jjaeks.form.placeholders.named_group_requote", name: fixed_quote_group.name)
+    else
+      jjaek_composer_placeholder(jjaek, book_context: local_assigns[:book_context], profile_user: local_assigns[:profile_user])
+    end %>
     <%= render "shared/content_field", form: form, label_key: (jjaek.requote? ? "jjaeks.form.requote_content" : "jjaeks.form.jjaek_content"), rows: 4, excluded_errors: photo_errors + book_errors,
-               placeholder: jjaek_composer_placeholder(jjaek, book_context: local_assigns[:book_context], profile_user: local_assigns[:profile_user]) %>
+               placeholder: placeholder %>
     <%= render "jjaeks/photo_fields", jjaek: jjaek, photo_errors: photo_errors unless jjaek.requote? %>
     <% if book_errors.any? %>
       <div id="jjaek-book-errors" role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

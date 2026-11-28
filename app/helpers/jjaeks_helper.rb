@@ -32,6 +32,22 @@ module JjaeksHelper
     end
   end
 
+  def jjaek_reaction_icon(reaction, filled: false)
+    path = case reaction
+    when :heart
+      "M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8Z"
+    when :comment
+      "M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5Z"
+    when :requote
+      "m2 9 3-3 3 3M5 6v10a2 2 0 0 0 2 2h10m5-3-3 3-3-3m3 3V8a2 2 0 0 0-2-2H7"
+    end
+    tag.svg(viewBox: "0 0 24 24", fill: filled ? "currentColor" : "none", stroke: "currentColor",
+            "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round",
+            class: "size-4 shrink-0", aria: { hidden: true }, focusable: "false") do
+      tag.path(d: path)
+    end
+  end
+
   def book_post_group_options(groups)
     groups.map do |group|
       [ group.name, group.id, { "data-destination-message" => t("books.show.group_destination", name: group.name) } ]
@@ -257,10 +273,6 @@ module JjaeksHelper
     @visible_requote_counts_by_jjaek_id.to_h.fetch(jjaek.id, 0)
   end
 
-  def requote_users_for(jjaek)
-    @requote_users_by_jjaek_id.to_h.fetch(jjaek.id, [])
-  end
-
   def jjaek_edited?(jjaek)
     jjaek.content_edited_at.present?
   end
@@ -289,15 +301,6 @@ module JjaeksHelper
       dom_id(jjaek, :comments_panel_group)
     else
       raise ArgumentError, "Unsupported comments panel context: #{context}"
-    end
-  end
-
-  def requotes_panel_dom_id(jjaek, context: :detail)
-    case context.to_sym
-    when :detail
-      dom_id(jjaek, :requotes_panel)
-    else
-      raise ArgumentError, "Unsupported requotes panel context: #{context}"
     end
   end
 

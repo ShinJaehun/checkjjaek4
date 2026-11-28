@@ -202,7 +202,7 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
 
     get root_path
     home_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{general.id}")
-    expect(home_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "좋아요 1개", "댓글 1개", "댓글 보기", "글 보기")
+    expect(home_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "좋아요 1개", "댓글 1개", "글 보기")
     expect(home_card.at_css("#comment_action_jjaek_#{general.id}")).to be_present
     expect(home_card.text).not_to include(general.content, "PRIVATE PLATFORM NOTE", "운영 이력", "다시짹")
     expect(home_card.at_css(%(a[href="#{jjaek_comments_path(general, comments_context: :home)}"]))).to be_present
@@ -217,22 +217,28 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     [ general, book_jjaek, group_jjaek ].each do |jjaek|
       card = profile.at_css("#jjaek_#{jjaek.id}")
       hidden_title = "시스템 관리자에 의해 숨겨진 짹입니다."
-      expect(card.text).to include(hidden_title, "부적절한 내용", "댓글 보기", "글 보기")
+      expect(card.text).to include(hidden_title, "부적절한 내용", "글 보기")
       expect(card.text).not_to include(jjaek.content, "PRIVATE PLATFORM NOTE")
-      expect(card.at_css(%(a[href="#{jjaek_comments_path(jjaek, comments_context: :profile, profile_user_id: author.id)}"]))).to be_present
+      comments = card.at_css("#comment_action_jjaek_#{jjaek.id}")
+      if jjaek == general
+        expect(comments.at_css(%(a[href="#{jjaek_comments_path(jjaek, comments_context: :profile, profile_user_id: author.id)}"]))).to be_present
+      else
+        expect(comments.text.strip).to eq("댓글 0개")
+        expect(comments.at_css("a")).to be_nil
+      end
     end
 
     get book_path(book)
     book_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{book_jjaek.id}")
-    expect(book_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "댓글 보기", "글 보기")
+    expect(book_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "댓글 0개", "글 보기")
     expect(book_card.text).not_to include(book_jjaek.content, "PRIVATE PLATFORM NOTE")
-    expect(book_card.at_css(%(a[href="#{jjaek_comments_path(book_jjaek, comments_context: :book, book_id: book.id)}"]))).to be_present
+    expect(book_card.at_css("#comment_action_jjaek_#{book_jjaek.id} a")).to be_nil
 
     get group_path(group)
     group_card = Nokogiri::HTML(response.body).at_css("#jjaek_#{group_jjaek.id}")
-    expect(group_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "댓글 보기", "글 보기")
+    expect(group_card.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "부적절한 내용", "댓글 0개", "글 보기")
     expect(group_card.text).not_to include(group_jjaek.content, "PRIVATE PLATFORM NOTE")
-    expect(group_card.at_css(%(a[href="#{jjaek_comments_path(group_jjaek, comments_context: :group)}"]))).to be_present
+    expect(group_card.at_css("#comment_action_jjaek_#{group_jjaek.id} a")).to be_nil
 
     get jjaek_path(general)
     expect(response).to have_http_status(:ok)
@@ -315,7 +321,8 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     profile = Nokogiri::HTML(response.body)
     jjaeks.each do |jjaek|
       card = profile.at_css("#jjaek_#{jjaek.id}")
-      expect(card.text).to include(jjaek.content, "좋아요 1개", "댓글 1개", "댓글 보기", "글 보기")
+      expect(card.text).to include(jjaek.content, "좋아요 1개", "댓글 1개", "글 보기")
+      expect(card.at_css("#comment_action_jjaek_#{jjaek.id} a").text).to eq("댓글 1개")
       expect(card.text).not_to include("AUTHOR HIDDEN NOTE", "다시짹")
       expect(card.at_css(%(form[action="#{jjaek_like_path(jjaek)}"]))).to be_nil
     end
@@ -344,11 +351,11 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
 
     document = Nokogiri::HTML(response.body)
     wrapper = document.at_css("#jjaek_#{jjaek.id}")
-    expect(wrapper.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "기타", "ADMIN GROUP HIDDEN SOURCE", "좋아요 1개", "댓글 1개", "댓글 보기", "글 보기")
+    expect(wrapper.text).to include("시스템 관리자에 의해 숨겨진 짹입니다.", "기타", "ADMIN GROUP HIDDEN SOURCE", "좋아요 1개", "댓글 1개", "글 보기")
     expect(response.body.scan(%(id="jjaek_#{jjaek.id}")).size).to eq(1)
     expect(response.body.scan("ADMIN GROUP HIDDEN SOURCE").size).to eq(1)
     expect(wrapper.at_css(%(a[href="#{jjaek_comments_path(jjaek, comments_context: :group)}"]))).to be_present
-        expect(wrapper.at_css(%(a[href="#{jjaek_path(jjaek, return_to: group_path(group))}"]))).to be_present
+    expect(wrapper.at_css(%(a[href="#{jjaek_path(jjaek, return_to: group_path(group))}"]))).to be_present
     expect(wrapper.at_css(%(form[action="#{jjaek_like_path(jjaek)}"]))).to be_nil
     expect(wrapper.at_css(%(a[href="#{new_jjaek_path(quoted_jjaek_id: jjaek.id)}"]))).to be_nil
 
@@ -368,7 +375,8 @@ RSpec.describe "Admin Jjaek moderation", type: :request do
     sign_in group_admin
 
     get group_path(group)
-    expect(response.body).to include("GROUP ADMIN HIDDEN SOURCE", "시스템 관리자에 의해 숨겨진 짹입니다.", "서비스 운영 방해", "좋아요 0개", "댓글 0개", "댓글 보기", "글 보기")
+    expect(response.body).to include("GROUP ADMIN HIDDEN SOURCE", "시스템 관리자에 의해 숨겨진 짹입니다.", "서비스 운영 방해", "좋아요 0개", "댓글 0개", "글 보기")
+    expect(Nokogiri::HTML(response.body).at_css("#comment_action_jjaek_#{jjaek.id} a")).to be_nil
     expect(response.body).not_to include("GLOBAL ADMIN INTERNAL")
 
     get jjaek_path(jjaek)

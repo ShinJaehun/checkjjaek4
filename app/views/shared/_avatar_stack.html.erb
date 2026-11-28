@@ -1,9 +1,10 @@
-<%= tag.div class: "flex -space-x-2", data: local_assigns.fetch(:data, {}) do %>
+<% link_users = local_assigns.fetch(:link_users, true) %>
+<%= tag.div class: "flex -space-x-2", data: local_assigns.fetch(:data, {}), aria: ({ hidden: true } unless link_users) do %>
   <% users.first(5).each do |user| %>
-    <%= link_to user_path(user),
-                class: "relative shrink-0 rounded-full bg-stone-100 p-0.5 ring-1 ring-stone-200 hover:z-10 focus:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600",
-                title: user.name,
-                aria: { label: user.name } do %>
+    <% link_attributes = link_users ? { href: user_path(user), aria: { label: user.name } } : {} %>
+    <%= content_tag (link_users ? :a : :span),
+                    class: "relative shrink-0 rounded-full bg-stone-100 p-0.5 ring-1 ring-stone-200 hover:z-10 focus:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600",
+                    title: user.name, **link_attributes do %>
       <%= user_avatar_image(user, size: 128, alt: user.name, class: "h-8 w-8 rounded-full object-cover") %>
     <% end %>
   <% end %>

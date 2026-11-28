@@ -145,15 +145,11 @@ class ApplicationController < ActionController::Base
     original_ids = records.reject(&:requote?).filter_map(&:id).uniq
 
     @visible_requote_counts_by_jjaek_id = {}
-    @requote_users_by_jjaek_id = {}
     return if original_ids.empty?
 
     readable_requotes = policy_scope(Jjaek)
       .where(quoted_jjaek_id: original_ids)
     @visible_requote_counts_by_jjaek_id = readable_requotes.group(:quoted_jjaek_id).count
-    @requote_users_by_jjaek_id = Jjaek.requote_previews_for(requotes: readable_requotes)
-      .group_by(&:quoted_jjaek_id)
-      .transform_values { |requotes| requotes.map(&:user) }
     return unless current_user
 
     own_original_ids = records.filter_map do |jjaek|
