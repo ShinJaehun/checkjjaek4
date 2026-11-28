@@ -5,7 +5,7 @@ module Groups
     def new; end
 
     def create
-      current_user.with_lock do
+      with_active_user_lock do
         @group.with_lock do
           authorize @group, :request_reactivation?
           @group.pending_approval!

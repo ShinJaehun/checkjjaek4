@@ -40,11 +40,12 @@ class Jjaek < ApplicationRecord
   validates :quoted_jjaek_id,
             uniqueness: { scope: %i[user_id group_id] },
             allow_nil: true
-  validate :quoted_jjaek_must_be_requotable
-  validate :quoted_jjaek_must_not_be_requote
-  validate :quoted_group_jjaek_must_be_public
-  validate :quoted_jjaek_visibility_must_not_expand
-  validate :quoted_group_context_must_be_allowed
+  validate :quoted_jjaek_must_be_requotable,
+           :quoted_jjaek_must_not_be_requote,
+           :quoted_group_jjaek_must_be_public,
+           :quoted_jjaek_visibility_must_not_expand,
+           :quoted_group_context_must_be_allowed,
+           unless: :moderation_state_only_change?
   validate :group_context_must_not_target_user
   validate :attached_books_must_be_valid
   validate :photos_must_be_valid
@@ -225,6 +226,11 @@ class Jjaek < ApplicationRecord
   end
 
   private
+
+  def moderation_state_only_change?
+    # The source may have changed since the quote was created.
+    persisted? && changed_attribute_names_to_save == [ "hidden_at" ]
+  end
 
   def remember_photo_blobs
     @photo_blob_ids = photos_attachments.pluck(:blob_id)

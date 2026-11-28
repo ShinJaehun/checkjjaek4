@@ -136,6 +136,43 @@ RSpec.describe "Jjaek moderation actions", type: :request do
     expect(response).to redirect_to(jjaek_path(jjaek))
   end
 
+  it "hides an existing requote after the source becomes book-friends-only" do
+    source = author.jjaeks.create!(content: "Original post")
+    requote = member.jjaeks.create!(quoted_jjaek: source, content: "Existing requote")
+    source.update!(visibility: :book_friends)
+    sign_in admin
+
+    post admin_jjaek_hides_path(requote), params: { moderation_action: { public_reason: "other" } }
+
+    expect(response).to redirect_to(jjaek_path(requote))
+    expect(requote.reload).to be_hidden
+    expect(requote.quoted_jjaek_id).to eq(source.id)
+    expect(requote.moderation_actions.sole).to have_attributes(
+      actor: admin, action_type: "hide", moderation_authority: "platform"
+    )
+  end
+
+  it "restores an existing requote after its source becomes private without opening ordinary access" do
+    source = author.jjaeks.create!(content: "Original post")
+    requote = member.jjaeks.create!(quoted_jjaek: source, content: "Existing requote")
+    hide = create_hide!(requote, actor: admin, authority: "platform")
+    source.update!(visibility: :private_jjaek)
+    sign_in admin
+
+    post admin_jjaek_restorations_path(requote), params: { moderation_action: { public_reason: "Reviewed" } }
+
+    expect(response).to redirect_to(jjaek_path(requote))
+    expect(requote.reload).not_to be_hidden
+    expect(requote.quoted_jjaek_id).to eq(source.id)
+    expect(requote.moderation_actions.find_by!(reversal_of: hide)).to have_attributes(
+      actor: admin, action_type: "restore", moderation_authority: "platform"
+    )
+
+    sign_in other_group_admin
+    get jjaek_path(requote)
+    expect(response).to redirect_to(root_path)
+  end
+
   it "safely redirects stale platform hide pages and submissions" do
     jjaek = author.jjaeks.create!(content: "STALE PLATFORM HIDE TARGET")
     jjaek_id = jjaek.id
