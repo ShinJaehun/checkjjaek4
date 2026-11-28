@@ -67,6 +67,24 @@ RSpec.describe "Comments", type: :request do
     expect(flash[:notice]).to eq(I18n.t("comments.notices.created"))
   end
 
+  it "reports a saved comment as successful when its notification cannot be saved" do
+    sign_in user
+    allow(Notification).to receive(:find_or_create_by!).with(hash_including(action: :comment_created))
+      .and_raise(ActiveRecord::RecordInvalid.new(Notification.new))
+    expect(Rails.logger).to receive(:error)
+      .with(/Comment notification persistence failed comment_id=\d+ error=ActiveRecord::RecordInvalid/).and_call_original
+
+    expect {
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "Saved despite notification failure" } },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(jjaek.comments, :count).by(1)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Saved despite notification failure", I18n.t("comments.notices.created"))
+    expect(Notification.where(action: :comment_created, actor: user)).to be_empty
+  end
+
   it "replaces only the comments panel on turbo stream comment creation" do
     jjaek.update!(content: "JJAKE_CARD_ONLY_BODY")
     sign_in user
@@ -260,7 +278,7 @@ RSpec.describe "Comments", type: :request do
   end
 
   %w[book book_friend].each do |requested_context|
-    context "when syncing from the #{requested_context} panel" do
+    context "when submitting from the #{requested_context} panel" do
       let(:other_context) { requested_context == "book" ? "book_friend" : "book" }
       let(:panel_id) { "comments_panel_#{requested_context}_#{book.id}_jjaek_#{jjaek.id}" }
       let(:other_panel_id) { "comments_panel_#{other_context}_#{book.id}_jjaek_#{jjaek.id}" }
@@ -270,7 +288,7 @@ RSpec.describe "Comments", type: :request do
       before { sign_in user }
 
       %w[create update destroy].each do |operation|
-        it "syncs both open lists after #{operation} while preserving the other new-comment draft" do
+        it "refreshes only the requested comments panel after #{operation} and preserves the other draft" do
           page = Nokogiri::HTML.fragment("")
           [ requested_context, other_context ].each do |panel_context|
             get jjaek_comments_path(jjaek, comments_context: panel_context, book_id: book.id), headers: stream_headers
@@ -279,6 +297,7 @@ RSpec.describe "Comments", type: :request do
           end
           own_draft = page.at_css("##{panel_id} > div:last-child textarea")
           other_draft = page.at_css("##{other_panel_id} > div:last-child textarea")
+          other_list = page.at_css("##{other_panel_id}_list").inner_html
           own_draft.content = "Submitted draft"
           other_draft.content = "Unsubmitted draft"
 
@@ -298,10 +317,10 @@ RSpec.describe "Comments", type: :request do
 
           expect(response).to have_http_status(:ok)
           streams = Nokogiri::HTML.fragment(response.body).css("turbo-stream")
-          expect(streams.map { |stream| [ stream["action"], stream["target"] ] }).to include(
-            [ "replace", panel_id ], [ "update", "#{other_panel_id}_list" ]
-          )
-          expect(streams.map { |stream| stream["target"] }).not_to include(other_panel_id)
+          panel_stream = streams.find { |stream| stream["target"] == panel_id }
+          expect(panel_stream["action"]).to eq("replace")
+          expect(streams.map { |stream| stream["target"] }).not_to include(other_panel_id, "#{other_panel_id}_list")
+          expect(streams.css("template ##{other_panel_id}_list")).to be_empty
           if operation == "update"
             expect(streams.map { |stream| stream["target"] }).not_to include(
               "comment_action_jjaek_#{jjaek.id}", "book_friend_comment_action_jjaek_#{jjaek.id}"
@@ -316,32 +335,16 @@ RSpec.describe "Comments", type: :request do
           expect(streams.map { |stream| stream["target"] }).not_to include(
             "like_action_jjaek_#{jjaek.id}", "book_friend_like_action_jjaek_#{jjaek.id}"
           )
-          other_list_stream = streams.find { |stream| stream["target"] == "#{other_panel_id}_list" }
-          expect(other_list_stream.css("form[action='#{jjaek_comments_path(jjaek)}']")).to be_empty
-          expect(other_list_stream.css("input[name='comments_context']").map { |input| input["value"] }).to all(eq(other_context))
 
-          # Apply the response's replace/update operations to the two open panels.
-          streams.each do |stream|
-            target = page.at_css("##{stream['target']}")
-            next unless target
-
-            html = stream.at_css("template").inner_html
-            if stream["action"] == "replace"
-              target.replace(html)
-            elsif stream["action"] == "update"
-              target.inner_html = html
-            end
+          page.at_css("##{panel_id}").replace(panel_stream.at_css("template").inner_html)
+          list = page.at_css("##{panel_id}_list")
+          if operation == "destroy"
+            expect(list.text).not_to include("My comment")
+            expect(list.css("article")).to be_empty
+          else
+            expect(list.text).to include("Synced comment")
           end
-
-          [ panel_id, other_panel_id ].each do |id|
-            list = page.at_css("##{id}_list")
-            if operation == "destroy"
-              expect(list.text).not_to include("My comment")
-              expect(list.css("article")).to be_empty
-            else
-              expect(list.text).to include("Synced comment")
-            end
-          end
+          expect(page.at_css("##{other_panel_id}_list").inner_html).to eq(other_list)
           expect(page.at_css("##{other_panel_id} > div:last-child textarea")).to eq(other_draft)
           expect(other_draft.text).to eq("Unsubmitted draft")
           expect(page.at_css("##{panel_id} > div:last-child textarea").text).to be_blank
@@ -349,16 +352,23 @@ RSpec.describe "Comments", type: :request do
           other_ids = page.css("##{other_panel_id} [id]").map { |node| node["id"] }
           expect(own_ids & other_ids).to be_empty
 
-          # A closed panel has no list target, so the list update cannot open it.
           get jjaek_comments_path(jjaek, comments_context: other_context, book_id: book.id, panel_state: "closed"), headers: stream_headers
           closed_panel = Nokogiri::HTML.fragment(Nokogiri::HTML.fragment(response.body).at_css("template").inner_html)
           expect(closed_panel.at_css("##{other_panel_id}")).to be_present
           expect(closed_panel.at_css("##{other_panel_id}_list")).to be_nil
+
+          get jjaek_comments_path(jjaek, comments_context: other_context, book_id: book.id), headers: stream_headers
+          reopened_list = Nokogiri::HTML.fragment(response.body).at_css("template ##{other_panel_id}_list")
+          if operation == "destroy"
+            expect(reopened_list.css("article")).to be_empty
+          else
+            expect(reopened_list.text).to include("Synced comment")
+          end
         end
       end
 
       %w[create update].each do |operation|
-        it "keeps validation errors in the requested panel without syncing after failed #{operation}" do
+        it "keeps validation errors in the requested panel after failed #{operation}" do
           invalid_content = "x" * 201
           expect {
             if operation == "create"

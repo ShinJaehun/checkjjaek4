@@ -50,7 +50,7 @@ class Notification < ApplicationRecord
   }
 
   scope :unread, -> { where(read_at: nil) }
-  scope :recent, -> { order(created_at: :desc) }
+  scope :recent, -> { order(created_at: :desc, id: :desc) }
 
   after_create_commit :broadcast_badge
 
@@ -106,12 +106,12 @@ class Notification < ApplicationRecord
     end
     return unless JjaekPolicy.new(recipient, jjaek).show?
 
-    notify_once(
-      recipient:,
-      actor: comment.user,
-      action: :comment_created,
-      notifiable: comment
-    )
+    actor = comment.user
+    begin
+      notify_once(recipient:, actor:, action: :comment_created, notifiable: comment)
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved, ActiveRecord::StatementInvalid => error
+      Rails.logger.error("Comment notification persistence failed comment_id=#{comment.id} error=#{error.class}")
+    end
   end
 
   def self.notify_requote_created(requote)

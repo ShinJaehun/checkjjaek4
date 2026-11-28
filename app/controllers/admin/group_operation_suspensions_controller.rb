@@ -20,7 +20,8 @@ module Admin
       @group = Group.find(params[:group_id])
       authorize @group, :suspend_operation?
       @moderation_action = ModerationAction.new
-      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
+      return_keys = %i[q group_type status operation_status sort page]
+      @return_params = params.slice(*return_keys).permit(*return_keys)
     end
 
     def moderation_action_params

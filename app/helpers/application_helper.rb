@@ -88,7 +88,18 @@ module ApplicationHelper
   def group_history_actor_label(record)
     return t("groups.lifecycle_history.actor.unknown") unless record.actor
 
-    role = record.actor.global_admin? ? :system_admin : :group_admin
+    role = case record
+    when GroupLifecycleEvent
+      case record.event_type
+      when "opening_approved", "opening_rejected", "reactivation_approved", "reactivation_rejected"
+        :system_admin
+      when "opening_requested", "opening_cancelled", "operations_closed", "reactivation_requested", "reactivation_withdrawn"
+        :group_admin
+      end
+    when ModerationAction
+      :system_admin if record.action_type.in?(%w[suspend_group_operation restore_group_operation])
+    end
+    return record.actor.name unless role
 
     t(
       "groups.lifecycle_history.actor.label",

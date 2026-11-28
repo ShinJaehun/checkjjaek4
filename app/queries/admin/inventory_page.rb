@@ -8,8 +8,8 @@ module Admin
       PER_PAGE_OPTIONS.find { |size| size.to_s == value.to_s } || PER_PAGE
     end
 
-    def initialize(scope, page:, per_page: nil)
-      @per_page = self.class.normalize_per_page(per_page)
+    def initialize(scope, page:, per_page: nil, fixed_per_page: nil)
+      @per_page = fixed_per_page || self.class.normalize_per_page(per_page)
       @total_count = scope.except(:select, :order).count
       requested = Integer(page, exception: false).to_i
       requested = 1 if requested < 1

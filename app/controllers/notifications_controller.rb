@@ -1,9 +1,14 @@
 class NotificationsController < ApplicationController
   def index
     authorize Notification
-    @notifications = policy_scope(Notification).includes(:notifiable, actor: { avatar_attachment: :blob }).recent.to_a
-    @unread_notification_ids = @notifications.filter_map { |notification| notification.id if notification.unread? }
-    mark_notifications_as_read
+    inbox = policy_scope(Notification)
+    unread = inbox.unread
+    # Capture unread IDs across the inbox before loading any page associations.
+    unread_ids = unread.ids
+    @unread_notification_ids = unread_ids.to_set
+    @notification_page = Admin::InventoryPage.new(inbox.recent, page: params[:page], fixed_per_page: 20)
+    @notifications = @notification_page.records.includes(:notifiable, actor: { avatar_attachment: :blob }).to_a
+    mark_notifications_as_read(unread, unread_ids)
     prepare_notification_display_data
   end
 
@@ -42,11 +47,11 @@ class NotificationsController < ApplicationController
     ActiveRecord::Associations::Preloader.new(records:, associations:).call
   end
 
-  def mark_notifications_as_read
-    return if @unread_notification_ids.empty?
+  def mark_notifications_as_read(unread, unread_ids)
+    return if unread_ids.empty?
 
-    unread_notifications = current_user.received_notifications.unread.where(id: @unread_notification_ids)
-    updated_count = unread_notifications.update_all(read_at: Time.current, updated_at: Time.current)
+    now = Time.current
+    updated_count = unread.where(id: unread_ids).update_all(read_at: now, updated_at: now)
     Notification.broadcast_badge_to(current_user) if updated_count.positive?
   end
 end

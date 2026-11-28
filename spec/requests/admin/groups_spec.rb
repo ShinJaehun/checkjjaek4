@@ -97,6 +97,7 @@ RSpec.describe "Admin group approvals", type: :request do
   end
 
   it "lets a global admin list and approve pending groups" do
+    allow(ActionController::Parameters).to receive(:action_on_unpermitted_parameters).and_return(:raise)
     long_name = "아주 긴 이름으로 테이블 너비를 확인하는 어린이 독서 토론 동아리"
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: long_name, group_type: :private_group)
     sign_in admin
@@ -177,7 +178,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(approval_page.at_css(%(form[action="#{admin_group_approvals_path(group, q: "Pending", page: 2)}"]))).to be_present
     expect(approval_page.at_css(%(a[href="#{admin_group_path(group, q: "Pending", page: 2)}"]))).to be_present
 
-    post admin_group_approvals_path(group), params: { q: "Pending", page: 2 }
+    post admin_group_approvals_path(group), params: { q: "Pending", page: 2, authenticity_token: "test-token" }
     expect(response).to redirect_to(admin_group_path(group, q: "Pending", page: 2))
     expect(group.reload).to be_active
     approval = group.lifecycle_events.opening_approved.sole
@@ -396,7 +397,9 @@ RSpec.describe "Admin group approvals", type: :request do
   end
 
   it "lets only a global admin suspend and restore active group operation with audited reasons" do
+    allow(ActionController::Parameters).to receive(:action_on_unpermitted_parameters).and_return(:raise)
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Moderated club", group_type: :public_group)
+    filters = { q: active_group.name, group_type: "public_group", status: "active", sort: "name", page: 2 }
     sign_in group_admin
     post admin_group_operation_suspensions_path(active_group), params: { moderation_action: { public_reason: "other", internal_note: "Hidden" } }
     expect(active_group.reload).to be_operation_active
@@ -411,7 +414,7 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(active_status.text.strip).to eq(I18n.t("groups.current_statuses.active"))
     expect(active_status["class"]).to include("bg-emerald-100")
 
-    get new_admin_group_operation_suspension_path(active_group)
+    get new_admin_group_operation_suspension_path(active_group, filters)
     suspension_page = Nokogiri::HTML(response.body)
     suspension_context = suspension_page.at_css("[data-group-action-context]")
     expect(suspension_context.text).to include(active_group.name, "동아리 관리자", group_admin.name)
@@ -419,15 +422,17 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(suspension_context.at_css("[data-group-type='public_group']")).to be_present
     expect(suspension_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.active"))
     expect(suspension_context.at_css("[data-field='current-status']")["class"]).to include("bg-emerald-100")
-    suspend_form = suspension_page.at_css(%(form[action="#{admin_group_operation_suspensions_path(active_group)}"]))
+    suspend_form = suspension_page.at_css(%(form[action="#{admin_group_operation_suspensions_path(active_group, filters)}"]))
     reason_select = suspend_form.at_css('select[name="moderation_action[public_reason]"]')
     expect(reason_select.css("option").map { |option| option["value"] }.reject(&:blank?)).to eq(Group::SUSPENSION_REASONS)
     expect(reason_select.text).to include("반복적인 운영 정책 위반")
     expect(suspend_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_nil
 
-    post admin_group_operation_suspensions_path(active_group), params: {
+    post admin_group_operation_suspensions_path(active_group, filters), params: {
+      authenticity_token: "test-token",
       moderation_action: { public_reason: "repeated_policy_violations", internal_note: "Internal review" }
     }
+    expect(response).to redirect_to(admin_group_path(active_group, filters))
     suspension = active_group.current_operation_suspension_action
     expect(active_group.reload).to be_operation_suspended
 
@@ -444,20 +449,22 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(moderation.text).not_to include("반복적인 운영 정책 위반", "Internal review")
     expect(page.at_css("#group_operation_history").text).to include("반복적인 운영 정책 위반", "Internal review")
 
-    get new_admin_group_operation_restoration_path(active_group)
+    get new_admin_group_operation_restoration_path(active_group, filters)
     restoration_page = Nokogiri::HTML(response.body)
     restoration_context = restoration_page.at_css("[data-group-action-context]")
     expect(restoration_context.at_css(%(img[alt="#{group_admin.name}"]))).to be_present
     expect(restoration_context.at_css("[data-field='current-status']").text.strip).to eq(I18n.t("groups.current_statuses.suspended"))
     expect(restoration_context.at_css("[data-field='current-status']")["class"]).to include("bg-red-50")
-    restore_form = restoration_page.at_css(%(form[action="#{admin_group_operation_restorations_path(active_group)}"]))
+    restore_form = restoration_page.at_css(%(form[action="#{admin_group_operation_restorations_path(active_group, filters)}"]))
     expect(restore_form.at_css('textarea[name="moderation_action[public_reason]"]')).to be_present
     expect(restore_form.at_css('select[name="moderation_action[public_reason]"]')).to be_nil
     expect(restore_form.at_css('label[for="moderation_action_public_reason"]').text).to eq("복구 사유")
 
-    post admin_group_operation_restorations_path(active_group), params: {
+    post admin_group_operation_restorations_path(active_group, filters), params: {
+      authenticity_token: "test-token",
       moderation_action: { public_reason: "Resolved", internal_note: "Verified" }
     }
+    expect(response).to redirect_to(admin_group_path(active_group, filters))
     restore = ModerationAction.find_by!(reversal_of: suspension)
     expect(active_group.reload).to be_operation_active
     expect(restore).to have_attributes(action_type: "restore_group_operation", public_reason: "Resolved", internal_note: "Verified")
@@ -519,6 +526,23 @@ RSpec.describe "Admin group approvals", type: :request do
     )
     entries.first(3).each { |entry| expect(entry.text).to include("운영 관리") }
     expect(entries.first(3).map(&:text).join).not_to include("Reading together", "repeated_policy_violations")
+  end
+
+  it "shows the roles used for past operations after the actors change roles" do
+    sign_in admin
+    post admin_group_approvals_path(group)
+    post admin_group_operation_suspensions_path(group), params: { moderation_action: { public_reason: "other" } }
+
+    group_admin.update!(global_admin: true)
+    # 과거 운영 이력을 재검증하지 않고 현재 역할만 변경한다.
+    admin.update_column(:global_admin, false)
+    sign_in group_admin
+    get admin_group_path(group)
+
+    history = Nokogiri::HTML(response.body).at_css("#group_operation_history")
+    expect(history.at_css('[data-history-entry="opening_requested"]').text).to include("동아리 관리자 #{group_admin.name}")
+    expect(history.at_css('[data-history-entry="opening_approved"]').text).to include("시스템 관리자 #{admin.name}")
+    expect(history.at_css('[data-history-entry="suspend_group_operation"]').text).to include("시스템 관리자 #{admin.name}")
   end
 
   it "orders lifecycle events and platform actions newest first with stable ties" do
@@ -680,6 +704,7 @@ RSpec.describe "Admin group approvals", type: :request do
   end
 
   it "preserves current status across inventory detail navigation" do
+    allow(ActionController::Parameters).to receive(:action_on_unpermitted_parameters).and_return(:raise)
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Navigation club", group_type: :public_group)
     inventory_params = {
       q: "Navigation club",
@@ -712,6 +737,14 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(back_link["href"]).to eq(admin_groups_path(inventory_params))
     expect(detail_document.css("a[href='#{admin_groups_path(inventory_params)}']").one?).to be(true)
     expect(detail_document.at_css("a[href='#{content_admin_group_path(active_group, inventory_params)}']")).to be_present
+
+    context = { inventory: inventory_params.merge(per_page: 50), content: "comments", content_q: "Search", all_page: 2, per_page: 100 }
+    get content_admin_group_path(active_group), params: context
+
+    expect(response).to have_http_status(:ok)
+    content_document = Nokogiri::HTML(response.body)
+    expect(content_document.at_css("a[data-back-link]")["href"]).to eq(admin_groups_path(context[:inventory]))
+    expect(content_document.at_css(%(a[href="#{admin_group_path(active_group, context)}"]))).to be_present
   end
 
   it "applies whitelisted sorts and ignores invalid values" do

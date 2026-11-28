@@ -97,15 +97,56 @@ RSpec.describe "Registration invitations", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
   end
 
-  it "does not report a successful send when mail delivery raises" do
+  it "keeps a failed invitation available for resend and shows how to retry" do
     sign_in admin
-    delivery = double("mail delivery")
-    allow(delivery).to receive(:deliver_now).and_raise(StandardError, "SMTP unavailable")
-    allow(RegistrationInvitationMailer).to receive(:invite).and_return(delivery)
+    allow(RegistrationInvitationMailer).to receive(:raise_delivery_errors).and_return(false)
+    attempts = 0
+    allow_any_instance_of(Mail::TestMailer).to receive(:deliver!).and_wrap_original do |deliver, message|
+      attempts += 1
+      raise Timeout::Error, "SMTP timed out" if attempts == 1
+
+      deliver.call(message)
+    end
 
     expect {
       post admin_registration_invitations_path, params: { registration_invitation: { email: "failure@example.com" } }
-    }.to raise_error(StandardError, "SMTP unavailable")
+    }.to change(RegistrationInvitation, :count).by(1)
+
+    invitation = RegistrationInvitation.find_by!(email: "failure@example.com")
+    expect(invitation).to be_active
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(admin_registration_invitations_path)
+    expect(flash[:notice]).to be_nil
+
+    follow_redirect!
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('[role="alert"]').text).to include(I18n.t("registration_invitations.errors.delivery_failed"))
+    expect(page.at_css(%(form[action="#{resend_admin_registration_invitation_path(invitation)}"]))).to be_present
+
+    expect {
+      post resend_admin_registration_invitation_path(invitation)
+    }.not_to change(RegistrationInvitation, :count)
+    expect(flash[:notice]).to eq(I18n.t("registration_invitations.notices.resent"))
+    expect(RegistrationInvitation.find_by_token(delivered_token)).to eq(invitation)
+  end
+
+  it "reports a failed resend without restoring the old invitation token" do
+    invitation, old_token = issue_invitation
+    sign_in admin
+    delivery = double("mail delivery")
+    allow(delivery).to receive(:deliver_now).and_raise(Timeout::Error, "SMTP timed out")
+    allow(RegistrationInvitationMailer).to receive(:invite).and_return(delivery)
+
+    expect {
+      post resend_admin_registration_invitation_path(invitation)
+    }.not_to change(RegistrationInvitation, :count)
+
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(admin_registration_invitations_path)
+    expect(flash[:alert]).to eq(I18n.t("registration_invitations.errors.delivery_failed"))
+    expect(flash[:notice]).to be_nil
+    expect(invitation.reload).to be_active
+    expect(RegistrationInvitation.find_by_token(old_token)).to be_nil
   end
 
   it "uses an HTTPS registration link when the mailer has production URL options" do

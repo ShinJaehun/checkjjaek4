@@ -33,7 +33,7 @@ RSpec.describe "Jjaeks", type: :request do
     delete jjaek_path(legacy)
     expect(legacy.reload).to be_deleted
     expect(quote.reload).to have_attributes(quoted_jjaek_id: nil, quoted_source_kind: "book",
-      quoted_source_author_name: viewer.name, visibility: "private_jjaek")
+      quoted_source_author_name: nil, visibility: "private_jjaek")
     expect(quote.quoted_source_deleted_at).to eq(legacy.deleted_at)
     get jjaek_path(legacy)
     expect(Nokogiri::HTML(response.body).at_css("#jjaek_#{legacy.id}").text).to include(book.title)
@@ -1306,18 +1306,20 @@ RSpec.describe "Jjaeks", type: :request do
       expect(response).to redirect_to(root_path)
     end
 
-    it "shows a deleted-source requote with a private note to its author" do
+    it "shows the deletion notice to the requote author without exposing a legacy source name" do
       sign_in viewer
       requote
       original.destroy!
+      requote.reload.update_columns(quoted_source_author_name: "LEGACY SOURCE AUTHOR")
 
-      get jjaek_path(requote.reload)
+      get jjaek_path(requote)
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("REQUEST_VIEWER_REQUOTE_BODY")
-      expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source_title.general", name: original_author.name))
       expect(response.body).to include(I18n.t("jjaeks.labels.deleted_quoted_source"))
-      expect(response.body).not_to include("REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
+      expect(response.body).not_to include("LEGACY SOURCE AUTHOR", "REQUEST_ORIGINAL_BOOK_FRIENDS_SOURCE")
+      card = Nokogiri::HTML(response.body).at_css("article#jjaek_#{requote.id}")
+      expect(card.at_css("a[href='#{user_path(original_author)}']")).to be_nil
     end
   end
 

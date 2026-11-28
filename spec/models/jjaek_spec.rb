@@ -169,6 +169,17 @@ RSpec.describe Jjaek, type: :model do
     requote = described_class.new(user:, content: "인용", quoted_jjaek: original)
 
     expect(requote).not_to be_valid
+    expect(requote.errors.of_kind?(:quoted_jjaek, :invalid)).to be(true)
+  end
+
+  it "still validates the source visibility when editing an existing requote" do
+    source = other_user.jjaeks.create!(content: "Original post")
+    requote = user.jjaeks.create!(quoted_jjaek: source, content: "Existing requote")
+    source.update!(visibility: :book_friends)
+
+    expect(requote.update(content: "Edited requote")).to be(false)
+    expect(requote.errors.of_kind?(:visibility, :cannot_exceed_quoted_visibility)).to be(true)
+    expect(requote.reload.content).to eq("Existing requote")
   end
 
   it "does not allow broader visibility than the original jjaek" do
@@ -361,7 +372,7 @@ RSpec.describe Jjaek, type: :model do
     expect(requote).to be_private_jjaek
     expect(requote).to be_quoted_source_deleted
     expect(requote.quoted_jjaek_id).to be_nil
-    expect(requote.quoted_source_author_name).to eq(other_user.name)
+    expect(requote.quoted_source_author_name).to be_nil
     expect(requote.quoted_source_kind).to eq("book")
   end
 
@@ -375,6 +386,7 @@ RSpec.describe Jjaek, type: :model do
     expect(original.reload).to be_deleted
     expect(requote.reload).to be_quoted_source_deleted
     expect(requote.quoted_jjaek_id).to be_nil
+    expect(requote.quoted_source_author_name).to be_nil
   end
 
   it "keeps personal requotes private and group shares public after a hard delete" do
@@ -390,7 +402,7 @@ RSpec.describe Jjaek, type: :model do
     original.destroy!
 
     expect(personal_requote.reload).to be_private_jjaek
-    expect(personal_requote.quoted_source_author_name).to eq(other_user.name)
+    expect(personal_requote.quoted_source_author_name).to be_nil
     expect(group_share.reload).to be_public_jjaek
     expect(group_share).to be_quoted_source_deleted
     expect(group_share.quoted_jjaek_id).to be_nil

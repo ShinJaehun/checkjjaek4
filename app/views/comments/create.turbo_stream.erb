@@ -1,8 +1,6 @@
 <%= render "comments/replace_panel" %>
 
 <% unless @comment.errors.any? %>
-  <%= render "comments/sync_book_comments_list" %>
-
   <%= turbo_stream.update "flash-messages" do %>
     <%= render "shared/flash" %>
   <% end %>

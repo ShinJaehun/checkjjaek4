@@ -21,7 +21,8 @@ module Admin
       authorize @group, :restore_operation?
       @current_operation_suspension = @group.current_operation_suspension_action
       @moderation_action = ModerationAction.new
-      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
+      return_keys = %i[q group_type status operation_status sort page]
+      @return_params = params.slice(*return_keys).permit(*return_keys)
     end
 
     def moderation_action_params

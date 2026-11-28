@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_28_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -155,10 +155,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
   create_table "comments", force: :cascade do |t|
     t.text "content", null: false
     t.datetime "created_at", null: false
-    t.datetime "hidden_at"
     t.bigint "jjaek_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.datetime "hidden_at"
     t.index ["hidden_at"], name: "index_comments_on_hidden_at"
     t.index ["jjaek_id"], name: "index_comments_on_jjaek_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
@@ -192,11 +192,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
   end
 
   create_table "group_lifecycle_events", force: :cascade do |t|
-    t.bigint "actor_id", null: false
-    t.datetime "created_at", null: false
-    t.text "detail"
-    t.integer "event_type", null: false
     t.bigint "group_id", null: false
+    t.bigint "actor_id", null: false
+    t.integer "event_type", null: false
+    t.text "detail"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_group_lifecycle_events_on_actor_id"
     t.index ["group_id", "created_at", "id"], name: "index_group_lifecycle_events_on_group_and_time"
@@ -214,22 +214,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
   end
 
   create_table "group_member_bans", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "group_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["group_id", "user_id"], name: "index_group_member_bans_on_group_id_and_user_id", unique: true
     t.index ["group_id"], name: "index_group_member_bans_on_group_id"
     t.index ["user_id"], name: "index_group_member_bans_on_user_id"
   end
 
   create_table "group_membership_events", force: :cascade do |t|
-    t.bigint "actor_id", null: false
-    t.datetime "created_at", null: false
-    t.integer "event_type", null: false
     t.bigint "group_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.bigint "actor_id", null: false
+    t.integer "event_type", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_group_membership_events_on_actor_id"
     t.index ["group_id", "created_at", "id"], name: "index_group_membership_events_on_group_and_time"
     t.index ["group_id"], name: "index_group_membership_events_on_group_id"
@@ -237,11 +237,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
   end
 
   create_table "group_membership_removals", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "group_id", null: false
-    t.bigint "removed_by_id", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.bigint "removed_by_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["group_id", "user_id"], name: "index_group_membership_removals_on_group_id_and_user_id", unique: true
     t.index ["group_id"], name: "index_group_membership_removals_on_group_id"
     t.index ["removed_by_id"], name: "index_group_membership_removals_on_removed_by_id"
@@ -249,12 +249,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
   end
 
   create_table "group_memberships", force: :cascade do |t|
-    t.datetime "created_at", null: false
     t.bigint "group_id", null: false
-    t.integer "moderation_status", default: 0, null: false
-    t.integer "status", default: 0, null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "moderation_status", default: 0, null: false
     t.integer "position"
     t.index ["group_id", "user_id"], name: "index_group_memberships_on_group_id_and_user_id", unique: true
     t.index ["group_id"], name: "index_group_memberships_on_group_id"
@@ -263,17 +263,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
   end
 
   create_table "groups", force: :cascade do |t|
-    t.text "application_purpose"
-    t.datetime "closed_at"
-    t.text "closure_reason"
-    t.datetime "created_at", null: false
+    t.string "name", null: false
     t.text "description"
     t.bigint "group_admin_id", null: false
     t.integer "group_type", default: 0, null: false
-    t.integer "lifecycle_status", default: 0, null: false
-    t.string "name", null: false
-    t.datetime "operation_suspended_at"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "lifecycle_status", default: 0, null: false
+    t.text "application_purpose"
+    t.text "closure_reason"
+    t.datetime "closed_at"
+    t.datetime "operation_suspended_at"
     t.string "brand_color"
     t.index ["group_admin_id"], name: "index_groups_on_group_admin_id"
     t.index ["lifecycle_status"], name: "index_groups_on_lifecycle_status"
@@ -318,11 +318,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
 
   create_table "jjaeks", force: :cascade do |t|
     t.text "content", null: false
-    t.datetime "content_edited_at"
     t.datetime "created_at", null: false
-    t.datetime "deleted_at"
-    t.bigint "group_id"
-    t.datetime "hidden_at"
     t.bigint "quoted_jjaek_id"
     t.string "quoted_source_author_name"
     t.datetime "quoted_source_deleted_at"
@@ -331,6 +327,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.integer "visibility", default: 0, null: false
+    t.bigint "group_id"
+    t.datetime "content_edited_at"
+    t.datetime "deleted_at"
+    t.datetime "hidden_at"
     t.string "legacy_source_kind"
     t.index ["created_at"], name: "index_jjaeks_on_created_at"
     t.index ["group_id"], name: "index_jjaeks_on_group_id"
@@ -355,18 +355,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
   end
 
   create_table "moderation_actions", force: :cascade do |t|
-    t.integer "action_type", null: false
+    t.string "target_type", null: false
+    t.bigint "target_id", null: false
     t.bigint "actor_id", null: false
-    t.datetime "created_at", null: false
+    t.integer "action_type", null: false
+    t.text "public_reason", null: false
     t.text "internal_note"
+    t.bigint "reversal_of_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.bigint "membership_group_id"
     t.bigint "membership_user_id"
     t.string "moderation_authority"
-    t.text "public_reason", null: false
-    t.bigint "reversal_of_id"
-    t.bigint "target_id", null: false
-    t.string "target_type", null: false
-    t.datetime "updated_at", null: false
     t.index ["action_type"], name: "index_moderation_actions_on_action_type"
     t.index ["actor_id"], name: "index_moderation_actions_on_actor_id"
     t.index ["membership_group_id", "created_at", "id"], name: "index_moderation_actions_on_membership_group_and_time"
@@ -445,21 +445,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_27_000000) do
   end
 
   create_table "users", force: :cascade do |t|
-    t.boolean "accepts_book_friend_requests", default: true, null: false
-    t.boolean "accepts_group_invitations", default: true, null: false
-    t.boolean "allows_new_followers", default: true, null: false
     t.datetime "created_at", null: false
     t.integer "default_avatar_index"
     t.string "email", null: false
     t.string "encrypted_password", default: "", null: false
-    t.boolean "global_admin", default: false, null: false
     t.string "name", null: false
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
-    t.datetime "suspended_at"
     t.datetime "updated_at", null: false
+    t.boolean "global_admin", default: false, null: false
     t.datetime "withdrawn_at"
+    t.datetime "suspended_at"
+    t.boolean "accepts_book_friend_requests", default: true, null: false
+    t.boolean "accepts_group_invitations", default: true, null: false
+    t.boolean "allows_new_followers", default: true, null: false
     t.string "handle"
     t.datetime "terms_accepted_at"
     t.string "terms_version"

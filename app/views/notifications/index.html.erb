@@ -7,8 +7,8 @@
   <% if @notifications.any? %>
     <section class="space-y-3">
       <% @notifications.each do |notification| %>
-        <% unread_on_entry = @unread_notification_ids.include?(notification.id) %>
-        <article class="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm <%= "opacity-60" unless unread_on_entry %>">
+        <% unread = notification.unread? || @unread_notification_ids.include?(notification.id) %>
+        <article class="rounded-[2rem] border border-stone-200 bg-white p-5 shadow-sm <%= "opacity-60" unless unread %>">
           <%= link_to notification_target_path(notification), class: "block" do %>
             <div class="flex items-start justify-between gap-4">
               <div class="flex min-w-0 items-start gap-3">
@@ -26,6 +26,7 @@
         </article>
       <% end %>
     </section>
+    <%= render "shared/pagination", page: @notification_page if @notification_page.total_pages > 1 %>
   <% else %>
     <section class="rounded-[2rem] border border-dashed border-stone-300 bg-white p-6 text-sm text-stone-500 shadow-sm">
       <%= t("notifications.empty") %>
