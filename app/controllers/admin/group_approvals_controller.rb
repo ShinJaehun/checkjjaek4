@@ -52,7 +52,8 @@ module Admin
 
     def prepare_page
       authorize Group, :manage_approvals?
-      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page)
+      return_keys = %i[q group_type status operation_status sort page]
+      @return_params = params.slice(*return_keys).permit(*return_keys)
       @group = Group.find_by(id: params[:group_id])
 
       unless @group

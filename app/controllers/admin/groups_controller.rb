@@ -28,18 +28,16 @@ module Admin
       @active_member_count = @membership_counts.fetch("active", 0) - (admin_membership_active ? 1 : 0)
       @member_preview = @group.active_group_memberships.where.not(user_id: @group.group_admin_id)
         .includes(:user).order(:created_at, :id).limit(5).map(&:user)
-      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page, :per_page,
-                                     :content, :content_q, :content_status, :content_sort, :all_page,
-                                     inventory: %i[q group_type status operation_status sort page per_page])
+      @return_params = group_detail_return_params
     end
 
     def content
       @group = Group.find(params[:id])
       authorize @group, :view_admin_details?
       @content_section = permitted_content_section
-      @content_filter_params = params.permit(:content_q, :content_status, :content_sort, :per_page)
-      @return_params = params.permit(:q, :group_type, :status, :operation_status, :sort, :page, :per_page,
-                                     inventory: %i[q group_type status operation_status sort page per_page])
+      @detail_return_params = group_detail_return_params
+      @content_filter_params = @detail_return_params.slice(:content_q, :content_status, :content_sort, :per_page)
+      @return_params = @detail_return_params.except(*GroupContentReturnContext::FILTER_KEYS)
 
       jjaeks = policy_scope(Jjaek, policy_scope_class: JjaekPolicy::AdminInventoryScope)
         .where(group: @group)
@@ -59,6 +57,12 @@ module Admin
     end
 
     private
+
+    def group_detail_return_params
+      inventory_keys = %i[q group_type status operation_status sort page per_page]
+      keys = inventory_keys + GroupContentReturnContext::FILTER_KEYS
+      params.slice(*keys, :inventory).permit(*keys, inventory: inventory_keys)
+    end
 
     def permitted_content_section
       section = params[:content].to_s
