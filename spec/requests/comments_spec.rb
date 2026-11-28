@@ -67,6 +67,24 @@ RSpec.describe "Comments", type: :request do
     expect(flash[:notice]).to eq(I18n.t("comments.notices.created"))
   end
 
+  it "reports a saved comment as successful when its notification cannot be saved" do
+    sign_in user
+    allow(Notification).to receive(:find_or_create_by!).with(hash_including(action: :comment_created))
+      .and_raise(ActiveRecord::RecordInvalid.new(Notification.new))
+    expect(Rails.logger).to receive(:error)
+      .with(/Comment notification persistence failed comment_id=\d+ error=ActiveRecord::RecordInvalid/).and_call_original
+
+    expect {
+      post jjaek_comments_path(jjaek),
+           params: { comment: { content: "Saved despite notification failure" } },
+           headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    }.to change(jjaek.comments, :count).by(1)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Saved despite notification failure", I18n.t("comments.notices.created"))
+    expect(Notification.where(action: :comment_created, actor: user)).to be_empty
+  end
+
   it "replaces only the comments panel on turbo stream comment creation" do
     jjaek.update!(content: "JJAKE_CARD_ONLY_BODY")
     sign_in user

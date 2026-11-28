@@ -1,3 +1,6 @@
+require "net/smtp"
+require "openssl"
+
 module Admin
   class RegistrationInvitationsController < ApplicationController
     def index
@@ -12,8 +15,7 @@ module Admin
       token = @invitation.issue_token!
 
       if @invitation.save
-        RegistrationInvitationMailer.invite(@invitation, token).deliver_now
-        redirect_to admin_registration_invitations_path, notice: t("registration_invitations.notices.sent")
+        deliver_invitation(@invitation, token, notice: "registration_invitations.notices.sent")
       else
         load_invitations
         render :index, status: :unprocessable_content
@@ -26,8 +28,7 @@ module Admin
       invitation = RegistrationInvitation.find(params[:id])
       authorize invitation
       token = invitation.with_lock { invitation.resend_token! }
-      RegistrationInvitationMailer.invite(invitation, token).deliver_now
-      redirect_to admin_registration_invitations_path, notice: t("registration_invitations.notices.resent")
+      deliver_invitation(invitation, token, notice: "registration_invitations.notices.resent")
     rescue ActiveRecord::RecordInvalid
       redirect_to admin_registration_invitations_path, alert: t("registration_invitations.errors.cannot_resend")
     end
@@ -42,6 +43,15 @@ module Admin
     end
 
     private
+
+    def deliver_invitation(invitation, token, notice:)
+      RegistrationInvitationMailer.invite(invitation, token).deliver_now
+      redirect_to admin_registration_invitations_path, notice: t(notice)
+    rescue Net::SMTPError, Net::ProtocolError, SocketError, SystemCallError,
+           IOError, Timeout::Error, OpenSSL::SSL::SSLError => error
+      Rails.logger.warn("Registration invitation email delivery failed invitation_id=#{invitation.id} error=#{error.class}")
+      redirect_to admin_registration_invitations_path, alert: t("registration_invitations.errors.delivery_failed"), status: :see_other
+    end
 
     def load_invitations
       @invitation_page = InventoryPage.new(policy_scope(RegistrationInvitation).recent_first, page: params[:page])

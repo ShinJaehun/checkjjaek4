@@ -521,6 +521,23 @@ RSpec.describe "Admin group approvals", type: :request do
     expect(entries.first(3).map(&:text).join).not_to include("Reading together", "repeated_policy_violations")
   end
 
+  it "shows the roles used for past operations after the actors change roles" do
+    sign_in admin
+    post admin_group_approvals_path(group)
+    post admin_group_operation_suspensions_path(group), params: { moderation_action: { public_reason: "other" } }
+
+    group_admin.update!(global_admin: true)
+    # 과거 운영 이력을 재검증하지 않고 현재 역할만 변경한다.
+    admin.update_column(:global_admin, false)
+    sign_in group_admin
+    get admin_group_path(group)
+
+    history = Nokogiri::HTML(response.body).at_css("#group_operation_history")
+    expect(history.at_css('[data-history-entry="opening_requested"]').text).to include("동아리 관리자 #{group_admin.name}")
+    expect(history.at_css('[data-history-entry="opening_approved"]').text).to include("시스템 관리자 #{admin.name}")
+    expect(history.at_css('[data-history-entry="suspend_group_operation"]').text).to include("시스템 관리자 #{admin.name}")
+  end
+
   it "orders lifecycle events and platform actions newest first with stable ties" do
     active_group = Group.create!(lifecycle_status: :active, group_admin:, name: "Ordered history", group_type: :public_group)
     base_time = Time.zone.local(2026, 1, 1, 12)
